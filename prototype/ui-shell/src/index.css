@@ -1,0 +1,123 @@
+/* PROTOTYPE: proposed core Theme tokens. Plugins may only use these (via @ddash/ui). */
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Theme "slate": neutral, the default */
+:root, [data-theme="slate"] {
+  --font: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --radius: 0.75rem;
+  --background: #f6f7f9;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --muted: #eef0f3;
+  --muted-foreground: #64748b;
+  --border: #e2e5ea;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --up: #16a34a;
+  --down: #dc2626;
+  --warn: #d97706;
+  --maint: #7c3aed;
+}
+[data-theme="slate"].dark {
+  --background: #0b0f17;
+  --foreground: #e5e9f0;
+  --card: #121826;
+  --muted: #1a2232;
+  --muted-foreground: #8b97ab;
+  --border: #232c3d;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --up: #22c55e;
+  --down: #f43f5e;
+  --warn: #f59e0b;
+  --maint: #a78bfa;
+}
+
+/* Theme "nord": cool, soft corners */
+[data-theme="nord"] {
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --radius: 1.25rem;
+  --background: #eceff4;
+  --foreground: #2e3440;
+  --card: #f8f9fb;
+  --muted: #e5e9f0;
+  --muted-foreground: #4c566a;
+  --border: #d8dee9;
+  --primary: #5e81ac;
+  --primary-foreground: #eceff4;
+  --up: #6a9955;
+  --down: #bf616a;
+  --warn: #d08770;
+  --maint: #b48ead;
+}
+[data-theme="nord"].dark {
+  --background: #242933;
+  --foreground: #eceff4;
+  --card: #2e3440;
+  --muted: #3b4252;
+  --muted-foreground: #a3adbf;
+  --border: #434c5e;
+  --primary: #88c0d0;
+  --primary-foreground: #2e3440;
+  --up: #a3be8c;
+  --down: #bf616a;
+  --warn: #ebcb8b;
+  --maint: #b48ead;
+}
+
+/* Theme "terminal": square, dense, high contrast */
+[data-theme="terminal"] {
+  --font: "Space Grotesk", ui-monospace, monospace;
+  --radius: 0.125rem;
+  --background: #fafaf7;
+  --foreground: #111111;
+  --card: #ffffff;
+  --muted: #f0f0ea;
+  --muted-foreground: #5f5f55;
+  --border: #111111;
+  --primary: #111111;
+  --primary-foreground: #fafaf7;
+  --up: #00875a;
+  --down: #d1242f;
+  --warn: #bf8700;
+  --maint: #8250df;
+}
+[data-theme="terminal"].dark {
+  --background: #0a0a0a;
+  --foreground: #d6f5d6;
+  --card: #111311;
+  --muted: #1a1f1a;
+  --muted-foreground: #7fa07f;
+  --border: #2f4a2f;
+  --primary: #4ade80;
+  --primary-foreground: #0a0a0a;
+  --up: #4ade80;
+  --down: #ff5f5f;
+  --warn: #facc15;
+  --maint: #c084fc;
+}
+
+@theme inline {
+  --font-sans: var(--font);
+  --radius-ui: var(--radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-warn: var(--warn);
+  --color-maint: var(--maint);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font);
+}
+* { border-color: var(--border); }
