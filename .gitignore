@@ -7,3 +7,6 @@
 /bin/
 /dist/
 node_modules/
+
+# local homelab name mapping
+translate.md

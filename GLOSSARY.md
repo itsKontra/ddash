@@ -65,13 +65,29 @@ _Avoid_: Downtime, pause
 ### Network
 
 **VPN Tunnel**:
-The outbound tunnel from the firewall to a VPN provider, used as a gateway for selected traffic.
-_Avoid_: VPN (unqualified), VPN service
+The outbound path from the firewall to the VPN provider: a primary tunnel with a fallback tunnel that takes over when the primary fails. The default route for every Device's internet traffic.
+_Avoid_: VPN (unqualified), VPN service, Proton
 
 **Tunnelled**:
-Said of a network device whose traffic the firewall routes through the VPN Tunnel, by its membership in the tunnel's alias.
+Said of a Device whose internet traffic leaves through the VPN Tunnel. The default for every Device.
 _Avoid_: On the VPN
+
+**Direct**:
+Said of a Device exempted from the VPN Tunnel, whose internet traffic leaves straight through the WAN, by its membership in the firewall's bypass alias.
+_Avoid_: USE_WAN, bypass, split-tunnel, untunnelled
 
 **Remote Access**:
 WireGuard connectivity that lets the operator's own devices reach the home network from outside it.
 _Avoid_: VPN (unqualified), road warrior
+
+**Device**:
+A piece of hardware on the home network that the firewall hands addresses to, identified by its MAC address. Servers with fixed addresses and Remote Access peers are not Devices.
+_Avoid_: Client, host, machine
+
+**New Device**:
+A Device holding only a temporary address lease, with no reserved address yet.
+_Avoid_: Unknown device, unrecognised device
+
+**Adopt**:
+To give a New Device a name and a reserved address, so it stops being new.
+_Avoid_: Register, approve, claim
