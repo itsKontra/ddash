@@ -48,6 +48,10 @@ _Avoid_: Maintenance (that is a Check term), mutex
 One version of ddash as a whole: the core together with every Plugin and Component. Installed Plugins always run the same Release as the core, and updating ddash updates them all at once.
 _Avoid_: Plugin version, Component version
 
+**Catalogue**:
+The list of Plugins available in the Release ddash is running, from which the Operator installs and uninstalls them.
+_Avoid_: Store, marketplace, registry
+
 **Theme**:
 A named set of look-and-feel values (colours for light and dark, corner radius, font family) the operator picks for the whole UI. Defined by the core only, and applied to every Plugin alike.
 _Avoid_: Skin, style
