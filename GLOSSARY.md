@@ -20,12 +20,16 @@ _Avoid_: Module, extension, add-on
 A single-purpose backend unit, such as access to one external system or one Plugin's logic and state. Never installed on its own: it arrives because a Plugin or another Component requires it. Shared by everything that requires it.
 _Avoid_: Plugin (for backend units), service, module
 
+**Overview**:
+The startpage: a status summary over a grid of Widgets the operator arranges. Owned by the core, not by any Plugin.
+_Avoid_: Dashboard, home, startpage (as the defined term)
+
 **Widget**:
-A card a Plugin offers for the startpage.
+A card a Plugin offers for the Overview. It declares the sizes it supports and reports a status that the Overview summarises.
 _Avoid_: Tile, card (as the defined term)
 
 **Nav Entry**:
-A link a Plugin adds to the left navigation, leading to one of its Pages.
+A link a Plugin adds to the left navigation, leading to one of its Pages. May carry a live badge, such as a count of what is down.
 _Avoid_: Menu item, route
 
 **Page**:
