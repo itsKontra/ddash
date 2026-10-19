@@ -4,6 +4,12 @@ A self-hosted admin dashboard for one home network: it shows and controls the ap
 
 ## Language
 
+### People
+
+**Operator**:
+The one person who runs ddash and the home network, and the only kind of user ddash has.
+_Avoid_: Admin, user
+
 ### Extending ddash
 
 **Plugin**:
