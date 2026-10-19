@@ -7,12 +7,16 @@ A self-hosted admin dashboard for one home network: it shows and controls the ap
 ### Apps and what runs them
 
 **App**:
-Something the operator opens in a browser, identified by its URL (e.g. Jellyfin, Grafana). Backed by zero or one Workload.
+Something the operator opens in a browser, identified by its URL (e.g. Jellyfin, Grafana). Either discovered from a Proxy Host or added manually. Backed by zero or one Workload.
 _Avoid_: Service, container, link
 
 **Workload**:
 A unit of compute that runs software: a Docker container, a Proxmox LXC, a Proxmox VM, or an external host. One Workload can back zero or many Apps.
 _Avoid_: Container (when the kind is not specifically Docker), guest, instance
+
+**Proxy Host**:
+An nginx server block that forwards requests to an upstream. Each Proxy Host is the source of exactly one discovered App.
+_Avoid_: Virtual host, site, vhost
 
 ### Monitoring
 
