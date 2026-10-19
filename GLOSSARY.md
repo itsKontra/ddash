@@ -66,6 +66,10 @@ _Avoid_: Service, container, link
 A unit of compute that runs software: a Docker container, a Proxmox LXC, a Proxmox VM, or an external host. One Workload can back zero or many Apps.
 _Avoid_: Container (when the kind is not specifically Docker), guest, instance
 
+**Protected**:
+Said of a Workload that ddash may not start, stop or restart, because reaching ddash depends on it (such as the firewall or ddash's own host).
+_Avoid_: Locked, critical, excluded
+
 **Proxy Host**:
 An nginx server block that forwards requests to an upstream. Each Proxy Host is the source of exactly one discovered App.
 _Avoid_: Virtual host, site, vhost
