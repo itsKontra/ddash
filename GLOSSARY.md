@@ -10,6 +10,10 @@ A self-hosted admin dashboard for one home network: it shows and controls the ap
 The one person who runs ddash and the home network, and the only kind of user ddash has.
 _Avoid_: Admin, user
 
+**Action**:
+A change ddash makes to a home-network system or to its own state, such as Adopting a Device or restarting a Workload. A disruptive Action asks the Operator to confirm first.
+_Avoid_: Command, mutation, write, operation
+
 ### Extending ddash
 
 **Plugin**:
@@ -37,7 +41,7 @@ A full screen a Plugin provides, the target of a Nav Entry.
 _Avoid_: View, screen
 
 **Lock**:
-An app-wide exclusive claim one Plugin holds during disruptive work (e.g. a firewall update), which keeps everything else from interfering until it is released.
+An app-wide exclusive claim one Component holds on the Operator's behalf during disruptive work (e.g. a firewall update), which keeps everything else from interfering until it is released.
 _Avoid_: Maintenance (that is a Check term), mutex
 
 **Release**:
