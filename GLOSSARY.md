@@ -72,6 +72,14 @@ _Avoid_: Monitor, health check, ping
 A period during which a Check's results don't count toward uptime and trigger no notifications. Started by the operator, or automatically when ddash itself restarts or stops a Workload.
 _Avoid_: Downtime, pause
 
+**Notification**:
+A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering.
+_Avoid_: Alert, push
+
+**Flapping**:
+Said of a Check that keeps going down and recovering in a short time. It sends one Notification instead of one per change.
+_Avoid_: Unstable, bouncing
+
 ### Network
 
 **VPN Tunnel**:
