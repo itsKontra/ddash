@@ -19,3 +19,17 @@ _Avoid_: Container (when the kind is not specifically Docker), guest, instance
 **Check**:
 A recurring probe of a target (an App or any address) that yields up or down plus a latency.
 _Avoid_: Monitor, health check, ping
+
+### Network
+
+**VPN Tunnel**:
+The outbound tunnel from the firewall to a VPN provider, used as a gateway for selected traffic.
+_Avoid_: VPN (unqualified), VPN service
+
+**Tunnelled**:
+Said of a network device whose traffic the firewall routes through the VPN Tunnel, by its membership in the tunnel's alias.
+_Avoid_: On the VPN
+
+**Remote Access**:
+WireGuard connectivity that lets the operator's own devices reach the home network from outside it.
+_Avoid_: VPN (unqualified), road warrior
