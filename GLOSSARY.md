@@ -14,6 +14,10 @@ _Avoid_: Admin, user
 A change ddash makes to a home-network system or to its own state, such as Adopting a Device or restarting a Workload. A disruptive Action asks the Operator to confirm first.
 _Avoid_: Command, mutation, write, operation
 
+**Audit Log**:
+The record of every Action ddash takes and every Operator sign-in, kept for a year.
+_Avoid_: History, activity log, event log
+
 ### Extending ddash
 
 **Plugin**:
@@ -39,10 +43,6 @@ _Avoid_: Menu item, route
 **Page**:
 A full screen a Plugin provides, the target of a Nav Entry.
 _Avoid_: View, screen
-
-**Lock**:
-An app-wide exclusive claim one Component holds on the Operator's behalf during disruptive work (e.g. a firewall update), which keeps everything else from interfering until it is released.
-_Avoid_: Maintenance (that is a Check term), mutex
 
 **Release**:
 One version of ddash as a whole: the core together with every Plugin and Component. Installed Plugins always run the same Release as the core, and updating ddash updates them all at once.
