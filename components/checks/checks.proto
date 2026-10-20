@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+// checks probes Checks and decides when each is up or down: every 60 s with
+// a 10 s timeout, down after 3 consecutive failures (pending before that),
+// up again on one success. These are fixed; a Check sets none of them.
+package ddash.checks;
+
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/checks/checkspb;checkspb";
+
+// checks has no config.
+message ChecksConfig {}
+
+service ChecksService {
+  // ListChecks returns every Check with its state, by name. It is served
+  // from memory.
+  rpc ListChecks(ListChecksRequest) returns (ListChecksResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // CreateCheck adds a manual Check and probes it at once.
+  rpc CreateCheck(CreateCheckRequest) returns (CreateCheckResponse) {
+    option (ddash.action) = {};
+  }
+  // UpdateCheck changes a manual Check. A new type or target starts it
+  // over as pending and probes it at once; a new name keeps its state.
+  rpc UpdateCheck(UpdateCheckRequest) returns (UpdateCheckResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteCheck removes a manual Check and its history.
+  rpc DeleteCheck(DeleteCheckRequest) returns (DeleteCheckResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // SetMuted mutes or unmutes a Check: a muted Check is still probed but
+  // sends no Notification.
+  rpc SetMuted(SetMutedRequest) returns (SetMutedResponse) {
+    option (ddash.action) = {};
+  }
+  // SetDisabled stops or resumes probing a Check. A disabled Check records
+  // nothing; enabled again, it resumes from its last state.
+  rpc SetDisabled(SetDisabledRequest) returns (SetDisabledResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+enum CheckType {
+  CHECK_TYPE_UNSPECIFIED = 0;
+  // Up when a TCP connection to the target (host:port) opens.
+  CHECK_TYPE_TCP = 1;
+  // Up when the target (a host) answers any of 3 echo requests.
+  CHECK_TYPE_ICMP = 2;
+  // Up when the target, a DNS server (host, or host:port with port 53 by
+  // default), answers the query with NOERROR and at least one record.
+  CHECK_TYPE_DNS = 3;
+}
+
+// The record type a DNS Check asks for.
+enum RecordType {
+  // A.
+  RECORD_TYPE_UNSPECIFIED = 0;
+  RECORD_TYPE_A = 1;
+  RECORD_TYPE_AAAA = 2;
+  RECORD_TYPE_MX = 3;
+  RECORD_TYPE_NS = 4;
+  RECORD_TYPE_TXT = 5;
+}
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  // Not probed yet, or failing for fewer than 3 beats in a row.
+  STATE_PENDING = 1;
+  STATE_UP = 2;
+  // Failed 3 beats in a row, and hasn't succeeded since.
+  STATE_DOWN = 3;
+}
+
+// What the Operator sets on a manual Check.
+message CheckSpec {
+  // The Check's name; empty shows the target.
+  string name = 1;
+  CheckType type = 2;
+  // TCP: host:port. ICMP: a host. DNS: the server asked.
+  string target = 3;
+  // DNS only: what to ask the server.
+  DnsQuery dns = 4;
+}
+
+message DnsQuery {
+  // The name to resolve, e.g. "jellyfin.home.example".
+  string name = 1;
+  // A when unspecified.
+  RecordType record_type = 2;
+}
+
+message Check {
+  int64 id = 1;
+  CheckSpec spec = 2;
+  State state = 3;
+  // When the Check entered its state.
+  google.protobuf.Timestamp since = 4;
+  // When it was last probed; unset before its first beat.
+  google.protobuf.Timestamp last_beat = 5;
+  // The last beat's latency, when it was up: connect time for TCP, the
+  // average round trip for ICMP, the lookup's duration for DNS.
+  double latency_ms = 6;
+  // Why the last beat failed, e.g. "timeout" or "connection refused";
+  // empty when it was up.
+  string reason = 7;
+  // Failed beats in a row.
+  int32 failures = 8;
+  // Muted: no Notification.
+  bool muted = 9;
+  // Disabled: not probed.
+  bool disabled = 10;
+  // In Maintenance: its beats don't count toward uptime and it stays
+  // silent. Always false until Maintenance exists.
+  bool maintenance = 11;
+}
+
+message ListChecksRequest {}
+
+message ListChecksResponse {
+  repeated Check checks = 1;
+}
+
+message CreateCheckRequest {
+  CheckSpec spec = 1;
+}
+
+message CreateCheckResponse {
+  Check check = 1;
+}
+
+message UpdateCheckRequest {
+  int64 id = 1;
+  CheckSpec spec = 2;
+}
+
+message UpdateCheckResponse {
+  Check check = 1;
+}
+
+message DeleteCheckRequest {
+  int64 id = 1;
+}
+
+message DeleteCheckResponse {}
+
+message SetMutedRequest {
+  int64 id = 1;
+  bool muted = 2;
+}
+
+message SetMutedResponse {
+  Check check = 1;
+}
+
+message SetDisabledRequest {
+  int64 id = 1;
+  bool disabled = 2;
+}
+
+message SetDisabledResponse {
+  Check check = 1;
+}
