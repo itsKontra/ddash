@@ -1,4 +1,5 @@
 import type { Status, Widget, WidgetSize } from "@ddash/plugin";
+import { State } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, StatusDot } from "@ddash/ui";
 import { useApps, visible } from "./apps";
 import { checkStatus, useAppChecks, worst } from "./checks";
@@ -8,9 +9,10 @@ const fits: Record<WidgetSize, number> = { S: 4, M: 6, L: 16 };
 
 /**
  * The worst of the visible Apps' Checks: down names the Apps that are
- * down, warn those pending or with a certificate expiring within 14 days,
- * then Maintenance, else up with how many are. Idle without Apps or before
- * any has a Check; warn while apps or checks is unavailable.
+ * down, warn those up but Flapping or with a certificate expiring within
+ * 14 days, then Maintenance, else up with how many are. A pending Check
+ * counts for nothing. Idle without Apps or before any Check is up or down;
+ * warn while apps or checks is unavailable.
  */
 function useStatus(): Status | undefined {
   const { list, error } = useApps();
@@ -21,7 +23,13 @@ function useStatus(): Status | undefined {
   if (checksError) return { tone: "warn", summary: `checks unavailable: ${checksError.rawMessage}` };
   if (!byApp) return undefined;
   const w = worst(apps, byApp);
-  if (!w) return { tone: "idle", summary: `${apps.length} ${apps.length === 1 ? "App" : "Apps"}, no Checks yet` };
+  if (!w) {
+    const pending = apps.some((a) => {
+      const c = byApp.get(a.id);
+      return c && !c.disabled && c.state === State.PENDING;
+    });
+    return { tone: "idle", summary: `${apps.length} ${apps.length === 1 ? "App" : "Apps"}, ${pending ? "Checks pending" : "no Checks yet"}` };
+  }
   const names = w.hit.map((h) => h.app.name);
   switch (w.tone) {
     case "down":

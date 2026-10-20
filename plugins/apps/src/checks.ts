@@ -32,9 +32,10 @@ export interface CheckStatus {
 }
 
 /**
- * An App's Check status: idle without one or while disabled, maint in
- * Maintenance, else its state; an up Check that is Flapping or whose
- * certificate expires within 14 days warns. Flapping is in the label.
+ * An App's Check status: idle without one, while disabled or pending (not
+ * yet confirmed either way), maint in Maintenance, else its state; an up
+ * Check that is Flapping or whose certificate expires within 14 days warns.
+ * Flapping is in the label.
  */
 export function checkStatus(c: Check | undefined): CheckStatus {
   if (!c) return { tone: "idle", label: "no Check yet" };
@@ -50,7 +51,7 @@ export function checkStatus(c: Check | undefined): CheckStatus {
       return { tone: "down", label: c.reason ? `${down}: ${c.reason}` : down };
     }
     default:
-      return { tone: "warn", label: c.reason ? `pending: ${c.reason}` : "pending" };
+      return { tone: "idle", label: c.reason ? `pending: ${c.reason}` : "pending" };
   }
 }
 
@@ -58,7 +59,7 @@ const worse: Tone[] = ["down", "warn", "maint", "up"];
 
 /**
  * The worst of the Apps' Checks with the Apps in it, or undefined when
- * none has a Check that counts (none yet, or all disabled).
+ * none has a Check that counts (none yet, or all disabled or pending).
  */
 export function worst(apps: readonly App[], byApp: ReadonlyMap<string, Check>) {
   const rated = apps.map((app) => ({ app, status: checkStatus(byApp.get(app.id)) }));

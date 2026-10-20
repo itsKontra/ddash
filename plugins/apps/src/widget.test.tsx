@@ -33,12 +33,26 @@ it("is down, naming the Apps whose Check is down, the worst of their Checks", as
   expect(seen).toEqual({ tone: "down", summary: "1 down: Jellyfin" });
 });
 
-it("warns about pending Checks and certificates expiring within 14 days", async () => {
+it("warns about certificates expiring within 14 days, never about a pending Check", async () => {
   const noneDown = { checks: checks.checks.filter((c) => !("appId" in c) || c.appId !== "proxy:jellyfin.home.example") };
   renderScoped(<Probe />, { ListChecks: () => Response.json(noneDown) });
   await settle();
 
-  expect(seen).toEqual({ tone: "warn", summary: "pfSense: pending: timeout; Printer: up, certificate expires in 5 days" });
+  expect(seen).toEqual({ tone: "warn", summary: "Printer: up, certificate expires in 5 days" });
+});
+
+it("leaves pending Checks out of the up count, and is idle while every Check is pending", async () => {
+  const pending = (only?: string) => ({
+    checks: allUp.checks.map((c) => (!only || c.appId === only ? { ...c, state: "STATE_PENDING" } : c)),
+  });
+  renderScoped(<Probe />, { ListChecks: () => Response.json(pending("proxy:grafana.home.example")) });
+  await settle();
+  expect(seen).toEqual({ tone: "up", summary: "3 of 4 Apps up" });
+  cleanup();
+
+  renderScoped(<Probe />, { ListChecks: () => Response.json(pending()) });
+  await settle();
+  expect(seen).toEqual({ tone: "idle", summary: "4 Apps, Checks pending" });
 });
 
 it("warns about a Flapping Check that is up, and is down while it is down", async () => {
