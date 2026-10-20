@@ -1,7 +1,7 @@
 // @ddash/ui: the components every ddash UI is built from. The shell's
 // stylesheet carries their Tailwind classes, so Plugins use them without
 // generating any CSS for them.
-import type { ReactNode } from "react";
+import { useId, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 /** A status: up, down, warn (attention), maint (Maintenance) or idle (unknown). */
 export type Tone = "up" | "down" | "warn" | "maint" | "idle";
@@ -58,6 +58,86 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
         {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+/** A button: default (primary), outline, ghost, or danger for a disruptive Action. */
+export function Button({
+  variant = "default",
+  size = "md",
+  className,
+  type = "button",
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "default" | "outline" | "ghost" | "danger"; size?: "sm" | "md" }) {
+  return (
+    <button
+      type={type}
+      {...rest}
+      className={cx(
+        "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-ui font-medium transition-colors disabled:pointer-events-none disabled:opacity-40",
+        size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
+        variant === "default" && "bg-primary text-primary-foreground hover:opacity-90",
+        variant === "outline" && "border border-border bg-card hover:bg-muted",
+        variant === "ghost" && "hover:bg-muted",
+        variant === "danger" && "bg-down text-primary-foreground hover:opacity-90",
+        className,
+      )}
+    />
+  );
+}
+
+/** What a confirm dialog asks. */
+export interface ConfirmRequest {
+  /** The question, e.g. "Stop container plex on media?". */
+  text: string;
+  /** The confirm button's label. Default "Confirm". */
+  action?: string;
+  /** Offers one checkbox with this label, e.g. "Also delete data". */
+  checkbox?: string;
+}
+
+/** The Operator's answer to a confirm dialog; null when they cancelled. */
+export type ConfirmAnswer = { checked: boolean } | null;
+
+/**
+ * The standard confirm dialog every disruptive Action shows. Cancel has the
+ * focus, and Escape or a click outside cancels.
+ */
+export function ConfirmDialog({ request, onAnswer }: { request: ConfirmRequest; onAnswer: (answer: ConfirmAnswer) => void }) {
+  const [checked, setChecked] = useState(false);
+  const id = useId();
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
+      onClick={() => onAnswer(null)}
+      onKeyDown={(e) => e.key === "Escape" && onAnswer(null)}
+    >
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby={`${id}-text`}
+        className="w-full max-w-sm rounded-ui border border-border bg-card p-5 shadow-lg"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p id={`${id}-text`} className="text-sm">
+          {request.text}
+        </p>
+        {request.checkbox && (
+          <label className="mt-4 flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
+            {request.checkbox}
+          </label>
+        )}
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="outline" autoFocus onClick={() => onAnswer(null)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={() => onAnswer({ checked })}>
+            {request.action ?? "Confirm"}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
