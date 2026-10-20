@@ -4,8 +4,8 @@
 //
 // Environment:
 //
-//	DDASH_LISTEN       address to serve HTTP on (default :8080)
-//	DDASH_DATA_DIR     the data dir (default /data)
+//	DDASH_LISTEN       address to serve HTTP on (default :8080; make dev sets it)
+//	DDASH_DATA_DIR     the data dir (default /data; make dev sets it)
 //	DDASH_RELEASE_DIR         a local Release dir (catalogue.json, SHA256SUMS,
 //	                          the Component binaries and Plugin bundles) to run
 //	                          instead of the GitHub release of this core's

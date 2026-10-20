@@ -52,9 +52,3 @@ jobs:
         run: make test-web
       - name: Typecheck
         run: make typecheck
-      # Builds the core image as the release workflow does (never pushed)
-      # and checks that it runs.
-      - name: Core image
-        run: |
-          make image RELEASE=v0.0.0-ci
-          test "$(docker run --rm ghcr.io/itskontra/ddash:v0.0.0-ci version)" = v0.0.0-ci

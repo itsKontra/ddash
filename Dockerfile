@@ -18,8 +18,7 @@ COPY ddash /ddash
 # Links the GHCR package to the repo.
 LABEL org.opencontainers.image.source=https://github.com/itsKontra/ddash
 USER 65532:65532
-ENV DDASH_LISTEN=:8080 \
-    DDASH_DATA_DIR=/data
+# ddash listens on :8080 and keeps its data in /data by default.
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD ["/ddash", "healthcheck"]
