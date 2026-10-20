@@ -5,12 +5,15 @@ import { useId, useState, type FormEvent } from "react";
 import { useParams } from "react-router";
 import { latency, shownName, stateLabel, toneOf, useChecks } from "./checks";
 import { CheckDetail } from "./detail";
+import { MaintenanceBadge, MaintenanceList, MaintenanceSheet } from "./maintenance";
 
 /** The checks Page: every Check with its state and latency, and their editing. */
 export function ChecksPage() {
   const { data, error } = useChecks();
   // undefined: no form; null: adding; a Check: editing it.
   const [editing, setEditing] = useState<Check | null | undefined>(undefined);
+  // undefined: no Maintenance sheet; null: for everything or a Workload; a Check: for it.
+  const [maintaining, setMaintaining] = useState<Check | null | undefined>(undefined);
   // The Check whose detail is open, by id, so it follows the list's refreshes.
   // A Notification's link (/checks/<id>) opens it.
   const { id } = useParams();
@@ -21,8 +24,16 @@ export function ChecksPage() {
       <PageHeader
         title="Checks"
         subtitle="Every App's HTTP(S) Check plus your TCP, ICMP and DNS ones, probed every minute: down after 3 failures in a row, up again on one success."
-        actions={<Button onClick={() => setEditing(null)}>Add Check</Button>}
+        actions={
+          <>
+            <Button variant="outline" onClick={() => setMaintaining(null)}>
+              Start Maintenance
+            </Button>
+            <Button onClick={() => setEditing(null)}>Add Check</Button>
+          </>
+        }
       />
+      {data && <MaintenanceList checks={data.checks} />}
       {error && !data && <p className="text-sm text-down">{error.message}</p>}
       {data && data.checks.length === 0 && <p className="text-sm text-muted-foreground">No Checks yet. Add one to watch any address.</p>}
       {data && data.checks.length > 0 && (
@@ -40,13 +51,16 @@ export function ChecksPage() {
             </thead>
             <tbody>
               {data.checks.map((c) => (
-                <Row key={String(c.id)} check={c} onEdit={() => setEditing(c)} onShow={() => setShown(c.id)} />
+                <Row key={String(c.id)} check={c} onEdit={() => setEditing(c)} onShow={() => setShown(c.id)} onMaintain={() => setMaintaining(c)} />
               ))}
             </tbody>
           </table>
         </div>
       )}
       {editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}
+      {maintaining !== undefined && data && (
+        <MaintenanceSheet check={maintaining ?? undefined} checks={data.checks} onClose={() => setMaintaining(undefined)} />
+      )}
       {detail && <CheckDetail check={detail} onClose={() => setShown(undefined)} />}
     </div>
   );
@@ -67,7 +81,7 @@ function target(c: Check): string {
   return s?.target ?? "";
 }
 
-function Row({ check: c, onEdit, onShow }: { check: Check; onEdit: () => void; onShow: () => void }) {
+function Row({ check: c, onEdit, onShow, onMaintain }: { check: Check; onEdit: () => void; onShow: () => void; onMaintain: () => void }) {
   const mute = useAction(ChecksService.method.setMuted);
   const disable = useAction(ChecksService.method.setDisabled);
   const remove = useAction(ChecksService.method.deleteCheck);
@@ -86,6 +100,7 @@ function Row({ check: c, onEdit, onShow }: { check: Check; onEdit: () => void; o
           </button>
           {c.muted && <Badge>muted</Badge>}
           {c.certExpiring && <Badge tone="warn">certificate expiring</Badge>}
+          <MaintenanceBadge check={c} />
         </span>
       </th>
       <td className="px-2 py-2 text-muted-foreground">{typeLabels[c.spec?.type ?? CheckType.UNSPECIFIED]}</td>
@@ -106,6 +121,9 @@ function Row({ check: c, onEdit, onShow }: { check: Check; onEdit: () => void; o
               Edit
             </Button>
           )}
+          <Button variant="ghost" size="sm" disabled={busy} onClick={onMaintain}>
+            Maintenance
+          </Button>
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => mute.run({ id: c.id, muted: !c.muted })}>
             {c.muted ? "Unmute" : "Mute"}
           </Button>

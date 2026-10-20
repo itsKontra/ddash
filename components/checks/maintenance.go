@@ -342,10 +342,10 @@ func (s *store) loadMaintenance(ctx context.Context) (map[string]*maintenance, e
 	out := map[string]*maintenance{}
 	for rows.Next() {
 		var (
-			m             maintenance
-			kind, wlKind  string
-			started       int64
-			ends          sql.NullInt64
+			m            maintenance
+			kind, wlKind string
+			started      int64
+			ends         sql.NullInt64
 		)
 		if err := rows.Scan(&kind, &m.scope.checkID, &wlKind, &m.scope.workload.host, &m.scope.workload.id,
 			&started, &ends, &m.untilUp); err != nil {

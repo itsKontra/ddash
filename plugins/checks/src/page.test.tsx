@@ -22,9 +22,26 @@ const listed = {
       spec: { name: "Jellyfin", type: "CHECK_TYPE_HTTP", target: "https://jellyfin.home.example" },
       certExpires: "2026-10-30T00:00:00Z",
       certExpiring: true,
+      workload: { kind: "KIND_LXC", host: "pve1", id: "110" },
+    }),
+    check(6, "Sonarr", "STATE_DOWN", {
+      appId: "proxy:sonarr.home.example",
+      spec: { name: "Sonarr", type: "CHECK_TYPE_HTTP", target: "https://sonarr.home.example" },
+      workload: { kind: "KIND_DOCKER", host: "media", id: "sonarr" },
+      maintenance: true,
+    }),
+    check(7, "Radarr", "STATE_UP", {
+      appId: "proxy:radarr.home.example",
+      spec: { name: "Radarr", type: "CHECK_TYPE_HTTP", target: "https://radarr.home.example" },
+      workload: { kind: "KIND_DOCKER", host: "media", id: "sonarr" },
+      maintenance: true,
+      maintenanceEnds: "2026-10-20T09:30:00Z",
     }),
   ],
 };
+
+// What checks answers ListMaintenance with; none unless a test sets it.
+let maintenance: unknown[];
 
 // The fake host: ListChecks answers listed, an Action answers {} or the
 // queued refusal. Every Action call is recorded with its JSON body.
@@ -34,11 +51,13 @@ let refusal: { code: string; message: string } | undefined;
 beforeEach(() => {
   actions = [];
   refusal = undefined;
+  maintenance = [];
 });
 
 const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   const method = String(input).split("/").pop()!;
   if (method === "ListChecks") return Response.json(listed);
+  if (method === "ListMaintenance") return Response.json({ maintenance });
   actions.push({ method, body: JSON.parse(new TextDecoder().decode(init?.body as Uint8Array)) });
   if (refusal) return Response.json(refusal, { status: 400 });
   return Response.json(method === "DeleteCheck" ? {} : { check: listed.checks[0] });
@@ -198,4 +217,83 @@ it("says so when there are no Checks", async () => {
   await open();
 
   expect(screen.getByText(/No Checks yet/)).toBeTruthy();
+});
+
+it("marks the Checks in Maintenance with when it ends", async () => {
+  await open();
+
+  const sonarr = row("Sonarr");
+  expect(within(sonarr).getByRole("img", { name: "Maintenance" })).toBeTruthy();
+  expect(within(sonarr).getByText("Maintenance until ended")).toBeTruthy();
+  expect(within(row("Radarr")).getByText(/^Maintenance until \S/).textContent).not.toBe("Maintenance until ended");
+  expect(within(row("nas")).queryByText(/Maintenance until/)).toBeNull();
+});
+
+it("lists the Maintenance in force and ends one early", async () => {
+  maintenance = [
+    { scope: { everything: true }, started: "2026-10-20T08:00:00Z", ends: "2026-10-20T09:00:00Z" },
+    { scope: { workload: { kind: "KIND_DOCKER", host: "media", id: "sonarr" } }, started: "2026-10-20T08:00:00Z" },
+    { scope: { checkId: "1" }, started: "2026-10-20T08:00:00Z", untilUp: true },
+  ];
+  await open();
+
+  const region = screen.getByRole("region", { name: "Maintenance" });
+  const items = within(region).getAllByRole("listitem");
+  expect(items.map((i) => i.getAttribute("aria-label"))).toEqual(["Everything", "Docker sonarr on media", "nas"]);
+  expect(within(items[1]).getByText(/until ended/)).toBeTruthy();
+  expect(within(items[2]).getByText(/until its Checks are up/)).toBeTruthy();
+
+  fireEvent.click(within(items[1]).getByRole("button", { name: "End" }));
+  await settle();
+
+  expect(actions).toEqual([{ method: "EndMaintenance", body: { scope: { workload: { kind: "KIND_DOCKER", host: "media", id: "sonarr" } } } }]);
+});
+
+it("has no Maintenance list while none is in force", async () => {
+  await open();
+
+  expect(screen.queryByRole("region", { name: "Maintenance" })).toBeNull();
+});
+
+it("starts Maintenance on everything for 1 h by default", async () => {
+  await open();
+
+  fireEvent.click(screen.getByRole("button", { name: "Start Maintenance" }));
+  const sheet = screen.getByRole("dialog", { name: "Maintenance" });
+  expect(within(sheet).getByRole("radio", { name: "Everything" }).getAttribute("aria-checked")).toBe("true");
+  expect(within(sheet).getByRole("radio", { name: "1 h" }).getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(within(sheet).getByRole("button", { name: "Start" }));
+  await settle();
+
+  expect(actions).toEqual([{ method: "StartMaintenance", body: { scope: { everything: true }, duration: "3600s" } }]);
+  expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("starts Maintenance on a Workload its App Checks run on, until ended", async () => {
+  await open();
+
+  fireEvent.click(screen.getByRole("button", { name: "Start Maintenance" }));
+  const sheet = screen.getByRole("dialog", { name: "Maintenance" });
+  fireEvent.click(within(sheet).getByRole("radio", { name: "A Workload" }));
+  const pick = within(sheet).getByLabelText("Workload") as HTMLSelectElement;
+  expect(Array.from(pick.options).map((o) => o.text)).toEqual(["Docker sonarr on media", "LXC 110"]);
+  fireEvent.change(pick, { target: { value: pick.options[1].value } });
+  fireEvent.click(within(sheet).getByRole("radio", { name: "Until ended" }));
+  fireEvent.click(within(sheet).getByRole("button", { name: "Start" }));
+  await settle();
+
+  expect(actions).toEqual([{ method: "StartMaintenance", body: { scope: { workload: { kind: "KIND_LXC", host: "pve1", id: "110" } } } }]);
+});
+
+it("starts Maintenance for one Check from its row", async () => {
+  await open();
+
+  fireEvent.click(within(row("nas")).getByRole("button", { name: "Maintenance" }));
+  const sheet = screen.getByRole("dialog", { name: "Maintenance for nas" });
+  expect(within(sheet).queryByRole("radio", { name: "Everything" })).toBeNull();
+  fireEvent.click(within(sheet).getByRole("radio", { name: "30 min" }));
+  fireEvent.click(within(sheet).getByRole("button", { name: "Start" }));
+  await settle();
+
+  expect(actions).toEqual([{ method: "StartMaintenance", body: { scope: { checkId: "1" }, duration: "1800s" } }]);
 });

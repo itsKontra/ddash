@@ -23,7 +23,7 @@ const histories: Record<string, unknown> = {
     ],
     changes: [
       { at: "2026-10-20T07:59:00Z", up: true, state: "STATE_UP", changed: true, latencyMs: 8 },
-      { at: "2026-10-20T07:58:00Z", state: "STATE_DOWN", changed: true, reason: "connection refused" },
+      { at: "2026-10-20T07:58:00Z", state: "STATE_DOWN", changed: true, reason: "connection refused", maintenance: true },
     ],
   },
   WINDOW_30D: {
@@ -120,7 +120,7 @@ it("shows the window's latency and state changes", async () => {
   expect(within(latency).getByText("40 ms").nextElementSibling?.textContent).toBe("max");
 
   const changes = within(within(detail).getByRole("list", { name: "State changes" })).getAllByRole("listitem");
-  expect(changes.map((c) => c.textContent)).toEqual([expect.stringMatching(/^up/), expect.stringMatching(/^down.*connection refused/)]);
+  expect(changes.map((c) => c.textContent)).toEqual([expect.stringMatching(/^up/), expect.stringMatching(/^down.*connection refused.*in Maintenance$/)]);
 });
 
 it("switches to 30 d of hour buckets", async () => {
