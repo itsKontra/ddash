@@ -1,5 +1,6 @@
 // The ddash core binary. `ddash` serves the UI and runs the installed
-// Plugins' Components; `ddash healthcheck` asks a running one for /healthz.
+// Plugins' Components; `ddash healthcheck` asks a running one for /healthz
+// (the image's and compose's healthcheck); `ddash version` prints the Release.
 //
 // Environment:
 //
@@ -50,9 +51,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
 	var err error
-	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+	switch {
+	case len(os.Args) > 1 && os.Args[1] == "healthcheck":
 		err = healthcheck(ctx, "http://"+localAddr(env(os.Getenv, "DDASH_LISTEN", defaultListen)))
-	} else {
+	case len(os.Args) > 1 && os.Args[1] == "version":
+		fmt.Println(sdk.Release)
+	default:
 		err = serve(ctx, os.Getenv, func(addr string) { slog.Info("serving HTTP", "addr", addr) })
 	}
 	if err != nil {

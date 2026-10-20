@@ -1,0 +1,64 @@
+name: Release
+
+# Pushing a tag vMAJOR.MINOR.PATCH cuts that Release: the core image
+# ghcr.io/itskontra/ddash:<tag>, then one GitHub release holding every
+# Component binary (static linux/amd64), every Plugin bundle,
+# catalogue.json and SHA256SUMS. `make smoke` runs by hand before the tag
+# is pushed, never here (docs/releasing.md).
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write # the GitHub release
+  packages: write # the image on GHCR
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      RELEASE: ${{ github.ref_name }}
+      IMAGE: ghcr.io/itskontra/ddash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install the pnpm workspace
+        run: make install
+      # The same checks as every PR, on the tagged commit.
+      - name: Checks
+        run: make check
+      # Refuses a tag that isn't vMAJOR.MINOR.PATCH(-prerelease).
+      - name: Release dir
+        run: make release-dir RELEASE="$RELEASE" PLATFORM=linux/amd64
+      - name: Core image
+        run: make image RELEASE="$RELEASE" IMAGE="$IMAGE"
+      - name: The image reports its Release
+        run: test "$(docker run --rm "$IMAGE:$RELEASE" version)" = "$RELEASE"
+      # The image goes first: pushing it again is harmless, so a failed run
+      # can be re-run as a whole until the GitHub release exists.
+      - name: Push the image
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker push "$IMAGE:$RELEASE"
+      # A tag with a -prerelease suffix is a GitHub prerelease, which the
+      # core's daily newer-Release check skips.
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prerelease=()
+          if [[ "$RELEASE" == *-* ]]; then prerelease=(--prerelease); fi
+          gh release create "$RELEASE" dist/* --verify-tag --title "$RELEASE" --generate-notes "${prerelease[@]}"
