@@ -17,6 +17,12 @@ const listed = {
       reason: "timeout",
     }),
     check(4, "nvr", "STATE_UP", { disabled: true }),
+    check(5, "Jellyfin", "STATE_UP", {
+      appId: "proxy:jellyfin.home.example",
+      spec: { name: "Jellyfin", type: "CHECK_TYPE_HTTP", target: "https://jellyfin.home.example" },
+      certExpires: "2026-10-30T00:00:00Z",
+      certExpiring: true,
+    }),
   ],
 };
 
@@ -78,6 +84,19 @@ it("lists each Check with its state, latency or reason, and markers", async () =
   expect(within(adguard).getByText(/jellyfin\.home\.example A @ 198\.18\.1\.2/)).toBeTruthy();
 
   expect(within(row("nvr")).getByRole("img", { name: "disabled" })).toBeTruthy();
+});
+
+it("lists App Checks, marks an expiring certificate, and leaves their editing to their App", async () => {
+  await open();
+
+  const jellyfin = row("Jellyfin");
+  expect(within(jellyfin).getByText("HTTP")).toBeTruthy();
+  expect(within(jellyfin).getByText("https://jellyfin.home.example")).toBeTruthy();
+  expect(within(jellyfin).getByText("certificate expiring")).toBeTruthy();
+  expect(within(jellyfin).getByRole("button", { name: "Mute" })).toBeTruthy();
+  expect(within(jellyfin).getByRole("button", { name: "Disable" })).toBeTruthy();
+  expect(within(jellyfin).queryByRole("button", { name: "Edit" })).toBeNull();
+  expect(within(jellyfin).queryByRole("button", { name: "Delete" })).toBeNull();
 });
 
 it("adds a Check from the form", async () => {

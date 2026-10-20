@@ -2,8 +2,13 @@ package checks
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"fmt"
 	"net"
+	"net/http"
+	"net/url"
 	"strings"
 	"syscall"
 	"time"
@@ -23,6 +28,8 @@ type result struct {
 	latency time.Duration
 	// reason says why a failed probe failed, e.g. "timeout".
 	reason string
+	// certExpires is when an up HTTPS probe's certificate expires.
+	certExpires time.Time
 }
 
 func failed(reason string) result { return result{reason: reason} }
@@ -38,6 +45,8 @@ func (c *component) probe(ctx context.Context, s spec) result {
 		return probeICMP(ctx, s.target, Timeout)
 	case checkspb.CheckType_CHECK_TYPE_DNS:
 		return c.probeDNS(ctx, s)
+	case checkspb.CheckType_CHECK_TYPE_HTTP:
+		return c.probeHTTP(ctx, s.target)
 	}
 	return failed("unknown type " + s.typ.String())
 }
@@ -53,6 +62,89 @@ func (c *component) probeTCP(ctx context.Context, target string) result {
 	latency := time.Since(begin)
 	conn.Close()
 	return result{up: true, latency: latency}
+}
+
+// webClient is the HTTP(S) probes' client: it dials through dial, trusts
+// roots (the system's when nil), follows no redirect, uses no proxy and
+// opens a fresh connection each beat, so every beat sees the certificate
+// served now. Its dials end with life.
+func webClient(life context.Context, dial dialFunc, roots *x509.CertPool) *http.Client {
+	return &http.Client{
+		Timeout: Timeout,
+		CheckRedirect: func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Transport: &http.Transport{
+			// The Transport may finish a dial after the request gave up, so
+			// bound the dial on its own too.
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				ctx, cancel := context.WithTimeout(ctx, Timeout)
+				defer cancel()
+				defer context.AfterFunc(life, cancel)()
+				return dial(ctx, network, addr)
+			},
+			TLSClientConfig:     &tls.Config{RootCAs: roots},
+			TLSHandshakeTimeout: Timeout,
+			DisableKeepAlives:   true,
+		},
+	}
+}
+
+// probeHTTP is up when target (an http or https URL) answers with any
+// status below 500. Its latency is the time to the response's headers; an
+// HTTPS probe also notes when the certificate expires.
+func (c *component) probeHTTP(ctx context.Context, target string) result {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
+	if err != nil {
+		return failed(err.Error())
+	}
+	req.Header.Set("User-Agent", "ddash")
+	begin := time.Now()
+	resp, err := c.web.Do(req)
+	if err != nil {
+		return failed(httpReason(ctx, err))
+	}
+	latency := time.Since(begin)
+	resp.Body.Close()
+	if resp.StatusCode >= 500 {
+		return failed(fmt.Sprintf("HTTP %d", resp.StatusCode))
+	}
+	r := result{up: true, latency: latency}
+	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
+		r.certExpires = resp.TLS.PeerCertificates[0].NotAfter
+	}
+	return r
+}
+
+// httpReason says in a few words why an HTTP(S) request failed: TLS
+// problems as "TLS: …", the rest as reason does.
+func httpReason(ctx context.Context, err error) string {
+	var (
+		invalid x509.CertificateInvalidError
+		unknown x509.UnknownAuthorityError
+		host    x509.HostnameError
+		record  tls.RecordHeaderError
+		urlErr  *url.Error
+	)
+	switch {
+	case errors.As(err, &invalid) && invalid.Reason == x509.Expired:
+		return "TLS: certificate expired"
+	case errors.As(err, &invalid):
+		return "TLS: invalid certificate"
+	case errors.As(err, &unknown):
+		return "TLS: certificate signed by an unknown authority"
+	case errors.As(err, &host):
+		return "TLS: certificate not valid for " + host.Host
+	case errors.As(err, &record):
+		return "TLS: the server doesn't speak TLS"
+	case errors.As(err, &urlErr):
+		err = urlErr.Err
+	}
+	msg := reason(ctx, err)
+	if _, after, ok := strings.Cut(msg, "tls: "); ok {
+		return "TLS: " + after
+	}
+	return msg
 }
 
 // Echoes is how many echo requests an ICMP probe sends, a second apart.

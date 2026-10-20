@@ -1,8 +1,11 @@
 package checks_test
 
 import (
+	"bufio"
 	"context"
+	"fmt"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"syscall"
@@ -21,10 +24,11 @@ import (
 
 // lab fakes the network the probes dial, so time rules run in a synctest
 // bubble: each address accepts, refuses or never answers. "up 20ms"
-// accepts after 20 ms. Notifications go to its fake ntfy-api.
+// accepts after 20 ms. "http 502" answers one HTTP request with that
+// status. Notifications go to its fake ntfy-api.
 type lab struct {
 	mu    sync.Mutex
-	hosts map[string]string // addr → "up", "up <duration>", "refuse" or "hang"
+	hosts map[string]string // addr → "up", "up <duration>", "http <status>", "refuse" or "hang"
 	ntfy  *fakeNtfy
 }
 
@@ -40,11 +44,15 @@ func (l *lab) dial(ctx context.Context, _, addr string) (net.Conn, error) {
 	l.mu.Lock()
 	how := l.hosts[addr]
 	l.mu.Unlock()
-	how, wait, _ := strings.Cut(how, " ")
-	if d, err := time.ParseDuration(wait); err == nil {
+	how, arg, _ := strings.Cut(how, " ")
+	if d, err := time.ParseDuration(arg); err == nil {
 		time.Sleep(d)
 	}
 	switch how {
+	case "http":
+		client, server := net.Pipe()
+		go answerHTTP(server, arg)
+		return client, nil
 	case "up":
 		client, server := net.Pipe()
 		server.Close()
@@ -54,6 +62,15 @@ func (l *lab) dial(ctx context.Context, _, addr string) (net.Conn, error) {
 		return nil, ctx.Err()
 	}
 	return nil, &net.OpError{Op: "dial", Net: "tcp", Err: syscall.ECONNREFUSED}
+}
+
+// answerHTTP answers one HTTP request on conn with status, then hangs up.
+func answerHTTP(conn net.Conn, status string) {
+	defer conn.Close()
+	if _, err := http.ReadRequest(bufio.NewReader(conn)); err != nil {
+		return
+	}
+	fmt.Fprintf(conn, "HTTP/1.1 %s Status\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", status)
 }
 
 // startIn runs checks dialing through l. Call inside a synctest bubble.

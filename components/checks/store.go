@@ -14,7 +14,12 @@ import (
 type store struct{ db *sql.DB }
 
 var (
-	types   = map[checkspb.CheckType]string{checkspb.CheckType_CHECK_TYPE_TCP: "tcp", checkspb.CheckType_CHECK_TYPE_ICMP: "icmp", checkspb.CheckType_CHECK_TYPE_DNS: "dns"}
+	types = map[checkspb.CheckType]string{
+		checkspb.CheckType_CHECK_TYPE_TCP:  "tcp",
+		checkspb.CheckType_CHECK_TYPE_ICMP: "icmp",
+		checkspb.CheckType_CHECK_TYPE_DNS:  "dns",
+		checkspb.CheckType_CHECK_TYPE_HTTP: "http",
+	}
 	states  = map[checkspb.State]string{checkspb.State_STATE_PENDING: "pending", checkspb.State_STATE_UP: "up", checkspb.State_STATE_DOWN: "down"}
 	records = map[checkspb.RecordType]string{}
 )
@@ -47,7 +52,8 @@ func now() time.Time { return time.Now().Truncate(time.Millisecond) }
 func (s *store) load(ctx context.Context) ([]*check, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, name, type, target, dns_name, dns_record_type, muted, disabled,
-		       state, failures, since, last_beat, latency_ms, reason
+		       state, failures, since, last_beat, latency_ms, reason,
+		       COALESCE(app_id, ''), app_enabled, gone_at, cert_expires
 		FROM checks`)
 	if err != nil {
 		return nil, err
@@ -61,11 +67,14 @@ func (s *store) load(ctx context.Context) ([]*check, error) {
 			since              int64
 			lastBeat           sql.NullInt64
 			latency            float64
+			goneAt, certExp    sql.NullInt64
 		)
 		if err := rows.Scan(&ch.id, &ch.spec.name, &typ, &ch.spec.target, &ch.spec.dnsName, &record, &ch.muted, &ch.disabled,
-			&state, &ch.standing.failures, &since, &lastBeat, &latency, &ch.standing.reason); err != nil {
+			&state, &ch.standing.failures, &since, &lastBeat, &latency, &ch.standing.reason,
+			&ch.appID, &ch.appEnabled, &goneAt, &certExp); err != nil {
 			return nil, err
 		}
+		ch.goneAt, ch.standing.certExpires = fromMs(goneAt), fromMs(certExp)
 		ch.spec.typ, ch.spec.recordType, ch.standing.state = key(types, typ), key(records, record), key(states, state)
 		ch.standing.since = time.UnixMilli(since)
 		if lastBeat.Valid {
@@ -178,19 +187,66 @@ func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing,
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `
-		UPDATE checks SET state = ?, failures = ?, since = ?, last_beat = ?, latency_ms = ?, reason = ?
+		UPDATE checks SET state = ?, failures = ?, since = ?, last_beat = ?, latency_ms = ?, reason = ?, cert_expires = ?
 		WHERE id = ?`,
-		states[st.state], st.failures, ms(st.since), lastBeat(st), latencyMs(st.latency), st.reason, id); err != nil {
+		states[st.state], st.failures, ms(st.since), lastBeat(st), latencyMs(st.latency), st.reason, orNull(st.certExpires), id); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-func lastBeat(st standing) any {
-	if st.lastBeat.IsZero() {
+func lastBeat(st standing) any { return orNull(st.lastBeat) }
+
+// orNull is t in Unix ms, or NULL for the zero time.
+func orNull(t time.Time) any {
+	if t.IsZero() {
 		return nil
 	}
-	return ms(st.lastBeat)
+	return ms(t)
+}
+
+// fromMs reads a nullable Unix ms column; NULL is the zero time.
+func fromMs(v sql.NullInt64) time.Time {
+	if !v.Valid {
+		return time.Time{}
+	}
+	return time.UnixMilli(v.Int64)
+}
+
+// saveAppChecks stores App Checks as SetAppChecks left them, together:
+// it inserts those without an id, setting it, and updates the rest.
+func (s *store) saveAppChecks(ctx context.Context, chs []*check) error {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	for _, ch := range chs {
+		st := ch.standing
+		if ch.id == 0 {
+			res, err := tx.ExecContext(ctx, `
+				INSERT INTO checks (kind, app_id, name, type, target, app_enabled, state, since)
+				VALUES ('app', ?, ?, 'http', ?, ?, ?, ?)`,
+				ch.appID, ch.spec.name, ch.spec.target, ch.appEnabled, states[st.state], ms(st.since))
+			if err != nil {
+				return err
+			}
+			if ch.id, err = res.LastInsertId(); err != nil {
+				return err
+			}
+			continue
+		}
+		if _, err := tx.ExecContext(ctx, `
+			UPDATE checks SET name = ?, target = ?, app_enabled = ?, gone_at = ?,
+			       state = ?, failures = ?, since = ?, last_beat = ?, latency_ms = ?, reason = ?, cert_expires = ?
+			WHERE id = ?`,
+			ch.spec.name, ch.spec.target, ch.appEnabled, orNull(ch.goneAt),
+			states[st.state], st.failures, ms(st.since), lastBeat(st), latencyMs(st.latency), st.reason, orNull(st.certExpires),
+			ch.id); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }
 
 func latencyMs(d time.Duration) float64 { return float64(d) / float64(time.Millisecond) }

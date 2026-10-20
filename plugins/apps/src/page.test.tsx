@@ -31,6 +31,29 @@ it("shows the visible Apps as cards by group, ungrouped ones in the default sect
   expect(names("Hidden")).toEqual(["Old"]);
 });
 
+it("shows each card's Check status, and warns of a certificate expiring within 14 days", async () => {
+  renderScoped(<Page />);
+  await settle();
+
+  const card = (name: string) => screen.getByRole("listitem", { name });
+  const status = (name: string) => within(card(name)).getByRole("status").textContent;
+  expect(status("Grafana")).toBe("up");
+  expect(status("Jellyfin")).toBe("down: HTTP 502");
+  expect(status("pfSense")).toBe("pending: timeout");
+  expect(status("Old")).toBe("Check disabled");
+  expect(status("Printer")).toBe("up, certificate expires in 5 days");
+  expect(within(card("Jellyfin")).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
+  expect(within(card("Printer")).getByRole("img", { name: "up, certificate expires in 5 days" })).toBeTruthy();
+});
+
+it("shows the cards without a Check status while checks is unavailable", async () => {
+  renderScoped(<Page />, { ListChecks: () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }) });
+  await settle();
+
+  expect(within(screen.getByRole("listitem", { name: "Jellyfin" })).queryByRole("status")).toBeNull();
+  expect(screen.getByText("Check status unavailable: checks is down")).toBeTruthy();
+});
+
 it("shows each card's icon, name, URL and aliases, and opens the URL on a click", async () => {
   renderScoped(<Page />);
   await settle();

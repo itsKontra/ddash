@@ -14,6 +14,7 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/apps/appspb"
+	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
@@ -85,15 +86,26 @@ func block(names []string, listens ...string) *nginxconfigpb.Server {
 }
 
 type started struct {
-	h *sdktest.Harness
-	c appspb.AppsServiceClient
+	h      *sdktest.Harness
+	c      appspb.AppsServiceClient
+	checks *checksFake
 }
 
 func start(t *testing.T, n *nginx, opts ...sdktest.Option) started {
 	t.Helper()
-	h := sdktest.New(t, apps.Definition(), append([]sdktest.Option{sdktest.WithClient[nginxconfigpb.NginxConfigServiceClient](n)}, opts...)...)
+	return startWith(t, n, &checksFake{}, opts...)
+}
+
+// startWith runs apps against n and the checks fake f.
+func startWith(t *testing.T, n *nginx, f *checksFake, opts ...sdktest.Option) started {
+	t.Helper()
+	fakes := []sdktest.Option{
+		sdktest.WithClient[nginxconfigpb.NginxConfigServiceClient](n),
+		sdktest.WithClient[checkspb.ChecksServiceClient](f),
+	}
+	h := sdktest.New(t, apps.Definition(), append(fakes, opts...)...)
 	h.MustStart(&appspb.AppsConfig{})
-	return started{h, appspb.NewAppsServiceClient(h.Conn)}
+	return started{h, appspb.NewAppsServiceClient(h.Conn), f}
 }
 
 func (s started) list(t *testing.T) *appspb.ListAppsResponse {

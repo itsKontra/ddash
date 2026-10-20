@@ -20,7 +20,7 @@ export function ChecksPage() {
     <div>
       <PageHeader
         title="Checks"
-        subtitle="TCP, ICMP and DNS Checks, probed every minute: down after 3 failures in a row, up again on one success."
+        subtitle="Every App's HTTP(S) Check plus your TCP, ICMP and DNS ones, probed every minute: down after 3 failures in a row, up again on one success."
         actions={<Button onClick={() => setEditing(null)}>Add Check</Button>}
       />
       {error && !data && <p className="text-sm text-down">{error.message}</p>}
@@ -57,6 +57,7 @@ const typeLabels: Record<CheckType, string> = {
   [CheckType.TCP]: "TCP",
   [CheckType.ICMP]: "ICMP",
   [CheckType.DNS]: "DNS",
+  [CheckType.HTTP]: "HTTP",
 };
 
 /** What a Check probes, e.g. "nas.home.example:22" or "nas.home.example A @ 198.18.1.2". */
@@ -84,6 +85,7 @@ function Row({ check: c, onEdit, onShow }: { check: Check; onEdit: () => void; o
             {shownName(c)}
           </button>
           {c.muted && <Badge>muted</Badge>}
+          {c.certExpiring && <Badge tone="warn">certificate expiring</Badge>}
         </span>
       </th>
       <td className="px-2 py-2 text-muted-foreground">{typeLabels[c.spec?.type ?? CheckType.UNSPECIFIED]}</td>
@@ -98,25 +100,30 @@ function Row({ check: c, onEdit, onShow }: { check: Check; onEdit: () => void; o
               {failure.rawMessage}
             </span>
           )}
-          <Button variant="ghost" size="sm" disabled={busy} onClick={onEdit}>
-            Edit
-          </Button>
+          {/* An App Check follows its App: it is edited and removed in apps. */}
+          {!c.appId && (
+            <Button variant="ghost" size="sm" disabled={busy} onClick={onEdit}>
+              Edit
+            </Button>
+          )}
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => mute.run({ id: c.id, muted: !c.muted })}>
             {c.muted ? "Unmute" : "Mute"}
           </Button>
           <Button variant="ghost" size="sm" disabled={busy} onClick={() => disable.run({ id: c.id, disabled: !c.disabled })}>
             {c.disabled ? "Enable" : "Disable"}
           </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() =>
-              remove.run({ id: c.id }, { confirm: { text: `Delete the Check ${shownName(c)}? Its history goes with it.`, action: "Delete" } })
-            }
-          >
-            Delete
-          </Button>
+          {!c.appId && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                remove.run({ id: c.id }, { confirm: { text: `Delete the Check ${shownName(c)}? Its history goes with it.`, action: "Delete" } })
+              }
+            >
+              Delete
+            </Button>
+          )}
         </div>
       </td>
     </tr>
