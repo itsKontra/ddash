@@ -55,11 +55,11 @@ export function tally(checks: readonly Check[]) {
 /** Why an up Check warns: "nas flapping", "Jellyfin certificate expiring". */
 export const warning = (c: Check) => `${shownName(c)} ${c.flapping ? "flapping" : "certificate expiring"}`;
 
-/** The Nav Entry's badge: how many Checks are down, or none. */
+/** The Nav Entry's badge: "N down", or none. */
 export function useDownBadge(): Badge | null {
   const { data } = useChecks();
   const down = data ? tally(data.checks).down.length : 0;
-  return down ? { count: down, tone: "down" } : null;
+  return down ? { text: `${down} down`, tone: "down" } : null;
 }
 
 /** A latency in ms as people read it. */

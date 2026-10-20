@@ -56,7 +56,7 @@ it("reports down, naming what's down, with an N down badge", async () => {
   );
 
   expect(reported.status).toEqual({ tone: "down", summary: "2 down: nas, 198.18.1.5" });
-  expect(reported.badge).toEqual({ count: 2, tone: "down" });
+  expect(reported.badge).toEqual({ text: "2 down", tone: "down" });
   expect([stat("up"), stat("down")]).toEqual(["1", "2"]);
 });
 
