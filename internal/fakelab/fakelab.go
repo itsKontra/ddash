@@ -5,8 +5,9 @@
 //
 // Docker comes first; each later system adds itself to systems (HTTP) or
 // sshSystems (SSH). A system whose Actions must stick is served by a
-// stateful fake over its fixtures (pfSense: pfsensefake). A named scenario (e.g. "vpn-on-fallback") replaces the
-// baseline of every system that has a sibling directory of that name.
+// stateful fake over its fixtures (pfSense: pfsensefake). A named scenario
+// (e.g. "vpn-on-fallback") replaces the baseline of every system that has
+// a sibling directory of that name.
 package fakelab
 
 import (

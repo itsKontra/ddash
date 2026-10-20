@@ -1,6 +1,7 @@
 import type { Device } from "@ddash/proto/network/network_pb";
 import { Badge, StatusDot } from "@ddash/ui";
 import { Link } from "react-router";
+import { DeviceAction } from "./adopt";
 import { detailPath, nameOf, tally, useDevices } from "./devices";
 
 /** The Devices section's header aside: how many are New. */
@@ -22,7 +23,7 @@ export function Routing({ device: d }: { device: Device }) {
 
 const cell = "px-2 py-2";
 
-/** Every Device with its routing and status; each name opens its detail. */
+/** Every Device with its routing and status; each name opens its detail, and a New one has Adopt. */
 export function DevicesTable() {
   const { data, error } = useDevices();
   if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
@@ -66,7 +67,10 @@ export function DevicesTable() {
             <td className={`${cell} text-muted-foreground tabular-nums`}>{d.ip}</td>
             <td className={`${cell} text-xs text-muted-foreground tabular-nums`}>{d.mac}</td>
             <td className={cell}>
-              <Adoption device={d} />
+              <span className="inline-flex items-center gap-2">
+                <Adoption device={d} />
+                {!d.adopted && <DeviceAction device={d} />}
+              </span>
             </td>
             <td className={`${cell} pr-4`}>
               <Routing device={d} />
