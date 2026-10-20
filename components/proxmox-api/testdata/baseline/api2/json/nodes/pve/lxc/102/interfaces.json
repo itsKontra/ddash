@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"name": "lo", "hwaddr": "00:00:00:00:00:00", "inet": "127.0.0.1/8", "ip-addresses": [{"ip-address-type": "inet", "ip-address": "127.0.0.1", "prefix": 8}]},
+    {"name": "eth0", "hwaddr": "02:5e:1a:00:01:02", "inet": "198.18.2.10/24", "ip-addresses": [{"ip-address-type": "inet", "ip-address": "198.18.2.10", "prefix": 24}]},
+    {"name": "docker0", "hwaddr": "02:5e:1a:00:02:02", "inet": "198.18.200.1/24", "ip-addresses": [{"ip-address-type": "inet", "ip-address": "198.18.200.1", "prefix": 24}]}
+  ]
+}

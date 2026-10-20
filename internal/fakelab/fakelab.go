@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -34,6 +35,14 @@ var systems = []system{
 		fixtures:  "components/docker-api/testdata/baseline",
 		config: func(addr string) proto.Message {
 			return &dockerapipb.DockerApiConfig{Hosts: []*dockerapipb.Host{{Name: "media", Url: "tcp://" + addr}}}
+		},
+	},
+	{
+		component: "proxmox-api",
+		fixtures:  "components/proxmox-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			// Plain http: the lab has no certificate a Component trusts.
+			return &proxmoxapipb.ProxmoxApiConfig{Url: "http://" + addr, TokenId: "ddash@pve!fakelab", TokenSecret: "fakelab"}
 		},
 	},
 }

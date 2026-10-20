@@ -1,0 +1,7 @@
+{
+  "data": {"result": [
+    {"name": "lo", "hardware-address": "00:00:00:00:00:00", "ip-addresses": [{"ip-address-type": "ipv4", "ip-address": "127.0.0.1", "prefix": 8}]},
+    {"name": "enp0s18", "hardware-address": "02:5e:1a:00:01:10", "ip-addresses": [{"ip-address-type": "ipv4", "ip-address": "198.18.1.20", "prefix": 24}, {"ip-address-type": "ipv6", "ip-address": "2001:db8:1::20", "prefix": 64}],
+      "statistics": {"rx-bytes": 52428800, "rx-dropped": 0, "rx-errs": 0, "rx-packets": 40000, "tx-bytes": 10485760, "tx-dropped": 0, "tx-errs": 0, "tx-packets": 30000}}
+  ]}
+}

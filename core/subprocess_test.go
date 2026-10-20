@@ -40,6 +40,13 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"jellyfin"`) {
 		t.Errorf("ListContainers: status %d: %s; want baseline's jellyfin", res.Code, res.Body)
 	}
+
+	h.Install("proxmox")
+	h.WaitState("proxmox-api", runtime.OK)
+	res = h.Call("proxmox", "proxmox-api", "ListWorkloads", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"nginx"`) {
+		t.Errorf("ListWorkloads: status %d: %s; want baseline's nginx", res.Code, res.Body)
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello
