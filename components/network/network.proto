@@ -56,6 +56,57 @@ service NetworkService {
   rpc GetRemoteAccess(GetRemoteAccessRequest) returns (GetRemoteAccessResponse) {
     option (ddash.getter) = {};
   }
+  // NextReservedAddress returns the lowest address in the reserved range
+  // that no static mapping and no current lease holds: what Adopt offers.
+  rpc NextReservedAddress(NextReservedAddressRequest) returns (NextReservedAddressResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // AdoptDevice gives a New Device a name and a reserved address: a static
+  // mapping on the DHCP server of the interface whose subnet holds the
+  // address. The Device moves to it when its lease renews.
+  rpc AdoptDevice(AdoptDeviceRequest) returns (AdoptDeviceResponse) {
+    option (ddash.action) = {};
+  }
+  // RenameDevice renames an Adopted Device: its static mapping's
+  // description. Its address and reservation stay as they are; changing or
+  // removing them is done in pfSense.
+  rpc RenameDevice(RenameDeviceRequest) returns (RenameDeviceResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message NextReservedAddressRequest {}
+
+message NextReservedAddressResponse {
+  // The lowest free address; empty when the range is full.
+  string ip = 1;
+  // The configured reserved range, e.g. "198.18.1.20-198.18.1.49".
+  string reserved_range = 2;
+}
+
+message AdoptDeviceRequest {
+  // The New Device's MAC.
+  string mac = 1;
+  // Its name, written as the static mapping's description.
+  string name = 2;
+  // The address to reserve, in the reserved range; empty for the lowest
+  // free one.
+  string ip = 3;
+}
+
+message AdoptDeviceResponse {
+  Device device = 1;
+}
+
+message RenameDeviceRequest {
+  // The Adopted Device's MAC.
+  string mac = 1;
+  // Its new name.
+  string name = 2;
+}
+
+message RenameDeviceResponse {
+  Device device = 1;
 }
 
 message ListDevicesRequest {}
