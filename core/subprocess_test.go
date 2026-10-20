@@ -48,6 +48,14 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"jellyfin.home.example"`) {
 		t.Errorf("GetSnapshot: status %d: %s; want baseline's jellyfin server block", res.Code, res.Body)
 	}
+
+	// apps reads nginx-config's snapshot through the host (GRPCBroker).
+	h.Install("apps")
+	h.WaitState("apps", runtime.OK)
+	res = h.Call("apps", "apps", "ListApps", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"url":"https://jellyfin.home.example"`) {
+		t.Errorf("ListApps: status %d: %s; want baseline's jellyfin App", res.Code, res.Body)
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello

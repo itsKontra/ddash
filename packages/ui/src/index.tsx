@@ -246,6 +246,57 @@ export function Hero({ tone, headline, problems }: { tone: Tone; headline: React
   );
 }
 
+/** Where an icon of homarr-labs/dashboard-icons is served, by its name. */
+export const dashboardIcon = (name: string) => `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/${name}.svg`;
+
+/** A dashboard-icons name read off an App's name: "Home Assistant" → "home-assistant". */
+export const iconName = (name: string) =>
+  name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/**
+ * An App's icon: the dashboard-icons icon named icon (else matched by the
+ * App's name), falling back to the favicon of its url, then to the name's
+ * first letter.
+ */
+export function AppIcon({ name, icon, url, size = 36 }: { name: string; icon?: string; url?: string; size?: number }) {
+  const sources: string[] = [];
+  const slug = icon || iconName(name);
+  if (slug) sources.push(dashboardIcon(slug));
+  try {
+    if (url) sources.push(new URL("/favicon.ico", url).href);
+  } catch {
+    // not a URL: no favicon to try
+  }
+  const [failed, setFailed] = useState<readonly string[]>([]);
+  const src = sources.find((s) => !failed.includes(s));
+  if (!src)
+    return (
+      <span
+        aria-hidden="true"
+        style={{ width: size, height: size }}
+        className="inline-flex shrink-0 items-center justify-center rounded-ui bg-muted text-sm font-semibold text-muted-foreground"
+      >
+        {name.charAt(0).toUpperCase()}
+      </span>
+    );
+  return (
+    <img
+      src={src}
+      onError={() => setFailed((f) => [...f, src])}
+      width={size}
+      height={size}
+      alt=""
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      className="shrink-0 object-contain"
+    />
+  );
+}
+
 /** A drawer from the right, e.g. the Overview's Add Widget picker. Escape or a click outside closes it. */
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   const id = useId();
