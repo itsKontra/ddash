@@ -69,9 +69,12 @@ type ListCatalogueResponse struct {
 	// By name.
 	Plugins []*CataloguePlugin `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty"`
 	// Components whose DB file is kept although nothing runs them, by name.
-	Orphans       []string `protobuf:"bytes,3,rep,name=orphans,proto3" json:"orphans,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Orphans []string `protobuf:"bytes,3,rep,name=orphans,proto3" json:"orphans,omitempty"`
+	// A newer Release than this one, found by the daily check of its
+	// release source; empty when there is none.
+	AvailableRelease string `protobuf:"bytes,4,opt,name=available_release,json=availableRelease,proto3" json:"available_release,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ListCatalogueResponse) Reset() {
@@ -125,6 +128,13 @@ func (x *ListCatalogueResponse) GetOrphans() []string {
 	return nil
 }
 
+func (x *ListCatalogueResponse) GetAvailableRelease() string {
+	if x != nil {
+		return x.AvailableRelease
+	}
+	return ""
+}
+
 // A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
 type CataloguePlugin struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
@@ -138,7 +148,10 @@ type CataloguePlugin struct {
 	Installed bool   `protobuf:"varint,6,opt,name=installed,proto3" json:"installed,omitempty"`
 	// The Components installing it runs: its requires, transitively, each
 	// after the ones it requires.
-	Components    []*ComponentStatus `protobuf:"bytes,7,rep,name=components,proto3" json:"components,omitempty"`
+	Components []*ComponentStatus `protobuf:"bytes,7,rep,name=components,proto3" json:"components,omitempty"`
+	// Why an installed Plugin's bundles of this Release are still missing,
+	// e.g. their download failed and is retrying; empty once they are there.
+	UpdatePending string `protobuf:"bytes,8,opt,name=update_pending,json=updatePending,proto3" json:"update_pending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -220,6 +233,13 @@ func (x *CataloguePlugin) GetComponents() []*ComponentStatus {
 		return x.Components
 	}
 	return nil
+}
+
+func (x *CataloguePlugin) GetUpdatePending() string {
+	if x != nil {
+		return x.UpdatePending
+	}
+	return ""
 }
 
 // A Component as the host sees it.
@@ -1164,11 +1184,12 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\n" +
 	"\x15ddash/core/core.proto\x12\n" +
 	"ddash.core\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
-	"\x14ListCatalogueRequest\"\x82\x01\n" +
+	"\x14ListCatalogueRequest\"\xaf\x01\n" +
 	"\x15ListCatalogueResponse\x12\x18\n" +
 	"\arelease\x18\x01 \x01(\tR\arelease\x125\n" +
 	"\aplugins\x18\x02 \x03(\v2\x1b.ddash.core.CataloguePluginR\aplugins\x12\x18\n" +
-	"\aorphans\x18\x03 \x03(\tR\aorphans\"\xe4\x01\n" +
+	"\aorphans\x18\x03 \x03(\tR\aorphans\x12+\n" +
+	"\x11available_release\x18\x04 \x01(\tR\x10availableRelease\"\x8b\x02\n" +
 	"\x0fCataloguePlugin\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
@@ -1178,7 +1199,8 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\tinstalled\x18\x06 \x01(\bR\tinstalled\x12;\n" +
 	"\n" +
 	"components\x18\a \x03(\v2\x1b.ddash.core.ComponentStatusR\n" +
-	"components\"i\n" +
+	"components\x12%\n" +
+	"\x0eupdate_pending\x18\b \x01(\tR\rupdatePending\"i\n" +
 	"\x0fComponentStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x18\n" +

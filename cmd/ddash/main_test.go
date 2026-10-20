@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/itsKontra/ddash/internal/fakegithub"
 )
 
 func TestHealthcheckPassesOnlyWhenHealthzIsOK(t *testing.T) {
@@ -28,6 +30,44 @@ func TestHealthcheckPassesOnlyWhenHealthzIsOK(t *testing.T) {
 	}
 	if err := healthcheck(t.Context(), gone.URL); err == nil {
 		t.Error("nothing listening: passed, want an error")
+	}
+}
+
+func TestWithoutAReleaseDirTheReleaseComesFromGitHubWithTheToken(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "catalogue.json"), []byte(`{"release":"v1.0.0"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "SHA256SUMS"), nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	gh := fakegithub.New("itsKontra/ddash")
+	gh.Publish("v1.0.0", dir)
+	env := map[string]string{"DDASH_GITHUB_TOKEN": "ghp_secret"}
+	data := t.TempDir()
+
+	src, err := releaseSource(func(k string) string { return env[k] }, "v1.0.0", data, gh.Client())
+	if err != nil {
+		t.Fatal(err)
+	}
+	cat, err := src.Catalogue(t.Context())
+
+	if err != nil || cat.Release != "v1.0.0" {
+		t.Errorf("Catalogue = %v, %v; want v1.0.0's", cat.Release, err)
+	}
+	if reqs := gh.Requests(); len(reqs) == 0 || reqs[0].Authorization != "Bearer ghp_secret" {
+		t.Errorf("requests %v, want the first with the token", reqs)
+	}
+	if _, err := os.Stat(filepath.Join(data, "catalogue.json")); err != nil {
+		t.Errorf("catalogue.json isn't kept in the data dir: %v", err)
+	}
+}
+
+func TestTheDevReleaseNeedsAReleaseDir(t *testing.T) {
+	_, err := releaseSource(func(string) string { return "" }, "dev", t.TempDir(), nil)
+
+	if err == nil || !strings.Contains(err.Error(), "DDASH_RELEASE_DIR") {
+		t.Errorf("err = %v, want DDASH_RELEASE_DIR asked for", err)
 	}
 }
 

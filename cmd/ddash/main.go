@@ -5,8 +5,11 @@
 //
 //	DDASH_LISTEN       address to serve HTTP on (default :8080)
 //	DDASH_DATA_DIR     the data dir (default /data)
-//	DDASH_RELEASE_DIR  a local Release dir: catalogue.json, SHA256SUMS and the
-//	                   Component binaries (required for now)
+//	DDASH_RELEASE_DIR         a local Release dir (catalogue.json, SHA256SUMS,
+//	                          the Component binaries and Plugin bundles) to run
+//	                          instead of the GitHub release of this core's
+//	                          Release; required for the dev Release
+//	DDASH_GITHUB_TOKEN        authenticates the GitHub downloads (a private repo)
 //	DDASH_PUBLIC_URL          where the Operator reaches ddash (https)
 //	DDASH_OIDC_ISSUER         the Keycloak realm's public URL
 //	DDASH_OIDC_CLIENT_ID      ddash's confidential Keycloak client
@@ -33,6 +36,7 @@ import (
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/runtime"
+	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/web"
 )
 
@@ -62,14 +66,15 @@ func main() {
 // accepting HTTP, stops every Component and closes the core DB.
 func serve(ctx context.Context, getenv func(string) string, listening func(addr string)) error {
 	logger := slog.New(slog.NewJSONHandler(os.Stderr, nil))
-	releaseDir := getenv("DDASH_RELEASE_DIR")
-	if releaseDir == "" {
-		return errors.New("DDASH_RELEASE_DIR is required: GitHub releases aren't supported yet")
+	dataDir := env(getenv, "DDASH_DATA_DIR", "/data")
+	src, err := releaseSource(getenv, sdk.Release, dataDir, nil)
+	if err != nil {
+		return err
 	}
 	opts := core.Options{
-		DataDir:      env(getenv, "DDASH_DATA_DIR", "/data"),
-		Release:      runtime.Dir(releaseDir),
-		Launcher:     runtime.Subprocess(releaseDir, os.Stderr),
+		DataDir:      dataDir,
+		Release:      src,
+		Launcher:     runtime.Subprocess(os.Stderr),
 		Auth:         auth.DevBypass(getenv),
 		PublicURL:    getenv("DDASH_PUBLIC_URL"),
 		TrustedProxy: getenv("DDASH_TRUSTED_PROXY"),
@@ -133,6 +138,28 @@ func signInConfig(getenv func(string) string) (auth.OIDC, error) {
 		ClientID:     getenv("DDASH_OIDC_CLIENT_ID"),
 		ClientSecret: getenv("DDASH_OIDC_CLIENT_SECRET"),
 	}, nil
+}
+
+// repo publishes every Release as a GitHub release.
+const repo = "itsKontra/ddash"
+
+// releaseSource is where Release rel comes from: DDASH_RELEASE_DIR, or the
+// GitHub release tagged rel, downloaded into dataDir with client (nil: the
+// default one).
+func releaseSource(getenv func(string) string, rel, dataDir string, client *http.Client) (runtime.ReleaseSource, error) {
+	if dir := getenv("DDASH_RELEASE_DIR"); dir != "" {
+		return runtime.Dir(dir), nil
+	}
+	if rel == "dev" {
+		return nil, errors.New("the dev Release isn't on GitHub: set DDASH_RELEASE_DIR")
+	}
+	return runtime.GitHub(runtime.GitHubOptions{
+		Repo:    repo,
+		Release: rel,
+		Token:   getenv("DDASH_GITHUB_TOKEN"),
+		DataDir: dataDir,
+		Client:  client,
+	}), nil
 }
 
 // healthcheck fails unless the host at baseURL answers /healthz with 200.

@@ -30,6 +30,12 @@ type LaunchSpec struct {
 	// it to the Component: in memory, or over go-plugin's GRPCBroker
 	// (sdk.HostPlugins). Nil when the host has none.
 	HostServer func(opts ...grpc.ServerOption) *grpc.Server
+	// Release is the Release the runtime runs, which the Component must
+	// report in Describe.
+	Release string
+	// Binary is the Component's executable of that Release, from the
+	// release source.
+	Binary Binary
 }
 
 // A Process is one running Component.
@@ -45,8 +51,9 @@ type Process interface {
 }
 
 // InProcess returns a Launcher that runs each of defs inside the host's own
-// process, served over in-memory gRPC. Log lines go to logger, tagged with
-// the Component's name.
+// process, served over in-memory gRPC, as the Release it is asked to run.
+// It ignores the binary. Log lines go to logger, tagged with the
+// Component's name.
 func InProcess(logger *slog.Logger, defs ...sdk.Definition) Launcher {
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
@@ -69,8 +76,9 @@ func (l inProcess) Launch(_ context.Context, spec LaunchSpec) (Process, error) {
 		return nil, fmt.Errorf("%s isn't built into this host", spec.Name)
 	}
 	opts := sdk.InstanceOptions{
-		DBPath: spec.DBPath,
-		Logger: l.log.With("component", spec.Name),
+		DBPath:  spec.DBPath,
+		Logger:  l.log.With("component", spec.Name),
+		Release: spec.Release,
 	}
 	stopHost := func() {}
 	if spec.HostServer != nil {

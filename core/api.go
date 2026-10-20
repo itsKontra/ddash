@@ -14,6 +14,7 @@ import (
 
 	"github.com/itsKontra/ddash/core/appstate"
 
+	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/proto/ddash/core/corepbconnect"
 )
@@ -72,22 +73,39 @@ func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPlug
 func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*corepb.ListCatalogueResponse, error) {
 	rt := a.host.runtime
 	cat := rt.Catalogue()
-	installed := map[string]bool{}
+	installed := map[string]runtime.PluginEntry{}
 	for _, p := range rt.Installed() {
-		installed[p.Name] = true
+		installed[p.Name] = p
 	}
 	running := rt.Status()
-	resp := &corepb.ListCatalogueResponse{Release: cat.Release, Orphans: rt.Orphans()}
-	for _, p := range cat.Plugins {
+	resp := &corepb.ListCatalogueResponse{Release: rt.Release(), Orphans: rt.Orphans(), AvailableRelease: a.host.availableRelease()}
+	pending := rt.PendingBundles()
+	// The installed Plugins the catalogue lacks show from the core DB: it
+	// can't be downloaded yet, or their Release dropped them.
+	plugins := cat.Plugins
+	for _, p := range installed {
+		if !slices.ContainsFunc(plugins, func(c runtime.PluginEntry) bool { return c.Name == p.Name }) {
+			plugins = append(plugins, p)
+		}
+	}
+	for _, p := range plugins {
+		_, isInstalled := installed[p.Name]
 		cp := &corepb.CataloguePlugin{
 			Name:        p.Name,
 			Title:       p.Title,
 			Description: p.Description,
 			Icon:        p.Icon,
 			Author:      p.Author,
-			Installed:   installed[p.Name],
+			Installed:   isInstalled,
 		}
-		for _, name := range cat.Pulls(p.Name) {
+		if isInstalled {
+			cp.UpdatePending = pending[p.Name]
+		}
+		pulls := cat.Pulls(p.Name)
+		if pulls == nil {
+			pulls = p.Requires
+		}
+		for _, name := range pulls {
 			st := running[name]
 			cp.Components = append(cp.Components, &corepb.ComponentStatus{
 				Name: name, State: string(st.State), Message: st.Message, Held: st.Held,

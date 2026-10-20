@@ -99,9 +99,9 @@ func TestABinaryWithoutAChecksumIsRefused(t *testing.T) {
 
 	h.Install("hello")
 
-	h.WaitState("greeter", runtime.Down)
+	h.WaitState("greeter", runtime.UpdatePending) // never launched
 	if got := h.Status("greeter"); !strings.Contains(got.Message, "no checksum") {
-		t.Errorf("greeter is %v, want down for its missing checksum", got)
+		t.Errorf("greeter is %v, want update pending for its missing checksum", got)
 	}
 }
 

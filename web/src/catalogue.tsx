@@ -29,6 +29,7 @@ export function Catalogue() {
         </ul>
       )}
       {data && data.orphans.length > 0 && <Orphans orphans={data.orphans} />}
+      {data?.availableRelease && <p className="mt-6 text-sm text-muted-foreground">{`Release ${data.availableRelease} available`}</p>}
     </div>
   );
 }
@@ -38,7 +39,7 @@ function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
   const uninstall = useAction(CoreService.method.uninstall);
   const [open, setOpen] = useState(false);
   const Icon = icon(p.icon);
-  const worst = worstOf(p.components);
+  const summary = summaryOf(p);
   return (
     <li aria-label={p.title} className="px-4 py-3">
       <div className="flex items-start gap-4">
@@ -63,15 +64,15 @@ function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
           </ul>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          {p.installed && worst && (
+          {p.installed && summary && (
             <button
               type="button"
               aria-expanded={open}
               onClick={() => setOpen(!open)}
               className="flex cursor-pointer items-center gap-2 rounded-ui px-2 py-1 text-sm hover:bg-muted"
             >
-              <StatusDot tone={toneOf(worst.state)} label={stateOf(worst)} />
-              {stateOf(worst)}
+              <StatusDot tone={toneOf(summary)} label={summary} />
+              {summary}
               <ChevronDown className={open ? "h-4 w-4 rotate-180" : "h-4 w-4"} aria-hidden />
             </button>
           )}
@@ -99,6 +100,7 @@ function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
           )}
         </div>
       </div>
+      {p.installed && open && p.updatePending && <p className="mt-3 text-sm text-muted-foreground">{p.updatePending}</p>}
       {p.installed && open && (
         <ul aria-label="Component health" className="mt-3 divide-y divide-border rounded-ui border border-border">
           {p.components.map((c) => (
@@ -194,7 +196,11 @@ function Failed({ action, title }: { action: Pick<Action<DescMethodUnary>, "erro
 /** A Component's state, as the Catalogue shows it; one that doesn't run yet is starting. */
 const stateOf = (c: ComponentStatus) => c.state || "starting";
 
+/** A Component, or a Plugin's bundles, of the running Release that couldn't be downloaded yet. */
+const updatePending = "update pending";
+
 const tones: Record<string, Tone> = {
+  [updatePending]: "maint",
   ok: "up",
   degraded: "warn",
   unconfigured: "warn",
@@ -205,6 +211,16 @@ const tones: Record<string, Tone> = {
 const toneOf = (state: string): Tone => tones[state] ?? "idle";
 
 const rank: Record<Tone, number> = { down: 3, warn: 2, idle: 1, maint: 1, up: 0 };
+
+/**
+ * What an installed Plugin shows: update pending while any of it couldn't be
+ * downloaded, else its worst Component health.
+ */
+function summaryOf(p: CataloguePlugin): string | undefined {
+  if (p.updatePending || p.components.some((c) => c.state === updatePending)) return updatePending;
+  const worst = worstOf(p.components);
+  return worst && stateOf(worst);
+}
 
 /** The Component in the worst health, the first among equals. */
 function worstOf(components: ComponentStatus[]): ComponentStatus | undefined {

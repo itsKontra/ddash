@@ -71,8 +71,13 @@ type Host struct {
 	// keycloak is sign-in, when the host runs with OIDC.
 	keycloak *auth.Keycloak
 
+	log *slog.Logger
+
 	stopLoops context.CancelFunc
 	loops     sync.WaitGroup
+
+	mu     sync.Mutex
+	latest string // the newest published Release, from the daily check
 }
 
 // New opens and migrates the core DB and reads the installed set. The
@@ -122,7 +127,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
-	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell}
+	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, log: opts.Logger}
 	guard := opts.Auth
 	if opts.OIDC != nil {
 		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
@@ -286,7 +291,8 @@ func (h *Host) AuditLog() *appstate.Gate { return h.gate }
 func (h *Host) Config() *config.Store { return h.config }
 
 // Start runs the housekeeping in the background: it reconciles the
-// installed Plugins' Components and sweeps the Audit Log daily.
+// installed Plugins' Components, sweeps the Audit Log daily and checks for
+// a newer Release daily.
 func (h *Host) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	h.stopLoops = cancel
@@ -294,6 +300,7 @@ func (h *Host) Start() {
 	if h.keycloak != nil {
 		h.loops.Go(func() { h.keycloak.SweepSessions(ctx) })
 	}
+	h.loops.Go(func() { h.checkReleaseDaily(ctx) })
 	h.runtime.Start()
 }
 

@@ -34,6 +34,9 @@ type InstanceOptions struct {
 	// by the generated client interface they implement. Tests use them as
 	// fakes of required Components.
 	Clients []any
+	// Release is the Release Describe reports. Default Release, the one
+	// built in; the host's in-process launcher sets the one it runs.
+	Release string
 }
 
 // Instance is one running Component: the lifecycle the host drives plus the
@@ -94,7 +97,11 @@ func (i *Instance) Register(s grpc.ServiceRegistrar) {
 }
 
 func (i *Instance) Describe(context.Context, *componentpb.DescribeRequest) (*componentpb.DescribeResponse, error) {
-	return i.def.describe()
+	d, err := i.def.describe()
+	if err == nil && i.opts.Release != "" {
+		d.Release = i.opts.Release
+	}
+	return d, err
 }
 
 func (i *Instance) Start(_ context.Context, req *componentpb.StartRequest) (*componentpb.StartResponse, error) {
