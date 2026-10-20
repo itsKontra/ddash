@@ -1,0 +1,619 @@
+{
+  "data": [
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.101",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "4.500",
+      "question": {
+        "class": "IN",
+        "name": "site1.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:59:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "0.550",
+      "question": {
+        "class": "IN",
+        "name": "site2.example",
+        "type": "A"
+      },
+      "reason": "FilteredBlackList",
+      "rules": [
+        {
+          "text": "||site2.example^",
+          "filter_list_id": 1
+        }
+      ],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:59:20.123456Z",
+      "upstream": ""
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.103",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.21",
+      "client_info": {
+        "whois": {},
+        "name": "work-laptop",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "7.500",
+      "question": {
+        "class": "IN",
+        "name": "site3.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:58:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.104",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "9.000",
+      "question": {
+        "class": "IN",
+        "name": "site4.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:58:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "1.300",
+      "question": {
+        "class": "IN",
+        "name": "site5.example",
+        "type": "AAAA"
+      },
+      "reason": "FilteredBlackList",
+      "rules": [
+        {
+          "text": "||site5.example^",
+          "filter_list_id": 1
+        }
+      ],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:57:50.123456Z",
+      "upstream": ""
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.106",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.21",
+      "client_info": {
+        "whois": {},
+        "name": "work-laptop",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "12.000",
+      "question": {
+        "class": "IN",
+        "name": "site6.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:57:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.107",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "13.500",
+      "question": {
+        "class": "IN",
+        "name": "site7.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:56:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.108",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "15.000",
+      "question": {
+        "class": "IN",
+        "name": "site8.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:56:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.21",
+      "client_info": {
+        "whois": {},
+        "name": "work-laptop",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "2.300",
+      "question": {
+        "class": "IN",
+        "name": "site9.example",
+        "type": "A"
+      },
+      "reason": "FilteredBlackList",
+      "rules": [
+        {
+          "text": "||site9.example^",
+          "filter_list_id": 1
+        }
+      ],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:55:50.123456Z",
+      "upstream": ""
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.110",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "18.000",
+      "question": {
+        "class": "IN",
+        "name": "site10.example",
+        "type": "AAAA"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:55:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.111",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "19.500",
+      "question": {
+        "class": "IN",
+        "name": "site11.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:54:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.21",
+      "client_info": {
+        "whois": {},
+        "name": "work-laptop",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "3.050",
+      "question": {
+        "class": "IN",
+        "name": "site12.example",
+        "type": "A"
+      },
+      "reason": "FilteredBlackList",
+      "rules": [
+        {
+          "text": "||site12.example^",
+          "filter_list_id": 1
+        }
+      ],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:54:20.123456Z",
+      "upstream": ""
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.113",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "22.500",
+      "question": {
+        "class": "IN",
+        "name": "site13.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:53:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.114",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "24.000",
+      "question": {
+        "class": "IN",
+        "name": "site14.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:53:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.115",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.21",
+      "client_info": {
+        "whois": {},
+        "name": "work-laptop",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "25.500",
+      "question": {
+        "class": "IN",
+        "name": "site15.example",
+        "type": "AAAA"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:52:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "4.050",
+      "question": {
+        "class": "IN",
+        "name": "site16.example",
+        "type": "A"
+      },
+      "reason": "FilteredBlackList",
+      "rules": [
+        {
+          "text": "||site16.example^",
+          "filter_list_id": 1
+        }
+      ],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:52:20.123456Z",
+      "upstream": ""
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.117",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "28.500",
+      "question": {
+        "class": "IN",
+        "name": "site17.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:51:50.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.118",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.21",
+      "client_info": {
+        "whois": {},
+        "name": "work-laptop",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "30.000",
+      "question": {
+        "class": "IN",
+        "name": "site18.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:51:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    },
+    {
+      "answer": [],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.150",
+      "client_info": {
+        "whois": {},
+        "name": "galaxy-s24",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "4.800",
+      "question": {
+        "class": "IN",
+        "name": "site19.example",
+        "type": "A"
+      },
+      "reason": "FilteredBlackList",
+      "rules": [
+        {
+          "text": "||site19.example^",
+          "filter_list_id": 1
+        }
+      ],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:50:50.123456Z",
+      "upstream": ""
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.120",
+          "ttl": 300
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.20",
+      "client_info": {
+        "whois": {},
+        "name": "Living room TV",
+        "disallowed_rule": "",
+        "disallowed": false
+      },
+      "client_id": "",
+      "client_proto": "",
+      "elapsedMs": "33.000",
+      "question": {
+        "class": "IN",
+        "name": "site20.example",
+        "type": "AAAA"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T09:50:20.123456Z",
+      "upstream": "https://dns.upstream.example:443/dns-query"
+    }
+  ],
+  "oldest": "2026-10-20T09:50:20.123456Z"
+}

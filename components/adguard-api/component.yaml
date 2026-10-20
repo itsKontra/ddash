@@ -1,0 +1,3 @@
+name: adguard-api
+description: Reads AdGuard Home's status, stats and query log, and turns ad-blocking off or on for one client.
+requires: []

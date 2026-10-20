@@ -1,0 +1,18 @@
+{
+  "time_units": "hours",
+  "num_dns_queries": 18432,
+  "num_blocked_filtering": 2765,
+  "num_replaced_safebrowsing": 3,
+  "num_replaced_safesearch": 12,
+  "num_replaced_parental": 0,
+  "avg_processing_time": 0.0184,
+  "dns_queries": [612, 540, 498, 455, 430, 421, 466, 590, 801, 902, 950, 978, 1003, 985, 940, 912, 899, 921, 960, 1012, 1050, 980, 830, 700],
+  "blocked_filtering": [92, 81, 75, 68, 64, 63, 70, 88, 120, 135, 142, 147, 150, 148, 141, 137, 135, 138, 144, 152, 158, 147, 125, 105],
+  "replaced_safebrowsing": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+  "replaced_parental": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  "top_queried_domains": [{"site1.example": 1820}, {"site3.example": 944}, {"site6.example": 512}],
+  "top_blocked_domains": [{"site2.example": 610}, {"site5.example": 402}, {"site9.example": 133}],
+  "top_clients": [{"198.18.1.150": 6120}, {"198.18.1.20": 5011}, {"198.18.1.21": 3870}],
+  "top_upstreams_responses": [{"https://dns.upstream.example:443/dns-query": 15652}],
+  "top_upstreams_avg_time": [{"https://dns.upstream.example:443/dns-query": 0.0213}]
+}
