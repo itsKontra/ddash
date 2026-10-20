@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Badge, PageHeader, Sparkline, StatusDot, UptimeBars } from "./index";
+import { Badge, PageHeader, Sparkline, StatusDot, Switch, UptimeBars } from "./index";
 
 afterEach(cleanup);
 
@@ -64,4 +64,14 @@ it("UptimeBars draws one bar per bucket in its tone, oldest first, named by its 
   const bars = screen.getByRole("img", { name: "Uptime, last 24 h" });
   expect([...bars.querySelectorAll("[data-tone]")].map((b) => b.getAttribute("data-tone"))).toEqual(["up", "down", "maint", "idle"]);
   expect(screen.getByText("08:00 · 100 %")).toBeTruthy();
+});
+
+it("Switch is a named switch reporting its state and asking for the other", () => {
+  const changes: boolean[] = [];
+  render(<Switch checked={false} label="Direct TV" onChange={(v) => changes.push(v)} />);
+
+  const s = screen.getByRole("switch", { name: "Direct TV" });
+  expect(s.getAttribute("aria-checked")).toBe("false");
+  s.click();
+  expect(changes).toEqual([true]);
 });
