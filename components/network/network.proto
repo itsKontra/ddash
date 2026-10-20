@@ -73,6 +73,15 @@ service NetworkService {
   rpc RenameDevice(RenameDeviceRequest) returns (RenameDeviceResponse) {
     option (ddash.action) = {};
   }
+  // SetDirect makes a Device Direct (its address added to the bypass
+  // alias) or Tunnelled (its address removed from it), applied at once. A
+  // New Device is Adopted first, under its name (else its MAC) at the
+  // lowest free reserved address. Only the Device's own address is ever
+  // written: a Device Direct through another member (a network, range or
+  // nested alias) stays so, and turning it Tunnelled is refused.
+  rpc SetDirect(SetDirectRequest) returns (SetDirectResponse) {
+    option (ddash.action) = {};
+  }
   // SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
   // its address's persistent client in AdGuard (created the first time it
   // is turned off). It works on Adopted Devices, whose address stays put: a
@@ -81,6 +90,18 @@ service NetworkService {
   rpc SetAdBlocking(SetAdBlockingRequest) returns (SetAdBlockingResponse) {
     option (ddash.action) = {};
   }
+}
+
+message SetDirectRequest {
+  // The Device's MAC.
+  string mac = 1;
+  // true for Direct, false for Tunnelled.
+  bool direct = 2;
+}
+
+message SetDirectResponse {
+  // The Device after the change (Adopted, if it was New).
+  Device device = 1;
 }
 
 message SetAdBlockingRequest {

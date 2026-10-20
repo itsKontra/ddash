@@ -211,7 +211,10 @@ type HostContainers struct {
 	Host       string       `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	Containers []*Container `protobuf:"bytes,2,rep,name=containers,proto3" json:"containers,omitempty"`
 	// Why the host couldn't be read; empty when it could.
-	Error         string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	// The host part of its socket-proxy URL, e.g. "198.18.2.10": where a
+	// port published on every address (no ip) answers.
+	Address       string `protobuf:"bytes,4,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -263,6 +266,13 @@ func (x *HostContainers) GetContainers() []*Container {
 func (x *HostContainers) GetError() string {
 	if x != nil {
 		return x.Error
+	}
+	return ""
+}
+
+func (x *HostContainers) GetAddress() string {
+	if x != nil {
+		return x.Address
 	}
 	return ""
 }
@@ -437,13 +447,14 @@ const file_docker_api_docker_api_proto_rawDesc = "" +
 	"\x03url\x18\x02 \x01(\tB2\x9a\xb5\x18.\x1a\x10Socket-proxy URL*\x16tcp://198.18.2.10:23750\x018\x01R\x03url\"\x17\n" +
 	"\x15ListContainersRequest\"O\n" +
 	"\x16ListContainersResponse\x125\n" +
-	"\x05hosts\x18\x01 \x03(\v2\x1f.ddash.dockerapi.HostContainersR\x05hosts\"v\n" +
+	"\x05hosts\x18\x01 \x03(\v2\x1f.ddash.dockerapi.HostContainersR\x05hosts\"\x90\x01\n" +
 	"\x0eHostContainers\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12:\n" +
 	"\n" +
 	"containers\x18\x02 \x03(\v2\x1a.ddash.dockerapi.ContainerR\n" +
 	"containers\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error\"\xa0\x01\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12\x18\n" +
+	"\aaddress\x18\x04 \x01(\tR\aaddress\"\xa0\x01\n" +
 	"\tContainer\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +

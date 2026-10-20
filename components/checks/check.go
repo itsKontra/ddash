@@ -167,6 +167,7 @@ func (ch *check) proto() *checkspb.Check {
 		Muted:     ch.muted,
 		Disabled:  ch.disabled || !ch.appEnabled,
 		AppId:     ch.appID,
+		Workload:  ch.workload.proto(),
 	}
 	if exp := ch.standing.certExpires; !exp.IsZero() {
 		p.CertExpires = timestamppb.New(exp)

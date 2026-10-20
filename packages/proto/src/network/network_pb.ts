@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file network/network.proto.
  */
 export const file_network_network: GenFile = /*@__PURE__*/
-  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiwgIKDU5ldHdvcmtDb25maWcSiwEKDGJ5cGFzc19hbGlhcxgBIAEoCUJ1mrUYcRoMQnlwYXNzIGFsaWFzIkZUaGUgZmlyZXdhbGwgYWxpYXMgd2hvc2UgbWVtYmVycyBza2lwIHRoZSBWUE4gVHVubmVsIChEaXJlY3QgRGV2aWNlcykuMAFSF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEqIBCg5yZXNlcnZlZF9yYW5nZRgCIAEoCUKJAZq1GIQBGg5SZXNlcnZlZCByYW5nZSJVV2hlcmUgQWRvcHQgcGlja3MgYSBOZXcgRGV2aWNlJ3MgcmVzZXJ2ZWQgYWRkcmVzcy4gSXQgbXVzdCBsaWUgb3V0c2lkZSB0aGUgREhDUCBwb29sLioXMTk4LjE4LjEuMjAtMTk4LjE4LjEuNDkwATgFIjQKFFNldEFkQmxvY2tpbmdSZXF1ZXN0EgsKA21hYxgBIAEoCRIPCgdlbmFibGVkGAIgASgIIj4KFVNldEFkQmxvY2tpbmdSZXNwb25zZRIlCgZkZXZpY2UYASABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSIcChpOZXh0UmVzZXJ2ZWRBZGRyZXNzUmVxdWVzdCJBChtOZXh0UmVzZXJ2ZWRBZGRyZXNzUmVzcG9uc2USCgoCaXAYASABKAkSFgoOcmVzZXJ2ZWRfcmFuZ2UYAiABKAkiOwoSQWRvcHREZXZpY2VSZXF1ZXN0EgsKA21hYxgBIAEoCRIMCgRuYW1lGAIgASgJEgoKAmlwGAMgASgJIjwKE0Fkb3B0RGV2aWNlUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiMAoTUmVuYW1lRGV2aWNlUmVxdWVzdBILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCSI9ChRSZW5hbWVEZXZpY2VSZXNwb25zZRIlCgZkZXZpY2UYASABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSIUChJMaXN0RGV2aWNlc1JlcXVlc3QiagoTTGlzdERldmljZXNSZXNwb25zZRImCgdkZXZpY2VzGAEgAygLMhUuZGRhc2gubmV0d29yay5EZXZpY2USFAoMYnlwYXNzX2FsaWFzGAIgASgJEhUKDWFkZ3VhcmRfZXJyb3IYAyABKAkiggIKBkRldmljZRILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJpcBgDIAEoCRIOCgZvbmxpbmUYBCABKAgSDwoHYWRvcHRlZBgFIAEoCBIOCgZkaXJlY3QYBiABKAgSKQoFbGVhc2UYByABKAsyGi5kZGFzaC5uZXR3b3JrLkRldmljZUxlYXNlEi8KC3Jlc2VydmF0aW9uGAggASgLMhouZGRhc2gubmV0d29yay5SZXNlcnZhdGlvbhIrCgdhbGlhc2VzGAkgAygLMhouZGRhc2gubmV0d29yay5EZXZpY2VBbGlhcxIXCg9hZF9ibG9ja2luZ19vZmYYCiABKAgigwEKC0RldmljZUxlYXNlEgoKAmlwGAEgASgJEhAKCGhvc3RuYW1lGAIgASgJEhEKCWludGVyZmFjZRgDIAEoCRIOCgZzdGFydHMYBCABKAkSDAoEZW5kcxgFIAEoCRIOCgZzdGF0dXMYBiABKAkSFQoNb25saW5lX3N0YXR1cxgHIAEoCSJTCgtSZXNlcnZhdGlvbhIRCglpbnRlcmZhY2UYASABKAkSCgoCaXAYAiABKAkSEAoIaG9zdG5hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkiMAoLRGV2aWNlQWxpYXMSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCSJBChRHZXRUaHJvdWdocHV0UmVxdWVzdBIpCgVzaW5jZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWAoVR2V0VGhyb3VnaHB1dFJlc3BvbnNlEjAKB3NhbXBsZXMYASADKAsyHy5kZGFzaC5uZXR3b3JrLlRocm91Z2hwdXRTYW1wbGUSDQoFZXJyb3IYAiABKAkiwAEKEFRocm91Z2hwdXRTYW1wbGUSJgoCYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh8KF3dhbl9pbl9ieXRlc19wZXJfc2Vjb25kGAIgASgBEiAKGHdhbl9vdXRfYnl0ZXNfcGVyX3NlY29uZBgDIAEoARIfChdsYW5faW5fYnl0ZXNfcGVyX3NlY29uZBgEIAEoARIgChhsYW5fb3V0X2J5dGVzX3Blcl9zZWNvbmQYBSABKAEiGAoWR2V0UmVtb3RlQWNjZXNzUmVxdWVzdCJ7ChdHZXRSZW1vdGVBY2Nlc3NSZXNwb25zZRIOCgZ0dW5uZWwYASABKAkSEQoJaW50ZXJmYWNlGAIgASgJEi4KBXBlZXJzGAMgAygLMh8uZGRhc2gubmV0d29yay5SZW1vdGVBY2Nlc3NQZWVyEg0KBWVycm9yGAQgASgJItoBChBSZW1vdGVBY2Nlc3NQZWVyEgwKBG5hbWUYASABKAkSEgoKcHVibGljX2tleRgCIAEoCRIRCglhZGRyZXNzZXMYAyADKAkSEAoIZW5kcG9pbnQYBCABKAkSNAoQbGF0ZXN0X2hhbmRzaGFrZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcnhfYnl0ZXMYBiABKAQSEAoIdHhfYnl0ZXMYByABKAQSJQoHcmVhY2hlcxgIIAMoCzIULmRkYXNoLm5ldHdvcmsuUmVhY2giWgoFUmVhY2gSEwoLZGVzdGluYXRpb24YASABKAkSDQoFbGFiZWwYAiABKAkSEAoIcHJvdG9jb2wYAyABKAkSDQoFcG9ydHMYBCABKAkSDAoEcnVsZRgFIAEoCSIVChNHZXRWcG5UdW5uZWxSZXF1ZXN0IocBChRHZXRWcG5UdW5uZWxSZXNwb25zZRIhCgR0aWVyGAEgASgOMhMuZGRhc2gubmV0d29yay5UaWVyEg0KBWdyb3VwGAIgASgJEi4KCGdhdGV3YXlzGAMgAygLMhwuZGRhc2gubmV0d29yay5UdW5uZWxHYXRld2F5Eg0KBWVycm9yGAQgASgJIqoBCg1UdW5uZWxHYXRld2F5EgwKBG5hbWUYASABKAkSDAoEdGllchgCIAEoBRIKCgJ1cBgDIAEoCBIOCgZzdGF0dXMYBCABKAkSEQoJc3Vic3RhdHVzGAUgASgJEhUKCGRlbGF5X21zGAYgASgBSACIAQESGQoMbG9zc19wZXJjZW50GAcgASgBSAGIAQFCCwoJX2RlbGF5X21zQg8KDV9sb3NzX3BlcmNlbnQqUQoEVGllchIUChBUSUVSX1VOU1BFQ0lGSUVEEAASEgoOVElFUl9XSVJFR1VBUkQQARIQCgxUSUVSX09QRU5WUE4QAhINCglUSUVSX0RPV04QAzKsBgoOTmV0d29ya1NlcnZpY2USXwoMR2V0VnBuVHVubmVsEiIuZGRhc2gubmV0d29yay5HZXRWcG5UdW5uZWxSZXF1ZXN0GiMuZGRhc2gubmV0d29yay5HZXRWcG5UdW5uZWxSZXNwb25zZSIGirUYAggCEloKC0xpc3REZXZpY2VzEiEuZGRhc2gubmV0d29yay5MaXN0RGV2aWNlc1JlcXVlc3QaIi5kZGFzaC5uZXR3b3JrLkxpc3REZXZpY2VzUmVzcG9uc2UiBIq1GAASYgoNR2V0VGhyb3VnaHB1dBIjLmRkYXNoLm5ldHdvcmsuR2V0VGhyb3VnaHB1dFJlcXVlc3QaJC5kZGFzaC5uZXR3b3JrLkdldFRocm91Z2hwdXRSZXNwb25zZSIGirUYAggBEmYKD0dldFJlbW90ZUFjY2VzcxIlLmRkYXNoLm5ldHdvcmsuR2V0UmVtb3RlQWNjZXNzUmVxdWVzdBomLmRkYXNoLm5ldHdvcmsuR2V0UmVtb3RlQWNjZXNzUmVzcG9uc2UiBIq1GAASdAoTTmV4dFJlc2VydmVkQWRkcmVzcxIpLmRkYXNoLm5ldHdvcmsuTmV4dFJlc2VydmVkQWRkcmVzc1JlcXVlc3QaKi5kZGFzaC5uZXR3b3JrLk5leHRSZXNlcnZlZEFkZHJlc3NSZXNwb25zZSIGirUYAggDEloKC0Fkb3B0RGV2aWNlEiEuZGRhc2gubmV0d29yay5BZG9wdERldmljZVJlcXVlc3QaIi5kZGFzaC5uZXR3b3JrLkFkb3B0RGV2aWNlUmVzcG9uc2UiBJK1GAASXQoMUmVuYW1lRGV2aWNlEiIuZGRhc2gubmV0d29yay5SZW5hbWVEZXZpY2VSZXF1ZXN0GiMuZGRhc2gubmV0d29yay5SZW5hbWVEZXZpY2VSZXNwb25zZSIEkrUYABJgCg1TZXRBZEJsb2NraW5nEiMuZGRhc2gubmV0d29yay5TZXRBZEJsb2NraW5nUmVxdWVzdBokLmRkYXNoLm5ldHdvcmsuU2V0QWRCbG9ja2luZ1Jlc3BvbnNlIgSStRgAQkNaQWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbmV0d29yay9uZXR3b3JrcGI7bmV0d29ya3BiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiwgIKDU5ldHdvcmtDb25maWcSiwEKDGJ5cGFzc19hbGlhcxgBIAEoCUJ1mrUYcRoMQnlwYXNzIGFsaWFzIkZUaGUgZmlyZXdhbGwgYWxpYXMgd2hvc2UgbWVtYmVycyBza2lwIHRoZSBWUE4gVHVubmVsIChEaXJlY3QgRGV2aWNlcykuMAFSF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEqIBCg5yZXNlcnZlZF9yYW5nZRgCIAEoCUKJAZq1GIQBGg5SZXNlcnZlZCByYW5nZSJVV2hlcmUgQWRvcHQgcGlja3MgYSBOZXcgRGV2aWNlJ3MgcmVzZXJ2ZWQgYWRkcmVzcy4gSXQgbXVzdCBsaWUgb3V0c2lkZSB0aGUgREhDUCBwb29sLioXMTk4LjE4LjEuMjAtMTk4LjE4LjEuNDkwATgFIi8KEFNldERpcmVjdFJlcXVlc3QSCwoDbWFjGAEgASgJEg4KBmRpcmVjdBgCIAEoCCI6ChFTZXREaXJlY3RSZXNwb25zZRIlCgZkZXZpY2UYASABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSI0ChRTZXRBZEJsb2NraW5nUmVxdWVzdBILCgNtYWMYASABKAkSDwoHZW5hYmxlZBgCIAEoCCI+ChVTZXRBZEJsb2NraW5nUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiHAoaTmV4dFJlc2VydmVkQWRkcmVzc1JlcXVlc3QiQQobTmV4dFJlc2VydmVkQWRkcmVzc1Jlc3BvbnNlEgoKAmlwGAEgASgJEhYKDnJlc2VydmVkX3JhbmdlGAIgASgJIjsKEkFkb3B0RGV2aWNlUmVxdWVzdBILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJpcBgDIAEoCSI8ChNBZG9wdERldmljZVJlc3BvbnNlEiUKBmRldmljZRgBIAEoCzIVLmRkYXNoLm5ldHdvcmsuRGV2aWNlIjAKE1JlbmFtZURldmljZVJlcXVlc3QSCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkiPQoUUmVuYW1lRGV2aWNlUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiFAoSTGlzdERldmljZXNSZXF1ZXN0ImoKE0xpc3REZXZpY2VzUmVzcG9uc2USJgoHZGV2aWNlcxgBIAMoCzIVLmRkYXNoLm5ldHdvcmsuRGV2aWNlEhQKDGJ5cGFzc19hbGlhcxgCIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAMgASgJIoICCgZEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkSCgoCaXAYAyABKAkSDgoGb25saW5lGAQgASgIEg8KB2Fkb3B0ZWQYBSABKAgSDgoGZGlyZWN0GAYgASgIEikKBWxlYXNlGAcgASgLMhouZGRhc2gubmV0d29yay5EZXZpY2VMZWFzZRIvCgtyZXNlcnZhdGlvbhgIIAEoCzIaLmRkYXNoLm5ldHdvcmsuUmVzZXJ2YXRpb24SKwoHYWxpYXNlcxgJIAMoCzIaLmRkYXNoLm5ldHdvcmsuRGV2aWNlQWxpYXMSFwoPYWRfYmxvY2tpbmdfb2ZmGAogASgIIoMBCgtEZXZpY2VMZWFzZRIKCgJpcBgBIAEoCRIQCghob3N0bmFtZRgCIAEoCRIRCglpbnRlcmZhY2UYAyABKAkSDgoGc3RhcnRzGAQgASgJEgwKBGVuZHMYBSABKAkSDgoGc3RhdHVzGAYgASgJEhUKDW9ubGluZV9zdGF0dXMYByABKAkiUwoLUmVzZXJ2YXRpb24SEQoJaW50ZXJmYWNlGAEgASgJEgoKAmlwGAIgASgJEhAKCGhvc3RuYW1lGAMgASgJEhMKC2Rlc2NyaXB0aW9uGAQgASgJIjAKC0RldmljZUFsaWFzEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkiQQoUR2V0VGhyb3VnaHB1dFJlcXVlc3QSKQoFc2luY2UYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIlgKFUdldFRocm91Z2hwdXRSZXNwb25zZRIwCgdzYW1wbGVzGAEgAygLMh8uZGRhc2gubmV0d29yay5UaHJvdWdocHV0U2FtcGxlEg0KBWVycm9yGAIgASgJIsABChBUaHJvdWdocHV0U2FtcGxlEiYKAmF0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIfChd3YW5faW5fYnl0ZXNfcGVyX3NlY29uZBgCIAEoARIgChh3YW5fb3V0X2J5dGVzX3Blcl9zZWNvbmQYAyABKAESHwoXbGFuX2luX2J5dGVzX3Blcl9zZWNvbmQYBCABKAESIAoYbGFuX291dF9ieXRlc19wZXJfc2Vjb25kGAUgASgBIhgKFkdldFJlbW90ZUFjY2Vzc1JlcXVlc3QiewoXR2V0UmVtb3RlQWNjZXNzUmVzcG9uc2USDgoGdHVubmVsGAEgASgJEhEKCWludGVyZmFjZRgCIAEoCRIuCgVwZWVycxgDIAMoCzIfLmRkYXNoLm5ldHdvcmsuUmVtb3RlQWNjZXNzUGVlchINCgVlcnJvchgEIAEoCSLaAQoQUmVtb3RlQWNjZXNzUGVlchIMCgRuYW1lGAEgASgJEhIKCnB1YmxpY19rZXkYAiABKAkSEQoJYWRkcmVzc2VzGAMgAygJEhAKCGVuZHBvaW50GAQgASgJEjQKEGxhdGVzdF9oYW5kc2hha2UYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCHJ4X2J5dGVzGAYgASgEEhAKCHR4X2J5dGVzGAcgASgEEiUKB3JlYWNoZXMYCCADKAsyFC5kZGFzaC5uZXR3b3JrLlJlYWNoIloKBVJlYWNoEhMKC2Rlc3RpbmF0aW9uGAEgASgJEg0KBWxhYmVsGAIgASgJEhAKCHByb3RvY29sGAMgASgJEg0KBXBvcnRzGAQgASgJEgwKBHJ1bGUYBSABKAkiFQoTR2V0VnBuVHVubmVsUmVxdWVzdCKHAQoUR2V0VnBuVHVubmVsUmVzcG9uc2USIQoEdGllchgBIAEoDjITLmRkYXNoLm5ldHdvcmsuVGllchINCgVncm91cBgCIAEoCRIuCghnYXRld2F5cxgDIAMoCzIcLmRkYXNoLm5ldHdvcmsuVHVubmVsR2F0ZXdheRINCgVlcnJvchgEIAEoCSKqAQoNVHVubmVsR2F0ZXdheRIMCgRuYW1lGAEgASgJEgwKBHRpZXIYAiABKAUSCgoCdXAYAyABKAgSDgoGc3RhdHVzGAQgASgJEhEKCXN1YnN0YXR1cxgFIAEoCRIVCghkZWxheV9tcxgGIAEoAUgAiAEBEhkKDGxvc3NfcGVyY2VudBgHIAEoAUgBiAEBQgsKCV9kZWxheV9tc0IPCg1fbG9zc19wZXJjZW50KlEKBFRpZXISFAoQVElFUl9VTlNQRUNJRklFRBAAEhIKDlRJRVJfV0lSRUdVQVJEEAESEAoMVElFUl9PUEVOVlBOEAISDQoJVElFUl9ET1dOEAMyggcKDk5ldHdvcmtTZXJ2aWNlEl8KDEdldFZwblR1bm5lbBIiLmRkYXNoLm5ldHdvcmsuR2V0VnBuVHVubmVsUmVxdWVzdBojLmRkYXNoLm5ldHdvcmsuR2V0VnBuVHVubmVsUmVzcG9uc2UiBoq1GAIIAhJaCgtMaXN0RGV2aWNlcxIhLmRkYXNoLm5ldHdvcmsuTGlzdERldmljZXNSZXF1ZXN0GiIuZGRhc2gubmV0d29yay5MaXN0RGV2aWNlc1Jlc3BvbnNlIgSKtRgAEmIKDUdldFRocm91Z2hwdXQSIy5kZGFzaC5uZXR3b3JrLkdldFRocm91Z2hwdXRSZXF1ZXN0GiQuZGRhc2gubmV0d29yay5HZXRUaHJvdWdocHV0UmVzcG9uc2UiBoq1GAIIARJmCg9HZXRSZW1vdGVBY2Nlc3MSJS5kZGFzaC5uZXR3b3JrLkdldFJlbW90ZUFjY2Vzc1JlcXVlc3QaJi5kZGFzaC5uZXR3b3JrLkdldFJlbW90ZUFjY2Vzc1Jlc3BvbnNlIgSKtRgAEnQKE05leHRSZXNlcnZlZEFkZHJlc3MSKS5kZGFzaC5uZXR3b3JrLk5leHRSZXNlcnZlZEFkZHJlc3NSZXF1ZXN0GiouZGRhc2gubmV0d29yay5OZXh0UmVzZXJ2ZWRBZGRyZXNzUmVzcG9uc2UiBoq1GAIIAxJaCgtBZG9wdERldmljZRIhLmRkYXNoLm5ldHdvcmsuQWRvcHREZXZpY2VSZXF1ZXN0GiIuZGRhc2gubmV0d29yay5BZG9wdERldmljZVJlc3BvbnNlIgSStRgAEl0KDFJlbmFtZURldmljZRIiLmRkYXNoLm5ldHdvcmsuUmVuYW1lRGV2aWNlUmVxdWVzdBojLmRkYXNoLm5ldHdvcmsuUmVuYW1lRGV2aWNlUmVzcG9uc2UiBJK1GAASVAoJU2V0RGlyZWN0Eh8uZGRhc2gubmV0d29yay5TZXREaXJlY3RSZXF1ZXN0GiAuZGRhc2gubmV0d29yay5TZXREaXJlY3RSZXNwb25zZSIEkrUYABJgCg1TZXRBZEJsb2NraW5nEiMuZGRhc2gubmV0d29yay5TZXRBZEJsb2NraW5nUmVxdWVzdBokLmRkYXNoLm5ldHdvcmsuU2V0QWRCbG9ja2luZ1Jlc3BvbnNlIgSStRgAQkNaQWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbmV0d29yay9uZXR3b3JrcGI7bmV0d29ya3BiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.network.NetworkConfig
@@ -48,6 +48,51 @@ export const NetworkConfigSchema: GenMessage<NetworkConfig> = /*@__PURE__*/
   messageDesc(file_network_network, 0);
 
 /**
+ * @generated from message ddash.network.SetDirectRequest
+ */
+export type SetDirectRequest = Message<"ddash.network.SetDirectRequest"> & {
+  /**
+   * The Device's MAC.
+   *
+   * @generated from field: string mac = 1;
+   */
+  mac: string;
+
+  /**
+   * true for Direct, false for Tunnelled.
+   *
+   * @generated from field: bool direct = 2;
+   */
+  direct: boolean;
+};
+
+/**
+ * Describes the message ddash.network.SetDirectRequest.
+ * Use `create(SetDirectRequestSchema)` to create a new message.
+ */
+export const SetDirectRequestSchema: GenMessage<SetDirectRequest> = /*@__PURE__*/
+  messageDesc(file_network_network, 1);
+
+/**
+ * @generated from message ddash.network.SetDirectResponse
+ */
+export type SetDirectResponse = Message<"ddash.network.SetDirectResponse"> & {
+  /**
+   * The Device after the change (Adopted, if it was New).
+   *
+   * @generated from field: ddash.network.Device device = 1;
+   */
+  device?: Device | undefined;
+};
+
+/**
+ * Describes the message ddash.network.SetDirectResponse.
+ * Use `create(SetDirectResponseSchema)` to create a new message.
+ */
+export const SetDirectResponseSchema: GenMessage<SetDirectResponse> = /*@__PURE__*/
+  messageDesc(file_network_network, 2);
+
+/**
  * @generated from message ddash.network.SetAdBlockingRequest
  */
 export type SetAdBlockingRequest = Message<"ddash.network.SetAdBlockingRequest"> & {
@@ -71,7 +116,7 @@ export type SetAdBlockingRequest = Message<"ddash.network.SetAdBlockingRequest">
  * Use `create(SetAdBlockingRequestSchema)` to create a new message.
  */
 export const SetAdBlockingRequestSchema: GenMessage<SetAdBlockingRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 1);
+  messageDesc(file_network_network, 3);
 
 /**
  * @generated from message ddash.network.SetAdBlockingResponse
@@ -88,7 +133,7 @@ export type SetAdBlockingResponse = Message<"ddash.network.SetAdBlockingResponse
  * Use `create(SetAdBlockingResponseSchema)` to create a new message.
  */
 export const SetAdBlockingResponseSchema: GenMessage<SetAdBlockingResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 2);
+  messageDesc(file_network_network, 4);
 
 /**
  * @generated from message ddash.network.NextReservedAddressRequest
@@ -101,7 +146,7 @@ export type NextReservedAddressRequest = Message<"ddash.network.NextReservedAddr
  * Use `create(NextReservedAddressRequestSchema)` to create a new message.
  */
 export const NextReservedAddressRequestSchema: GenMessage<NextReservedAddressRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 3);
+  messageDesc(file_network_network, 5);
 
 /**
  * @generated from message ddash.network.NextReservedAddressResponse
@@ -127,7 +172,7 @@ export type NextReservedAddressResponse = Message<"ddash.network.NextReservedAdd
  * Use `create(NextReservedAddressResponseSchema)` to create a new message.
  */
 export const NextReservedAddressResponseSchema: GenMessage<NextReservedAddressResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 4);
+  messageDesc(file_network_network, 6);
 
 /**
  * @generated from message ddash.network.AdoptDeviceRequest
@@ -161,7 +206,7 @@ export type AdoptDeviceRequest = Message<"ddash.network.AdoptDeviceRequest"> & {
  * Use `create(AdoptDeviceRequestSchema)` to create a new message.
  */
 export const AdoptDeviceRequestSchema: GenMessage<AdoptDeviceRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 5);
+  messageDesc(file_network_network, 7);
 
 /**
  * @generated from message ddash.network.AdoptDeviceResponse
@@ -178,7 +223,7 @@ export type AdoptDeviceResponse = Message<"ddash.network.AdoptDeviceResponse"> &
  * Use `create(AdoptDeviceResponseSchema)` to create a new message.
  */
 export const AdoptDeviceResponseSchema: GenMessage<AdoptDeviceResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 6);
+  messageDesc(file_network_network, 8);
 
 /**
  * @generated from message ddash.network.RenameDeviceRequest
@@ -204,7 +249,7 @@ export type RenameDeviceRequest = Message<"ddash.network.RenameDeviceRequest"> &
  * Use `create(RenameDeviceRequestSchema)` to create a new message.
  */
 export const RenameDeviceRequestSchema: GenMessage<RenameDeviceRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 7);
+  messageDesc(file_network_network, 9);
 
 /**
  * @generated from message ddash.network.RenameDeviceResponse
@@ -221,7 +266,7 @@ export type RenameDeviceResponse = Message<"ddash.network.RenameDeviceResponse">
  * Use `create(RenameDeviceResponseSchema)` to create a new message.
  */
 export const RenameDeviceResponseSchema: GenMessage<RenameDeviceResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 8);
+  messageDesc(file_network_network, 10);
 
 /**
  * @generated from message ddash.network.ListDevicesRequest
@@ -234,7 +279,7 @@ export type ListDevicesRequest = Message<"ddash.network.ListDevicesRequest"> & {
  * Use `create(ListDevicesRequestSchema)` to create a new message.
  */
 export const ListDevicesRequestSchema: GenMessage<ListDevicesRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 9);
+  messageDesc(file_network_network, 11);
 
 /**
  * @generated from message ddash.network.ListDevicesResponse
@@ -268,7 +313,7 @@ export type ListDevicesResponse = Message<"ddash.network.ListDevicesResponse"> &
  * Use `create(ListDevicesResponseSchema)` to create a new message.
  */
 export const ListDevicesResponseSchema: GenMessage<ListDevicesResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 10);
+  messageDesc(file_network_network, 12);
 
 /**
  * A piece of hardware the firewall hands addresses to, keyed by MAC.
@@ -358,7 +403,7 @@ export type Device = Message<"ddash.network.Device"> & {
  * Use `create(DeviceSchema)` to create a new message.
  */
 export const DeviceSchema: GenMessage<Device> = /*@__PURE__*/
-  messageDesc(file_network_network, 11);
+  messageDesc(file_network_network, 13);
 
 /**
  * @generated from message ddash.network.DeviceLease
@@ -413,7 +458,7 @@ export type DeviceLease = Message<"ddash.network.DeviceLease"> & {
  * Use `create(DeviceLeaseSchema)` to create a new message.
  */
 export const DeviceLeaseSchema: GenMessage<DeviceLease> = /*@__PURE__*/
-  messageDesc(file_network_network, 12);
+  messageDesc(file_network_network, 14);
 
 /**
  * A Device's static mapping.
@@ -447,7 +492,7 @@ export type Reservation = Message<"ddash.network.Reservation"> & {
  * Use `create(ReservationSchema)` to create a new message.
  */
 export const ReservationSchema: GenMessage<Reservation> = /*@__PURE__*/
-  messageDesc(file_network_network, 13);
+  messageDesc(file_network_network, 15);
 
 /**
  * @generated from message ddash.network.DeviceAlias
@@ -469,7 +514,7 @@ export type DeviceAlias = Message<"ddash.network.DeviceAlias"> & {
  * Use `create(DeviceAliasSchema)` to create a new message.
  */
 export const DeviceAliasSchema: GenMessage<DeviceAlias> = /*@__PURE__*/
-  messageDesc(file_network_network, 14);
+  messageDesc(file_network_network, 16);
 
 /**
  * @generated from message ddash.network.GetThroughputRequest
@@ -488,7 +533,7 @@ export type GetThroughputRequest = Message<"ddash.network.GetThroughputRequest">
  * Use `create(GetThroughputRequestSchema)` to create a new message.
  */
 export const GetThroughputRequestSchema: GenMessage<GetThroughputRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 15);
+  messageDesc(file_network_network, 17);
 
 /**
  * @generated from message ddash.network.GetThroughputResponse
@@ -514,7 +559,7 @@ export type GetThroughputResponse = Message<"ddash.network.GetThroughputResponse
  * Use `create(GetThroughputResponseSchema)` to create a new message.
  */
 export const GetThroughputResponseSchema: GenMessage<GetThroughputResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 16);
+  messageDesc(file_network_network, 18);
 
 /**
  * One sample: the average rates in bytes per second since the sample
@@ -555,7 +600,7 @@ export type ThroughputSample = Message<"ddash.network.ThroughputSample"> & {
  * Use `create(ThroughputSampleSchema)` to create a new message.
  */
 export const ThroughputSampleSchema: GenMessage<ThroughputSample> = /*@__PURE__*/
-  messageDesc(file_network_network, 17);
+  messageDesc(file_network_network, 19);
 
 /**
  * @generated from message ddash.network.GetRemoteAccessRequest
@@ -568,7 +613,7 @@ export type GetRemoteAccessRequest = Message<"ddash.network.GetRemoteAccessReque
  * Use `create(GetRemoteAccessRequestSchema)` to create a new message.
  */
 export const GetRemoteAccessRequestSchema: GenMessage<GetRemoteAccessRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 18);
+  messageDesc(file_network_network, 20);
 
 /**
  * @generated from message ddash.network.GetRemoteAccessResponse
@@ -607,7 +652,7 @@ export type GetRemoteAccessResponse = Message<"ddash.network.GetRemoteAccessResp
  * Use `create(GetRemoteAccessResponseSchema)` to create a new message.
  */
 export const GetRemoteAccessResponseSchema: GenMessage<GetRemoteAccessResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 19);
+  messageDesc(file_network_network, 21);
 
 /**
  * @generated from message ddash.network.RemoteAccessPeer
@@ -671,7 +716,7 @@ export type RemoteAccessPeer = Message<"ddash.network.RemoteAccessPeer"> & {
  * Use `create(RemoteAccessPeerSchema)` to create a new message.
  */
 export const RemoteAccessPeerSchema: GenMessage<RemoteAccessPeer> = /*@__PURE__*/
-  messageDesc(file_network_network, 20);
+  messageDesc(file_network_network, 22);
 
 /**
  * A destination a pass rule lets a peer reach.
@@ -721,7 +766,7 @@ export type Reach = Message<"ddash.network.Reach"> & {
  * Use `create(ReachSchema)` to create a new message.
  */
 export const ReachSchema: GenMessage<Reach> = /*@__PURE__*/
-  messageDesc(file_network_network, 21);
+  messageDesc(file_network_network, 23);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelRequest
@@ -734,7 +779,7 @@ export type GetVpnTunnelRequest = Message<"ddash.network.GetVpnTunnelRequest"> &
  * Use `create(GetVpnTunnelRequestSchema)` to create a new message.
  */
 export const GetVpnTunnelRequestSchema: GenMessage<GetVpnTunnelRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 22);
+  messageDesc(file_network_network, 24);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelResponse
@@ -775,7 +820,7 @@ export type GetVpnTunnelResponse = Message<"ddash.network.GetVpnTunnelResponse">
  * Use `create(GetVpnTunnelResponseSchema)` to create a new message.
  */
 export const GetVpnTunnelResponseSchema: GenMessage<GetVpnTunnelResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 23);
+  messageDesc(file_network_network, 25);
 
 /**
  * @generated from message ddash.network.TunnelGateway
@@ -834,7 +879,7 @@ export type TunnelGateway = Message<"ddash.network.TunnelGateway"> & {
  * Use `create(TunnelGatewaySchema)` to create a new message.
  */
 export const TunnelGatewaySchema: GenMessage<TunnelGateway> = /*@__PURE__*/
-  messageDesc(file_network_network, 24);
+  messageDesc(file_network_network, 26);
 
 /**
  * The VPN Tunnel's tier. The failover group's first tier is the WireGuard
@@ -965,6 +1010,21 @@ export const NetworkService: GenService<{
     methodKind: "unary";
     input: typeof RenameDeviceRequestSchema;
     output: typeof RenameDeviceResponseSchema;
+  },
+  /**
+   * SetDirect makes a Device Direct (its address added to the bypass
+   * alias) or Tunnelled (its address removed from it), applied at once. A
+   * New Device is Adopted first, under its name (else its MAC) at the
+   * lowest free reserved address. Only the Device's own address is ever
+   * written: a Device Direct through another member (a network, range or
+   * nested alias) stays so, and turning it Tunnelled is refused.
+   *
+   * @generated from rpc ddash.network.NetworkService.SetDirect
+   */
+  setDirect: {
+    methodKind: "unary";
+    input: typeof SetDirectRequestSchema;
+    output: typeof SetDirectResponseSchema;
   },
   /**
    * SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by

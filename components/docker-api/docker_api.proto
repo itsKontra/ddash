@@ -52,6 +52,9 @@ message HostContainers {
   repeated Container containers = 2;
   // Why the host couldn't be read; empty when it could.
   string error = 3;
+  // The host part of its socket-proxy URL, e.g. "198.18.2.10": where a
+  // port published on every address (no ip) answers.
+  string address = 4;
 }
 
 message Container {

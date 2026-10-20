@@ -10,13 +10,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
-	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -30,6 +30,12 @@ var repoRoot = filepath.Join("..", "..")
 // in-process against a lab serving scenarios, configured as `make dev`
 // does.
 func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
+	h, _ := bootNetworkLab(t, scenarios...)
+	return h
+}
+
+// bootNetworkLab is bootNetwork, also returning the lab.
+func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fakelab.Lab) {
 	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
 		t.Fatal(err)
@@ -48,7 +54,7 @@ func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	h.WaitState("pfsense-api", runtime.OK)
 	h.WaitState("adguard-api", runtime.OK)
 	h.WaitState("network", runtime.OK)
-	return h
+	return h, lab
 }
 
 // networkCall returns network's answer to method on a lab serving scenarios.
@@ -193,42 +199,96 @@ func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
 	}
 }
 
-func TestAdBlockingOffOnANewDeviceIsOneChainOfItsAdoptAndAdGuardHops(t *testing.T) {
-	h := bootNetwork(t)
+func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t *testing.T) {
+	h, lab := bootNetworkLab(t)
+
+	// The Device page's toggle on the New Device with no hostname.
+	res := h.Call("network", "network", "SetDirect", `{"mac":"02:5e:00:00:20:02","direct":true}`)
+	if res.Code != http.StatusOK {
+		t.Fatalf("SetDirect: status %d: %s", res.Code, res.Body)
+	}
+	var got networkpb.SetDirectResponse
+	if err := protojson.Unmarshal(res.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if d := got.GetDevice(); !d.GetAdopted() || !d.GetDirect() || d.GetIp() != "198.18.1.23" {
+		t.Errorf("Device after Direct on = %v, want Adopted at 198.18.1.23 and Direct", d)
+	}
+
+	// The lab's firewall ends with the Device's address in the bypass
+	// alias, after the members that are no Devices, all applied.
+	fw := lab.Handler("pfsense-api").(*pfsensefake.Firewall)
+	var bypass pfsensefake.Alias
+	for _, a := range fw.Aliases() {
+		if a.Name == "VPN_BYPASS" {
+			bypass = a
+		}
+	}
+	want := pfsensefake.Alias{
+		Name:      "VPN_BYPASS",
+		Addresses: []string{"198.18.1.21", "198.18.1.150", "198.18.2.10", "198.18.1.23"},
+		Details:   []string{"Work laptop", "Phone", "Media server", "02:5e:00:00:20:02"},
+	}
+	if diff := cmp.Diff(want, bypass); diff != "" {
+		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
+	}
+	if fw.FirewallPending() || fw.Pending() {
+		t.Error("changes still pending on the firewall, want applied")
+	}
+
+	// One chain, newest first: pfsense-api's alias and Adopt hops, then
+	// network's root, all as the Operator.
+	var hops []string
+	chains := map[string]bool{}
+	for _, e := range componentHops(h) {
+		hops = append(hops, fmt.Sprintf("%s %s %s %s", e.Target, e.Method, e.Outcome, e.Username))
+		chains[e.Chain] = true
+	}
+	wantHops := []string{
+		"pfsense-api AddAliasAddress ok test",
+		"pfsense-api CreateStaticMapping ok test",
+		"network SetDirect ok test",
+	}
+	if diff := cmp.Diff(wantHops, hops); diff != "" {
+		t.Errorf("Audit Log (-want +got):\n%s", diff)
+	}
+	if len(chains) != 1 {
+		t.Errorf("%d chains, want 1", len(chains))
+	}
+}
+
+func TestAdBlockingOffOnANewDeviceIsOneChainEndingWithItsAdGuardClient(t *testing.T) {
+	h, lab := bootNetworkLab(t)
 
 	res := h.Call("network", "network", "SetAdBlocking", `{"mac":"02:5e:00:00:20:01","enabled":false}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("SetAdBlocking: status %d: %s", res.Code, res.Body)
 	}
-
-	// The lab keeps both writes: the phone is Adopted at the lowest free
-	// reserved address, and AdGuard has a client for it that doesn't filter.
-	var list networkpb.ListDevicesResponse
-	if err := protojson.Unmarshal(h.Call("network", "network", "ListDevices", `{}`).Body.Bytes(), &list); err != nil {
+	var got networkpb.SetAdBlockingResponse
+	if err := protojson.Unmarshal(res.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	for _, d := range list.GetDevices() {
-		if d.GetMac() == "02:5e:00:00:20:01" && (!d.GetAdopted() || d.GetIp() != "198.18.1.23" || !d.GetAdBlockingOff()) {
-			t.Errorf("Device after the toggle = %v, want Adopted at .23 with ad-blocking off", d)
-		}
-	}
-	var clients adguardapipb.ListClientsResponse
-	if err := protojson.Unmarshal(h.Call("network", "adguard-api", "ListClients", `{}`).Body.Bytes(), &clients); err != nil {
-		t.Fatal(err)
-	}
-	want := &adguardapipb.Client{Name: "galaxy-s24", Ids: []string{"198.18.1.23"}}
-	if got := clients.GetClients(); len(got) != 3 || !proto.Equal(got[2], want) {
-		t.Errorf("AdGuard's clients = %v, want the TV's, the servers' and %v", got, want)
+	if d := got.GetDevice(); !d.GetAdopted() || d.GetIp() != "198.18.1.23" || !d.GetAdBlockingOff() {
+		t.Errorf("Device after the toggle = %v, want Adopted at 198.18.1.23 with ad-blocking off", d)
 	}
 
-	// Newest first, all on the toggle's chain, as the Operator.
-	entries := componentHops(h)
+	// The lab's AdGuard ends with a client for the address the Device
+	// moves to, with its own settings and no filtering.
+	ag := lab.Handler("adguard-api").(*adguardfake.AdGuard)
+	client := ag.PersistentClient("galaxy-s24")
+	if client == nil || !cmp.Equal(client["ids"], []any{"198.18.1.23"}) || client["use_global_settings"] != false || client["filtering_enabled"] != false {
+		t.Errorf("AdGuard's client for the phone = %v, want ids [198.18.1.23], own settings, no filtering", client)
+	}
+	if n := len(ag.Clients()); n != 3 {
+		t.Errorf("%d AdGuard clients, want the 2 it had and the phone's", n)
+	}
+
+	// One chain, newest first, all as the Operator.
 	var hops []string
-	for _, e := range entries {
+	chains := map[string]bool{}
+	for _, e := range componentHops(h) {
 		hops = append(hops, fmt.Sprintf("%s %s %s %s", e.Target, e.Method, e.Outcome, e.Username))
-		if e.Chain != entries[0].Chain {
-			t.Errorf("%s on another chain", e.Method)
-		}
+		chains[e.Chain] = true
 	}
 	wantHops := []string{
 		"adguard-api SetClientFiltering ok test",
@@ -237,6 +297,9 @@ func TestAdBlockingOffOnANewDeviceIsOneChainOfItsAdoptAndAdGuardHops(t *testing.
 	}
 	if diff := cmp.Diff(wantHops, hops); diff != "" {
 		t.Errorf("Audit Log (-want +got):\n%s", diff)
+	}
+	if len(chains) != 1 {
+		t.Errorf("%d chains, want 1", len(chains))
 	}
 }
 

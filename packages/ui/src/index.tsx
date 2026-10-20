@@ -398,8 +398,8 @@ export function UptimeBars({ label, bars }: { label: string; bars: readonly Upti
   );
 }
 
-/** An on/off switch named by its label, e.g. a Device's ad-blocking; applies on click. */
-export function Switch({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+/** An on/off switch that acts at once (no confirm), e.g. a Device's Direct toggle; label names it for screen readers. */
+export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean }) {
   return (
     <button
       type="button"
@@ -409,7 +409,7 @@ export function Switch({ label, checked, onChange, disabled }: { label: string; 
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cx(
-        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:pointer-events-none disabled:opacity-40",
         checked ? "bg-primary" : "bg-muted",
       )}
     >

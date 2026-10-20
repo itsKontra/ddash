@@ -66,6 +66,16 @@ it("UptimeBars draws one bar per bucket in its tone, oldest first, named by its 
   expect(screen.getByText("08:00 · 100 %")).toBeTruthy();
 });
 
+it("Switch is a named switch reporting its state and asking for the other", () => {
+  const changes: boolean[] = [];
+  render(<Switch checked={false} label="Direct TV" onChange={(v) => changes.push(v)} />);
+
+  const s = screen.getByRole("switch", { name: "Direct TV" });
+  expect(s.getAttribute("aria-checked")).toBe("false");
+  s.click();
+  expect(changes).toEqual([true]);
+});
+
 it("Switch is a named switch that reports the flipped value, and does nothing while disabled", () => {
   const changes: boolean[] = [];
   const { rerender } = render(<Switch label="Ad-blocking" checked onChange={(v) => changes.push(v)} />);

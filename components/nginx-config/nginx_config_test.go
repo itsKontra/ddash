@@ -172,6 +172,19 @@ func TestReadsEveryServerBlockNginxLoads(t *testing.T) {
 	}
 }
 
+func TestReadsEveryUpstreamBlockWithItsServers(t *testing.T) {
+	srv := nginxHost(t, "baseline")
+	s := start(t, srv)
+	s.authorize(t, srv)
+
+	got := s.refresh(t)
+
+	want := []*nginxconfigpb.Upstream{{Name: "grafana", Servers: []string{"198.18.2.20:3000"}}}
+	if diff := cmp.Diff(want, got.GetUpstreams(), protocmp.Transform()); diff != "" {
+		t.Errorf("upstreams (-want +got):\n%s", diff)
+	}
+}
+
 func TestAFailedConfigTestKeepsNginxsErrorText(t *testing.T) {
 	srv := nginxHost(t, "config-test-failed")
 	s := start(t, srv)

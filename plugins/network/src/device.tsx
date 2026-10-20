@@ -5,10 +5,11 @@ import { Link, useParams } from "react-router";
 import { AdBlockingToggle } from "./adblocking";
 import { DeviceAction } from "./adopt";
 import { nameOf, useDevices } from "./devices";
-import { Adoption, Routing } from "./devices-table";
+import { Adoption } from "./devices-table";
+import { DirectToggle } from "./direct";
 import { DeviceQueries } from "./queries";
 
-/** A Device's detail (/network/devices/:mac): Adopt or rename, ad-blocking, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
+/** A Device's detail (/network/devices/:mac): Adopt or rename, the Direct and ad-blocking toggles, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
@@ -97,13 +98,7 @@ function Summary({ device: d, bypassAlias, adguardError }: { device: Device; byp
             </span>,
           ],
           ["Address", <Adoption key="adoption" device={d} />],
-          [
-            "Routing",
-            <span key="routing" className="inline-flex items-center gap-2">
-              <Routing device={d} />
-              <span className="text-muted-foreground">{d.direct ? `in ${bypassAlias}` : "via the VPN Tunnel"}</span>
-            </span>,
-          ],
+          ["Routing", <DirectToggle key="routing" device={d} bypassAlias={bypassAlias} />],
           ["Ad-blocking", <AdBlockingToggle key="ad-blocking" device={d} adguardError={adguardError} />],
         ]}
       />

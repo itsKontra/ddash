@@ -12,6 +12,7 @@ export {
 } from "./define";
 export { createQueryClient, refreshOf, Refresh, tiers, useQuery, type QueryClient, type QueryOptions } from "./query";
 export { useTail, type Tail } from "./tail";
+export { InstalledPlugins, usePluginLink } from "./link";
 export { useAction, type Action, type ActionRequest, type ConfirmRequest, type RunOptions } from "./action";
 export { CoreScope, PluginHost, PluginScope, useClient, useConfirm, usePlugin, type Ask } from "./scope";
 export { confirmed, coreTransport, isDisruptive, pluginHeader, pluginTransport, type Fetch, type PluginRef } from "./transport";

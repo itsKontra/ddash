@@ -1,13 +1,13 @@
 // Package pfsensefake is a stateful fake of pfSense's REST API v2 for
 // pfsense-api's Actions. It keeps the DHCP servers with their static
-// mappings, the DHCP server's pending-changes flag and its apply, and
-// records every request in order; anything else is served from a
-// scenario's fixtures (fixture.Scenario). pfsense-api's tests and fakelab
+// mappings, the firewall aliases, each area's pending-changes flag and its
+// apply, and records every request in order; anything else is served from
+// a scenario's fixtures (fixture.Scenario). pfsense-api's tests and fakelab
 // serve it.
 //
-// Like pfSense, a write without "apply": true only marks the DHCP server
-// pending until POST services/dhcp_server/apply; ids are positions in a
-// server's staticmap array.
+// Like pfSense, a write without "apply": true only marks its area pending
+// until that area's POST .../apply; ids are positions in a server's
+// staticmap array and in the alias list.
 package pfsensefake
 
 import (
@@ -33,11 +33,20 @@ const (
 	mappingPath  = "/api/v2/services/dhcp_server/static_mapping"
 	mappingsPath = "/api/v2/services/dhcp_server/static_mappings"
 	applyPath    = "/api/v2/services/dhcp_server/apply"
+
+	aliasesPath       = "/api/v2/firewall/aliases"
+	aliasPath         = "/api/v2/firewall/alias"
+	firewallApplyPath = "/api/v2/firewall/apply"
 )
 
 // Applied is the entry Log records when pending DHCP changes take effect,
 // from a write's "apply": true or from POST services/dhcp_server/apply.
 const Applied = "apply DHCP"
+
+// AppliedFirewall is the entry Log records when pending alias changes take
+// effect (the filter reloads), from a write's "apply": true or from POST
+// firewall/apply.
+const AppliedFirewall = "apply firewall"
 
 // Options shape a Firewall.
 type Options struct {
@@ -53,21 +62,37 @@ type Firewall struct {
 	fixtures http.Handler
 	opts     Options
 
-	mu      sync.Mutex
-	servers []map[string]any
-	pending bool
-	log     []string
-	writing int
-	maxW    int
+	mu              sync.Mutex
+	servers         []map[string]any
+	pending         bool
+	aliases         []map[string]any
+	firewallPending bool
+	log             []string
+	writing         int
+	maxW            int
 }
 
-// New serves the scenario in dir: its services/dhcp_servers.json (else its
-// sibling baseline's) is the starting state.
+// New serves the scenario in dir: its services/dhcp_servers.json and
+// firewall/aliases.json (each else its sibling baseline's) are the
+// starting state.
 func New(dir string, opts Options) (*Firewall, error) {
 	f := &Firewall{fixtures: fixture.Scenario(dir, opts.Miss), opts: opts}
-	file := filepath.Join(dir, filepath.FromSlash(serversPath)+".json")
+	var err error
+	if f.servers, err = seed(dir, serversPath); err != nil {
+		return nil, err
+	}
+	if f.aliases, err = seed(dir, aliasesPath); err != nil {
+		return nil, err
+	}
+	return f, nil
+}
+
+// seed reads the data of path's fixture in dir, else in its sibling
+// baseline.
+func seed(dir, path string) ([]map[string]any, error) {
+	file := filepath.Join(dir, filepath.FromSlash(path)+".json")
 	if _, err := os.Stat(file); err != nil {
-		file = filepath.Join(filepath.Dir(dir), "baseline", filepath.FromSlash(serversPath)+".json")
+		file = filepath.Join(filepath.Dir(dir), "baseline", filepath.FromSlash(path)+".json")
 	}
 	b, err := os.ReadFile(file)
 	if err != nil {
@@ -79,8 +104,7 @@ func New(dir string, opts Options) (*Firewall, error) {
 	if err := json.Unmarshal(b, &env); err != nil {
 		return nil, fmt.Errorf("pfsensefake: %s: %w", file, err)
 	}
-	f.servers = env.Data
-	return f, nil
+	return env.Data, nil
 }
 
 // Mapping is a static mapping as the fake holds it.
@@ -101,6 +125,31 @@ func (f *Firewall) StaticMappings(iface string) []Mapping {
 		out = append(out, Mapping{MAC: text(m["mac"]), IP: text(m["ipaddr"]), Hostname: text(m["hostname"]), Description: text(m["descr"])})
 	}
 	return out
+}
+
+// Alias is a firewall alias as the fake holds it: its members and their
+// descriptions, by position.
+type Alias struct {
+	Name               string
+	Addresses, Details []string
+}
+
+// Aliases returns every alias in order.
+func (f *Firewall) Aliases() []Alias {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	out := make([]Alias, 0, len(f.aliases))
+	for _, a := range f.aliases {
+		out = append(out, Alias{Name: text(a["name"]), Addresses: texts(a["address"]), Details: texts(a["detail"])})
+	}
+	return out
+}
+
+// FirewallPending reports whether alias changes wait for an apply.
+func (f *Firewall) FirewallPending() bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.firewallPending
 }
 
 // Pending reports whether DHCP changes wait for an apply.
@@ -165,8 +214,136 @@ func (f *Firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.apply()
 		f.mu.Unlock()
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": true})
+	case "GET " + aliasesPath:
+		f.mu.Lock()
+		list := make([]map[string]any, len(f.aliases))
+		for i, a := range f.aliases {
+			list[i] = maps.Clone(a)
+			list[i]["id"] = i
+		}
+		b, err := json.Marshal(list)
+		f.mu.Unlock()
+		if err != nil {
+			reply(w, http.StatusInternalServerError, "SERVER_ERROR", err.Error(), nil)
+			return
+		}
+		reply(w, http.StatusOK, "SUCCESS", "", json.RawMessage(b))
+	case "PATCH " + aliasPath:
+		f.patchAlias(w, r)
+	case "GET " + firewallApplyPath:
+		f.mu.Lock()
+		applied, subsystems := !f.firewallPending, []string{}
+		if f.firewallPending {
+			subsystems = append(subsystems, "aliases")
+		}
+		f.mu.Unlock()
+		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": applied, "pending_subsystems": subsystems})
+	case "POST " + firewallApplyPath:
+		f.mu.Lock()
+		f.applyFirewall()
+		f.mu.Unlock()
+		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": true, "pending_subsystems": []string{}})
 	default:
 		f.fixtures.ServeHTTP(w, r)
+	}
+}
+
+// begin counts a write in flight and holds it for WriteDelay; the caller
+// takes f.mu after and decrements f.writing under it.
+func (f *Firewall) begin() {
+	f.mu.Lock()
+	f.writing++
+	f.maxW = max(f.maxW, f.writing)
+	f.mu.Unlock()
+	time.Sleep(f.opts.WriteDelay)
+}
+
+// patchAlias updates an alias by id. As in pfSense, a list sent replaces
+// the stored one, descriptions are padded to the addresses with "Entry
+// added <date>", and more descriptions than addresses is refused. The
+// "append" and "remove" flags aren't faked, as pfsense-api doesn't send
+// them: a request with either is refused, so a change that starts sending
+// them fails here first.
+func (f *Firewall) patchAlias(w http.ResponseWriter, r *http.Request) {
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		reply(w, http.StatusBadRequest, "INVALID_JSON", "The request body is not valid JSON.", nil)
+		return
+	}
+	f.begin()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.writing--
+
+	for _, flag := range []string{"append", "remove"} {
+		if body[flag] == true {
+			reply(w, http.StatusBadRequest, "PFSENSEFAKE_UNSUPPORTED", fmt.Sprintf("pfsensefake doesn't fake %q.", flag), nil)
+			return
+		}
+	}
+	id, ok := body["id"].(float64)
+	if !ok || id < 0 || int(id) >= len(f.aliases) || id != float64(int(id)) {
+		reply(w, http.StatusNotFound, "MODEL_OBJECT_NOT_FOUND", fmt.Sprintf("Object with ID `%v` does not exist.", body["id"]), nil)
+		return
+	}
+	updated := maps.Clone(f.aliases[int(id)])
+	for _, k := range []string{"descr", "address", "detail"} {
+		if v, ok := body[k]; ok {
+			updated[k] = v
+		}
+	}
+	addresses, details := texts(updated["address"]), texts(updated["detail"])
+	if len(details) > len(addresses) {
+		reply(w, http.StatusBadRequest, "TOO_MANY_ALIAS_DETAILS", "Aliases cannot contain more 'detail' items than 'address' items.", nil)
+		return
+	}
+	for _, a := range addresses {
+		if code, rid, msg := checkAddress(text(updated["type"]), a); code != 0 {
+			reply(w, code, rid, msg, nil)
+			return
+		}
+	}
+	for len(details) < len(addresses) {
+		details = append(details, "Entry added "+time.Now().Format(time.RFC1123Z))
+	}
+	updated["address"], updated["detail"] = addresses, details
+	f.aliases[int(id)] = updated
+	f.firewallPending = true
+	if body["apply"] == true {
+		f.applyFirewall()
+	}
+	out := maps.Clone(updated)
+	out["id"] = int(id)
+	reply(w, http.StatusOK, "SUCCESS", "", out)
+}
+
+// memberName is a hostname or an alias's name, which any address alias may hold.
+var memberName = regexp.MustCompile(`^[A-Za-z0-9_]([A-Za-z0-9_.-]*[A-Za-z0-9_])?$`)
+
+// checkAddress validates an alias member as pfSense does for the alias's
+// type: an address (host) or a CIDR (network), else a hostname or another
+// alias's name. Port aliases aren't checked.
+func checkAddress(typ, a string) (code int, id, msg string) {
+	switch typ {
+	case "host":
+		if _, err := netip.ParseAddr(a); err == nil || memberName.MatchString(a) {
+			return 0, "", ""
+		}
+		return http.StatusBadRequest, "INVALID_HOST_ALIAS_ADDRESS", fmt.Sprintf("Host alias 'address' value '%s' is not a valid IP, FQDN, or alias.", a)
+	case "network":
+		if _, err := netip.ParsePrefix(a); err == nil || memberName.MatchString(a) {
+			return 0, "", ""
+		}
+		return http.StatusBadRequest, "INVALID_NETWORK_ALIAS_ADDRESS", fmt.Sprintf("Network alias 'address' value '%s' is not a valid CIDR, FQDN, or alias.", a)
+	}
+	return 0, "", ""
+}
+
+// applyFirewall makes pending alias changes take effect; f.mu is held.
+func (f *Firewall) applyFirewall() {
+	if f.firewallPending {
+		f.firewallPending = false
+		f.log = append(f.log, AppliedFirewall)
 	}
 }
 
@@ -178,11 +355,7 @@ func (f *Firewall) write(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	f.mu.Lock()
-	f.writing++
-	f.maxW = max(f.maxW, f.writing)
-	f.mu.Unlock()
-	time.Sleep(f.opts.WriteDelay)
+	f.begin()
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.writing--
@@ -287,6 +460,21 @@ func staticmap(s map[string]any) []map[string]any {
 		}
 	}
 	return out
+}
+
+// texts reads a JSON list of strings (nil for none).
+func texts(v any) []string {
+	switch list := v.(type) {
+	case []string:
+		return slices.Clone(list)
+	case []any:
+		out := make([]string, 0, len(list))
+		for _, x := range list {
+			out = append(out, text(x))
+		}
+		return out
+	}
+	return nil
 }
 
 func text(v any) string {

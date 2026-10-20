@@ -105,7 +105,7 @@ it("turns ad-blocking off for a Device at once, without confirming", async () =>
     SetAdBlocking: () => Response.json({ device: { ...laptop, adBlockingOff: true } }),
   });
 
-  const toggle = within(deviceRegion()).getByRole("switch", { name: "Ad-blocking" });
+  const toggle = within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / });
   expect(toggle.getAttribute("aria-checked")).toBe("true");
   fireEvent.click(toggle);
   await settle();
@@ -119,7 +119,7 @@ it("turns ad-blocking off for a Device at once, without confirming", async () =>
 it("turns ad-blocking back on", async () => {
   const calls = await show("/network/devices/02:5e:00:00:10:01", { SetAdBlocking: () => Response.json({ device: { ...tv, adBlockingOff: false } }) });
 
-  const toggle = within(deviceRegion()).getByRole("switch", { name: "Ad-blocking" });
+  const toggle = within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / });
   expect(toggle.getAttribute("aria-checked")).toBe("false");
   fireEvent.click(toggle);
   await settle();
@@ -130,7 +130,7 @@ it("turns ad-blocking back on", async () => {
 it("says a toggle on a New Device Adopts it first", async () => {
   await show("/network/devices/02:5e:00:00:20:01");
 
-  expect(within(deviceRegion()).getByText(/Adopts it first/)).toBeTruthy();
+  expect(within(deviceRegion()).getByText(/ad-blocking off Adopts it first/)).toBeTruthy();
 });
 
 it("shows why a toggle failed", async () => {
@@ -138,7 +138,7 @@ it("shows why a toggle failed", async () => {
     SetAdBlocking: () => Response.json({ code: "unavailable", message: "AdGuard Home unreachable: connection refused" }, { status: 503 }),
   });
 
-  fireEvent.click(within(deviceRegion()).getByRole("switch", { name: "Ad-blocking" }));
+  fireEvent.click(within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / }));
   await settle();
 
   expect(within(deviceRegion()).getByRole("alert").textContent).toContain("AdGuard Home unreachable");
@@ -149,7 +149,7 @@ it("disables the toggle while AdGuard's clients can't be read, saying why", asyn
     ListDevices: () => Response.json({ ...devices, adguardError: "can't read AdGuard's clients: AdGuard Home unreachable" }),
   });
 
-  expect((within(deviceRegion()).getByRole("switch", { name: "Ad-blocking" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / }) as HTMLButtonElement).disabled).toBe(true);
   expect(within(deviceRegion()).getByText(/can't read AdGuard's clients/)).toBeTruthy();
 });
 

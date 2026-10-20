@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 )
 
 // store keeps Checks and their beats in the Component's DB. Times are
@@ -22,6 +23,12 @@ var (
 	}
 	states  = map[checkspb.State]string{checkspb.State_STATE_PENDING: "pending", checkspb.State_STATE_UP: "up", checkspb.State_STATE_DOWN: "down"}
 	records = map[checkspb.RecordType]string{}
+	kinds   = map[workloadpb.Kind]string{
+		workloadpb.Kind_KIND_LXC:      "lxc",
+		workloadpb.Kind_KIND_VM:       "vm",
+		workloadpb.Kind_KIND_DOCKER:   "docker",
+		workloadpb.Kind_KIND_EXTERNAL: "external",
+	}
 )
 
 func init() {
@@ -53,7 +60,8 @@ func (s *store) load(ctx context.Context) ([]*check, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, name, type, target, dns_name, dns_record_type, muted, disabled,
 		       state, failures, since, last_beat, latency_ms, reason,
-		       COALESCE(app_id, ''), app_enabled, gone_at, cert_expires
+		       COALESCE(app_id, ''), app_enabled, gone_at, cert_expires,
+		       workload_kind, workload_host, workload_id
 		FROM checks`)
 	if err != nil {
 		return nil, err
@@ -64,6 +72,7 @@ func (s *store) load(ctx context.Context) ([]*check, error) {
 		var (
 			ch                 check
 			typ, record, state string
+			wlKind             string
 			since              int64
 			lastBeat           sql.NullInt64
 			latency            float64
@@ -71,10 +80,12 @@ func (s *store) load(ctx context.Context) ([]*check, error) {
 		)
 		if err := rows.Scan(&ch.id, &ch.spec.name, &typ, &ch.spec.target, &ch.spec.dnsName, &record, &ch.muted, &ch.disabled,
 			&state, &ch.standing.failures, &since, &lastBeat, &latency, &ch.standing.reason,
-			&ch.appID, &ch.appEnabled, &goneAt, &certExp); err != nil {
+			&ch.appID, &ch.appEnabled, &goneAt, &certExp,
+			&wlKind, &ch.workload.host, &ch.workload.id); err != nil {
 			return nil, err
 		}
 		ch.goneAt, ch.standing.certExpires = fromMs(goneAt), fromMs(certExp)
+		ch.workload.kind = key(kinds, wlKind)
 		ch.spec.typ, ch.spec.recordType, ch.standing.state = key(types, typ), key(records, record), key(states, state)
 		ch.standing.since = time.UnixMilli(since)
 		if lastBeat.Valid {
@@ -225,9 +236,11 @@ func (s *store) saveAppChecks(ctx context.Context, chs []*check) error {
 		st := ch.standing
 		if ch.id == 0 {
 			res, err := tx.ExecContext(ctx, `
-				INSERT INTO checks (kind, app_id, name, type, target, app_enabled, state, since)
-				VALUES ('app', ?, ?, 'http', ?, ?, ?, ?)`,
-				ch.appID, ch.spec.name, ch.spec.target, ch.appEnabled, states[st.state], ms(st.since))
+				INSERT INTO checks (kind, app_id, name, type, target, app_enabled, state, since,
+				                    workload_kind, workload_host, workload_id)
+				VALUES ('app', ?, ?, 'http', ?, ?, ?, ?, ?, ?, ?)`,
+				ch.appID, ch.spec.name, ch.spec.target, ch.appEnabled, states[st.state], ms(st.since),
+				kinds[ch.workload.kind], ch.workload.host, ch.workload.id)
 			if err != nil {
 				return err
 			}
@@ -238,10 +251,12 @@ func (s *store) saveAppChecks(ctx context.Context, chs []*check) error {
 		}
 		if _, err := tx.ExecContext(ctx, `
 			UPDATE checks SET name = ?, target = ?, app_enabled = ?, gone_at = ?,
-			       state = ?, failures = ?, since = ?, last_beat = ?, latency_ms = ?, reason = ?, cert_expires = ?
+			       state = ?, failures = ?, since = ?, last_beat = ?, latency_ms = ?, reason = ?, cert_expires = ?,
+			       workload_kind = ?, workload_host = ?, workload_id = ?
 			WHERE id = ?`,
 			ch.spec.name, ch.spec.target, ch.appEnabled, orNull(ch.goneAt),
 			states[st.state], st.failures, ms(st.since), lastBeat(st), latencyMs(st.latency), st.reason, orNull(st.certExpires),
+			kinds[ch.workload.kind], ch.workload.host, ch.workload.id,
 			ch.id); err != nil {
 			return err
 		}

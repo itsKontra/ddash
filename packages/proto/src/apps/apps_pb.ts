@@ -8,13 +8,15 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
+import type { WorkloadRef } from "../ddash/workload/workload_pb";
+import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file apps/apps.proto.
  */
 export const file_apps_apps: GenFile = /*@__PURE__*/
-  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyK1AQoDQXBwEgoKAmlkGAEgASgJEhMKC3NlcnZlcl9uYW1lGAIgASgJEgwKBG5hbWUYAyABKAkSCwoDdXJsGAQgASgJEg8KB2FsaWFzZXMYBSADKAkSDAoEaWNvbhgGIAEoCRINCgVncm91cBgHIAEoCRIOCgZoaWRkZW4YCCABKAgSDgoGbWFudWFsGAkgASgIEiQKB292ZXJsYXkYCiABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkiWQoHT3ZlcmxheRITCgtzZXJ2ZXJfbmFtZRgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSDgoGaGlkZGVuGAUgASgIIkMKCU1hbnVhbEFwcBIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJIhEKD0xpc3RBcHBzUmVxdWVzdCJyChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBImCgl1bm1hdGNoZWQYAiADKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSFwoPZGlzY292ZXJ5X2Vycm9yGAMgASgJIjkKEVNldE92ZXJsYXlSZXF1ZXN0EiQKB292ZXJsYXkYASABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkiFAoSU2V0T3ZlcmxheVJlc3BvbnNlIjcKFEF0dGFjaE92ZXJsYXlSZXF1ZXN0EhMKC3NlcnZlcl9uYW1lGAEgASgJEgoKAnRvGAIgASgJIhcKFUF0dGFjaE92ZXJsYXlSZXNwb25zZSIrChREZWxldGVPdmVybGF5UmVxdWVzdBITCgtzZXJ2ZXJfbmFtZRgBIAEoCSIXChVEZWxldGVPdmVybGF5UmVzcG9uc2UiNgoQQ3JlYXRlQXBwUmVxdWVzdBIiCgNhcHAYASABKAsyFS5kZGFzaC5hcHBzLk1hbnVhbEFwcCIxChFDcmVhdGVBcHBSZXNwb25zZRIcCgNhcHAYASABKAsyDy5kZGFzaC5hcHBzLkFwcCJCChBVcGRhdGVBcHBSZXF1ZXN0EgoKAmlkGAEgASgJEiIKA2FwcBgCIAEoCzIVLmRkYXNoLmFwcHMuTWFudWFsQXBwIjEKEVVwZGF0ZUFwcFJlc3BvbnNlEhwKA2FwcBgBIAEoCzIPLmRkYXNoLmFwcHMuQXBwIh4KEERlbGV0ZUFwcFJlcXVlc3QSCgoCaWQYASABKAkiEwoRRGVsZXRlQXBwUmVzcG9uc2Uy2QQKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASUQoKU2V0T3ZlcmxheRIdLmRkYXNoLmFwcHMuU2V0T3ZlcmxheVJlcXVlc3QaHi5kZGFzaC5hcHBzLlNldE92ZXJsYXlSZXNwb25zZSIEkrUYABJaCg1BdHRhY2hPdmVybGF5EiAuZGRhc2guYXBwcy5BdHRhY2hPdmVybGF5UmVxdWVzdBohLmRkYXNoLmFwcHMuQXR0YWNoT3ZlcmxheVJlc3BvbnNlIgSStRgAElwKDURlbGV0ZU92ZXJsYXkSIC5kZGFzaC5hcHBzLkRlbGV0ZU92ZXJsYXlSZXF1ZXN0GiEuZGRhc2guYXBwcy5EZWxldGVPdmVybGF5UmVzcG9uc2UiBpK1GAIIARJOCglDcmVhdGVBcHASHC5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlcXVlc3QaHS5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlc3BvbnNlIgSStRgAEk4KCVVwZGF0ZUFwcBIcLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVxdWVzdBodLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVzcG9uc2UiBJK1GAASUAoJRGVsZXRlQXBwEhwuZGRhc2guYXBwcy5EZWxldGVBcHBSZXF1ZXN0Gh0uZGRhc2guYXBwcy5EZWxldGVBcHBSZXNwb25zZSIGkrUYAggBQjpaOGdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvYXBwcy9hcHBzcGI7YXBwc3BiYgZwcm90bzM", [file_ddash_options]);
+  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLdAQoDQXBwEgoKAmlkGAEgASgJEhMKC3NlcnZlcl9uYW1lGAIgASgJEgwKBG5hbWUYAyABKAkSCwoDdXJsGAQgASgJEg8KB2FsaWFzZXMYBSADKAkSDAoEaWNvbhgGIAEoCRINCgVncm91cBgHIAEoCRIOCgZoaWRkZW4YCCABKAgSDgoGbWFudWFsGAkgASgIEiQKB292ZXJsYXkYCiABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSJgoId29ya2xvYWQYCyABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkImMKCFdvcmtsb2FkEigKA3JlZhgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIb3ZlcnJpZGUYBCABKAgiiAEKB092ZXJsYXkSEwoLc2VydmVyX25hbWUYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJEg4KBmhpZGRlbhgFIAEoCBItCgh3b3JrbG9hZBgGIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIkMKCU1hbnVhbEFwcBIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJIhEKD0xpc3RBcHBzUmVxdWVzdCJyChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBImCgl1bm1hdGNoZWQYAiADKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSFwoPZGlzY292ZXJ5X2Vycm9yGAMgASgJIjkKEVNldE92ZXJsYXlSZXF1ZXN0EiQKB292ZXJsYXkYASABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkiFAoSU2V0T3ZlcmxheVJlc3BvbnNlIjcKFEF0dGFjaE92ZXJsYXlSZXF1ZXN0EhMKC3NlcnZlcl9uYW1lGAEgASgJEgoKAnRvGAIgASgJIhcKFUF0dGFjaE92ZXJsYXlSZXNwb25zZSIrChREZWxldGVPdmVybGF5UmVxdWVzdBITCgtzZXJ2ZXJfbmFtZRgBIAEoCSIXChVEZWxldGVPdmVybGF5UmVzcG9uc2UiNgoQQ3JlYXRlQXBwUmVxdWVzdBIiCgNhcHAYASABKAsyFS5kZGFzaC5hcHBzLk1hbnVhbEFwcCIxChFDcmVhdGVBcHBSZXNwb25zZRIcCgNhcHAYASABKAsyDy5kZGFzaC5hcHBzLkFwcCJCChBVcGRhdGVBcHBSZXF1ZXN0EgoKAmlkGAEgASgJEiIKA2FwcBgCIAEoCzIVLmRkYXNoLmFwcHMuTWFudWFsQXBwIjEKEVVwZGF0ZUFwcFJlc3BvbnNlEhwKA2FwcBgBIAEoCzIPLmRkYXNoLmFwcHMuQXBwIh4KEERlbGV0ZUFwcFJlcXVlc3QSCgoCaWQYASABKAkiEwoRRGVsZXRlQXBwUmVzcG9uc2UiFgoUTGlzdFdvcmtsb2Fkc1JlcXVlc3QiQAoVTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlEicKCXdvcmtsb2FkcxgBIAMoCzIULmRkYXNoLmFwcHMuV29ya2xvYWQytQUKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASUQoKU2V0T3ZlcmxheRIdLmRkYXNoLmFwcHMuU2V0T3ZlcmxheVJlcXVlc3QaHi5kZGFzaC5hcHBzLlNldE92ZXJsYXlSZXNwb25zZSIEkrUYABJaCg1BdHRhY2hPdmVybGF5EiAuZGRhc2guYXBwcy5BdHRhY2hPdmVybGF5UmVxdWVzdBohLmRkYXNoLmFwcHMuQXR0YWNoT3ZlcmxheVJlc3BvbnNlIgSStRgAElwKDURlbGV0ZU92ZXJsYXkSIC5kZGFzaC5hcHBzLkRlbGV0ZU92ZXJsYXlSZXF1ZXN0GiEuZGRhc2guYXBwcy5EZWxldGVPdmVybGF5UmVzcG9uc2UiBpK1GAIIARJOCglDcmVhdGVBcHASHC5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlcXVlc3QaHS5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlc3BvbnNlIgSStRgAEk4KCVVwZGF0ZUFwcBIcLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVxdWVzdBodLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVzcG9uc2UiBJK1GAASUAoJRGVsZXRlQXBwEhwuZGRhc2guYXBwcy5EZWxldGVBcHBSZXF1ZXN0Gh0uZGRhc2guYXBwcy5EZWxldGVBcHBSZXNwb25zZSIGkrUYAggBEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GABCOlo4Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9hcHBzL2FwcHNwYjthcHBzcGJiBnByb3RvMw", [file_ddash_options, file_ddash_workload_workload]);
 
 /**
  * apps has nothing to configure: Apps come from nginx-config's snapshot.
@@ -106,6 +108,16 @@ export type App = Message<"ddash.apps.App"> & {
    * @generated from field: ddash.apps.Overlay overlay = 10;
    */
   overlay?: Overlay | undefined;
+
+  /**
+   * The Workload behind the App: the overlay's override, else the
+   * container publishing the upstream's port on a Docker host, else the
+   * Proxmox guest with the upstream's address. Unset for none, or while
+   * the source that would list it is unavailable.
+   *
+   * @generated from field: ddash.apps.Workload workload = 11;
+   */
+  workload?: Workload | undefined;
 };
 
 /**
@@ -114,6 +126,48 @@ export type App = Message<"ddash.apps.App"> & {
  */
 export const AppSchema: GenMessage<App> = /*@__PURE__*/
   messageDesc(file_apps_apps, 1);
+
+/**
+ * A Workload as apps last read it.
+ *
+ * @generated from message ddash.apps.Workload
+ */
+export type Workload = Message<"ddash.apps.Workload"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef ref = 1;
+   */
+  ref?: WorkloadRef | undefined;
+
+  /**
+   * The container's or guest's name; an external host's address. Empty
+   * when no source lists it now.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * Docker's state (running, exited, ...) or Proxmox's status (running,
+   * stopped); empty when not known.
+   *
+   * @generated from field: string state = 3;
+   */
+  state: string;
+
+  /**
+   * Set by the overlay rather than matched.
+   *
+   * @generated from field: bool override = 4;
+   */
+  override: boolean;
+};
+
+/**
+ * Describes the message ddash.apps.Workload.
+ * Use `create(WorkloadSchema)` to create a new message.
+ */
+export const WorkloadSchema: GenMessage<Workload> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 2);
 
 /**
  * The Operator's display settings for a discovered App, kept when its
@@ -150,6 +204,13 @@ export type Overlay = Message<"ddash.apps.Overlay"> & {
    * @generated from field: bool hidden = 5;
    */
   hidden: boolean;
+
+  /**
+   * The Workload the App runs on, overriding the match; unset to match.
+   *
+   * @generated from field: ddash.workload.WorkloadRef workload = 6;
+   */
+  workload?: WorkloadRef | undefined;
 };
 
 /**
@@ -157,7 +218,7 @@ export type Overlay = Message<"ddash.apps.Overlay"> & {
  * Use `create(OverlaySchema)` to create a new message.
  */
 export const OverlaySchema: GenMessage<Overlay> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 2);
+  messageDesc(file_apps_apps, 3);
 
 /**
  * What the Operator gives a manual App.
@@ -193,7 +254,7 @@ export type ManualApp = Message<"ddash.apps.ManualApp"> & {
  * Use `create(ManualAppSchema)` to create a new message.
  */
 export const ManualAppSchema: GenMessage<ManualApp> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 3);
+  messageDesc(file_apps_apps, 4);
 
 /**
  * @generated from message ddash.apps.ListAppsRequest
@@ -206,7 +267,7 @@ export type ListAppsRequest = Message<"ddash.apps.ListAppsRequest"> & {
  * Use `create(ListAppsRequestSchema)` to create a new message.
  */
 export const ListAppsRequestSchema: GenMessage<ListAppsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 4);
+  messageDesc(file_apps_apps, 5);
 
 /**
  * @generated from message ddash.apps.ListAppsResponse
@@ -241,7 +302,7 @@ export type ListAppsResponse = Message<"ddash.apps.ListAppsResponse"> & {
  * Use `create(ListAppsResponseSchema)` to create a new message.
  */
 export const ListAppsResponseSchema: GenMessage<ListAppsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 5);
+  messageDesc(file_apps_apps, 6);
 
 /**
  * @generated from message ddash.apps.SetOverlayRequest
@@ -258,7 +319,7 @@ export type SetOverlayRequest = Message<"ddash.apps.SetOverlayRequest"> & {
  * Use `create(SetOverlayRequestSchema)` to create a new message.
  */
 export const SetOverlayRequestSchema: GenMessage<SetOverlayRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 6);
+  messageDesc(file_apps_apps, 7);
 
 /**
  * @generated from message ddash.apps.SetOverlayResponse
@@ -271,7 +332,7 @@ export type SetOverlayResponse = Message<"ddash.apps.SetOverlayResponse"> & {
  * Use `create(SetOverlayResponseSchema)` to create a new message.
  */
 export const SetOverlayResponseSchema: GenMessage<SetOverlayResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 7);
+  messageDesc(file_apps_apps, 8);
 
 /**
  * @generated from message ddash.apps.AttachOverlayRequest
@@ -297,7 +358,7 @@ export type AttachOverlayRequest = Message<"ddash.apps.AttachOverlayRequest"> & 
  * Use `create(AttachOverlayRequestSchema)` to create a new message.
  */
 export const AttachOverlayRequestSchema: GenMessage<AttachOverlayRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 8);
+  messageDesc(file_apps_apps, 9);
 
 /**
  * @generated from message ddash.apps.AttachOverlayResponse
@@ -310,7 +371,7 @@ export type AttachOverlayResponse = Message<"ddash.apps.AttachOverlayResponse"> 
  * Use `create(AttachOverlayResponseSchema)` to create a new message.
  */
 export const AttachOverlayResponseSchema: GenMessage<AttachOverlayResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 9);
+  messageDesc(file_apps_apps, 10);
 
 /**
  * @generated from message ddash.apps.DeleteOverlayRequest
@@ -327,7 +388,7 @@ export type DeleteOverlayRequest = Message<"ddash.apps.DeleteOverlayRequest"> & 
  * Use `create(DeleteOverlayRequestSchema)` to create a new message.
  */
 export const DeleteOverlayRequestSchema: GenMessage<DeleteOverlayRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 10);
+  messageDesc(file_apps_apps, 11);
 
 /**
  * @generated from message ddash.apps.DeleteOverlayResponse
@@ -340,7 +401,7 @@ export type DeleteOverlayResponse = Message<"ddash.apps.DeleteOverlayResponse"> 
  * Use `create(DeleteOverlayResponseSchema)` to create a new message.
  */
 export const DeleteOverlayResponseSchema: GenMessage<DeleteOverlayResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 11);
+  messageDesc(file_apps_apps, 12);
 
 /**
  * @generated from message ddash.apps.CreateAppRequest
@@ -357,7 +418,7 @@ export type CreateAppRequest = Message<"ddash.apps.CreateAppRequest"> & {
  * Use `create(CreateAppRequestSchema)` to create a new message.
  */
 export const CreateAppRequestSchema: GenMessage<CreateAppRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 12);
+  messageDesc(file_apps_apps, 13);
 
 /**
  * @generated from message ddash.apps.CreateAppResponse
@@ -374,7 +435,7 @@ export type CreateAppResponse = Message<"ddash.apps.CreateAppResponse"> & {
  * Use `create(CreateAppResponseSchema)` to create a new message.
  */
 export const CreateAppResponseSchema: GenMessage<CreateAppResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 13);
+  messageDesc(file_apps_apps, 14);
 
 /**
  * @generated from message ddash.apps.UpdateAppRequest
@@ -396,7 +457,7 @@ export type UpdateAppRequest = Message<"ddash.apps.UpdateAppRequest"> & {
  * Use `create(UpdateAppRequestSchema)` to create a new message.
  */
 export const UpdateAppRequestSchema: GenMessage<UpdateAppRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 14);
+  messageDesc(file_apps_apps, 15);
 
 /**
  * @generated from message ddash.apps.UpdateAppResponse
@@ -413,7 +474,7 @@ export type UpdateAppResponse = Message<"ddash.apps.UpdateAppResponse"> & {
  * Use `create(UpdateAppResponseSchema)` to create a new message.
  */
 export const UpdateAppResponseSchema: GenMessage<UpdateAppResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 15);
+  messageDesc(file_apps_apps, 16);
 
 /**
  * @generated from message ddash.apps.DeleteAppRequest
@@ -430,7 +491,7 @@ export type DeleteAppRequest = Message<"ddash.apps.DeleteAppRequest"> & {
  * Use `create(DeleteAppRequestSchema)` to create a new message.
  */
 export const DeleteAppRequestSchema: GenMessage<DeleteAppRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 16);
+  messageDesc(file_apps_apps, 17);
 
 /**
  * @generated from message ddash.apps.DeleteAppResponse
@@ -443,7 +504,37 @@ export type DeleteAppResponse = Message<"ddash.apps.DeleteAppResponse"> & {
  * Use `create(DeleteAppResponseSchema)` to create a new message.
  */
 export const DeleteAppResponseSchema: GenMessage<DeleteAppResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 17);
+  messageDesc(file_apps_apps, 18);
+
+/**
+ * @generated from message ddash.apps.ListWorkloadsRequest
+ */
+export type ListWorkloadsRequest = Message<"ddash.apps.ListWorkloadsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.apps.ListWorkloadsRequest.
+ * Use `create(ListWorkloadsRequestSchema)` to create a new message.
+ */
+export const ListWorkloadsRequestSchema: GenMessage<ListWorkloadsRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 19);
+
+/**
+ * @generated from message ddash.apps.ListWorkloadsResponse
+ */
+export type ListWorkloadsResponse = Message<"ddash.apps.ListWorkloadsResponse"> & {
+  /**
+   * @generated from field: repeated ddash.apps.Workload workloads = 1;
+   */
+  workloads: Workload[];
+};
+
+/**
+ * Describes the message ddash.apps.ListWorkloadsResponse.
+ * Use `create(ListWorkloadsResponseSchema)` to create a new message.
+ */
+export const ListWorkloadsResponseSchema: GenMessage<ListWorkloadsResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 20);
 
 /**
  * @generated from service ddash.apps.AppsService
@@ -521,6 +612,18 @@ export const AppsService: GenService<{
     methodKind: "unary";
     input: typeof DeleteAppRequestSchema;
     output: typeof DeleteAppResponseSchema;
+  },
+  /**
+   * ListWorkloads returns every Workload proxmox-api and docker-api list
+   * now, to pick a Workload override from: containers by host, then
+   * Proxmox guests by VMID, templates left out.
+   *
+   * @generated from rpc ddash.apps.AppsService.ListWorkloads
+   */
+  listWorkloads: {
+    methodKind: "unary";
+    input: typeof ListWorkloadsRequestSchema;
+    output: typeof ListWorkloadsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_apps_apps, 0);

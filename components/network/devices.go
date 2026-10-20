@@ -244,28 +244,25 @@ func contains(byName map[string]*pfsenseapipb.Alias, name string, ip netip.Addr,
 	}
 	seen[name] = true
 	for _, m := range a.GetAddresses() {
-		m = strings.TrimSpace(m)
-		if addr, err := netip.ParseAddr(m); err == nil {
-			if addr == ip {
-				return true
-			}
-			continue
-		}
-		if p, err := netip.ParsePrefix(m); err == nil {
-			if p.Contains(ip) {
-				return true
-			}
-			continue
-		}
-		if lo, hi, ok := parseRange(m); ok {
-			if lo.Compare(ip) <= 0 && ip.Compare(hi) <= 0 {
-				return true
-			}
-			continue
-		}
-		if contains(byName, m, ip, seen) {
+		if holds(byName, m, ip, seen) {
 			return true
 		}
 	}
 	return false
+}
+
+// holds reports whether the alias member m (an address, a network, a
+// range or an alias's name) holds ip.
+func holds(byName map[string]*pfsenseapipb.Alias, m string, ip netip.Addr, seen map[string]bool) bool {
+	m = strings.TrimSpace(m)
+	if addr, err := netip.ParseAddr(m); err == nil {
+		return addr == ip
+	}
+	if p, err := netip.ParsePrefix(m); err == nil {
+		return p.Contains(ip)
+	}
+	if lo, hi, ok := parseRange(m); ok {
+		return lo.Compare(ip) <= 0 && ip.Compare(hi) <= 0
+	}
+	return contains(byName, m, ip, seen)
 }

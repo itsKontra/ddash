@@ -47,11 +47,7 @@ func (c *component) adopted(ctx context.Context, mac string) (*networkpb.Device,
 	case d.GetAdopted():
 		return d, nil
 	}
-	resp, err := c.AdoptDevice(ctx, &networkpb.AdoptDeviceRequest{Mac: mac, Name: nameOrMAC(d)})
-	if err != nil {
-		return nil, err
-	}
-	return resp.GetDevice(), nil
+	return c.adopt(ctx, mac, nameOrMAC(d), "")
 }
 
 // joinAdGuard marks the Devices whose address has a persistent client of
