@@ -21,14 +21,14 @@ func TestDeleteRemovesAPersistentClientByName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if w := post(a, "/control/clients/delete", `{"name": "Living room TV"}`); w.Code != http.StatusOK {
+	if w := post(a, "/control/clients/delete", `{"name": "AndroidTV"}`); w.Code != http.StatusOK {
 		t.Fatalf("delete = %d %s", w.Code, w.Body)
 	}
 
-	if a.PersistentClient("Living room TV") != nil {
+	if a.PersistentClient("AndroidTV") != nil {
 		t.Errorf("the client is still there")
 	}
-	if a.PersistentClient("Servers") == nil {
+	if a.PersistentClient("Huawei Inv") == nil {
 		t.Errorf("another client went too")
 	}
 }
@@ -44,7 +44,7 @@ func TestDeleteOfAnUnknownOrUnnamedClientIsRefused(t *testing.T) {
 			t.Errorf("delete %s = %d, want 400", body, w.Code)
 		}
 	}
-	if len(a.Clients()) != 2 {
+	if len(a.Clients()) != 6 {
 		t.Errorf("a refused delete removed a client: %v", a.Clients())
 	}
 }

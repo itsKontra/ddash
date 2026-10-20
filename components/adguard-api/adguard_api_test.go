@@ -148,20 +148,38 @@ func TestStatsAreTheLast24HoursTotalsSeriesAndTopLists(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got.GetDnsQueries() != 18432 || got.GetBlockedFiltering() != 2765 || got.GetReplacedSafebrowsing() != 3 || got.GetReplacedSafesearch() != 12 || got.GetReplacedParental() != 0 {
+	if got.GetDnsQueries() != 28119 || got.GetBlockedFiltering() != 2914 {
 		t.Errorf("totals = %v", got)
 	}
-	if got.GetAvgProcessingMs() != 18.4 {
-		t.Errorf("avg processing = %v ms, want 18.4", got.GetAvgProcessingMs())
+	if got.GetAvgProcessingMs() != 15.372 {
+		t.Errorf("avg processing = %v ms, want 15.372", got.GetAvgProcessingMs())
 	}
-	if got.GetTimeUnit() != "hours" || len(got.GetDnsQueriesSeries()) != 24 || got.GetDnsQueriesSeries()[0] != 612 || got.GetBlockedFilteringSeries()[23] != 105 {
+	if got.GetTimeUnit() != "hours" || len(got.GetDnsQueriesSeries()) != 24 || got.GetDnsQueriesSeries()[0] != 1179 || got.GetBlockedFilteringSeries()[23] != 102 {
 		t.Errorf("series = %s %v %v, want 24 hourly buckets", got.GetTimeUnit(), got.GetDnsQueriesSeries(), got.GetBlockedFilteringSeries())
 	}
-	wantBlocked := []*adguardapipb.TopEntry{{Name: "site2.example", Count: 610}, {Name: "site5.example", Count: 402}, {Name: "site9.example", Count: 133}}
-	if diff := cmp.Diff(wantBlocked, got.GetTopBlockedDomains(), protocmp.Transform()); diff != "" {
+	wantBlocked := []*adguardapipb.TopEntry{{Name: "site96.example", Count: 1841}, {Name: "site97.example", Count: 271}, {Name: "site98.example", Count: 93}}
+	if diff := cmp.Diff(wantBlocked, got.GetTopBlockedDomains()[:3], protocmp.Transform()); diff != "" {
 		t.Errorf("top blocked (-want +got):\n%s", diff)
 	}
-	if first := got.GetTopClients()[0]; first.GetName() != "198.18.1.150" || first.GetCount() != 6120 {
+	if n := len(got.GetTopBlockedDomains()); n != 100 {
+		t.Errorf("%d top blocked domains, want AdGuard's 100", n)
+	}
+	if first := got.GetTopClients()[0]; first.GetName() != "198.18.1.102" || first.GetCount() != 6806 {
 		t.Errorf("top client = %v", first)
+	}
+}
+
+func TestStatsCountTheAnswersReplacedByKind(t *testing.T) {
+	// The homelab replaces nothing (safe browsing, safe search and parental
+	// control are off), so this scenario does.
+	_, c := start(t, adguard(t, "replaced-answers").URL)
+
+	got, err := c.GetStats(t.Context(), &adguardapipb.GetStatsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.GetReplacedSafebrowsing() != 3 || got.GetReplacedSafesearch() != 12 || got.GetReplacedParental() != 2 {
+		t.Errorf("replaced = safe browsing %d, safe search %d, parental %d; want 3, 12, 2", got.GetReplacedSafebrowsing(), got.GetReplacedSafesearch(), got.GetReplacedParental())
 	}
 }

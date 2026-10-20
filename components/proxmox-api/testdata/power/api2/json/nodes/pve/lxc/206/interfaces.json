@@ -1,0 +1,6 @@
+{
+  "data": [
+    {"name": "lo", "hwaddr": "00:00:00:00:00:00", "inet": "127.0.0.1/8", "ip-addresses": [{"ip-address": "127.0.0.1", "ip-address-type": "inet", "prefix": "8"}]},
+    {"name": "eth0", "hwaddr": "02:7b:62:3d:c0:29", "inet": "198.18.1.206/24", "ip-addresses": [{"ip-address": "198.18.1.206", "ip-address-type": "inet", "prefix": "24"}]}
+  ]
+}

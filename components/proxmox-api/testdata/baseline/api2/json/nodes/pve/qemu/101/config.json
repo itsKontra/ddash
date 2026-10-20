@@ -1,0 +1,25 @@
+{
+  "data": {
+    "sockets": 1,
+    "boot": "order=scsi0",
+    "bios": "ovmf",
+    "cores": 2,
+    "ide2": "none,media=cdrom",
+    "name": "homeassist",
+    "vmgenid": "d91f6599-57d1-46dd-a223-e9544f1283e4",
+    "scsihw": "virtio-scsi-single",
+    "machine": "q35",
+    "cpu": "x86-64-v2-AES",
+    "ostype": "l26",
+    "numa": 0,
+    "efidisk0": "nvme-storage:vm-101-disk-0,efitype=4m,size=1M",
+    "balloon": 2048,
+    "meta": "creation-qemu=10.1.2,ctime=1777452546",
+    "memory": "4096",
+    "scsi0": "nvme-storage:vm-101-disk-1,backup=0,discard=on,iothread=1,size=32G,ssd=1",
+    "digest": "d2b6959a626a01e7efd931fd9c4a76f28b336466",
+    "smbios1": "uuid=4e935121-cf67-4f64-aef3-8d98c6b4c0ca",
+    "net0": "virtio=02:61:C0:A3:8A:16,bridge=vmbr1",
+    "startup": "order=20"
+  }
+}

@@ -1,2 +1,4 @@
+nginx: [warn] protocol options redefined for 0.0.0.0:443 in /data/nginx/proxy_host/10.conf:14
+nginx: [warn] protocol options redefined for [::]:443 in /data/nginx/proxy_host/11.conf:15
 nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
 nginx: configuration file /etc/nginx/nginx.conf test is successful

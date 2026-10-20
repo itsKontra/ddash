@@ -4,8 +4,38 @@
   "response_id": "SUCCESS",
   "message": "",
   "data": [
-    {"name": "WAN_DHCP", "srcip": "203.0.113.10", "monitorip": "203.0.113.1", "delay": 8.412, "stddev": 0.731, "loss": 0, "status": "online", "substatus": "none"},
-    {"name": "WG_VPN", "srcip": "198.18.30.2", "monitorip": "198.18.30.1", "delay": 24.107, "stddev": 1.92, "loss": 0, "status": "online", "substatus": "none"},
-    {"name": "OVPN_VPN", "srcip": "198.18.31.6", "monitorip": "198.18.31.1", "delay": 31.85, "stddev": 2.4, "loss": 0, "status": "online", "substatus": "none"}
+    {
+      "id": 0,
+      "name": "OVPN_VPN",
+      "srcip": "203.0.113.169",
+      "monitorip": "203.0.113.233",
+      "delay": 22.246,
+      "stddev": 0.414,
+      "loss": 0,
+      "status": "online",
+      "substatus": "none"
+    },
+    {
+      "id": 1,
+      "name": "WG_VPN",
+      "srcip": "198.18.30.2",
+      "monitorip": "203.0.113.76",
+      "delay": 16.215,
+      "stddev": 1.379,
+      "loss": 0,
+      "status": "online",
+      "substatus": "none"
+    },
+    {
+      "id": 2,
+      "name": "WANGW",
+      "srcip": "203.0.113.53",
+      "monitorip": "203.0.113.146",
+      "delay": 4.815,
+      "stddev": 0.227,
+      "loss": 0,
+      "status": "online",
+      "substatus": "none"
+    }
   ]
 }

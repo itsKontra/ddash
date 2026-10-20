@@ -1,0 +1,34 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "id": "lan",
+      "interface": "lan",
+      "enable": true,
+      "range_from": "198.18.1.100",
+      "range_to": "198.18.1.199",
+      "domain": "home.example",
+      "pool": [
+        {"id": 0, "parent_id": "lan", "range_from": "198.18.1.230", "range_to": "198.18.1.239"}
+      ],
+      "staticmap": [
+        {"id": 0, "parent_id": "lan", "mac": "02:5E:00:00:10:01", "ipaddr": "198.18.1.20", "cid": "", "hostname": "living-room-tv", "domain": null, "descr": "Living room TV"},
+        {"id": 1, "parent_id": "lan", "mac": "02:5e:00:00:10:02", "ipaddr": "198.18.1.21", "cid": "", "hostname": "work-laptop", "domain": null, "descr": "Work laptop"},
+        {"id": 2, "parent_id": "lan", "mac": "02:5e:00:00:10:03", "ipaddr": "198.18.1.22", "cid": "", "hostname": "printer", "domain": null, "descr": null}
+      ]
+    },
+    {
+      "id": "opt1",
+      "interface": "opt1",
+      "enable": false,
+      "range_from": null,
+      "range_to": null,
+      "domain": null,
+      "pool": [],
+      "staticmap": []
+    }
+  ]
+}

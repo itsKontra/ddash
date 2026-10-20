@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -123,6 +124,45 @@ func TestUntilTheKeyIsAuthorizedHealthIsPermissionDenied(t *testing.T) {
 	}
 }
 
+// acme is the two ACME challenge locations Nginx Proxy Manager includes in
+// its blocks.
+var acme = []*nginxconfigpb.Location{
+	{Path: "^~ /.well-known/acme-challenge/"},
+	{Path: "= /.well-known/acme-challenge/"},
+}
+
+// assets is the static-assets location of Nginx Proxy Manager's
+// assets.conf, proxying to where upstream says.
+func assets(upstream string) *nginxconfigpb.Location {
+	return &nginxconfigpb.Location{
+		Path:      `~* ^.*\.(css|js|jpe?g|gif|png|webp|woff|eot|ttf|svg|ico|css\.map|js\.map)$`,
+		ProxyPass: upstream + "$request_uri",
+	}
+}
+
+// npmHost is a Proxy Host as Nginx Proxy Manager writes it to
+// /data/nginx/proxy_host/<n>.conf: on 80 and 443 with its Let's Encrypt
+// certificate (on [::]:443 too unless v6 is off), forwarding "/" to
+// "$forward_scheme://$server:$port$request_uri" with the variables it sets,
+// after the ACME locations and any of more.
+func npmHost(n int, names []string, v6 bool, upstream string, more ...*nginxconfigpb.Location) *nginxconfigpb.Server {
+	listens := []*nginxconfigpb.Listen{{Address: "80"}, {Address: "[::]:80"}, {Address: "443", Ssl: true}}
+	if v6 {
+		listens = append(listens, &nginxconfigpb.Listen{Address: "[::]:443", Ssl: true})
+	}
+	locations := append(slices.Clone(acme), more...)
+	locations = append(locations, &nginxconfigpb.Location{Path: "/", ProxyPass: upstream + "$request_uri"})
+	return &nginxconfigpb.Server{
+		File: "/data/nginx/proxy_host/" + strconv.Itoa(n) + ".conf", Line: 6,
+		ServerNames:    names,
+		Listens:        listens,
+		SslCertificate: "/etc/letsencrypt/live/npm-3/fullchain.pem",
+		Locations:      locations,
+	}
+}
+
+// The homelab's nginx is Nginx Proxy Manager: its own fallback, admin and
+// default-host blocks, then one block per Proxy Host.
 func TestReadsEveryServerBlockNginxLoads(t *testing.T) {
 	srv := nginxHost(t, "baseline")
 	s := start(t, srv)
@@ -132,34 +172,53 @@ func TestReadsEveryServerBlockNginxLoads(t *testing.T) {
 
 	want := []*nginxconfigpb.Server{
 		{
-			File: "/etc/nginx/conf.d/00-redirect.conf", Line: 2,
-			ServerNames: []string{"_"},
+			File: "/etc/nginx/conf.d/default.conf", Line: 2,
+			ServerNames: []string{"localhost-nginx-proxy-manager"},
+			Listens:     []*nginxconfigpb.Listen{{Address: "80"}, {Address: "[::]:80"}},
+			Locations:   append([]*nginxconfigpb.Location{assets("http://127.0.0.1:80")}, append(slices.Clone(acme), &nginxconfigpb.Location{Path: "/"})...),
+		},
+		{
+			File: "/etc/nginx/conf.d/default.conf", Line: 24,
+			ServerNames: []string{"localhost"},
+			Listens:     []*nginxconfigpb.Listen{{Address: "443", Ssl: true}, {Address: "[::]:443", Ssl: true}},
+			Return:      "444",
+		},
+		{
+			File: "/etc/nginx/conf.d/production.conf", Line: 2,
+			ServerNames: []string{"nginxproxymanager"},
+			Listens:     []*nginxconfigpb.Listen{{Address: "81", DefaultServer: true}, {Address: "[::]:81", DefaultServer: true}},
+			Locations:   []*nginxconfigpb.Location{{Path: "/api"}, {Path: "/api/", ProxyPass: "http://127.0.0.1:3000/"}, {Path: "/"}},
+		},
+		{
+			File: "/data/nginx/default_host/site.conf", Line: 5,
+			ServerNames: []string{"default-host.localhost"},
 			Listens:     []*nginxconfigpb.Listen{{Address: "80", DefaultServer: true}, {Address: "[::]:80", DefaultServer: true}},
-			Return:      "301 https://$host$request_uri",
+			Locations:   append(slices.Clone(acme), &nginxconfigpb.Location{Path: "/"}),
 		},
-		{
-			File: "/etc/nginx/conf.d/grafana.conf", Line: 5,
-			ServerNames:    []string{"grafana.home.example"},
-			Listens:        []*nginxconfigpb.Listen{{Address: "443", Ssl: true}, {Address: "[::]:443", Ssl: true}},
-			SslCertificate: "/etc/letsencrypt/live/home.example/fullchain.pem",
-			Locations:      []*nginxconfigpb.Location{{Path: "/", ProxyPass: "http://grafana"}},
-		},
-		{
-			File: "/etc/nginx/conf.d/jellyfin.conf", Line: 1,
-			ServerNames:    []string{"jellyfin.home.example", "media.home.example"},
-			Listens:        []*nginxconfigpb.Listen{{Address: "443", Ssl: true}},
-			SslCertificate: "/etc/letsencrypt/live/home.example/fullchain.pem",
-			Locations: []*nginxconfigpb.Location{
-				{Path: "/", ProxyPass: "http://198.18.2.10:8096"},
-				{Path: "/socket", ProxyPass: "http://198.18.2.10:8096"},
-			},
-		},
-		{
-			File: "/etc/nginx/sites-enabled/printer", Line: 1,
-			ServerNames: []string{"printer.home.example"},
-			Listens:     []*nginxconfigpb.Listen{{Address: "8080"}},
-			Locations:   []*nginxconfigpb.Location{{Path: "/", ProxyPass: "http://198.18.1.40"}},
-		},
+		npmHost(1, []string{"home.example", "nginx.home.example"}, true, "http://198.18.1.210:81"),
+		npmHost(10, []string{"wlan0.home.example"}, false, "https://198.18.1.2:443"),
+		npmHost(11, []string{"backup.home.example"}, true, "https://198.18.1.51:8007"),
+		npmHost(13, []string{"fullstack.home.example"}, false, "http://198.18.1.201:3080"),
+		npmHost(2, []string{"fritz.home.example"}, false, "http://203.0.113.100:80"),
+		npmHost(21, []string{"n8n.home.example"}, true, "http://198.18.1.206:5678",
+			&nginxconfigpb.Location{Path: "/aichat", ProxyPass: "http://198.18.1.206:5678"}),
+		npmHost(25, []string{"md.home.example"}, true, "http://198.18.1.201:3077", assets("http://198.18.1.201:3077")),
+		npmHost(27, []string{"ha.home.example"}, true, "http://198.18.1.101:8123"),
+		npmHost(28, []string{"pv.home.example"}, true, "https://198.18.1.7:443"),
+		npmHost(29, []string{"nodered.home.example"}, true, "https://198.18.1.7:1881"),
+		npmHost(3, []string{"grafana.home.example"}, true, "http://198.18.1.204:3000"),
+		npmHost(33, []string{"request.home.example"}, true, "http://198.18.1.212:5055"),
+		npmHost(34, []string{"video.home.example"}, true, "http://198.18.1.212:8096"),
+		npmHost(35, []string{"movie.home.example"}, true, "http://198.18.1.212:7878"),
+		npmHost(36, []string{"series.home.example"}, true, "http://198.18.1.212:8989"),
+		npmHost(37, []string{"indexer.home.example"}, true, "http://198.18.1.212:9696"),
+		npmHost(38, []string{"download.home.example"}, true, "http://198.18.1.212:8282"),
+		npmHost(4, []string{"home.home.example"}, false, "http://198.18.1.201:3000"),
+		npmHost(5, []string{"influxdb.home.example"}, false, "http://198.18.1.203:8086"),
+		npmHost(6, []string{"keycloak.home.example", "local.home.example"}, false, "https://198.18.1.201:8443"),
+		npmHost(7, []string{"portainer.home.example"}, false, "http://198.18.1.201:9000"),
+		npmHost(8, []string{"pve.home.example"}, false, "https://198.18.1.200:8006"),
+		npmHost(9, []string{"wlan1.home.example"}, false, "https://198.18.1.3:443"),
 	}
 	if diff := cmp.Diff(want, got.GetServers(), protocmp.Transform()); diff != "" {
 		t.Errorf("servers (-want +got):\n%s", diff)
@@ -172,8 +231,10 @@ func TestReadsEveryServerBlockNginxLoads(t *testing.T) {
 	}
 }
 
+// The homelab has no upstream blocks (Nginx Proxy Manager writes none):
+// upstream-block is a hand-written config with one.
 func TestReadsEveryUpstreamBlockWithItsServers(t *testing.T) {
-	srv := nginxHost(t, "baseline")
+	srv := nginxHost(t, "upstream-block")
 	s := start(t, srv)
 	s.authorize(t, srv)
 

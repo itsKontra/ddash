@@ -26,6 +26,24 @@ const (
 // baselineMappings is the LAN's static mappings in the baseline fixtures.
 func baselineMappings() []pfsensefake.Mapping {
 	return []pfsensefake.Mapping{
+		{MAC: "02:5e:92:9d:f0:a6", IP: "198.18.1.2", Hostname: "w0"},
+		{MAC: "02:56:74:bd:32:5b", IP: "198.18.1.3", Hostname: "w1", Description: "Access Point (OpenWrt)"},
+		{MAC: "02:eb:2f:cc:08:07", IP: "198.18.1.4", Hostname: "lwip"},
+		{MAC: "02:08:c2:85:3d:a1", IP: "198.18.1.5", Description: "Amazon Alexa"},
+		{MAC: "02:4a:a6:ab:ab:d4", IP: "198.18.1.6", Hostname: "AndroidTV"},
+		{MAC: "02:ff:c4:52:c5:c3", IP: "198.18.1.7", Hostname: "einstein"},
+		{MAC: "02:1c:d5:5e:3d:e5", IP: "198.18.1.10", Hostname: "LexmarkCX317dn"},
+		{MAC: "02:b9:d2:5c:b9:9f", IP: "198.18.1.11", Hostname: "s22-von-operator"},
+		{MAC: "02:75:79:44:12:e3", IP: "198.18.1.12", Hostname: "operator-pc"},
+		{MAC: "02:61:c0:a3:8a:16", IP: "198.18.1.101", Hostname: "homeassistant"},
+		{MAC: "02:e6:29:fa:fc:39", IP: "198.18.1.102", Hostname: "laptop-2"},
+	}
+}
+
+// quirkMappings is the LAN's static mappings in the dhcp-quirks scenario,
+// the first with an upper case MAC (the homelab's are all lower case).
+func quirkMappings() []pfsensefake.Mapping {
+	return []pfsensefake.Mapping{
 		{MAC: "02:5E:00:00:10:01", IP: "198.18.1.20", Hostname: "living-room-tv", Description: "Living room TV"},
 		{MAC: "02:5e:00:00:10:02", IP: "198.18.1.21", Hostname: "work-laptop", Description: "Work laptop"},
 		{MAC: "02:5e:00:00:10:03", IP: "198.18.1.22", Hostname: "printer"},
@@ -88,13 +106,15 @@ func TestAStaticMappingCreatedShowsInTheNextReadOfTheServers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if maps := got.GetServers()[0].GetStaticMappings(); len(maps) != 4 || maps[3].GetMac() != "02:5e:00:00:20:01" {
+	if maps := got.GetServers()[0].GetStaticMappings(); len(maps) != 12 || maps[11].GetMac() != "02:5e:00:00:20:01" {
 		t.Errorf("LAN static mappings after the write = %v, want the new one last", maps)
 	}
 }
 
+// The homelab's MACs are all lower case: the dhcp-quirks scenario has an
+// upper case one.
 func TestRenamingAStaticMappingChangesOnlyItsDescription(t *testing.T) {
-	fw := firewall(t, "baseline")
+	fw := firewall(t, "dhcp-quirks")
 	_, c := start(t, fw.URL)
 
 	// Upper case in the fixture, any case asked: MACs match regardless.
@@ -107,7 +127,7 @@ func TestRenamingAStaticMappingChangesOnlyItsDescription(t *testing.T) {
 	if diff := cmp.Diff(want, got.GetMapping(), protocmp.Transform()); diff != "" {
 		t.Errorf("renamed (-want +got):\n%s", diff)
 	}
-	end := baselineMappings()
+	end := quirkMappings()
 	end[0].Description = "Kitchen TV"
 	if diff := cmp.Diff(end, fw.StaticMappings("lan")); diff != "" {
 		t.Errorf("the LAN's static mappings (-want +got):\n%s", diff)
@@ -136,8 +156,8 @@ func TestRenameLooksTheIdUpRightBeforeWriting(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if got := fw.StaticMappings("lan"); len(got) != 4 || got[3].Description != "Anna's phone" || got[0].Description != "Living room TV" {
-		t.Errorf("the LAN's static mappings = %v, want the phone renamed and the TV untouched", got)
+	if got := fw.StaticMappings("lan"); len(got) != 12 || got[11].Description != "Anna's phone" || got[1].Description != "Access Point (OpenWrt)" {
+		t.Errorf("the LAN's static mappings = %v, want the phone renamed and the access point untouched", got)
 	}
 }
 
@@ -180,8 +200,8 @@ func TestWritesRunOneAtATimeUnderConcurrentCalls(t *testing.T) {
 	if want := strings.Repeat(readServers+",", 8); strings.Join(lookups, ",")+"," != want {
 		t.Errorf("before each write: %v, want the lookup", lookups)
 	}
-	if got := len(fw.StaticMappings("lan")); got != 7 {
-		t.Errorf("%d static mappings, want 7", got)
+	if got := len(fw.StaticMappings("lan")); got != 15 {
+		t.Errorf("%d static mappings, want 15", got)
 	}
 	if fw.Pending() {
 		t.Error("DHCP changes still pending, want applied")
@@ -190,8 +210,8 @@ func TestWritesRunOneAtATimeUnderConcurrentCalls(t *testing.T) {
 
 func TestCreateRefusesAMACOrAnAddressAlreadyReserved(t *testing.T) {
 	for name, m := range map[string]*pfsenseapipb.StaticMapping{
-		"MAC":     {Interface: "lan", Mac: "02:5e:00:00:10:01", Ip: "198.18.1.23", Description: "TV again"},
-		"address": {Interface: "lan", Mac: "02:5e:00:00:20:01", Ip: "198.18.1.21", Description: "Phone"},
+		"MAC":     {Interface: "lan", Mac: "02:4a:a6:ab:ab:d4", Ip: "198.18.1.23", Description: "TV again"},
+		"address": {Interface: "lan", Mac: "02:5e:00:00:20:01", Ip: "198.18.1.12", Description: "Phone"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			fw := firewall(t, "baseline")

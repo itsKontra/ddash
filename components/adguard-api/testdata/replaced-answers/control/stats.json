@@ -1,0 +1,16 @@
+{
+  "time_units": "hours",
+  "num_dns_queries": 18432,
+  "num_blocked_filtering": 2765,
+  "num_replaced_safebrowsing": 3,
+  "num_replaced_safesearch": 12,
+  "num_replaced_parental": 2,
+  "avg_processing_time": 0.0184,
+  "dns_queries": [],
+  "blocked_filtering": [],
+  "replaced_safebrowsing": [],
+  "replaced_parental": [],
+  "top_queried_domains": [],
+  "top_blocked_domains": [],
+  "top_clients": []
+}

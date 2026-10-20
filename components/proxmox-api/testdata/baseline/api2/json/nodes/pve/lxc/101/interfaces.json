@@ -1,6 +1,0 @@
-{
-  "data": [
-    {"name": "lo", "hwaddr": "00:00:00:00:00:00", "inet": "127.0.0.1/8", "inet6": "::1/128", "ip-addresses": [{"ip-address-type": "inet", "ip-address": "127.0.0.1", "prefix": 8}, {"ip-address-type": "inet6", "ip-address": "::1", "prefix": 128}]},
-    {"name": "eth0", "hwaddr": "02:5e:1a:00:01:01", "inet": "198.18.1.10/24", "inet6": "2001:db8:1::10/64", "ip-addresses": [{"ip-address-type": "inet", "ip-address": "198.18.1.10", "prefix": 24}, {"ip-address-type": "inet", "ip-address": "198.18.1.11", "prefix": 24}, {"ip-address-type": "inet6", "ip-address": "2001:db8:1::10", "prefix": 64}]}
-  ]
-}

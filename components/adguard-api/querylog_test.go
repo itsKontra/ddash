@@ -31,8 +31,32 @@ func domains(r *adguardapipb.ListQueriesResponse) string {
 	return strings.Join(out, " ")
 }
 
-func TestTheQueryLogOfOneClientIsItsQueriesNewestFirst(t *testing.T) {
+func TestTheQueryLogReadsTheNewestQueryAsAdGuardLoggedIt(t *testing.T) {
 	_, c := start(t, adguard(t, "baseline").URL)
+
+	got := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.102", Limit: 1})
+
+	want := &adguardapipb.Query{
+		Time:       timestamppb.New(time.Date(2026, 10, 20, 16, 7, 32, 485464089, time.UTC)),
+		Domain:     "_ldap._tcp.dc._msdcs.home.example",
+		Type:       "SRV",
+		Client:     "198.18.1.102",
+		ClientName: "Laptop",
+		Reason:     "NotFilteredNotFound",
+		Status:     "NOERROR",
+		ElapsedMs:  0.026257,
+		Upstream:   "tls://pfsense.home.example:853",
+		Cached:     true,
+	}
+	if diff := cmp.Diff([]*adguardapipb.Query{want}, got.GetQueries(), protocmp.Transform()); diff != "" {
+		t.Errorf("newest query (-want +got):\n%s", diff)
+	}
+}
+
+func TestTheQueryLogOfOneClientIsItsQueriesNewestFirst(t *testing.T) {
+	// The homelab's recorded log holds one client's unblocked queries; this
+	// scenario's mixes three clients with blocked queries.
+	_, c := start(t, adguard(t, "several-clients").URL)
 
 	got := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150"})
 
@@ -62,25 +86,26 @@ func TestTheQueryLogOfOneClientIsItsQueriesNewestFirst(t *testing.T) {
 func TestTheQueryLogMatchesTheClientsAddressExactly(t *testing.T) {
 	_, c := start(t, adguard(t, "baseline").URL)
 
-	// 198.18.1.2 is a substring of .20 and .21, whose queries it isn't.
-	if got := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.2"}); len(got.GetQueries()) != 0 {
-		t.Errorf("queries of 198.18.1.2 = %s, want none", domains(got))
+	// 198.18.1.10 is a substring of .102, whose queries it isn't.
+	if got := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.10"}); len(got.GetQueries()) != 0 {
+		t.Errorf("queries of 198.18.1.10 = %s, want none", domains(got))
 	}
 }
 
 func TestTheQueryLogPagesOlderThanTheLastPagesOldest(t *testing.T) {
 	_, c := start(t, adguard(t, "baseline").URL)
 
-	first := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", Limit: 3})
-	second := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", Limit: 3, OlderThan: first.GetOldest()})
+	first := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.102", Limit: 3})
+	second := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.102", Limit: 3, OlderThan: first.GetOldest()})
 
-	if domains(first) != "site1.example site4.example site7.example" || domains(second) != "site10.example site13.example site16.example" {
+	if domains(first) != "_ldap._tcp.dc._msdcs.home.example _ldap._tcp.dc._msdcs.home.example site196.example" || domains(second) != "site200.example site204.example site205.example" {
 		t.Errorf("pages = %q then %q", domains(first), domains(second))
 	}
 }
 
 func TestTheQueryLogShowsOnlyBlockedQueriesWhenAsked(t *testing.T) {
-	_, c := start(t, adguard(t, "baseline").URL)
+	// The homelab's recorded log has no blocked query.
+	_, c := start(t, adguard(t, "several-clients").URL)
 
 	got := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", BlockedOnly: true})
 

@@ -45,10 +45,11 @@ func TestDeleteRemovesAStaticMappingByPosition(t *testing.T) {
 	if code != http.StatusOK {
 		t.Fatalf("DELETE = %d %v", code, body)
 	}
-	if data, _ := body["data"].(map[string]any); data["mac"] != "02:5e:00:00:10:02" {
+	if data, _ := body["data"].(map[string]any); data["mac"] != "02:56:74:bd:32:5b" {
 		t.Errorf("answered %v, want the deleted mapping", body["data"])
 	}
-	if got, want := macs(f.StaticMappings("lan")), []string{"02:5E:00:00:10:01", "02:5e:00:00:10:03"}; !slices.Equal(got, want) {
+	want := []string{"02:5e:92:9d:f0:a6", "02:eb:2f:cc:08:07", "02:08:c2:85:3d:a1", "02:4a:a6:ab:ab:d4", "02:ff:c4:52:c5:c3", "02:1c:d5:5e:3d:e5", "02:b9:d2:5c:b9:9f", "02:75:79:44:12:e3", "02:61:c0:a3:8a:16", "02:e6:29:fa:fc:39"}
+	if got := macs(f.StaticMappings("lan")); !slices.Equal(got, want) {
 		t.Errorf("mappings = %v, want %v", got, want)
 	}
 	if !f.Pending() {
@@ -74,7 +75,7 @@ func TestDeleteOfAMissingMappingIsNotFound(t *testing.T) {
 	f := baseline(t)
 
 	for _, target := range []string{
-		"/api/v2/services/dhcp_server/static_mapping?parent_id=lan&id=3",
+		"/api/v2/services/dhcp_server/static_mapping?parent_id=lan&id=11",
 		"/api/v2/services/dhcp_server/static_mapping?parent_id=lan",
 		"/api/v2/services/dhcp_server/static_mapping?parent_id=opt9&id=0",
 	} {
@@ -82,7 +83,7 @@ func TestDeleteOfAMissingMappingIsNotFound(t *testing.T) {
 			t.Errorf("DELETE %s = %d, want 404", target, code)
 		}
 	}
-	if len(f.StaticMappings("lan")) != 3 {
+	if len(f.StaticMappings("lan")) != 11 {
 		t.Errorf("a refused DELETE removed a mapping")
 	}
 }

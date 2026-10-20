@@ -34,13 +34,19 @@ func aliasWrites(fw *fakeFirewall) []string {
 	return out
 }
 
-// bypass is VPN_BYPASS in the baseline fixtures: two Devices and a server.
+// bypass is VPN_BYPASS in the baseline fixtures: nine hosts.
 func bypass() pfsensefake.Alias {
 	return pfsensefake.Alias{
 		Name:      "VPN_BYPASS",
-		Addresses: []string{"198.18.1.21", "198.18.1.150", "198.18.2.10"},
-		Details:   []string{"Work laptop", "Phone", "Media server"},
+		Addresses: []string{"198.18.1.208", "198.18.1.1", "198.18.1.6", "198.18.1.10", "198.18.1.102", "198.18.1.16", "198.18.1.12", "198.18.1.122", "198.18.1.54"},
+		Details:   []string{"Cloudflare Tunnel", "pfSense", "AndroidTV", "Drucker", "ArbeitsLaptop", "ArchLinux", "operator PC", "devSetup", "member Handy"},
 	}
+}
+
+// bypassAlias is VPN_BYPASS as ListAliases answers it; it has no description.
+func bypassAlias() *pfsenseapipb.Alias {
+	b := bypass()
+	return &pfsenseapipb.Alias{Name: b.Name, Type: "host", Addresses: b.Addresses, Details: b.Details}
 }
 
 func alias(fw *fakeFirewall, name string) pfsensefake.Alias {
@@ -66,7 +72,7 @@ func TestAddingAnAddressAppendsItWithItsDescriptionAndApplies(t *testing.T) {
 	if diff := cmp.Diff(want, alias(fw, "VPN_BYPASS")); diff != "" {
 		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
 	}
-	wantAlias := &pfsenseapipb.Alias{Name: "VPN_BYPASS", Type: "host", Description: "Leaves through the WAN, not the VPN", Addresses: want.Addresses, Details: want.Details}
+	wantAlias := &pfsenseapipb.Alias{Name: "VPN_BYPASS", Type: "host", Addresses: want.Addresses, Details: want.Details}
 	if diff := cmp.Diff(wantAlias, got.GetAlias(), protocmp.Transform()); diff != "" {
 		t.Errorf("answer (-want +got):\n%s", diff)
 	}
@@ -83,7 +89,7 @@ func TestAddingAnAddressTheAliasHoldsWritesNothing(t *testing.T) {
 	fw := firewall(t, "baseline")
 	_, c := start(t, fw.URL)
 
-	got, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "VPN_BYPASS", Address: "198.18.1.21", Detail: "Laptop"})
+	got, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "VPN_BYPASS", Address: "198.18.1.208", Detail: "Laptop"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +97,7 @@ func TestAddingAnAddressTheAliasHoldsWritesNothing(t *testing.T) {
 	if diff := cmp.Diff(bypass(), alias(fw, "VPN_BYPASS")); diff != "" {
 		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
 	}
-	if got.GetAlias().GetDetails()[0] != "Work laptop" {
+	if got.GetAlias().GetDetails()[0] != "Cloudflare Tunnel" {
 		t.Errorf("answer = %v, want the alias unchanged", got.GetAlias())
 	}
 	if diff := cmp.Diff([]string{readAliases}, aliasWrites(fw)); diff != "" {
@@ -103,12 +109,14 @@ func TestRemovingAnAddressTakesItsDescriptionAlongAndKeepsTheOthers(t *testing.T
 	fw := firewall(t, "baseline")
 	_, c := start(t, fw.URL)
 
-	got, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "VPN_BYPASS", Address: "198.18.1.150"})
+	got, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "VPN_BYPASS", Address: "198.18.1.6"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want := pfsensefake.Alias{Name: "VPN_BYPASS", Addresses: []string{"198.18.1.21", "198.18.2.10"}, Details: []string{"Work laptop", "Media server"}}
+	want := bypass()
+	want.Addresses = slices.Delete(want.Addresses, 2, 3)
+	want.Details = slices.Delete(want.Details, 2, 3)
 	if diff := cmp.Diff(want, alias(fw, "VPN_BYPASS")); diff != "" {
 		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
 	}
@@ -128,27 +136,29 @@ func TestRemovingAnAddressTakesItsDescriptionAlongAndKeepsTheOthers(t *testing.T
 func TestRemovingTheOnlyMemberOrOneSharingItsDescriptionIsExact(t *testing.T) {
 	fw := firewall(t, "baseline")
 	_, c := start(t, fw.URL)
+	// KILL_SWITCH holds one host, described by the date pfSense added it.
+	const added = "Entry added Sat, 17 Oct 2026 19:15:47 +0200"
 	for _, a := range []string{"198.18.1.31", "198.18.1.32"} {
-		if _, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "SERVERS", Address: a + "/32", Detail: "Server rack"}); err != nil {
+		if _, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "KILL_SWITCH", Address: a, Detail: added}); err != nil {
 			t.Fatal(err)
 		}
 	}
 
-	if _, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "SERVERS", Address: "198.18.1.31/32"}); err != nil {
+	if _, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "KILL_SWITCH", Address: "198.18.1.31"}); err != nil {
 		t.Fatal(err)
 	}
-	want := pfsensefake.Alias{Name: "SERVERS", Addresses: []string{"198.18.2.0/28", "198.18.1.32/32"}, Details: []string{"Server rack", "Server rack"}}
-	if diff := cmp.Diff(want, alias(fw, "SERVERS")); diff != "" {
-		t.Errorf("SERVERS after one removal (-want +got):\n%s", diff)
+	want := pfsensefake.Alias{Name: "KILL_SWITCH", Addresses: []string{"198.18.1.212", "198.18.1.32"}, Details: []string{added, added}}
+	if diff := cmp.Diff(want, alias(fw, "KILL_SWITCH")); diff != "" {
+		t.Errorf("KILL_SWITCH after one removal (-want +got):\n%s", diff)
 	}
 
-	for _, a := range []string{"198.18.2.0/28", "198.18.1.32/32"} {
-		if _, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "SERVERS", Address: a}); err != nil {
+	for _, a := range []string{"198.18.1.212", "198.18.1.32"} {
+		if _, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "KILL_SWITCH", Address: a}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if got := alias(fw, "SERVERS"); len(got.Addresses) != 0 || len(got.Details) != 0 {
-		t.Errorf("SERVERS after removing every member = %v, want empty", got)
+	if got := alias(fw, "KILL_SWITCH"); len(got.Addresses) != 0 || len(got.Details) != 0 {
+		t.Errorf("KILL_SWITCH after removing every member = %v, want empty", got)
 	}
 }
 
@@ -183,7 +193,7 @@ func TestAnAliasWriteShowsInTheNextReadOfTheAliases(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if a := got.GetAliases()[0]; !slices.Contains(a.GetAddresses(), "198.18.1.23") {
+	if a := got.GetAliases()[slices.IndexFunc(got.GetAliases(), func(a *pfsenseapipb.Alias) bool { return a.GetName() == "VPN_BYPASS" })]; !slices.Contains(a.GetAddresses(), "198.18.1.23") {
 		t.Errorf("VPN_BYPASS after the write = %v, want the new address", a)
 	}
 }
@@ -244,7 +254,7 @@ func TestAliasAndStaticMappingWritesShareOneQueue(t *testing.T) {
 			errs <- err
 		})
 		wg.Go(func() {
-			_, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "KILL_SWITCH", Address: []string{"198.18.1.20", "198.18.1.22", "198.18.1.20", "198.18.1.22"}[i]})
+			_, err := c.RemoveAliasAddress(t.Context(), &pfsenseapipb.RemoveAliasAddressRequest{Alias: "DNS_SERVER", Address: []string{"198.18.1.202", "198.18.1.1", "198.18.30.1", "198.18.1.202"}[i]})
 			errs <- err
 		})
 		wg.Go(func() {
@@ -271,11 +281,11 @@ func TestAliasAndStaticMappingWritesShareOneQueue(t *testing.T) {
 			t.Errorf("before alias write %d: %s, want the lookup", i, log[i-1])
 		}
 	}
-	if got := alias(fw, "VPN_BYPASS").Addresses; len(got) != 7 {
-		t.Errorf("VPN_BYPASS = %v, want 7 members", got)
+	if got := alias(fw, "VPN_BYPASS").Addresses; len(got) != 13 {
+		t.Errorf("VPN_BYPASS = %v, want 13 members", got)
 	}
-	if got := alias(fw, "KILL_SWITCH"); len(got.Addresses) != 0 || len(got.Details) != 0 {
-		t.Errorf("KILL_SWITCH = %v, want empty", got)
+	if got := alias(fw, "DNS_SERVER"); len(got.Addresses) != 0 || len(got.Details) != 0 {
+		t.Errorf("DNS_SERVER = %v, want empty", got)
 	}
 	if fw.FirewallPending() || fw.Pending() {
 		t.Error("changes still pending, want applied")

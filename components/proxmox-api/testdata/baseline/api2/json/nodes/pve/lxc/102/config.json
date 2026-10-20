@@ -1,4 +1,0 @@
-{
-  "data": {"arch": "amd64", "cores": 4, "hostname": "media-stack", "memory": 8192, "ostype": "debian", "rootfs": "local-lvm:vm-102-disk-0,size=100G", "unprivileged": 1, "features": "nesting=1", "digest": "REDACTED",
-    "net0": "name=eth0,bridge=vmbr0,firewall=1,hwaddr=02:5E:1A:00:01:02,ip=dhcp,type=veth"}
-}

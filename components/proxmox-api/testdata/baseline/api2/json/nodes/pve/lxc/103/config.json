@@ -1,4 +1,0 @@
-{
-  "data": {"arch": "amd64", "cores": 1, "hostname": "ddash-smoke", "memory": 256, "ostype": "debian", "rootfs": "local-lvm:vm-103-disk-0,size=2G", "unprivileged": 1, "digest": "REDACTED",
-    "net0": "name=eth0,bridge=vmbr0,firewall=1,gw=198.18.1.1,hwaddr=02:5E:1A:00:01:03,ip=198.18.1.103/24,ip6=2001:db8:1::103/64,type=veth"}
-}

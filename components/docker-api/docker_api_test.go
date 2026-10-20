@@ -61,40 +61,69 @@ func TestNoHostsIsAValidConfig(t *testing.T) {
 }
 
 func TestListsContainersPerHostWithStateAndPublishedPorts(t *testing.T) {
-	media, _ := socketProxy(t, "baseline")
+	dockerHost, _ := socketProxy(t, "baseline")
 	dockerEnv, _ := socketProxy(t, "docker-env")
-	_, c := start(t, &dockerapipb.Host{Name: "media", Url: media}, &dockerapipb.Host{Name: "docker-env", Url: dockerEnv})
+	_, c := start(t, &dockerapipb.Host{Name: "docker-host", Url: dockerHost}, &dockerapipb.Host{Name: "docker-env", Url: dockerEnv})
 
 	got := list(t, c)
 
 	want := &dockerapipb.ListContainersResponse{Hosts: []*dockerapipb.HostContainers{
-		{Host: "media", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
+		{Host: "docker-host", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
 			{
-				Id:     "8c5d2f1e4b7a9c3d6e8f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d",
-				Name:   "jellyfin",
-				Image:  "lscr.io/linuxserver/jellyfin:latest",
+				Id:     "396078928a5f698954921986afe3d75b569a5dc2d6956e8f94fcda5d52fc8efd",
+				Name:   "socket-proxy",
+				Image:  "lscr.io/linuxserver/socket-proxy:latest",
 				State:  "running",
-				Status: "Up 3 hours (healthy)",
+				Status: "Up 22 minutes",
+				Ports:  []*dockerapipb.Port{{Ip: "198.18.1.201", PublicPort: 2375, PrivatePort: 2375, Protocol: "tcp"}},
+			},
+			{
+				// Ports exposed but not published (no public port) are left out.
+				Id:     "f22403eb0c64661ef95f7be3323febe4a822174bf42a326e8b014d068a3b1564",
+				Name:   "portainer-portainer-1",
+				Image:  "portainer/portainer-ce:latest",
+				State:  "running",
+				Status: "Up 14 hours",
 				Ports: []*dockerapipb.Port{
-					{Ip: "198.18.2.10", PublicPort: 8096, PrivatePort: 8096, Protocol: "tcp"},
-					{Ip: "::", PublicPort: 8096, PrivatePort: 8096, Protocol: "tcp"},
-					{Ip: "198.18.2.10", PublicPort: 7359, PrivatePort: 7359, Protocol: "udp"},
+					{Ip: "0.0.0.0", PublicPort: 9000, PrivatePort: 9000, Protocol: "tcp"},
+					{Ip: "::", PublicPort: 9000, PrivatePort: 9000, Protocol: "tcp"},
 				},
 			},
 			{
-				Id:     "2e4f6a8b0c1d3e5f7a9b1c3d5e7f9a1b3c5d7e9f1a3b5c7d9e1f3a5b7c9d1e3f",
-				Name:   "sonarr",
-				Image:  "lscr.io/linuxserver/sonarr:latest",
+				Id:     "306ed2636a9b5fff505ac534b065456194fe6b4311007edbb935a680b8d36583",
+				Name:   "grav-grav-1",
+				Image:  "grav-grav",
 				State:  "exited",
-				Status: "Exited (0) 2 days ago",
+				Status: "Exited (137) 9 months ago",
 			},
 			{
-				Id:     "9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e",
-				Name:   "qbittorrent",
-				Image:  "lscr.io/linuxserver/qbittorrent:latest",
-				State:  "restarting",
-				Status: "Restarting (1) 5 seconds ago",
-				Ports:  []*dockerapipb.Port{{Ip: "198.18.2.10", PublicPort: 8081, PrivatePort: 8080, Protocol: "tcp"}},
+				Id:     "e5d4dc90007dde92072a51e37c6c327e5cc1c050da2d6db13906c0747346442e",
+				Name:   "keycloak-server-1",
+				Image:  "keycloak-server",
+				State:  "running",
+				Status: "Up 14 hours",
+				Ports: []*dockerapipb.Port{
+					{Ip: "0.0.0.0", PublicPort: 8443, PrivatePort: 8443, Protocol: "tcp"},
+					{Ip: "::", PublicPort: 8443, PrivatePort: 8443, Protocol: "tcp"},
+				},
+			},
+			{
+				Id:     "2d59cb543aeaaf499397037a4e5cd9e9a3136b9ebb8fabac14bf11c9670ee5de",
+				Name:   "keycloak-postgresdb-1",
+				Image:  "postgres:latest",
+				State:  "running",
+				Status: "Up 14 hours",
+			},
+			{
+				Id:     "47790040c68e641fead92ecc2cef85021757e2aa0d7608f7b867d22d611ad406",
+				Name:   "homepage",
+				Image:  "ghcr.io/gethomepage/homepage:latest",
+				State:  "running",
+				Status: "Up 14 hours (healthy)",
+				Ports: []*dockerapipb.Port{
+					{Ip: "0.0.0.0", PublicPort: 3000, PrivatePort: 3000, Protocol: "tcp"},
+					{Ip: "::", PublicPort: 3000, PrivatePort: 3000, Protocol: "tcp"},
+				},
 			},
 		}},
 		{Host: "docker-env", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
@@ -114,13 +143,13 @@ func TestListsContainersPerHostWithStateAndPublishedPorts(t *testing.T) {
 }
 
 func TestAnUnreachableHostIsListedWithItsErrorAndNamedInHealth(t *testing.T) {
-	media, _ := socketProxy(t, "baseline")
-	h, c := start(t, &dockerapipb.Host{Name: "media", Url: media}, &dockerapipb.Host{Name: "docker-env", Url: unreachable(t)})
+	dockerHost, _ := socketProxy(t, "baseline")
+	h, c := start(t, &dockerapipb.Host{Name: "docker-host", Url: dockerHost}, &dockerapipb.Host{Name: "docker-env", Url: unreachable(t)})
 
 	got := list(t, c)
 
-	if n := len(got.GetHosts()[0].GetContainers()); n != 3 || got.GetHosts()[0].GetError() != "" {
-		t.Errorf("media: %d containers, error %q; want 3 and none", n, got.GetHosts()[0].GetError())
+	if n := len(got.GetHosts()[0].GetContainers()); n != 6 || got.GetHosts()[0].GetError() != "" {
+		t.Errorf("docker-host: %d containers, error %q; want 6 and none", n, got.GetHosts()[0].GetError())
 	}
 	if dead := got.GetHosts()[1]; dead.GetHost() != "docker-env" || dead.GetError() == "" || len(dead.GetContainers()) != 0 {
 		t.Errorf("docker-env = %v, want listed with an error and no containers", dead)

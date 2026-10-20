@@ -47,8 +47,12 @@ func TestListsThePersistentClients(t *testing.T) {
 	}
 
 	want := &adguardapipb.ListClientsResponse{Clients: []*adguardapipb.Client{
-		{Name: "Living room TV", Ids: []string{"198.18.1.20"}, FilteringEnabled: true},
-		{Name: "Servers", Ids: []string{"198.18.2.0/28"}, UseGlobalSettings: true},
+		{Name: "AndroidTV", Ids: []string{"198.18.1.6"}, UseGlobalSettings: true},
+		{Name: "Huawei Inv", Ids: []string{"198.18.1.4"}, UseGlobalSettings: true},
+		{Name: "Laptop", Ids: []string{"198.18.1.102"}},
+		{Name: "member", Ids: []string{"198.18.1.21"}},
+		{Name: "operator Handy", Ids: []string{"198.18.1.11"}, UseGlobalSettings: true},
+		{Name: "operator PC", Ids: []string{"198.18.1.12"}, UseGlobalSettings: true},
 	}}
 	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 		t.Errorf("ListClients (-want +got):\n%s", diff)
@@ -58,22 +62,22 @@ func TestListsThePersistentClients(t *testing.T) {
 func TestTurningAdBlockingOffUpdatesTheClientOfTheAddressAndKeepsItsOtherSettings(t *testing.T) {
 	fake := adguard(t, "baseline")
 	_, c := start(t, fake.URL)
-	before := fake.PersistentClient("Living room TV")
+	before := fake.PersistentClient("AndroidTV")
 
-	got := setFiltering(t, c, "198.18.1.20", "TV", false)
+	got := setFiltering(t, c, "198.18.1.6", "TV", false)
 
-	want := &adguardapipb.SetClientFilteringResponse{Client: &adguardapipb.Client{Name: "Living room TV", Ids: []string{"198.18.1.20"}}}
+	want := &adguardapipb.SetClientFilteringResponse{Client: &adguardapipb.Client{Name: "AndroidTV", Ids: []string{"198.18.1.6"}}}
 	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 		t.Errorf("SetClientFiltering (-want +got):\n%s", diff)
 	}
 	// AdGuard's update replaces the whole client: everything but the two
 	// flags must have been sent back as it was.
 	before["use_global_settings"], before["filtering_enabled"] = false, false
-	if diff := cmp.Diff(before, fake.PersistentClient("Living room TV")); diff != "" {
+	if diff := cmp.Diff(before, fake.PersistentClient("AndroidTV")); diff != "" {
 		t.Errorf("the TV's client (-want +got):\n%s", diff)
 	}
-	if n := len(fake.Clients()); n != 2 {
-		t.Errorf("%d clients, want still 2", n)
+	if n := len(fake.Clients()); n != 6 {
+		t.Errorf("%d clients, want still 6", n)
 	}
 	if diff := cmp.Diff([]string{readClients, update}, clientCalls(fake)); diff != "" {
 		t.Errorf("calls (-want +got):\n%s", diff)
@@ -84,13 +88,13 @@ func TestTurningAdBlockingOffForAnAddressWithoutAClientCreatesOneNamedAfterTheDe
 	fake := adguard(t, "baseline")
 	_, c := start(t, fake.URL)
 
-	got := setFiltering(t, c, "198.18.1.150", "Anna's phone", false)
+	got := setFiltering(t, c, "198.18.1.26", "member's phone", false)
 
-	want := &adguardapipb.SetClientFilteringResponse{Created: true, Client: &adguardapipb.Client{Name: "Anna's phone", Ids: []string{"198.18.1.150"}}}
+	want := &adguardapipb.SetClientFilteringResponse{Created: true, Client: &adguardapipb.Client{Name: "member's phone", Ids: []string{"198.18.1.26"}}}
 	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 		t.Errorf("SetClientFiltering (-want +got):\n%s", diff)
 	}
-	phone := fake.PersistentClient("Anna's phone")
+	phone := fake.PersistentClient("member's phone")
 	if phone == nil || phone["use_global_settings"] != false || phone["filtering_enabled"] != false || phone["use_global_blocked_services"] != true {
 		t.Errorf("the phone's client = %v, want its own settings without filtering, blocked services still global", phone)
 	}
@@ -103,21 +107,21 @@ func TestTurningAdBlockingOffForAnAddressWithoutAClientCreatesOneNamedAfterTheDe
 func TestTheClientCreatedIsFoundAgainAndTurnedBackOn(t *testing.T) {
 	fake := adguard(t, "baseline")
 	_, c := start(t, fake.URL)
-	setFiltering(t, c, "198.18.1.150", "Anna's phone", false)
+	setFiltering(t, c, "198.18.1.26", "member's phone", false)
 
-	got := setFiltering(t, c, "198.18.1.150", "Phone renamed meanwhile", true)
+	got := setFiltering(t, c, "198.18.1.26", "Phone renamed meanwhile", true)
 
-	if got.GetCreated() || got.GetClient().GetName() != "Anna's phone" || !got.GetClient().GetFilteringEnabled() || got.GetClient().GetUseGlobalSettings() {
-		t.Errorf("SetClientFiltering = %v, want Anna's phone's own settings filtering again", got)
+	if got.GetCreated() || got.GetClient().GetName() != "member's phone" || !got.GetClient().GetFilteringEnabled() || got.GetClient().GetUseGlobalSettings() {
+		t.Errorf("SetClientFiltering = %v, want member's phone's own settings filtering again", got)
 	}
-	if n := len(fake.Clients()); n != 3 {
-		t.Errorf("%d clients, want 3: one created, once", n)
+	if n := len(fake.Clients()); n != 7 {
+		t.Errorf("%d clients, want 7: one created, once", n)
 	}
 	list, err := c.ListClients(t.Context(), &adguardapipb.ListClientsRequest{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if last := list.GetClients()[2]; last.GetName() != "Anna's phone" || !last.GetFilteringEnabled() {
+	if last := list.GetClients()[6]; last.GetName() != "member's phone" || !last.GetFilteringEnabled() {
 		t.Errorf("ListClients after the writes = %v, want the phone filtering", list)
 	}
 }
@@ -126,7 +130,7 @@ func TestTurningAdBlockingOnForAnAddressWithoutAClientWritesNothing(t *testing.T
 	fake := adguard(t, "baseline")
 	_, c := start(t, fake.URL)
 
-	got := setFiltering(t, c, "198.18.1.150", "Anna's phone", true)
+	got := setFiltering(t, c, "198.18.1.26", "member's phone", true)
 
 	if got.GetClient() != nil || got.GetCreated() {
 		t.Errorf("SetClientFiltering = %v, want nothing written", got)
@@ -137,7 +141,9 @@ func TestTurningAdBlockingOnForAnAddressWithoutAClientWritesNothing(t *testing.T
 }
 
 func TestAClientForANetworkIsNotTheClientOfOneAddressInIt(t *testing.T) {
-	fake := adguard(t, "baseline")
+	// The homelab has no client for a network; this scenario's only client
+	// is one.
+	fake := adguard(t, "network-client")
 	_, c := start(t, fake.URL)
 
 	got := setFiltering(t, c, "198.18.2.5", "NAS", false)
@@ -154,9 +160,9 @@ func TestAClientCreatedUnderANameTakenGetsTheAddressInItsName(t *testing.T) {
 	fake := adguard(t, "baseline")
 	_, c := start(t, fake.URL)
 
-	got := setFiltering(t, c, "198.18.1.150", "Living room TV", false)
+	got := setFiltering(t, c, "198.18.1.26", "AndroidTV", false)
 
-	if got.GetClient().GetName() != "Living room TV (198.18.1.150)" {
+	if got.GetClient().GetName() != "AndroidTV (198.18.1.26)" {
 		t.Errorf("created = %v, want the name with the address", got.GetClient())
 	}
 }
@@ -164,8 +170,8 @@ func TestAClientCreatedUnderANameTakenGetsTheAddressInItsName(t *testing.T) {
 func TestAClientCreatedWithoutANameIsNamedAfterItsAddress(t *testing.T) {
 	_, c := start(t, adguard(t, "baseline").URL)
 
-	if got := setFiltering(t, c, "198.18.1.151", " ", false); got.GetClient().GetName() != "198.18.1.151" {
-		t.Errorf("created = %v, want it named 198.18.1.151", got.GetClient())
+	if got := setFiltering(t, c, "198.18.1.22", " ", false); got.GetClient().GetName() != "198.18.1.22" {
+		t.Errorf("created = %v, want it named 198.18.1.22", got.GetClient())
 	}
 }
 

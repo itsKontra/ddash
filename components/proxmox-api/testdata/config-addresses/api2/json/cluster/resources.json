@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"id": "lxc/103", "type": "lxc", "vmid": 103, "name": "static-box", "node": "pve", "status": "stopped", "template": 0, "cpu": 0, "maxcpu": 1, "mem": 0, "maxmem": 268435456, "disk": 0, "maxdisk": 2147483648, "netin": 0, "netout": 0, "uptime": 0},
+    {"id": "lxc/104", "type": "lxc", "vmid": 104, "name": "dhcp-box", "node": "pve", "status": "stopped", "template": 0, "cpu": 0, "maxcpu": 1, "mem": 0, "maxmem": 536870912, "disk": 0, "maxdisk": 4294967296, "netin": 0, "netout": 0, "uptime": 0},
+    {"id": "qemu/111", "type": "qemu", "vmid": 111, "name": "win-test", "node": "pve", "status": "stopped", "template": 0, "tags": "lab;windows", "cpu": 0, "maxcpu": 2, "mem": 0, "maxmem": 8589934592, "disk": 0, "maxdisk": 68719476736, "netin": 0, "netout": 0, "uptime": 0}
+  ]
+}

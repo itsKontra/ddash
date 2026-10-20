@@ -18,12 +18,12 @@ import (
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
-// node starts proxmox-api against the stateful Proxmox fake on the
-// baseline, served in memory: run it inside synctest.Test, so a power
+// node starts proxmox-api against the stateful Proxmox fake on a
+// scenario, served in memory: run it inside synctest.Test, so a power
 // Action's task polls pass on the fake clock.
-func node(t *testing.T) (*proxmoxfake.Proxmox, pb.ProxmoxApiServiceClient) {
+func node(t *testing.T, scenario string) (*proxmoxfake.Proxmox, pb.ProxmoxApiServiceClient) {
 	t.Helper()
-	fake, err := proxmoxfake.New("testdata/baseline", proxmoxfake.Options{
+	fake, err := proxmoxfake.New("testdata/"+scenario, proxmoxfake.Options{
 		Miss: func(request string, err error) { t.Errorf("unexpected request %s: %v", request, err) },
 	})
 	if err != nil {
@@ -50,46 +50,48 @@ func powerRequests(fake *proxmoxfake.Proxmox) []string {
 
 func TestStartReturnsOnceTheTaskEndedOK(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		fake, c := node(t)
+		// The power scenario has the interfaces LXC 206 (n8n, stopped in
+		// the homelab) answers once it runs.
+		fake, c := node(t, "power")
 
-		res, err := c.StartWorkload(t.Context(), &pb.StartWorkloadRequest{Workload: lxc(103)})
+		res, err := c.StartWorkload(t.Context(), &pb.StartWorkloadRequest{Workload: lxc(206)})
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if got := fake.Status(103); got != "running" {
-			t.Errorf("103 is %s, want running", got)
+		if got := fake.Status(206); got != "running" {
+			t.Errorf("206 is %s, want running", got)
 		}
 		upid := res.GetUpid()
 		want := []string{
-			"POST /api2/json/nodes/pve/lxc/103/status/start",
+			"POST /api2/json/nodes/pve/lxc/206/status/start",
 			"GET /api2/json/nodes/pve/tasks/" + upid + "/status",
 			"GET /api2/json/nodes/pve/tasks/" + upid + "/status",
 		}
 		if diff := cmp.Diff(want, powerRequests(fake)); diff != "" {
 			t.Errorf("requests (-want +got):\n%s", diff)
 		}
-		if w := workloads(t, c)[103]; w.GetStatus() != "running" {
-			t.Errorf("ListWorkloads has 103 %s after the Action, want running (the cache dropped)", w.GetStatus())
+		if w := workloads(t, c)[206]; w.GetStatus() != "running" {
+			t.Errorf("ListWorkloads has 206 %s after the Action, want running (the cache dropped)", w.GetStatus())
 		}
 	})
 }
 
 func TestShutdownAsksForACleanShutdownForcedAfterTheTimeout(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		fake, c := node(t)
+		fake, c := node(t, "baseline")
 
 		_, err := c.ShutdownWorkload(t.Context(), &pb.ShutdownWorkloadRequest{
-			Workload: lxc(102), Timeout: durationpb.New(45 * time.Second), ForceStop: true,
+			Workload: lxc(212), Timeout: durationpb.New(45 * time.Second), ForceStop: true,
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if got := fake.Status(102); got != "stopped" {
-			t.Errorf("102 is %s, want stopped", got)
+		if got := fake.Status(212); got != "stopped" {
+			t.Errorf("212 is %s, want stopped", got)
 		}
-		if got := powerRequests(fake)[0]; got != "POST /api2/json/nodes/pve/lxc/102/status/shutdown forceStop=1 timeout=45" {
+		if got := powerRequests(fake)[0]; got != "POST /api2/json/nodes/pve/lxc/212/status/shutdown forceStop=1 timeout=45" {
 			t.Errorf("first request = %q, want the shutdown with forceStop=1 timeout=45", got)
 		}
 	})
@@ -97,66 +99,67 @@ func TestShutdownAsksForACleanShutdownForcedAfterTheTimeout(t *testing.T) {
 
 func TestRebootRunsTheRebootTaskOnAVM(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		fake, c := node(t)
+		fake, c := node(t, "baseline")
 
-		if _, err := c.RebootWorkload(t.Context(), &pb.RebootWorkloadRequest{Workload: &pb.Target{Kind: pb.Kind_KIND_VM, Node: "pve", Vmid: 112}}); err != nil {
+		if _, err := c.RebootWorkload(t.Context(), &pb.RebootWorkloadRequest{Workload: &pb.Target{Kind: pb.Kind_KIND_VM, Node: "pve", Vmid: 100}}); err != nil {
 			t.Fatal(err)
 		}
 
-		if got := fake.Status(112); got != "running" {
-			t.Errorf("112 is %s, want running again", got)
+		if got := fake.Status(100); got != "running" {
+			t.Errorf("100 is %s, want running again", got)
 		}
-		if got := powerRequests(fake)[0]; got != "POST /api2/json/nodes/pve/qemu/112/status/reboot" {
-			t.Errorf("first request = %q, want qemu/112's reboot", got)
+		if got := powerRequests(fake)[0]; got != "POST /api2/json/nodes/pve/qemu/100/status/reboot" {
+			t.Errorf("first request = %q, want qemu/100's reboot", got)
 		}
 	})
 }
 
 func TestProxmoxRefusesPowerOnAProtectedWorkload(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		fake, c := node(t)
+		// Nothing is Protected in the homelab; in the protected scenario
+		// 210 (nginx) holds only VM.Audit and VM.GuestAgent.Audit.
+		fake, c := node(t, "protected")
 
-		// 101 (nginx) holds only VM.Audit and VM.GuestAgent.Audit.
-		_, err := c.ShutdownWorkload(t.Context(), &pb.ShutdownWorkloadRequest{Workload: lxc(101), ForceStop: true})
+		_, err := c.ShutdownWorkload(t.Context(), &pb.ShutdownWorkloadRequest{Workload: lxc(210), ForceStop: true})
 
 		if status.Code(err) != codes.PermissionDenied {
 			t.Errorf("error = %v, want PermissionDenied", err)
 		}
-		if got := fake.Status(101); got != "running" {
-			t.Errorf("101 is %s, want running still", got)
+		if got := fake.Status(210); got != "running" {
+			t.Errorf("210 is %s, want running still", got)
 		}
 	})
 }
 
 func TestAFailedTaskIsAnErrorWithItsExitStatus(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		fake, c := node(t)
-		fake.FailNextTask("command 'lxc-start -n 103' failed: exit code 1")
+		fake, c := node(t, "baseline")
+		fake.FailNextTask("command 'lxc-start -n 206' failed: exit code 1")
 
-		_, err := c.StartWorkload(t.Context(), &pb.StartWorkloadRequest{Workload: lxc(103)})
+		_, err := c.StartWorkload(t.Context(), &pb.StartWorkloadRequest{Workload: lxc(206)})
 
-		if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != "Proxmox's vzstart task failed: command 'lxc-start -n 103' failed: exit code 1" {
+		if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != "Proxmox's vzstart task failed: command 'lxc-start -n 206' failed: exit code 1" {
 			t.Errorf("error = %v, want FailedPrecondition with the exit status", err)
 		}
-		if got := fake.Status(103); got != "stopped" {
-			t.Errorf("103 is %s, want stopped still", got)
+		if got := fake.Status(206); got != "stopped" {
+			t.Errorf("206 is %s, want stopped still", got)
 		}
 	})
 }
 
 func TestATaskThatOutlastsTheDeadlineIsListedActiveUntilItEnds(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		fake, c := node(t)
+		fake, c := node(t, "baseline")
 		fake.SetTaskPolls(1 << 30)
 
 		ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
 		defer cancel()
-		_, err := c.StartWorkload(ctx, &pb.StartWorkloadRequest{Workload: lxc(103)})
+		_, err := c.StartWorkload(ctx, &pb.StartWorkloadRequest{Workload: lxc(206)})
 		if status.Code(err) != codes.DeadlineExceeded {
 			t.Fatalf("error = %v, want DeadlineExceeded", err)
 		}
 
-		active, err := c.ListActiveTasks(t.Context(), &pb.ListActiveTasksRequest{Node: "pve", Vmid: 103})
+		active, err := c.ListActiveTasks(t.Context(), &pb.ListActiveTasksRequest{Node: "pve", Vmid: 206})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,15 +171,15 @@ func TestATaskThatOutlastsTheDeadlineIsListedActiveUntilItEnds(t *testing.T) {
 		}
 
 		fake.FinishTasks()
-		active, err = c.ListActiveTasks(t.Context(), &pb.ListActiveTasksRequest{Node: "pve", Vmid: 103})
+		active, err = c.ListActiveTasks(t.Context(), &pb.ListActiveTasksRequest{Node: "pve", Vmid: 206})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if n := len(active.GetTasks()); n != 0 {
 			t.Errorf("active tasks after it ended = %v, want none", active.GetTasks())
 		}
-		if got := fake.Status(103); got != "running" {
-			t.Errorf("103 is %s, want running once the task ended", got)
+		if got := fake.Status(206); got != "running" {
+			t.Errorf("206 is %s, want running once the task ended", got)
 		}
 	})
 }

@@ -1,18 +1,837 @@
 {
   "time_units": "hours",
-  "num_dns_queries": 18432,
-  "num_blocked_filtering": 2765,
-  "num_replaced_safebrowsing": 3,
-  "num_replaced_safesearch": 12,
+  "top_queried_domains": [
+    {
+      "site1.example": 1591
+    },
+    {
+      "site2.example": 987
+    },
+    {
+      "site3.example": 764
+    },
+    {
+      "site4.example": 568
+    },
+    {
+      "site5.example": 524
+    },
+    {
+      "site6.example": 470
+    },
+    {
+      "site7.example": 393
+    },
+    {
+      "home.example": 393
+    },
+    {
+      "site8.example": 393
+    },
+    {
+      "site9.example": 393
+    },
+    {
+      "site10.example": 352
+    },
+    {
+      "site11.example": 330
+    },
+    {
+      "site12.example": 330
+    },
+    {
+      "site13.example": 329
+    },
+    {
+      "site14.example": 329
+    },
+    {
+      "site15.example": 322
+    },
+    {
+      "site16.example": 315
+    },
+    {
+      "site17.example": 300
+    },
+    {
+      "site18.example": 298
+    },
+    {
+      "site19.example": 280
+    },
+    {
+      "site20.example": 274
+    },
+    {
+      "site21.example": 234
+    },
+    {
+      "site22.example": 234
+    },
+    {
+      "site23.example": 232
+    },
+    {
+      "site24.example": 231
+    },
+    {
+      "site25.example": 222
+    },
+    {
+      "site26.example": 211
+    },
+    {
+      "site27.example": 203
+    },
+    {
+      "dht.anacrolix.link.home.example": 196
+    },
+    {
+      "site28.example": 196
+    },
+    {
+      "site29.example": 193
+    },
+    {
+      "router.silotis.us.home.example": 192
+    },
+    {
+      "site30.example": 192
+    },
+    {
+      "site31.example": 189
+    },
+    {
+      "router.bittorrent.cloud.home.example": 188
+    },
+    {
+      "site32.example": 188
+    },
+    {
+      "site33.example": 188
+    },
+    {
+      "site34.example": 188
+    },
+    {
+      "site35.example": 187
+    },
+    {
+      "site36.example": 187
+    },
+    {
+      "lexmarkcx317dn.home.example": 186
+    },
+    {
+      "site37.example": 183
+    },
+    {
+      "site38.example": 148
+    },
+    {
+      "site39.example": 142
+    },
+    {
+      "site40.example": 140
+    },
+    {
+      "site41.example": 140
+    },
+    {
+      "site42.example": 132
+    },
+    {
+      "site43.example": 130
+    },
+    {
+      "site44.example": 129
+    },
+    {
+      "site45.example": 116
+    },
+    {
+      "site46.example": 115
+    },
+    {
+      "site47.example": 111
+    },
+    {
+      "site48.example": 104
+    },
+    {
+      "site49.example": 104
+    },
+    {
+      "site50.example": 95
+    },
+    {
+      "site51.example": 86
+    },
+    {
+      "site52.example": 85
+    },
+    {
+      "site53.example": 83
+    },
+    {
+      "site54.example": 82
+    },
+    {
+      "site55.example": 82
+    },
+    {
+      "site56.example": 79
+    },
+    {
+      "site57.example": 79
+    },
+    {
+      "site58.example": 75
+    },
+    {
+      "site59.example": 72
+    },
+    {
+      "site60.example": 72
+    },
+    {
+      "site61.example": 72
+    },
+    {
+      "site62.example": 70
+    },
+    {
+      "site63.example": 70
+    },
+    {
+      "site64.example": 70
+    },
+    {
+      "site65.example": 68
+    },
+    {
+      "site66.example": 68
+    },
+    {
+      "site67.example": 67
+    },
+    {
+      "site68.example": 66
+    },
+    {
+      "site69.example": 65
+    },
+    {
+      "site70.example": 65
+    },
+    {
+      "site71.example": 64
+    },
+    {
+      "site72.example": 61
+    },
+    {
+      "site73.example": 56
+    },
+    {
+      "site74.example": 56
+    },
+    {
+      "site75.example": 55
+    },
+    {
+      "site76.example": 55
+    },
+    {
+      "site77.example": 54
+    },
+    {
+      "site78.example": 53
+    },
+    {
+      "site79.example": 53
+    },
+    {
+      "site80.example": 52
+    },
+    {
+      "site81.example": 52
+    },
+    {
+      "site82.example": 52
+    },
+    {
+      "site83.example": 51
+    },
+    {
+      "site84.example": 51
+    },
+    {
+      "site85.example": 50
+    },
+    {
+      "site86.example": 50
+    },
+    {
+      "site87.example": 47
+    },
+    {
+      "site88.example": 47
+    },
+    {
+      "site89.example": 47
+    },
+    {
+      "site90.example": 46
+    },
+    {
+      "site91.example": 46
+    },
+    {
+      "site92.example": 46
+    },
+    {
+      "site93.example": 45
+    },
+    {
+      "site94.example": 45
+    },
+    {
+      "site95.example": 45
+    }
+  ],
+  "top_clients": [
+    {
+      "198.18.1.102": 6806
+    },
+    {
+      "198.18.1.11": 4809
+    },
+    {
+      "198.18.1.212": 3210
+    },
+    {
+      "198.18.1.22": 3047
+    },
+    {
+      "198.18.1.12": 2981
+    },
+    {
+      "198.18.1.201": 1607
+    },
+    {
+      "198.18.1.5": 1368
+    },
+    {
+      "198.18.1.26": 764
+    },
+    {
+      "198.18.1.3": 679
+    },
+    {
+      "198.18.1.2": 642
+    },
+    {
+      "198.18.1.200": 322
+    },
+    {
+      "198.18.1.208": 311
+    },
+    {
+      "198.18.1.6": 280
+    },
+    {
+      "198.18.1.21": 277
+    },
+    {
+      "198.18.1.51": 243
+    },
+    {
+      "198.18.1.10": 187
+    },
+    {
+      "198.18.1.25": 146
+    },
+    {
+      "198.18.1.204": 140
+    },
+    {
+      "198.18.1.23": 104
+    },
+    {
+      "198.18.1.24": 83
+    },
+    {
+      "198.18.1.207": 59
+    },
+    {
+      "198.18.1.7": 24
+    },
+    {
+      "198.18.1.210": 15
+    },
+    {
+      "198.18.1.211": 8
+    },
+    {
+      "198.18.1.209": 4
+    },
+    {
+      "198.18.1.203": 3
+    }
+  ],
+  "top_blocked_domains": [
+    {
+      "site96.example": 1841
+    },
+    {
+      "site97.example": 271
+    },
+    {
+      "site98.example": 93
+    },
+    {
+      "site99.example": 82
+    },
+    {
+      "site100.example": 63
+    },
+    {
+      "site101.example": 55
+    },
+    {
+      "site102.example": 52
+    },
+    {
+      "site103.example": 41
+    },
+    {
+      "site104.example": 37
+    },
+    {
+      "site105.example": 27
+    },
+    {
+      "site106.example": 24
+    },
+    {
+      "site107.example": 19
+    },
+    {
+      "site108.example": 18
+    },
+    {
+      "site109.example": 16
+    },
+    {
+      "site110.example": 16
+    },
+    {
+      "site111.example": 15
+    },
+    {
+      "site112.example": 14
+    },
+    {
+      "site113.example": 13
+    },
+    {
+      "site114.example": 12
+    },
+    {
+      "site115.example": 10
+    },
+    {
+      "site116.example": 8
+    },
+    {
+      "site117.example": 7
+    },
+    {
+      "site118.example": 5
+    },
+    {
+      "site119.example": 5
+    },
+    {
+      "site120.example": 5
+    },
+    {
+      "site121.example": 4
+    },
+    {
+      "site122.example": 4
+    },
+    {
+      "site123.example": 4
+    },
+    {
+      "site124.example": 4
+    },
+    {
+      "site125.example": 4
+    },
+    {
+      "site126.example": 4
+    },
+    {
+      "site127.example": 4
+    },
+    {
+      "site128.example": 4
+    },
+    {
+      "site129.example": 4
+    },
+    {
+      "site130.example": 3
+    },
+    {
+      "site131.example": 3
+    },
+    {
+      "site132.example": 3
+    },
+    {
+      "site133.example": 3
+    },
+    {
+      "site134.example": 3
+    },
+    {
+      "site135.example": 3
+    },
+    {
+      "site136.example": 3
+    },
+    {
+      "site137.example": 2
+    },
+    {
+      "site138.example": 2
+    },
+    {
+      "site139.example": 2
+    },
+    {
+      "site140.example": 2
+    },
+    {
+      "site141.example": 2
+    },
+    {
+      "site142.example": 2
+    },
+    {
+      "site143.example": 2
+    },
+    {
+      "site144.example": 2
+    },
+    {
+      "site145.example": 2
+    },
+    {
+      "site146.example": 2
+    },
+    {
+      "site147.example": 2
+    },
+    {
+      "site148.example": 2
+    },
+    {
+      "site149.example": 2
+    },
+    {
+      "site150.example": 2
+    },
+    {
+      "site151.example": 2
+    },
+    {
+      "site152.example": 2
+    },
+    {
+      "site153.example": 2
+    },
+    {
+      "site154.example": 2
+    },
+    {
+      "site155.example": 2
+    },
+    {
+      "site156.example": 2
+    },
+    {
+      "site157.example": 2
+    },
+    {
+      "site158.example": 2
+    },
+    {
+      "site159.example": 1
+    },
+    {
+      "site160.example": 1
+    },
+    {
+      "site161.example": 1
+    },
+    {
+      "site162.example": 1
+    },
+    {
+      "site163.example": 1
+    },
+    {
+      "site164.example": 1
+    },
+    {
+      "site165.example": 1
+    },
+    {
+      "site166.example": 1
+    },
+    {
+      "site167.example": 1
+    },
+    {
+      "site168.example": 1
+    },
+    {
+      "site169.example": 1
+    },
+    {
+      "site170.example": 1
+    },
+    {
+      "site171.example": 1
+    },
+    {
+      "site172.example": 1
+    },
+    {
+      "site173.example": 1
+    },
+    {
+      "site174.example": 1
+    },
+    {
+      "site175.example": 1
+    },
+    {
+      "site176.example": 1
+    },
+    {
+      "site177.example": 1
+    },
+    {
+      "site178.example": 1
+    },
+    {
+      "site179.example": 1
+    },
+    {
+      "site180.example": 1
+    },
+    {
+      "site181.example": 1
+    },
+    {
+      "site182.example": 1
+    },
+    {
+      "site183.example": 1
+    },
+    {
+      "site184.example": 1
+    },
+    {
+      "site185.example": 1
+    },
+    {
+      "site186.example": 1
+    },
+    {
+      "site187.example": 1
+    },
+    {
+      "site188.example": 1
+    },
+    {
+      "site189.example": 1
+    },
+    {
+      "site190.example": 1
+    },
+    {
+      "site191.example": 1
+    },
+    {
+      "site192.example": 1
+    },
+    {
+      "site193.example": 1
+    },
+    {
+      "site194.example": 1
+    },
+    {
+      "site195.example": 1
+    }
+  ],
+  "top_upstreams_responses": [
+    {
+      "https://203.0.113.98:443/dns-query": 10874
+    },
+    {
+      "https://203.0.113.206:443/dns-query": 7696
+    },
+    {
+      "tls://pfsense.home.example:853": 858
+    },
+    {
+      "203.0.113.206:53": 6
+    },
+    {
+      "203.0.113.146:53": 6
+    },
+    {
+      "198.18.1.1:53": 4
+    }
+  ],
+  "top_upstreams_avg_time": [
+    {
+      "tls://pfsense.home.example:853": 0.026873819347319344
+    },
+    {
+      "203.0.113.146:53": 0.016555
+    },
+    {
+      "https://203.0.113.98:443/dns-query": 0.01142819284531911
+    },
+    {
+      "https://203.0.113.206:443/dns-query": 0.011172079391891892
+    },
+    {
+      "203.0.113.206:53": 0.005716499999999999
+    },
+    {
+      "198.18.1.1:53": 0.000318
+    }
+  ],
+  "dns_queries": [
+    1179,
+    1227,
+    1037,
+    891,
+    873,
+    1163,
+    927,
+    748,
+    609,
+    607,
+    497,
+    513,
+    990,
+    1963,
+    1447,
+    1430,
+    1702,
+    1647,
+    2056,
+    1501,
+    1717,
+    1257,
+    1628,
+    510
+  ],
+  "blocked_filtering": [
+    116,
+    118,
+    165,
+    131,
+    45,
+    167,
+    112,
+    39,
+    30,
+    18,
+    16,
+    12,
+    110,
+    115,
+    120,
+    175,
+    139,
+    212,
+    217,
+    159,
+    99,
+    160,
+    337,
+    102
+  ],
+  "replaced_safebrowsing": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "replaced_parental": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "num_dns_queries": 28119,
+  "num_blocked_filtering": 2914,
+  "num_replaced_safebrowsing": 0,
+  "num_replaced_safesearch": 0,
   "num_replaced_parental": 0,
-  "avg_processing_time": 0.0184,
-  "dns_queries": [612, 540, 498, 455, 430, 421, 466, 590, 801, 902, 950, 978, 1003, 985, 940, 912, 899, 921, 960, 1012, 1050, 980, 830, 700],
-  "blocked_filtering": [92, 81, 75, 68, 64, 63, 70, 88, 120, 135, 142, 147, 150, 148, 141, 137, 135, 138, 144, 152, 158, 147, 125, 105],
-  "replaced_safebrowsing": [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
-  "replaced_parental": [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  "top_queried_domains": [{"site1.example": 1820}, {"site3.example": 944}, {"site6.example": 512}],
-  "top_blocked_domains": [{"site2.example": 610}, {"site5.example": 402}, {"site9.example": 133}],
-  "top_clients": [{"198.18.1.150": 6120}, {"198.18.1.20": 5011}, {"198.18.1.21": 3870}],
-  "top_upstreams_responses": [{"https://dns.upstream.example:443/dns-query": 15652}],
-  "top_upstreams_avg_time": [{"https://dns.upstream.example:443/dns-query": 0.0213}]
+  "avg_processing_time": 0.015371999999999999
 }

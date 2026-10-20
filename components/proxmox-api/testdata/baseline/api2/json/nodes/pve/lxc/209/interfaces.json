@@ -1,0 +1,43 @@
+{
+  "data": [
+    {
+      "hwaddr": "00:00:00:00:00:00",
+      "name": "lo",
+      "ip-addresses": [
+        {
+          "prefix": "8",
+          "ip-address": "127.0.0.1",
+          "ip-address-type": "inet"
+        }
+      ],
+      "inet": "127.0.0.1/8",
+      "hardware-address": "00:00:00:00:00:00"
+    },
+    {
+      "ip-addresses": [
+        {
+          "prefix": "24",
+          "ip-address": "203.0.113.163",
+          "ip-address-type": "inet"
+        }
+      ],
+      "name": "cert-bridge",
+      "inet": "203.0.113.163/24",
+      "hwaddr": "02:35:7a:8e:bc:ba",
+      "hardware-address": "02:35:7a:8e:bc:ba"
+    },
+    {
+      "hardware-address": "02:cc:94:52:e1:51",
+      "hwaddr": "02:cc:94:52:e1:51",
+      "name": "fw-network",
+      "ip-addresses": [
+        {
+          "ip-address-type": "inet",
+          "ip-address": "198.18.1.209",
+          "prefix": "24"
+        }
+      ],
+      "inet": "198.18.1.209/24"
+    }
+  ]
+}

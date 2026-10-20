@@ -2,6 +2,7 @@ package proxmoxapi_test
 
 import (
 	"net"
+	"slices"
 	"strings"
 	"testing"
 
@@ -55,24 +56,24 @@ func TestListsWorkloadsWithStatusAndResources(t *testing.T) {
 	for _, w := range resp.GetWorkloads() {
 		ids = append(ids, w.GetVmid())
 	}
-	if diff := cmp.Diff([]uint32{101, 102, 103, 104, 110, 111, 112}, ids); diff != "" {
+	if diff := cmp.Diff([]uint32{100, 101, 102, 122, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212}, ids); diff != "" {
 		t.Errorf("Workloads by VMID (-want +got):\n%s", diff)
 	}
-	nginx := workloads(t, c)[101]
+	media := workloads(t, c)[212]
 	want := &pb.Workload{
-		Kind: pb.Kind_KIND_LXC, Vmid: 101, Node: "pve", Name: "nginx", Status: "running",
-		Tags: []string{"infra", "web"},
-		Cpu:  0.0125, MaxCpu: 2,
-		Mem: 268435456, MaxMem: 1073741824,
-		Disk: 2147483648, MaxDisk: 8589934592,
-		NetIn: 1048576, NetOut: 2097152,
-		UptimeSeconds: 86400,
+		Kind: pb.Kind_KIND_LXC, Vmid: 212, Node: "pve", Name: "media-stack", Status: "running",
+		Tags: []string{"docker", "media"},
+		Cpu:  0.00110704754522243, MaxCpu: 4,
+		Mem: 1145044992, MaxMem: 8589934592,
+		Disk: 6250692608, MaxDisk: 68719476736,
+		NetIn: 13802129640, NetOut: 681036731,
+		UptimeSeconds: 238010,
 	}
-	if diff := cmp.Diff(want, nginx, protocmp.Transform(), protocmp.IgnoreFields(&pb.Workload{}, "nics", "addresses")); diff != "" {
-		t.Errorf("nginx (-want +got):\n%s", diff)
+	if diff := cmp.Diff(want, media, protocmp.Transform(), protocmp.IgnoreFields(&pb.Workload{}, "nics", "addresses")); diff != "" {
+		t.Errorf("media-stack (-want +got):\n%s", diff)
 	}
-	if got := workloads(t, c)[110]; got.GetKind() != pb.Kind_KIND_VM || got.GetName() != "home-assistant" {
-		t.Errorf("110 = %v %q, want the VM home-assistant", got.GetKind(), got.GetName())
+	if got := workloads(t, c)[101]; got.GetKind() != pb.Kind_KIND_VM || got.GetName() != "homeassist" || got.GetStatus() != "stopped" {
+		t.Errorf("101 = %v %q %s, want the stopped VM homeassist", got.GetKind(), got.GetName(), got.GetStatus())
 	}
 }
 
@@ -94,11 +95,15 @@ func TestARunningLXCsIPsComeFromEveryAddressOfItsInterfaces(t *testing.T) {
 	_, c := start(t, cfg)
 
 	addresses(t, workloads(t, c), pb.AddressSource_ADDRESS_SOURCE_LIVE, map[uint32][]*pb.Nic{
-		// go-proxmox's ContainerInterface would keep only 198.18.1.10.
-		101: {{Name: "eth0", Mac: "02:5e:1a:00:01:01", Ips: []string{"198.18.1.10", "198.18.1.11", "2001:db8:1::10"}}},
-		102: {
-			{Name: "eth0", Mac: "02:5e:1a:00:01:02", Ips: []string{"198.18.2.10"}},
-			{Name: "docker0", Mac: "02:5e:1a:00:02:02", Ips: []string{"198.18.200.1"}},
+		// go-proxmox's ContainerInterface would keep only one address per
+		// family of each interface. lo is left out.
+		210: {
+			{Name: "cert-bridge", Mac: "02:b6:ec:04:1c:6c", Ips: []string{"203.0.113.236", "2001:db8:30c:4464:a918:2889:9e93:14d8"}},
+			{Name: "fw-network", Mac: "02:a0:07:75:04:2e", Ips: []string{"198.18.1.210", "2001:db8:30c:4464:96c7:be8b:5788:4506"}},
+		},
+		202: {
+			{Name: "cert-bridge", Mac: "02:eb:b6:2f:ee:9a", Ips: []string{"203.0.113.226", "2001:db8:30c:4464:c96b:5af6:1e8a:219b"}},
+			{Name: "fw-network", Mac: "02:13:15:46:bd:2e", Ips: []string{"198.18.1.202", "2001:db8:30c:4464:7dbb:5aef:304c:44b6"}},
 		},
 	})
 }
@@ -108,15 +113,42 @@ func TestARunningVMsIPsComeFromItsGuestAgent(t *testing.T) {
 	_, c := start(t, cfg)
 
 	addresses(t, workloads(t, c), pb.AddressSource_ADDRESS_SOURCE_LIVE, map[uint32][]*pb.Nic{
-		110: {{Name: "enp0s18", Mac: "02:5e:1a:00:01:10", Ips: []string{"198.18.1.20", "2001:db8:1::20"}}},
+		// pfSense: FreeBSD's loopback lo0 is left out like Linux's lo; its
+		// pseudo-interfaces (no MAC) are kept with their addresses.
+		100: {
+			{Name: "vtnet0", Mac: "02:05:5b:bb:01:86", Ips: []string{"2001:db8:30c:4464:1b7c:1928:f2fb:9983", "203.0.113.53"}},
+			{Name: "vtnet1", Mac: "02:25:70:dd:a6:01", Ips: []string{"2001:db8:30c:4464:7594:20a3:7f79:221d", "198.18.1.1"}},
+			{Name: "enc0", Mac: "00:00:00:00:00:00"},
+			{Name: "pflog0", Mac: "00:00:00:00:00:00"},
+			{Name: "pfsync0", Mac: "00:00:00:00:00:00"},
+			{Name: "ovpnc1", Mac: "00:00:00:00:00:00", Ips: []string{"2001:db8:30c:4464:1b7c:1928:f2fb:9983", "203.0.113.169"}},
+			{Name: "tun_wg1", Mac: "00:00:00:00:00:00", Ips: []string{"198.18.40.1"}},
+			{Name: "tun_wg2", Mac: "00:00:00:00:00:00", Ips: []string{"198.18.30.2"}},
+		},
 	})
-	if n := srv.Hits("GET /api2/json/nodes/pve/qemu/110/config"); n != 0 {
-		t.Errorf("read 110's config %d times, want none while its agent answers", n)
+	if n := srv.Hits("GET /api2/json/nodes/pve/qemu/100/config"); n != 0 {
+		t.Errorf("read 100's config %d times, want none while its agent answers", n)
 	}
 }
 
 func TestAStoppedWorkloadsIPsComeFromTheStaticIPOrMACInItsConfig(t *testing.T) {
 	cfg, _ := proxmox(t, "baseline")
+	_, c := start(t, cfg)
+
+	addresses(t, workloads(t, c), pb.AddressSource_ADDRESS_SOURCE_CONFIG, map[uint32][]*pb.Nic{
+		// An LXC's static ip (its MAC upper case in the config).
+		122: {{Name: "eth0", Mac: "02:cd:4c:1c:08:fa", Ips: []string{"198.18.1.122"}}},
+		// A /32 is still its one address.
+		211: {{Name: "eth0", Mac: "02:27:41:c6:44:12", Ips: []string{"198.18.1.211"}}},
+		// A VM without cloud-init: its MAC alone.
+		101: {{Name: "net0", Mac: "02:61:c0:a3:8a:16"}},
+	})
+}
+
+// The homelab has no stopped guest with an ip6, on DHCP or with cloud-init:
+// the config-addresses scenario lists three such guests.
+func TestAStoppedWorkloadsConfigGivesItsIP6AndCloudInitAddressesAndNoneOnDHCP(t *testing.T) {
+	cfg, _ := proxmox(t, "config-addresses")
 	_, c := start(t, cfg)
 
 	addresses(t, workloads(t, c), pb.AddressSource_ADDRESS_SOURCE_CONFIG, map[uint32][]*pb.Nic{
@@ -138,18 +170,39 @@ func TestListsDdashsEffectivePrivilegesOnEachWorkload(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// The homelab's token inherits everything from /: every Workload can
+	// be powered, none is Protected.
+	if n := len(got.GetWorkloads()); n != 16 {
+		t.Errorf("%d Workloads, want 16", n)
+	}
+	for _, w := range got.GetWorkloads() {
+		if !slices.Contains(w.GetPrivileges(), "VM.Audit") || !slices.Contains(w.GetPrivileges(), "VM.PowerMgmt") {
+			t.Errorf("%d holds %v, want VM.Audit and VM.PowerMgmt among them", w.GetVmid(), w.GetPrivileges())
+		}
+	}
+}
+
+// The protected scenario gives 100 (pfSense) and 210 (nginx) their own ACL
+// without VM.PowerMgmt (Protected); the rest inherit /vms.
+func TestAWorkloadsOwnACLOverridesWhatItWouldInherit(t *testing.T) {
+	cfg, _ := proxmox(t, "protected")
+	_, c := start(t, cfg)
+
+	got, err := c.ListPermissions(t.Context(), &pb.ListPermissionsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	control := []string{"VM.Audit", "VM.GuestAgent.Audit", "VM.PowerMgmt"}
 	audit := []string{"VM.Audit", "VM.GuestAgent.Audit"}
-	// 101 and 110 have their own ACL (Protected); the rest inherit /vms.
-	want := &pb.ListPermissionsResponse{Workloads: []*pb.WorkloadPermissions{
-		{Vmid: 101, Privileges: audit},
-		{Vmid: 102, Privileges: control},
-		{Vmid: 103, Privileges: control},
-		{Vmid: 104, Privileges: control},
-		{Vmid: 110, Privileges: audit},
-		{Vmid: 111, Privileges: control},
-		{Vmid: 112, Privileges: control},
-	}}
+	want := &pb.ListPermissionsResponse{}
+	for _, id := range []uint32{100, 101, 102, 122, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212} {
+		privs := control
+		if id == 100 || id == 210 {
+			privs = audit
+		}
+		want.Workloads = append(want.Workloads, &pb.WorkloadPermissions{Vmid: id, Privileges: privs})
+	}
 	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
 		t.Errorf("ListPermissions (-want +got):\n%s", diff)
 	}
@@ -171,8 +224,8 @@ func TestAPrivilegeThatDoesntPropagateHoldsOnlyOnItsOwnPath(t *testing.T) {
 		byVMID[w.GetVmid()] = w.GetPrivileges()
 	}
 	audit := []string{"VM.Audit", "VM.GuestAgent.Audit"}
-	if d := cmp.Diff(audit, byVMID[103]); d != "" {
-		t.Errorf("103 (inherits /vms) (-want +got):\n%s", d)
+	if d := cmp.Diff(audit, byVMID[210]); d != "" {
+		t.Errorf("210 (inherits /vms) (-want +got):\n%s", d)
 	}
 	if d := cmp.Diff([]string{"VM.Audit", "VM.GuestAgent.Audit", "VM.PowerMgmt"}, byVMID[102]); d != "" {
 		t.Errorf("102 (its own ACL) (-want +got):\n%s", d)
@@ -225,7 +278,7 @@ func TestReadsAreCachedBetweenRefreshes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, r := range []string{"GET /api2/json/cluster/resources", "GET /api2/json/nodes/pve/lxc/101/interfaces", "GET /api2/json/nodes/pve/lxc/103/config"} {
+	for _, r := range []string{"GET /api2/json/cluster/resources", "GET /api2/json/nodes/pve/lxc/210/interfaces", "GET /api2/json/nodes/pve/lxc/122/config"} {
 		if n := srv.Hits(r); n != 1 {
 			t.Errorf("%s: %d times, want once within the TTL", r, n)
 		}
@@ -233,16 +286,17 @@ func TestReadsAreCachedBetweenRefreshes(t *testing.T) {
 }
 
 func TestAWorkloadWhoseAddressesCantBeReadIsListedWithWhy(t *testing.T) {
-	cfg, _ := proxmox(t, "config-refused")
+	// config-forbidden refuses the config of the stopped LXC 122 (devenv).
+	cfg, _ := proxmox(t, "config-forbidden")
 	h, c := start(t, cfg)
 
 	got := workloads(t, c)
 
-	if w := got[103]; len(w.GetNics()) != 0 || w.GetAddressesError() != "Proxmox refused the API token" {
-		t.Errorf("103: nics %v, addresses_error %q; want none and the refusal", w.GetNics(), w.GetAddressesError())
+	if w := got[122]; len(w.GetNics()) != 0 || w.GetAddressesError() != "Proxmox refused the API token" {
+		t.Errorf("122: nics %v, addresses_error %q; want none and the refusal", w.GetNics(), w.GetAddressesError())
 	}
-	if len(got[104].GetNics()) != 1 {
-		t.Errorf("104 nics = %v, want its config's", got[104].GetNics())
+	if len(got[206].GetNics()) != 1 {
+		t.Errorf("206 nics = %v, want its config's", got[206].GetNics())
 	}
 	if health := h.Health(); health.State != sdk.OK {
 		t.Errorf("health = %v, want ok: the API answers", health)
@@ -272,8 +326,11 @@ func TestStartReportsConfigErrorsByPath(t *testing.T) {
 	}
 }
 
+// Every VM of the homelab is stopped or answers through its agent: the
+// no-agent scenario lists only a running VM 112, whose agent fails with
+// baseline's hand-written 500.
 func TestARunningVMWhoseAgentDoesntAnswerFallsBackToItsConfig(t *testing.T) {
-	cfg, srv := proxmox(t, "baseline")
+	cfg, srv := proxmox(t, "no-agent")
 	_, c := start(t, cfg)
 
 	got := workloads(t, c)
