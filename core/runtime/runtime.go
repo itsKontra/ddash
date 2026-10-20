@@ -486,7 +486,7 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 		return err
 	}
 	lc := componentpb.NewLifecycleServiceClient(proc.Conn())
-	endpoint, cfgDesc, err := describe(ctx, lc, name)
+	endpoint, cfgDesc, err := describe(ctx, lc, name, r.cat.Release)
 	if err != nil {
 		proc.Stop(ctx)
 		return err
@@ -516,7 +516,8 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 
 // describe asks the Component what it is and builds its Endpoint (without
 // Conn) and the descriptor of its config message (nil when it takes none).
-func describe(ctx context.Context, lc componentpb.LifecycleServiceClient, name string) (Endpoint, protoreflect.MessageDescriptor, error) {
+// It refuses a Component that says it is another one or of another Release.
+func describe(ctx context.Context, lc componentpb.LifecycleServiceClient, name, release string) (Endpoint, protoreflect.MessageDescriptor, error) {
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 	d, err := lc.Describe(ctx, &componentpb.DescribeRequest{})
@@ -525,6 +526,9 @@ func describe(ctx context.Context, lc componentpb.LifecycleServiceClient, name s
 	}
 	if d.GetName() != name {
 		return Endpoint{}, nil, fmt.Errorf("describe: launched %s, but it says it is %s", name, d.GetName())
+	}
+	if d.GetRelease() != release {
+		return Endpoint{}, nil, fmt.Errorf("describe: %s is of Release %s, but this is Release %s", name, d.GetRelease(), release)
 	}
 	files, err := protodesc.NewFiles(d.GetDescriptors())
 	if err != nil {
