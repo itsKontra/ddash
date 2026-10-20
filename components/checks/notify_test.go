@@ -194,7 +194,7 @@ func TestTheLastNotifiedStateSurvivesARestart(t *testing.T) {
 		}
 
 		l.set("nas:22", "up")
-		after(Interval11())
+		after(Interval11() + tick11())
 		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down", "NAS up again"}) {
 			t.Errorf("sent %v, want the recovery after the restart", got)
 		}

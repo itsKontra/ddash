@@ -113,6 +113,11 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 		if !ch.disabled {
 			c.probeEvery(ch)
 		}
+		// The outbox is lost on restart: queue again what changed since
+		// it was last notified but wasn't delivered before the stop.
+		if _, ok := c.wanted(checkItem(ch.id)); ok {
+			c.queue(checkItem(ch.id))
+		}
 	}
 	return nil
 }
