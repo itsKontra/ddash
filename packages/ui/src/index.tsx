@@ -417,3 +417,58 @@ export function Switch({ checked, onChange, label, disabled }: { checked: boolea
     </button>
   );
 }
+
+/** One entry of a Menu; danger marks a disruptive Action. */
+export interface MenuItem {
+  label: string;
+  onSelect: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}
+
+/**
+ * A row's menu, e.g. a Workload's power Actions: a "⋯" button named by
+ * label that opens the items under it. Picking one, Escape or a click
+ * outside closes it.
+ */
+export function Menu({ label, items, disabled }: { label: string; items: readonly MenuItem[]; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative inline-block">
+      <Button variant="ghost" size="sm" aria-label={label} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
+        ⋯
+      </Button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div
+            role="menu"
+            aria-label={label}
+            className="absolute right-0 z-40 mt-1 flex min-w-32 flex-col rounded-ui border border-border bg-card p-1 shadow-lg"
+            onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+          >
+            {items.map((item, i) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                autoFocus={i === 0}
+                disabled={item.disabled}
+                onClick={() => {
+                  setOpen(false);
+                  item.onSelect();
+                }}
+                className={cx(
+                  "cursor-pointer rounded-ui px-2.5 py-1.5 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
+                  item.danger && "text-down",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

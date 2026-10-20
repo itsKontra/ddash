@@ -1,90 +1,18 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { show } from "./testing";
 
 afterEach(cleanup);
-
-const GiB = 1024 ** 3;
-
-// What proxmox-api answers ListWorkloads with (Connect JSON: 64-bit
-// integers are strings, zero values left out).
-const listed = {
-  workloads: [
-    {
-      kind: "KIND_LXC",
-      vmid: 101,
-      node: "pve",
-      name: "nginx",
-      status: "running",
-      tags: ["infra", "web"],
-      cpu: 0.0125,
-      maxCpu: 2,
-      mem: String(GiB / 4),
-      maxMem: String(GiB),
-      disk: String(2 * GiB),
-      maxDisk: String(8 * GiB),
-      netIn: "1048576",
-      netOut: "2097152",
-      uptimeSeconds: "90000",
-      nics: [{ name: "eth0", mac: "02:5e:1a:00:01:01", ips: ["198.18.1.10", "198.18.1.11"] }],
-      addresses: "ADDRESS_SOURCE_LIVE",
-    },
-    {
-      kind: "KIND_LXC",
-      vmid: 104,
-      node: "pve",
-      name: "dhcp-box",
-      status: "stopped",
-      maxCpu: 1,
-      maxMem: String(GiB / 2),
-      maxDisk: String(4 * GiB),
-      nics: [{ name: "eth0", mac: "02:5e:1a:00:01:04" }],
-      addresses: "ADDRESS_SOURCE_CONFIG",
-    },
-    {
-      kind: "KIND_VM",
-      vmid: 111,
-      node: "pve",
-      name: "win-test",
-      status: "stopped",
-      tags: ["lab"],
-      maxCpu: 2,
-      maxMem: String(8 * GiB),
-      maxDisk: String(64 * GiB),
-      nics: [{ name: "net0", mac: "02:5e:1a:00:01:11", ips: ["198.18.1.111"] }],
-      addresses: "ADDRESS_SOURCE_CONFIG",
-    },
-    { kind: "KIND_VM", vmid: 112, node: "pve", name: "locked-out", status: "stopped", addressesError: "Proxmox refused the API token" },
-  ],
-};
-
-async function showPage(answer: () => Response) {
-  const requests: Request[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    requests.push(new Request(new URL(String(input), "http://ddash.test"), init));
-    return answer();
-  });
-  const Page = plugin.pages![0].Component!;
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "proxmox", requires: ["proxmox-api"] }} fetch={fetch}>
-        <Page />
-      </PluginScope>
-    </PluginHost>,
-  );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
-  return requests;
-}
 
 it("is the proxmox Nav Entry at order 40 (its icon, server, is in plugin.yaml)", () => {
   expect(plugin.nav?.order).toBe(40);
 });
 
 it("lists every LXC and VM with its status, resources, tags and uptime", async () => {
-  const requests = await showPage(() => Response.json(listed));
+  const calls = await show("/proxmox");
 
-  expect(new URL(requests[0].url).pathname).toBe("/api/c/proxmox-api/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads");
+  expect(calls.find((c) => c.method === "ListWorkloads")?.url).toBe("/api/c/proxmox-api/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads");
   const nginx = screen.getByRole("row", { name: /nginx/ });
   expect(within(nginx).getByRole("img", { name: "running" })).toBeTruthy();
   expect(within(nginx).getByText("101")).toBeTruthy();
@@ -101,8 +29,15 @@ it("lists every LXC and VM with its status, resources, tags and uptime", async (
   expect(within(win).getByText("VM")).toBeTruthy();
 });
 
+it("links each Workload's name to its detail", async () => {
+  await show("/proxmox");
+
+  const media = screen.getByRole("row", { name: /media-stack/ });
+  expect(within(media).getByRole("link", { name: "media-stack" }).getAttribute("href")).toBe("/proxmox/workloads/102");
+});
+
 it("shows IPs read from the running guest, and marks those from a stopped one's config", async () => {
-  await showPage(() => Response.json(listed));
+  await show("/proxmox");
 
   const nginx = screen.getByRole("row", { name: /nginx/ });
   expect(within(nginx).getByText("198.18.1.10")).toBeTruthy();
@@ -119,7 +54,9 @@ it("shows IPs read from the running guest, and marks those from a stopped one's 
 });
 
 it("shows why proxmox-api can't list the Workloads", async () => {
-  await showPage(() => Response.json({ code: "unavailable", message: "Proxmox refused the API token" }, { status: 503 }));
+  await show("/proxmox", {
+    ListWorkloads: () => Response.json({ code: "unavailable", message: "Proxmox refused the API token" }, { status: 503 }),
+  });
 
   expect(screen.getByText("Proxmox refused the API token")).toBeTruthy();
 });

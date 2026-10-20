@@ -173,11 +173,11 @@ const kindLabel: Record<Kind, string> = {
 /** The Plugin whose Page lists a Workload of this kind. */
 const pluginOf: Partial<Record<Kind, string>> = { [Kind.LXC]: "proxmox", [Kind.VM]: "proxmox", [Kind.DOCKER]: "docker" };
 
-/** "LXC grafana · running", linked to the Proxmox or Docker Page when that Plugin is installed. */
+/** "LXC grafana · running", linked to its Proxmox detail or the Docker Page when that Plugin is installed. */
 function WorkloadName({ workload: w }: { workload: Workload }) {
   const kind = w.ref?.kind ?? Kind.UNSPECIFIED;
   // Hooks run unconditionally: "" is never an installed Plugin.
-  const href = usePluginLink(pluginOf[kind] ?? "");
+  const href = usePluginLink(pluginOf[kind] ?? "", kind === Kind.LXC || kind === Kind.VM ? `workloads/${w.ref?.id}` : "");
   const name = `${kindLabel[kind]} ${w.name || w.ref?.id || w.ref?.host || ""}`.trim();
   const text = w.state ? `${name} · ${w.state}` : name;
   return href ? (

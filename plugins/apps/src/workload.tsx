@@ -24,11 +24,14 @@ export function workloadText(w: Workload): string {
   return w.state ? `${workloadName(w)} · ${w.state}` : workloadName(w);
 }
 
-/** A card's Workload line, linked to the Proxmox or Docker Page when that Plugin is installed. */
+/** Where a Workload's Plugin shows it: an LXC's or VM's detail on the Proxmox Page, the Docker Page's index. */
+const pathOf = (r?: WorkloadRef) => (r && (r.kind === Kind.LXC || r.kind === Kind.VM) ? `workloads/${r.id}` : "");
+
+/** A card's Workload line, linked to its Proxmox detail or the Docker Page when that Plugin is installed. */
 export function WorkloadLine({ workload }: { workload: Workload }) {
   const plugin = pluginOf[workload.ref?.kind ?? Kind.UNSPECIFIED];
   // Hooks run unconditionally: "" is never an installed Plugin.
-  const href = usePluginLink(plugin ?? "");
+  const href = usePluginLink(plugin ?? "", pathOf(workload.ref));
   const text = workloadText(workload);
   return (
     <p aria-label="Workload" className="truncate text-xs text-muted-foreground">
