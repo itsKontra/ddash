@@ -14,15 +14,28 @@ which produces one artifact set:
 ## Steps
 
 1. Start from a green `main`: CI passed on the commit you'll tag.
-2. On a dev machine on the LAN, with a filled-in, gitignored `smoke.env`, run
+2. On a dev machine on the LAN, with a filled-in, gitignored `smoke.env`
+   (copy [`smoke.env.example`](../smoke.env.example)), run
 
    ```sh
    make smoke
    ```
 
+   It calls every system Component's getters against the real systems and
+   prints `ok <component> <getter>` or `FAIL …` per line. On the first run
+   nginx-config fails with its setup hint: add that authorized_keys line on
+   the nginx host once (its key is kept in `.smoke/`).
+
    **Cut the Release only if it passes.** If it fails, fix the Component (and
-   re-record its fixtures with `make record`, one PR) first. `make smoke`
-   never runs in CI.
+   re-record its fixtures, one PR) first. `make smoke` never runs in CI.
+
+   To re-record, fill in the `SCRUB_*` lines of `smoke.env` and a gitignored
+   `scrub.map` (every other real name, `real = replacement` per line), then
+   run `make record` (`SCENARIO=recorded` by default). It writes each answer,
+   scrubbed, into `components/<name>/testdata/$(SCENARIO)/` and refuses any
+   file that still holds a `scrub.map` name, the real domain or an address
+   outside the scrubbed ranges. Review the files and move what the tests need
+   into `baseline`; the IP guard in `go test` checks them again.
 3. If this Release changes an Action, also run `make smoke-writes` (the
    reversible round trips on `DDASH_SMOKE` and `ddash-smoke`), and cut the
    Release only if it passes too.

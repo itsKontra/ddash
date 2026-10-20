@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image
+.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image smoke record
 
 all: check
 
@@ -103,3 +103,18 @@ image: build
 # dev server (http://127.0.0.1:5173), which proxies the core.
 dev: build
 	go run ./cmd/dev $(DEV_ARGS)
+
+# By hand only, never in CI or on a schedule: every system Component's
+# getters against the real homelab systems in the gitignored smoke.env
+# (copy smoke.env.example), checking that they decode and that their
+# invariants hold. Component DBs (nginx-config's key) stay in .smoke/.
+smoke:
+	go run ./cmd/smoke -env smoke.env -data .smoke
+
+# The same run, also writing every answer and `nginx -T` as fixtures,
+# scrubbed (SCRUB_* in smoke.env plus the gitignored scrub.map), into
+# components/<name>/testdata/$(SCENARIO)/. Review them, then move what you
+# need into baseline in a PR of its own.
+SCENARIO ?= recorded
+record:
+	go run ./cmd/smoke -env smoke.env -data .smoke -record -scenario $(SCENARIO) -map scrub.map

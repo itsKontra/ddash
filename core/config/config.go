@@ -71,6 +71,10 @@ func (s *Store) Saved(ctx context.Context, owner string) (bool, error) {
 	return ok, err
 }
 
+// ApplyDefaults sets m's unset fields to their defaults, as Load does, for
+// a config that doesn't come from the Store (`make smoke`'s smoke.env).
+func ApplyDefaults(m proto.Message) error { return applyDefaults(m.ProtoReflect()) }
+
 // applyDefaults sets m's unset fields to their defaults, and those of the
 // messages m holds.
 func applyDefaults(m protoreflect.Message) error {
