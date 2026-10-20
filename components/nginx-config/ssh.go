@@ -21,13 +21,20 @@ func (e errHostKey) Error() string {
 		e.got.Type(), ssh.FingerprintSHA256(e.got), e.want.Type(), ssh.FingerprintSHA256(e.want))
 }
 
+// Output is what `nginx -T` printed and how it exited.
+type Output struct {
+	Stdout, Stderr string
+	// Exit is its exit status; non-zero with nginx's error on Stderr.
+	Exit int
+}
+
 // run runs `nginx -T` on nginx's host as the configured user. err is set
-// only when it didn't run; a non-zero exit is exit with nginx's stderr.
-func (c *component) run(ctx context.Context) (stdout, stderr string, exit int, err error) {
+// only when it didn't run.
+func (c *component) run(ctx context.Context) (Output, error) {
 	var d net.Dialer
 	conn, err := d.DialContext(ctx, "tcp", c.addr)
 	if err != nil {
-		return "", "", 0, fmt.Errorf("%s unreachable: %w", c.host, err)
+		return Output{}, fmt.Errorf("%s unreachable: %w", c.host, err)
 	}
 	stop := context.AfterFunc(ctx, func() { conn.Close() })
 	defer stop()
@@ -46,13 +53,13 @@ func (c *component) run(ctx context.Context) (stdout, stderr string, exit int, e
 		HostKeyAlgorithms: hostKeyAlgorithms(pinned),
 	})
 	if err != nil {
-		return "", "", 0, sshError(ctx, c.host, err)
+		return Output{}, sshError(ctx, c.host, err)
 	}
 	client := ssh.NewClient(sc, chans, reqs)
 	defer client.Close()
 	session, err := client.NewSession()
 	if err != nil {
-		return "", "", 0, fmt.Errorf("ssh session: %w", err)
+		return Output{}, fmt.Errorf("ssh session: %w", err)
 	}
 	defer session.Close()
 	var out, errOut bytes.Buffer
@@ -63,11 +70,11 @@ func (c *component) run(ctx context.Context) (stdout, stderr string, exit int, e
 	var exitErr *ssh.ExitError
 	switch {
 	case errors.As(err, &exitErr):
-		return out.String(), errOut.String(), exitErr.ExitStatus(), nil
+		return Output{Stdout: out.String(), Stderr: errOut.String(), Exit: exitErr.ExitStatus()}, nil
 	case err != nil:
-		return "", "", 0, sshError(ctx, c.host, err)
+		return Output{}, sshError(ctx, c.host, err)
 	}
-	return out.String(), errOut.String(), 0, nil
+	return Output{Stdout: out.String(), Stderr: errOut.String()}, nil
 }
 
 // hostKeyAlgorithms asks the host for the pinned key's kind only.

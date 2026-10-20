@@ -205,14 +205,14 @@ func (c *component) read(ctx context.Context) state {
 	defer cancel()
 
 	var conf parsed
-	stdout, stderr, exit, err := c.run(ctx)
+	out, err := c.run(ctx)
 	down := err != nil
-	if err == nil && exit != 0 {
-		err = errors.New(cmpOr(strings.TrimSpace(stderr), fmt.Sprintf("nginx -T exited %d", exit)))
+	if err == nil && out.Exit != 0 {
+		err = errors.New(cmpOr(strings.TrimSpace(out.Stderr), fmt.Sprintf("nginx -T exited %d", out.Exit)))
 	}
 	if err == nil {
 		var d dump
-		if d, err = split(stdout); err == nil {
+		if d, err = split(out.Stdout); err == nil {
 			conf, err = d.parse()
 		}
 	}
@@ -226,7 +226,7 @@ func (c *component) read(ctx context.Context) state {
 		fp = sha256.Sum256([]byte("error\x00" + err.Error()))
 		s.err, s.down = err.Error(), down
 	} else {
-		fp = sha256.Sum256([]byte("config\x00" + stdout))
+		fp = sha256.Sum256([]byte("config\x00" + out.Stdout))
 		s.err, s.down = "", false
 		s.readAt, s.servers, s.upstreams = time.Now(), conf.servers, conf.upstreams
 	}

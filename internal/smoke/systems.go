@@ -210,8 +210,8 @@ var systems = []system{
 			},
 		},
 		capture: func(ctx context.Context, dbPath string, m proto.Message) (string, fixture.Output, error) {
-			stdout, stderr, exit, err := nginxconfig.Capture(ctx, dbPath, m.(*nginxconfigpb.NginxConfigConfig))
-			return "nginx -T", fixture.Output{Stdout: []byte(stdout), Stderr: []byte(stderr), Exit: exit}, err
+			out, err := nginxconfig.Capture(ctx, dbPath, m.(*nginxconfigpb.NginxConfigConfig))
+			return "nginx -T", fixture.Output{Stdout: []byte(out.Stdout), Stderr: []byte(out.Stderr), Exit: out.Exit}, err
 		},
 	},
 }
