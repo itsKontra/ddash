@@ -3,9 +3,11 @@
 // by a Proxy Host's first server_name, outlives the Proxy Host it was set on.
 //
 // Every PollInterval it reads nginx-config's snapshot and rediscovers the
-// Apps when its revision changed; ListApps joins them with the overlays and
-// manual Apps in the DB at read time. Every App gets an HTTP(S) Check:
-// apps declares the whole set to checks whenever it changes.
+// Apps when its revision changed, and reads the Workloads proxmox-api and
+// docker-api list; ListApps joins them with the overlays and manual Apps in
+// the DB at read time, linking each App to the Workload at its upstream.
+// Every App gets an HTTP(S) Check: apps declares the whole set to checks
+// whenever it changes.
 package apps
 
 import (
@@ -22,7 +24,9 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -49,10 +53,12 @@ func Definition() sdk.Definition {
 type component struct {
 	appspb.UnimplementedAppsServiceServer
 
-	nginx  nginxconfigpb.NginxConfigServiceClient
-	checks checkspb.ChecksServiceClient
-	store  store
-	log    *slog.Logger
+	nginx   nginxconfigpb.NginxConfigServiceClient
+	checks  checkspb.ChecksServiceClient
+	proxmox proxmoxapipb.ProxmoxApiServiceClient
+	docker  dockerapipb.DockerApiServiceClient
+	store   store
+	log     *slog.Logger
 
 	// polled is closed once the first poll ended, so ListApps never
 	// answers before Apps were first discovered and declared to checks.
@@ -70,6 +76,8 @@ type component struct {
 	readErr  string
 	// checksErr is why the last SetAppChecks failed; empty once one worked.
 	checksErr string
+	// src is the last read of the Workload sources.
+	src sources
 
 	// syncMu makes declarations to checks take turns; sent is the set
 	// checks last accepted, nil before the first since Start.
@@ -80,6 +88,8 @@ type component struct {
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfig) error {
 	c.nginx = sdk.Require(env, nginxconfigpb.NewNginxConfigServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
+	c.proxmox = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
+	c.docker = sdk.Require(env, dockerapipb.NewDockerApiServiceClient)
 	c.store = store{db: env.DB}
 	c.log = env.Log
 	c.polled = make(chan struct{})
@@ -87,14 +97,22 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfi
 	return nil
 }
 
+// Health is degraded, naming each, while a required Component can't be
+// read: Apps are then those of the last nginx-config read, or listed
+// without the Workloads of an unavailable source.
 func (c *component) Health(context.Context) sdk.Health {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	switch {
-	case c.readErr != "":
-		return sdk.Health{State: sdk.Degraded, Message: "nginx-config unavailable: " + c.readErr}
-	case c.checksErr != "":
-		return sdk.Health{State: sdk.Degraded, Message: "checks unavailable: " + c.checksErr}
+	var problems []string
+	if c.readErr != "" {
+		problems = append(problems, "nginx-config unavailable: "+c.readErr)
+	}
+	if c.checksErr != "" {
+		problems = append(problems, "checks unavailable: "+c.checksErr)
+	}
+	problems = append(problems, c.src.problems...)
+	if len(problems) > 0 {
+		return sdk.Health{State: sdk.Degraded, Message: strings.Join(problems, "; ")}
 	}
 	return sdk.Health{State: sdk.OK}
 }
@@ -105,6 +123,10 @@ func (c *component) Health(context.Context) sdk.Health {
 func (c *component) poll(ctx context.Context) {
 	defer c.firstPoll.Do(func() { close(c.polled) })
 	c.read(ctx)
+	src := c.readSources(ctx)
+	c.mu.Lock()
+	c.src = src
+	c.mu.Unlock()
 	c.syncChecks(ctx)
 }
 
@@ -126,7 +148,7 @@ func (c *component) read(ctx context.Context) {
 		return
 	}
 	c.wasRead, c.revision = true, snap.GetRevision()
-	c.found = discover(snap.GetServers())
+	c.found = discover(snap)
 }
 
 // discovered returns the discovered Apps and why the last read failed,
@@ -166,7 +188,7 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 }
 
 // joined returns the discovered Apps with their overlays applied, then the
-// manual Apps, and every overlay by server_name.
+// manual Apps, each with its Workload, and every overlay by server_name.
 func (c *component) joined(ctx context.Context, found []discovered) ([]*appspb.App, map[string]*appspb.Overlay, error) {
 	overlays, err := c.store.overlays(ctx)
 	if err != nil {
@@ -176,9 +198,15 @@ func (c *component) joined(ctx context.Context, found []discovered) ([]*appspb.A
 	if err != nil {
 		return nil, nil, err
 	}
+	c.mu.Lock()
+	src := c.src
+	c.mu.Unlock()
 	var out []*appspb.App
 	for _, d := range found {
-		out = append(out, d.app(overlays[d.serverName]))
+		out = append(out, d.app(overlays[d.serverName], src))
+	}
+	for _, a := range manual {
+		a.Workload = src.match(urlTarget(a.GetUrl()))
 	}
 	return append(out, manual...), overlays, nil
 }

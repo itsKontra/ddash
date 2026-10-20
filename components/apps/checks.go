@@ -47,11 +47,14 @@ func (c *component) syncChecks(ctx context.Context) {
 }
 
 // appChecks is each App's Check, by App id: an HTTP(S) Check of its URL,
-// disabled while the App is hidden.
+// disabled while the App is hidden, naming its Workload.
 func appChecks(all []*appspb.App) []*checkspb.AppCheck {
 	out := make([]*checkspb.AppCheck, 0, len(all))
 	for _, a := range all {
-		out = append(out, &checkspb.AppCheck{AppId: a.GetId(), Name: a.GetName(), Url: a.GetUrl(), Enabled: !a.GetHidden()})
+		out = append(out, &checkspb.AppCheck{
+			AppId: a.GetId(), Name: a.GetName(), Url: a.GetUrl(), Enabled: !a.GetHidden(),
+			Workload: a.GetWorkload().GetRef(),
+		})
 	}
 	slices.SortFunc(out, func(a, b *checkspb.AppCheck) int { return cmp.Compare(a.GetAppId(), b.GetAppId()) })
 	return out

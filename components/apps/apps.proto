@@ -5,6 +5,7 @@ syntax = "proto3";
 package ddash.apps;
 
 import "ddash/options.proto";
+import "ddash/workload/workload.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/apps/appspb;appspb";
 
@@ -43,6 +44,12 @@ service AppsService {
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {
     option (ddash.action) = {disruptive: true};
   }
+  // ListWorkloads returns every Workload proxmox-api and docker-api list
+  // now, to pick a Workload override from: containers by host, then
+  // Proxmox guests by VMID, templates left out.
+  rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
 }
 
 // An App, as the Operator sees it.
@@ -69,6 +76,24 @@ message App {
   bool manual = 9;
   // A discovered App's overlay as set; unset without one.
   Overlay overlay = 10;
+  // The Workload behind the App: the overlay's override, else the
+  // container publishing the upstream's port on a Docker host, else the
+  // Proxmox guest with the upstream's address. Unset for none, or while
+  // the source that would list it is unavailable.
+  Workload workload = 11;
+}
+
+// A Workload as apps last read it.
+message Workload {
+  ddash.workload.WorkloadRef ref = 1;
+  // The container's or guest's name; an external host's address. Empty
+  // when no source lists it now.
+  string name = 2;
+  // Docker's state (running, exited, ...) or Proxmox's status (running,
+  // stopped); empty when not known.
+  string state = 3;
+  // Set by the overlay rather than matched.
+  bool override = 4;
 }
 
 // The Operator's display settings for a discovered App, kept when its
@@ -81,6 +106,8 @@ message Overlay {
   string icon = 3;
   string group = 4;
   bool hidden = 5;
+  // The Workload the App runs on, overriding the match; unset to match.
+  ddash.workload.WorkloadRef workload = 6;
 }
 
 // What the Operator gives a manual App.
@@ -148,3 +175,9 @@ message DeleteAppRequest {
 }
 
 message DeleteAppResponse {}
+
+message ListWorkloadsRequest {}
+
+message ListWorkloadsResponse {
+  repeated Workload workloads = 1;
+}

@@ -14,8 +14,10 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/checks"
+	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
@@ -45,6 +47,54 @@ func nginxConfigServing(n *nginx) sdk.Definition {
 		New: func() sdk.Component[*nginxconfigpb.NginxConfigConfig] {
 			return &fakeNginxConfig{n: n}
 		},
+	})
+}
+
+// fakeProxmoxApi is a proxmox-api Component listing a fake's guests.
+type fakeProxmoxApi struct {
+	proxmoxapipb.UnimplementedProxmoxApiServiceServer
+	f *proxmoxFake
+}
+
+func (*fakeProxmoxApi) Start(context.Context, *sdk.Env, *proxmoxapipb.ProxmoxApiConfig) error {
+	return nil
+}
+
+func (*fakeProxmoxApi) Health(context.Context) sdk.Health { return sdk.Health{State: sdk.OK} }
+
+func (p *fakeProxmoxApi) ListWorkloads(ctx context.Context, req *proxmoxapipb.ListWorkloadsRequest) (*proxmoxapipb.ListWorkloadsResponse, error) {
+	return p.f.ListWorkloads(ctx, req)
+}
+
+func proxmoxApiServing(f *proxmoxFake) sdk.Definition {
+	return sdk.Define(sdk.Spec[*proxmoxapipb.ProxmoxApiConfig]{
+		Manifest: []byte("name: proxmox-api\ndescription: A fake.\nrequires: []\n"),
+		Service:  &proxmoxapipb.ProxmoxApiService_ServiceDesc,
+		New:      func() sdk.Component[*proxmoxapipb.ProxmoxApiConfig] { return &fakeProxmoxApi{f: f} },
+	})
+}
+
+// fakeDockerApi is a docker-api Component listing a fake's containers.
+type fakeDockerApi struct {
+	dockerapipb.UnimplementedDockerApiServiceServer
+	f *dockerFake
+}
+
+func (*fakeDockerApi) Start(context.Context, *sdk.Env, *dockerapipb.DockerApiConfig) error {
+	return nil
+}
+
+func (*fakeDockerApi) Health(context.Context) sdk.Health { return sdk.Health{State: sdk.OK} }
+
+func (d *fakeDockerApi) ListContainers(ctx context.Context, req *dockerapipb.ListContainersRequest) (*dockerapipb.ListContainersResponse, error) {
+	return d.f.ListContainers(ctx, req)
+}
+
+func dockerApiServing(f *dockerFake) sdk.Definition {
+	return sdk.Define(sdk.Spec[*dockerapipb.DockerApiConfig]{
+		Manifest: []byte("name: docker-api\ndescription: A fake.\nrequires: []\n"),
+		Service:  &dockerapipb.DockerApiService_ServiceDesc,
+		New:      func() sdk.Component[*dockerapipb.DockerApiConfig] { return &fakeDockerApi{f: f} },
 	})
 }
 
@@ -92,8 +142,11 @@ func TestANewProxyHostYieldsAnAppWithARunningCheck(t *testing.T) {
 		ups := &upstreams{}
 		ups.answer("printer.home.example:8080")
 		h := coretest.New(t, coretest.Options{
-			Components: []sdk.Definition{nginxConfigServing(n), ntfyapi.Definition(), checks.DefinitionDialing(ups.dial), apps.Definition()},
-			Plugins:    []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
+			Components: []sdk.Definition{
+				nginxConfigServing(n), ntfyapi.Definition(), checks.DefinitionDialing(ups.dial),
+				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}), apps.Definition(),
+			},
+			Plugins: []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 		})
 		h.SeedConfig("nginx-config", &nginxconfigpb.NginxConfigConfig{Host: "198.18.0.10", HostKey: "ssh-ed25519 AAAA"})
 		h.Install("apps")

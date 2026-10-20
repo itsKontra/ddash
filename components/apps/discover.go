@@ -19,17 +19,20 @@ type discovered struct {
 	url        string
 	https      bool
 	aliases    []string
+	// upstream is where the block proxies to; zero when ddash can't tell.
+	upstream hostPort
 }
 
 // discover yields one App per server block that proxies (some location has
 // a proxy_pass), skipping redirect-only and catch-all blocks. Blocks that
 // share a first server_name (e.g. one per port) are one App, on https when
-// any of them listens with ssl.
-func discover(servers []*nginxconfigpb.Server) []discovered {
+// any of them listens with ssl (and then proxying where that one does).
+func discover(snap *nginxconfigpb.Snapshot) []discovered {
 	var out []discovered
 	at := map[string]int{}
-	for _, s := range servers {
-		d, ok := fromServer(s)
+	upstreams := upstreamsOf(snap)
+	for _, s := range snap.GetServers() {
+		d, ok := fromServer(s, upstreams)
 		if !ok {
 			continue
 		}
@@ -41,7 +44,7 @@ func discover(servers []*nginxconfigpb.Server) []discovered {
 		}
 		prev := &out[i]
 		if d.https && !prev.https {
-			prev.url, prev.https = d.url, true
+			prev.url, prev.https, prev.upstream = d.url, true, d.upstream
 		}
 		for _, a := range d.aliases {
 			if !slices.Contains(prev.aliases, a) {
@@ -52,7 +55,7 @@ func discover(servers []*nginxconfigpb.Server) []discovered {
 	return out
 }
 
-func fromServer(s *nginxconfigpb.Server) (discovered, bool) {
+func fromServer(s *nginxconfigpb.Server, upstreams map[string][]string) (discovered, bool) {
 	var names []string
 	for _, n := range s.GetServerNames() {
 		if n != "" && n != "_" && !slices.Contains(names, n) {
@@ -74,7 +77,25 @@ func fromServer(s *nginxconfigpb.Server) (discovered, bool) {
 		}
 	}
 	d.url, d.https = appURL(names[0], s.GetListens())
+	d.upstream = upstreamOf(proxyPass(s), upstreams)
 	return d, true
+}
+
+// proxyPass is the block's proxy_pass for "/", else its first one.
+func proxyPass(s *nginxconfigpb.Server) string {
+	first := ""
+	for _, l := range s.GetLocations() {
+		if l.GetProxyPass() == "" {
+			continue
+		}
+		if l.GetPath() == "/" {
+			return l.GetProxyPass()
+		}
+		if first == "" {
+			first = l.GetProxyPass()
+		}
+	}
+	return first
 }
 
 // literal reports whether a server_name is one host, not a wildcard
@@ -145,7 +166,7 @@ func listenPort(addr string) (int, bool) {
 	return 80, true
 }
 
-func (d discovered) app(o *appspb.Overlay) *appspb.App {
+func (d discovered) app(o *appspb.Overlay, src sources) *appspb.App {
 	a := &appspb.App{
 		Id:         "proxy:" + d.serverName,
 		ServerName: d.serverName,
@@ -158,6 +179,7 @@ func (d discovered) app(o *appspb.Overlay) *appspb.App {
 		a.Name = cmp.Or(o.GetName(), a.Name)
 		a.Icon, a.Group, a.Hidden = o.GetIcon(), o.GetGroup(), o.GetHidden()
 	}
+	a.Workload = src.workloadFor(o.GetWorkload(), d.upstream)
 	return a
 }
 

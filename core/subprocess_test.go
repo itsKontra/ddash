@@ -73,6 +73,10 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"url":"https://jellyfin.home.example"`) {
 		t.Errorf("ListApps: status %d: %s; want baseline's jellyfin App", res.Code, res.Body)
 	}
+	// apps links it to its container through proxmox-api and docker-api.
+	if !strings.Contains(res.Body.String(), `"KIND_DOCKER"`) {
+		t.Errorf("ListApps: %s; want jellyfin linked to its container", res.Body)
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello

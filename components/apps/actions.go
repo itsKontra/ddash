@@ -30,6 +30,11 @@ func (c *component) SetOverlay(ctx context.Context, req *appspb.SetOverlayReques
 	if err := checkIcon(o.GetIcon()); err != nil {
 		return nil, err
 	}
+	w, err := checkWorkloadRef(req.GetOverlay().GetWorkload())
+	if err != nil {
+		return nil, err
+	}
+	o.Workload = w
 
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
@@ -46,7 +51,7 @@ func (c *component) SetOverlay(ctx context.Context, req *appspb.SetOverlayReques
 			return nil, status.Errorf(codes.NotFound, "no App has the server_name %s", o.GetServerName())
 		}
 	}
-	if o.GetName() == "" && o.GetIcon() == "" && o.GetGroup() == "" && !o.GetHidden() {
+	if o.GetName() == "" && o.GetIcon() == "" && o.GetGroup() == "" && !o.GetHidden() && o.GetWorkload() == nil {
 		err = c.store.deleteOverlay(ctx, o.GetServerName())
 	} else {
 		err = c.store.putOverlay(ctx, o)
