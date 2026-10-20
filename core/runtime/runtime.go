@@ -154,7 +154,32 @@ func (r *Runtime) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	r.cancel = cancel
 	r.loops.Go(func() { r.reconcileLoop(ctx) })
+	r.loops.Go(func() { r.healthLoop(ctx) })
 	r.poke()
+}
+
+// healthLoop polls every launched Component's health each HealthInterval.
+func (r *Runtime) healthLoop(ctx context.Context) {
+	ticker := time.NewTicker(HealthInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+		r.mu.Lock()
+		var names []string
+		for name, c := range r.components {
+			if c.proc != nil {
+				names = append(names, name)
+			}
+		}
+		r.mu.Unlock()
+		for _, name := range names {
+			r.loops.Go(func() { r.pollHealth(ctx, name) })
+		}
+	}
 }
 
 // Stop ends the reconcile loop, then stops every Component in parallel,
