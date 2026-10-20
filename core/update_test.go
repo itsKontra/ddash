@@ -85,7 +85,18 @@ func note(t *testing.T, h *coretest.Harness, text string) []string {
 // snapshots lists the files in /data/db/snapshots.
 func snapshots(t *testing.T, data string) []string {
 	t.Helper()
-	entries, _ := os.ReadDir(filepath.Join(data, "db", "snapshots"))
+	return files(t, data, "snapshots")
+}
+
+// aside lists the DBs a rollback moved aside, in /data/db/aside.
+func aside(t *testing.T, data string) []string {
+	t.Helper()
+	return files(t, data, "aside")
+}
+
+func files(t *testing.T, data, dir string) []string {
+	t.Helper()
+	entries, _ := os.ReadDir(filepath.Join(data, "db", dir))
 	var names []string
 	for _, e := range entries {
 		names = append(names, e.Name())
@@ -186,8 +197,45 @@ func TestRollingBackRestoresTheSnapshotAfterMovingTheNewerDBAside(t *testing.T) 
 	if got, want := note(t, h, ""), []string{"before the update"}; !slices.Equal(got, want) {
 		t.Errorf("notes after the rollback = %v, want the snapshot's %v", got, want)
 	}
+	if got := snapshots(t, data); len(got) != 0 {
+		t.Errorf("snapshots = %v, want none: the one there was restored", got)
+	}
+	if got, want := aside(t, data), []string{"greeter.v1.1.0.db"}; !slices.Equal(got, want) {
+		t.Errorf("moved aside = %v, want the newer DB: %v", got, want)
+	}
+}
+
+// The snapshot is one generation named <component>.<release>.db, whatever
+// a rollback moved aside before.
+func TestASnapshotIsAlwaysNamedAfterItsComponentAndRelease(t *testing.T) {
+	data, h := updatedThenRolledBack(t) // moves greeter.v1.1.0.db aside
+	h.Shutdown()
+	again := onRelease(t, data, "v1.1.0", notebook(addTag)) // snapshots v1.0.0
+	again.WaitState("greeter", runtime.OK)
+	again.Shutdown()
+
+	next := onRelease(t, data, "v1.2.0", notebook(addTag)) // snapshots v1.1.0
+	next.WaitState("greeter", runtime.OK)
+
 	if got, want := snapshots(t, data), []string{"greeter.v1.1.0.db"}; !slices.Equal(got, want) {
-		t.Errorf("snapshots = %v, want only the newer DB moved aside: %v", got, want)
+		t.Errorf("snapshots = %v, want one generation: %v", got, want)
+	}
+}
+
+// Uninstalling with "also delete data" deletes the snapshot too: nothing of
+// the Component is left that no Orphans list shows.
+func TestUninstallingWithItsDataDeletesTheSnapshotToo(t *testing.T) {
+	data := installedOn(t, "v1.0.0", notebook(), "before the update")
+	h := onRelease(t, data, "v1.1.0", notebook(addTag))
+	h.WaitState("greeter", runtime.OK)
+
+	orphans, err := h.Uninstall("hello", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got := snapshots(t, data); len(orphans) != 0 || len(got) != 0 {
+		t.Errorf("orphans %v and snapshots %v, want none of greeter's data left", orphans, got)
 	}
 }
 
@@ -201,7 +249,7 @@ func TestADBMovedAsideIsNeverDeleted(t *testing.T) {
 	back := onRelease(t, data, "v1.0.0", notebook()) // moves v1.1.0 aside again
 	back.WaitState("greeter", runtime.OK)
 
-	if got, want := snapshots(t, data), []string{"greeter.v1.1.0.2.db", "greeter.v1.1.0.db"}; !slices.Equal(got, want) {
-		t.Errorf("snapshots = %v, want both DBs moved aside: %v", got, want)
+	if got, want := aside(t, data), []string{"greeter.v1.1.0.2.db", "greeter.v1.1.0.db"}; !slices.Equal(got, want) {
+		t.Errorf("moved aside = %v, want both DBs: %v", got, want)
 	}
 }

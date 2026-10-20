@@ -398,13 +398,17 @@ func (r *Runtime) Uninstall(ctx context.Context, plugin string, deleteData bool)
 	return r.Orphans(), nil
 }
 
-// deleteData deletes a Component's DB file and config.
+// deleteData deletes a Component's DB file, its snapshot and config. DBs
+// rollbacks moved aside stay: they are never deleted.
 func (r *Runtime) deleteData(ctx context.Context, name string) error {
 	db := r.dbPath(name)
 	for _, f := range []string{db, db + "-wal", db + "-shm"} {
 		if err := os.Remove(f); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}
+	}
+	if err := r.deleteSnapshot(ctx, name); err != nil {
+		return err
 	}
 	if _, err := r.opts.DB.ExecContext(ctx, `DELETE FROM component_release WHERE name = ?`, name); err != nil {
 		return err

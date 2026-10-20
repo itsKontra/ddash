@@ -13,8 +13,9 @@ import (
 
 // switchRelease readies name's DB for Release rel before its process
 // launches. On a Release change it either restores the snapshot taken from
-// rel, moving the current DB aside first, or snapshots the current DB,
-// keeping one generation. A DB moved aside is never deleted.
+// rel, moving the current DB aside first (into db/aside/), or snapshots the
+// current DB as db/snapshots/<name>.<release>.db, keeping one generation. A
+// DB moved aside is never deleted.
 func (r *Runtime) switchRelease(ctx context.Context, name, rel string) error {
 	var last, snapRelease, snapFile string
 	err := r.opts.DB.QueryRowContext(ctx,
@@ -35,7 +36,10 @@ func (r *Runtime) switchRelease(ctx context.Context, name, rel string) error {
 		return err
 	}
 	if snapFile != "" && snapRelease == rel && exists(filepath.Join(dir, snapFile)) {
-		aside, err := moveDB(db, dir, name, last)
+		if err := os.MkdirAll(r.asideDir(), 0o750); err != nil {
+			return err
+		}
+		aside, err := moveDB(db, r.asideDir(), name, last)
 		if err != nil {
 			return fmt.Errorf("move %s's DB of Release %s aside: %w", name, last, err)
 		}
@@ -45,11 +49,11 @@ func (r *Runtime) switchRelease(ctx context.Context, name, rel string) error {
 		r.log.Info("restored snapshot", "component", name, "release", rel, "moved_aside", aside)
 		snapRelease, snapFile = "", ""
 	} else if exists(db) {
-		file := freeName(dir, name, last)
+		file := snapshotName(name, last)
 		if err := copyDB(db, filepath.Join(dir, file)); err != nil {
 			return fmt.Errorf("snapshot %s's DB of Release %s: %w", name, last, err)
 		}
-		if snapFile != "" {
+		if snapFile != "" && snapFile != file {
 			removeDB(filepath.Join(dir, snapFile)) // one generation
 		}
 		r.log.Info("snapshot", "component", name, "release", last, "file", file)
@@ -63,11 +67,35 @@ func (r *Runtime) switchRelease(ctx context.Context, name, rel string) error {
 
 func (r *Runtime) snapshotDir() string { return filepath.Join(r.opts.DataDir, "db", "snapshots") }
 
+// asideDir holds the DBs rollbacks moved aside.
+func (r *Runtime) asideDir() string { return filepath.Join(r.opts.DataDir, "db", "aside") }
+
+// snapshotName is the one snapshot of name's DB of Release rel.
+func snapshotName(name, rel string) string { return name + "." + rel + ".db" }
+
+// deleteSnapshot deletes name's snapshot, if it has one.
+func (r *Runtime) deleteSnapshot(ctx context.Context, name string) error {
+	var file string
+	err := r.opts.DB.QueryRowContext(ctx, `SELECT snapshot_file FROM component_release WHERE name = ?`, name).Scan(&file)
+	if errors.Is(err, sql.ErrNoRows) || (err == nil && file == "") {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	for _, s := range []string{"", "-wal", "-shm"} {
+		if err := os.Remove(filepath.Join(r.snapshotDir(), file) + s); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
+}
+
 // A DB is its SQLite file plus, unless it was closed cleanly, its WAL. The
 // shared-memory file is rebuilt on open, so it is dropped.
 var dbSuffixes = []string{"", "-wal"}
 
-// freeName names a file in dir for name's DB of Release rel:
+// freeName names a file in dir for name's DB of Release rel moved aside:
 // <name>.<rel>.db, or <name>.<rel>.<n>.db when that is taken.
 func freeName(dir, name, rel string) string {
 	file := name + "." + rel + ".db"
