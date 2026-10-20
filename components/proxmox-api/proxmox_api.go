@@ -107,7 +107,8 @@ func (c *component) ListWorkloads(ctx context.Context, _ *pb.ListWorkloadsReques
 // effective permissions. /access/permissions lists /vms and every path
 // with an ACL (pool members as /vms/<vmid> too), each already resolved for
 // inheritance, so a Workload's privileges are those of the nearest of
-// /vms/<vmid>, /vms and /.
+// /vms/<vmid>, /vms and /: on its own path all of them, from a parent only
+// those that propagate.
 func (c *component) ListPermissions(ctx context.Context, _ *pb.ListPermissionsRequest) (*pb.ListPermissionsResponse, error) {
 	workloads, err := c.workloads.Get(ctx)
 	if err != nil {
@@ -120,10 +121,12 @@ func (c *component) ListPermissions(ctx context.Context, _ *pb.ListPermissionsRe
 	out := &pb.ListPermissionsResponse{}
 	for _, w := range workloads.GetWorkloads() {
 		wp := &pb.WorkloadPermissions{Vmid: w.GetVmid()}
-		for _, path := range []string{fmt.Sprintf("/vms/%d", w.GetVmid()), "/vms", "/"} {
+		for i, path := range []string{fmt.Sprintf("/vms/%d", w.GetVmid()), "/vms", "/"} {
 			if privs, ok := perms[path]; ok {
-				for p := range privs {
-					wp.Privileges = append(wp.Privileges, p)
+				for p, propagate := range privs {
+					if i == 0 || propagate == 1 {
+						wp.Privileges = append(wp.Privileges, p)
+					}
 				}
 				slices.Sort(wp.Privileges)
 				break

@@ -1,0 +1,7 @@
+{
+  "data": {
+    "/": {"Sys.Audit": 1, "VM.PowerMgmt": 0},
+    "/vms": {"VM.Audit": 1, "VM.GuestAgent.Audit": 1, "VM.PowerMgmt": 0},
+    "/vms/102": {"VM.Audit": 1, "VM.GuestAgent.Audit": 1, "VM.PowerMgmt": 0}
+  }
+}

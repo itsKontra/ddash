@@ -353,10 +353,11 @@ func (p *Proxmox) guest(vmid int) map[string]any {
 // privileged reports whether the token holds priv on /vms/<vmid>, from the
 // nearest of /vms/<vmid>, /vms and /. Call with p.mu held.
 func (p *Proxmox) privileged(vmid int, priv string) bool {
-	for _, path := range []string{fmt.Sprintf("/vms/%d", vmid), "/vms", "/"} {
+	for i, path := range []string{fmt.Sprintf("/vms/%d", vmid), "/vms", "/"} {
 		if privs, ok := p.perms[path]; ok {
-			_, held := privs[priv]
-			return held
+			// From a parent path only a privilege that propagates holds.
+			propagate, held := privs[priv]
+			return held && (i == 0 || propagate == 1)
 		}
 	}
 	return false

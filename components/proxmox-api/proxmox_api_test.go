@@ -155,6 +155,30 @@ func TestListsDdashsEffectivePrivilegesOnEachWorkload(t *testing.T) {
 	}
 }
 
+// A privilege granted without propagate (0) holds on its own path only:
+// VM.PowerMgmt on /vms or / without propagate reaches no guest.
+func TestAPrivilegeThatDoesntPropagateHoldsOnlyOnItsOwnPath(t *testing.T) {
+	cfg, _ := proxmox(t, "no-propagate")
+	_, c := start(t, cfg)
+
+	got, err := c.ListPermissions(t.Context(), &pb.ListPermissionsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	byVMID := map[uint32][]string{}
+	for _, w := range got.GetWorkloads() {
+		byVMID[w.GetVmid()] = w.GetPrivileges()
+	}
+	audit := []string{"VM.Audit", "VM.GuestAgent.Audit"}
+	if d := cmp.Diff(audit, byVMID[103]); d != "" {
+		t.Errorf("103 (inherits /vms) (-want +got):\n%s", d)
+	}
+	if d := cmp.Diff([]string{"VM.Audit", "VM.GuestAgent.Audit", "VM.PowerMgmt"}, byVMID[102]); d != "" {
+		t.Errorf("102 (its own ACL) (-want +got):\n%s", d)
+	}
+}
+
 func TestHealthIsOKWhileTheAPIAnswersWithTheToken(t *testing.T) {
 	cfg, _ := proxmox(t, "baseline")
 	h, _ := start(t, cfg)
