@@ -179,6 +179,12 @@ func (h *Harness) Uninstall(plugin string, deleteData bool) (orphans []string, e
 	return resp.GetOrphans(), err
 }
 
+// Restart runs the core Action Restart on component as the harness's actor.
+func (h *Harness) Restart(component string) error {
+	_, err := h.Host.Restart(h.ctx(), &corepb.RestartRequest{Component: component})
+	return err
+}
+
 // ctx is the test's context, signed in as the harness's actor.
 func (h *Harness) ctx() context.Context {
 	return auth.WithActor(h.t.Context(), h.actor)

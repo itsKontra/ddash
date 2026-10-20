@@ -167,6 +167,19 @@ func (h *Host) Uninstall(ctx context.Context, req *corepb.UninstallRequest) (*co
 	return &corepb.UninstallResponse{Orphans: orphans}, nil
 }
 
+// Restart is the core Action that stops a Component and starts it again,
+// forgetting its crashes, so a Component held down after repeated crashes
+// runs again. It runs for the actor in ctx.
+func (h *Host) Restart(ctx context.Context, req *corepb.RestartRequest) (*corepb.RestartResponse, error) {
+	err := h.coreAction(ctx, "Restart", req, func() error {
+		return h.runtime.Restart(ctx, req.GetComponent())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.RestartResponse{}, nil
+}
+
 // coreService is the core API, whose Actions pass the gate like any other.
 var coreService = corepb.File_ddash_core_core_proto.Services().ByName("CoreService")
 

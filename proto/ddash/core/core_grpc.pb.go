@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	CoreService_Install_FullMethodName   = "/ddash.core.CoreService/Install"
 	CoreService_Uninstall_FullMethodName = "/ddash.core.CoreService/Uninstall"
+	CoreService_Restart_FullMethodName   = "/ddash.core.CoreService/Restart"
 )
 
 // CoreServiceClient is the client API for CoreService service.
@@ -38,6 +39,10 @@ type CoreServiceClient interface {
 	// files and config are kept, the DB files listed as orphans, unless
 	// delete_data is set.
 	Uninstall(ctx context.Context, in *UninstallRequest, opts ...grpc.CallOption) (*UninstallResponse, error)
+	// Restart stops a Component and starts it again, forgetting its crashes:
+	// a Component that crashed about 5 times in 10 minutes stays down until
+	// restarted. It never restarts the Components that require it.
+	Restart(ctx context.Context, in *RestartRequest, opts ...grpc.CallOption) (*RestartResponse, error)
 }
 
 type coreServiceClient struct {
@@ -68,6 +73,16 @@ func (c *coreServiceClient) Uninstall(ctx context.Context, in *UninstallRequest,
 	return out, nil
 }
 
+func (c *coreServiceClient) Restart(ctx context.Context, in *RestartRequest, opts ...grpc.CallOption) (*RestartResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestartResponse)
+	err := c.cc.Invoke(ctx, CoreService_Restart_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoreServiceServer is the server API for CoreService service.
 // All implementations must embed UnimplementedCoreServiceServer
 // for forward compatibility.
@@ -80,6 +95,10 @@ type CoreServiceServer interface {
 	// files and config are kept, the DB files listed as orphans, unless
 	// delete_data is set.
 	Uninstall(context.Context, *UninstallRequest) (*UninstallResponse, error)
+	// Restart stops a Component and starts it again, forgetting its crashes:
+	// a Component that crashed about 5 times in 10 minutes stays down until
+	// restarted. It never restarts the Components that require it.
+	Restart(context.Context, *RestartRequest) (*RestartResponse, error)
 	mustEmbedUnimplementedCoreServiceServer()
 }
 
@@ -95,6 +114,9 @@ func (UnimplementedCoreServiceServer) Install(context.Context, *InstallRequest) 
 }
 func (UnimplementedCoreServiceServer) Uninstall(context.Context, *UninstallRequest) (*UninstallResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Uninstall not implemented")
+}
+func (UnimplementedCoreServiceServer) Restart(context.Context, *RestartRequest) (*RestartResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Restart not implemented")
 }
 func (UnimplementedCoreServiceServer) mustEmbedUnimplementedCoreServiceServer() {}
 func (UnimplementedCoreServiceServer) testEmbeddedByValue()                     {}
@@ -153,6 +175,24 @@ func _CoreService_Uninstall_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreService_Restart_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestartRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).Restart(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_Restart_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).Restart(ctx, req.(*RestartRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoreService_ServiceDesc is the grpc.ServiceDesc for CoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -167,6 +207,10 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Uninstall",
 			Handler:    _CoreService_Uninstall_Handler,
+		},
+		{
+			MethodName: "Restart",
+			Handler:    _CoreService_Restart_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

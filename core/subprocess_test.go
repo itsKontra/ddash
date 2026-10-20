@@ -128,3 +128,18 @@ func TestABinaryOfAnotherReleaseIsRefused(t *testing.T) {
 		t.Errorf("greeter is %v, want down naming both Releases", got)
 	}
 }
+
+func TestASubprocessThatExitsIsCrashedThenRestarted(t *testing.T) {
+	h := coretest.New(t, coretest.Options{ReleaseDir: sampleRelease(t, "dev")})
+	h.SeedConfig("greeter", configured)
+	h.Install("hello")
+	h.WaitState("greeter", runtime.OK)
+
+	h.Call("hello", "greeter", "Act", `{}`) // the sample exits
+
+	h.WaitState("greeter", runtime.Crashed)
+	h.WaitState("greeter", runtime.OK)
+	if res := h.Call("hello", "greeter", "Greet", `{"name":"Ada"}`); res.Code != http.StatusOK {
+		t.Errorf("Greet after the restart: status %d: %s", res.Code, res.Body)
+	}
+}

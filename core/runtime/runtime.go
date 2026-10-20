@@ -48,6 +48,10 @@ const (
 	Unconfigured State = "unconfigured"
 	// Stopped: the Component no longer runs.
 	Stopped State = "stopped"
+	// Crashed: the Component's process ended on its own. It is restarted
+	// with exponential backoff, unless it crashed crashLimit times within
+	// crashWindow: then it stays down until Restart.
+	Crashed State = "crashed"
 )
 
 // Status is a Component's State with a one-line message.
@@ -67,6 +71,9 @@ const (
 	startTimeout = 60 * time.Second
 	retryMin     = time.Second
 	retryMax     = 5 * time.Minute
+
+	crashLimit  = 5
+	crashWindow = 10 * time.Minute
 )
 
 // Options configure a Runtime.
@@ -116,6 +123,13 @@ type component struct {
 	endpoint Endpoint
 	started  bool // Start succeeded
 	status   Status
+
+	// crashes are the times of the crashes within the last crashWindow.
+	crashes []time.Time
+	// held keeps a Component that crashed too often down until Restart.
+	held bool
+	// notBefore delays the relaunch after a crash.
+	notBefore time.Time
 }
 
 // Endpoint is how the router reaches one running Component.
@@ -451,9 +465,9 @@ func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
 			c = &component{status: Status{State: Starting}}
 			r.components[name] = c
 		}
-		running := c.proc != nil
+		skip := c.proc != nil || c.held || time.Now().Before(c.notBefore)
 		r.mu.Unlock()
-		if running {
+		if skip {
 			continue
 		}
 		if ctx.Err() != nil {
@@ -497,6 +511,7 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 	c.proc = proc
 	c.endpoint = endpoint
 	r.mu.Unlock()
+	r.loops.Go(func() { r.watch(ctx, name, proc) })
 
 	if err := r.start(ctx, lc, name, cfgDesc); err != nil {
 		st := Status{State: Down, Message: status.Convert(err).Message()}
@@ -511,6 +526,76 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 	c.started = true
 	r.mu.Unlock()
 	r.loops.Go(func() { r.pollHealth(ctx, name) })
+	return nil
+}
+
+// watch waits for proc to end and handles that as a crash, unless the
+// runtime stopped it.
+func (r *Runtime) watch(ctx context.Context, name string, proc Process) {
+	select {
+	case <-ctx.Done():
+		return
+	case <-proc.Done():
+	}
+	r.mu.Lock()
+	c := r.components[name]
+	if c == nil || c.proc != proc || ctx.Err() != nil {
+		r.mu.Unlock()
+		return // stopped on purpose
+	}
+	c.proc, c.started = nil, false
+	now := time.Now()
+	c.crashes = append(slices.DeleteFunc(c.crashes, func(t time.Time) bool {
+		return now.Sub(t) >= crashWindow
+	}), now)
+	var delay time.Duration
+	n := len(c.crashes)
+	if n >= crashLimit {
+		c.held = true
+		c.status = Status{State: Crashed, Message: fmt.Sprintf("crashed %d times in %s; restart it from the Catalogue", n, crashWindow)}
+	} else {
+		delay = retryMin << (n - 1)
+		c.notBefore = now.Add(delay)
+		c.status = Status{State: Crashed, Message: fmt.Sprintf("exited unexpectedly; restarting in %s", delay)}
+	}
+	r.mu.Unlock()
+	r.log.Error("crashed", "component", name, "crashes", n, "restart_in", delay)
+
+	stopCtx, cancel := context.WithTimeout(ctx, StopTimeout)
+	proc.Stop(stopCtx) // releases what is left of it
+	cancel()
+	if delay == 0 {
+		return
+	}
+	select {
+	case <-ctx.Done():
+	case <-time.After(delay):
+		r.poke()
+	}
+}
+
+// Restart stops a wanted Component and starts it again, forgetting its
+// crashes. The Components that require it keep running.
+func (r *Runtime) Restart(ctx context.Context, name string) error {
+	r.changing.Lock()
+	defer r.changing.Unlock()
+	r.mu.Lock()
+	c, ok := r.components[name]
+	if !ok || !r.wanted()[name] {
+		r.mu.Unlock()
+		return status.Errorf(codes.NotFound, "no installed Plugin requires %s", name)
+	}
+	proc := c.proc
+	c.proc, c.started = nil, false
+	c.crashes, c.held, c.notBefore = nil, false, time.Time{}
+	c.status = Status{State: Starting}
+	r.mu.Unlock()
+	if proc != nil {
+		stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), StopTimeout)
+		proc.Stop(stopCtx)
+		cancel()
+	}
+	r.poke()
 	return nil
 }
 
@@ -586,7 +671,8 @@ func (r *Runtime) pollHealth(ctx context.Context, name string) {
 		r.mu.Unlock()
 		return
 	}
-	lc := componentpb.NewLifecycleServiceClient(c.proc.Conn())
+	proc := c.proc
+	lc := componentpb.NewLifecycleServiceClient(proc.Conn())
 	r.mu.Unlock()
 
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
@@ -605,7 +691,11 @@ func (r *Runtime) pollHealth(ctx context.Context, name string) {
 		h := sdk.HealthFromProto(resp)
 		st = Status{State: State(h.State.String()), Message: h.Message}
 	}
-	r.setStatus(name, st)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if c := r.components[name]; c != nil && c.proc == proc {
+		c.status = st // unless it crashed or restarted meanwhile
+	}
 }
 
 func (r *Runtime) setStatus(name string, st Status) {

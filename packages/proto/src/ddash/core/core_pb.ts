@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiIAoOSW5zdGFsbFJlcXVlc3QSDgoGcGx1Z2luGAEgASgJIhEKD0luc3RhbGxSZXNwb25zZSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJMqkBCgtDb3JlU2VydmljZRJICgdJbnN0YWxsEhouZGRhc2guY29yZS5JbnN0YWxsUmVxdWVzdBobLmRkYXNoLmNvcmUuSW5zdGFsbFJlc3BvbnNlIgSStRgAElAKCVVuaW5zdGFsbBIcLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVxdWVzdBodLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVzcG9uc2UiBpK1GAIIAUI0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiIAoOSW5zdGFsbFJlcXVlc3QSDgoGcGx1Z2luGAEgASgJIhEKD0luc3RhbGxSZXNwb25zZSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJIiMKDlJlc3RhcnRSZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIRCg9SZXN0YXJ0UmVzcG9uc2Uy9QEKC0NvcmVTZXJ2aWNlEkgKB0luc3RhbGwSGi5kZGFzaC5jb3JlLkluc3RhbGxSZXF1ZXN0GhsuZGRhc2guY29yZS5JbnN0YWxsUmVzcG9uc2UiBJK1GAASUAoJVW5pbnN0YWxsEhwuZGRhc2guY29yZS5Vbmluc3RhbGxSZXF1ZXN0Gh0uZGRhc2guY29yZS5Vbmluc3RhbGxSZXNwb25zZSIGkrUYAggBEkoKB1Jlc3RhcnQSGi5kZGFzaC5jb3JlLlJlc3RhcnRSZXF1ZXN0GhsuZGRhc2guY29yZS5SZXN0YXJ0UmVzcG9uc2UiBpK1GAIIAUI0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options]);
 
 /**
  * @generated from message ddash.core.InstallRequest
@@ -90,6 +90,36 @@ export const UninstallResponseSchema: GenMessage<UninstallResponse> = /*@__PURE_
   messageDesc(file_ddash_core_core, 3);
 
 /**
+ * @generated from message ddash.core.RestartRequest
+ */
+export type RestartRequest = Message<"ddash.core.RestartRequest"> & {
+  /**
+   * @generated from field: string component = 1;
+   */
+  component: string;
+};
+
+/**
+ * Describes the message ddash.core.RestartRequest.
+ * Use `create(RestartRequestSchema)` to create a new message.
+ */
+export const RestartRequestSchema: GenMessage<RestartRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 4);
+
+/**
+ * @generated from message ddash.core.RestartResponse
+ */
+export type RestartResponse = Message<"ddash.core.RestartResponse"> & {
+};
+
+/**
+ * Describes the message ddash.core.RestartResponse.
+ * Use `create(RestartResponseSchema)` to create a new message.
+ */
+export const RestartResponseSchema: GenMessage<RestartResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 5);
+
+/**
  * @generated from service ddash.core.CoreService
  */
 export const CoreService: GenService<{
@@ -116,6 +146,18 @@ export const CoreService: GenService<{
     methodKind: "unary";
     input: typeof UninstallRequestSchema;
     output: typeof UninstallResponseSchema;
+  },
+  /**
+   * Restart stops a Component and starts it again, forgetting its crashes:
+   * a Component that crashed about 5 times in 10 minutes stays down until
+   * restarted. It never restarts the Components that require it.
+   *
+   * @generated from rpc ddash.core.CoreService.Restart
+   */
+  restart: {
+    methodKind: "unary";
+    input: typeof RestartRequestSchema;
+    output: typeof RestartResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ddash_core_core, 0);

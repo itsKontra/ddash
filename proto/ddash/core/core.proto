@@ -21,6 +21,12 @@ service CoreService {
   rpc Uninstall(UninstallRequest) returns (UninstallResponse) {
     option (ddash.action) = {disruptive: true};
   }
+  // Restart stops a Component and starts it again, forgetting its crashes:
+  // a Component that crashed about 5 times in 10 minutes stays down until
+  // restarted. It never restarts the Components that require it.
+  rpc Restart(RestartRequest) returns (RestartResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
 }
 
 message InstallRequest {
@@ -39,3 +45,9 @@ message UninstallResponse {
   // Components whose DB file is kept although nothing runs them.
   repeated string orphans = 1;
 }
+
+message RestartRequest {
+  string component = 1;
+}
+
+message RestartResponse {}

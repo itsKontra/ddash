@@ -203,6 +203,86 @@ func (x *UninstallResponse) GetOrphans() []string {
 	return nil
 }
 
+type RestartRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Component     string                 `protobuf:"bytes,1,opt,name=component,proto3" json:"component,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestartRequest) Reset() {
+	*x = RestartRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestartRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestartRequest) ProtoMessage() {}
+
+func (x *RestartRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestartRequest.ProtoReflect.Descriptor instead.
+func (*RestartRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RestartRequest) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
+type RestartResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RestartResponse) Reset() {
+	*x = RestartResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RestartResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RestartResponse) ProtoMessage() {}
+
+func (x *RestartResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RestartResponse.ProtoReflect.Descriptor instead.
+func (*RestartResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{5}
+}
+
 var File_ddash_core_core_proto protoreflect.FileDescriptor
 
 const file_ddash_core_core_proto_rawDesc = "" +
@@ -217,10 +297,14 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\vdelete_data\x18\x02 \x01(\bR\n" +
 	"deleteData\"-\n" +
 	"\x11UninstallResponse\x12\x18\n" +
-	"\aorphans\x18\x01 \x03(\tR\aorphans2\xa9\x01\n" +
+	"\aorphans\x18\x01 \x03(\tR\aorphans\".\n" +
+	"\x0eRestartRequest\x12\x1c\n" +
+	"\tcomponent\x18\x01 \x01(\tR\tcomponent\"\x11\n" +
+	"\x0fRestartResponse2\xf5\x01\n" +
 	"\vCoreService\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
-	"\tUninstall\x12\x1c.ddash.core.UninstallRequest\x1a\x1d.ddash.core.UninstallResponse\"\x06\x92\xb5\x18\x02\b\x01B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
+	"\tUninstall\x12\x1c.ddash.core.UninstallRequest\x1a\x1d.ddash.core.UninstallResponse\"\x06\x92\xb5\x18\x02\b\x01\x12J\n" +
+	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
 
 var (
 	file_ddash_core_core_proto_rawDescOnce sync.Once
@@ -234,20 +318,24 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 	return file_ddash_core_core_proto_rawDescData
 }
 
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_ddash_core_core_proto_goTypes = []any{
 	(*InstallRequest)(nil),    // 0: ddash.core.InstallRequest
 	(*InstallResponse)(nil),   // 1: ddash.core.InstallResponse
 	(*UninstallRequest)(nil),  // 2: ddash.core.UninstallRequest
 	(*UninstallResponse)(nil), // 3: ddash.core.UninstallResponse
+	(*RestartRequest)(nil),    // 4: ddash.core.RestartRequest
+	(*RestartResponse)(nil),   // 5: ddash.core.RestartResponse
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
 	0, // 0: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
 	2, // 1: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	1, // 2: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	3, // 3: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	4, // 2: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	1, // 3: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	3, // 4: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	5, // 5: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -264,7 +352,7 @@ func file_ddash_core_core_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
