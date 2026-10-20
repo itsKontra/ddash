@@ -159,6 +159,51 @@ func TestASetupHintFromAnythingButAGetterAnsweringOneIsRefused(t *testing.T) {
 	})
 }
 
+func TestChoicesFromAnythingButARequiredComponentOnAStringAreRefused(t *testing.T) {
+	refused := func(t *testing.T, define func()) {
+		t.Helper()
+		defer func() {
+			if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "choices_from") {
+				t.Errorf("Define recovered %v, want a panic naming choices_from", r)
+			}
+		}()
+		define()
+	}
+
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.ChoicesFromUnrequiredConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New: func() sdk.Component[*echopb.ChoicesFromUnrequiredConfig] {
+				return &hinted[*echopb.ChoicesFromUnrequiredConfig]{}
+			},
+		})
+	})
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.ChoicesFromNoComponentConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New: func() sdk.Component[*echopb.ChoicesFromNoComponentConfig] {
+				return &hinted[*echopb.ChoicesFromNoComponentConfig]{}
+			},
+		})
+	})
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.ChoicesOnAnIntConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New:      func() sdk.Component[*echopb.ChoicesOnAnIntConfig] { return &hinted[*echopb.ChoicesOnAnIntConfig]{} },
+		})
+	})
+
+	// A string's choices from a required Component are fine.
+	sdk.Define(sdk.Spec[*echopb.ChoicesConfig]{
+		Manifest: []byte(echoManifest),
+		Service:  &echopb.EchoService_ServiceDesc,
+		New:      func() sdk.Component[*echopb.ChoicesConfig] { return &hinted[*echopb.ChoicesConfig]{} },
+	})
+}
+
 func TestMethodsAreNotConfiguredBeforeStart(t *testing.T) {
 	h := sdktest.New(t, define(&echo{}))
 

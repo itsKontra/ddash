@@ -180,6 +180,7 @@ function Field({ field: f, value, onChange, errors, secret, onSecret }: FieldPro
         <Scalar id={id} field={f} value={value} onChange={onChange} />
       )}
       {f.help && <p className="mt-1 text-xs text-muted-foreground">{f.help}</p>}
+      {f.choicesNote && <p className="mt-1 text-xs text-warn">{f.choicesNote}</p>}
       <FieldError message={errors[f.name]} />
     </div>
   );
@@ -210,6 +211,7 @@ function Scalar({ id, field: f, value, onChange, label }: { id?: string; field: 
         </select>
       );
     default:
+      if (f.choices.length > 0) return <Choices id={id} field={f} value={value} onChange={onChange} label={label} />;
       return (
         <input
           id={id}
@@ -223,6 +225,27 @@ function Scalar({ id, field: f, value, onChange, label }: { id?: string; field: 
         />
       );
   }
+}
+
+/**
+ * A string picked from the choices its choices_from getter offers. A
+ * stored value no longer on offer stays selectable, so opening the form
+ * never changes it.
+ */
+function Choices({ id, field: f, value, onChange, label }: { id?: string; field: FormField; value: JsonValue | undefined; onChange: (v: JsonValue | undefined) => void; label?: string }) {
+  const current = typeof value === "string" ? value : "";
+  const offered = f.choices.some((c) => c.value === current);
+  return (
+    <select id={id} aria-label={label} className={inputClass} value={current} onChange={(e) => onChange(e.target.value || undefined)}>
+      <option value="">{f.placeholder || "—"}</option>
+      {current && !offered && <option value={current}>{`${current} (not on offer)`}</option>}
+      {f.choices.map((c) => (
+        <option key={c.value} value={c.value}>
+          {c.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
 /** A switch, e.g. for a bool field. */

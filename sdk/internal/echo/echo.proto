@@ -66,3 +66,24 @@ message HintFromActionConfig {
 message HintFromNoHintConfig {
   option (ddash.config.form) = {setup_from: "Echo"};
 }
+
+// ChoicesFromUnrequiredConfig takes choices from a Component echo doesn't
+// require, so the SDK must refuse it.
+message ChoicesFromUnrequiredConfig {
+  string pick = 1 [(ddash.config.field) = {choices_from: "elsewhere.ListThings"}];
+}
+
+// ChoicesFromNoComponentConfig names no Component, so the SDK must refuse it.
+message ChoicesFromNoComponentConfig {
+  string pick = 1 [(ddash.config.field) = {choices_from: "ListThings"}];
+}
+
+// ChoicesOnAnIntConfig puts choices on an int64, so the SDK must refuse it.
+message ChoicesOnAnIntConfig {
+  int64 pick = 1 [(ddash.config.field) = {choices_from: "upstream.ListThings"}];
+}
+
+// ChoicesConfig takes a string's choices from a required Component.
+message ChoicesConfig {
+  string pick = 1 [(ddash.config.field) = {choices_from: "upstream.ListThings"}];
+}

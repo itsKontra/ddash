@@ -4,12 +4,29 @@ syntax = "proto3";
 // firewall's failover gateway group and derives the VPN Tunnel's tier.
 package ddash.network;
 
+import "ddash/config/config.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/network/networkpb;networkpb";
 
-// network takes no config yet.
-message NetworkConfig {}
+message NetworkConfig {
+  // The firewall alias whose members leave through the WAN: the Direct
+  // Devices. network changes only this alias, and only its Devices.
+  string bypass_alias = 1 [(ddash.config.field) = {
+    label: "Bypass alias"
+    help: "The firewall alias whose members skip the VPN Tunnel (Direct Devices)."
+    required: true
+    choices_from: "pfsense-api.ListAliases"
+  }];
+  // The addresses Adopt reserves from, outside the DHCP pool.
+  string reserved_range = 2 [(ddash.config.field) = {
+    label: "Reserved range"
+    help: "Where Adopt picks a New Device's reserved address. It must lie outside the DHCP pool."
+    required: true
+    format: FORMAT_IP_RANGE
+    placeholder: "198.18.1.20-198.18.1.49"
+  }];
+}
 
 service NetworkService {
   // GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of

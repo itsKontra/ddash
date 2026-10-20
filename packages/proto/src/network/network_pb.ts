@@ -7,6 +7,7 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -14,14 +15,26 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file network/network.proto.
  */
 export const file_network_network: GenFile = /*@__PURE__*/
-  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiDwoNTmV0d29ya0NvbmZpZyIVChNHZXRWcG5UdW5uZWxSZXF1ZXN0IocBChRHZXRWcG5UdW5uZWxSZXNwb25zZRIhCgR0aWVyGAEgASgOMhMuZGRhc2gubmV0d29yay5UaWVyEg0KBWdyb3VwGAIgASgJEi4KCGdhdGV3YXlzGAMgAygLMhwuZGRhc2gubmV0d29yay5UdW5uZWxHYXRld2F5Eg0KBWVycm9yGAQgASgJIqoBCg1UdW5uZWxHYXRld2F5EgwKBG5hbWUYASABKAkSDAoEdGllchgCIAEoBRIKCgJ1cBgDIAEoCBIOCgZzdGF0dXMYBCABKAkSEQoJc3Vic3RhdHVzGAUgASgJEhUKCGRlbGF5X21zGAYgASgBSACIAQESGQoMbG9zc19wZXJjZW50GAcgASgBSAGIAQFCCwoJX2RlbGF5X21zQg8KDV9sb3NzX3BlcmNlbnQqUQoEVGllchIUChBUSUVSX1VOU1BFQ0lGSUVEEAASEgoOVElFUl9XSVJFR1VBUkQQARIQCgxUSUVSX09QRU5WUE4QAhINCglUSUVSX0RPV04QAzJxCg5OZXR3b3JrU2VydmljZRJfCgxHZXRWcG5UdW5uZWwSIi5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlcXVlc3QaIy5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlc3BvbnNlIgaKtRgCCAJCQ1pBZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZXR3b3JrL25ldHdvcmtwYjtuZXR3b3JrcGJiBnByb3RvMw", [file_ddash_options]);
+  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiwgIKDU5ldHdvcmtDb25maWcSiwEKDGJ5cGFzc19hbGlhcxgBIAEoCUJ1mrUYcRoMQnlwYXNzIGFsaWFzIkZUaGUgZmlyZXdhbGwgYWxpYXMgd2hvc2UgbWVtYmVycyBza2lwIHRoZSBWUE4gVHVubmVsIChEaXJlY3QgRGV2aWNlcykuMAFSF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEqIBCg5yZXNlcnZlZF9yYW5nZRgCIAEoCUKJAZq1GIQBGg5SZXNlcnZlZCByYW5nZSJVV2hlcmUgQWRvcHQgcGlja3MgYSBOZXcgRGV2aWNlJ3MgcmVzZXJ2ZWQgYWRkcmVzcy4gSXQgbXVzdCBsaWUgb3V0c2lkZSB0aGUgREhDUCBwb29sLioXMTk4LjE4LjEuMjAtMTk4LjE4LjEuNDkwATgFIhUKE0dldFZwblR1bm5lbFJlcXVlc3QihwEKFEdldFZwblR1bm5lbFJlc3BvbnNlEiEKBHRpZXIYASABKA4yEy5kZGFzaC5uZXR3b3JrLlRpZXISDQoFZ3JvdXAYAiABKAkSLgoIZ2F0ZXdheXMYAyADKAsyHC5kZGFzaC5uZXR3b3JrLlR1bm5lbEdhdGV3YXkSDQoFZXJyb3IYBCABKAkiqgEKDVR1bm5lbEdhdGV3YXkSDAoEbmFtZRgBIAEoCRIMCgR0aWVyGAIgASgFEgoKAnVwGAMgASgIEg4KBnN0YXR1cxgEIAEoCRIRCglzdWJzdGF0dXMYBSABKAkSFQoIZGVsYXlfbXMYBiABKAFIAIgBARIZCgxsb3NzX3BlcmNlbnQYByABKAFIAYgBAUILCglfZGVsYXlfbXNCDwoNX2xvc3NfcGVyY2VudCpRCgRUaWVyEhQKEFRJRVJfVU5TUEVDSUZJRUQQABISCg5USUVSX1dJUkVHVUFSRBABEhAKDFRJRVJfT1BFTlZQThACEg0KCVRJRVJfRE9XThADMnEKDk5ldHdvcmtTZXJ2aWNlEl8KDEdldFZwblR1bm5lbBIiLmRkYXNoLm5ldHdvcmsuR2V0VnBuVHVubmVsUmVxdWVzdBojLmRkYXNoLm5ldHdvcmsuR2V0VnBuVHVubmVsUmVzcG9uc2UiBoq1GAIIAkJDWkFnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL25ldHdvcmsvbmV0d29ya3BiO25ldHdvcmtwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options]);
 
 /**
- * network takes no config yet.
- *
  * @generated from message ddash.network.NetworkConfig
  */
 export type NetworkConfig = Message<"ddash.network.NetworkConfig"> & {
+  /**
+   * The firewall alias whose members leave through the WAN: the Direct
+   * Devices. network changes only this alias, and only its Devices.
+   *
+   * @generated from field: string bypass_alias = 1;
+   */
+  bypassAlias: string;
+
+  /**
+   * The addresses Adopt reserves from, outside the DHCP pool.
+   *
+   * @generated from field: string reserved_range = 2;
+   */
+  reservedRange: string;
 };
 
 /**

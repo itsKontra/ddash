@@ -466,6 +466,187 @@ func (*HintFromNoHintConfig) Descriptor() ([]byte, []int) {
 	return file_echo_echo_proto_rawDescGZIP(), []int{10}
 }
 
+// ChoicesFromUnrequiredConfig takes choices from a Component echo doesn't
+// require, so the SDK must refuse it.
+type ChoicesFromUnrequiredConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pick          string                 `protobuf:"bytes,1,opt,name=pick,proto3" json:"pick,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChoicesFromUnrequiredConfig) Reset() {
+	*x = ChoicesFromUnrequiredConfig{}
+	mi := &file_echo_echo_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChoicesFromUnrequiredConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChoicesFromUnrequiredConfig) ProtoMessage() {}
+
+func (x *ChoicesFromUnrequiredConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChoicesFromUnrequiredConfig.ProtoReflect.Descriptor instead.
+func (*ChoicesFromUnrequiredConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ChoicesFromUnrequiredConfig) GetPick() string {
+	if x != nil {
+		return x.Pick
+	}
+	return ""
+}
+
+// ChoicesFromNoComponentConfig names no Component, so the SDK must refuse it.
+type ChoicesFromNoComponentConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pick          string                 `protobuf:"bytes,1,opt,name=pick,proto3" json:"pick,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChoicesFromNoComponentConfig) Reset() {
+	*x = ChoicesFromNoComponentConfig{}
+	mi := &file_echo_echo_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChoicesFromNoComponentConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChoicesFromNoComponentConfig) ProtoMessage() {}
+
+func (x *ChoicesFromNoComponentConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChoicesFromNoComponentConfig.ProtoReflect.Descriptor instead.
+func (*ChoicesFromNoComponentConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ChoicesFromNoComponentConfig) GetPick() string {
+	if x != nil {
+		return x.Pick
+	}
+	return ""
+}
+
+// ChoicesOnAnIntConfig puts choices on an int64, so the SDK must refuse it.
+type ChoicesOnAnIntConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pick          int64                  `protobuf:"varint,1,opt,name=pick,proto3" json:"pick,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChoicesOnAnIntConfig) Reset() {
+	*x = ChoicesOnAnIntConfig{}
+	mi := &file_echo_echo_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChoicesOnAnIntConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChoicesOnAnIntConfig) ProtoMessage() {}
+
+func (x *ChoicesOnAnIntConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChoicesOnAnIntConfig.ProtoReflect.Descriptor instead.
+func (*ChoicesOnAnIntConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *ChoicesOnAnIntConfig) GetPick() int64 {
+	if x != nil {
+		return x.Pick
+	}
+	return 0
+}
+
+// ChoicesConfig takes a string's choices from a required Component.
+type ChoicesConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pick          string                 `protobuf:"bytes,1,opt,name=pick,proto3" json:"pick,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChoicesConfig) Reset() {
+	*x = ChoicesConfig{}
+	mi := &file_echo_echo_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChoicesConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChoicesConfig) ProtoMessage() {}
+
+func (x *ChoicesConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChoicesConfig.ProtoReflect.Descriptor instead.
+func (*ChoicesConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ChoicesConfig) GetPick() string {
+	if x != nil {
+		return x.Pick
+	}
+	return ""
+}
+
 var File_echo_echo_proto protoreflect.FileDescriptor
 
 const file_echo_echo_proto_rawDesc = "" +
@@ -491,7 +672,16 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\aAddNote\"\"\n" +
 	"\x14HintFromNoHintConfig:\n" +
 	"\xaa\xb5\x18\x06\n" +
-	"\x04Echo2\xef\x01\n" +
+	"\x04Echo\"M\n" +
+	"\x1bChoicesFromUnrequiredConfig\x12.\n" +
+	"\x04pick\x18\x01 \x01(\tB\x1a\x9a\xb5\x18\x16R\x14elsewhere.ListThingsR\x04pick\"D\n" +
+	"\x1cChoicesFromNoComponentConfig\x12$\n" +
+	"\x04pick\x18\x01 \x01(\tB\x10\x9a\xb5\x18\fR\n" +
+	"ListThingsR\x04pick\"E\n" +
+	"\x14ChoicesOnAnIntConfig\x12-\n" +
+	"\x04pick\x18\x01 \x01(\x03B\x19\x9a\xb5\x18\x15R\x13upstream.ListThingsR\x04pick\">\n" +
+	"\rChoicesConfig\x12-\n" +
+	"\x04pick\x18\x01 \x01(\tB\x19\x9a\xb5\x18\x15R\x13upstream.ListThingsR\x04pick2\xef\x01\n" +
 	"\vEchoService\x12?\n" +
 	"\x04Echo\x12\x17.ddash.echo.EchoRequest\x1a\x18.ddash.echo.EchoResponse\"\x04\x8a\xb5\x18\x00\x12S\n" +
 	"\n" +
@@ -512,19 +702,23 @@ func file_echo_echo_proto_rawDescGZIP() []byte {
 	return file_echo_echo_proto_rawDescData
 }
 
-var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_echo_echo_proto_goTypes = []any{
-	(*EchoConfig)(nil),           // 0: ddash.echo.EchoConfig
-	(*UnmarkedRequest)(nil),      // 1: ddash.echo.UnmarkedRequest
-	(*UnmarkedResponse)(nil),     // 2: ddash.echo.UnmarkedResponse
-	(*EchoRequest)(nil),          // 3: ddash.echo.EchoRequest
-	(*EchoResponse)(nil),         // 4: ddash.echo.EchoResponse
-	(*CountNotesRequest)(nil),    // 5: ddash.echo.CountNotesRequest
-	(*CountNotesResponse)(nil),   // 6: ddash.echo.CountNotesResponse
-	(*AddNoteRequest)(nil),       // 7: ddash.echo.AddNoteRequest
-	(*AddNoteResponse)(nil),      // 8: ddash.echo.AddNoteResponse
-	(*HintFromActionConfig)(nil), // 9: ddash.echo.HintFromActionConfig
-	(*HintFromNoHintConfig)(nil), // 10: ddash.echo.HintFromNoHintConfig
+	(*EchoConfig)(nil),                   // 0: ddash.echo.EchoConfig
+	(*UnmarkedRequest)(nil),              // 1: ddash.echo.UnmarkedRequest
+	(*UnmarkedResponse)(nil),             // 2: ddash.echo.UnmarkedResponse
+	(*EchoRequest)(nil),                  // 3: ddash.echo.EchoRequest
+	(*EchoResponse)(nil),                 // 4: ddash.echo.EchoResponse
+	(*CountNotesRequest)(nil),            // 5: ddash.echo.CountNotesRequest
+	(*CountNotesResponse)(nil),           // 6: ddash.echo.CountNotesResponse
+	(*AddNoteRequest)(nil),               // 7: ddash.echo.AddNoteRequest
+	(*AddNoteResponse)(nil),              // 8: ddash.echo.AddNoteResponse
+	(*HintFromActionConfig)(nil),         // 9: ddash.echo.HintFromActionConfig
+	(*HintFromNoHintConfig)(nil),         // 10: ddash.echo.HintFromNoHintConfig
+	(*ChoicesFromUnrequiredConfig)(nil),  // 11: ddash.echo.ChoicesFromUnrequiredConfig
+	(*ChoicesFromNoComponentConfig)(nil), // 12: ddash.echo.ChoicesFromNoComponentConfig
+	(*ChoicesOnAnIntConfig)(nil),         // 13: ddash.echo.ChoicesOnAnIntConfig
+	(*ChoicesConfig)(nil),                // 14: ddash.echo.ChoicesConfig
 }
 var file_echo_echo_proto_depIdxs = []int32{
 	3, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
@@ -553,7 +747,7 @@ func file_echo_echo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_echo_echo_proto_rawDesc), len(file_echo_echo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

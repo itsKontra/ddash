@@ -11,6 +11,7 @@ package networkpb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -83,9 +84,13 @@ func (Tier) EnumDescriptor() ([]byte, []int) {
 	return file_network_network_proto_rawDescGZIP(), []int{0}
 }
 
-// network takes no config yet.
 type NetworkConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The firewall alias whose members leave through the WAN: the Direct
+	// Devices. network changes only this alias, and only its Devices.
+	BypassAlias string `protobuf:"bytes,1,opt,name=bypass_alias,json=bypassAlias,proto3" json:"bypass_alias,omitempty"`
+	// The addresses Adopt reserves from, outside the DHCP pool.
+	ReservedRange string `protobuf:"bytes,2,opt,name=reserved_range,json=reservedRange,proto3" json:"reserved_range,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -118,6 +123,20 @@ func (x *NetworkConfig) ProtoReflect() protoreflect.Message {
 // Deprecated: Use NetworkConfig.ProtoReflect.Descriptor instead.
 func (*NetworkConfig) Descriptor() ([]byte, []int) {
 	return file_network_network_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *NetworkConfig) GetBypassAlias() string {
+	if x != nil {
+		return x.BypassAlias
+	}
+	return ""
+}
+
+func (x *NetworkConfig) GetReservedRange() string {
+	if x != nil {
+		return x.ReservedRange
+	}
+	return ""
 }
 
 type GetVpnTunnelRequest struct {
@@ -331,8 +350,10 @@ var File_network_network_proto protoreflect.FileDescriptor
 
 const file_network_network_proto_rawDesc = "" +
 	"\n" +
-	"\x15network/network.proto\x12\rddash.network\x1a\x13ddash/options.proto\"\x0f\n" +
-	"\rNetworkConfig\"\x15\n" +
+	"\x15network/network.proto\x12\rddash.network\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xde\x02\n" +
+	"\rNetworkConfig\x12\x98\x01\n" +
+	"\fbypass_alias\x18\x01 \x01(\tBu\x9a\xb5\x18q\x1a\fBypass alias\"FThe firewall alias whose members skip the VPN Tunnel (Direct Devices).0\x01R\x17pfsense-api.ListAliasesR\vbypassAlias\x12\xb1\x01\n" +
+	"\x0ereserved_range\x18\x02 \x01(\tB\x89\x01\x9a\xb5\x18\x84\x01\x1a\x0eReserved range\"UWhere Adopt picks a New Device's reserved address. It must lie outside the DHCP pool.*\x17198.18.1.20-198.18.1.490\x018\x05R\rreservedRange\"\x15\n" +
 	"\x13GetVpnTunnelRequest\"\xa5\x01\n" +
 	"\x14GetVpnTunnelResponse\x12'\n" +
 	"\x04tier\x18\x01 \x01(\x0e2\x13.ddash.network.TierR\x04tier\x12\x14\n" +
