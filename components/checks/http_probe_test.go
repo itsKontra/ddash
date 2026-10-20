@@ -153,7 +153,7 @@ func TestAnHTTPSCheckFailsOnAnInvalidCertificate(t *testing.T) {
 	untrusted := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 	t.Cleanup(untrusted.Close)
 	for url, want := range map[string]string{
-		untrusted.URL:                          "TLS: certificate signed by an unknown authority",
+		untrusted.URL:                           "TLS: certificate signed by an unknown authority",
 		ca.serve(t, time.Now().Add(-time.Hour)): "TLS: certificate expired",
 	} {
 		h := sdktest.New(t, checks.DefinitionTrusting(ca.pool))
