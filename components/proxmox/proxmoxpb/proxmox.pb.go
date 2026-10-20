@@ -535,7 +535,7 @@ const file_proxmox_proxmox_proto_rawDesc = "" +
 	"\rStartWorkload\x12#.ddash.proxmox.StartWorkloadRequest\x1a$.ddash.proxmox.StartWorkloadResponse\"\x04\x92\xb5\x18\x00\x12_\n" +
 	"\fStopWorkload\x12\".ddash.proxmox.StopWorkloadRequest\x1a#.ddash.proxmox.StopWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12h\n" +
 	"\x0fRestartWorkload\x12%.ddash.proxmox.RestartWorkloadRequest\x1a&.ddash.proxmox.RestartWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12e\n" +
-	"\x0eListPowerTasks\x12$.ddash.proxmox.ListPowerTasksRequest\x1a%.ddash.proxmox.ListPowerTasksResponse\"\x06\x8a\xb5\x18\x02\b\x01BCZAgithub.com/itsKontra/ddash/components/proxmox/proxmoxpb;proxmoxpbb\x06proto3"
+	"\x0eListPowerTasks\x12$.ddash.proxmox.ListPowerTasksRequest\x1a%.ddash.proxmox.ListPowerTasksResponse\"\x06\x8a\xb5\x18\x02\b\x02BCZAgithub.com/itsKontra/ddash/components/proxmox/proxmoxpb;proxmoxpbb\x06proto3"
 
 var (
 	file_proxmox_proxmox_proto_rawDescOnce sync.Once

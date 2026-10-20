@@ -34,7 +34,7 @@ service ProxmoxService {
   // ListPowerTasks returns the power Actions running now, one per Workload
   // at most, from memory.
   rpc ListPowerTasks(ListPowerTasksRequest) returns (ListPowerTasksResponse) {
-    option (ddash.getter) = {refresh: LIVE};
+    option (ddash.getter) = {refresh: FAST};
   }
 }
 

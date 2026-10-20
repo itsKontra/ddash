@@ -2410,7 +2410,7 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"ListLeases\x12#.ddash.pfsenseapi.ListLeasesRequest\x1a$.ddash.pfsenseapi.ListLeasesResponse\"\x04\x8a\xb5\x18\x00\x12l\n" +
 	"\x0fListDhcpServers\x12(.ddash.pfsenseapi.ListDhcpServersRequest\x1a).ddash.pfsenseapi.ListDhcpServersResponse\"\x04\x8a\xb5\x18\x00\x12`\n" +
 	"\vListAliases\x12$.ddash.pfsenseapi.ListAliasesRequest\x1a%.ddash.pfsenseapi.ListAliasesResponse\"\x04\x8a\xb5\x18\x00\x12k\n" +
-	"\x0eListInterfaces\x12'.ddash.pfsenseapi.ListInterfacesRequest\x1a(.ddash.pfsenseapi.ListInterfacesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12{\n" +
+	"\x0eListInterfaces\x12'.ddash.pfsenseapi.ListInterfacesRequest\x1a(.ddash.pfsenseapi.ListInterfacesResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12{\n" +
 	"\x14ListWireguardTunnels\x12-.ddash.pfsenseapi.ListWireguardTunnelsRequest\x1a..ddash.pfsenseapi.ListWireguardTunnelsResponse\"\x04\x8a\xb5\x18\x00\x12r\n" +
 	"\x11ListFirewallRules\x12*.ddash.pfsenseapi.ListFirewallRulesRequest\x1a+.ddash.pfsenseapi.ListFirewallRulesResponse\"\x04\x8a\xb5\x18\x00\x12x\n" +
 	"\x13CreateStaticMapping\x12,.ddash.pfsenseapi.CreateStaticMappingRequest\x1a-.ddash.pfsenseapi.CreateStaticMappingResponse\"\x04\x92\xb5\x18\x00\x12x\n" +

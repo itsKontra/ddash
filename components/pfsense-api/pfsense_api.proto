@@ -60,7 +60,7 @@ service PfsenseApiService {
   // traffic counters (status/interfaces), in pfSense's order. Cached for
   // 2 s, so network's 5 s sampling always reads fresh counters.
   rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse) {
-    option (ddash.getter) = {refresh: LIVE};
+    option (ddash.getter) = {refresh: FAST};
   }
   // ListWireguardTunnels returns every WireGuard tunnel's live status with
   // its peers (status/wireguard/tunnels; status/wireguard/peers misses
