@@ -54,6 +54,8 @@ const (
 	CoreServiceSaveLayoutProcedure = "/ddash.core.CoreService/SaveLayout"
 	// CoreServiceRunTestActionProcedure is the procedure name of the CoreService's RunTestAction RPC.
 	CoreServiceRunTestActionProcedure = "/ddash.core.CoreService/RunTestAction"
+	// CoreServiceGetOperatorProcedure is the procedure name of the CoreService's GetOperator RPC.
+	CoreServiceGetOperatorProcedure = "/ddash.core.CoreService/GetOperator"
 )
 
 var (
@@ -148,6 +150,13 @@ var (
 			Procedure:  CoreServiceRunTestActionProcedure,
 		}
 	})
+	coreServiceGetOperatorSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("GetOperator"),
+			Procedure:  CoreServiceGetOperatorProcedure,
+		}
+	})
 )
 
 // CoreServiceClient is a client for the ddash.core.CoreService service.
@@ -201,6 +210,8 @@ type CoreServiceClient interface {
 	// with the Action's error. The Audit Log records the Component's Action
 	// itself (e.g. ntfy-api SendTest), not this call.
 	RunTestAction(context.Context, *core.RunTestActionRequest) (*core.RunTestActionResponse, error)
+	// GetOperator returns the Operator the session belongs to.
+	GetOperator(context.Context, *core.GetOperatorRequest) (*core.GetOperatorResponse, error)
 }
 
 // NewCoreServiceClient constructs a client for the ddash.core.CoreService service. Multiple service
@@ -260,6 +271,8 @@ type CoreServiceHandler interface {
 	// with the Action's error. The Audit Log records the Component's Action
 	// itself (e.g. ntfy-api SendTest), not this call.
 	RunTestAction(context.Context, *core.RunTestActionRequest) (*core.RunTestActionResponse, error)
+	// GetOperator returns the Operator the session belongs to.
+	GetOperator(context.Context, *core.GetOperatorRequest) (*core.GetOperatorResponse, error)
 }
 
 // RegisterCoreServiceHandler registers svc as the ddash.core.CoreService implementation on server.
@@ -279,6 +292,7 @@ func RegisterCoreServiceHandler(server *connect.Server, svc CoreServiceHandler) 
 		connect.Method{Spec: coreServiceGetLayoutSpec(), Handler: adapter.getLayout},
 		connect.Method{Spec: coreServiceSaveLayoutSpec(), Handler: adapter.saveLayout},
 		connect.Method{Spec: coreServiceRunTestActionSpec(), Handler: adapter.runTestAction},
+		connect.Method{Spec: coreServiceGetOperatorSpec(), Handler: adapter.getOperator},
 	)
 }
 
@@ -335,6 +349,10 @@ func (UnimplementedCoreServiceHandler) SaveLayout(context.Context, *core.SaveLay
 
 func (UnimplementedCoreServiceHandler) RunTestAction(context.Context, *core.RunTestActionRequest) (*core.RunTestActionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.RunTestAction is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) GetOperator(context.Context, *core.GetOperatorRequest) (*core.GetOperatorResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.GetOperator is not implemented")
 }
 
 type coreServiceClient struct {
@@ -440,6 +458,14 @@ func (c *coreServiceClient) SaveLayout(ctx context.Context, req *core.SaveLayout
 func (c *coreServiceClient) RunTestAction(ctx context.Context, req *core.RunTestActionRequest) (*core.RunTestActionResponse, error) {
 	var res core.RunTestActionResponse
 	if err := c.client.CallUnary(ctx, coreServiceRunTestActionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) GetOperator(ctx context.Context, req *core.GetOperatorRequest) (*core.GetOperatorResponse, error) {
+	var res core.GetOperatorResponse
+	if err := c.client.CallUnary(ctx, coreServiceGetOperatorSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -597,6 +623,18 @@ func (h coreServiceHandler) runTestAction(ctx context.Context, _ connect.Spec, s
 		return err
 	}
 	res, err := h.svc.RunTestAction(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) getOperator(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.GetOperatorRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetOperator(ctx, &req)
 	if err != nil {
 		return err
 	}

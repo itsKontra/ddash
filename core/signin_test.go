@@ -10,6 +10,8 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/auth/oidctest"
@@ -52,6 +54,19 @@ func TestAnOperatorSignedInWithKeycloakActsUnderTheirOwnName(t *testing.T) {
 	e := componentEntries(h)[0]
 	if e.ActorKind != "operator" || e.Username != "alice" || e.Sub != oidctest.Operator.Sub {
 		t.Errorf("entry = %+v, want operator alice with her sub", e)
+	}
+}
+
+func TestTheCoreAPIServesTheCurrentOperator(t *testing.T) {
+	kc := oidctest.New(t)
+	h := newKeycloak(t, kc)
+	h.SignIn()
+
+	got := coreJSON(t, h, "GetOperator", `{}`)
+
+	want := map[string]any{"operator": map[string]any{"name": "alice", "sub": oidctest.Operator.Sub}}
+	if d := cmp.Diff(want, got); d != "" {
+		t.Errorf("GetOperator (-want +got):\n%s", d)
 	}
 }
 

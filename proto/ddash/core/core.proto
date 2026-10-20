@@ -88,6 +88,24 @@ service CoreService {
   rpc RunTestAction(RunTestActionRequest) returns (RunTestActionResponse) {
     option (ddash.action) = {};
   }
+  // GetOperator returns the Operator the session belongs to.
+  rpc GetOperator(GetOperatorRequest) returns (GetOperatorResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+}
+
+message GetOperatorRequest {}
+
+message GetOperatorResponse {
+  Operator operator = 1;
+}
+
+// The signed-in Operator.
+message Operator {
+  // Keycloak's preferred_username, e.g. "alice".
+  string name = 1;
+  // The OIDC subject; empty with the dev bypass.
+  string sub = 2;
 }
 
 message RunTestActionRequest {

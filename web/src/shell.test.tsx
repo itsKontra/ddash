@@ -35,6 +35,7 @@ afterEach(() => {
 async function boot(path: string, plugins: [ReturnType<typeof installed>, Bundle][]) {
   const fetch = vi.fn(async (input: RequestInfo | URL) => {
     coreCalls.push(String(input));
+    if (String(input).endsWith("/GetOperator")) return Response.json({ operator: { name: "alice", sub: "4f1c-alice" } });
     return Response.json({ plugins: plugins.map(([p]) => p) });
   });
   const bundles = new Map(plugins.map(([p, b]) => [p.script, b]));
@@ -71,12 +72,23 @@ it("lists Overview first, then Nav Entries by order and title, then Plugins and 
 
   expect(navLinks()).toEqual(["Overview", "Applications", "Checks", "Bravo", "Docker", "Plugins", "Settings"]);
   expect(screen.getByRole("link", { name: "Docker" }).getAttribute("href")).toBe("/docker");
-  // The shell reads the installed Plugins, the Overview layout and the core settings (the Theme), once each.
+  // The shell reads the installed Plugins, the Overview layout, the core settings (the Theme) and the Operator, once each.
   expect(coreCalls.toSorted()).toEqual([
     "/api/core/ddash.core.CoreService/GetCoreSettings",
     "/api/core/ddash.core.CoreService/GetLayout",
+    "/api/core/ddash.core.CoreService/GetOperator",
     "/api/core/ddash.core.CoreService/ListInstalledPlugins",
   ]);
+});
+
+it("names the signed-in Operator and signs out through the host", async () => {
+  await boot("/", []);
+
+  const operator = screen.getByRole("region", { name: "Operator" });
+  expect(operator.textContent).toMatch(/alice/);
+  const signOut = within(operator).getByRole("button", { name: "Sign out" });
+  const form = signOut.closest("form")!;
+  expect([form.getAttribute("method"), form.getAttribute("action")]).toEqual(["post", "/auth/logout"]);
 });
 
 it("breaks an order tie by the Plugins' titles, not their Nav Entry labels", async () => {

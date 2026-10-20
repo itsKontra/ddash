@@ -1,5 +1,6 @@
-import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { Badge, cx, PageHeader, StatusDot } from "@ddash/ui";
+import { CoreScope, InstalledPlugins, PluginHost, PluginScope, useQuery, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
+import { CoreService } from "@ddash/proto/ddash/core/core_pb";
+import { Badge, Button, cx, PageHeader, StatusDot } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
@@ -105,7 +106,23 @@ function Sidebar({ items, fetch }: { items: NavItem[]; fetch?: Fetch }) {
           <Link to="/settings" label="Settings" icon="settings" />
         </div>
       </nav>
+      <Operator />
     </aside>
+  );
+}
+
+/** Who is signed in, and Sign out: the host ends the session and Keycloak's. */
+function Operator() {
+  const { data } = useQuery(CoreService.method.getOperator, {});
+  return (
+    <section aria-label="Operator" className="mt-3 flex items-center gap-2 border-t border-border px-3 pt-3 text-sm">
+      <span className="min-w-0 flex-1 truncate text-muted-foreground">{data?.operator?.name}</span>
+      <form method="post" action="/auth/logout">
+        <Button type="submit" variant="ghost" size="sm">
+          Sign out
+        </Button>
+      </form>
+    </section>
   );
 }
 

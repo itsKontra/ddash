@@ -9,11 +9,13 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"connectrpc.com/connect/v2/connectproto"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/core/appstate"
+	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/proto/ddash/core/corepbconnect"
@@ -219,6 +221,16 @@ func (a coreAPI) SaveConfig(ctx context.Context, req *corepb.SaveConfigRequest) 
 func (a coreAPI) RunTestAction(ctx context.Context, req *corepb.RunTestActionRequest) (*corepb.RunTestActionResponse, error) {
 	resp, err := a.host.RunTestAction(ctx, req)
 	return resp, connectError(err)
+}
+
+// GetOperator answers who the session belongs to; only an Operator
+// session reaches /api.
+func (a coreAPI) GetOperator(ctx context.Context, _ *corepb.GetOperatorRequest) (*corepb.GetOperatorResponse, error) {
+	actor, ok := auth.ActorFrom(ctx)
+	if !ok || actor.Kind != auth.Operator {
+		return nil, connectError(status.Error(codes.Unauthenticated, "sign in first"))
+	}
+	return &corepb.GetOperatorResponse{Operator: &corepb.Operator{Name: actor.Name, Sub: actor.Sub}}, nil
 }
 
 func (a coreAPI) GetCoreSettings(ctx context.Context, _ *corepb.GetCoreSettingsRequest) (*corepb.GetCoreSettingsResponse, error) {

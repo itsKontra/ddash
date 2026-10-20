@@ -35,6 +35,7 @@ const (
 	CoreService_GetLayout_FullMethodName            = "/ddash.core.CoreService/GetLayout"
 	CoreService_SaveLayout_FullMethodName           = "/ddash.core.CoreService/SaveLayout"
 	CoreService_RunTestAction_FullMethodName        = "/ddash.core.CoreService/RunTestAction"
+	CoreService_GetOperator_FullMethodName          = "/ddash.core.CoreService/GetOperator"
 )
 
 // CoreServiceClient is the client API for CoreService service.
@@ -90,6 +91,8 @@ type CoreServiceClient interface {
 	// with the Action's error. The Audit Log records the Component's Action
 	// itself (e.g. ntfy-api SendTest), not this call.
 	RunTestAction(ctx context.Context, in *RunTestActionRequest, opts ...grpc.CallOption) (*RunTestActionResponse, error)
+	// GetOperator returns the Operator the session belongs to.
+	GetOperator(ctx context.Context, in *GetOperatorRequest, opts ...grpc.CallOption) (*GetOperatorResponse, error)
 }
 
 type coreServiceClient struct {
@@ -230,6 +233,16 @@ func (c *coreServiceClient) RunTestAction(ctx context.Context, in *RunTestAction
 	return out, nil
 }
 
+func (c *coreServiceClient) GetOperator(ctx context.Context, in *GetOperatorRequest, opts ...grpc.CallOption) (*GetOperatorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOperatorResponse)
+	err := c.cc.Invoke(ctx, CoreService_GetOperator_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoreServiceServer is the server API for CoreService service.
 // All implementations must embed UnimplementedCoreServiceServer
 // for forward compatibility.
@@ -283,6 +296,8 @@ type CoreServiceServer interface {
 	// with the Action's error. The Audit Log records the Component's Action
 	// itself (e.g. ntfy-api SendTest), not this call.
 	RunTestAction(context.Context, *RunTestActionRequest) (*RunTestActionResponse, error)
+	// GetOperator returns the Operator the session belongs to.
+	GetOperator(context.Context, *GetOperatorRequest) (*GetOperatorResponse, error)
 	mustEmbedUnimplementedCoreServiceServer()
 }
 
@@ -331,6 +346,9 @@ func (UnimplementedCoreServiceServer) SaveLayout(context.Context, *SaveLayoutReq
 }
 func (UnimplementedCoreServiceServer) RunTestAction(context.Context, *RunTestActionRequest) (*RunTestActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RunTestAction not implemented")
+}
+func (UnimplementedCoreServiceServer) GetOperator(context.Context, *GetOperatorRequest) (*GetOperatorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetOperator not implemented")
 }
 func (UnimplementedCoreServiceServer) mustEmbedUnimplementedCoreServiceServer() {}
 func (UnimplementedCoreServiceServer) testEmbeddedByValue()                     {}
@@ -587,6 +605,24 @@ func _CoreService_RunTestAction_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreService_GetOperator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOperatorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).GetOperator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_GetOperator_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).GetOperator(ctx, req.(*GetOperatorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoreService_ServiceDesc is the grpc.ServiceDesc for CoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -645,6 +681,10 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RunTestAction",
 			Handler:    _CoreService_RunTestAction_Handler,
+		},
+		{
+			MethodName: "GetOperator",
+			Handler:    _CoreService_GetOperator_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
