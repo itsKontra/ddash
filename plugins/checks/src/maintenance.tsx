@@ -1,4 +1,5 @@
 import { timestampMs } from "@bufbuild/protobuf/wkt";
+import { kindLabel } from "@ddash/display";
 import { useAction, useQuery } from "@ddash/plugin";
 import { ChecksService, type Check, type Maintenance, type MaintenanceScope } from "@ddash/proto/checks/checks_pb";
 import { Kind, type WorkloadRef } from "@ddash/proto/ddash/workload/workload_pb";
@@ -11,14 +12,6 @@ export function useMaintenance() {
   return useQuery(ChecksService.method.listMaintenance, {});
 }
 
-const kindLabel: Record<Kind, string> = {
-  [Kind.UNSPECIFIED]: "Workload",
-  [Kind.LXC]: "LXC",
-  [Kind.VM]: "VM",
-  [Kind.DOCKER]: "Docker",
-  [Kind.EXTERNAL]: "External",
-};
-
 /** A Workload as the Checks Page names it: "LXC 110", "Docker sonarr on media", "External 198.18.1.5". */
 export function workloadLabel(w: WorkloadRef): string {
   switch (w.kind) {
@@ -27,7 +20,7 @@ export function workloadLabel(w: WorkloadRef): string {
     case Kind.EXTERNAL:
       return `External ${w.host}`;
     default:
-      return `${kindLabel[w.kind]} ${w.id}`;
+      return `${kindLabel(w.kind)} ${w.id}`;
   }
 }
 

@@ -1,0 +1,18 @@
+{
+  "name": "@ddash/display",
+  "private": true,
+  "type": "module",
+  "description": "How every Plugin shows shared values the same way: Workload kinds and names, byte counts, an App's Check status. Plain functions, bundled into each Plugin that uses them.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@ddash/plugin": "workspace:*",
+    "@ddash/proto": "workspace:*"
+  }
+}

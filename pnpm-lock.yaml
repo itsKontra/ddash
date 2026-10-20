@@ -57,6 +57,18 @@ importers:
         specifier: 5.0.5
         version: 5.0.5(@types/node@24.19.2)(jsdom@30.1.3)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0))
 
+  packages/display:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../proto
+
   packages/plugin:
     dependencies:
       '@bufbuild/protobuf':
@@ -129,6 +141,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
@@ -148,6 +163,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
@@ -189,6 +207,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
@@ -208,6 +229,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
@@ -227,6 +251,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin

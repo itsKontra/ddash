@@ -3,7 +3,8 @@ import { ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxm
 import { Badge, PageHeader, StatusDot } from "@ddash/ui";
 import { useId, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
-import { bytes, cpu, kindLabel, uptime } from "./format";
+import { bytes, kindLabel } from "@ddash/display";
+import { cpu, uptime } from "./format";
 import { PowerButtons } from "./power";
 import { Addresses, tones } from "./workloads";
 

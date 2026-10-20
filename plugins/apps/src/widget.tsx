@@ -2,7 +2,8 @@ import type { Status, Widget, WidgetSize } from "@ddash/plugin";
 import { State } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, StatusDot } from "@ddash/ui";
 import { useApps, visible } from "./apps";
-import { checkStatus, useAppChecks, worst } from "./checks";
+import { checkStatus } from "@ddash/display";
+import { useAppChecks, worst } from "./checks";
 
 /** How many Apps fit each size. */
 const fits: Record<WidgetSize, number> = { S: 4, M: 6, L: 16 };

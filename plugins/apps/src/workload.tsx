@@ -1,41 +1,17 @@
+import { workloadName, workloadPage, workloadText } from "@ddash/display";
 import { usePluginLink, useQuery } from "@ddash/plugin";
 import { AppsService, type Workload } from "@ddash/proto/apps/apps_pb";
 import { Kind, type WorkloadRef } from "@ddash/proto/ddash/workload/workload_pb";
 
-const kindLabel: Record<Kind, string> = {
-  [Kind.UNSPECIFIED]: "Workload",
-  [Kind.LXC]: "LXC",
-  [Kind.VM]: "VM",
-  [Kind.DOCKER]: "Docker",
-  [Kind.EXTERNAL]: "External",
-};
-
-/** The Plugin whose Page lists a Workload of this kind. */
-const pluginOf: Partial<Record<Kind, string>> = { [Kind.LXC]: "proxmox", [Kind.VM]: "proxmox", [Kind.DOCKER]: "docker" };
-
-/** "LXC jellyfin": kind and name, else the id or host the reference holds. */
-export function workloadName(w: Workload): string {
-  const ref = w.ref;
-  return `${kindLabel[ref?.kind ?? Kind.UNSPECIFIED]} ${w.name || ref?.id || ref?.host || ""}`.trim();
-}
-
-/** "LXC jellyfin · running". */
-export function workloadText(w: Workload): string {
-  return w.state ? `${workloadName(w)} · ${w.state}` : workloadName(w);
-}
-
-/** Where a Workload's Plugin shows it: an LXC's or VM's detail on the Proxmox Page, the Docker Page's index. */
-const pathOf = (r?: WorkloadRef) => (r && (r.kind === Kind.LXC || r.kind === Kind.VM) ? `workloads/${r.id}` : "");
-
 /** A card's Workload line, linked to its Proxmox detail or the Docker Page when that Plugin is installed. */
 export function WorkloadLine({ workload }: { workload: Workload }) {
-  const plugin = pluginOf[workload.ref?.kind ?? Kind.UNSPECIFIED];
+  const page = workloadPage(workload.ref);
   // Hooks run unconditionally: "" is never an installed Plugin.
-  const href = usePluginLink(plugin ?? "", pathOf(workload.ref));
+  const href = usePluginLink(page?.plugin ?? "", page?.path);
   const text = workloadText(workload);
   return (
     <p aria-label="Workload" className="truncate text-xs text-muted-foreground">
-      {href && plugin ? (
+      {href && page ? (
         <a href={href} className="hover:text-foreground hover:underline">
           {text}
         </a>

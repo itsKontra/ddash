@@ -2,9 +2,6 @@ import { timestampMs } from "@bufbuild/protobuf/wkt";
 import type { Tone } from "@ddash/plugin";
 import { State, type Check } from "@ddash/proto/checks/checks_pb";
 
-// The same reading of an App's Check as the apps Plugin's cards
-// (plugins/apps/src/checks.ts): Plugins share no code but @ddash/*.
-
 /** Whole days until a certificate expires, never below 0. */
 export function daysLeft(c: Check, now = Date.now()): number | undefined {
   if (!c.certExpires) return undefined;
@@ -27,9 +24,10 @@ export interface CheckStatus {
 }
 
 /**
- * An App's Check status: idle without one or while disabled, maint in
- * Maintenance, else its state; an up Check that is Flapping or whose
- * certificate expires within 14 days warns. Flapping is in the label.
+ * An App's Check status: idle without one, while disabled or pending (not
+ * yet confirmed either way), maint in Maintenance, else its state; an up
+ * Check that is Flapping or whose certificate expires within 14 days warns.
+ * Flapping is in the label.
  */
 export function checkStatus(c: Check | undefined): CheckStatus {
   if (!c) return { tone: "idle", label: "no Check yet" };
@@ -45,6 +43,6 @@ export function checkStatus(c: Check | undefined): CheckStatus {
       return { tone: "down", label: c.reason ? `${down}: ${c.reason}` : down };
     }
     default:
-      return { tone: "warn", label: c.reason ? `pending: ${c.reason}` : "pending" };
+      return { tone: "idle", label: c.reason ? `pending: ${c.reason}` : "pending" };
   }
 }

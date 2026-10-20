@@ -4,9 +4,11 @@ import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, PageHeader, StatusDot, toneText } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { sections, useApps } from "./apps";
-import { checkStatus, useAppChecks } from "./checks";
+import { checkStatus } from "@ddash/display";
+import { useAppChecks } from "./checks";
 import { EditSheet } from "./edit";
-import { WorkloadLine, workloadName } from "./workload";
+import { workloadName } from "@ddash/display";
+import { WorkloadLine } from "./workload";
 
 /** The Apps Page: App cards by group, display settings, manual Apps and unmatched settings. */
 export function AppsPage() {

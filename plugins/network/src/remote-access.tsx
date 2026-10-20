@@ -1,22 +1,11 @@
 import { timestampMs, type Timestamp } from "@bufbuild/protobuf/wkt";
+import { bytes } from "@ddash/display";
 import { useQuery } from "@ddash/plugin";
 import { NetworkService, type Reach, type RemoteAccessPeer } from "@ddash/proto/network/network_pb";
 import { StatusDot, type Tone } from "@ddash/ui";
 
 /** WireGuard handshakes every 2 minutes while a peer is connected. */
 const CONNECTED_WITHIN = 3 * 60_000;
-
-/** Bytes in decimal units, e.g. "8.4 MB". */
-export function bytes(n: bigint | number): string {
-  let v = Number(n);
-  const units = ["B", "kB", "MB", "GB", "TB"];
-  let u = 0;
-  while (v >= 1000 && u < units.length - 1) {
-    v /= 1000;
-    u++;
-  }
-  return u === 0 ? `${v} ${units[u]}` : `${v.toFixed(1)} ${units[u]}`;
-}
 
 /** How long ago a time was, e.g. "2 min ago"; "never" when unset. */
 export function ago(ts: Timestamp | undefined, now: number): string {

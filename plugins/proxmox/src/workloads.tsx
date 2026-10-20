@@ -2,7 +2,8 @@ import { useQuery } from "@ddash/plugin";
 import { AddressSource, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { Badge, PageHeader, StatusDot, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
-import { bytes, cpu, kindLabel, uptime } from "./format";
+import { bytes, kindLabel } from "@ddash/display";
+import { cpu, uptime } from "./format";
 import { PowerMenu } from "./power";
 
 /** How each of Proxmox's statuses reads at a glance. */

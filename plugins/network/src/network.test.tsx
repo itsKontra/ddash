@@ -150,7 +150,7 @@ it("lists the Remote Access peers with their last handshake, traffic and what ea
   const table = within(section).getByRole("table", { name: "Remote Access peers" });
   const phone = within(table).getByRole("row", { name: /Phone/ });
   expect(within(phone).getByRole("img", { name: "connected" })).toBeTruthy();
-  expect(phone.textContent).toMatch(/198\.18\.40\.2.*2 min ago.*1\.0 MB.*8\.4 MB/);
+  expect(phone.textContent).toMatch(/198\.18\.40\.2.*2 min ago.*980 KiB.*8\.0 MiB/);
   const reach = within(phone).getByRole("list", { name: "Phone can reach" });
   expect(within(reach).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["198.18.1.0/24 LAN subnet · any", "198.18.1.20 · tcp 443"]);
   // A peer without a name goes by the start of its key; it never connected and reaches nothing.

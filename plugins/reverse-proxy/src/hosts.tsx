@@ -1,10 +1,9 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
+import { certWarning, checkStatus, workloadPage, workloadText } from "@ddash/display";
 import { usePluginLink, useQuery } from "@ddash/plugin";
 import { AppsService, ProxyHostWarning, type ProxyHost, type Workload } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, type Check } from "@ddash/proto/checks/checks_pb";
-import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
 import { StatusDot } from "@ddash/ui";
-import { certWarning, checkStatus } from "./check-status";
 
 /**
  * apps' Proxy Hosts with their Apps' Checks. Reads only: the Check status
@@ -173,25 +172,13 @@ function Certificate({ check }: { check: Check | null | undefined }) {
   );
 }
 
-const kindLabel: Record<Kind, string> = {
-  [Kind.UNSPECIFIED]: "Workload",
-  [Kind.LXC]: "LXC",
-  [Kind.VM]: "VM",
-  [Kind.DOCKER]: "Docker",
-  [Kind.EXTERNAL]: "External",
-};
-
-/** The Plugin whose Page lists a Workload of this kind. */
-const pluginOf: Partial<Record<Kind, string>> = { [Kind.LXC]: "proxmox", [Kind.VM]: "proxmox", [Kind.DOCKER]: "docker" };
-
 /** "LXC grafana · running", linked to its Proxmox detail or the Docker Page when that Plugin is installed. */
 function WorkloadName({ workload: w }: { workload: Workload }) {
-  const kind = w.ref?.kind ?? Kind.UNSPECIFIED;
+  const page = workloadPage(w.ref);
   // Hooks run unconditionally: "" is never an installed Plugin.
-  const href = usePluginLink(pluginOf[kind] ?? "", kind === Kind.LXC || kind === Kind.VM ? `workloads/${w.ref?.id}` : "");
-  const name = `${kindLabel[kind]} ${w.name || w.ref?.id || w.ref?.host || ""}`.trim();
-  const text = w.state ? `${name} · ${w.state}` : name;
-  return href ? (
+  const href = usePluginLink(page?.plugin ?? "", page?.path);
+  const text = workloadText(w);
+  return href && page ? (
     <a href={href} className="hover:text-foreground hover:underline">
       {text}
     </a>

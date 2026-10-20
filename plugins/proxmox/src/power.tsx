@@ -3,7 +3,7 @@ import { Kind as RefKind } from "@ddash/proto/ddash/workload/workload_pb";
 import { Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { PowerAction, ProxmoxService, type PowerTask } from "@ddash/proto/proxmox/proxmox_pb";
 import { Badge, Button, Menu } from "@ddash/ui";
-import { kindLabel } from "./format";
+import { kindLabel } from "@ddash/display";
 
 /** The privilege ddash needs on a Workload to start, stop or restart it. */
 export const powerMgmt = "VM.PowerMgmt";

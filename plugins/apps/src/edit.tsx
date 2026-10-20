@@ -3,7 +3,8 @@ import { AppsService, type App } from "@ddash/proto/apps/apps_pb";
 import { Button, iconName, Sheet } from "@ddash/ui";
 import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
-import { external, refKey, refOf, useWorkloads, workloadName, WorkloadOptions } from "./workload";
+import { workloadName } from "@ddash/display";
+import { external, refKey, refOf, useWorkloads, WorkloadOptions } from "./workload";
 
 const inputClass = "h-9 w-full rounded-ui border border-border bg-card px-3 text-sm placeholder:text-muted-foreground";
 
