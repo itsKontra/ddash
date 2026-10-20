@@ -6,9 +6,11 @@ package checks
 import (
 	"cmp"
 	"context"
+	"crypto/x509"
 	"embed"
 	"log/slog"
 	"net"
+	"net/http"
 	"slices"
 	"sync"
 	"time"
@@ -29,6 +31,9 @@ const (
 	// DownAfter is how many failed beats in a row make a Check down. One
 	// success makes it up again.
 	DownAfter = 3
+	// CertWarning is how long before its certificate expires an HTTPS Check
+	// warns. It stays up meanwhile.
+	CertWarning = 14 * 24 * time.Hour
 )
 
 //go:embed component.yaml
@@ -39,22 +44,37 @@ var migrations embed.FS
 
 // Definition is checks, ready for sdk.Serve.
 func Definition() sdk.Definition {
-	return define((&net.Dialer{}).DialContext)
+	return define((&net.Dialer{}).DialContext, nil)
 }
 
-// define is checks probing TCP and DNS through dial.
-func define(dial dialFunc) sdk.Definition {
+// DefinitionDialing is checks with its TCP, DNS and HTTP probes dialing
+// through dial instead of the network, for tests: a time-rule test fakes
+// the targets' transport inside a synctest bubble, and a host test keeps
+// App Checks off the real network.
+func DefinitionDialing(dial func(ctx context.Context, network, addr string) (net.Conn, error)) sdk.Definition {
+	return define(dial, nil)
+}
+
+// define is checks probing TCP, DNS and HTTP through dial, trusting roots
+// for HTTPS (the system's when nil).
+func define(dial dialFunc, roots *x509.CertPool) sdk.Definition {
 	return sdk.Define(sdk.Spec[*checkspb.ChecksConfig]{
 		Manifest:   manifest,
 		Service:    &checkspb.ChecksService_ServiceDesc,
 		Migrations: migrations,
-		New:        func() sdk.Component[*checkspb.ChecksConfig] { return &component{dial: dial} },
+		New: func() sdk.Component[*checkspb.ChecksConfig] {
+			return &component{dial: dial, roots: roots}
+		},
 	})
 }
 
 type component struct {
 	checkspb.UnimplementedChecksServiceServer
 	dial dialFunc
+	// roots are the CAs HTTPS probes trust; the system's when nil.
+	roots *x509.CertPool
+	// web makes the HTTP(S) probes.
+	web *http.Client
 
 	// ctx is the Component's lifetime; each Check's loop runs under it.
 	ctx context.Context
@@ -75,6 +95,14 @@ type check struct {
 	disabled bool
 	standing standing
 
+	// appID is the App an App Check follows; empty for a manual Check.
+	appID string
+	// appEnabled is false while an App Check's App is hidden; always true
+	// for a manual Check.
+	appEnabled bool
+	// goneAt is when an App Check's App left apps' set; zero while there.
+	goneAt time.Time
+
 	// stop ends the Check's loop; nil while it isn't probed.
 	stop context.CancelFunc
 	// gen counts the loops started for the Check, so a beat of an earlier
@@ -84,6 +112,7 @@ type check struct {
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksConfig) error {
 	c.ctx, c.log = ctx, env.Log
+	c.web = webClient(ctx, c.dial, c.roots)
 	c.db = &store{env.DB}
 	loaded, err := c.db.load(ctx)
 	if err != nil {
@@ -95,7 +124,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	c.checks = map[int64]*check{}
 	for _, ch := range loaded {
 		c.checks[ch.id] = ch
-		if !ch.disabled {
+		if ch.probed() {
 			c.probeEvery(ch)
 		}
 	}
@@ -110,6 +139,12 @@ func (c *component) Health(context.Context) sdk.Health {
 		return sdk.Health{State: sdk.Degraded, Message: "can't record beats: " + c.writeErr.Error()}
 	}
 	return sdk.Health{State: sdk.OK}
+}
+
+// probed reports whether ch is probed: not disabled by the Operator and,
+// for an App Check, its App shown and present.
+func (ch *check) probed() bool {
+	return !ch.disabled && ch.appEnabled && ch.goneAt.IsZero()
 }
 
 // probeEvery starts ch's loop: its first beat is due Interval after its
@@ -184,7 +219,9 @@ func (c *component) ListChecks(context.Context, *checkspb.ListChecksRequest) (*c
 	defer c.mu.Unlock()
 	all := make([]*check, 0, len(c.checks))
 	for _, ch := range c.checks {
-		all = append(all, ch)
+		if ch.goneAt.IsZero() {
+			all = append(all, ch)
+		}
 	}
 	slices.SortFunc(all, func(a, b *check) int {
 		return cmp.Or(cmp.Compare(a.spec.shownName(), b.spec.shownName()), cmp.Compare(a.id, b.id))
@@ -203,7 +240,7 @@ func (c *component) CreateCheck(ctx context.Context, req *checkspb.CreateCheckRe
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	ch := &check{spec: s, standing: standing{state: checkspb.State_STATE_PENDING, since: now()}}
+	ch := &check{spec: s, appEnabled: true, standing: standing{state: checkspb.State_STATE_PENDING, since: now()}}
 	if ch.id, err = c.db.create(ctx, ch); err != nil {
 		return nil, err
 	}
@@ -219,7 +256,7 @@ func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRe
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	ch, err := c.get(req.GetId())
+	ch, err := c.manual(req.GetId())
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +267,7 @@ func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRe
 	if err := c.db.update(ctx, ch.id, s, fresh); err != nil {
 		return nil, err
 	}
-	restart := s.probes() != ch.spec.probes() && !ch.disabled
+	restart := s.probes() != ch.spec.probes() && ch.probed()
 	ch.spec, ch.standing = s, fresh
 	if restart {
 		ch.stopProbing()
@@ -242,7 +279,7 @@ func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRe
 func (c *component) DeleteCheck(ctx context.Context, req *checkspb.DeleteCheckRequest) (*checkspb.DeleteCheckResponse, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	ch, err := c.get(req.GetId())
+	ch, err := c.manual(req.GetId())
 	if err != nil {
 		return nil, err
 	}
@@ -275,16 +312,20 @@ func (c *component) SetDisabled(ctx context.Context, req *checkspb.SetDisabledRe
 	if err != nil {
 		return nil, err
 	}
+	if !req.GetDisabled() && !ch.appEnabled {
+		return nil, status.Errorf(codes.FailedPrecondition, "%s's App is hidden: show the App to enable its Check", ch.spec.shownName())
+	}
 	if err := c.db.setFlag(ctx, ch.id, "disabled", req.GetDisabled()); err != nil {
 		return nil, err
 	}
+	was := ch.probed()
+	ch.disabled = req.GetDisabled()
 	switch {
-	case req.GetDisabled() && !ch.disabled:
+	case was && !ch.probed():
 		ch.stopProbing()
-	case !req.GetDisabled() && ch.disabled:
+	case !was && ch.probed():
 		c.probeEvery(ch)
 	}
-	ch.disabled = req.GetDisabled()
 	return &checkspb.SetDisabledResponse{Check: ch.proto()}, nil
 }
 
@@ -295,4 +336,14 @@ func (c *component) get(id int64) (*check, error) {
 		return nil, status.Errorf(codes.NotFound, "no Check %d", id)
 	}
 	return ch, nil
+}
+
+// manual returns manual Check id: an App Check follows its App instead.
+// Call with c.mu held.
+func (c *component) manual(id int64) (*check, error) {
+	ch, err := c.get(id)
+	if err == nil && ch.appID != "" {
+		err = status.Errorf(codes.FailedPrecondition, "%s is an App Check: it follows its App in apps", ch.spec.shownName())
+	}
+	return ch, err
 }

@@ -5,6 +5,10 @@
 // checks probes Checks and decides when each is up or down: every 60 s with
 // a 10 s timeout, down after 3 consecutive failures (pending before that),
 // up again on one success. These are fixed; a Check sets none of them.
+//
+// Manual Checks are the Operator's. App Checks follow apps' Apps: apps
+// declares the whole set with SetAppChecks, and checks keeps one HTTP(S)
+// Check per App identity.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
@@ -17,7 +21,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file checks/checks.proto.
  */
 export const file_checks_checks: GenFile = /*@__PURE__*/
-  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIqQCCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCCITChFMaXN0Q2hlY2tzUmVxdWVzdCI5ChJMaXN0Q2hlY2tzUmVzcG9uc2USIwoGY2hlY2tzGAEgAygLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjsKEkNyZWF0ZUNoZWNrUmVxdWVzdBIlCgRzcGVjGAEgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYyI5ChNDcmVhdGVDaGVja1Jlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIkcKElVwZGF0ZUNoZWNrUmVxdWVzdBIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYyI5ChNVcGRhdGVDaGVja1Jlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIiAKEkRlbGV0ZUNoZWNrUmVxdWVzdBIKCgJpZBgBIAEoAyIVChNEZWxldGVDaGVja1Jlc3BvbnNlIiwKD1NldE11dGVkUmVxdWVzdBIKCgJpZBgBIAEoAxINCgVtdXRlZBgCIAEoCCI2ChBTZXRNdXRlZFJlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjIKElNldERpc2FibGVkUmVxdWVzdBIKCgJpZBgBIAEoAxIQCghkaXNhYmxlZBgCIAEoCCI5ChNTZXREaXNhYmxlZFJlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjkKB0xhdGVuY3kSDgoGYXZnX21zGAEgASgBEg4KBm1pbl9tcxgCIAEoARIOCgZtYXhfbXMYAyABKAEiowEKBlVwdGltZRIkCgZ3aW5kb3cYASABKA4yFC5kZGFzaC5jaGVja3MuV2luZG93EhIKBXJhdGlvGAIgASgBSACIAQESCgoCdXAYAyABKAMSDAoEZG93bhgEIAEoAxITCgttYWludGVuYW5jZRgFIAEoAxImCgdsYXRlbmN5GAYgASgLMhUuZGRhc2guY2hlY2tzLkxhdGVuY3lCCAoGX3JhdGlvIooBCgZCdWNrZXQSKQoFc3RhcnQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAnVwGAIgASgDEgwKBGRvd24YAyABKAMSEwoLbWFpbnRlbmFuY2UYBCABKAMSJgoHbGF0ZW5jeRgFIAEoCzIVLmRkYXNoLmNoZWNrcy5MYXRlbmN5IpMBCgRCZWF0EiYKAmF0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIKCgJ1cBgCIAEoCBIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIPCgdjaGFuZ2VkGAQgASgIEhIKCmxhdGVuY3lfbXMYBSABKAESDgoGcmVhc29uGAYgASgJIkUKEUdldEhpc3RvcnlSZXF1ZXN0EgoKAmlkGAEgASgDEiQKBndpbmRvdxgCIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cigQIKEkdldEhpc3RvcnlSZXNwb25zZRIkCgZ1cHRpbWUYASADKAsyFC5kZGFzaC5jaGVja3MuVXB0aW1lEiQKBndpbmRvdxgCIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cSKQoGYnVja2V0GAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEigKBGZyb20YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiUKB2J1Y2tldHMYBSADKAsyFC5kZGFzaC5jaGVja3MuQnVja2V0EiMKB2NoYW5nZXMYBiADKAsyEi5kZGFzaC5jaGVja3MuQmVhdCIeChBMaXN0QmVhdHNSZXF1ZXN0EgoKAmlkGAEgASgDIjYKEUxpc3RCZWF0c1Jlc3BvbnNlEiEKBWJlYXRzGAEgAygLMhIuZGRhc2guY2hlY2tzLkJlYXQqZAoJQ2hlY2tUeXBlEhoKFkNIRUNLX1RZUEVfVU5TUEVDSUZJRUQQABISCg5DSEVDS19UWVBFX1RDUBABEhMKD0NIRUNLX1RZUEVfSUNNUBACEhIKDkNIRUNLX1RZUEVfRE5TEAMqjwEKClJlY29yZFR5cGUSGwoXUkVDT1JEX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1SRUNPUkRfVFlQRV9BEAESFAoQUkVDT1JEX1RZUEVfQUFBQRACEhIKDlJFQ09SRF9UWVBFX01YEAMSEgoOUkVDT1JEX1RZUEVfTlMQBBITCg9SRUNPUkRfVFlQRV9UWFQQBSpPCgVTdGF0ZRIVChFTVEFURV9VTlNQRUNJRklFRBAAEhEKDVNUQVRFX1BFTkRJTkcQARIMCghTVEFURV9VUBACEg4KClNUQVRFX0RPV04QAypRCgZXaW5kb3cSFgoSV0lORE9XX1VOU1BFQ0lGSUVEEAASDgoKV0lORE9XXzI0SBABEg4KCldJTkRPV18zMEQQAhIPCgtXSU5ET1dfMzY1RBADMs4FCg1DaGVja3NTZXJ2aWNlElcKCkxpc3RDaGVja3MSHy5kZGFzaC5jaGVja3MuTGlzdENoZWNrc1JlcXVlc3QaIC5kZGFzaC5jaGVja3MuTGlzdENoZWNrc1Jlc3BvbnNlIgaKtRgCCAISWAoLQ3JlYXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLkNyZWF0ZUNoZWNrUmVzcG9uc2UiBJK1GAASWAoLVXBkYXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLlVwZGF0ZUNoZWNrUmVzcG9uc2UiBJK1GAASWgoLRGVsZXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLkRlbGV0ZUNoZWNrUmVzcG9uc2UiBpK1GAIIARJPCghTZXRNdXRlZBIdLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlcXVlc3QaHi5kZGFzaC5jaGVja3MuU2V0TXV0ZWRSZXNwb25zZSIEkrUYABJYCgtTZXREaXNhYmxlZBIgLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlcXVlc3QaIS5kZGFzaC5jaGVja3MuU2V0RGlzYWJsZWRSZXNwb25zZSIEkrUYABJVCgpHZXRIaXN0b3J5Eh8uZGRhc2guY2hlY2tzLkdldEhpc3RvcnlSZXF1ZXN0GiAuZGRhc2guY2hlY2tzLkdldEhpc3RvcnlSZXNwb25zZSIEirUYABJSCglMaXN0QmVhdHMSHi5kZGFzaC5jaGVja3MuTGlzdEJlYXRzUmVxdWVzdBofLmRkYXNoLmNoZWNrcy5MaXN0QmVhdHNSZXNwb25zZSIEirUYAEJAWj5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2NoZWNrcy9jaGVja3NwYjtjaGVja3NwYmIGcHJvdG8z", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIv0CCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCBIOCgZhcHBfaWQYDCABKAkSMAoMY2VydF9leHBpcmVzGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIVCg1jZXJ0X2V4cGlyaW5nGA4gASgIIhMKEUxpc3RDaGVja3NSZXF1ZXN0IjkKEkxpc3RDaGVja3NSZXNwb25zZRIjCgZjaGVja3MYASADKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siOwoSQ3JlYXRlQ2hlY2tSZXF1ZXN0EiUKBHNwZWMYASABKAsyFy5kZGFzaC5jaGVja3MuQ2hlY2tTcGVjIjkKE0NyZWF0ZUNoZWNrUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siRwoSVXBkYXRlQ2hlY2tSZXF1ZXN0EgoKAmlkGAEgASgDEiUKBHNwZWMYAiABKAsyFy5kZGFzaC5jaGVja3MuQ2hlY2tTcGVjIjkKE1VwZGF0ZUNoZWNrUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siIAoSRGVsZXRlQ2hlY2tSZXF1ZXN0EgoKAmlkGAEgASgDIhUKE0RlbGV0ZUNoZWNrUmVzcG9uc2UiLAoPU2V0TXV0ZWRSZXF1ZXN0EgoKAmlkGAEgASgDEg0KBW11dGVkGAIgASgIIjYKEFNldE11dGVkUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siMgoSU2V0RGlzYWJsZWRSZXF1ZXN0EgoKAmlkGAEgASgDEhAKCGRpc2FibGVkGAIgASgIIjkKE1NldERpc2FibGVkUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siOQoHTGF0ZW5jeRIOCgZhdmdfbXMYASABKAESDgoGbWluX21zGAIgASgBEg4KBm1heF9tcxgDIAEoASKjAQoGVXB0aW1lEiQKBndpbmRvdxgBIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cSEgoFcmF0aW8YAiABKAFIAIgBARIKCgJ1cBgDIAEoAxIMCgRkb3duGAQgASgDEhMKC21haW50ZW5hbmNlGAUgASgDEiYKB2xhdGVuY3kYBiABKAsyFS5kZGFzaC5jaGVja3MuTGF0ZW5jeUIICgZfcmF0aW8iigEKBkJ1Y2tldBIpCgVzdGFydBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASCgoCdXAYAiABKAMSDAoEZG93bhgDIAEoAxITCgttYWludGVuYW5jZRgEIAEoAxImCgdsYXRlbmN5GAUgASgLMhUuZGRhc2guY2hlY2tzLkxhdGVuY3kikwEKBEJlYXQSJgoCYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAnVwGAIgASgIEiIKBXN0YXRlGAMgASgOMhMuZGRhc2guY2hlY2tzLlN0YXRlEg8KB2NoYW5nZWQYBCABKAgSEgoKbGF0ZW5jeV9tcxgFIAEoARIOCgZyZWFzb24YBiABKAkiRQoRR2V0SGlzdG9yeVJlcXVlc3QSCgoCaWQYASABKAMSJAoGd2luZG93GAIgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdyKBAgoSR2V0SGlzdG9yeVJlc3BvbnNlEiQKBnVwdGltZRgBIAMoCzIULmRkYXNoLmNoZWNrcy5VcHRpbWUSJAoGd2luZG93GAIgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdxIpCgZidWNrZXQYAyABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SKAoEZnJvbRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJQoHYnVja2V0cxgFIAMoCzIULmRkYXNoLmNoZWNrcy5CdWNrZXQSIwoHY2hhbmdlcxgGIAMoCzISLmRkYXNoLmNoZWNrcy5CZWF0Ih4KEExpc3RCZWF0c1JlcXVlc3QSCgoCaWQYASABKAMiNgoRTGlzdEJlYXRzUmVzcG9uc2USIQoFYmVhdHMYASADKAsyEi5kZGFzaC5jaGVja3MuQmVhdCJGCghBcHBDaGVjaxIOCgZhcHBfaWQYASABKAkSDAoEbmFtZRgCIAEoCRILCgN1cmwYAyABKAkSDwoHZW5hYmxlZBgEIAEoCCI9ChNTZXRBcHBDaGVja3NSZXF1ZXN0EiYKBmNoZWNrcxgBIAMoCzIWLmRkYXNoLmNoZWNrcy5BcHBDaGVjayIWChRTZXRBcHBDaGVja3NSZXNwb25zZSp5CglDaGVja1R5cGUSGgoWQ0hFQ0tfVFlQRV9VTlNQRUNJRklFRBAAEhIKDkNIRUNLX1RZUEVfVENQEAESEwoPQ0hFQ0tfVFlQRV9JQ01QEAISEgoOQ0hFQ0tfVFlQRV9ETlMQAxITCg9DSEVDS19UWVBFX0hUVFAQBCqPAQoKUmVjb3JkVHlwZRIbChdSRUNPUkRfVFlQRV9VTlNQRUNJRklFRBAAEhEKDVJFQ09SRF9UWVBFX0EQARIUChBSRUNPUkRfVFlQRV9BQUFBEAISEgoOUkVDT1JEX1RZUEVfTVgQAxISCg5SRUNPUkRfVFlQRV9OUxAEEhMKD1JFQ09SRF9UWVBFX1RYVBAFKk8KBVN0YXRlEhUKEVNUQVRFX1VOU1BFQ0lGSUVEEAASEQoNU1RBVEVfUEVORElORxABEgwKCFNUQVRFX1VQEAISDgoKU1RBVEVfRE9XThADKlEKBldpbmRvdxIWChJXSU5ET1dfVU5TUEVDSUZJRUQQABIOCgpXSU5ET1dfMjRIEAESDgoKV0lORE9XXzMwRBACEg8KC1dJTkRPV18zNjVEEAMyqwYKDUNoZWNrc1NlcnZpY2USVwoKTGlzdENoZWNrcxIfLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVxdWVzdBogLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVzcG9uc2UiBoq1GAIIAhJYCgtDcmVhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5DcmVhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJYCgtVcGRhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5VcGRhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJaCgtEZWxldGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5EZWxldGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXNwb25zZSIGkrUYAggBEk8KCFNldE11dGVkEh0uZGRhc2guY2hlY2tzLlNldE11dGVkUmVxdWVzdBoeLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlc3BvbnNlIgSStRgAElgKC1NldERpc2FibGVkEiAuZGRhc2guY2hlY2tzLlNldERpc2FibGVkUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlc3BvbnNlIgSStRgAElUKCkdldEhpc3RvcnkSHy5kZGFzaC5jaGVja3MuR2V0SGlzdG9yeVJlcXVlc3QaIC5kZGFzaC5jaGVja3MuR2V0SGlzdG9yeVJlc3BvbnNlIgSKtRgAElIKCUxpc3RCZWF0cxIeLmRkYXNoLmNoZWNrcy5MaXN0QmVhdHNSZXF1ZXN0Gh8uZGRhc2guY2hlY2tzLkxpc3RCZWF0c1Jlc3BvbnNlIgSKtRgAElsKDFNldEFwcENoZWNrcxIhLmRkYXNoLmNoZWNrcy5TZXRBcHBDaGVja3NSZXF1ZXN0GiIuZGRhc2guY2hlY2tzLlNldEFwcENoZWNrc1Jlc3BvbnNlIgSStRgAQkBaPmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvY2hlY2tzL2NoZWNrc3BiO2NoZWNrc3BiYgZwcm90bzM", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * checks has no config.
@@ -177,6 +181,28 @@ export type Check = Message<"ddash.checks.Check"> & {
    * @generated from field: bool maintenance = 11;
    */
   maintenance: boolean;
+
+  /**
+   * The App an App Check follows, e.g. "proxy:jellyfin.home.example";
+   * empty for a manual Check, which the Operator edits.
+   *
+   * @generated from field: string app_id = 12;
+   */
+  appId: string;
+
+  /**
+   * HTTPS: when the certificate seen by the last up beat expires.
+   *
+   * @generated from field: google.protobuf.Timestamp cert_expires = 13;
+   */
+  certExpires?: Timestamp | undefined;
+
+  /**
+   * The certificate expires within 14 days. The Check stays up meanwhile.
+   *
+   * @generated from field: bool cert_expiring = 14;
+   */
+  certExpiring: boolean;
 };
 
 /**
@@ -685,6 +711,81 @@ export const ListBeatsResponseSchema: GenMessage<ListBeatsResponse> = /*@__PURE_
   messageDesc(file_checks_checks, 23);
 
 /**
+ * One App's Check, as apps declares it.
+ *
+ * @generated from message ddash.checks.AppCheck
+ */
+export type AppCheck = Message<"ddash.checks.AppCheck"> & {
+  /**
+   * The App's identity, e.g. "proxy:jellyfin.home.example": a new id is a
+   * new Check.
+   *
+   * @generated from field: string app_id = 1;
+   */
+  appId: string;
+
+  /**
+   * The App's display name.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * The http or https URL probed.
+   *
+   * @generated from field: string url = 3;
+   */
+  url: string;
+
+  /**
+   * False while the App is hidden: its Check isn't probed.
+   *
+   * @generated from field: bool enabled = 4;
+   */
+  enabled: boolean;
+};
+
+/**
+ * Describes the message ddash.checks.AppCheck.
+ * Use `create(AppCheckSchema)` to create a new message.
+ */
+export const AppCheckSchema: GenMessage<AppCheck> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 24);
+
+/**
+ * @generated from message ddash.checks.SetAppChecksRequest
+ */
+export type SetAppChecksRequest = Message<"ddash.checks.SetAppChecksRequest"> & {
+  /**
+   * Every App's Check; App Checks not listed stop.
+   *
+   * @generated from field: repeated ddash.checks.AppCheck checks = 1;
+   */
+  checks: AppCheck[];
+};
+
+/**
+ * Describes the message ddash.checks.SetAppChecksRequest.
+ * Use `create(SetAppChecksRequestSchema)` to create a new message.
+ */
+export const SetAppChecksRequestSchema: GenMessage<SetAppChecksRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 25);
+
+/**
+ * @generated from message ddash.checks.SetAppChecksResponse
+ */
+export type SetAppChecksResponse = Message<"ddash.checks.SetAppChecksResponse"> & {
+};
+
+/**
+ * Describes the message ddash.checks.SetAppChecksResponse.
+ * Use `create(SetAppChecksResponseSchema)` to create a new message.
+ */
+export const SetAppChecksResponseSchema: GenMessage<SetAppChecksResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 26);
+
+/**
  * @generated from enum ddash.checks.CheckType
  */
 export enum CheckType {
@@ -714,6 +815,15 @@ export enum CheckType {
    * @generated from enum value: CHECK_TYPE_DNS = 3;
    */
   DNS = 3,
+
+  /**
+   * App Checks only. Up when the target (an http or https URL) answers
+   * with any status below 500, redirects not followed. A timeout, a
+   * connection error, an invalid certificate or a 5xx is down.
+   *
+   * @generated from enum value: CHECK_TYPE_HTTP = 4;
+   */
+  HTTP = 4,
 }
 
 /**
@@ -933,6 +1043,21 @@ export const ChecksService: GenService<{
     methodKind: "unary";
     input: typeof ListBeatsRequestSchema;
     output: typeof ListBeatsResponseSchema;
+  },
+  /**
+   * SetAppChecks declares every App's Check, from apps: a new App gets a
+   * Check probed at once, a disabled one (its App is hidden) isn't probed,
+   * and one missing from the set (its Proxy Host vanished) stops until its
+   * App returns, its history ageing out meanwhile. A new URL starts the
+   * Check over as pending; a new name keeps its state. The caller sends it
+   * only when the set changed, plus once after its own Start.
+   *
+   * @generated from rpc ddash.checks.ChecksService.SetAppChecks
+   */
+  setAppChecks: {
+    methodKind: "unary";
+    input: typeof SetAppChecksRequestSchema;
+    output: typeof SetAppChecksResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_checks_checks, 0);

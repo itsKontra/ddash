@@ -2,17 +2,16 @@ package checks
 
 import (
 	"context"
+	"crypto/x509"
 	"net"
 	"time"
 
 	"github.com/itsKontra/ddash/sdk"
 )
 
-// DefinitionDialing is checks with TCP and DNS probes dialing through dial,
-// so time-rule tests can fake the targets' transport inside a synctest
-// bubble.
-func DefinitionDialing(dial func(ctx context.Context, network, addr string) (net.Conn, error)) sdk.Definition {
-	return define(dial)
+// DefinitionTrusting is checks trusting only roots for HTTPS.
+func DefinitionTrusting(roots *x509.CertPool) sdk.Definition {
+	return define((&net.Dialer{}).DialContext, roots)
 }
 
 // PingFor runs an ICMP probe of target bounded only by timeout.

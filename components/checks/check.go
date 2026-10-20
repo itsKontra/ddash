@@ -121,6 +121,9 @@ type standing struct {
 	lastBeat time.Time
 	latency  time.Duration
 	reason   string
+	// certExpires is when the certificate seen by the last up HTTPS beat
+	// expires; zero without one.
+	certExpires time.Time
 }
 
 // after is s after a beat at at with result r: up on one success, down
@@ -130,7 +133,7 @@ func (s standing) after(r result, at time.Time) standing {
 	n.lastBeat = at
 	next := s.state
 	if r.up {
-		n.failures, n.latency, n.reason = 0, r.latency, ""
+		n.failures, n.latency, n.reason, n.certExpires = 0, r.latency, "", r.certExpires
 		next = checkspb.State_STATE_UP
 	} else {
 		n.failures, n.latency, n.reason = s.failures+1, 0, r.reason
@@ -162,7 +165,12 @@ func (ch *check) proto() *checkspb.Check {
 		Reason:    ch.standing.reason,
 		Failures:  int32(ch.standing.failures),
 		Muted:     ch.muted,
-		Disabled:  ch.disabled,
+		Disabled:  ch.disabled || !ch.appEnabled,
+		AppId:     ch.appID,
+	}
+	if exp := ch.standing.certExpires; !exp.IsZero() {
+		p.CertExpires = timestamppb.New(exp)
+		p.CertExpiring = time.Until(exp) < CertWarning
 	}
 	if ch.spec.typ == checkspb.CheckType_CHECK_TYPE_DNS {
 		p.Spec.Dns = &checkspb.DnsQuery{Name: ch.spec.dnsName, RecordType: ch.spec.recordType}

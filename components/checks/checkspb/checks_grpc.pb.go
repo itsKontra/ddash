@@ -7,6 +7,10 @@
 // checks probes Checks and decides when each is up or down: every 60 s with
 // a 10 s timeout, down after 3 consecutive failures (pending before that),
 // up again on one success. These are fixed; a Check sets none of them.
+//
+// Manual Checks are the Operator's. App Checks follow apps' Apps: apps
+// declares the whole set with SetAppChecks, and checks keeps one HTTP(S)
+// Check per App identity.
 
 package checkspb
 
@@ -23,14 +27,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChecksService_ListChecks_FullMethodName  = "/ddash.checks.ChecksService/ListChecks"
-	ChecksService_CreateCheck_FullMethodName = "/ddash.checks.ChecksService/CreateCheck"
-	ChecksService_UpdateCheck_FullMethodName = "/ddash.checks.ChecksService/UpdateCheck"
-	ChecksService_DeleteCheck_FullMethodName = "/ddash.checks.ChecksService/DeleteCheck"
-	ChecksService_SetMuted_FullMethodName    = "/ddash.checks.ChecksService/SetMuted"
-	ChecksService_SetDisabled_FullMethodName = "/ddash.checks.ChecksService/SetDisabled"
-	ChecksService_GetHistory_FullMethodName  = "/ddash.checks.ChecksService/GetHistory"
-	ChecksService_ListBeats_FullMethodName   = "/ddash.checks.ChecksService/ListBeats"
+	ChecksService_ListChecks_FullMethodName   = "/ddash.checks.ChecksService/ListChecks"
+	ChecksService_CreateCheck_FullMethodName  = "/ddash.checks.ChecksService/CreateCheck"
+	ChecksService_UpdateCheck_FullMethodName  = "/ddash.checks.ChecksService/UpdateCheck"
+	ChecksService_DeleteCheck_FullMethodName  = "/ddash.checks.ChecksService/DeleteCheck"
+	ChecksService_SetMuted_FullMethodName     = "/ddash.checks.ChecksService/SetMuted"
+	ChecksService_SetDisabled_FullMethodName  = "/ddash.checks.ChecksService/SetDisabled"
+	ChecksService_GetHistory_FullMethodName   = "/ddash.checks.ChecksService/GetHistory"
+	ChecksService_ListBeats_FullMethodName    = "/ddash.checks.ChecksService/ListBeats"
+	ChecksService_SetAppChecks_FullMethodName = "/ddash.checks.ChecksService/SetAppChecks"
 )
 
 // ChecksServiceClient is the client API for ChecksService service.
@@ -60,6 +65,13 @@ type ChecksServiceClient interface {
 	// 24 h and its state changes of the last 365 d (a daily sweep drops the
 	// rest), oldest first.
 	ListBeats(ctx context.Context, in *ListBeatsRequest, opts ...grpc.CallOption) (*ListBeatsResponse, error)
+	// SetAppChecks declares every App's Check, from apps: a new App gets a
+	// Check probed at once, a disabled one (its App is hidden) isn't probed,
+	// and one missing from the set (its Proxy Host vanished) stops until its
+	// App returns, its history ageing out meanwhile. A new URL starts the
+	// Check over as pending; a new name keeps its state. The caller sends it
+	// only when the set changed, plus once after its own Start.
+	SetAppChecks(ctx context.Context, in *SetAppChecksRequest, opts ...grpc.CallOption) (*SetAppChecksResponse, error)
 }
 
 type checksServiceClient struct {
@@ -150,6 +162,16 @@ func (c *checksServiceClient) ListBeats(ctx context.Context, in *ListBeatsReques
 	return out, nil
 }
 
+func (c *checksServiceClient) SetAppChecks(ctx context.Context, in *SetAppChecksRequest, opts ...grpc.CallOption) (*SetAppChecksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetAppChecksResponse)
+	err := c.cc.Invoke(ctx, ChecksService_SetAppChecks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChecksServiceServer is the server API for ChecksService service.
 // All implementations must embed UnimplementedChecksServiceServer
 // for forward compatibility.
@@ -177,6 +199,13 @@ type ChecksServiceServer interface {
 	// 24 h and its state changes of the last 365 d (a daily sweep drops the
 	// rest), oldest first.
 	ListBeats(context.Context, *ListBeatsRequest) (*ListBeatsResponse, error)
+	// SetAppChecks declares every App's Check, from apps: a new App gets a
+	// Check probed at once, a disabled one (its App is hidden) isn't probed,
+	// and one missing from the set (its Proxy Host vanished) stops until its
+	// App returns, its history ageing out meanwhile. A new URL starts the
+	// Check over as pending; a new name keeps its state. The caller sends it
+	// only when the set changed, plus once after its own Start.
+	SetAppChecks(context.Context, *SetAppChecksRequest) (*SetAppChecksResponse, error)
 	mustEmbedUnimplementedChecksServiceServer()
 }
 
@@ -210,6 +239,9 @@ func (UnimplementedChecksServiceServer) GetHistory(context.Context, *GetHistoryR
 }
 func (UnimplementedChecksServiceServer) ListBeats(context.Context, *ListBeatsRequest) (*ListBeatsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListBeats not implemented")
+}
+func (UnimplementedChecksServiceServer) SetAppChecks(context.Context, *SetAppChecksRequest) (*SetAppChecksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetAppChecks not implemented")
 }
 func (UnimplementedChecksServiceServer) mustEmbedUnimplementedChecksServiceServer() {}
 func (UnimplementedChecksServiceServer) testEmbeddedByValue()                       {}
@@ -376,6 +408,24 @@ func _ChecksService_ListBeats_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChecksService_SetAppChecks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAppChecksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).SetAppChecks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_SetAppChecks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).SetAppChecks(ctx, req.(*SetAppChecksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChecksService_ServiceDesc is the grpc.ServiceDesc for ChecksService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -414,6 +464,10 @@ var ChecksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListBeats",
 			Handler:    _ChecksService_ListBeats_Handler,
+		},
+		{
+			MethodName: "SetAppChecks",
+			Handler:    _ChecksService_SetAppChecks_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
