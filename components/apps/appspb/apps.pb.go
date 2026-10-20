@@ -26,6 +26,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ProxyHostWarning int32
+
+const (
+	ProxyHostWarning_PROXY_HOST_WARNING_UNSPECIFIED ProxyHostWarning = 0
+	// The App's upstream matches no Workload. Never while a Workload source
+	// can't be read, or without an App.
+	ProxyHostWarning_PROXY_HOST_WARNING_NO_WORKLOAD ProxyHostWarning = 1
+	// None of the block's listens has ssl.
+	ProxyHostWarning_PROXY_HOST_WARNING_NO_TLS ProxyHostWarning = 2
+)
+
+// Enum value maps for ProxyHostWarning.
+var (
+	ProxyHostWarning_name = map[int32]string{
+		0: "PROXY_HOST_WARNING_UNSPECIFIED",
+		1: "PROXY_HOST_WARNING_NO_WORKLOAD",
+		2: "PROXY_HOST_WARNING_NO_TLS",
+	}
+	ProxyHostWarning_value = map[string]int32{
+		"PROXY_HOST_WARNING_UNSPECIFIED": 0,
+		"PROXY_HOST_WARNING_NO_WORKLOAD": 1,
+		"PROXY_HOST_WARNING_NO_TLS":      2,
+	}
+)
+
+func (x ProxyHostWarning) Enum() *ProxyHostWarning {
+	p := new(ProxyHostWarning)
+	*p = x
+	return p
+}
+
+func (x ProxyHostWarning) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ProxyHostWarning) Descriptor() protoreflect.EnumDescriptor {
+	return file_apps_apps_proto_enumTypes[0].Descriptor()
+}
+
+func (ProxyHostWarning) Type() protoreflect.EnumType {
+	return &file_apps_apps_proto_enumTypes[0]
+}
+
+func (x ProxyHostWarning) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ProxyHostWarning.Descriptor instead.
+func (ProxyHostWarning) EnumDescriptor() ([]byte, []int) {
+	return file_apps_apps_proto_rawDescGZIP(), []int{0}
+}
+
 // apps has nothing to configure: Apps come from nginx-config's snapshot.
 type AppsConfig struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -1132,6 +1184,199 @@ func (x *ListWorkloadsResponse) GetWorkloads() []*Workload {
 	return nil
 }
 
+type ListProxyHostsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListProxyHostsRequest) Reset() {
+	*x = ListProxyHostsRequest{}
+	mi := &file_apps_apps_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProxyHostsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProxyHostsRequest) ProtoMessage() {}
+
+func (x *ListProxyHostsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_apps_apps_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProxyHostsRequest.ProtoReflect.Descriptor instead.
+func (*ListProxyHostsRequest) Descriptor() ([]byte, []int) {
+	return file_apps_apps_proto_rawDescGZIP(), []int{21}
+}
+
+type ListProxyHostsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// By first server_name; blocks sharing one keep nginx's order.
+	ProxyHosts []*ProxyHost `protobuf:"bytes,1,rep,name=proxy_hosts,json=proxyHosts,proto3" json:"proxy_hosts,omitempty"`
+	// Why nginx-config couldn't be read; the Proxy Hosts are then those of
+	// the last read. Empty when it could.
+	DiscoveryError string `protobuf:"bytes,2,opt,name=discovery_error,json=discoveryError,proto3" json:"discovery_error,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListProxyHostsResponse) Reset() {
+	*x = ListProxyHostsResponse{}
+	mi := &file_apps_apps_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListProxyHostsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListProxyHostsResponse) ProtoMessage() {}
+
+func (x *ListProxyHostsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_apps_apps_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListProxyHostsResponse.ProtoReflect.Descriptor instead.
+func (*ListProxyHostsResponse) Descriptor() ([]byte, []int) {
+	return file_apps_apps_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListProxyHostsResponse) GetProxyHosts() []*ProxyHost {
+	if x != nil {
+		return x.ProxyHosts
+	}
+	return nil
+}
+
+func (x *ListProxyHostsResponse) GetDiscoveryError() string {
+	if x != nil {
+		return x.DiscoveryError
+	}
+	return ""
+}
+
+// A Proxy Host: an nginx server block that forwards to an upstream.
+type ProxyHost struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Where the block starts.
+	File string `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	Line int64  `protobuf:"varint,2,opt,name=line,proto3" json:"line,omitempty"`
+	// As written; the first is the App's key.
+	ServerNames []string `protobuf:"bytes,3,rep,name=server_names,json=serverNames,proto3" json:"server_names,omitempty"`
+	// The proxy_pass of location "/", else of the first location with one,
+	// as written, e.g. "http://grafana".
+	Upstream string `protobuf:"bytes,4,opt,name=upstream,proto3" json:"upstream,omitempty"`
+	// The servers of the upstream block the proxy_pass names; empty when it
+	// names none.
+	UpstreamServers []string `protobuf:"bytes,5,rep,name=upstream_servers,json=upstreamServers,proto3" json:"upstream_servers,omitempty"`
+	// The App the block yields, as ListApps lists it; unset for a block that
+	// yields none (a catch-all, or a wildcard or regex first server_name).
+	App *App `protobuf:"bytes,6,opt,name=app,proto3" json:"app,omitempty"`
+	// What looks wrong, in this order.
+	Warnings      []ProxyHostWarning `protobuf:"varint,7,rep,packed,name=warnings,proto3,enum=ddash.apps.ProxyHostWarning" json:"warnings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ProxyHost) Reset() {
+	*x = ProxyHost{}
+	mi := &file_apps_apps_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProxyHost) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProxyHost) ProtoMessage() {}
+
+func (x *ProxyHost) ProtoReflect() protoreflect.Message {
+	mi := &file_apps_apps_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ProxyHost.ProtoReflect.Descriptor instead.
+func (*ProxyHost) Descriptor() ([]byte, []int) {
+	return file_apps_apps_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ProxyHost) GetFile() string {
+	if x != nil {
+		return x.File
+	}
+	return ""
+}
+
+func (x *ProxyHost) GetLine() int64 {
+	if x != nil {
+		return x.Line
+	}
+	return 0
+}
+
+func (x *ProxyHost) GetServerNames() []string {
+	if x != nil {
+		return x.ServerNames
+	}
+	return nil
+}
+
+func (x *ProxyHost) GetUpstream() string {
+	if x != nil {
+		return x.Upstream
+	}
+	return ""
+}
+
+func (x *ProxyHost) GetUpstreamServers() []string {
+	if x != nil {
+		return x.UpstreamServers
+	}
+	return nil
+}
+
+func (x *ProxyHost) GetApp() *App {
+	if x != nil {
+		return x.App
+	}
+	return nil
+}
+
+func (x *ProxyHost) GetWarnings() []ProxyHostWarning {
+	if x != nil {
+		return x.Warnings
+	}
+	return nil
+}
+
 var File_apps_apps_proto protoreflect.FileDescriptor
 
 const file_apps_apps_proto_rawDesc = "" +
@@ -1203,7 +1448,24 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\x11DeleteAppResponse\"\x16\n" +
 	"\x14ListWorkloadsRequest\"K\n" +
 	"\x15ListWorkloadsResponse\x122\n" +
-	"\tworkloads\x18\x01 \x03(\v2\x14.ddash.apps.WorkloadR\tworkloads2\xb5\x05\n" +
+	"\tworkloads\x18\x01 \x03(\v2\x14.ddash.apps.WorkloadR\tworkloads\"\x17\n" +
+	"\x15ListProxyHostsRequest\"y\n" +
+	"\x16ListProxyHostsResponse\x126\n" +
+	"\vproxy_hosts\x18\x01 \x03(\v2\x15.ddash.apps.ProxyHostR\n" +
+	"proxyHosts\x12'\n" +
+	"\x0fdiscovery_error\x18\x02 \x01(\tR\x0ediscoveryError\"\xfa\x01\n" +
+	"\tProxyHost\x12\x12\n" +
+	"\x04file\x18\x01 \x01(\tR\x04file\x12\x12\n" +
+	"\x04line\x18\x02 \x01(\x03R\x04line\x12!\n" +
+	"\fserver_names\x18\x03 \x03(\tR\vserverNames\x12\x1a\n" +
+	"\bupstream\x18\x04 \x01(\tR\bupstream\x12)\n" +
+	"\x10upstream_servers\x18\x05 \x03(\tR\x0fupstreamServers\x12!\n" +
+	"\x03app\x18\x06 \x01(\v2\x0f.ddash.apps.AppR\x03app\x128\n" +
+	"\bwarnings\x18\a \x03(\x0e2\x1c.ddash.apps.ProxyHostWarningR\bwarnings*y\n" +
+	"\x10ProxyHostWarning\x12\"\n" +
+	"\x1ePROXY_HOST_WARNING_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\x1ePROXY_HOST_WARNING_NO_WORKLOAD\x10\x01\x12\x1d\n" +
+	"\x19PROXY_HOST_WARNING_NO_TLS\x10\x022\x94\x06\n" +
 	"\vAppsService\x12K\n" +
 	"\bListApps\x12\x1b.ddash.apps.ListAppsRequest\x1a\x1c.ddash.apps.ListAppsResponse\"\x04\x8a\xb5\x18\x00\x12Q\n" +
 	"\n" +
@@ -1213,7 +1475,8 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\tCreateApp\x12\x1c.ddash.apps.CreateAppRequest\x1a\x1d.ddash.apps.CreateAppResponse\"\x04\x92\xb5\x18\x00\x12N\n" +
 	"\tUpdateApp\x12\x1c.ddash.apps.UpdateAppRequest\x1a\x1d.ddash.apps.UpdateAppResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
 	"\tDeleteApp\x12\x1c.ddash.apps.DeleteAppRequest\x1a\x1d.ddash.apps.DeleteAppResponse\"\x06\x92\xb5\x18\x02\b\x01\x12Z\n" +
-	"\rListWorkloads\x12 .ddash.apps.ListWorkloadsRequest\x1a!.ddash.apps.ListWorkloadsResponse\"\x04\x8a\xb5\x18\x00B:Z8github.com/itsKontra/ddash/components/apps/appspb;appspbb\x06proto3"
+	"\rListWorkloads\x12 .ddash.apps.ListWorkloadsRequest\x1a!.ddash.apps.ListWorkloadsResponse\"\x04\x8a\xb5\x18\x00\x12]\n" +
+	"\x0eListProxyHosts\x12!.ddash.apps.ListProxyHostsRequest\x1a\".ddash.apps.ListProxyHostsResponse\"\x04\x8a\xb5\x18\x00B:Z8github.com/itsKontra/ddash/components/apps/appspb;appspbb\x06proto3"
 
 var (
 	file_apps_apps_proto_rawDescOnce sync.Once
@@ -1227,65 +1490,75 @@ func file_apps_apps_proto_rawDescGZIP() []byte {
 	return file_apps_apps_proto_rawDescData
 }
 
-var file_apps_apps_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_apps_apps_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_apps_apps_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_apps_apps_proto_goTypes = []any{
-	(*AppsConfig)(nil),            // 0: ddash.apps.AppsConfig
-	(*App)(nil),                   // 1: ddash.apps.App
-	(*Workload)(nil),              // 2: ddash.apps.Workload
-	(*Overlay)(nil),               // 3: ddash.apps.Overlay
-	(*ManualApp)(nil),             // 4: ddash.apps.ManualApp
-	(*ListAppsRequest)(nil),       // 5: ddash.apps.ListAppsRequest
-	(*ListAppsResponse)(nil),      // 6: ddash.apps.ListAppsResponse
-	(*SetOverlayRequest)(nil),     // 7: ddash.apps.SetOverlayRequest
-	(*SetOverlayResponse)(nil),    // 8: ddash.apps.SetOverlayResponse
-	(*AttachOverlayRequest)(nil),  // 9: ddash.apps.AttachOverlayRequest
-	(*AttachOverlayResponse)(nil), // 10: ddash.apps.AttachOverlayResponse
-	(*DeleteOverlayRequest)(nil),  // 11: ddash.apps.DeleteOverlayRequest
-	(*DeleteOverlayResponse)(nil), // 12: ddash.apps.DeleteOverlayResponse
-	(*CreateAppRequest)(nil),      // 13: ddash.apps.CreateAppRequest
-	(*CreateAppResponse)(nil),     // 14: ddash.apps.CreateAppResponse
-	(*UpdateAppRequest)(nil),      // 15: ddash.apps.UpdateAppRequest
-	(*UpdateAppResponse)(nil),     // 16: ddash.apps.UpdateAppResponse
-	(*DeleteAppRequest)(nil),      // 17: ddash.apps.DeleteAppRequest
-	(*DeleteAppResponse)(nil),     // 18: ddash.apps.DeleteAppResponse
-	(*ListWorkloadsRequest)(nil),  // 19: ddash.apps.ListWorkloadsRequest
-	(*ListWorkloadsResponse)(nil), // 20: ddash.apps.ListWorkloadsResponse
-	(*workload.WorkloadRef)(nil),  // 21: ddash.workload.WorkloadRef
+	(ProxyHostWarning)(0),          // 0: ddash.apps.ProxyHostWarning
+	(*AppsConfig)(nil),             // 1: ddash.apps.AppsConfig
+	(*App)(nil),                    // 2: ddash.apps.App
+	(*Workload)(nil),               // 3: ddash.apps.Workload
+	(*Overlay)(nil),                // 4: ddash.apps.Overlay
+	(*ManualApp)(nil),              // 5: ddash.apps.ManualApp
+	(*ListAppsRequest)(nil),        // 6: ddash.apps.ListAppsRequest
+	(*ListAppsResponse)(nil),       // 7: ddash.apps.ListAppsResponse
+	(*SetOverlayRequest)(nil),      // 8: ddash.apps.SetOverlayRequest
+	(*SetOverlayResponse)(nil),     // 9: ddash.apps.SetOverlayResponse
+	(*AttachOverlayRequest)(nil),   // 10: ddash.apps.AttachOverlayRequest
+	(*AttachOverlayResponse)(nil),  // 11: ddash.apps.AttachOverlayResponse
+	(*DeleteOverlayRequest)(nil),   // 12: ddash.apps.DeleteOverlayRequest
+	(*DeleteOverlayResponse)(nil),  // 13: ddash.apps.DeleteOverlayResponse
+	(*CreateAppRequest)(nil),       // 14: ddash.apps.CreateAppRequest
+	(*CreateAppResponse)(nil),      // 15: ddash.apps.CreateAppResponse
+	(*UpdateAppRequest)(nil),       // 16: ddash.apps.UpdateAppRequest
+	(*UpdateAppResponse)(nil),      // 17: ddash.apps.UpdateAppResponse
+	(*DeleteAppRequest)(nil),       // 18: ddash.apps.DeleteAppRequest
+	(*DeleteAppResponse)(nil),      // 19: ddash.apps.DeleteAppResponse
+	(*ListWorkloadsRequest)(nil),   // 20: ddash.apps.ListWorkloadsRequest
+	(*ListWorkloadsResponse)(nil),  // 21: ddash.apps.ListWorkloadsResponse
+	(*ListProxyHostsRequest)(nil),  // 22: ddash.apps.ListProxyHostsRequest
+	(*ListProxyHostsResponse)(nil), // 23: ddash.apps.ListProxyHostsResponse
+	(*ProxyHost)(nil),              // 24: ddash.apps.ProxyHost
+	(*workload.WorkloadRef)(nil),   // 25: ddash.workload.WorkloadRef
 }
 var file_apps_apps_proto_depIdxs = []int32{
-	3,  // 0: ddash.apps.App.overlay:type_name -> ddash.apps.Overlay
-	2,  // 1: ddash.apps.App.workload:type_name -> ddash.apps.Workload
-	21, // 2: ddash.apps.Workload.ref:type_name -> ddash.workload.WorkloadRef
-	21, // 3: ddash.apps.Overlay.workload:type_name -> ddash.workload.WorkloadRef
-	1,  // 4: ddash.apps.ListAppsResponse.apps:type_name -> ddash.apps.App
-	3,  // 5: ddash.apps.ListAppsResponse.unmatched:type_name -> ddash.apps.Overlay
-	3,  // 6: ddash.apps.SetOverlayRequest.overlay:type_name -> ddash.apps.Overlay
-	4,  // 7: ddash.apps.CreateAppRequest.app:type_name -> ddash.apps.ManualApp
-	1,  // 8: ddash.apps.CreateAppResponse.app:type_name -> ddash.apps.App
-	4,  // 9: ddash.apps.UpdateAppRequest.app:type_name -> ddash.apps.ManualApp
-	1,  // 10: ddash.apps.UpdateAppResponse.app:type_name -> ddash.apps.App
-	2,  // 11: ddash.apps.ListWorkloadsResponse.workloads:type_name -> ddash.apps.Workload
-	5,  // 12: ddash.apps.AppsService.ListApps:input_type -> ddash.apps.ListAppsRequest
-	7,  // 13: ddash.apps.AppsService.SetOverlay:input_type -> ddash.apps.SetOverlayRequest
-	9,  // 14: ddash.apps.AppsService.AttachOverlay:input_type -> ddash.apps.AttachOverlayRequest
-	11, // 15: ddash.apps.AppsService.DeleteOverlay:input_type -> ddash.apps.DeleteOverlayRequest
-	13, // 16: ddash.apps.AppsService.CreateApp:input_type -> ddash.apps.CreateAppRequest
-	15, // 17: ddash.apps.AppsService.UpdateApp:input_type -> ddash.apps.UpdateAppRequest
-	17, // 18: ddash.apps.AppsService.DeleteApp:input_type -> ddash.apps.DeleteAppRequest
-	19, // 19: ddash.apps.AppsService.ListWorkloads:input_type -> ddash.apps.ListWorkloadsRequest
-	6,  // 20: ddash.apps.AppsService.ListApps:output_type -> ddash.apps.ListAppsResponse
-	8,  // 21: ddash.apps.AppsService.SetOverlay:output_type -> ddash.apps.SetOverlayResponse
-	10, // 22: ddash.apps.AppsService.AttachOverlay:output_type -> ddash.apps.AttachOverlayResponse
-	12, // 23: ddash.apps.AppsService.DeleteOverlay:output_type -> ddash.apps.DeleteOverlayResponse
-	14, // 24: ddash.apps.AppsService.CreateApp:output_type -> ddash.apps.CreateAppResponse
-	16, // 25: ddash.apps.AppsService.UpdateApp:output_type -> ddash.apps.UpdateAppResponse
-	18, // 26: ddash.apps.AppsService.DeleteApp:output_type -> ddash.apps.DeleteAppResponse
-	20, // 27: ddash.apps.AppsService.ListWorkloads:output_type -> ddash.apps.ListWorkloadsResponse
-	20, // [20:28] is the sub-list for method output_type
-	12, // [12:20] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	4,  // 0: ddash.apps.App.overlay:type_name -> ddash.apps.Overlay
+	3,  // 1: ddash.apps.App.workload:type_name -> ddash.apps.Workload
+	25, // 2: ddash.apps.Workload.ref:type_name -> ddash.workload.WorkloadRef
+	25, // 3: ddash.apps.Overlay.workload:type_name -> ddash.workload.WorkloadRef
+	2,  // 4: ddash.apps.ListAppsResponse.apps:type_name -> ddash.apps.App
+	4,  // 5: ddash.apps.ListAppsResponse.unmatched:type_name -> ddash.apps.Overlay
+	4,  // 6: ddash.apps.SetOverlayRequest.overlay:type_name -> ddash.apps.Overlay
+	5,  // 7: ddash.apps.CreateAppRequest.app:type_name -> ddash.apps.ManualApp
+	2,  // 8: ddash.apps.CreateAppResponse.app:type_name -> ddash.apps.App
+	5,  // 9: ddash.apps.UpdateAppRequest.app:type_name -> ddash.apps.ManualApp
+	2,  // 10: ddash.apps.UpdateAppResponse.app:type_name -> ddash.apps.App
+	3,  // 11: ddash.apps.ListWorkloadsResponse.workloads:type_name -> ddash.apps.Workload
+	24, // 12: ddash.apps.ListProxyHostsResponse.proxy_hosts:type_name -> ddash.apps.ProxyHost
+	2,  // 13: ddash.apps.ProxyHost.app:type_name -> ddash.apps.App
+	0,  // 14: ddash.apps.ProxyHost.warnings:type_name -> ddash.apps.ProxyHostWarning
+	6,  // 15: ddash.apps.AppsService.ListApps:input_type -> ddash.apps.ListAppsRequest
+	8,  // 16: ddash.apps.AppsService.SetOverlay:input_type -> ddash.apps.SetOverlayRequest
+	10, // 17: ddash.apps.AppsService.AttachOverlay:input_type -> ddash.apps.AttachOverlayRequest
+	12, // 18: ddash.apps.AppsService.DeleteOverlay:input_type -> ddash.apps.DeleteOverlayRequest
+	14, // 19: ddash.apps.AppsService.CreateApp:input_type -> ddash.apps.CreateAppRequest
+	16, // 20: ddash.apps.AppsService.UpdateApp:input_type -> ddash.apps.UpdateAppRequest
+	18, // 21: ddash.apps.AppsService.DeleteApp:input_type -> ddash.apps.DeleteAppRequest
+	20, // 22: ddash.apps.AppsService.ListWorkloads:input_type -> ddash.apps.ListWorkloadsRequest
+	22, // 23: ddash.apps.AppsService.ListProxyHosts:input_type -> ddash.apps.ListProxyHostsRequest
+	7,  // 24: ddash.apps.AppsService.ListApps:output_type -> ddash.apps.ListAppsResponse
+	9,  // 25: ddash.apps.AppsService.SetOverlay:output_type -> ddash.apps.SetOverlayResponse
+	11, // 26: ddash.apps.AppsService.AttachOverlay:output_type -> ddash.apps.AttachOverlayResponse
+	13, // 27: ddash.apps.AppsService.DeleteOverlay:output_type -> ddash.apps.DeleteOverlayResponse
+	15, // 28: ddash.apps.AppsService.CreateApp:output_type -> ddash.apps.CreateAppResponse
+	17, // 29: ddash.apps.AppsService.UpdateApp:output_type -> ddash.apps.UpdateAppResponse
+	19, // 30: ddash.apps.AppsService.DeleteApp:output_type -> ddash.apps.DeleteAppResponse
+	21, // 31: ddash.apps.AppsService.ListWorkloads:output_type -> ddash.apps.ListWorkloadsResponse
+	23, // 32: ddash.apps.AppsService.ListProxyHosts:output_type -> ddash.apps.ListProxyHostsResponse
+	24, // [24:33] is the sub-list for method output_type
+	15, // [15:24] is the sub-list for method input_type
+	15, // [15:15] is the sub-list for extension type_name
+	15, // [15:15] is the sub-list for extension extendee
+	0,  // [0:15] is the sub-list for field type_name
 }
 
 func init() { file_apps_apps_proto_init() }
@@ -1298,13 +1571,14 @@ func file_apps_apps_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_apps_apps_proto_rawDesc), len(file_apps_apps_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   21,
+			NumEnums:      1,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_apps_apps_proto_goTypes,
 		DependencyIndexes: file_apps_apps_proto_depIdxs,
+		EnumInfos:         file_apps_apps_proto_enumTypes,
 		MessageInfos:      file_apps_apps_proto_msgTypes,
 	}.Build()
 	File_apps_apps_proto = out.File

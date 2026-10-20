@@ -73,7 +73,9 @@ type component struct {
 	wasRead  bool // a snapshot was read at least once
 	revision int64
 	found    []discovered
-	readErr  string
+	// hosts are the Proxy Hosts of the last snapshot read.
+	hosts   []proxyHost
+	readErr string
 	// checksErr is why the last SetAppChecks failed; empty once one worked.
 	checksErr string
 	// src is the last read of the Workload sources.
@@ -157,6 +159,7 @@ func (c *component) read(ctx context.Context) {
 	}
 	c.wasRead, c.revision = true, snap.GetRevision()
 	c.found = discover(snap)
+	c.hosts = proxyHostsOf(snap)
 }
 
 // discovered returns the discovered Apps and why the last read failed,

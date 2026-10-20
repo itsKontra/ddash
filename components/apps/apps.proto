@@ -50,6 +50,12 @@ service AppsService {
   rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
+  // ListProxyHosts returns every server block in nginx-config's snapshot
+  // that forwards to an upstream (some location has a proxy_pass), by first
+  // server_name, each with the App it yields and what looks wrong with it.
+  rpc ListProxyHosts(ListProxyHostsRequest) returns (ListProxyHostsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
 }
 
 // An App, as the Operator sees it.
@@ -180,4 +186,43 @@ message ListWorkloadsRequest {}
 
 message ListWorkloadsResponse {
   repeated Workload workloads = 1;
+}
+
+message ListProxyHostsRequest {}
+
+message ListProxyHostsResponse {
+  // By first server_name; blocks sharing one keep nginx's order.
+  repeated ProxyHost proxy_hosts = 1;
+  // Why nginx-config couldn't be read; the Proxy Hosts are then those of
+  // the last read. Empty when it could.
+  string discovery_error = 2;
+}
+
+// A Proxy Host: an nginx server block that forwards to an upstream.
+message ProxyHost {
+  // Where the block starts.
+  string file = 1;
+  int64 line = 2;
+  // As written; the first is the App's key.
+  repeated string server_names = 3;
+  // The proxy_pass of location "/", else of the first location with one,
+  // as written, e.g. "http://grafana".
+  string upstream = 4;
+  // The servers of the upstream block the proxy_pass names; empty when it
+  // names none.
+  repeated string upstream_servers = 5;
+  // The App the block yields, as ListApps lists it; unset for a block that
+  // yields none (a catch-all, or a wildcard or regex first server_name).
+  App app = 6;
+  // What looks wrong, in this order.
+  repeated ProxyHostWarning warnings = 7;
+}
+
+enum ProxyHostWarning {
+  PROXY_HOST_WARNING_UNSPECIFIED = 0;
+  // The App's upstream matches no Workload. Never while a Workload source
+  // can't be read, or without an App.
+  PROXY_HOST_WARNING_NO_WORKLOAD = 1;
+  // None of the block's listens has ssl.
+  PROXY_HOST_WARNING_NO_TLS = 2;
 }

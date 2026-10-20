@@ -22,14 +22,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AppsService_ListApps_FullMethodName      = "/ddash.apps.AppsService/ListApps"
-	AppsService_SetOverlay_FullMethodName    = "/ddash.apps.AppsService/SetOverlay"
-	AppsService_AttachOverlay_FullMethodName = "/ddash.apps.AppsService/AttachOverlay"
-	AppsService_DeleteOverlay_FullMethodName = "/ddash.apps.AppsService/DeleteOverlay"
-	AppsService_CreateApp_FullMethodName     = "/ddash.apps.AppsService/CreateApp"
-	AppsService_UpdateApp_FullMethodName     = "/ddash.apps.AppsService/UpdateApp"
-	AppsService_DeleteApp_FullMethodName     = "/ddash.apps.AppsService/DeleteApp"
-	AppsService_ListWorkloads_FullMethodName = "/ddash.apps.AppsService/ListWorkloads"
+	AppsService_ListApps_FullMethodName       = "/ddash.apps.AppsService/ListApps"
+	AppsService_SetOverlay_FullMethodName     = "/ddash.apps.AppsService/SetOverlay"
+	AppsService_AttachOverlay_FullMethodName  = "/ddash.apps.AppsService/AttachOverlay"
+	AppsService_DeleteOverlay_FullMethodName  = "/ddash.apps.AppsService/DeleteOverlay"
+	AppsService_CreateApp_FullMethodName      = "/ddash.apps.AppsService/CreateApp"
+	AppsService_UpdateApp_FullMethodName      = "/ddash.apps.AppsService/UpdateApp"
+	AppsService_DeleteApp_FullMethodName      = "/ddash.apps.AppsService/DeleteApp"
+	AppsService_ListWorkloads_FullMethodName  = "/ddash.apps.AppsService/ListWorkloads"
+	AppsService_ListProxyHosts_FullMethodName = "/ddash.apps.AppsService/ListProxyHosts"
 )
 
 // AppsServiceClient is the client API for AppsService service.
@@ -57,6 +58,10 @@ type AppsServiceClient interface {
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
 	ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error)
+	// ListProxyHosts returns every server block in nginx-config's snapshot
+	// that forwards to an upstream (some location has a proxy_pass), by first
+	// server_name, each with the App it yields and what looks wrong with it.
+	ListProxyHosts(ctx context.Context, in *ListProxyHostsRequest, opts ...grpc.CallOption) (*ListProxyHostsResponse, error)
 }
 
 type appsServiceClient struct {
@@ -147,6 +152,16 @@ func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloads
 	return out, nil
 }
 
+func (c *appsServiceClient) ListProxyHosts(ctx context.Context, in *ListProxyHostsRequest, opts ...grpc.CallOption) (*ListProxyHostsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListProxyHostsResponse)
+	err := c.cc.Invoke(ctx, AppsService_ListProxyHosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AppsServiceServer is the server API for AppsService service.
 // All implementations must embed UnimplementedAppsServiceServer
 // for forward compatibility.
@@ -172,6 +187,10 @@ type AppsServiceServer interface {
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
 	ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error)
+	// ListProxyHosts returns every server block in nginx-config's snapshot
+	// that forwards to an upstream (some location has a proxy_pass), by first
+	// server_name, each with the App it yields and what looks wrong with it.
+	ListProxyHosts(context.Context, *ListProxyHostsRequest) (*ListProxyHostsResponse, error)
 	mustEmbedUnimplementedAppsServiceServer()
 }
 
@@ -205,6 +224,9 @@ func (UnimplementedAppsServiceServer) DeleteApp(context.Context, *DeleteAppReque
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
+}
+func (UnimplementedAppsServiceServer) ListProxyHosts(context.Context, *ListProxyHostsRequest) (*ListProxyHostsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListProxyHosts not implemented")
 }
 func (UnimplementedAppsServiceServer) mustEmbedUnimplementedAppsServiceServer() {}
 func (UnimplementedAppsServiceServer) testEmbeddedByValue()                     {}
@@ -371,6 +393,24 @@ func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AppsService_ListProxyHosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListProxyHostsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).ListProxyHosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_ListProxyHosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).ListProxyHosts(ctx, req.(*ListProxyHostsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AppsService_ServiceDesc is the grpc.ServiceDesc for AppsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -409,6 +449,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWorkloads",
 			Handler:    _AppsService_ListWorkloads_Handler,
+		},
+		{
+			MethodName: "ListProxyHosts",
+			Handler:    _AppsService_ListProxyHosts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

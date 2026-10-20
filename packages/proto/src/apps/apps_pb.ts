@@ -5,8 +5,8 @@
 // apps turns every nginx Proxy Host into an App, adds the Operator's manual
 // Apps, and keeps the Operator's display settings (the overlay) for both.
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { WorkloadRef } from "../ddash/workload/workload_pb";
 import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file apps/apps.proto.
  */
 export const file_apps_apps: GenFile = /*@__PURE__*/
-  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLdAQoDQXBwEgoKAmlkGAEgASgJEhMKC3NlcnZlcl9uYW1lGAIgASgJEgwKBG5hbWUYAyABKAkSCwoDdXJsGAQgASgJEg8KB2FsaWFzZXMYBSADKAkSDAoEaWNvbhgGIAEoCRINCgVncm91cBgHIAEoCRIOCgZoaWRkZW4YCCABKAgSDgoGbWFudWFsGAkgASgIEiQKB292ZXJsYXkYCiABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSJgoId29ya2xvYWQYCyABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkImMKCFdvcmtsb2FkEigKA3JlZhgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIb3ZlcnJpZGUYBCABKAgiiAEKB092ZXJsYXkSEwoLc2VydmVyX25hbWUYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJEg4KBmhpZGRlbhgFIAEoCBItCgh3b3JrbG9hZBgGIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIkMKCU1hbnVhbEFwcBIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJIhEKD0xpc3RBcHBzUmVxdWVzdCJyChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBImCgl1bm1hdGNoZWQYAiADKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSFwoPZGlzY292ZXJ5X2Vycm9yGAMgASgJIjkKEVNldE92ZXJsYXlSZXF1ZXN0EiQKB292ZXJsYXkYASABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkiFAoSU2V0T3ZlcmxheVJlc3BvbnNlIjcKFEF0dGFjaE92ZXJsYXlSZXF1ZXN0EhMKC3NlcnZlcl9uYW1lGAEgASgJEgoKAnRvGAIgASgJIhcKFUF0dGFjaE92ZXJsYXlSZXNwb25zZSIrChREZWxldGVPdmVybGF5UmVxdWVzdBITCgtzZXJ2ZXJfbmFtZRgBIAEoCSIXChVEZWxldGVPdmVybGF5UmVzcG9uc2UiNgoQQ3JlYXRlQXBwUmVxdWVzdBIiCgNhcHAYASABKAsyFS5kZGFzaC5hcHBzLk1hbnVhbEFwcCIxChFDcmVhdGVBcHBSZXNwb25zZRIcCgNhcHAYASABKAsyDy5kZGFzaC5hcHBzLkFwcCJCChBVcGRhdGVBcHBSZXF1ZXN0EgoKAmlkGAEgASgJEiIKA2FwcBgCIAEoCzIVLmRkYXNoLmFwcHMuTWFudWFsQXBwIjEKEVVwZGF0ZUFwcFJlc3BvbnNlEhwKA2FwcBgBIAEoCzIPLmRkYXNoLmFwcHMuQXBwIh4KEERlbGV0ZUFwcFJlcXVlc3QSCgoCaWQYASABKAkiEwoRRGVsZXRlQXBwUmVzcG9uc2UiFgoUTGlzdFdvcmtsb2Fkc1JlcXVlc3QiQAoVTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlEicKCXdvcmtsb2FkcxgBIAMoCzIULmRkYXNoLmFwcHMuV29ya2xvYWQytQUKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASUQoKU2V0T3ZlcmxheRIdLmRkYXNoLmFwcHMuU2V0T3ZlcmxheVJlcXVlc3QaHi5kZGFzaC5hcHBzLlNldE92ZXJsYXlSZXNwb25zZSIEkrUYABJaCg1BdHRhY2hPdmVybGF5EiAuZGRhc2guYXBwcy5BdHRhY2hPdmVybGF5UmVxdWVzdBohLmRkYXNoLmFwcHMuQXR0YWNoT3ZlcmxheVJlc3BvbnNlIgSStRgAElwKDURlbGV0ZU92ZXJsYXkSIC5kZGFzaC5hcHBzLkRlbGV0ZU92ZXJsYXlSZXF1ZXN0GiEuZGRhc2guYXBwcy5EZWxldGVPdmVybGF5UmVzcG9uc2UiBpK1GAIIARJOCglDcmVhdGVBcHASHC5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlcXVlc3QaHS5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlc3BvbnNlIgSStRgAEk4KCVVwZGF0ZUFwcBIcLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVxdWVzdBodLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVzcG9uc2UiBJK1GAASUAoJRGVsZXRlQXBwEhwuZGRhc2guYXBwcy5EZWxldGVBcHBSZXF1ZXN0Gh0uZGRhc2guYXBwcy5EZWxldGVBcHBSZXNwb25zZSIGkrUYAggBEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GABCOlo4Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9hcHBzL2FwcHNwYjthcHBzcGJiBnByb3RvMw", [file_ddash_options, file_ddash_workload_workload]);
+  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLdAQoDQXBwEgoKAmlkGAEgASgJEhMKC3NlcnZlcl9uYW1lGAIgASgJEgwKBG5hbWUYAyABKAkSCwoDdXJsGAQgASgJEg8KB2FsaWFzZXMYBSADKAkSDAoEaWNvbhgGIAEoCRINCgVncm91cBgHIAEoCRIOCgZoaWRkZW4YCCABKAgSDgoGbWFudWFsGAkgASgIEiQKB292ZXJsYXkYCiABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSJgoId29ya2xvYWQYCyABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkImMKCFdvcmtsb2FkEigKA3JlZhgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIb3ZlcnJpZGUYBCABKAgiiAEKB092ZXJsYXkSEwoLc2VydmVyX25hbWUYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJEg4KBmhpZGRlbhgFIAEoCBItCgh3b3JrbG9hZBgGIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIkMKCU1hbnVhbEFwcBIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJIhEKD0xpc3RBcHBzUmVxdWVzdCJyChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBImCgl1bm1hdGNoZWQYAiADKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSFwoPZGlzY292ZXJ5X2Vycm9yGAMgASgJIjkKEVNldE92ZXJsYXlSZXF1ZXN0EiQKB292ZXJsYXkYASABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkiFAoSU2V0T3ZlcmxheVJlc3BvbnNlIjcKFEF0dGFjaE92ZXJsYXlSZXF1ZXN0EhMKC3NlcnZlcl9uYW1lGAEgASgJEgoKAnRvGAIgASgJIhcKFUF0dGFjaE92ZXJsYXlSZXNwb25zZSIrChREZWxldGVPdmVybGF5UmVxdWVzdBITCgtzZXJ2ZXJfbmFtZRgBIAEoCSIXChVEZWxldGVPdmVybGF5UmVzcG9uc2UiNgoQQ3JlYXRlQXBwUmVxdWVzdBIiCgNhcHAYASABKAsyFS5kZGFzaC5hcHBzLk1hbnVhbEFwcCIxChFDcmVhdGVBcHBSZXNwb25zZRIcCgNhcHAYASABKAsyDy5kZGFzaC5hcHBzLkFwcCJCChBVcGRhdGVBcHBSZXF1ZXN0EgoKAmlkGAEgASgJEiIKA2FwcBgCIAEoCzIVLmRkYXNoLmFwcHMuTWFudWFsQXBwIjEKEVVwZGF0ZUFwcFJlc3BvbnNlEhwKA2FwcBgBIAEoCzIPLmRkYXNoLmFwcHMuQXBwIh4KEERlbGV0ZUFwcFJlcXVlc3QSCgoCaWQYASABKAkiEwoRRGVsZXRlQXBwUmVzcG9uc2UiFgoUTGlzdFdvcmtsb2Fkc1JlcXVlc3QiQAoVTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlEicKCXdvcmtsb2FkcxgBIAMoCzIULmRkYXNoLmFwcHMuV29ya2xvYWQiFwoVTGlzdFByb3h5SG9zdHNSZXF1ZXN0Il0KFkxpc3RQcm94eUhvc3RzUmVzcG9uc2USKgoLcHJveHlfaG9zdHMYASADKAsyFS5kZGFzaC5hcHBzLlByb3h5SG9zdBIXCg9kaXNjb3ZlcnlfZXJyb3IYAiABKAkitwEKCVByb3h5SG9zdBIMCgRmaWxlGAEgASgJEgwKBGxpbmUYAiABKAMSFAoMc2VydmVyX25hbWVzGAMgAygJEhAKCHVwc3RyZWFtGAQgASgJEhgKEHVwc3RyZWFtX3NlcnZlcnMYBSADKAkSHAoDYXBwGAYgASgLMg8uZGRhc2guYXBwcy5BcHASLgoId2FybmluZ3MYByADKA4yHC5kZGFzaC5hcHBzLlByb3h5SG9zdFdhcm5pbmcqeQoQUHJveHlIb3N0V2FybmluZxIiCh5QUk9YWV9IT1NUX1dBUk5JTkdfVU5TUEVDSUZJRUQQABIiCh5QUk9YWV9IT1NUX1dBUk5JTkdfTk9fV09SS0xPQUQQARIdChlQUk9YWV9IT1NUX1dBUk5JTkdfTk9fVExTEAIylAYKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASUQoKU2V0T3ZlcmxheRIdLmRkYXNoLmFwcHMuU2V0T3ZlcmxheVJlcXVlc3QaHi5kZGFzaC5hcHBzLlNldE92ZXJsYXlSZXNwb25zZSIEkrUYABJaCg1BdHRhY2hPdmVybGF5EiAuZGRhc2guYXBwcy5BdHRhY2hPdmVybGF5UmVxdWVzdBohLmRkYXNoLmFwcHMuQXR0YWNoT3ZlcmxheVJlc3BvbnNlIgSStRgAElwKDURlbGV0ZU92ZXJsYXkSIC5kZGFzaC5hcHBzLkRlbGV0ZU92ZXJsYXlSZXF1ZXN0GiEuZGRhc2guYXBwcy5EZWxldGVPdmVybGF5UmVzcG9uc2UiBpK1GAIIARJOCglDcmVhdGVBcHASHC5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlcXVlc3QaHS5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlc3BvbnNlIgSStRgAEk4KCVVwZGF0ZUFwcBIcLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVxdWVzdBodLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVzcG9uc2UiBJK1GAASUAoJRGVsZXRlQXBwEhwuZGRhc2guYXBwcy5EZWxldGVBcHBSZXF1ZXN0Gh0uZGRhc2guYXBwcy5EZWxldGVBcHBSZXNwb25zZSIGkrUYAggBEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GAASXQoOTGlzdFByb3h5SG9zdHMSIS5kZGFzaC5hcHBzLkxpc3RQcm94eUhvc3RzUmVxdWVzdBoiLmRkYXNoLmFwcHMuTGlzdFByb3h5SG9zdHNSZXNwb25zZSIEirUYAEI6WjhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FwcHMvYXBwc3BiO2FwcHNwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload]);
 
 /**
  * apps has nothing to configure: Apps come from nginx-config's snapshot.
@@ -537,6 +537,141 @@ export const ListWorkloadsResponseSchema: GenMessage<ListWorkloadsResponse> = /*
   messageDesc(file_apps_apps, 20);
 
 /**
+ * @generated from message ddash.apps.ListProxyHostsRequest
+ */
+export type ListProxyHostsRequest = Message<"ddash.apps.ListProxyHostsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.apps.ListProxyHostsRequest.
+ * Use `create(ListProxyHostsRequestSchema)` to create a new message.
+ */
+export const ListProxyHostsRequestSchema: GenMessage<ListProxyHostsRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 21);
+
+/**
+ * @generated from message ddash.apps.ListProxyHostsResponse
+ */
+export type ListProxyHostsResponse = Message<"ddash.apps.ListProxyHostsResponse"> & {
+  /**
+   * By first server_name; blocks sharing one keep nginx's order.
+   *
+   * @generated from field: repeated ddash.apps.ProxyHost proxy_hosts = 1;
+   */
+  proxyHosts: ProxyHost[];
+
+  /**
+   * Why nginx-config couldn't be read; the Proxy Hosts are then those of
+   * the last read. Empty when it could.
+   *
+   * @generated from field: string discovery_error = 2;
+   */
+  discoveryError: string;
+};
+
+/**
+ * Describes the message ddash.apps.ListProxyHostsResponse.
+ * Use `create(ListProxyHostsResponseSchema)` to create a new message.
+ */
+export const ListProxyHostsResponseSchema: GenMessage<ListProxyHostsResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 22);
+
+/**
+ * A Proxy Host: an nginx server block that forwards to an upstream.
+ *
+ * @generated from message ddash.apps.ProxyHost
+ */
+export type ProxyHost = Message<"ddash.apps.ProxyHost"> & {
+  /**
+   * Where the block starts.
+   *
+   * @generated from field: string file = 1;
+   */
+  file: string;
+
+  /**
+   * @generated from field: int64 line = 2;
+   */
+  line: bigint;
+
+  /**
+   * As written; the first is the App's key.
+   *
+   * @generated from field: repeated string server_names = 3;
+   */
+  serverNames: string[];
+
+  /**
+   * The proxy_pass of location "/", else of the first location with one,
+   * as written, e.g. "http://grafana".
+   *
+   * @generated from field: string upstream = 4;
+   */
+  upstream: string;
+
+  /**
+   * The servers of the upstream block the proxy_pass names; empty when it
+   * names none.
+   *
+   * @generated from field: repeated string upstream_servers = 5;
+   */
+  upstreamServers: string[];
+
+  /**
+   * The App the block yields, as ListApps lists it; unset for a block that
+   * yields none (a catch-all, or a wildcard or regex first server_name).
+   *
+   * @generated from field: ddash.apps.App app = 6;
+   */
+  app?: App | undefined;
+
+  /**
+   * What looks wrong, in this order.
+   *
+   * @generated from field: repeated ddash.apps.ProxyHostWarning warnings = 7;
+   */
+  warnings: ProxyHostWarning[];
+};
+
+/**
+ * Describes the message ddash.apps.ProxyHost.
+ * Use `create(ProxyHostSchema)` to create a new message.
+ */
+export const ProxyHostSchema: GenMessage<ProxyHost> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 23);
+
+/**
+ * @generated from enum ddash.apps.ProxyHostWarning
+ */
+export enum ProxyHostWarning {
+  /**
+   * @generated from enum value: PROXY_HOST_WARNING_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The App's upstream matches no Workload. Never while a Workload source
+   * can't be read, or without an App.
+   *
+   * @generated from enum value: PROXY_HOST_WARNING_NO_WORKLOAD = 1;
+   */
+  NO_WORKLOAD = 1,
+
+  /**
+   * None of the block's listens has ssl.
+   *
+   * @generated from enum value: PROXY_HOST_WARNING_NO_TLS = 2;
+   */
+  NO_TLS = 2,
+}
+
+/**
+ * Describes the enum ddash.apps.ProxyHostWarning.
+ */
+export const ProxyHostWarningSchema: GenEnum<ProxyHostWarning> = /*@__PURE__*/
+  enumDesc(file_apps_apps, 0);
+
+/**
  * @generated from service ddash.apps.AppsService
  */
 export const AppsService: GenService<{
@@ -624,6 +759,18 @@ export const AppsService: GenService<{
     methodKind: "unary";
     input: typeof ListWorkloadsRequestSchema;
     output: typeof ListWorkloadsResponseSchema;
+  },
+  /**
+   * ListProxyHosts returns every server block in nginx-config's snapshot
+   * that forwards to an upstream (some location has a proxy_pass), by first
+   * server_name, each with the App it yields and what looks wrong with it.
+   *
+   * @generated from rpc ddash.apps.AppsService.ListProxyHosts
+   */
+  listProxyHosts: {
+    methodKind: "unary";
+    input: typeof ListProxyHostsRequestSchema;
+    output: typeof ListProxyHostsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_apps_apps, 0);

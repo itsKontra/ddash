@@ -1,37 +1,47 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { usePluginLink, useQuery } from "@ddash/plugin";
-import { AppsService, type Workload } from "@ddash/proto/apps/apps_pb";
+import { AppsService, ProxyHostWarning, type ProxyHost, type Workload } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, type Check } from "@ddash/proto/checks/checks_pb";
 import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
 import { StatusDot } from "@ddash/ui";
 import { certWarning, checkStatus } from "./check-status";
-import { describe, proxyHosts, type ProxyHost } from "./proxy-hosts";
-import { useSnapshot } from "./snapshot";
 
 /**
- * The Proxy Hosts joined with apps' Apps and checks' Checks. Reads only:
- * the Check status and certificate come from the App's Check, so ddash
- * probes nothing for this Page.
+ * apps' Proxy Hosts with their Apps' Checks. Reads only: the Check status
+ * and certificate come from the App's Check, so ddash probes nothing for
+ * this Page.
  */
 function useProxyHosts() {
-  const { snapshot } = useSnapshot();
-  const apps = useQuery(AppsService.method.listApps, {});
+  const hosts = useQuery(AppsService.method.listProxyHosts, {});
   const checks = useQuery(ChecksService.method.listChecks, {});
   const byApp = checks.data && new Map(checks.data.checks.filter((c) => c.appId).map((c) => [c.appId, c]));
   return {
-    hosts: snapshot && proxyHosts(snapshot, apps.data?.apps, byApp),
-    appsError: apps.data ? undefined : apps.error,
+    hosts: hosts.data?.proxyHosts,
+    byApp,
+    appsError: hosts.data ? undefined : hosts.error,
     checksError: checks.data ? undefined : checks.error,
   };
 }
+
+/** A warning on the row's dot. */
+const short: Record<ProxyHostWarning, string> = {
+  [ProxyHostWarning.UNSPECIFIED]: "",
+  [ProxyHostWarning.NO_WORKLOAD]: "upstream matches no Workload",
+  [ProxyHostWarning.NO_TLS]: "no TLS",
+};
+
+/** A warning as the Warnings list says it, e.g. "upstream http://198.18.2.99 matches no Workload". */
+const describe = (host: ProxyHost, w: ProxyHostWarning) => (w === ProxyHostWarning.NO_WORKLOAD ? `upstream ${host.upstream} matches no Workload` : short[w]);
+
+const keyOf = (h: ProxyHost) => `${h.file}:${h.line}:${h.serverNames[0] ?? ""}`;
 
 const cell = "px-3 py-2 align-top";
 
 /** The Page's Warnings and Proxy Hosts sections. */
 export function ProxyHosts() {
-  const { hosts, appsError, checksError } = useProxyHosts();
-  if (!hosts) return null;
-  const warned = hosts.filter((h) => h.warnings.length);
+  const { hosts, byApp, appsError, checksError } = useProxyHosts();
+  if (!hosts && !appsError) return null;
+  const warned = (hosts ?? []).filter((h) => h.warnings.length);
   return (
     <>
       {warned.length > 0 && (
@@ -42,10 +52,10 @@ export function ProxyHosts() {
           <ul className="flex flex-col gap-1 text-sm">
             {warned.flatMap((h) =>
               h.warnings.map((w) => (
-                <li key={`${h.key} ${w}`} className="flex items-center gap-2">
+                <li key={`${keyOf(h)} ${w}`} className="flex items-center gap-2">
                   <StatusDot tone="warn" label="warning" />
                   <span>
-                    <span className="font-medium">{h.name}</span>: {describe(h, w)}
+                    <span className="font-medium">{h.serverNames[0]}</span>: {describe(h, w)}
                   </span>
                 </li>
               )),
@@ -66,7 +76,7 @@ export function ProxyHosts() {
               </p>
             ))}
         </header>
-        {hosts.length === 0 ? (
+        {!hosts ? null : hosts.length === 0 ? (
           <p className="px-4 py-3 text-sm text-muted-foreground">No server block forwards to an upstream.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -82,7 +92,7 @@ export function ProxyHosts() {
               </thead>
               <tbody>
                 {hosts.map((h) => (
-                  <Row key={h.key} host={h} />
+                  <Row key={keyOf(h)} host={h} check={h.app && byApp ? (byApp.get(h.app.id) ?? null) : undefined} />
                 ))}
               </tbody>
             </table>
@@ -93,13 +103,15 @@ export function ProxyHosts() {
   );
 }
 
-function Row({ host }: { host: ProxyHost }) {
-  const [first, ...more] = host.server.serverNames;
+/** A Proxy Host's row; check is undefined without an App or while checks can't answer, null when the App has none. */
+function Row({ host, check }: { host: ProxyHost; check: Check | null | undefined }) {
+  const [first, ...more] = host.serverNames;
+  const warnings = host.warnings.map((w) => short[w]);
   return (
-    <tr aria-label={host.name} className="border-b border-border last:border-b-0">
+    <tr aria-label={first} className="border-b border-border last:border-b-0">
       <th scope="row" className={`${cell} pl-4 text-left font-normal`}>
         <span className="flex items-center gap-2 font-medium">
-          {host.warnings.length > 0 && <StatusDot tone="warn" label={host.warnings.join("; ")} />}
+          {warnings.length > 0 && <StatusDot tone="warn" label={warnings.join("; ")} />}
           {first}
         </span>
         {more.map((n) => (
@@ -114,12 +126,12 @@ function Row({ host }: { host: ProxyHost }) {
       <td aria-label="App" className={cell}>
         <AppName host={host} />
       </td>
-      <td className={cell}>{host.app && <CheckLine check={host.check} />}</td>
+      <td className={cell}>{host.app && <CheckLine check={check} />}</td>
       <td aria-label="Workload" className={`${cell} text-muted-foreground`}>
         {host.app ? host.app.workload ? <WorkloadName workload={host.app.workload} /> : "none" : "—"}
       </td>
       <td aria-label="Certificate" className={`${cell} pr-4 text-muted-foreground`}>
-        <Certificate check={host.check} />
+        <Certificate check={check} />
       </td>
     </tr>
   );
@@ -127,8 +139,7 @@ function Row({ host }: { host: ProxyHost }) {
 
 function AppName({ host }: { host: ProxyHost }) {
   const href = usePluginLink("apps");
-  if (host.app === undefined) return <span className="text-muted-foreground">—</span>;
-  if (host.app === null) return <span className="text-muted-foreground">no App</span>;
+  if (!host.app) return <span className="text-muted-foreground">no App</span>;
   return href ? (
     <a href={href} className="hover:underline">
       {host.app.name}

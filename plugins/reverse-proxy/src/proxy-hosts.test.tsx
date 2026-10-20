@@ -8,81 +8,52 @@ const day = 86_400_000;
 const in5Days = new Date(Date.now() + 5 * day + 3_600_000).toISOString();
 const in60Days = "2027-01-10T12:00:00Z";
 
-// GetSnapshot's answer (Connect JSON): three Proxy Hosts, jellyfin's
-// port-80 redirect and nginx's catch-all, which forward nothing.
-const snapshot = {
-  snapshot: {
-    revision: "7",
-    readAt: "2026-10-20T07:15:00Z",
-    servers: [
-      {
-        file: "/etc/nginx/conf.d/jellyfin.conf",
-        line: "1",
-        serverNames: ["jellyfin.home.example"],
-        listens: [{ address: "80" }],
-        return: "301 https://$host$request_uri",
-      },
-      {
-        file: "/etc/nginx/conf.d/jellyfin.conf",
-        line: "6",
-        serverNames: ["jellyfin.home.example", "media.home.example"],
-        listens: [{ address: "443", ssl: true }, { address: "198.18.2.5:443", ssl: true }],
-        sslCertificate: "/etc/letsencrypt/live/jellyfin.home.example/fullchain.pem",
-        locations: [
-          { path: "/socket", proxyPass: "http://198.18.2.20:8097" },
-          { path: "/", proxyPass: "http://198.18.2.20:8096" },
-        ],
-      },
-      {
-        file: "/etc/nginx/conf.d/grafana.conf",
-        line: "5",
-        serverNames: ["grafana.home.example"],
-        listens: [{ address: "443", ssl: true }],
-        sslCertificate: "/etc/letsencrypt/live/grafana.home.example/fullchain.pem",
-        locations: [{ path: "/", proxyPass: "http://grafana" }],
-      },
-      {
-        file: "/etc/nginx/conf.d/printer.conf",
-        line: "1",
-        serverNames: ["printer.home.example"],
-        listens: [{ address: "8080" }],
-        locations: [{ path: "/", proxyPass: "http://198.18.2.99" }],
-      },
-      {
-        file: "/etc/nginx/conf.d/default.conf",
-        line: "1",
-        serverNames: ["_"],
-        listens: [{ address: "443", ssl: true, defaultServer: true }],
-        return: "444",
-      },
-    ],
-    upstreams: [{ name: "grafana", servers: ["198.18.2.30:3000", "198.18.2.31:3000"] }],
-  },
-};
-
-// ListApps' answer: Jellyfin on a container, Grafana on an LXC, the
-// Printer on nothing, and a manual App that is no Proxy Host.
-const apps = {
-  apps: [
+// ListProxyHosts' answer (Connect JSON): three Proxy Hosts, by domain, as
+// apps joins them with their Apps: Grafana on an LXC behind an upstream
+// block, Jellyfin on a container, the Printer on nothing and without TLS.
+const proxyHosts = {
+  proxyHosts: [
     {
-      id: "proxy:grafana.home.example",
-      serverName: "grafana.home.example",
-      name: "Grafana",
-      url: "https://grafana.home.example",
-      workload: { ref: { kind: "KIND_LXC", host: "pve", id: "120" }, name: "grafana", state: "running" },
+      file: "/etc/nginx/conf.d/grafana.conf",
+      line: "5",
+      serverNames: ["grafana.home.example"],
+      upstream: "http://grafana",
+      upstreamServers: ["198.18.2.30:3000", "198.18.2.31:3000"],
+      app: {
+        id: "proxy:grafana.home.example",
+        serverName: "grafana.home.example",
+        name: "Grafana",
+        url: "https://grafana.home.example",
+        workload: { ref: { kind: "KIND_LXC", host: "pve", id: "120" }, name: "grafana", state: "running" },
+      },
     },
     {
-      id: "proxy:jellyfin.home.example",
-      serverName: "jellyfin.home.example",
-      name: "Jellyfin",
-      url: "https://jellyfin.home.example",
-      aliases: ["media.home.example"],
-      workload: { ref: { kind: "KIND_DOCKER", host: "media", id: "jellyfin" }, name: "jellyfin", state: "running" },
+      file: "/etc/nginx/conf.d/jellyfin.conf",
+      line: "6",
+      serverNames: ["jellyfin.home.example", "media.home.example"],
+      upstream: "http://198.18.2.20:8096",
+      app: {
+        id: "proxy:jellyfin.home.example",
+        serverName: "jellyfin.home.example",
+        name: "Jellyfin",
+        url: "https://jellyfin.home.example",
+        aliases: ["media.home.example"],
+        workload: { ref: { kind: "KIND_DOCKER", host: "media", id: "jellyfin" }, name: "jellyfin", state: "running" },
+      },
     },
-    { id: "manual:00aa11bb22cc33dd", name: "pfSense", url: "https://198.18.0.1", manual: true },
-    { id: "proxy:printer.home.example", serverName: "printer.home.example", name: "Printer", url: "http://printer.home.example:8080" },
+    {
+      file: "/etc/nginx/conf.d/printer.conf",
+      line: "1",
+      serverNames: ["printer.home.example"],
+      upstream: "http://198.18.2.99",
+      app: { id: "proxy:printer.home.example", serverName: "printer.home.example", name: "Printer", url: "http://printer.home.example:8080" },
+      warnings: ["PROXY_HOST_WARNING_NO_WORKLOAD", "PROXY_HOST_WARNING_NO_TLS"],
+    },
   ],
 };
+
+// GetSnapshot's answer: the config loads.
+const snapshot = { snapshot: { revision: "7", readAt: "2026-10-20T07:15:00Z" } };
 
 const appCheck = (id: number, appId: string, state: string, extra: Record<string, unknown> = {}) => ({
   id: String(id),
@@ -105,7 +76,7 @@ const checks = {
 
 const answers: Answers = {
   GetSnapshot: () => Response.json(snapshot),
-  ListApps: () => Response.json(apps),
+  ListProxyHosts: () => Response.json(proxyHosts),
   ListChecks: () => Response.json(checks),
 };
 
@@ -119,7 +90,7 @@ const table = () => screen.getByRole("table", { name: "Proxy Hosts" });
 const row = (name: string) => within(table()).getByRole("row", { name });
 const datetime = (el: HTMLElement) => within(el).getByText((_, e) => e?.tagName === "TIME").getAttribute("datetime");
 
-it("lists every server block that forwards to an upstream, by domain", async () => {
+it("lists the Proxy Hosts apps finds, by domain", async () => {
   await show();
 
   const rows = within(table()).getAllByRole("row").slice(1);
@@ -177,14 +148,11 @@ it("warns about an upstream that matches no Workload and a block without TLS", a
   expect(within(row("grafana.home.example")).queryByRole("img", { name: /no TLS|no Workload/ })).toBeNull();
 });
 
-it("shows a Proxy Host apps has no App for, without a Workload warning", async () => {
+it("shows a Proxy Host that yields no App", async () => {
   await show({
-    GetSnapshot: () =>
+    ListProxyHosts: () =>
       Response.json({
-        snapshot: {
-          revision: "2",
-          servers: [{ serverNames: ["~^(?<app>.+)\\.home\\.example$"], listens: [{ address: "443", ssl: true }], locations: [{ path: "/", proxyPass: "http://198.18.2.50:80" }] }],
-        },
+        proxyHosts: [{ serverNames: ["~^(?<app>.+)\\.home\\.example$"], upstream: "http://198.18.2.50:80" }],
       }),
   });
 
@@ -193,21 +161,22 @@ it("shows a Proxy Host apps has no App for, without a Workload warning", async (
   expect(screen.queryByRole("region", { name: "Warnings" })).toBeNull();
 });
 
-it("still lists Proxy Hosts and TLS warnings while apps and checks are unavailable", async () => {
+it("says why while apps or checks is unavailable, keeping what the other answers", async () => {
   const down = (who: string) => () => Response.json({ code: "unavailable", message: `${who} is starting` }, { status: 503 });
-  await show({ ListApps: down("apps"), ListChecks: down("checks") });
+  await show({ ListChecks: down("checks") });
 
   const printer = row("printer.home.example");
   expect(within(printer).getByLabelText("Upstream").textContent).toBe("http://198.18.2.99");
-  const section = screen.getByRole("region", { name: "Proxy Hosts" });
-  expect(section.textContent).toMatch(/apps unavailable: apps is starting/);
-  expect(section.textContent).toMatch(/checks unavailable: checks is starting/);
-  const warnings = screen.getByRole("region", { name: "Warnings" });
-  expect(within(warnings).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["printer.home.example: no TLS"]);
+  expect(screen.getByRole("region", { name: "Proxy Hosts" }).textContent).toMatch(/checks unavailable: checks is starting/);
+  cleanup();
+
+  await show({ ListProxyHosts: down("apps") });
+  expect(screen.getByRole("region", { name: "Proxy Hosts" }).textContent).toMatch(/apps unavailable: apps is starting/);
+  expect(screen.queryByRole("table", { name: "Proxy Hosts" })).toBeNull();
 });
 
 it("runs no probes of its own: it only reads nginx-config, apps and checks", async () => {
   const calls = await show();
 
-  expect(new Set(calls)).toEqual(new Set(["GetSnapshot", "ListApps", "ListChecks"]));
+  expect(new Set(calls)).toEqual(new Set(["GetSnapshot", "ListProxyHosts", "ListChecks"]));
 });
