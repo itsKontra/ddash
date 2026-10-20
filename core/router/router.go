@@ -5,19 +5,23 @@
 package router
 
 import (
+	"context"
 	"io"
 	"mime"
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
 	"github.com/itsKontra/ddash/core/runtime"
+	ddashpb "github.com/itsKontra/ddash/proto/ddash"
 )
 
 // Prefix is where the router is mounted.
@@ -97,7 +101,9 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := dynamicpb.NewMessage(md.Output())
 	fullMethod := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
-	if err := ep.Conn.Invoke(r.Context(), fullMethod, req, resp); err != nil {
+	ctx, cancel := context.WithTimeout(r.Context(), Deadline(md))
+	defer cancel()
+	if err := ep.Conn.Invoke(ctx, fullMethod, req, resp); err != nil {
 		WriteError(w, err)
 		return
 	}
@@ -108,6 +114,22 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+}
+
+const (
+	// GetterDeadline bounds every call to a getter.
+	GetterDeadline = 10 * time.Second
+	// ActionDeadline bounds every call to an Action.
+	ActionDeadline = 60 * time.Second
+)
+
+// Deadline is how long a call to md may take: ActionDeadline for an
+// Action, GetterDeadline for a getter.
+func Deadline(md protoreflect.MethodDescriptor) time.Duration {
+	if proto.HasExtension(md.Options(), ddashpb.E_Action) {
+		return ActionDeadline
+	}
+	return GetterDeadline
 }
 
 // inScope refuses a call unless plugin is installed and lists component

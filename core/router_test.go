@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"maps"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 
@@ -165,6 +167,26 @@ func TestCallsAreTranscodedFromTheComponentsDescriptors(t *testing.T) {
 			t.Errorf("%s: %d %s %q, want %d %s %q", c.why, status, code, msg, c.status, c.code, c.message)
 		}
 	}
+}
+
+func TestGettersGetATenSecondDeadlineAndActionsSixty(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h := newHello(t, configured)
+		h.WaitState("greeter", runtime.OK)
+
+		for _, c := range []struct {
+			method string
+			want   time.Duration
+		}{{"Wait", 10 * time.Second}, {"WaitAction", 60 * time.Second}} {
+			start := time.Now()
+			res := h.Call("hello", "greeter", c.method, `{}`)
+
+			wantError(t, res, http.StatusGatewayTimeout, "deadline_exceeded", "")
+			if took := time.Since(start); took != c.want {
+				t.Errorf("%s ended after %v, want %v", c.method, took, c.want)
+			}
+		}
+	})
 }
 
 func TestAPluginReachesOnlyTheComponentsItRequiresDirectly(t *testing.T) {
