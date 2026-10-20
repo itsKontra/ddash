@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+// echo is a tiny Component the SDK's own tests run. It is not shipped.
+package ddash.echo;
+
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopb";
+
+message EchoConfig {
+  // Prefixed to every echoed message.
+  string prefix = 1;
+}
+
+service EchoService {
+  rpc Echo(EchoRequest) returns (EchoResponse) {
+    option (ddash.getter) = {};
+  }
+  rpc CountNotes(CountNotesRequest) returns (CountNotesResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  rpc AddNote(AddNoteRequest) returns (AddNoteResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
+
+message CountNotesRequest {}
+
+message CountNotesResponse {
+  int64 count = 1;
+}
+
+message AddNoteRequest {
+  string text = 1;
+}
+
+message AddNoteResponse {}

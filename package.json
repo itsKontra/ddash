@@ -1,0 +1,12 @@
+{
+  "name": "ddash",
+  "private": true,
+  "packageManager": "pnpm@10.34.7",
+  "scripts": {
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@bufbuild/protoc-gen-es": "2.16.0",
+    "typescript": "7.0.2"
+  }
+}
