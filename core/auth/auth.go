@@ -1,6 +1,6 @@
-// Package auth decides who is calling: it puts the actor of every request
-// that reaches /api into the request's context. Sign-in with Keycloak
-// replaces Refuse later; until then only dev builds get in.
+// Package auth decides who is calling: it signs the Operator in with
+// Keycloak (see Keycloak) and puts the actor of every request behind
+// sign-in into the request's context.
 package auth
 
 import (
@@ -82,14 +82,15 @@ func Refuse(http.Handler) http.Handler {
 	})
 }
 
-// FromEnv returns the Middleware this build uses: the dev bypass when the
-// binary was built with the dev tag and DDASH_DEV_AUTH=1, and Refuse
-// otherwise.
-func FromEnv(getenv func(string) string) Middleware {
+// DevBypass returns the dev bypass, which signs every request in as
+// operator:dev, when the binary was built with the dev tag and
+// DDASH_DEV_AUTH=1. Otherwise it returns nil, and ddash signs in with
+// Keycloak.
+func DevBypass(getenv func(string) string) Middleware {
 	if devBypass != nil && getenv("DDASH_DEV_AUTH") == "1" {
 		return devBypass
 	}
-	return Refuse
+	return nil
 }
 
 // devBypass is set only in dev builds, see dev.go.

@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -35,11 +36,10 @@ func TestServeAnswersHealthzUntilStoppedThenStopsAcceptingHTTP(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(release, "catalogue.json"), []byte(`{"release":"dev"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	env := map[string]string{
-		"DDASH_LISTEN":      "127.0.0.1:0",
-		"DDASH_DATA_DIR":    t.TempDir(),
-		"DDASH_RELEASE_DIR": release,
-	}
+	env := signInEnv()
+	env["DDASH_LISTEN"] = "127.0.0.1:0"
+	env["DDASH_DATA_DIR"] = t.TempDir()
+	env["DDASH_RELEASE_DIR"] = release
 	ctx, sigterm := context.WithCancel(t.Context())
 	addrs := make(chan string, 1)
 	done := make(chan error, 1)
@@ -57,5 +57,43 @@ func TestServeAnswersHealthzUntilStoppedThenStopsAcceptingHTTP(t *testing.T) {
 	}
 	if err := healthcheck(t.Context(), url); err == nil {
 		t.Error("after SIGTERM: healthz still answers")
+	}
+}
+
+// signInEnv is ddash.env's sign-in config, with an issuer nothing answers
+// at: ddash starts without reaching Keycloak.
+func signInEnv() map[string]string {
+	return map[string]string{
+		"DDASH_PUBLIC_URL":         "https://ddash.home.example",
+		"DDASH_OIDC_ISSUER":        "https://127.0.0.1:1/realms/home",
+		"DDASH_OIDC_CLIENT_ID":     "ddash",
+		"DDASH_OIDC_CLIENT_SECRET": "secret",
+		"DDASH_TRUSTED_PROXY":      "198.18.0.10",
+	}
+}
+
+func TestServeRefusesToStartWithoutItsSignInConfig(t *testing.T) {
+	release := t.TempDir()
+	if err := os.WriteFile(filepath.Join(release, "catalogue.json"), []byte(`{"release":"dev"}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run := func(env map[string]string) error {
+		env["DDASH_LISTEN"] = "127.0.0.1:0"
+		env["DDASH_DATA_DIR"] = t.TempDir()
+		env["DDASH_RELEASE_DIR"] = release
+		return serve(t.Context(), func(k string) string { return env[k] }, func(string) { t.Error("serving") })
+	}
+
+	for _, missing := range []string{"DDASH_PUBLIC_URL", "DDASH_OIDC_ISSUER", "DDASH_OIDC_CLIENT_ID", "DDASH_OIDC_CLIENT_SECRET"} {
+		env := signInEnv()
+		delete(env, missing)
+		if err := run(env); err == nil || !strings.Contains(err.Error(), missing) {
+			t.Errorf("without %s: %v, want an error naming it", missing, err)
+		}
+	}
+	env := signInEnv()
+	env["DDASH_TRUSTED_PROXY"] = "nginx"
+	if err := run(env); err == nil || !strings.Contains(err.Error(), "nginx") {
+		t.Errorf("a hostname as trusted proxy: %v, want an error", err)
 	}
 }

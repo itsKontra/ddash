@@ -85,14 +85,7 @@ func (g *Gate) Admit(ctx context.Context, actor auth.Actor, a Action) (done func
 		return nil, status.Error(codes.Unavailable, "audit log unavailable")
 	}
 	return func(err error) {
-		outcome, message := OK, ""
-		if err != nil {
-			st := status.Convert(err)
-			if ctxErr := status.FromContextError(err); st.Code() == codes.Unknown && ctxErr.Code() != codes.Unknown {
-				st = ctxErr
-			}
-			outcome, message = st.Code().String(), st.Message()
-		}
+		outcome, message := result(err)
 		// Completing an entry the next host already marked interrupted
 		// would rewrite history, so only a running entry is completed.
 		_, _ = g.db.ExecContext(context.WithoutCancel(ctx), `
@@ -100,6 +93,43 @@ func (g *Gate) Admit(ctx context.Context, actor auth.Actor, a Action) (done func
 			WHERE id = ? AND outcome IS NULL`,
 			outcome, message, time.Since(start).Milliseconds(), id)
 	}, nil
+}
+
+// result is the outcome and message an entry records for err.
+func result(err error) (outcome, message string) {
+	if err == nil {
+		return OK, ""
+	}
+	st := status.Convert(err)
+	if ctxErr := status.FromContextError(err); st.Code() == codes.Unknown && ctxErr.Code() != codes.Unknown {
+		st = ctxErr
+	}
+	return st.Code().String(), st.Message()
+}
+
+// Event is something audited that isn't a call: a sign-in, a refused
+// sign-in or a logout.
+type Event struct {
+	Chain  string
+	Target string
+	// Method names the event, e.g. "SignIn".
+	Method string
+	// Err is why it failed, or nil.
+	Err error
+}
+
+// Record writes e, done by actor, to the Audit Log as a completed entry.
+// It fails Unavailable "audit log unavailable" when it can't.
+func (g *Gate) Record(ctx context.Context, actor auth.Actor, e Event) error {
+	outcome, message := result(e.Err)
+	_, err := g.db.ExecContext(ctx, `
+		INSERT INTO audit_entry (time, actor_kind, username, sub, chain_id, target, method, disruptive, request, outcome, message, duration_ms)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 0, '{}', ?, ?, 0)`,
+		time.Now().UTC().Format(timeFormat), actor.Kind, actor.Name, actor.Sub, e.Chain, e.Target, e.Method, outcome, message)
+	if err != nil {
+		return status.Error(codes.Unavailable, "audit log unavailable")
+	}
+	return nil
 }
 
 // IsAction reports whether md is an Action rather than a getter.

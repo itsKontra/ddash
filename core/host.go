@@ -5,6 +5,7 @@ package core
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -37,8 +38,17 @@ type Options struct {
 	Release runtime.ReleaseSource
 	// Launcher starts Component processes.
 	Launcher runtime.Launcher
-	// Auth guards everything behind sign-in. Nil refuses every request.
+	// Auth guards everything behind sign-in in place of a session, for
+	// tests and the dev bypass. Set Auth or OIDC; with neither, every
+	// request is refused.
 	Auth auth.Middleware
+	// OIDC signs the Operator in with this Keycloak realm, into a session
+	// in the core DB. It needs an https PublicURL.
+	OIDC *auth.OIDC
+	// TrustedProxy is the reverse proxy's address or CIDR: only requests
+	// from it may set X-Forwarded-For and X-Forwarded-Proto. Empty trusts
+	// no one.
+	TrustedProxy string
 	// PublicURL is where the Operator reaches ddash.
 	PublicURL string
 	// Logger receives the host's logs. Nil discards them.
@@ -58,6 +68,8 @@ type Host struct {
 	shell   fs.FS
 	router  *router.Router
 	handler http.Handler
+	// keycloak is sign-in, when the host runs with OIDC.
+	keycloak *auth.Keycloak
 
 	stopLoops context.CancelFunc
 	loops     sync.WaitGroup
@@ -69,8 +81,15 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 	if opts.Logger == nil {
 		opts.Logger = slog.New(slog.DiscardHandler)
 	}
-	if opts.Auth == nil {
+	switch {
+	case opts.Auth != nil && opts.OIDC != nil:
+		return nil, errors.New("set Auth or OIDC, not both")
+	case opts.Auth == nil && opts.OIDC == nil:
 		opts.Auth = auth.Refuse
+	}
+	forwarded, err := auth.Forwarded(opts.TrustedProxy)
+	if err != nil {
+		return nil, err
 	}
 	if err := os.MkdirAll(opts.DataDir, 0o750); err != nil {
 		return nil, err
@@ -104,8 +123,25 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 	}
 	rtr = router.New(rt, gate)
 	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell}
-	h.handler = h.routes(opts.Auth)
+	guard := opts.Auth
+	if opts.OIDC != nil {
+		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
+			OIDC: *opts.OIDC, PublicURL: opts.PublicURL, DB: db, Audit: h.auditSignIn, Logger: opts.Logger,
+		})
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+		guard = h.keycloak.Guard
+	}
+	h.handler = forwarded(h.routes(guard))
 	return h, nil
+}
+
+// auditSignIn records a sign-in event in the Audit Log, on a chain of its
+// own.
+func (h *Host) auditSignIn(ctx context.Context, actor auth.Actor, event string, err error) error {
+	return h.gate.Record(ctx, actor, appstate.Event{Chain: router.NewChain(), Target: "core", Method: event, Err: err})
 }
 
 func (h *Host) routes(guard auth.Middleware) http.Handler {
@@ -125,6 +161,9 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.healthz)
+	if h.keycloak != nil {
+		mux.Handle("/auth/", h.keycloak.Handler())
+	}
 	mux.Handle("/api/", requireConnectHeader(guard(api)))
 	mux.Handle("/", guard(ui))
 	return mux
@@ -240,6 +279,9 @@ func (h *Host) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	h.stopLoops = cancel
 	h.loops.Go(func() { h.gate.SweepDaily(ctx) })
+	if h.keycloak != nil {
+		h.loops.Go(func() { h.keycloak.SweepSessions(ctx) })
+	}
 	h.runtime.Start()
 }
 

@@ -7,8 +7,14 @@
 //	DDASH_DATA_DIR     the data dir (default /data)
 //	DDASH_RELEASE_DIR  a local Release dir: catalogue.json, SHA256SUMS and the
 //	                   Component binaries (required for now)
-//	DDASH_PUBLIC_URL   where the Operator reaches ddash
-//	DDASH_DEV_AUTH     1 signs every request in as operator:dev (dev builds only)
+//	DDASH_PUBLIC_URL          where the Operator reaches ddash (https)
+//	DDASH_OIDC_ISSUER         the Keycloak realm's public URL
+//	DDASH_OIDC_CLIENT_ID      ddash's confidential Keycloak client
+//	DDASH_OIDC_CLIENT_SECRET  its secret
+//	DDASH_TRUSTED_PROXY       the reverse proxy's IP or CIDR, the only peer
+//	                          whose X-Forwarded-For/-Proto are trusted
+//	DDASH_DEV_AUTH            1 signs every request in as operator:dev
+//	                          instead (dev builds only)
 package main
 
 import (
@@ -20,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -59,15 +66,24 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 	if releaseDir == "" {
 		return errors.New("DDASH_RELEASE_DIR is required: GitHub releases aren't supported yet")
 	}
-	host, err := core.New(ctx, core.Options{
-		DataDir:   env(getenv, "DDASH_DATA_DIR", "/data"),
-		Release:   runtime.Dir(releaseDir),
-		Launcher:  runtime.Subprocess(releaseDir, os.Stderr),
-		Auth:      auth.FromEnv(getenv),
-		PublicURL: getenv("DDASH_PUBLIC_URL"),
-		Logger:    logger,
-		Shell:     web.Shell(),
-	})
+	opts := core.Options{
+		DataDir:      env(getenv, "DDASH_DATA_DIR", "/data"),
+		Release:      runtime.Dir(releaseDir),
+		Launcher:     runtime.Subprocess(releaseDir, os.Stderr),
+		Auth:         auth.DevBypass(getenv),
+		PublicURL:    getenv("DDASH_PUBLIC_URL"),
+		TrustedProxy: getenv("DDASH_TRUSTED_PROXY"),
+		Logger:       logger,
+		Shell:        web.Shell(),
+	}
+	if opts.Auth == nil {
+		oidc, err := signInConfig(getenv)
+		if err != nil {
+			return err
+		}
+		opts.OIDC = &oidc
+	}
+	host, err := core.New(ctx, opts)
 	if err != nil {
 		return err
 	}
@@ -98,6 +114,25 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 		err = nil
 	}
 	return err
+}
+
+// signInConfig reads the Keycloak client from the environment, naming
+// every variable that is missing.
+func signInConfig(getenv func(string) string) (auth.OIDC, error) {
+	var missing []string
+	for _, k := range []string{"DDASH_PUBLIC_URL", "DDASH_OIDC_ISSUER", "DDASH_OIDC_CLIENT_ID", "DDASH_OIDC_CLIENT_SECRET"} {
+		if getenv(k) == "" {
+			missing = append(missing, k)
+		}
+	}
+	if len(missing) > 0 {
+		return auth.OIDC{}, fmt.Errorf("sign-in needs %s", strings.Join(missing, ", "))
+	}
+	return auth.OIDC{
+		Issuer:       getenv("DDASH_OIDC_ISSUER"),
+		ClientID:     getenv("DDASH_OIDC_CLIENT_ID"),
+		ClientSecret: getenv("DDASH_OIDC_CLIENT_SECRET"),
+	}, nil
 }
 
 // healthcheck fails unless the host at baseURL answers /healthz with 200.
