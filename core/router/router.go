@@ -1,7 +1,10 @@
-// Package router carries every UI call to a Component: it serves
-// /api/c/<component>/<Method> as Connect unary JSON, transcoded to and from
-// the Component's protobuf API with dynamicpb and protojson from the
-// descriptors the Component's Describe returned.
+// Package router carries every call that reaches a Component. UI calls
+// arrive at /api/c/<component>/<Method> as Connect unary JSON, transcoded to
+// and from the Component's protobuf API with dynamicpb and protojson from
+// the descriptors the Component's Describe returned. Calls between
+// Components arrive through HostServer, a transparent gRPC proxy. Either
+// way the router enforces requires, sets the deadline, carries the actor
+// and chain id onward, and passes Actions through the gate.
 package router
 
 import (

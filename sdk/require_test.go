@@ -60,7 +60,9 @@ func TestRequireReturnsTheHarnessFakeOfARequiredComponent(t *testing.T) {
 
 // hostEcho stands in for the host's proxy: it answers Echo and says who the
 // call ran for.
-type hostEcho struct{ echopb.UnimplementedEchoServiceServer }
+type hostEcho struct {
+	echopb.UnimplementedEchoServiceServer
+}
 
 func (hostEcho) Echo(ctx context.Context, req *echopb.EchoRequest) (*echopb.EchoResponse, error) {
 	md, _ := metadata.FromIncomingContext(ctx)
