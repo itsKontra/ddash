@@ -183,3 +183,63 @@ func TestATaskThatOutlastsTheDeadlineIsListedActiveUntilItEnds(t *testing.T) {
 		}
 	})
 }
+
+// Proxmox lists a power task's change in /cluster/resources only on its
+// next refresh (~10 s): an Action returns once the list shows it, so the
+// next ListWorkloads (and anything deciding from it) reads the new status.
+func TestAPowerActionReturnsOnceProxmoxListsTheNewStatus(t *testing.T) {
+	for _, tc := range []struct {
+		name, scenario string
+		vmid           uint32
+		act            func(context.Context, pb.ProxmoxApiServiceClient, *pb.Target) error
+		want           string
+	}{
+		{"start", "power", 206, func(ctx context.Context, c pb.ProxmoxApiServiceClient, w *pb.Target) error {
+			_, err := c.StartWorkload(ctx, &pb.StartWorkloadRequest{Workload: w})
+			return err
+		}, "running"},
+		{"shutdown", "power", 212, func(ctx context.Context, c pb.ProxmoxApiServiceClient, w *pb.Target) error {
+			_, err := c.ShutdownWorkload(ctx, &pb.ShutdownWorkloadRequest{Workload: w, ForceStop: true})
+			return err
+		}, "stopped"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				// The power scenario has what 206 (n8n) answers running
+				// and 212 (media-stack) stopped.
+				fake, c := node(t, tc.scenario)
+				fake.SetStatusLag(3)
+
+				if err := tc.act(t.Context(), c, lxc(tc.vmid)); err != nil {
+					t.Fatal(err)
+				}
+
+				if got := workloads(t, c)[tc.vmid].GetStatus(); got != tc.want {
+					t.Errorf("ListWorkloads has %d %s after the Action, want %s", tc.vmid, got, tc.want)
+				}
+			})
+		})
+	}
+}
+
+// The task ended OK, so the Action did: a list that never catches up
+// within proxmoxapi.SettleAtMost doesn't fail it.
+func TestAPowerActionWhoseStatusNeverSettlesStillSucceeds(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fake, c := node(t, "baseline")
+		fake.SetStatusLag(1 << 30)
+		began := time.Now()
+
+		_, err := c.ShutdownWorkload(t.Context(), &pb.ShutdownWorkloadRequest{Workload: lxc(212), ForceStop: true})
+
+		if err != nil {
+			t.Fatalf("error = %v, want none: the task ended OK", err)
+		}
+		if took := time.Since(began); took < proxmoxapi.SettleAtMost || took > proxmoxapi.SettleAtMost+5*time.Second {
+			t.Errorf("returned after %v, want after waiting about %v for the list", took, proxmoxapi.SettleAtMost)
+		}
+		if got := fake.Status(212); got != "stopped" {
+			t.Errorf("212 is %s, want stopped", got)
+		}
+	})
+}

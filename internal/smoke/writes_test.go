@@ -301,6 +301,31 @@ func TestWritesNeedTheUnusedAddress(t *testing.T) {
 	}
 }
 
+// Proxmox lists a power task's change only on its next refresh: the round
+// trip still reads ddash-smoke's new status and leaves it stopped.
+func TestWritesPassWhileProxmoxListsAStatusLate(t *testing.T) {
+	t.Parallel()
+	l, env := writesLab(t)
+	before := stateOf(l)
+	px := l.Handler("proxmox-api").(*proxmoxfake.Proxmox)
+	px.SetStatusLag(1)
+
+	log, err := runWrites(t, env)
+
+	if err != nil {
+		t.Fatalf("smoke-writes failed: %v\n%s", err, log)
+	}
+	if !strings.Contains(log, "ok proxmox-api ddash-smoke start and shutdown\n") {
+		t.Errorf("log lacks the ddash-smoke round trip:\n%s", log)
+	}
+	if px.Status(211) != "stopped" {
+		t.Errorf("ddash-smoke is %s, want stopped", px.Status(211))
+	}
+	if diff := cmp.Diff(before, stateOf(l)); diff != "" {
+		t.Errorf("the lab after smoke-writes (-before +after):\n%s", diff)
+	}
+}
+
 func TestWritesLeaveARunningDdashSmokeAlone(t *testing.T) {
 	t.Parallel()
 	l, env := writesLab(t)

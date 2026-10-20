@@ -17,6 +17,10 @@ func TrustRoots(t *testing.T, pool *x509.CertPool) {
 	t.Cleanup(func() { rootCAs = old })
 }
 
+// SettleAtMost is how long a power Action waits for /cluster/resources to
+// list its change.
+const SettleAtMost = settleAtMost
+
 // DefinitionServing is proxmox-api whose requests h answers in memory, so
 // its tests can run inside a synctest bubble.
 func DefinitionServing(h http.Handler) sdk.Definition { return define(handlerTransport{h}) }

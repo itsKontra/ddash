@@ -20,6 +20,10 @@ import (
 // taskPollInterval is how often a power Action reads its task's status.
 const taskPollInterval = time.Second
 
+// settleAtMost is how long a power Action waits for /cluster/resources to
+// list its change.
+const settleAtMost = 30 * time.Second
+
 func (c *component) StartWorkload(ctx context.Context, req *pb.StartWorkloadRequest) (*pb.StartWorkloadResponse, error) {
 	upid, err := c.power(ctx, req.GetWorkload(), "start", nil)
 	if err != nil {
@@ -72,7 +76,39 @@ func (c *component) power(ctx context.Context, target *pb.Target, action string,
 		}
 		return "", status.Errorf(codes.Unavailable, "Proxmox refused to %s %s: %v", action, label, err)
 	}
-	return upid, c.follow(ctx, target.GetNode(), upid)
+	if err := c.follow(ctx, target.GetNode(), upid); err != nil {
+		return upid, err
+	}
+	want := "running"
+	if action == "shutdown" {
+		want = "stopped"
+	}
+	c.settle(ctx, target.GetVmid(), want)
+	return upid, nil
+}
+
+// settle waits until /cluster/resources lists vmid as want: Proxmox
+// refreshes that list only every ~10 s (pvestatd), so right after a task
+// it may still show the old status, and a read cached then would keep it.
+// It gives up after settleAtMost or when ctx ends, and the Action still
+// succeeds: its task ended OK, the list is only late.
+func (c *component) settle(ctx context.Context, vmid uint32, want string) {
+	ctx, cancel := context.WithTimeout(ctx, settleAtMost)
+	defer cancel()
+	for {
+		resources, err := (&proxmox.Cluster{}).New(c.client).Resources(ctx, "vm")
+		if err == nil {
+			i := slices.IndexFunc(resources, func(r *proxmox.ClusterResource) bool { return uint32(r.VMID) == vmid })
+			if i < 0 || resources[i].Status == want {
+				return
+			}
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(taskPollInterval):
+		}
+	}
 }
 
 // follow reads a task's status until it stopped: nil when it ended OK.

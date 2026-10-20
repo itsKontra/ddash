@@ -2,7 +2,9 @@
 // proxmox-api's power Actions. It keeps each Workload's status, refuses a
 // power request where the token lacks VM.PowerMgmt (as Proxmox's ACL
 // does), runs each power request as a task that ends after a number of
-// status reads, and records every request in order; anything else is
+// status reads, can list a Workload's old status for a while after its
+// task ended (as /cluster/resources does until pvestatd refreshes it),
+// and records every request in order; anything else is
 // served from a scenario's fixtures (fixture.Scenario). proxmox-api's
 // tests and fakelab serve it.
 package proxmoxfake
@@ -10,6 +12,7 @@ package proxmoxfake
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -37,6 +40,10 @@ type Options struct {
 	// TaskPolls is how many status reads a task takes to end: it reports
 	// stopped on the TaskPolls-th read. 0 is DefaultTaskPolls.
 	TaskPolls int
+	// StatusLag is how many reads of /cluster/resources still list a
+	// Workload as it was before a task that ended OK changed it (Proxmox
+	// refreshes that list only every ~10 s). 0 lists the change at once.
+	StatusLag int
 }
 
 // Proxmox is the fake, an http.Handler.
@@ -47,11 +54,20 @@ type Proxmox struct {
 	guests    []map[string]any
 	perms     map[string]map[string]int
 	polls     int
+	lag       int
+	stale     map[int]*staleGuest
 	failNext  string
 	tasks     map[string]*task
 	seq       int
 	log       []string
 	startedAt time.Time
+}
+
+// staleGuest is a Workload as /cluster/resources still lists it for its
+// next reads after a task changed it.
+type staleGuest struct {
+	guest map[string]any
+	reads int
 }
 
 type task struct {
@@ -71,6 +87,8 @@ func New(dir string, opts Options) (*Proxmox, error) {
 	p := &Proxmox{
 		fixtures:  fixture.Scenario(dir, opts.Miss),
 		polls:     opts.TaskPolls,
+		lag:       opts.StatusLag,
+		stale:     map[int]*staleGuest{},
 		tasks:     map[string]*task{},
 		startedAt: time.Now(),
 	}
@@ -106,7 +124,8 @@ func seed(dir, path string, v any) error {
 }
 
 // Status returns a Workload's status ("running", "stopped"), or "" when
-// there is none with that VMID.
+// there is none with that VMID: its true status, even while
+// /cluster/resources still lists the old one.
 func (p *Proxmox) Status(vmid int) string {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -131,6 +150,13 @@ func (p *Proxmox) SetTaskPolls(n int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.polls = n
+}
+
+// SetStatusLag sets Options.StatusLag for the tasks that end from now on.
+func (p *Proxmox) SetStatusLag(reads int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.lag = reads
 }
 
 // FailNextTask makes the next task end with exitstatus instead of OK,
@@ -166,7 +192,7 @@ func (p *Proxmox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == http.MethodGet && path == resourcesPath:
 		p.mu.Lock()
-		b, err := json.Marshal(p.guests)
+		b, err := json.Marshal(p.resources())
 		p.mu.Unlock()
 		reply(w, b, err)
 	case r.Method == http.MethodPost && strings.Contains(path, "/status/"):
@@ -330,8 +356,29 @@ func (p *Proxmox) finish(t *task) {
 		return
 	}
 	if g := p.guest(t.vmid); g != nil {
+		if p.lag > 0 {
+			p.stale[t.vmid] = &staleGuest{guest: maps.Clone(g), reads: p.lag}
+		}
 		t.effect(g)
 	}
+}
+
+// resources is what /cluster/resources lists now: each Workload, or as it
+// was while its change is still stale (counting this read). Call with
+// p.mu held.
+func (p *Proxmox) resources() []map[string]any {
+	out := make([]map[string]any, len(p.guests))
+	for i, g := range p.guests {
+		out[i] = g
+		id, _ := g["vmid"].(float64)
+		if s, ok := p.stale[int(id)]; ok {
+			out[i] = s.guest
+			if s.reads--; s.reads <= 0 {
+				delete(p.stale, int(id))
+			}
+		}
+	}
+	return out
 }
 
 // guest returns the Workload with vmid. Call with p.mu held.
