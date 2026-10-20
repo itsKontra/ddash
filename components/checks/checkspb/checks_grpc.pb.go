@@ -27,15 +27,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChecksService_ListChecks_FullMethodName   = "/ddash.checks.ChecksService/ListChecks"
-	ChecksService_CreateCheck_FullMethodName  = "/ddash.checks.ChecksService/CreateCheck"
-	ChecksService_UpdateCheck_FullMethodName  = "/ddash.checks.ChecksService/UpdateCheck"
-	ChecksService_DeleteCheck_FullMethodName  = "/ddash.checks.ChecksService/DeleteCheck"
-	ChecksService_SetMuted_FullMethodName     = "/ddash.checks.ChecksService/SetMuted"
-	ChecksService_SetDisabled_FullMethodName  = "/ddash.checks.ChecksService/SetDisabled"
-	ChecksService_GetHistory_FullMethodName   = "/ddash.checks.ChecksService/GetHistory"
-	ChecksService_ListBeats_FullMethodName    = "/ddash.checks.ChecksService/ListBeats"
-	ChecksService_SetAppChecks_FullMethodName = "/ddash.checks.ChecksService/SetAppChecks"
+	ChecksService_ListChecks_FullMethodName       = "/ddash.checks.ChecksService/ListChecks"
+	ChecksService_CreateCheck_FullMethodName      = "/ddash.checks.ChecksService/CreateCheck"
+	ChecksService_UpdateCheck_FullMethodName      = "/ddash.checks.ChecksService/UpdateCheck"
+	ChecksService_DeleteCheck_FullMethodName      = "/ddash.checks.ChecksService/DeleteCheck"
+	ChecksService_SetMuted_FullMethodName         = "/ddash.checks.ChecksService/SetMuted"
+	ChecksService_SetDisabled_FullMethodName      = "/ddash.checks.ChecksService/SetDisabled"
+	ChecksService_GetHistory_FullMethodName       = "/ddash.checks.ChecksService/GetHistory"
+	ChecksService_ListBeats_FullMethodName        = "/ddash.checks.ChecksService/ListBeats"
+	ChecksService_SetAppChecks_FullMethodName     = "/ddash.checks.ChecksService/SetAppChecks"
+	ChecksService_StartMaintenance_FullMethodName = "/ddash.checks.ChecksService/StartMaintenance"
+	ChecksService_EndMaintenance_FullMethodName   = "/ddash.checks.ChecksService/EndMaintenance"
+	ChecksService_ListMaintenance_FullMethodName  = "/ddash.checks.ChecksService/ListMaintenance"
 )
 
 // ChecksServiceClient is the client API for ChecksService service.
@@ -72,6 +75,15 @@ type ChecksServiceClient interface {
 	// Check over as pending; a new name keeps its state. The caller sends it
 	// only when the set changed, plus once after its own Start.
 	SetAppChecks(ctx context.Context, in *SetAppChecksRequest, opts ...grpc.CallOption) (*SetAppChecksResponse, error)
+	// StartMaintenance puts a Check, a Workload's App Checks or every Check
+	// into Maintenance: their beats are recorded as maintenance, left out of
+	// uptime. Maintenance already on the same scope is replaced.
+	StartMaintenance(ctx context.Context, in *StartMaintenanceRequest, opts ...grpc.CallOption) (*StartMaintenanceResponse, error)
+	// EndMaintenance ends a scope's Maintenance early. Ending a scope
+	// without one does nothing.
+	EndMaintenance(ctx context.Context, in *EndMaintenanceRequest, opts ...grpc.CallOption) (*EndMaintenanceResponse, error)
+	// ListMaintenance returns every Maintenance in force, from memory.
+	ListMaintenance(ctx context.Context, in *ListMaintenanceRequest, opts ...grpc.CallOption) (*ListMaintenanceResponse, error)
 }
 
 type checksServiceClient struct {
@@ -172,6 +184,36 @@ func (c *checksServiceClient) SetAppChecks(ctx context.Context, in *SetAppChecks
 	return out, nil
 }
 
+func (c *checksServiceClient) StartMaintenance(ctx context.Context, in *StartMaintenanceRequest, opts ...grpc.CallOption) (*StartMaintenanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartMaintenanceResponse)
+	err := c.cc.Invoke(ctx, ChecksService_StartMaintenance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *checksServiceClient) EndMaintenance(ctx context.Context, in *EndMaintenanceRequest, opts ...grpc.CallOption) (*EndMaintenanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EndMaintenanceResponse)
+	err := c.cc.Invoke(ctx, ChecksService_EndMaintenance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *checksServiceClient) ListMaintenance(ctx context.Context, in *ListMaintenanceRequest, opts ...grpc.CallOption) (*ListMaintenanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMaintenanceResponse)
+	err := c.cc.Invoke(ctx, ChecksService_ListMaintenance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChecksServiceServer is the server API for ChecksService service.
 // All implementations must embed UnimplementedChecksServiceServer
 // for forward compatibility.
@@ -206,6 +248,15 @@ type ChecksServiceServer interface {
 	// Check over as pending; a new name keeps its state. The caller sends it
 	// only when the set changed, plus once after its own Start.
 	SetAppChecks(context.Context, *SetAppChecksRequest) (*SetAppChecksResponse, error)
+	// StartMaintenance puts a Check, a Workload's App Checks or every Check
+	// into Maintenance: their beats are recorded as maintenance, left out of
+	// uptime. Maintenance already on the same scope is replaced.
+	StartMaintenance(context.Context, *StartMaintenanceRequest) (*StartMaintenanceResponse, error)
+	// EndMaintenance ends a scope's Maintenance early. Ending a scope
+	// without one does nothing.
+	EndMaintenance(context.Context, *EndMaintenanceRequest) (*EndMaintenanceResponse, error)
+	// ListMaintenance returns every Maintenance in force, from memory.
+	ListMaintenance(context.Context, *ListMaintenanceRequest) (*ListMaintenanceResponse, error)
 	mustEmbedUnimplementedChecksServiceServer()
 }
 
@@ -242,6 +293,15 @@ func (UnimplementedChecksServiceServer) ListBeats(context.Context, *ListBeatsReq
 }
 func (UnimplementedChecksServiceServer) SetAppChecks(context.Context, *SetAppChecksRequest) (*SetAppChecksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetAppChecks not implemented")
+}
+func (UnimplementedChecksServiceServer) StartMaintenance(context.Context, *StartMaintenanceRequest) (*StartMaintenanceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartMaintenance not implemented")
+}
+func (UnimplementedChecksServiceServer) EndMaintenance(context.Context, *EndMaintenanceRequest) (*EndMaintenanceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EndMaintenance not implemented")
+}
+func (UnimplementedChecksServiceServer) ListMaintenance(context.Context, *ListMaintenanceRequest) (*ListMaintenanceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMaintenance not implemented")
 }
 func (UnimplementedChecksServiceServer) mustEmbedUnimplementedChecksServiceServer() {}
 func (UnimplementedChecksServiceServer) testEmbeddedByValue()                       {}
@@ -426,6 +486,60 @@ func _ChecksService_SetAppChecks_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChecksService_StartMaintenance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartMaintenanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).StartMaintenance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_StartMaintenance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).StartMaintenance(ctx, req.(*StartMaintenanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChecksService_EndMaintenance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EndMaintenanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).EndMaintenance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_EndMaintenance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).EndMaintenance(ctx, req.(*EndMaintenanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChecksService_ListMaintenance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMaintenanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).ListMaintenance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_ListMaintenance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).ListMaintenance(ctx, req.(*ListMaintenanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChecksService_ServiceDesc is the grpc.ServiceDesc for ChecksService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -468,6 +582,18 @@ var ChecksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetAppChecks",
 			Handler:    _ChecksService_SetAppChecks_Handler,
+		},
+		{
+			MethodName: "StartMaintenance",
+			Handler:    _ChecksService_StartMaintenance_Handler,
+		},
+		{
+			MethodName: "EndMaintenance",
+			Handler:    _ChecksService_EndMaintenance_Handler,
+		},
+		{
+			MethodName: "ListMaintenance",
+			Handler:    _ChecksService_ListMaintenance_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -140,6 +140,9 @@ func (s *store) delete(ctx context.Context, id int64) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM notified WHERE item = ?`, checkItem(id)); err != nil {
 		return err
 	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM maintenance WHERE kind = 'check' AND check_id = ?`, id); err != nil {
+		return err
+	}
 	return tx.Commit()
 }
 
@@ -189,9 +192,9 @@ func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing,
 		latency = latencyMs(r.latency)
 	}
 	if _, err := tx.ExecContext(ctx, `
-		INSERT INTO check_event (check_id, at, up, state, changed, latency_ms, reason)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, ms(st.lastBeat), r.up, states[st.state], changed, latency, r.reason); err != nil {
+		INSERT INTO check_event (check_id, at, up, state, changed, latency_ms, reason, maint)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, ms(st.lastBeat), r.up, states[st.state], changed, latency, r.reason, maint); err != nil {
 		return err
 	}
 	if err := addToBuckets(ctx, tx, id, st.lastBeat, r, maint); err != nil {

@@ -93,6 +93,10 @@ type component struct {
 	// notified is the state each item was last notified in.
 	notified map[string]notified
 	out      outbox
+	// maint is the Maintenance in force, by scope key; wake tells the
+	// expiry loop it changed.
+	maint map[string]*maintenance
+	wake  chan struct{}
 }
 
 // check is one Check in memory, the source of every read.
@@ -133,10 +137,16 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	if err != nil {
 		return err
 	}
+	maint, err := c.db.loadMaintenance(ctx)
+	if err != nil {
+		return err
+	}
 	sdk.Every(ctx, SweepInterval, c.sweep)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.notified, c.out = last, outbox{queued: map[string]time.Time{}}
+	c.maint, c.wake = maint, make(chan struct{}, 1)
+	go c.expireMaintenance(ctx)
 	sdk.Every(ctx, DeliveryTick, c.deliver)
 	c.checks = map[int64]*check{}
 	for _, ch := range loaded {
@@ -229,8 +239,8 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 	}
 	next := ch.standing.after(r, now())
 	changed := next.state != ch.standing.state
-	// Maintenance (#49) will record its beats as maint.
-	c.writeErr = c.db.recordBeat(ctx, id, r, next, changed, false)
+	maint, _ := c.maintained(ch, next.lastBeat)
+	c.writeErr = c.db.recordBeat(ctx, id, r, next, changed, maint)
 	if c.writeErr != nil {
 		c.log.Error("record beat", "check", id, "err", c.writeErr)
 	}
@@ -238,6 +248,7 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 	if changed {
 		c.queue(checkItem(id))
 	}
+	c.endWhenUp(ctx, ch)
 }
 
 func (c *component) ListChecks(context.Context, *checkspb.ListChecksRequest) (*checkspb.ListChecksResponse, error) {
@@ -254,7 +265,7 @@ func (c *component) ListChecks(context.Context, *checkspb.ListChecksRequest) (*c
 	})
 	resp := &checkspb.ListChecksResponse{}
 	for _, ch := range all {
-		resp.Checks = append(resp.Checks, ch.proto())
+		resp.Checks = append(resp.Checks, c.proto(ch))
 	}
 	return resp, nil
 }
@@ -272,7 +283,7 @@ func (c *component) CreateCheck(ctx context.Context, req *checkspb.CreateCheckRe
 	}
 	c.checks[ch.id] = ch
 	c.probeEvery(ch)
-	return &checkspb.CreateCheckResponse{Check: ch.proto()}, nil
+	return &checkspb.CreateCheckResponse{Check: c.proto(ch)}, nil
 }
 
 func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRequest) (*checkspb.UpdateCheckResponse, error) {
@@ -299,7 +310,7 @@ func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRe
 		ch.stopProbing()
 		c.probeEvery(ch)
 	}
-	return &checkspb.UpdateCheckResponse{Check: ch.proto()}, nil
+	return &checkspb.UpdateCheckResponse{Check: c.proto(ch)}, nil
 }
 
 func (c *component) DeleteCheck(ctx context.Context, req *checkspb.DeleteCheckRequest) (*checkspb.DeleteCheckResponse, error) {
@@ -315,6 +326,7 @@ func (c *component) DeleteCheck(ctx context.Context, req *checkspb.DeleteCheckRe
 	ch.stopProbing()
 	delete(c.checks, ch.id)
 	delete(c.notified, checkItem(ch.id))
+	delete(c.maint, scope{checkID: ch.id}.key())
 	return &checkspb.DeleteCheckResponse{}, nil
 }
 
@@ -329,7 +341,7 @@ func (c *component) SetMuted(ctx context.Context, req *checkspb.SetMutedRequest)
 		return nil, err
 	}
 	ch.muted = req.GetMuted()
-	return &checkspb.SetMutedResponse{Check: ch.proto()}, nil
+	return &checkspb.SetMutedResponse{Check: c.proto(ch)}, nil
 }
 
 func (c *component) SetDisabled(ctx context.Context, req *checkspb.SetDisabledRequest) (*checkspb.SetDisabledResponse, error) {
@@ -353,7 +365,7 @@ func (c *component) SetDisabled(ctx context.Context, req *checkspb.SetDisabledRe
 	case !was && ch.probed():
 		c.probeEvery(ch)
 	}
-	return &checkspb.SetDisabledResponse{Check: ch.proto()}, nil
+	return &checkspb.SetDisabledResponse{Check: c.proto(ch)}, nil
 }
 
 // get returns Check id. Call with c.mu held.

@@ -221,7 +221,7 @@ func (s *store) buckets(ctx context.Context, id int64, p period, from time.Time)
 // changes reads Check id's state changes from from on, newest first.
 func (s *store) changes(ctx context.Context, id int64, from time.Time) ([]*checkspb.Beat, error) {
 	return s.readBeats(ctx, `
-		SELECT at, up, state, changed, COALESCE(latency_ms, 0), reason FROM check_event
+		SELECT at, up, state, changed, COALESCE(latency_ms, 0), reason, maint FROM check_event
 		WHERE check_id = ? AND changed AND at >= ?
 		ORDER BY at DESC, id DESC`, id, ms(from))
 }
@@ -230,7 +230,7 @@ func (s *store) changes(ctx context.Context, id int64, from time.Time) ([]*check
 // changes, oldest first.
 func (s *store) beats(ctx context.Context, id int64, all, changes time.Time) ([]*checkspb.Beat, error) {
 	return s.readBeats(ctx, `
-		SELECT at, up, state, changed, COALESCE(latency_ms, 0), reason FROM check_event
+		SELECT at, up, state, changed, COALESCE(latency_ms, 0), reason, maint FROM check_event
 		WHERE check_id = ? AND (at >= ? OR (changed AND at >= ?))
 		ORDER BY at, id`, id, ms(all), ms(changes))
 }
@@ -248,7 +248,7 @@ func (s *store) readBeats(ctx context.Context, query string, args ...any) ([]*ch
 			at    int64
 			state string
 		)
-		if err := rows.Scan(&at, &b.Up, &state, &b.Changed, &b.LatencyMs, &b.Reason); err != nil {
+		if err := rows.Scan(&at, &b.Up, &state, &b.Changed, &b.LatencyMs, &b.Reason, &b.Maintenance); err != nil {
 			return nil, err
 		}
 		b.At, b.State = timestamppb.New(time.UnixMilli(at)), key(states, state)
