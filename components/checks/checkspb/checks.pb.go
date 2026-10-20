@@ -16,6 +16,7 @@ package checkspb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	workload "github.com/itsKontra/ddash/proto/ddash/workload"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -458,7 +459,10 @@ type Check struct {
 	// HTTPS: when the certificate seen by the last up beat expires.
 	CertExpires *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=cert_expires,json=certExpires,proto3" json:"cert_expires,omitempty"`
 	// The certificate expires within 14 days. The Check stays up meanwhile.
-	CertExpiring  bool `protobuf:"varint,14,opt,name=cert_expiring,json=certExpiring,proto3" json:"cert_expiring,omitempty"`
+	CertExpiring bool `protobuf:"varint,14,opt,name=cert_expiring,json=certExpiring,proto3" json:"cert_expiring,omitempty"`
+	// An App Check's Workload, as apps last declared it; unset without one
+	// and for a manual Check.
+	Workload      *workload.WorkloadRef `protobuf:"bytes,15,opt,name=workload,proto3" json:"workload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -589,6 +593,13 @@ func (x *Check) GetCertExpiring() bool {
 		return x.CertExpiring
 	}
 	return false
+}
+
+func (x *Check) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
 }
 
 type ListChecksRequest struct {
@@ -1688,7 +1699,10 @@ type AppCheck struct {
 	// The http or https URL probed.
 	Url string `protobuf:"bytes,3,opt,name=url,proto3" json:"url,omitempty"`
 	// False while the App is hidden: its Check isn't probed.
-	Enabled       bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Enabled bool `protobuf:"varint,4,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// The Workload behind the App; unset without one. A change keeps the
+	// Check's state.
+	Workload      *workload.WorkloadRef `protobuf:"bytes,5,opt,name=workload,proto3" json:"workload,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1749,6 +1763,13 @@ func (x *AppCheck) GetEnabled() bool {
 		return x.Enabled
 	}
 	return false
+}
+
+func (x *AppCheck) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
 }
 
 type SetAppChecksRequest struct {
@@ -1836,7 +1857,7 @@ var File_checks_checks_proto protoreflect.FileDescriptor
 
 const file_checks_checks_proto_rawDesc = "" +
 	"\n" +
-	"\x13checks/checks.proto\x12\fddash.checks\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0e\n" +
+	"\x13checks/checks.proto\x12\fddash.checks\x1a\x13ddash/options.proto\x1a\x1dddash/workload/workload.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0e\n" +
 	"\fChecksConfig\"\x8e\x01\n" +
 	"\tCheckSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12+\n" +
@@ -1846,7 +1867,7 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\bDnsQuery\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x129\n" +
 	"\vrecord_type\x18\x02 \x01(\x0e2\x18.ddash.checks.RecordTypeR\n" +
-	"recordType\"\xfc\x03\n" +
+	"recordType\"\xb5\x04\n" +
 	"\x05Check\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12+\n" +
 	"\x04spec\x18\x02 \x01(\v2\x17.ddash.checks.CheckSpecR\x04spec\x12)\n" +
@@ -1863,7 +1884,8 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\vmaintenance\x18\v \x01(\bR\vmaintenance\x12\x15\n" +
 	"\x06app_id\x18\f \x01(\tR\x05appId\x12=\n" +
 	"\fcert_expires\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\vcertExpires\x12#\n" +
-	"\rcert_expiring\x18\x0e \x01(\bR\fcertExpiring\"\x13\n" +
+	"\rcert_expiring\x18\x0e \x01(\bR\fcertExpiring\x127\n" +
+	"\bworkload\x18\x0f \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"\x13\n" +
 	"\x11ListChecksRequest\"A\n" +
 	"\x12ListChecksResponse\x12+\n" +
 	"\x06checks\x18\x01 \x03(\v2\x13.ddash.checks.CheckR\x06checks\"A\n" +
@@ -1928,12 +1950,13 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\x10ListBeatsRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"=\n" +
 	"\x11ListBeatsResponse\x12(\n" +
-	"\x05beats\x18\x01 \x03(\v2\x12.ddash.checks.BeatR\x05beats\"a\n" +
+	"\x05beats\x18\x01 \x03(\v2\x12.ddash.checks.BeatR\x05beats\"\x9a\x01\n" +
 	"\bAppCheck\x12\x15\n" +
 	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
 	"\x03url\x18\x03 \x01(\tR\x03url\x12\x18\n" +
-	"\aenabled\x18\x04 \x01(\bR\aenabled\"E\n" +
+	"\aenabled\x18\x04 \x01(\bR\aenabled\x127\n" +
+	"\bworkload\x18\x05 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"E\n" +
 	"\x13SetAppChecksRequest\x12.\n" +
 	"\x06checks\x18\x01 \x03(\v2\x16.ddash.checks.AppCheckR\x06checks\"\x16\n" +
 	"\x14SetAppChecksResponse*y\n" +
@@ -2024,7 +2047,8 @@ var file_checks_checks_proto_goTypes = []any{
 	(*SetAppChecksRequest)(nil),   // 29: ddash.checks.SetAppChecksRequest
 	(*SetAppChecksResponse)(nil),  // 30: ddash.checks.SetAppChecksResponse
 	(*timestamppb.Timestamp)(nil), // 31: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),   // 32: google.protobuf.Duration
+	(*workload.WorkloadRef)(nil),  // 32: ddash.workload.WorkloadRef
+	(*durationpb.Duration)(nil),   // 33: google.protobuf.Duration
 }
 var file_checks_checks_proto_depIdxs = []int32{
 	0,  // 0: ddash.checks.CheckSpec.type:type_name -> ddash.checks.CheckType
@@ -2035,51 +2059,53 @@ var file_checks_checks_proto_depIdxs = []int32{
 	31, // 5: ddash.checks.Check.since:type_name -> google.protobuf.Timestamp
 	31, // 6: ddash.checks.Check.last_beat:type_name -> google.protobuf.Timestamp
 	31, // 7: ddash.checks.Check.cert_expires:type_name -> google.protobuf.Timestamp
-	7,  // 8: ddash.checks.ListChecksResponse.checks:type_name -> ddash.checks.Check
-	5,  // 9: ddash.checks.CreateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
-	7,  // 10: ddash.checks.CreateCheckResponse.check:type_name -> ddash.checks.Check
-	5,  // 11: ddash.checks.UpdateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
-	7,  // 12: ddash.checks.UpdateCheckResponse.check:type_name -> ddash.checks.Check
-	7,  // 13: ddash.checks.SetMutedResponse.check:type_name -> ddash.checks.Check
-	7,  // 14: ddash.checks.SetDisabledResponse.check:type_name -> ddash.checks.Check
-	3,  // 15: ddash.checks.Uptime.window:type_name -> ddash.checks.Window
-	20, // 16: ddash.checks.Uptime.latency:type_name -> ddash.checks.Latency
-	31, // 17: ddash.checks.Bucket.start:type_name -> google.protobuf.Timestamp
-	20, // 18: ddash.checks.Bucket.latency:type_name -> ddash.checks.Latency
-	31, // 19: ddash.checks.Beat.at:type_name -> google.protobuf.Timestamp
-	2,  // 20: ddash.checks.Beat.state:type_name -> ddash.checks.State
-	3,  // 21: ddash.checks.GetHistoryRequest.window:type_name -> ddash.checks.Window
-	21, // 22: ddash.checks.GetHistoryResponse.uptime:type_name -> ddash.checks.Uptime
-	3,  // 23: ddash.checks.GetHistoryResponse.window:type_name -> ddash.checks.Window
-	32, // 24: ddash.checks.GetHistoryResponse.bucket:type_name -> google.protobuf.Duration
-	31, // 25: ddash.checks.GetHistoryResponse.from:type_name -> google.protobuf.Timestamp
-	22, // 26: ddash.checks.GetHistoryResponse.buckets:type_name -> ddash.checks.Bucket
-	23, // 27: ddash.checks.GetHistoryResponse.changes:type_name -> ddash.checks.Beat
-	23, // 28: ddash.checks.ListBeatsResponse.beats:type_name -> ddash.checks.Beat
-	28, // 29: ddash.checks.SetAppChecksRequest.checks:type_name -> ddash.checks.AppCheck
-	8,  // 30: ddash.checks.ChecksService.ListChecks:input_type -> ddash.checks.ListChecksRequest
-	10, // 31: ddash.checks.ChecksService.CreateCheck:input_type -> ddash.checks.CreateCheckRequest
-	12, // 32: ddash.checks.ChecksService.UpdateCheck:input_type -> ddash.checks.UpdateCheckRequest
-	14, // 33: ddash.checks.ChecksService.DeleteCheck:input_type -> ddash.checks.DeleteCheckRequest
-	16, // 34: ddash.checks.ChecksService.SetMuted:input_type -> ddash.checks.SetMutedRequest
-	18, // 35: ddash.checks.ChecksService.SetDisabled:input_type -> ddash.checks.SetDisabledRequest
-	24, // 36: ddash.checks.ChecksService.GetHistory:input_type -> ddash.checks.GetHistoryRequest
-	26, // 37: ddash.checks.ChecksService.ListBeats:input_type -> ddash.checks.ListBeatsRequest
-	29, // 38: ddash.checks.ChecksService.SetAppChecks:input_type -> ddash.checks.SetAppChecksRequest
-	9,  // 39: ddash.checks.ChecksService.ListChecks:output_type -> ddash.checks.ListChecksResponse
-	11, // 40: ddash.checks.ChecksService.CreateCheck:output_type -> ddash.checks.CreateCheckResponse
-	13, // 41: ddash.checks.ChecksService.UpdateCheck:output_type -> ddash.checks.UpdateCheckResponse
-	15, // 42: ddash.checks.ChecksService.DeleteCheck:output_type -> ddash.checks.DeleteCheckResponse
-	17, // 43: ddash.checks.ChecksService.SetMuted:output_type -> ddash.checks.SetMutedResponse
-	19, // 44: ddash.checks.ChecksService.SetDisabled:output_type -> ddash.checks.SetDisabledResponse
-	25, // 45: ddash.checks.ChecksService.GetHistory:output_type -> ddash.checks.GetHistoryResponse
-	27, // 46: ddash.checks.ChecksService.ListBeats:output_type -> ddash.checks.ListBeatsResponse
-	30, // 47: ddash.checks.ChecksService.SetAppChecks:output_type -> ddash.checks.SetAppChecksResponse
-	39, // [39:48] is the sub-list for method output_type
-	30, // [30:39] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	32, // 8: ddash.checks.Check.workload:type_name -> ddash.workload.WorkloadRef
+	7,  // 9: ddash.checks.ListChecksResponse.checks:type_name -> ddash.checks.Check
+	5,  // 10: ddash.checks.CreateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
+	7,  // 11: ddash.checks.CreateCheckResponse.check:type_name -> ddash.checks.Check
+	5,  // 12: ddash.checks.UpdateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
+	7,  // 13: ddash.checks.UpdateCheckResponse.check:type_name -> ddash.checks.Check
+	7,  // 14: ddash.checks.SetMutedResponse.check:type_name -> ddash.checks.Check
+	7,  // 15: ddash.checks.SetDisabledResponse.check:type_name -> ddash.checks.Check
+	3,  // 16: ddash.checks.Uptime.window:type_name -> ddash.checks.Window
+	20, // 17: ddash.checks.Uptime.latency:type_name -> ddash.checks.Latency
+	31, // 18: ddash.checks.Bucket.start:type_name -> google.protobuf.Timestamp
+	20, // 19: ddash.checks.Bucket.latency:type_name -> ddash.checks.Latency
+	31, // 20: ddash.checks.Beat.at:type_name -> google.protobuf.Timestamp
+	2,  // 21: ddash.checks.Beat.state:type_name -> ddash.checks.State
+	3,  // 22: ddash.checks.GetHistoryRequest.window:type_name -> ddash.checks.Window
+	21, // 23: ddash.checks.GetHistoryResponse.uptime:type_name -> ddash.checks.Uptime
+	3,  // 24: ddash.checks.GetHistoryResponse.window:type_name -> ddash.checks.Window
+	33, // 25: ddash.checks.GetHistoryResponse.bucket:type_name -> google.protobuf.Duration
+	31, // 26: ddash.checks.GetHistoryResponse.from:type_name -> google.protobuf.Timestamp
+	22, // 27: ddash.checks.GetHistoryResponse.buckets:type_name -> ddash.checks.Bucket
+	23, // 28: ddash.checks.GetHistoryResponse.changes:type_name -> ddash.checks.Beat
+	23, // 29: ddash.checks.ListBeatsResponse.beats:type_name -> ddash.checks.Beat
+	32, // 30: ddash.checks.AppCheck.workload:type_name -> ddash.workload.WorkloadRef
+	28, // 31: ddash.checks.SetAppChecksRequest.checks:type_name -> ddash.checks.AppCheck
+	8,  // 32: ddash.checks.ChecksService.ListChecks:input_type -> ddash.checks.ListChecksRequest
+	10, // 33: ddash.checks.ChecksService.CreateCheck:input_type -> ddash.checks.CreateCheckRequest
+	12, // 34: ddash.checks.ChecksService.UpdateCheck:input_type -> ddash.checks.UpdateCheckRequest
+	14, // 35: ddash.checks.ChecksService.DeleteCheck:input_type -> ddash.checks.DeleteCheckRequest
+	16, // 36: ddash.checks.ChecksService.SetMuted:input_type -> ddash.checks.SetMutedRequest
+	18, // 37: ddash.checks.ChecksService.SetDisabled:input_type -> ddash.checks.SetDisabledRequest
+	24, // 38: ddash.checks.ChecksService.GetHistory:input_type -> ddash.checks.GetHistoryRequest
+	26, // 39: ddash.checks.ChecksService.ListBeats:input_type -> ddash.checks.ListBeatsRequest
+	29, // 40: ddash.checks.ChecksService.SetAppChecks:input_type -> ddash.checks.SetAppChecksRequest
+	9,  // 41: ddash.checks.ChecksService.ListChecks:output_type -> ddash.checks.ListChecksResponse
+	11, // 42: ddash.checks.ChecksService.CreateCheck:output_type -> ddash.checks.CreateCheckResponse
+	13, // 43: ddash.checks.ChecksService.UpdateCheck:output_type -> ddash.checks.UpdateCheckResponse
+	15, // 44: ddash.checks.ChecksService.DeleteCheck:output_type -> ddash.checks.DeleteCheckResponse
+	17, // 45: ddash.checks.ChecksService.SetMuted:output_type -> ddash.checks.SetMutedResponse
+	19, // 46: ddash.checks.ChecksService.SetDisabled:output_type -> ddash.checks.SetDisabledResponse
+	25, // 47: ddash.checks.ChecksService.GetHistory:output_type -> ddash.checks.GetHistoryResponse
+	27, // 48: ddash.checks.ChecksService.ListBeats:output_type -> ddash.checks.ListBeatsResponse
+	30, // 49: ddash.checks.ChecksService.SetAppChecks:output_type -> ddash.checks.SetAppChecksResponse
+	41, // [41:50] is the sub-list for method output_type
+	32, // [32:41] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_checks_checks_proto_init() }

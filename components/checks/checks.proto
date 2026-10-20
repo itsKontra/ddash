@@ -10,6 +10,7 @@ syntax = "proto3";
 package ddash.checks;
 
 import "ddash/options.proto";
+import "ddash/workload/workload.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -152,6 +153,9 @@ message Check {
   google.protobuf.Timestamp cert_expires = 13;
   // The certificate expires within 14 days. The Check stays up meanwhile.
   bool cert_expiring = 14;
+  // An App Check's Workload, as apps last declared it; unset without one
+  // and for a manual Check.
+  ddash.workload.WorkloadRef workload = 15;
 }
 
 message ListChecksRequest {}
@@ -300,6 +304,9 @@ message AppCheck {
   string url = 3;
   // False while the App is hidden: its Check isn't probed.
   bool enabled = 4;
+  // The Workload behind the App; unset without one. A change keeps the
+  // Check's state.
+  ddash.workload.WorkloadRef workload = 5;
 }
 
 message SetAppChecksRequest {

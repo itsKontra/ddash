@@ -47,8 +47,10 @@ type component struct {
 }
 
 type host struct {
-	name   string
-	client *client.Client
+	name string
+	// address is the socket-proxy URL's host, e.g. "198.18.2.10".
+	address string
+	client  *client.Client
 }
 
 // snapshot is one read of every host.
@@ -67,7 +69,8 @@ func (c *component) Start(ctx context.Context, _ *sdk.Env, cfg *dockerapipb.Dock
 		if err != nil {
 			return fmt.Errorf("host %s: %w", h.GetName(), err)
 		}
-		c.hosts = append(c.hosts, host{name: h.GetName(), client: cli})
+		u, _ := url.Parse(h.GetUrl()) // validate parsed it
+		c.hosts = append(c.hosts, host{name: h.GetName(), address: u.Hostname(), client: cli})
 	}
 	context.AfterFunc(ctx, func() {
 		for _, h := range c.hosts {
@@ -144,7 +147,7 @@ func (c *component) fetch(ctx context.Context) (snapshot, error) {
 func (h host) list(ctx context.Context) (*dockerapipb.HostContainers, error) {
 	ctx, cancel := context.WithTimeout(ctx, hostTimeout)
 	defer cancel()
-	out := &dockerapipb.HostContainers{Host: h.name}
+	out := &dockerapipb.HostContainers{Host: h.name, Address: h.address}
 	res, err := h.client.ContainerList(ctx, client.ContainerListOptions{All: true})
 	if err != nil {
 		out.Error = err.Error()

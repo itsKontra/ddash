@@ -63,9 +63,16 @@ func split(out string) (dump, error) {
 	return d, nil
 }
 
+// parsed is what a dump holds that ddash reads.
+type parsed struct {
+	servers   []*nginxconfigpb.Server
+	upstreams []*nginxconfigpb.Upstream
+}
+
 // parse parses the dump with crossplane, nginx's own config parser, from
-// the dumped files only, and returns every server block in load order.
-func (d dump) parse() ([]*nginxconfigpb.Server, error) {
+// the dumped files only, and returns every http server and upstream block
+// in load order.
+func (d dump) parse() (parsed, error) {
 	payload, err := crossplane.Parse(d.main, &crossplane.ParseOptions{
 		Open: func(p string) (io.ReadCloser, error) {
 			body, ok := d.files[p]
@@ -93,20 +100,25 @@ func (d dump) parse() ([]*nginxconfigpb.Server, error) {
 		CombineConfigs:            true,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("parse nginx config: %w", err)
+		return parsed{}, fmt.Errorf("parse nginx config: %w", err)
 	}
 	if len(payload.Errors) > 0 {
-		return nil, fmt.Errorf("parse nginx config: %w", payload.Errors[0].Error)
+		return parsed{}, fmt.Errorf("parse nginx config: %w", payload.Errors[0].Error)
 	}
-	var servers []*nginxconfigpb.Server
+	var out parsed
 	for _, cfg := range payload.Config {
 		for _, http := range blocks(cfg.Parsed, "http") {
-			for _, s := range blocks(http.Block, "server") {
-				servers = append(servers, server(s))
+			for _, d := range http.Block {
+				switch d.Directive {
+				case "server":
+					out.servers = append(out.servers, server(d))
+				case "upstream":
+					out.upstreams = append(out.upstreams, upstream(d))
+				}
 			}
 		}
 	}
-	return servers, nil
+	return out, nil
 }
 
 func blocks(ds crossplane.Directives, name string) []*crossplane.Directive {
@@ -135,6 +147,19 @@ func server(s *crossplane.Directive) *nginxconfigpb.Server {
 			out.Return = strings.Join(d.Args, " ")
 		case "location":
 			out.Locations = append(out.Locations, location(d))
+		}
+	}
+	return out
+}
+
+func upstream(u *crossplane.Directive) *nginxconfigpb.Upstream {
+	out := &nginxconfigpb.Upstream{}
+	if len(u.Args) > 0 {
+		out.Name = u.Args[0]
+	}
+	for _, d := range u.Block {
+		if d.Directive == "server" && len(d.Args) > 0 {
+			out.Servers = append(out.Servers, d.Args[0])
 		}
 	}
 	return out

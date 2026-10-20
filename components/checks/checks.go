@@ -110,6 +110,8 @@ type check struct {
 	appEnabled bool
 	// goneAt is when an App Check's App left apps' set; zero while there.
 	goneAt time.Time
+	// workload is the Workload behind an App Check's App; zero without one.
+	workload workload
 
 	// stop ends the Check's loop; nil while it isn't probed.
 	stop context.CancelFunc

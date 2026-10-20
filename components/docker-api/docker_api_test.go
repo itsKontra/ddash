@@ -68,7 +68,7 @@ func TestListsContainersPerHostWithStateAndPublishedPorts(t *testing.T) {
 	got := list(t, c)
 
 	want := &dockerapipb.ListContainersResponse{Hosts: []*dockerapipb.HostContainers{
-		{Host: "media", Containers: []*dockerapipb.Container{
+		{Host: "media", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
 			{
 				Id:     "8c5d2f1e4b7a9c3d6e8f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d",
 				Name:   "jellyfin",
@@ -97,7 +97,7 @@ func TestListsContainersPerHostWithStateAndPublishedPorts(t *testing.T) {
 				Ports:  []*dockerapipb.Port{{Ip: "198.18.2.10", PublicPort: 8081, PrivatePort: 8080, Protocol: "tcp"}},
 			},
 		}},
-		{Host: "docker-env", Containers: []*dockerapipb.Container{
+		{Host: "docker-env", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
 			{
 				Id:     "4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b",
 				Name:   "grafana",

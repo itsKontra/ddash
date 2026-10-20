@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+// The Workload reference shared by apps, checks and proxmox: which unit of
+// compute backs an App, without its live details.
+package ddash.workload;
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/workload;workloadpb";
+
+// One Workload: a Proxmox LXC or VM, a Docker container, or an external
+// host.
+message WorkloadRef {
+  Kind kind = 1;
+  // Where it runs: the Proxmox node for an LXC or VM, the docker-api host
+  // name for a container, the address for an external host.
+  string host = 2;
+  // Which one it is there: the VMID for an LXC or VM ("101"), the
+  // container's name for a container (it survives a recreate, its id
+  // doesn't); empty for an external host.
+  string id = 3;
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_LXC = 1;
+  KIND_VM = 2;
+  KIND_DOCKER = 3;
+  KIND_EXTERNAL = 4;
+}

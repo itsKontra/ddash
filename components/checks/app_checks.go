@@ -10,12 +10,34 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 )
 
 // appCheck is one App's Check as apps declares it.
 type appCheck struct {
 	appID, name, url string
 	enabled          bool
+	workload         workload
+}
+
+// workload is a WorkloadRef as checks keeps it; the zero value is none.
+type workload struct {
+	kind     workloadpb.Kind
+	host, id string
+}
+
+func workloadOf(r *workloadpb.WorkloadRef) workload {
+	if r.GetKind() == workloadpb.Kind_KIND_UNSPECIFIED {
+		return workload{}
+	}
+	return workload{kind: r.GetKind(), host: strings.TrimSpace(r.GetHost()), id: strings.TrimSpace(r.GetId())}
+}
+
+func (w workload) proto() *workloadpb.WorkloadRef {
+	if w.kind == workloadpb.Kind_KIND_UNSPECIFIED {
+		return nil
+	}
+	return &workloadpb.WorkloadRef{Kind: w.kind, Host: w.host, Id: w.id}
 }
 
 // parseAppChecks checks apps' set: every App once, each with an http or
@@ -25,10 +47,14 @@ func parseAppChecks(in []*checkspb.AppCheck) ([]appCheck, error) {
 	seen := map[string]bool{}
 	for _, a := range in {
 		ac := appCheck{
-			appID:   strings.TrimSpace(a.GetAppId()),
-			name:    strings.TrimSpace(a.GetName()),
-			url:     strings.TrimSpace(a.GetUrl()),
-			enabled: a.GetEnabled(),
+			appID:    strings.TrimSpace(a.GetAppId()),
+			name:     strings.TrimSpace(a.GetName()),
+			url:      strings.TrimSpace(a.GetUrl()),
+			enabled:  a.GetEnabled(),
+			workload: workloadOf(a.GetWorkload()),
+		}
+		if _, known := kinds[ac.workload.kind]; !known && ac.workload.kind != workloadpb.Kind_KIND_UNSPECIFIED {
+			return nil, status.Errorf(codes.InvalidArgument, "App %s: unknown Workload kind %d", ac.appID, ac.workload.kind)
 		}
 		if ac.appID == "" {
 			return nil, status.Error(codes.InvalidArgument, "every App Check needs an app_id")
@@ -71,6 +97,7 @@ func (c *component) SetAppChecks(ctx context.Context, req *checkspb.SetAppChecks
 			next = append(next, &check{
 				appID:      a.appID,
 				appEnabled: a.enabled,
+				workload:   a.workload,
 				spec:       spec{name: a.name, typ: checkspb.CheckType_CHECK_TYPE_HTTP, target: a.url},
 				standing:   standing{state: checkspb.State_STATE_PENDING, since: at},
 			})
@@ -78,14 +105,14 @@ func (c *component) SetAppChecks(ctx context.Context, req *checkspb.SetAppChecks
 		}
 		n := *ch
 		// Back in the set, a gone Check resumes from its last state.
-		n.spec.name, n.appEnabled, n.goneAt = a.name, a.enabled, time.Time{}
+		n.spec.name, n.appEnabled, n.goneAt, n.workload = a.name, a.enabled, time.Time{}, a.workload
 		if n.spec.target != a.url {
 			// Another URL is another target: start over, as a manual Check
 			// does on a new target.
 			n.spec.target = a.url
 			n.standing = standing{state: checkspb.State_STATE_PENDING, since: at}
 		}
-		if n.spec != ch.spec || n.appEnabled != ch.appEnabled || !n.goneAt.Equal(ch.goneAt) {
+		if n.spec != ch.spec || n.appEnabled != ch.appEnabled || !n.goneAt.Equal(ch.goneAt) || n.workload != ch.workload {
 			next = append(next, &n)
 		}
 	}
@@ -114,7 +141,7 @@ func (c *component) SetAppChecks(ctx context.Context, req *checkspb.SetAppChecks
 			continue
 		}
 		was, retarget := ch.probed(), ch.spec.target != n.spec.target
-		ch.spec, ch.appEnabled, ch.goneAt, ch.standing = n.spec, n.appEnabled, n.goneAt, n.standing
+		ch.spec, ch.appEnabled, ch.goneAt, ch.standing, ch.workload = n.spec, n.appEnabled, n.goneAt, n.standing, n.workload
 		if was && (retarget || !ch.probed()) {
 			ch.stopProbing()
 		}
