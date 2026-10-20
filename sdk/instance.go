@@ -2,6 +2,9 @@ package sdk
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
+	"io/fs"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -12,6 +15,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	componentpb "github.com/itsKontra/ddash/proto/ddash/component"
+	"github.com/itsKontra/ddash/sdk/migrate"
 )
 
 // InstanceOptions configure one running Component.
@@ -47,6 +51,7 @@ type Instance struct {
 	mu       sync.Mutex
 	starting bool  // Start was called
 	startErr error // why Start failed, if it did
+	db       *sql.DB
 
 	ready atomic.Pointer[readyComponent] // set once Start succeeded
 }
@@ -121,6 +126,13 @@ func (i *Instance) start(req *componentpb.StartRequest) error {
 		host:      i.opts.Host,
 		clients:   i.opts.Clients,
 	}
+	if i.def.migrations != nil {
+		db, err := i.openDB()
+		if err != nil {
+			return err
+		}
+		env.DB = db
+	}
 	c := i.def.newImpl()
 	if err := c.start(i.ctx, env, cfg); err != nil {
 		return err
@@ -143,8 +155,33 @@ func (i *Instance) Health(ctx context.Context, _ *componentpb.HealthRequest) (*c
 	return r.c.Health(ctx).proto(), nil
 }
 
+// openDB opens the Component's SQLite file and applies its migrations. Any
+// failure is a startup error: the Component is down until the Release changes.
+func (i *Instance) openDB() (*sql.DB, error) {
+	db, err := migrate.Open(i.opts.DBPath)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := fs.Sub(i.def.migrations, "migrations")
+	if err == nil {
+		err = migrate.Apply(i.ctx, db, sub)
+	}
+	if err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate: %w", err)
+	}
+	i.db = db
+	return db, nil
+}
+
 // Stop cancels the Component's ctx, waits for its background work until ctx
 // ends, and closes its DB.
 func (i *Instance) Stop(ctx context.Context) {
 	i.cancel()
+	i.mu.Lock()
+	defer i.mu.Unlock()
+	if i.db != nil {
+		i.db.Close()
+		i.db = nil
+	}
 }
