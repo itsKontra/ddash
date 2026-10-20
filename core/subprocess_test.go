@@ -40,6 +40,16 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"jellyfin"`) {
 		t.Errorf("ListContainers: status %d: %s; want baseline's jellyfin", res.Code, res.Body)
 	}
+
+	// network reaches pfsense-api through the host over go-plugin's broker.
+	h.Install("network")
+	h.WaitState("pfsense-api", runtime.OK)
+	h.WaitState("network", runtime.OK)
+
+	res = h.Call("network", "network", "GetVpnTunnel", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"tier":"TIER_WIREGUARD"`) {
+		t.Errorf("GetVpnTunnel: status %d: %s; want baseline's via WireGuard", res.Code, res.Body)
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello
