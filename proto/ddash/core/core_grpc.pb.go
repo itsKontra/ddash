@@ -22,15 +22,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CoreService_Install_FullMethodName   = "/ddash.core.CoreService/Install"
-	CoreService_Uninstall_FullMethodName = "/ddash.core.CoreService/Uninstall"
-	CoreService_Restart_FullMethodName   = "/ddash.core.CoreService/Restart"
+	CoreService_ListInstalledPlugins_FullMethodName = "/ddash.core.CoreService/ListInstalledPlugins"
+	CoreService_Install_FullMethodName              = "/ddash.core.CoreService/Install"
+	CoreService_Uninstall_FullMethodName            = "/ddash.core.CoreService/Uninstall"
+	CoreService_Restart_FullMethodName              = "/ddash.core.CoreService/Restart"
 )
 
 // CoreServiceClient is the client API for CoreService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CoreServiceClient interface {
+	// ListInstalledPlugins returns the installed Plugins with their manifests
+	// and where the shell loads their bundles from.
+	ListInstalledPlugins(ctx context.Context, in *ListInstalledPluginsRequest, opts ...grpc.CallOption) (*ListInstalledPluginsResponse, error)
 	// Install adds a Plugin to the installed set and starts the Components it
 	// requires.
 	Install(ctx context.Context, in *InstallRequest, opts ...grpc.CallOption) (*InstallResponse, error)
@@ -51,6 +55,16 @@ type coreServiceClient struct {
 
 func NewCoreServiceClient(cc grpc.ClientConnInterface) CoreServiceClient {
 	return &coreServiceClient{cc}
+}
+
+func (c *coreServiceClient) ListInstalledPlugins(ctx context.Context, in *ListInstalledPluginsRequest, opts ...grpc.CallOption) (*ListInstalledPluginsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInstalledPluginsResponse)
+	err := c.cc.Invoke(ctx, CoreService_ListInstalledPlugins_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *coreServiceClient) Install(ctx context.Context, in *InstallRequest, opts ...grpc.CallOption) (*InstallResponse, error) {
@@ -87,6 +101,9 @@ func (c *coreServiceClient) Restart(ctx context.Context, in *RestartRequest, opt
 // All implementations must embed UnimplementedCoreServiceServer
 // for forward compatibility.
 type CoreServiceServer interface {
+	// ListInstalledPlugins returns the installed Plugins with their manifests
+	// and where the shell loads their bundles from.
+	ListInstalledPlugins(context.Context, *ListInstalledPluginsRequest) (*ListInstalledPluginsResponse, error)
 	// Install adds a Plugin to the installed set and starts the Components it
 	// requires.
 	Install(context.Context, *InstallRequest) (*InstallResponse, error)
@@ -109,6 +126,9 @@ type CoreServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCoreServiceServer struct{}
 
+func (UnimplementedCoreServiceServer) ListInstalledPlugins(context.Context, *ListInstalledPluginsRequest) (*ListInstalledPluginsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInstalledPlugins not implemented")
+}
 func (UnimplementedCoreServiceServer) Install(context.Context, *InstallRequest) (*InstallResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Install not implemented")
 }
@@ -137,6 +157,24 @@ func RegisterCoreServiceServer(s grpc.ServiceRegistrar, srv CoreServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&CoreService_ServiceDesc, srv)
+}
+
+func _CoreService_ListInstalledPlugins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInstalledPluginsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).ListInstalledPlugins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_ListInstalledPlugins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).ListInstalledPlugins(ctx, req.(*ListInstalledPluginsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _CoreService_Install_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -200,6 +238,10 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ddash.core.CoreService",
 	HandlerType: (*CoreServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListInstalledPlugins",
+			Handler:    _CoreService_ListInstalledPlugins_Handler,
+		},
 		{
 			MethodName: "Install",
 			Handler:    _CoreService_Install_Handler,

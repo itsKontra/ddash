@@ -15,3 +15,10 @@ plugins:
     exclude_types:
       - ddash.echo
       - ddash.sample
+  # connect-go handlers for the core's own API only; Components are routed
+  # from their descriptors (ADR 0002).
+  - local: [go, tool, protoc-gen-connect-go]
+    out: .
+    opt: module=github.com/itsKontra/ddash
+    types:
+      - ddash.core.CoreService

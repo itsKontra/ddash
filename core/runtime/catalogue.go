@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -34,14 +35,19 @@ type ComponentEntry struct {
 	Requires    []string `json:"requires"`
 }
 
-// A ReleaseSource provides a Release's catalogue.
+// A ReleaseSource provides a Release's catalogue and, as an fs.FS, its
+// files by name: the Plugin bundles <name>.plugin.js and <name>.plugin.css.
 type ReleaseSource interface {
 	Catalogue(ctx context.Context) (Catalogue, error)
+	fs.FS
 }
 
 // Dir is a Release laid out in a local directory, as DDASH_RELEASE_DIR names
 // it: catalogue.json at its root.
 type Dir string
+
+// Open opens the Release's file name.
+func (d Dir) Open(name string) (fs.File, error) { return os.DirFS(string(d)).Open(name) }
 
 // Catalogue reads and checks the directory's catalogue.json.
 func (d Dir) Catalogue(context.Context) (Catalogue, error) {

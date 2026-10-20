@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiIAoOSW5zdGFsbFJlcXVlc3QSDgoGcGx1Z2luGAEgASgJIhEKD0luc3RhbGxSZXNwb25zZSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJIiMKDlJlc3RhcnRSZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIRCg9SZXN0YXJ0UmVzcG9uc2Uy9QEKC0NvcmVTZXJ2aWNlEkgKB0luc3RhbGwSGi5kZGFzaC5jb3JlLkluc3RhbGxSZXF1ZXN0GhsuZGRhc2guY29yZS5JbnN0YWxsUmVzcG9uc2UiBJK1GAASUAoJVW5pbnN0YWxsEhwuZGRhc2guY29yZS5Vbmluc3RhbGxSZXF1ZXN0Gh0uZGRhc2guY29yZS5Vbmluc3RhbGxSZXNwb25zZSIGkrUYAggBEkoKB1Jlc3RhcnQSGi5kZGFzaC5jb3JlLlJlc3RhcnRSZXF1ZXN0GhsuZGRhc2guY29yZS5SZXN0YXJ0UmVzcG9uc2UiBpK1GAIIAUI0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiIAoOSW5zdGFsbFJlcXVlc3QSDgoGcGx1Z2luGAEgASgJIhEKD0luc3RhbGxSZXNwb25zZSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJIiMKDlJlc3RhcnRSZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIRCg9SZXN0YXJ0UmVzcG9uc2UiHQobTGlzdEluc3RhbGxlZFBsdWdpbnNSZXF1ZXN0IkwKHExpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2USLAoHcGx1Z2lucxgBIAMoCzIbLmRkYXNoLmNvcmUuSW5zdGFsbGVkUGx1Z2luIpIBCg9JbnN0YWxsZWRQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIQCghyZXF1aXJlcxgGIAMoCRIOCgZzY3JpcHQYByABKAkSDQoFc3R5bGUYCCABKAky6AIKC0NvcmVTZXJ2aWNlEnEKFExpc3RJbnN0YWxsZWRQbHVnaW5zEicuZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1JlcXVlc3QaKC5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2UiBoq1GAIIAhJICgdJbnN0YWxsEhouZGRhc2guY29yZS5JbnN0YWxsUmVxdWVzdBobLmRkYXNoLmNvcmUuSW5zdGFsbFJlc3BvbnNlIgSStRgAElAKCVVuaW5zdGFsbBIcLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVxdWVzdBodLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVzcG9uc2UiBpK1GAIIARJKCgdSZXN0YXJ0EhouZGRhc2guY29yZS5SZXN0YXJ0UmVxdWVzdBobLmRkYXNoLmNvcmUuUmVzdGFydFJlc3BvbnNlIgaStRgCCAFCNFoyZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29yZTtjb3JlcGJiBnByb3RvMw", [file_ddash_options]);
 
 /**
  * @generated from message ddash.core.InstallRequest
@@ -120,9 +120,116 @@ export const RestartResponseSchema: GenMessage<RestartResponse> = /*@__PURE__*/
   messageDesc(file_ddash_core_core, 5);
 
 /**
+ * @generated from message ddash.core.ListInstalledPluginsRequest
+ */
+export type ListInstalledPluginsRequest = Message<"ddash.core.ListInstalledPluginsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.core.ListInstalledPluginsRequest.
+ * Use `create(ListInstalledPluginsRequestSchema)` to create a new message.
+ */
+export const ListInstalledPluginsRequestSchema: GenMessage<ListInstalledPluginsRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 6);
+
+/**
+ * @generated from message ddash.core.ListInstalledPluginsResponse
+ */
+export type ListInstalledPluginsResponse = Message<"ddash.core.ListInstalledPluginsResponse"> & {
+  /**
+   * By name.
+   *
+   * @generated from field: repeated ddash.core.InstalledPlugin plugins = 1;
+   */
+  plugins: InstalledPlugin[];
+};
+
+/**
+ * Describes the message ddash.core.ListInstalledPluginsResponse.
+ * Use `create(ListInstalledPluginsResponseSchema)` to create a new message.
+ */
+export const ListInstalledPluginsResponseSchema: GenMessage<ListInstalledPluginsResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 7);
+
+/**
+ * An installed Plugin: its plugin.yaml and where its bundle is.
+ *
+ * @generated from message ddash.core.InstalledPlugin
+ */
+export type InstalledPlugin = Message<"ddash.core.InstalledPlugin"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
+
+  /**
+   * A lucide icon name, e.g. "container".
+   *
+   * @generated from field: string icon = 4;
+   */
+  icon: string;
+
+  /**
+   * The author's GitHub handle.
+   *
+   * @generated from field: string author = 5;
+   */
+  author: string;
+
+  /**
+   * The Components the Plugin's UI may call.
+   *
+   * @generated from field: repeated string requires = 6;
+   */
+  requires: string[];
+
+  /**
+   * The bundle's ESM entry: /plugins/<name>/<release>/index.js.
+   *
+   * @generated from field: string script = 7;
+   */
+  script: string;
+
+  /**
+   * The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+   *
+   * @generated from field: string style = 8;
+   */
+  style: string;
+};
+
+/**
+ * Describes the message ddash.core.InstalledPlugin.
+ * Use `create(InstalledPluginSchema)` to create a new message.
+ */
+export const InstalledPluginSchema: GenMessage<InstalledPlugin> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 8);
+
+/**
  * @generated from service ddash.core.CoreService
  */
 export const CoreService: GenService<{
+  /**
+   * ListInstalledPlugins returns the installed Plugins with their manifests
+   * and where the shell loads their bundles from.
+   *
+   * @generated from rpc ddash.core.CoreService.ListInstalledPlugins
+   */
+  listInstalledPlugins: {
+    methodKind: "unary";
+    input: typeof ListInstalledPluginsRequestSchema;
+    output: typeof ListInstalledPluginsResponseSchema;
+  },
   /**
    * Install adds a Plugin to the installed set and starts the Components it
    * requires.

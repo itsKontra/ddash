@@ -17,8 +17,10 @@ package coretest
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -42,6 +44,8 @@ import (
 type Plugin struct {
 	Name     string
 	Requires []string
+	// Title defaults to Name.
+	Title, Description, Icon, Author string
 }
 
 // Options configure a Harness.
@@ -61,6 +65,14 @@ type Options struct {
 	Actor string
 	// DataDir is reused instead of a fresh one, to restart a host.
 	DataDir string
+	// Release names the test Release. Default sdk.Release.
+	Release string
+	// ReleaseFiles are written into the test Release dir, by file name,
+	// e.g. Plugin bundles ("docker.plugin.js").
+	ReleaseFiles map[string]string
+	// Shell is the shell's built assets the host serves (web.Shell()).
+	// Default: none.
+	Shell fs.FS
 }
 
 // Harness is one running core.
@@ -105,6 +117,7 @@ func New(t testing.TB, opts Options) *Harness {
 		Release:   rel,
 		Launcher:  opts.Launcher,
 		Auth:      auth.As(opts.Actor),
+		Shell:     opts.Shell,
 		PublicURL: PublicURL,
 		Logger:    logger,
 	})
@@ -119,9 +132,12 @@ func New(t testing.TB, opts Options) *Harness {
 
 // release writes the test Release's catalogue.json into a temp dir.
 func release(t testing.TB, opts Options) runtime.Dir {
-	cat := runtime.Catalogue{Release: sdk.Release}
+	cat := runtime.Catalogue{Release: cmp.Or(opts.Release, sdk.Release)}
 	for _, p := range opts.Plugins {
-		cat.Plugins = append(cat.Plugins, runtime.PluginEntry{Name: p.Name, Title: p.Name, Requires: p.Requires})
+		cat.Plugins = append(cat.Plugins, runtime.PluginEntry{
+			Name: p.Name, Title: cmp.Or(p.Title, p.Name), Description: p.Description,
+			Icon: p.Icon, Author: p.Author, Requires: p.Requires,
+		})
 	}
 	for _, d := range opts.Components {
 		cat.Components = append(cat.Components, runtime.ComponentEntry{Name: d.Name(), Description: d.Description(), Requires: d.Requires()})
@@ -133,6 +149,11 @@ func release(t testing.TB, opts Options) runtime.Dir {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "catalogue.json"), b, 0o600); err != nil {
 		t.Fatal(err)
+	}
+	for name, content := range opts.ReleaseFiles {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	return runtime.Dir(dir)
 }
@@ -239,6 +260,20 @@ func ConnectRequest(component, method, body string) *http.Request {
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Connect-Protocol-Version", "1")
 	return r
+}
+
+// CoreCall makes a Connect unary JSON call to the core API's method, as the
+// shell would.
+func (h *Harness) CoreCall(method, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(http.MethodPost, "/api/core/ddash.core.CoreService/"+method, bytes.NewBufferString(body))
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Connect-Protocol-Version", "1")
+	return h.Do(r)
+}
+
+// Get serves a GET of path, as the browser would.
+func (h *Harness) Get(path string) *httptest.ResponseRecorder {
+	return h.Do(httptest.NewRequest(http.MethodGet, path, nil))
 }
 
 // Do serves r with the host's handler.

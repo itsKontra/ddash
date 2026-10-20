@@ -283,6 +283,193 @@ func (*RestartResponse) Descriptor() ([]byte, []int) {
 	return file_ddash_core_core_proto_rawDescGZIP(), []int{5}
 }
 
+type ListInstalledPluginsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInstalledPluginsRequest) Reset() {
+	*x = ListInstalledPluginsRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInstalledPluginsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInstalledPluginsRequest) ProtoMessage() {}
+
+func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInstalledPluginsRequest.ProtoReflect.Descriptor instead.
+func (*ListInstalledPluginsRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{6}
+}
+
+type ListInstalledPluginsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// By name.
+	Plugins       []*InstalledPlugin `protobuf:"bytes,1,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInstalledPluginsResponse) Reset() {
+	*x = ListInstalledPluginsResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInstalledPluginsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInstalledPluginsResponse) ProtoMessage() {}
+
+func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInstalledPluginsResponse.ProtoReflect.Descriptor instead.
+func (*ListInstalledPluginsResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListInstalledPluginsResponse) GetPlugins() []*InstalledPlugin {
+	if x != nil {
+		return x.Plugins
+	}
+	return nil
+}
+
+// An installed Plugin: its plugin.yaml and where its bundle is.
+type InstalledPlugin struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Title       string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// A lucide icon name, e.g. "container".
+	Icon string `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	// The author's GitHub handle.
+	Author string `protobuf:"bytes,5,opt,name=author,proto3" json:"author,omitempty"`
+	// The Components the Plugin's UI may call.
+	Requires []string `protobuf:"bytes,6,rep,name=requires,proto3" json:"requires,omitempty"`
+	// The bundle's ESM entry: /plugins/<name>/<release>/index.js.
+	Script string `protobuf:"bytes,7,opt,name=script,proto3" json:"script,omitempty"`
+	// The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+	Style         string `protobuf:"bytes,8,opt,name=style,proto3" json:"style,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstalledPlugin) Reset() {
+	*x = InstalledPlugin{}
+	mi := &file_ddash_core_core_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstalledPlugin) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstalledPlugin) ProtoMessage() {}
+
+func (x *InstalledPlugin) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstalledPlugin.ProtoReflect.Descriptor instead.
+func (*InstalledPlugin) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *InstalledPlugin) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *InstalledPlugin) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *InstalledPlugin) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *InstalledPlugin) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *InstalledPlugin) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *InstalledPlugin) GetRequires() []string {
+	if x != nil {
+		return x.Requires
+	}
+	return nil
+}
+
+func (x *InstalledPlugin) GetScript() string {
+	if x != nil {
+		return x.Script
+	}
+	return ""
+}
+
+func (x *InstalledPlugin) GetStyle() string {
+	if x != nil {
+		return x.Style
+	}
+	return ""
+}
+
 var File_ddash_core_core_proto protoreflect.FileDescriptor
 
 const file_ddash_core_core_proto_rawDesc = "" +
@@ -300,8 +487,21 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\aorphans\x18\x01 \x03(\tR\aorphans\".\n" +
 	"\x0eRestartRequest\x12\x1c\n" +
 	"\tcomponent\x18\x01 \x01(\tR\tcomponent\"\x11\n" +
-	"\x0fRestartResponse2\xf5\x01\n" +
-	"\vCoreService\x12H\n" +
+	"\x0fRestartResponse\"\x1d\n" +
+	"\x1bListInstalledPluginsRequest\"U\n" +
+	"\x1cListInstalledPluginsResponse\x125\n" +
+	"\aplugins\x18\x01 \x03(\v2\x1b.ddash.core.InstalledPluginR\aplugins\"\xd3\x01\n" +
+	"\x0fInstalledPlugin\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
+	"\x04icon\x18\x04 \x01(\tR\x04icon\x12\x16\n" +
+	"\x06author\x18\x05 \x01(\tR\x06author\x12\x1a\n" +
+	"\brequires\x18\x06 \x03(\tR\brequires\x12\x16\n" +
+	"\x06script\x18\a \x01(\tR\x06script\x12\x14\n" +
+	"\x05style\x18\b \x01(\tR\x05style2\xe8\x02\n" +
+	"\vCoreService\x12q\n" +
+	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
 	"\tUninstall\x12\x1c.ddash.core.UninstallRequest\x1a\x1d.ddash.core.UninstallResponse\"\x06\x92\xb5\x18\x02\b\x01\x12J\n" +
 	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
@@ -318,27 +518,33 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 	return file_ddash_core_core_proto_rawDescData
 }
 
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_ddash_core_core_proto_goTypes = []any{
-	(*InstallRequest)(nil),    // 0: ddash.core.InstallRequest
-	(*InstallResponse)(nil),   // 1: ddash.core.InstallResponse
-	(*UninstallRequest)(nil),  // 2: ddash.core.UninstallRequest
-	(*UninstallResponse)(nil), // 3: ddash.core.UninstallResponse
-	(*RestartRequest)(nil),    // 4: ddash.core.RestartRequest
-	(*RestartResponse)(nil),   // 5: ddash.core.RestartResponse
+	(*InstallRequest)(nil),               // 0: ddash.core.InstallRequest
+	(*InstallResponse)(nil),              // 1: ddash.core.InstallResponse
+	(*UninstallRequest)(nil),             // 2: ddash.core.UninstallRequest
+	(*UninstallResponse)(nil),            // 3: ddash.core.UninstallResponse
+	(*RestartRequest)(nil),               // 4: ddash.core.RestartRequest
+	(*RestartResponse)(nil),              // 5: ddash.core.RestartResponse
+	(*ListInstalledPluginsRequest)(nil),  // 6: ddash.core.ListInstalledPluginsRequest
+	(*ListInstalledPluginsResponse)(nil), // 7: ddash.core.ListInstalledPluginsResponse
+	(*InstalledPlugin)(nil),              // 8: ddash.core.InstalledPlugin
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
-	0, // 0: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	2, // 1: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	4, // 2: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	1, // 3: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	3, // 4: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	5, // 5: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	8, // 0: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
+	6, // 1: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	0, // 2: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	2, // 3: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	4, // 4: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	7, // 5: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	1, // 6: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	3, // 7: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	5, // 8: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	5, // [5:9] is the sub-list for method output_type
+	1, // [1:5] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }
@@ -352,7 +558,7 @@ func file_ddash_core_core_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

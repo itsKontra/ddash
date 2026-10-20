@@ -9,6 +9,11 @@ import "ddash/options.proto";
 option go_package = "github.com/itsKontra/ddash/proto/ddash/core;corepb";
 
 service CoreService {
+  // ListInstalledPlugins returns the installed Plugins with their manifests
+  // and where the shell loads their bundles from.
+  rpc ListInstalledPlugins(ListInstalledPluginsRequest) returns (ListInstalledPluginsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
   // Install adds a Plugin to the installed set and starts the Components it
   // requires.
   rpc Install(InstallRequest) returns (InstallResponse) {
@@ -51,3 +56,27 @@ message RestartRequest {
 }
 
 message RestartResponse {}
+
+message ListInstalledPluginsRequest {}
+
+message ListInstalledPluginsResponse {
+  // By name.
+  repeated InstalledPlugin plugins = 1;
+}
+
+// An installed Plugin: its plugin.yaml and where its bundle is.
+message InstalledPlugin {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // A lucide icon name, e.g. "container".
+  string icon = 4;
+  // The author's GitHub handle.
+  string author = 5;
+  // The Components the Plugin's UI may call.
+  repeated string requires = 6;
+  // The bundle's ESM entry: /plugins/<name>/<release>/index.js.
+  string script = 7;
+  // The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+  string style = 8;
+}

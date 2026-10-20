@@ -368,6 +368,23 @@ func (r *Runtime) PluginRequires(plugin string) (requires []string, ok bool) {
 	return p.Requires, true
 }
 
+// Installed returns the installed Plugins' manifests, by name.
+func (r *Runtime) Installed() []PluginEntry {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var out []PluginEntry
+	for _, p := range r.cat.Plugins {
+		if r.installed[p.Name] {
+			out = append(out, p)
+		}
+	}
+	slices.SortFunc(out, func(a, b PluginEntry) int { return strings.Compare(a.Name, b.Name) })
+	return out
+}
+
+// Release is the Release the runtime runs.
+func (r *Runtime) Release() string { return r.cat.Release }
+
 // ComponentRequires returns the Components a Component lists in requires.
 func (r *Runtime) ComponentRequires(component string) []string {
 	c, _ := r.cat.component(component)

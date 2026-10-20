@@ -5,6 +5,7 @@ package core
 import (
 	"context"
 	"database/sql"
+	"io/fs"
 	"log/slog"
 	"net/http"
 	"os"
@@ -42,6 +43,9 @@ type Options struct {
 	PublicURL string
 	// Logger receives the host's logs. Nil discards them.
 	Logger *slog.Logger
+	// Shell is the built shell (web.Shell()): index.html, its assets, and
+	// the vendor ESM under vendor/. Nil serves no shell.
+	Shell fs.FS
 }
 
 // Host is the ddash core.
@@ -50,6 +54,8 @@ type Host struct {
 	gate    *appstate.Gate
 	config  *config.Store
 	runtime *runtime.Runtime
+	release runtime.ReleaseSource
+	shell   fs.FS
 	router  *router.Router
 	handler http.Handler
 
@@ -97,7 +103,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
-	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr}
+	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell}
 	h.handler = h.routes(opts.Auth)
 	return h, nil
 }
@@ -105,10 +111,22 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 func (h *Host) routes(guard auth.Middleware) http.Handler {
 	api := http.NewServeMux()
 	api.Handle(router.Prefix, h.router)
+	api.Handle(apiPrefix+"/", h.apiHandler())
+
+	// The shell, vendor ESM and Plugin bundles sit behind sign-in too.
+	ui := http.NewServeMux()
+	ui.HandleFunc("GET "+bundlePrefix+"{plugin}/{release}/{file}", h.bundle)
+	ui.HandleFunc("GET /vendor/{release}/{file...}", h.vendor)
+	ui.HandleFunc("GET /assets/{file...}", h.assets)
+	ui.HandleFunc("GET /{path...}", h.index)
+	for _, prefix := range []string{bundlePrefix, "/vendor/"} {
+		ui.Handle("GET "+prefix, http.NotFoundHandler()) // never the shell
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.healthz)
 	mux.Handle("/api/", requireConnectHeader(guard(api)))
+	mux.Handle("/", guard(ui))
 	return mux
 }
 
