@@ -63,6 +63,21 @@ func TestANetmaskMustBeContiguous(t *testing.T) {
 	}
 }
 
+func TestAnAddressEndingASentenceIsFound(t *testing.T) {
+	root := t.TempDir()
+	write(t, root, "testdata/notes.txt", "the gateway is 10.0.0.1.\nnot an address: 10.0.0.1.5\n")
+
+	got, err := ipguard.Check(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := []ipguard.Finding{{File: "testdata/notes.txt", Line: 1, Addr: "10.0.0.1"}}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("findings (-want +got):\n%s", diff)
+	}
+}
+
 // The guard itself: CI fails while any fixture in the repo leaks an
 // address outside the scrubbed ranges.
 func TestTheRepoFixturesHoldOnlyScrubbedAddresses(t *testing.T) {

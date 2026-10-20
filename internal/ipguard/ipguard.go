@@ -35,8 +35,9 @@ var allowed = []netip.Prefix{
 // skipped directories are never the repo's own fixtures.
 var skipped = []string{".git", "node_modules", "dist", ".dev"}
 
-// candidate is a dotted quad not part of a longer run of digits and dots.
-var candidate = regexp.MustCompile(`(?:^|[^0-9.])(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:[^0-9.]|$)`)
+// candidate is a dotted quad not part of a longer run of digits and dots;
+// a dot after it counts as punctuation unless a digit follows.
+var candidate = regexp.MustCompile(`(?:^|[^0-9.])(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})(?:[^0-9.]|\.[^0-9]|\.$|$)`)
 
 // Check returns, in file then line order, every disallowed IPv4 address in
 // a file under a testdata/ directory below root.
