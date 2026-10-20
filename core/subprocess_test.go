@@ -77,6 +77,13 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if !strings.Contains(res.Body.String(), `"KIND_DOCKER"`) {
 		t.Errorf("ListApps: %s; want jellyfin linked to its container", res.Body)
 	}
+
+	// The reverse-proxy Page joins Proxy Hosts with apps' Apps and their Checks.
+	for component, method := range map[string]string{"apps": "ListApps", "checks": "ListChecks"} {
+		if res := h.Call("reverse-proxy", component, method, `{}`); res.Code != http.StatusOK {
+			t.Errorf("reverse-proxy → %s %s: status %d: %s", component, method, res.Code, res.Body)
+		}
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello

@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
 	goruntime "runtime"
+	"slices"
 	"strings"
 	"testing"
 

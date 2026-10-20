@@ -1,7 +1,8 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Badge, type Status, type Widget } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import type { Badge, Status, Widget } from "@ddash/plugin";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { Page, renderScoped, settle } from "./testing";
 
 afterEach(cleanup);
 
@@ -10,34 +11,6 @@ const loads = { snapshot: { revision: "3", readAt: "2026-10-20T07:15:00Z", serve
 const nginxError = 'nginx: [emerg] unknown directive "proxy_pas" in /etc/nginx/conf.d/jellyfin.conf:11\nnginx: configuration file /etc/nginx/nginx.conf test failed';
 const fails = { snapshot: { revision: "4", readAt: "2026-10-20T07:15:00Z", error: nginxError } };
 const neverLoaded = { snapshot: { revision: "1", error: "permission denied (publickey)" } };
-
-type Answers = Record<string, () => Response>;
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
-
-// Renders children in the reverse-proxy Plugin's scope against nginx-config
-// answering by method name, and returns the methods called.
-function renderScoped(children: React.ReactNode, answers: Answers) {
-  const calls: string[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL) => {
-    const method = String(input).split("/").pop()!;
-    calls.push(method);
-    return answers[method]?.() ?? Response.json({ code: "unimplemented", message: method }, { status: 501 });
-  });
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "reverse-proxy", requires: ["nginx-config"] }} fetch={fetch}>
-        {children}
-      </PluginScope>
-    </PluginHost>,
-  );
-  return calls;
-}
-
-const Page = () => {
-  const P = plugin.pages![0].Component!;
-  return <P />;
-};
 
 it("is the reverse-proxy Nav Entry at order 60 (its icon, waypoints, is in plugin.yaml)", () => {
   expect(plugin.nav?.order).toBe(60);

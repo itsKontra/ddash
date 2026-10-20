@@ -1,13 +1,14 @@
 import { useAction } from "@ddash/plugin";
 import { NginxConfigService } from "@ddash/proto/nginx-config/nginx_config_pb";
 import { Button, PageHeader, StatusDot } from "@ddash/ui";
+import { ProxyHosts } from "./hosts";
 import { ReadTime, useSnapshot } from "./snapshot";
 
-/** The reverse-proxy Page: whether nginx's config loads, with a Refresh. */
+/** The reverse-proxy Page: whether nginx's config loads and every Proxy Host with what looks wrong, with a Refresh. */
 export function ReverseProxy() {
   const refresh = useAction(NginxConfigService.method.refresh);
   return (
-    <div>
+    <div className="flex flex-col gap-4">
       <PageHeader
         title="Reverse proxy"
         subtitle="nginx's config, as ddash last read it."
@@ -17,8 +18,9 @@ export function ReverseProxy() {
           </Button>
         }
       />
-      {refresh.error && <p className="mb-4 text-sm text-down">Refresh failed: {refresh.error.rawMessage}</p>}
+      {refresh.error && <p className="text-sm text-down">Refresh failed: {refresh.error.rawMessage}</p>}
       <ConfigHealth />
+      <ProxyHosts />
     </div>
   );
 }
