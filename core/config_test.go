@@ -2,18 +2,23 @@ package core_test
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
 	"github.com/itsKontra/ddash/core/internal/sample/samplepb"
 	"github.com/itsKontra/ddash/core/runtime"
+	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -148,6 +153,144 @@ func TestAConfigWithWrongCredentialsIsSavedAndItsHealthAnswered(t *testing.T) {
 	}
 	if token := greeting(t, h)["token"]; token != "wrong" {
 		t.Errorf("greeter runs with token %v, want the saved one", token)
+	}
+}
+
+// rejected decodes an "invalid config" answer to its errors by path.
+func rejected(t *testing.T, res *httptest.ResponseRecorder) map[string]string {
+	t.Helper()
+	wantError(t, res, http.StatusBadRequest, "invalid_argument", "invalid config")
+	var body struct {
+		Details []struct {
+			Type  string `json:"type"`
+			Value string `json:"value"`
+		} `json:"details"`
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &body); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]string{}
+	for _, d := range body.Details {
+		if d.Type != "ddash.core.ConfigErrors" {
+			continue
+		}
+		b, err := base64.RawStdEncoding.DecodeString(strings.TrimRight(d.Value, "="))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var errs corepb.ConfigErrors
+		if err := proto.Unmarshal(b, &errs); err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range errs.GetErrors() {
+			got[e.GetPath()] = e.GetMessage()
+		}
+	}
+	return got
+}
+
+func TestAConfigBreakingItsFieldsRulesIsRejectedBeforeTheComponentRestarts(t *testing.T) {
+	var starts atomic.Int32
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{greeter(sample.Hooks{Start: func(context.Context, *sdk.Env, *samplepb.SampleConfig) error {
+			starts.Add(1)
+			return nil
+		}})},
+		Plugins: []coretest.Plugin{hello},
+	})
+	h.SeedConfig("greeter", configured)
+	h.Install("hello")
+	h.WaitState("greeter", runtime.OK)
+
+	res := h.CoreCall("SaveConfig", `{"owner":"greeter","values":{
+		"times":"11","server":"198.18.2.10:2375","tags":["x"],
+		"peers":[{"address":"198.18.0.5"},{"name":"b","address":"198.18.0.256","port":"0"}]}}`)
+
+	want := map[string]string{
+		"target":           "is required",
+		"times":            "must be at most 10",
+		"server":           "must be a URL like https://host.example",
+		"peers[0].name":    "is required",
+		"peers[1].address": "must be an IP address",
+		"peers[1].port":    "must be at least 1",
+	}
+	if diff := cmp.Diff(want, rejected(t, res)); diff != "" {
+		t.Errorf("errors (-want +got):\n%s", diff)
+	}
+	if n := starts.Load(); n != 1 {
+		t.Errorf("greeter started %d times, want once: a rejected config never reaches it", n)
+	}
+	if target := greeting(t, h)["target"]; target != "world" {
+		t.Errorf("greeter runs with target %v, want the stored world", target)
+	}
+	if e := lastSave(t, h); e.Outcome != "InvalidArgument" || e.Message != "invalid config" {
+		t.Errorf("entry %+v, want a failed InvalidArgument", e)
+	}
+}
+
+func TestAConfigStartRejectsIsNotSavedAndTheComponentRunsOnTheOldOne(t *testing.T) {
+	h := newHello(t, configured)
+	h.WaitState("greeter", runtime.OK)
+
+	res := h.CoreCall("SaveConfig", `{"owner":"greeter","values":{"target":"nowhere","greeting":"hi"}}`)
+
+	if diff := cmp.Diff(map[string]string{"target": "can't be greeted"}, rejected(t, res)); diff != "" {
+		t.Errorf("errors (-want +got):\n%s", diff)
+	}
+	h.WaitState("greeter", runtime.OK)
+	if got := greeting(t, h); got["target"] != "world" || got["greeting"] != "hello" {
+		t.Errorf("greeter runs with %v, want the stored config", got)
+	}
+	form := coreJSON(t, h, "GetConfigForm", `{"owner":"greeter"}`)
+	if diff := cmp.Diff(map[string]any{"target": "world"}, form["values"]); diff != "" || form["errors"] != nil {
+		t.Errorf("stored values (-want +got):\n%s\nerrors %v, want none", diff, form["errors"])
+	}
+	if e := lastSave(t, h); e.Outcome != "InvalidArgument" {
+		t.Errorf("entry %+v, want a failed InvalidArgument", e)
+	}
+}
+
+func TestASaveKeepsTheSecretsItLeavesUnchangedAndReplacesOrClearsTheOthers(t *testing.T) {
+	h := newKeyed(t, &samplepb.SampleConfig{Target: "world", Token: "right"})
+	h.WaitState("greeter", runtime.OK)
+	saves := []struct {
+		body       string
+		token      string
+		changes    []any
+		secretsSet any
+	}{
+		{
+			// The form never has the secret, so it sends none.
+			body:       `{"owner":"greeter","values":{"target":"Ada"}}`,
+			token:      "right",
+			changes:    []any{map[string]any{"field": "target", "old": `"world"`, "new": `"Ada"`}},
+			secretsSet: []any{"token"},
+		},
+		{
+			body:       `{"owner":"greeter","values":{"target":"Ada","token":"rotated"}}`,
+			token:      "rotated",
+			changes:    []any{map[string]any{"field": "token", "change": "changed"}},
+			secretsSet: []any{"token"},
+		},
+		{
+			body:    `{"owner":"greeter","values":{"target":"Ada"},"clearSecrets":["token"]}`,
+			token:   "",
+			changes: []any{map[string]any{"field": "token", "change": "cleared"}},
+		},
+	}
+	for _, s := range saves {
+		coreJSON(t, h, "SaveConfig", s.body)
+
+		if got := greeting(t, h)["token"]; got != nil && got != s.token || got == nil && s.token != "" {
+			t.Errorf("after %s: greeter runs with token %v, want %q", s.body, got, s.token)
+		}
+		e := lastSave(t, h)
+		if diff := cmp.Diff(s.changes, requestJSON(t, e)["changes"]); diff != "" || strings.Contains(e.Request, "rotated") {
+			t.Errorf("after %s: recorded %s; changes (-want +got):\n%s", s.body, e.Request, diff)
+		}
+		if got := coreJSON(t, h, "GetConfigForm", `{"owner":"greeter"}`)["secretsSet"]; !cmp.Equal(s.secretsSet, got) {
+			t.Errorf("after %s: secrets set %v, want %v", s.body, got, s.secretsSet)
+		}
 	}
 }
 
