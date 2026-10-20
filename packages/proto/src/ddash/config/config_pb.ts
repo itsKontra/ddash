@@ -14,7 +14,7 @@
 
 import type { GenEnum, GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, extDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { EnumValueOptions, FieldOptions } from "@bufbuild/protobuf/wkt";
+import type { EnumValueOptions, FieldOptions, MessageOptions } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_descriptor } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -22,7 +22,59 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/config/config.proto.
  */
 export const file_ddash_config_config: GenFile = /*@__PURE__*/
-  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciyAIKBUZpZWxkEg8KB2RlZmF1bHQYASABKAkSDgoGc2VjcmV0GAIgASgIEg0KBWxhYmVsGAMgASgJEgwKBGhlbHAYBCABKAkSEwoLcGxhY2Vob2xkZXIYBSABKAkSEAoIcmVxdWlyZWQYBiABKAgSKgoGZm9ybWF0GAcgASgOMhouZGRhc2guY29uZmlnLkZpZWxkLkZvcm1hdBIQCgNtaW4YCCABKANIAIgBARIQCgNtYXgYCSABKANIAYgBASJ6CgZGb3JtYXQSFgoSRk9STUFUX1VOU1BFQ0lGSUVEEAASDgoKRk9STUFUX1VSTBABEhMKD0ZPUk1BVF9IT1NUTkFNRRACEg0KCUZPUk1BVF9JUBADEg8KC0ZPUk1BVF9DSURSEAQSEwoPRk9STUFUX0lQX1JBTkdFEAVCBgoEX21pbkIGCgRfbWF4IhoKCUVudW1WYWx1ZRINCgVsYWJlbBgBIAEoCTpKCgVmaWVsZBIdLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE9wdGlvbnMY04YDIAEoCzITLmRkYXNoLmNvbmZpZy5GaWVsZFIFZmllbGQ6UgoFdmFsdWUSIS5nb29nbGUucHJvdG9idWYuRW51bVZhbHVlT3B0aW9ucxjUhgMgASgLMhcuZGRhc2guY29uZmlnLkVudW1WYWx1ZVIFdmFsdWVCOFo2Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29uZmlnO2NvbmZpZ3BiYgZwcm90bzM", [file_google_protobuf_descriptor]);
+  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciGgoERm9ybRISCgpzZXR1cF9mcm9tGAEgASgJIigKCVNldHVwSGludBIMCgR0ZXh0GAEgASgJEg0KBWJsb2NrGAIgASgJIsgCCgVGaWVsZBIPCgdkZWZhdWx0GAEgASgJEg4KBnNlY3JldBgCIAEoCBINCgVsYWJlbBgDIAEoCRIMCgRoZWxwGAQgASgJEhMKC3BsYWNlaG9sZGVyGAUgASgJEhAKCHJlcXVpcmVkGAYgASgIEioKBmZvcm1hdBgHIAEoDjIaLmRkYXNoLmNvbmZpZy5GaWVsZC5Gb3JtYXQSEAoDbWluGAggASgDSACIAQESEAoDbWF4GAkgASgDSAGIAQEiegoGRm9ybWF0EhYKEkZPUk1BVF9VTlNQRUNJRklFRBAAEg4KCkZPUk1BVF9VUkwQARITCg9GT1JNQVRfSE9TVE5BTUUQAhINCglGT1JNQVRfSVAQAxIPCgtGT1JNQVRfQ0lEUhAEEhMKD0ZPUk1BVF9JUF9SQU5HRRAFQgYKBF9taW5CBgoEX21heCIaCglFbnVtVmFsdWUSDQoFbGFiZWwYASABKAk6SgoFZmllbGQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNOGAyABKAsyEy5kZGFzaC5jb25maWcuRmllbGRSBWZpZWxkOlIKBXZhbHVlEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY1IYDIAEoCzIXLmRkYXNoLmNvbmZpZy5FbnVtVmFsdWVSBXZhbHVlOkkKBGZvcm0SHy5nb29nbGUucHJvdG9idWYuTWVzc2FnZU9wdGlvbnMY1YYDIAEoCzISLmRkYXNoLmNvbmZpZy5Gb3JtUgRmb3JtQjhaNmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbmZpZztjb25maWdwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
+
+/**
+ * Options on a Component's config message as a whole.
+ *
+ * @generated from message ddash.config.Form
+ */
+export type Form = Message<"ddash.config.Form"> & {
+  /**
+   * The name of a getter of the same Component whose response has a
+   * SetupHint field. Once the Component has started, its config form shows
+   * the hint the getter returns, e.g. the authorized_keys line that grants
+   * the Component access.
+   *
+   * @generated from field: string setup_from = 1;
+   */
+  setupFrom: string;
+};
+
+/**
+ * Describes the message ddash.config.Form.
+ * Use `create(FormSchema)` to create a new message.
+ */
+export const FormSchema: GenMessage<Form> = /*@__PURE__*/
+  messageDesc(file_ddash_config_config, 0);
+
+/**
+ * What the Operator does outside ddash to finish a Component's setup.
+ *
+ * @generated from message ddash.config.SetupHint
+ */
+export type SetupHint = Message<"ddash.config.SetupHint"> & {
+  /**
+   * A sentence or two, e.g. "Add this line to root's authorized_keys on nginx.home.example."
+   *
+   * @generated from field: string text = 1;
+   */
+  text: string;
+
+  /**
+   * The text to copy, shown verbatim with a Copy button; empty for none.
+   *
+   * @generated from field: string block = 2;
+   */
+  block: string;
+};
+
+/**
+ * Describes the message ddash.config.SetupHint.
+ * Use `create(SetupHintSchema)` to create a new message.
+ */
+export const SetupHintSchema: GenMessage<SetupHint> = /*@__PURE__*/
+  messageDesc(file_ddash_config_config, 1);
 
 /**
  * @generated from message ddash.config.Field
@@ -102,7 +154,7 @@ export type Field = Message<"ddash.config.Field"> & {
  * Use `create(FieldSchema)` to create a new message.
  */
 export const FieldSchema: GenMessage<Field> = /*@__PURE__*/
-  messageDesc(file_ddash_config_config, 0);
+  messageDesc(file_ddash_config_config, 2);
 
 /**
  * @generated from enum ddash.config.Field.Format
@@ -155,7 +207,7 @@ export enum Field_Format {
  * Describes the enum ddash.config.Field.Format.
  */
 export const Field_FormatSchema: GenEnum<Field_Format> = /*@__PURE__*/
-  enumDesc(file_ddash_config_config, 0, 0);
+  enumDesc(file_ddash_config_config, 2, 0);
 
 /**
  * @generated from message ddash.config.EnumValue
@@ -175,7 +227,7 @@ export type EnumValue = Message<"ddash.config.EnumValue"> & {
  * Use `create(EnumValueSchema)` to create a new message.
  */
 export const EnumValueSchema: GenMessage<EnumValue> = /*@__PURE__*/
-  messageDesc(file_ddash_config_config, 1);
+  messageDesc(file_ddash_config_config, 3);
 
 /**
  * Used as [(ddash.config.field) = {label: "Server", default: "https://ntfy.sh", format: FORMAT_URL}].
@@ -192,4 +244,12 @@ export const field: GenExtension<FieldOptions, Field> = /*@__PURE__*/
  */
 export const value: GenExtension<EnumValueOptions, EnumValue> = /*@__PURE__*/
   extDesc(file_ddash_config_config, 1);
+
+/**
+ * Used on a config message as option (ddash.config.form) = {setup_from: "GetSetupHint"};
+ *
+ * @generated from extension: ddash.config.Form form = 50005;
+ */
+export const form: GenExtension<MessageOptions, Form> = /*@__PURE__*/
+  extDesc(file_ddash_config_config, 2);
 
