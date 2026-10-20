@@ -64,7 +64,7 @@ async function boot() {
 }
 
 const entry = (title: string) => screen.getByRole("listitem", { name: title });
-const actions = () => calls.filter((c) => !c.method.startsWith("List"));
+const actions = () => calls.filter((c) => !/^(List|Get)/.test(c.method));
 const catalogueReads = () => calls.filter((c) => c.method === "ListCatalogue").length;
 
 it("lists every Plugin in the Release with its manifest and the Components it pulls in, marking running ones", async () => {

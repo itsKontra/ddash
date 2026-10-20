@@ -28,6 +28,9 @@ const (
 	CoreService_Restart_FullMethodName              = "/ddash.core.CoreService/Restart"
 	CoreService_ListCatalogue_FullMethodName        = "/ddash.core.CoreService/ListCatalogue"
 	CoreService_DeleteOrphan_FullMethodName         = "/ddash.core.CoreService/DeleteOrphan"
+	CoreService_GetConfigForm_FullMethodName        = "/ddash.core.CoreService/GetConfigForm"
+	CoreService_SaveConfig_FullMethodName           = "/ddash.core.CoreService/SaveConfig"
+	CoreService_GetCoreSettings_FullMethodName      = "/ddash.core.CoreService/GetCoreSettings"
 	CoreService_ListAuditLog_FullMethodName         = "/ddash.core.CoreService/ListAuditLog"
 	CoreService_GetLayout_FullMethodName            = "/ddash.core.CoreService/GetLayout"
 	CoreService_SaveLayout_FullMethodName           = "/ddash.core.CoreService/SaveLayout"
@@ -58,6 +61,20 @@ type CoreServiceClient interface {
 	ListCatalogue(ctx context.Context, in *ListCatalogueRequest, opts ...grpc.CallOption) (*ListCatalogueResponse, error)
 	// DeleteOrphan deletes an orphaned Component's DB file and config.
 	DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error)
+	// GetConfigForm returns an owner's config form: the fields of its config
+	// message, its stored values (never a secret's value) and why its stored
+	// config doesn't start. The owner is a running Component, or "core" for
+	// CoreSettings.
+	GetConfigForm(ctx context.Context, in *GetConfigFormRequest, opts ...grpc.CallOption) (*GetConfigFormResponse, error)
+	// SaveConfig validates an owner's config, merges the secrets it leaves
+	// unchanged, and restarts the Component with it. Only a config Start
+	// accepts is stored; otherwise the Component restarts on its old config.
+	// A config the host or Start rejects is INVALID_ARGUMENT "invalid config"
+	// with a ConfigErrors detail. The Audit Log records the changed fields
+	// old -> new, a secret as "changed" or "cleared".
+	SaveConfig(ctx context.Context, in *SaveConfigRequest, opts ...grpc.CallOption) (*SaveConfigResponse, error)
+	// GetCoreSettings returns the core's own settings, defaults applied.
+	GetCoreSettings(ctx context.Context, in *GetCoreSettingsRequest, opts ...grpc.CallOption) (*GetCoreSettingsResponse, error)
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(ctx context.Context, in *ListAuditLogRequest, opts ...grpc.CallOption) (*ListAuditLogResponse, error)
@@ -136,6 +153,36 @@ func (c *coreServiceClient) DeleteOrphan(ctx context.Context, in *DeleteOrphanRe
 	return out, nil
 }
 
+func (c *coreServiceClient) GetConfigForm(ctx context.Context, in *GetConfigFormRequest, opts ...grpc.CallOption) (*GetConfigFormResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetConfigFormResponse)
+	err := c.cc.Invoke(ctx, CoreService_GetConfigForm_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreServiceClient) SaveConfig(ctx context.Context, in *SaveConfigRequest, opts ...grpc.CallOption) (*SaveConfigResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SaveConfigResponse)
+	err := c.cc.Invoke(ctx, CoreService_SaveConfig_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreServiceClient) GetCoreSettings(ctx context.Context, in *GetCoreSettingsRequest, opts ...grpc.CallOption) (*GetCoreSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCoreSettingsResponse)
+	err := c.cc.Invoke(ctx, CoreService_GetCoreSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *coreServiceClient) ListAuditLog(ctx context.Context, in *ListAuditLogRequest, opts ...grpc.CallOption) (*ListAuditLogResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAuditLogResponse)
@@ -191,6 +238,20 @@ type CoreServiceServer interface {
 	ListCatalogue(context.Context, *ListCatalogueRequest) (*ListCatalogueResponse, error)
 	// DeleteOrphan deletes an orphaned Component's DB file and config.
 	DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error)
+	// GetConfigForm returns an owner's config form: the fields of its config
+	// message, its stored values (never a secret's value) and why its stored
+	// config doesn't start. The owner is a running Component, or "core" for
+	// CoreSettings.
+	GetConfigForm(context.Context, *GetConfigFormRequest) (*GetConfigFormResponse, error)
+	// SaveConfig validates an owner's config, merges the secrets it leaves
+	// unchanged, and restarts the Component with it. Only a config Start
+	// accepts is stored; otherwise the Component restarts on its old config.
+	// A config the host or Start rejects is INVALID_ARGUMENT "invalid config"
+	// with a ConfigErrors detail. The Audit Log records the changed fields
+	// old -> new, a secret as "changed" or "cleared".
+	SaveConfig(context.Context, *SaveConfigRequest) (*SaveConfigResponse, error)
+	// GetCoreSettings returns the core's own settings, defaults applied.
+	GetCoreSettings(context.Context, *GetCoreSettingsRequest) (*GetCoreSettingsResponse, error)
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(context.Context, *ListAuditLogRequest) (*ListAuditLogResponse, error)
@@ -226,6 +287,15 @@ func (UnimplementedCoreServiceServer) ListCatalogue(context.Context, *ListCatalo
 }
 func (UnimplementedCoreServiceServer) DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteOrphan not implemented")
+}
+func (UnimplementedCoreServiceServer) GetConfigForm(context.Context, *GetConfigFormRequest) (*GetConfigFormResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetConfigForm not implemented")
+}
+func (UnimplementedCoreServiceServer) SaveConfig(context.Context, *SaveConfigRequest) (*SaveConfigResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SaveConfig not implemented")
+}
+func (UnimplementedCoreServiceServer) GetCoreSettings(context.Context, *GetCoreSettingsRequest) (*GetCoreSettingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCoreSettings not implemented")
 }
 func (UnimplementedCoreServiceServer) ListAuditLog(context.Context, *ListAuditLogRequest) (*ListAuditLogResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAuditLog not implemented")
@@ -365,6 +435,60 @@ func _CoreService_DeleteOrphan_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreService_GetConfigForm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetConfigFormRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).GetConfigForm(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_GetConfigForm_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).GetConfigForm(ctx, req.(*GetConfigFormRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreService_SaveConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).SaveConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_SaveConfig_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).SaveConfig(ctx, req.(*SaveConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreService_GetCoreSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCoreSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).GetCoreSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_GetCoreSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).GetCoreSettings(ctx, req.(*GetCoreSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _CoreService_ListAuditLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListAuditLogRequest)
 	if err := dec(in); err != nil {
@@ -449,6 +573,18 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteOrphan",
 			Handler:    _CoreService_DeleteOrphan_Handler,
+		},
+		{
+			MethodName: "GetConfigForm",
+			Handler:    _CoreService_GetConfigForm_Handler,
+		},
+		{
+			MethodName: "SaveConfig",
+			Handler:    _CoreService_SaveConfig_Handler,
+		},
+		{
+			MethodName: "GetCoreSettings",
+			Handler:    _CoreService_GetCoreSettings_Handler,
 		},
 		{
 			MethodName: "ListAuditLog",

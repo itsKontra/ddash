@@ -206,13 +206,15 @@ func requireConnectHeader(next http.Handler) http.Handler {
 // installed set and starts the Components it requires in the background.
 // It runs for the actor in ctx.
 func (h *Host) Install(ctx context.Context, req *corepb.InstallRequest) (*corepb.InstallResponse, error) {
-	err := h.coreAction(ctx, "Install", req, func() error {
-		return h.runtime.Install(ctx, req.GetPlugin())
+	resp := &corepb.InstallResponse{}
+	err := h.coreAction(ctx, "Install", req, func() (err error) {
+		resp.Components, err = h.runtime.Install(ctx, req.GetPlugin())
+		return err
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &corepb.InstallResponse{}, nil
+	return resp, nil
 }
 
 // Uninstall is the core Action that uninstalls a Plugin: it stops and

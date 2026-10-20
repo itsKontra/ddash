@@ -5,6 +5,7 @@
 package runtime
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -65,6 +66,8 @@ type Status struct {
 	Message string
 	// Held: the Component crashed too often and stays down until Restart.
 	Held bool
+	// Configurable: the Component takes config, so it has a form.
+	Configurable bool
 }
 
 const (
@@ -111,6 +114,7 @@ type Runtime struct {
 	log  *slog.Logger
 
 	wake   chan struct{}
+	ctx    context.Context // the loops' ctx, set by Start
 	cancel context.CancelFunc
 	loops  sync.WaitGroup
 
@@ -146,6 +150,14 @@ type component struct {
 	held bool
 	// notBefore delays the relaunch after a crash.
 	notBefore time.Time
+
+	// described: the Component answered a Describe once.
+	described bool
+	// config is the descriptor of the Component's config message, from its
+	// last Describe; nil when it takes none.
+	config protoreflect.MessageDescriptor
+	// configErrors are the per-field errors its last Start failed with.
+	configErrors sdk.FieldErrors
 }
 
 // Endpoint is how the router reaches one running Component.
@@ -241,7 +253,9 @@ func (r *Runtime) useCatalogue(ctx context.Context, cat Catalogue) error {
 // Start runs the reconcile loop in the background until Stop.
 func (r *Runtime) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
-	r.cancel = cancel
+	r.mu.Lock()
+	r.ctx, r.cancel = ctx, cancel
+	r.mu.Unlock()
 	r.loops.Go(func() { r.reconcileLoop(ctx) })
 	r.loops.Go(func() { r.healthLoop(ctx) })
 	r.poke()
@@ -295,34 +309,42 @@ func (r *Runtime) Stop(ctx context.Context) {
 }
 
 // Install adds plugin to the installed set and wakes the reconcile loop to
-// start the Components it requires.
-func (r *Runtime) Install(ctx context.Context, plugin string) error {
+// start the Components it requires. It returns the Components that weren't
+// wanted before, in start order.
+func (r *Runtime) Install(ctx context.Context, plugin string) (added []string, err error) {
 	r.mu.Lock()
 	catOK, rel := r.catOK, r.release
 	p, ok := r.cat.plugin(plugin)
 	r.mu.Unlock()
 	switch {
 	case !catOK:
-		return status.Errorf(codes.Unavailable, "the catalogue of Release %s can't be downloaded yet; try again later", rel)
+		return nil, status.Errorf(codes.Unavailable, "the catalogue of Release %s can't be downloaded yet; try again later", rel)
 	case !ok:
-		return status.Errorf(codes.NotFound, "plugin %s isn't in Release %s", plugin, rel)
+		return nil, status.Errorf(codes.NotFound, "plugin %s isn't in Release %s", plugin, rel)
 	}
 	manifest, err := json.Marshal(p)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	_, err = r.opts.DB.ExecContext(ctx, `
 		INSERT INTO installed_plugin (name, release, installed_at, manifest) VALUES (?, ?, ?, ?)
 		ON CONFLICT (name) DO NOTHING`,
 		plugin, rel, time.Now().UTC().Format(time.RFC3339Nano), string(manifest))
 	if err != nil {
-		return fmt.Errorf("install %s: %w", plugin, err)
+		return nil, fmt.Errorf("install %s: %w", plugin, err)
 	}
 	r.mu.Lock()
+	before := r.wanted()
 	r.installed[plugin] = p
+	pulls := r.cat.Pulls(plugin)
 	r.mu.Unlock()
+	for _, name := range pulls {
+		if !before[name] {
+			added = append(added, name)
+		}
+	}
 	r.poke()
-	return nil
+	return added, nil
 }
 
 // Uninstall removes plugin from the installed set, then stops and removes
@@ -535,9 +557,26 @@ func (r *Runtime) Status() map[string]Status {
 	for name, c := range r.components {
 		st := c.status
 		st.Held = c.held
+		st.Configurable = c.config != nil
 		out[name] = st
 	}
 	return out
+}
+
+// Config returns the descriptor of a wanted Component's config message (nil
+// when it takes none) and the per-field errors its last Start failed with.
+// It is Unavailable until the Component was first described.
+func (r *Runtime) Config(name string) (protoreflect.MessageDescriptor, sdk.FieldErrors, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	c, ok := r.components[name]
+	switch {
+	case !ok || !r.wanted()[name]:
+		return nil, nil, status.Errorf(codes.NotFound, "no installed Plugin requires %s", name)
+	case !c.described:
+		return nil, nil, status.Errorf(codes.Unavailable, "%s is %s", name, c.status.State)
+	}
+	return c.config, c.configErrors, nil
 }
 
 // Endpoint returns how to reach a started Component. Otherwise the error
@@ -632,11 +671,8 @@ func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
 		if ctx.Err() != nil {
 			return false
 		}
-		if err := r.launch(ctx, name); err != nil {
-			st := Status{State: Down, Message: err.Error()}
-			if p := (pending{}); errors.As(err, &p) {
-				st = Status{State: UpdatePending, Message: p.err.Error() + "; retrying"}
-			}
+		if _, err := r.launch(ctx, name, nil); err != nil {
+			st := launchFailed(err)
 			r.log.Error("launch", "component", name, "state", st.State, "err", err)
 			r.setStatus(name, st)
 			retry = true
@@ -697,22 +733,23 @@ func (r *Runtime) fetchBundles(ctx context.Context, plugin string) error {
 	return nil
 }
 
-// launch starts name's process, describes it and starts it with its config.
-// It fails only when the process couldn't be launched and described; a
-// failed Start leaves the process running, unconfigured or down.
-func (r *Runtime) launch(ctx context.Context, name string) error {
+// launch starts name's process, describes it and starts it with cfg, or
+// with its stored config when cfg is nil. It fails only when the process
+// couldn't be launched and described; a failed Start leaves the process
+// running, unconfigured or down, and is returned as startErr.
+func (r *Runtime) launch(ctx context.Context, name string, cfg proto.Message) (startErr, err error) {
 	r.setStatus(name, Status{State: Starting})
 	rel := r.Release()
 	bin, err := r.opts.Release.Component(ctx, name)
 	if err != nil {
-		return pending{err}
+		return nil, pending{err}
 	}
 	dbPath := r.dbPath(name)
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o750); err != nil {
-		return err
+		return nil, err
 	}
 	if err := r.switchRelease(ctx, name, rel); err != nil {
-		return err
+		return nil, err
 	}
 	spec := LaunchSpec{Name: name, DBPath: dbPath, Release: rel, Binary: bin}
 	if r.opts.HostServer != nil {
@@ -720,36 +757,39 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 	}
 	proc, err := r.opts.Launcher.Launch(ctx, spec)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	lc := componentpb.NewLifecycleServiceClient(proc.Conn())
 	endpoint, cfgDesc, err := describe(ctx, lc, name, rel)
 	if err != nil {
 		proc.Stop(ctx)
-		return err
+		return nil, err
 	}
 	endpoint.Conn = proc.Conn()
 	r.mu.Lock()
 	c := r.components[name]
 	c.proc = proc
 	c.endpoint = endpoint
+	c.config, c.described = cfgDesc, true
 	r.mu.Unlock()
 	r.loops.Go(func() { r.watch(ctx, name, proc) })
 
-	if err := r.start(ctx, lc, name, cfgDesc); err != nil {
+	if err := r.start(ctx, lc, name, cfgDesc, cfg); err != nil {
 		st := Status{State: Down, Message: status.Convert(err).Message()}
 		if sdk.FieldErrorsOf(err) != nil || status.Code(err) == codes.InvalidArgument {
 			st.State = Unconfigured
 		}
 		r.log.Warn("start", "component", name, "state", st.State, "err", err)
-		r.setStatus(name, st)
-		return nil
+		r.mu.Lock()
+		c.status, c.configErrors = st, sdk.FieldErrorsOf(err)
+		r.mu.Unlock()
+		return err, nil
 	}
 	r.mu.Lock()
-	c.started = true
+	c.started, c.configErrors = true, nil
 	r.mu.Unlock()
 	r.loops.Go(func() { r.pollHealth(ctx, name) })
-	return nil
+	return nil, nil
 }
 
 // pending is a launch that failed because the Component's binary couldn't
@@ -757,6 +797,15 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 type pending struct{ err error }
 
 func (p pending) Error() string { return p.err.Error() }
+
+// launchFailed is the status of a Component whose launch failed with err:
+// update pending when its binary couldn't be had, else down.
+func launchFailed(err error) Status {
+	if p := (pending{}); errors.As(err, &p) {
+		return Status{State: UpdatePending, Message: p.err.Error() + "; retrying"}
+	}
+	return Status{State: Down, Message: err.Error()}
+}
 
 // watch waits for proc to end and handles that as a crash, unless the
 // runtime stopped it.
@@ -828,6 +877,60 @@ func (r *Runtime) Restart(ctx context.Context, name string) error {
 	return nil
 }
 
+// Reconfigure restarts a wanted Component's process with cfg, a candidate
+// config with its defaults applied, and returns once it has polled the
+// health after Start. When Start rejects cfg, the error is returned and
+// the Component restarts on its stored config. The Components that require
+// it see Unavailable meanwhile.
+func (r *Runtime) Reconfigure(ctx context.Context, name string, cfg proto.Message) error {
+	r.changing.Lock()
+	defer r.changing.Unlock()
+	r.mu.Lock()
+	c, ok := r.components[name]
+	loops := r.ctx
+	if !ok || !r.wanted()[name] || loops == nil {
+		r.mu.Unlock()
+		return status.Errorf(codes.NotFound, "no installed Plugin requires %s", name)
+	}
+	proc := c.proc
+	c.proc, c.started = nil, false
+	c.crashes, c.held, c.notBefore = nil, false, time.Time{}
+	c.status = Status{State: Starting}
+	r.mu.Unlock()
+	r.stop(ctx, proc)
+
+	startErr, err := r.launch(loops, name, cfg)
+	if err == nil && startErr == nil {
+		r.pollHealth(loops, name)
+		return nil
+	}
+	if err != nil {
+		r.setStatus(name, launchFailed(err))
+	}
+	// Back to the stored config.
+	r.mu.Lock()
+	proc = c.proc
+	c.proc, c.started = nil, false
+	r.mu.Unlock()
+	r.stop(ctx, proc)
+	if _, err := r.launch(loops, name, nil); err != nil {
+		r.log.Error("relaunch on the stored config", "component", name, "err", err)
+		r.setStatus(name, launchFailed(err))
+		r.poke() // the reconcile loop retries
+	}
+	return cmp.Or(startErr, err)
+}
+
+// stop stops proc, if any, waiting at most StopTimeout.
+func (r *Runtime) stop(ctx context.Context, proc Process) {
+	if proc == nil {
+		return
+	}
+	stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), StopTimeout)
+	defer cancel()
+	proc.Stop(stopCtx)
+}
+
 // describe asks the Component what it is and builds its Endpoint (without
 // Conn) and the descriptor of its config message (nil when it takes none).
 // It refuses a Component that says it is another one or of another Release.
@@ -874,21 +977,29 @@ func findDescriptor[D protoreflect.Descriptor](files *protoregistry.Files, name 
 	return d, nil
 }
 
-// start loads name's config and starts the Component with it.
-func (r *Runtime) start(ctx context.Context, lc componentpb.LifecycleServiceClient, name string, cfgDesc protoreflect.MessageDescriptor) error {
-	var cfg []byte
+// start starts the Component with cfg, or else with its stored config.
+func (r *Runtime) start(ctx context.Context, lc componentpb.LifecycleServiceClient, name string, cfgDesc protoreflect.MessageDescriptor, cfg proto.Message) error {
+	var b []byte
 	if cfgDesc != nil {
-		msg, err := r.opts.Config.Load(ctx, name, cfgDesc)
-		if err != nil {
+		if cfg == nil {
+			var err error
+			if cfg, err = r.opts.Config.Load(ctx, name, cfgDesc); err != nil {
+				return err
+			}
+		}
+		// A stored config a newer Release's rules refuse, e.g. one
+		// without a field that became required, never reaches Start.
+		if err := config.Validate(cfg.ProtoReflect()).Err(); err != nil {
 			return err
 		}
-		if cfg, err = proto.Marshal(msg); err != nil {
+		var err error
+		if b, err = proto.Marshal(cfg); err != nil {
 			return err
 		}
 	}
 	ctx, cancel := context.WithTimeout(ctx, startTimeout)
 	defer cancel()
-	_, err := lc.Start(ctx, &componentpb.StartRequest{Config: cfg, PublicUrl: r.opts.PublicURL})
+	_, err := lc.Start(ctx, &componentpb.StartRequest{Config: b, PublicUrl: r.opts.PublicURL})
 	return err
 }
 

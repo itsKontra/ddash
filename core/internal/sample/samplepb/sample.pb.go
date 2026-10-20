@@ -74,14 +74,20 @@ func (Tone) EnumDescriptor() ([]byte, []int) {
 	return file_sample_sample_proto_rawDescGZIP(), []int{0}
 }
 
+// SampleConfig has a field of every kind a config form supports.
 type SampleConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Start refuses an empty target, so a sample without config is unconfigured.
-	Target        string  `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
-	Greeting      *string `protobuf:"bytes,2,opt,name=greeting,proto3,oneof" json:"greeting,omitempty"`
-	Times         *int64  `protobuf:"varint,3,opt,name=times,proto3,oneof" json:"times,omitempty"`
-	Loud          *bool   `protobuf:"varint,4,opt,name=loud,proto3,oneof" json:"loud,omitempty"`
-	Tone          *Tone   `protobuf:"varint,5,opt,name=tone,proto3,enum=ddash.sample.Tone,oneof" json:"tone,omitempty"`
+	// A sample without config is unconfigured. Start refuses "nowhere",
+	// which the host's rules can't know.
+	Target        string   `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
+	Greeting      *string  `protobuf:"bytes,2,opt,name=greeting,proto3,oneof" json:"greeting,omitempty"`
+	Times         *int64   `protobuf:"varint,3,opt,name=times,proto3,oneof" json:"times,omitempty"`
+	Loud          *bool    `protobuf:"varint,4,opt,name=loud,proto3,oneof" json:"loud,omitempty"`
+	Tone          *Tone    `protobuf:"varint,5,opt,name=tone,proto3,enum=ddash.sample.Tone,oneof" json:"tone,omitempty"`
+	Token         string   `protobuf:"bytes,6,opt,name=token,proto3" json:"token,omitempty"`
+	Server        string   `protobuf:"bytes,7,opt,name=server,proto3" json:"server,omitempty"`
+	Tags          []string `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
+	Peers         []*Peer  `protobuf:"bytes,9,rep,name=peers,proto3" json:"peers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -151,6 +157,94 @@ func (x *SampleConfig) GetTone() Tone {
 	return Tone_TONE_UNSPECIFIED
 }
 
+func (x *SampleConfig) GetToken() string {
+	if x != nil {
+		return x.Token
+	}
+	return ""
+}
+
+func (x *SampleConfig) GetServer() string {
+	if x != nil {
+		return x.Server
+	}
+	return ""
+}
+
+func (x *SampleConfig) GetTags() []string {
+	if x != nil {
+		return x.Tags
+	}
+	return nil
+}
+
+func (x *SampleConfig) GetPeers() []*Peer {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
+}
+
+type Peer struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Address       string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Port          *int64                 `protobuf:"varint,3,opt,name=port,proto3,oneof" json:"port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Peer) Reset() {
+	*x = Peer{}
+	mi := &file_sample_sample_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Peer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Peer) ProtoMessage() {}
+
+func (x *Peer) ProtoReflect() protoreflect.Message {
+	mi := &file_sample_sample_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Peer.ProtoReflect.Descriptor instead.
+func (*Peer) Descriptor() ([]byte, []int) {
+	return file_sample_sample_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Peer) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Peer) GetAddress() string {
+	if x != nil {
+		return x.Address
+	}
+	return ""
+}
+
+func (x *Peer) GetPort() int64 {
+	if x != nil && x.Port != nil {
+		return *x.Port
+	}
+	return 0
+}
+
 type ActRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Note          string                 `protobuf:"bytes,1,opt,name=note,proto3" json:"note,omitempty"`
@@ -163,7 +257,7 @@ type ActRequest struct {
 
 func (x *ActRequest) Reset() {
 	*x = ActRequest{}
-	mi := &file_sample_sample_proto_msgTypes[1]
+	mi := &file_sample_sample_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -175,7 +269,7 @@ func (x *ActRequest) String() string {
 func (*ActRequest) ProtoMessage() {}
 
 func (x *ActRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[1]
+	mi := &file_sample_sample_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -188,7 +282,7 @@ func (x *ActRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActRequest.ProtoReflect.Descriptor instead.
 func (*ActRequest) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{1}
+	return file_sample_sample_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ActRequest) GetNote() string {
@@ -229,7 +323,7 @@ type Credentials struct {
 
 func (x *Credentials) Reset() {
 	*x = Credentials{}
-	mi := &file_sample_sample_proto_msgTypes[2]
+	mi := &file_sample_sample_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -241,7 +335,7 @@ func (x *Credentials) String() string {
 func (*Credentials) ProtoMessage() {}
 
 func (x *Credentials) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[2]
+	mi := &file_sample_sample_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -254,7 +348,7 @@ func (x *Credentials) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Credentials.ProtoReflect.Descriptor instead.
 func (*Credentials) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{2}
+	return file_sample_sample_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Credentials) GetUser() string {
@@ -280,7 +374,7 @@ type ActResponse struct {
 
 func (x *ActResponse) Reset() {
 	*x = ActResponse{}
-	mi := &file_sample_sample_proto_msgTypes[3]
+	mi := &file_sample_sample_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -292,7 +386,7 @@ func (x *ActResponse) String() string {
 func (*ActResponse) ProtoMessage() {}
 
 func (x *ActResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[3]
+	mi := &file_sample_sample_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -305,7 +399,7 @@ func (x *ActResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ActResponse.ProtoReflect.Descriptor instead.
 func (*ActResponse) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{3}
+	return file_sample_sample_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ActResponse) GetActor() string {
@@ -325,7 +419,7 @@ type GreetRequest struct {
 
 func (x *GreetRequest) Reset() {
 	*x = GreetRequest{}
-	mi := &file_sample_sample_proto_msgTypes[4]
+	mi := &file_sample_sample_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +431,7 @@ func (x *GreetRequest) String() string {
 func (*GreetRequest) ProtoMessage() {}
 
 func (x *GreetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[4]
+	mi := &file_sample_sample_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,7 +444,7 @@ func (x *GreetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GreetRequest.ProtoReflect.Descriptor instead.
 func (*GreetRequest) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{4}
+	return file_sample_sample_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GreetRequest) GetName() string {
@@ -377,7 +471,7 @@ type GreetResponse struct {
 
 func (x *GreetResponse) Reset() {
 	*x = GreetResponse{}
-	mi := &file_sample_sample_proto_msgTypes[5]
+	mi := &file_sample_sample_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -389,7 +483,7 @@ func (x *GreetResponse) String() string {
 func (*GreetResponse) ProtoMessage() {}
 
 func (x *GreetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[5]
+	mi := &file_sample_sample_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -402,7 +496,7 @@ func (x *GreetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GreetResponse.ProtoReflect.Descriptor instead.
 func (*GreetResponse) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{5}
+	return file_sample_sample_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GreetResponse) GetGreeting() string {
@@ -427,7 +521,7 @@ type WaitRequest struct {
 
 func (x *WaitRequest) Reset() {
 	*x = WaitRequest{}
-	mi := &file_sample_sample_proto_msgTypes[6]
+	mi := &file_sample_sample_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -439,7 +533,7 @@ func (x *WaitRequest) String() string {
 func (*WaitRequest) ProtoMessage() {}
 
 func (x *WaitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[6]
+	mi := &file_sample_sample_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -452,7 +546,7 @@ func (x *WaitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WaitRequest.ProtoReflect.Descriptor instead.
 func (*WaitRequest) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{6}
+	return file_sample_sample_proto_rawDescGZIP(), []int{7}
 }
 
 type WaitResponse struct {
@@ -463,7 +557,7 @@ type WaitResponse struct {
 
 func (x *WaitResponse) Reset() {
 	*x = WaitResponse{}
-	mi := &file_sample_sample_proto_msgTypes[7]
+	mi := &file_sample_sample_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -475,7 +569,7 @@ func (x *WaitResponse) String() string {
 func (*WaitResponse) ProtoMessage() {}
 
 func (x *WaitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[7]
+	mi := &file_sample_sample_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -488,7 +582,7 @@ func (x *WaitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WaitResponse.ProtoReflect.Descriptor instead.
 func (*WaitResponse) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{7}
+	return file_sample_sample_proto_rawDescGZIP(), []int{8}
 }
 
 type WaitActionRequest struct {
@@ -499,7 +593,7 @@ type WaitActionRequest struct {
 
 func (x *WaitActionRequest) Reset() {
 	*x = WaitActionRequest{}
-	mi := &file_sample_sample_proto_msgTypes[8]
+	mi := &file_sample_sample_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -511,7 +605,7 @@ func (x *WaitActionRequest) String() string {
 func (*WaitActionRequest) ProtoMessage() {}
 
 func (x *WaitActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[8]
+	mi := &file_sample_sample_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -524,7 +618,7 @@ func (x *WaitActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WaitActionRequest.ProtoReflect.Descriptor instead.
 func (*WaitActionRequest) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{8}
+	return file_sample_sample_proto_rawDescGZIP(), []int{9}
 }
 
 type WaitActionResponse struct {
@@ -535,7 +629,7 @@ type WaitActionResponse struct {
 
 func (x *WaitActionResponse) Reset() {
 	*x = WaitActionResponse{}
-	mi := &file_sample_sample_proto_msgTypes[9]
+	mi := &file_sample_sample_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -547,7 +641,7 @@ func (x *WaitActionResponse) String() string {
 func (*WaitActionResponse) ProtoMessage() {}
 
 func (x *WaitActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_sample_sample_proto_msgTypes[9]
+	mi := &file_sample_sample_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -560,29 +654,41 @@ func (x *WaitActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WaitActionResponse.ProtoReflect.Descriptor instead.
 func (*WaitActionResponse) Descriptor() ([]byte, []int) {
-	return file_sample_sample_proto_rawDescGZIP(), []int{9}
+	return file_sample_sample_proto_rawDescGZIP(), []int{10}
 }
 
 var File_sample_sample_proto protoreflect.FileDescriptor
 
 const file_sample_sample_proto_rawDesc = "" +
 	"\n" +
-	"\x13sample/sample.proto\x12\fddash.sample\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\x84\x02\n" +
-	"\fSampleConfig\x12\x16\n" +
-	"\x06target\x18\x01 \x01(\tR\x06target\x12,\n" +
+	"\x13sample/sample.proto\x12\fddash.sample\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xab\x03\n" +
+	"\fSampleConfig\x12=\n" +
+	"\x06target\x18\x01 \x01(\tB%\x9a\xb5\x18!\x1a\x06Target\"\x0eWhom to greet.*\x05world0\x01R\x06target\x12,\n" +
 	"\bgreeting\x18\x02 \x01(\tB\v\x9a\xb5\x18\a\n" +
-	"\x05helloH\x00R\bgreeting\x88\x01\x01\x12\"\n" +
-	"\x05times\x18\x03 \x01(\x03B\a\x9a\xb5\x18\x03\n" +
-	"\x011H\x01R\x05times\x88\x01\x01\x12#\n" +
+	"\x05helloH\x00R\bgreeting\x88\x01\x01\x12&\n" +
+	"\x05times\x18\x03 \x01(\x03B\v\x9a\xb5\x18\a\n" +
+	"\x011@\x01H\n" +
+	"H\x01R\x05times\x88\x01\x01\x12#\n" +
 	"\x04loud\x18\x04 \x01(\bB\n" +
 	"\x9a\xb5\x18\x06\n" +
 	"\x04trueH\x02R\x04loud\x88\x01\x01\x12<\n" +
 	"\x04tone\x18\x05 \x01(\x0e2\x12.ddash.sample.ToneB\x0f\x9a\xb5\x18\v\n" +
-	"\tTONE_WARMH\x03R\x04tone\x88\x01\x01B\v\n" +
+	"\tTONE_WARMH\x03R\x04tone\x88\x01\x01\x12\x1c\n" +
+	"\x05token\x18\x06 \x01(\tB\x06\x9a\xb5\x18\x02\x10\x01R\x05token\x12\x1e\n" +
+	"\x06server\x18\a \x01(\tB\x06\x9a\xb5\x18\x028\x01R\x06server\x12\x12\n" +
+	"\x04tags\x18\b \x03(\tR\x04tags\x12(\n" +
+	"\x05peers\x18\t \x03(\v2\x12.ddash.sample.PeerR\x05peersB\v\n" +
 	"\t_greetingB\b\n" +
 	"\x06_timesB\a\n" +
 	"\x05_loudB\a\n" +
-	"\x05_tone\"\xb0\x01\n" +
+	"\x05_tone\"v\n" +
+	"\x04Peer\x12\x1a\n" +
+	"\x04name\x18\x01 \x01(\tB\x06\x9a\xb5\x18\x020\x01R\x04name\x12 \n" +
+	"\aaddress\x18\x02 \x01(\tB\x06\x9a\xb5\x18\x028\x03R\aaddress\x12'\n" +
+	"\x04port\x18\x03 \x01(\x03B\x0e\x9a\xb5\x18\n" +
+	"\n" +
+	"\x0222@\x01H\xff\xff\x03H\x00R\x04port\x88\x01\x01B\a\n" +
+	"\x05_port\"\xb0\x01\n" +
 	"\n" +
 	"ActRequest\x12\x12\n" +
 	"\x04note\x18\x01 \x01(\tR\x04note\x12\"\n" +
@@ -603,10 +709,11 @@ const file_sample_sample_proto_rawDesc = "" +
 	"\vWaitRequest\"\x0e\n" +
 	"\fWaitResponse\"\x13\n" +
 	"\x11WaitActionRequest\"\x14\n" +
-	"\x12WaitActionResponse*:\n" +
+	"\x12WaitActionResponse*O\n" +
 	"\x04Tone\x12\x14\n" +
-	"\x10TONE_UNSPECIFIED\x10\x00\x12\r\n" +
-	"\tTONE_WARM\x10\x01\x12\r\n" +
+	"\x10TONE_UNSPECIFIED\x10\x00\x12\"\n" +
+	"\tTONE_WARM\x10\x01\x1a\x13\xa2\xb5\x18\x0f\n" +
+	"\rWarm and kind\x12\r\n" +
 	"\tTONE_COLD\x10\x022\xb9\x02\n" +
 	"\rSampleService\x12F\n" +
 	"\x05Greet\x12\x1a.ddash.sample.GreetRequest\x1a\x1b.ddash.sample.GreetResponse\"\x04\x8a\xb5\x18\x00\x12E\n" +
@@ -628,38 +735,40 @@ func file_sample_sample_proto_rawDescGZIP() []byte {
 }
 
 var file_sample_sample_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_sample_sample_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_sample_sample_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_sample_sample_proto_goTypes = []any{
 	(Tone)(0),                  // 0: ddash.sample.Tone
 	(*SampleConfig)(nil),       // 1: ddash.sample.SampleConfig
-	(*ActRequest)(nil),         // 2: ddash.sample.ActRequest
-	(*Credentials)(nil),        // 3: ddash.sample.Credentials
-	(*ActResponse)(nil),        // 4: ddash.sample.ActResponse
-	(*GreetRequest)(nil),       // 5: ddash.sample.GreetRequest
-	(*GreetResponse)(nil),      // 6: ddash.sample.GreetResponse
-	(*WaitRequest)(nil),        // 7: ddash.sample.WaitRequest
-	(*WaitResponse)(nil),       // 8: ddash.sample.WaitResponse
-	(*WaitActionRequest)(nil),  // 9: ddash.sample.WaitActionRequest
-	(*WaitActionResponse)(nil), // 10: ddash.sample.WaitActionResponse
+	(*Peer)(nil),               // 2: ddash.sample.Peer
+	(*ActRequest)(nil),         // 3: ddash.sample.ActRequest
+	(*Credentials)(nil),        // 4: ddash.sample.Credentials
+	(*ActResponse)(nil),        // 5: ddash.sample.ActResponse
+	(*GreetRequest)(nil),       // 6: ddash.sample.GreetRequest
+	(*GreetResponse)(nil),      // 7: ddash.sample.GreetResponse
+	(*WaitRequest)(nil),        // 8: ddash.sample.WaitRequest
+	(*WaitResponse)(nil),       // 9: ddash.sample.WaitResponse
+	(*WaitActionRequest)(nil),  // 10: ddash.sample.WaitActionRequest
+	(*WaitActionResponse)(nil), // 11: ddash.sample.WaitActionResponse
 }
 var file_sample_sample_proto_depIdxs = []int32{
 	0,  // 0: ddash.sample.SampleConfig.tone:type_name -> ddash.sample.Tone
-	3,  // 1: ddash.sample.ActRequest.credentials:type_name -> ddash.sample.Credentials
-	3,  // 2: ddash.sample.ActRequest.more:type_name -> ddash.sample.Credentials
-	1,  // 3: ddash.sample.GreetResponse.config:type_name -> ddash.sample.SampleConfig
-	5,  // 4: ddash.sample.SampleService.Greet:input_type -> ddash.sample.GreetRequest
-	7,  // 5: ddash.sample.SampleService.Wait:input_type -> ddash.sample.WaitRequest
-	9,  // 6: ddash.sample.SampleService.WaitAction:input_type -> ddash.sample.WaitActionRequest
-	2,  // 7: ddash.sample.SampleService.Act:input_type -> ddash.sample.ActRequest
-	6,  // 8: ddash.sample.SampleService.Greet:output_type -> ddash.sample.GreetResponse
-	8,  // 9: ddash.sample.SampleService.Wait:output_type -> ddash.sample.WaitResponse
-	10, // 10: ddash.sample.SampleService.WaitAction:output_type -> ddash.sample.WaitActionResponse
-	4,  // 11: ddash.sample.SampleService.Act:output_type -> ddash.sample.ActResponse
-	8,  // [8:12] is the sub-list for method output_type
-	4,  // [4:8] is the sub-list for method input_type
-	4,  // [4:4] is the sub-list for extension type_name
-	4,  // [4:4] is the sub-list for extension extendee
-	0,  // [0:4] is the sub-list for field type_name
+	2,  // 1: ddash.sample.SampleConfig.peers:type_name -> ddash.sample.Peer
+	4,  // 2: ddash.sample.ActRequest.credentials:type_name -> ddash.sample.Credentials
+	4,  // 3: ddash.sample.ActRequest.more:type_name -> ddash.sample.Credentials
+	1,  // 4: ddash.sample.GreetResponse.config:type_name -> ddash.sample.SampleConfig
+	6,  // 5: ddash.sample.SampleService.Greet:input_type -> ddash.sample.GreetRequest
+	8,  // 6: ddash.sample.SampleService.Wait:input_type -> ddash.sample.WaitRequest
+	10, // 7: ddash.sample.SampleService.WaitAction:input_type -> ddash.sample.WaitActionRequest
+	3,  // 8: ddash.sample.SampleService.Act:input_type -> ddash.sample.ActRequest
+	7,  // 9: ddash.sample.SampleService.Greet:output_type -> ddash.sample.GreetResponse
+	9,  // 10: ddash.sample.SampleService.Wait:output_type -> ddash.sample.WaitResponse
+	11, // 11: ddash.sample.SampleService.WaitAction:output_type -> ddash.sample.WaitActionResponse
+	5,  // 12: ddash.sample.SampleService.Act:output_type -> ddash.sample.ActResponse
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_sample_sample_proto_init() }
@@ -668,13 +777,14 @@ func file_sample_sample_proto_init() {
 		return
 	}
 	file_sample_sample_proto_msgTypes[0].OneofWrappers = []any{}
+	file_sample_sample_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sample_sample_proto_rawDesc), len(file_sample_sample_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   10,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

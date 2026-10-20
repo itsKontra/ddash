@@ -8,15 +8,16 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/connect/v2/connectproto"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/core/appstate"
-
 	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/proto/ddash/core/corepbconnect"
+	"github.com/itsKontra/ddash/sdk"
 )
 
 // apiPrefix is where the core API is mounted, as connect-go handlers.
@@ -39,7 +40,9 @@ func (h *Host) apiHandler() http.Handler {
 }
 
 // connectError answers err, a gRPC status error, with its code and message.
-// connect-go's codes are gRPC's. nil stays nil; any other error is Unknown.
+// connect-go's codes are gRPC's. An "invalid config" error carries its
+// per-field errors as a ConfigErrors detail. nil stays nil; any other error
+// is Unknown.
 func connectError(err error) error {
 	if err == nil {
 		return nil
@@ -48,7 +51,13 @@ func connectError(err error) error {
 	if !ok {
 		return err
 	}
-	return connect.NewError(connect.Code(st.Code()), st.Message())
+	cerr := connect.NewError(connect.Code(st.Code()), st.Message())
+	if errs := sdk.FieldErrorsOf(err); errs != nil {
+		if d, derr := connectproto.NewErrorDetail(&corepb.ConfigErrors{Errors: configErrors(errs)}); derr == nil {
+			cerr = cerr.WithDetail(d)
+		}
+	}
+	return cerr
 }
 
 func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPluginsRequest) (*corepb.ListInstalledPluginsResponse, error) {
@@ -70,7 +79,7 @@ func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPlug
 	return resp, nil
 }
 
-func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*corepb.ListCatalogueResponse, error) {
+func (a coreAPI) ListCatalogue(ctx context.Context, _ *corepb.ListCatalogueRequest) (*corepb.ListCatalogueResponse, error) {
 	rt := a.host.runtime
 	cat := rt.Catalogue()
 	installed := map[string]runtime.PluginEntry{}
@@ -80,6 +89,7 @@ func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*
 	running := rt.Status()
 	resp := &corepb.ListCatalogueResponse{Release: rt.Release(), Orphans: rt.Orphans(), AvailableRelease: a.host.availableRelease()}
 	pending := rt.PendingBundles()
+	statuses := map[string]*corepb.ComponentStatus{}
 	// The installed Plugins the catalogue lacks show from the core DB: it
 	// can't be downloaded yet, or their Release dropped them.
 	plugins := cat.Plugins
@@ -106,10 +116,15 @@ func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*
 			pulls = p.Requires
 		}
 		for _, name := range pulls {
-			st := running[name]
-			cp.Components = append(cp.Components, &corepb.ComponentStatus{
-				Name: name, State: string(st.State), Message: st.Message, Held: st.Held,
-			})
+			cs, ok := statuses[name]
+			if !ok {
+				var err error
+				if cs, err = a.host.componentStatus(ctx, name, running[name]); err != nil {
+					return nil, connectError(err)
+				}
+				statuses[name] = cs
+			}
+			cp.Components = append(cp.Components, cs)
 		}
 		resp.Plugins = append(resp.Plugins, cp)
 	}
@@ -189,4 +204,22 @@ func (a coreAPI) GetLayout(ctx context.Context, _ *corepb.GetLayoutRequest) (*co
 func (a coreAPI) SaveLayout(ctx context.Context, req *corepb.SaveLayoutRequest) (*corepb.SaveLayoutResponse, error) {
 	resp, err := a.host.SaveLayout(ctx, req)
 	return resp, connectError(err)
+}
+
+func (a coreAPI) GetConfigForm(ctx context.Context, req *corepb.GetConfigFormRequest) (*corepb.GetConfigFormResponse, error) {
+	resp, err := a.host.ConfigForm(ctx, req.GetOwner())
+	return resp, connectError(err)
+}
+
+func (a coreAPI) SaveConfig(ctx context.Context, req *corepb.SaveConfigRequest) (*corepb.SaveConfigResponse, error) {
+	resp, err := a.host.SaveConfig(ctx, req)
+	return resp, connectError(err)
+}
+
+func (a coreAPI) GetCoreSettings(ctx context.Context, _ *corepb.GetCoreSettingsRequest) (*corepb.GetCoreSettingsResponse, error) {
+	settings, err := a.host.CoreSettings(ctx)
+	if err != nil {
+		return nil, connectError(err)
+	}
+	return &corepb.GetCoreSettingsResponse{Settings: settings}, nil
 }

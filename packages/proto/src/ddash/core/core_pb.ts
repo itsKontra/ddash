@@ -5,18 +5,19 @@
 // The core's own API. Its Actions pass the same gate as Components' Actions
 // and are recorded in the Audit Log with target "core".
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_ddash_config_config } from "../config/config_pb";
 import { file_ddash_options } from "../options_pb";
 import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { Message } from "@bufbuild/protobuf";
+import { file_google_protobuf_duration, file_google_protobuf_struct, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiggEKFUxpc3RDYXRhbG9ndWVSZXNwb25zZRIPCgdyZWxlYXNlGAEgASgJEiwKB3BsdWdpbnMYAiADKAsyGy5kZGFzaC5jb3JlLkNhdGFsb2d1ZVBsdWdpbhIPCgdvcnBoYW5zGAMgAygJEhkKEWF2YWlsYWJsZV9yZWxlYXNlGAQgASgJIr0BCg9DYXRhbG9ndWVQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIRCglpbnN0YWxsZWQYBiABKAgSLwoKY29tcG9uZW50cxgHIAMoCzIbLmRkYXNoLmNvcmUuQ29tcG9uZW50U3RhdHVzEhYKDnVwZGF0ZV9wZW5kaW5nGAggASgJIk0KD0NvbXBvbmVudFN0YXR1cxIMCgRuYW1lGAEgASgJEg0KBXN0YXRlGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSDAoEaGVsZBgEIAEoCCIoChNEZWxldGVPcnBoYW5SZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIWChREZWxldGVPcnBoYW5SZXNwb25zZSIgCg5JbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkiEQoPSW5zdGFsbFJlc3BvbnNlIjcKEFVuaW5zdGFsbFJlcXVlc3QSDgoGcGx1Z2luGAEgASgJEhMKC2RlbGV0ZV9kYXRhGAIgASgIIiQKEVVuaW5zdGFsbFJlc3BvbnNlEg8KB29ycGhhbnMYASADKAkiIwoOUmVzdGFydFJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhEKD1Jlc3RhcnRSZXNwb25zZSIdChtMaXN0SW5zdGFsbGVkUGx1Z2luc1JlcXVlc3QiTAocTGlzdEluc3RhbGxlZFBsdWdpbnNSZXNwb25zZRIsCgdwbHVnaW5zGAEgAygLMhsuZGRhc2guY29yZS5JbnN0YWxsZWRQbHVnaW4ikgEKD0luc3RhbGxlZFBsdWdpbhIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEgwKBGljb24YBCABKAkSDgoGYXV0aG9yGAUgASgJEhAKCHJlcXVpcmVzGAYgAygJEg4KBnNjcmlwdBgHIAEoCRINCgVzdHlsZRgIIAEoCSJxChNMaXN0QXVkaXRMb2dSZXF1ZXN0EhIKCmFjdG9yX2tpbmQYASABKAkSDgoGdGFyZ2V0GAIgASgJEg8KB291dGNvbWUYAyABKAkSEQoJcGFnZV9zaXplGAQgASgFEhIKCnBhZ2VfdG9rZW4YBSABKAkiaAoUTGlzdEF1ZGl0TG9nUmVzcG9uc2USJgoGY2hhaW5zGAEgAygLMhYuZGRhc2guY29yZS5BdWRpdENoYWluEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCRIPCgd0YXJnZXRzGAMgAygJIkEKCkF1ZGl0Q2hhaW4SCgoCaWQYASABKAkSJwoHZW50cmllcxgCIAMoCzIWLmRkYXNoLmNvcmUuQXVkaXRFbnRyeSL9AQoKQXVkaXRFbnRyeRIoCgR0aW1lGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgphY3Rvcl9raW5kGAIgASgJEhAKCHVzZXJuYW1lGAMgASgJEgsKA3N1YhgEIAEoCRIOCgZ0YXJnZXQYBSABKAkSDgoGbWV0aG9kGAYgASgJEhIKCmRpc3J1cHRpdmUYByABKAgSDwoHcmVxdWVzdBgIIAEoCRIPCgdvdXRjb21lGAkgASgJEg8KB21lc3NhZ2UYCiABKAkSKwoIZHVyYXRpb24YCyABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24iEgoQR2V0TGF5b3V0UmVxdWVzdCI3ChFHZXRMYXlvdXRSZXNwb25zZRIiCgZsYXlvdXQYASABKAsyEi5kZGFzaC5jb3JlLkxheW91dCI3ChFTYXZlTGF5b3V0UmVxdWVzdBIiCgZsYXlvdXQYASABKAsyEi5kZGFzaC5jb3JlLkxheW91dCIUChJTYXZlTGF5b3V0UmVzcG9uc2UiQAoGTGF5b3V0EigKB2VudHJpZXMYASADKAsyFy5kZGFzaC5jb3JlLkxheW91dEVudHJ5EgwKBHNlZW4YAiADKAkiKwoLTGF5b3V0RW50cnkSDgoGd2lkZ2V0GAEgASgJEgwKBHNpemUYAiABKAkyoQYKC0NvcmVTZXJ2aWNlEnEKFExpc3RJbnN0YWxsZWRQbHVnaW5zEicuZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1JlcXVlc3QaKC5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2UiBoq1GAIIAhJICgdJbnN0YWxsEhouZGRhc2guY29yZS5JbnN0YWxsUmVxdWVzdBobLmRkYXNoLmNvcmUuSW5zdGFsbFJlc3BvbnNlIgSStRgAElAKCVVuaW5zdGFsbBIcLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVxdWVzdBodLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVzcG9uc2UiBpK1GAIIARJKCgdSZXN0YXJ0EhouZGRhc2guY29yZS5SZXN0YXJ0UmVxdWVzdBobLmRkYXNoLmNvcmUuUmVzdGFydFJlc3BvbnNlIgaStRgCCAESXAoNTGlzdENhdGFsb2d1ZRIgLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlcXVlc3QaIS5kZGFzaC5jb3JlLkxpc3RDYXRhbG9ndWVSZXNwb25zZSIGirUYAggCElkKDERlbGV0ZU9ycGhhbhIfLmRkYXNoLmNvcmUuRGVsZXRlT3JwaGFuUmVxdWVzdBogLmRkYXNoLmNvcmUuRGVsZXRlT3JwaGFuUmVzcG9uc2UiBpK1GAIIARJZCgxMaXN0QXVkaXRMb2cSHy5kZGFzaC5jb3JlLkxpc3RBdWRpdExvZ1JlcXVlc3QaIC5kZGFzaC5jb3JlLkxpc3RBdWRpdExvZ1Jlc3BvbnNlIgaKtRgCCAMSUAoJR2V0TGF5b3V0EhwuZGRhc2guY29yZS5HZXRMYXlvdXRSZXF1ZXN0Gh0uZGRhc2guY29yZS5HZXRMYXlvdXRSZXNwb25zZSIGirUYAggDElEKClNhdmVMYXlvdXQSHS5kZGFzaC5jb3JlLlNhdmVMYXlvdXRSZXF1ZXN0Gh4uZGRhc2guY29yZS5TYXZlTGF5b3V0UmVzcG9uc2UiBJK1GABCNFoyZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29yZTtjb3JlcGJiBnByb3RvMw", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiggEKFUxpc3RDYXRhbG9ndWVSZXNwb25zZRIPCgdyZWxlYXNlGAEgASgJEiwKB3BsdWdpbnMYAiADKAsyGy5kZGFzaC5jb3JlLkNhdGFsb2d1ZVBsdWdpbhIPCgdvcnBoYW5zGAMgAygJEhkKEWF2YWlsYWJsZV9yZWxlYXNlGAQgASgJIr0BCg9DYXRhbG9ndWVQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIRCglpbnN0YWxsZWQYBiABKAgSLwoKY29tcG9uZW50cxgHIAMoCzIbLmRkYXNoLmNvcmUuQ29tcG9uZW50U3RhdHVzEhYKDnVwZGF0ZV9wZW5kaW5nGAggASgJInkKD0NvbXBvbmVudFN0YXR1cxIMCgRuYW1lGAEgASgJEg0KBXN0YXRlGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSDAoEaGVsZBgEIAEoCBIUCgxjb25maWd1cmFibGUYBSABKAgSFAoMbmVlZHNfY29uZmlnGAYgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIlCg9JbnN0YWxsUmVzcG9uc2USEgoKY29tcG9uZW50cxgBIAMoCSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJIiMKDlJlc3RhcnRSZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIRCg9SZXN0YXJ0UmVzcG9uc2UiHQobTGlzdEluc3RhbGxlZFBsdWdpbnNSZXF1ZXN0IkwKHExpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2USLAoHcGx1Z2lucxgBIAMoCzIbLmRkYXNoLmNvcmUuSW5zdGFsbGVkUGx1Z2luIpIBCg9JbnN0YWxsZWRQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIQCghyZXF1aXJlcxgGIAMoCRIOCgZzY3JpcHQYByABKAkSDQoFc3R5bGUYCCABKAkicQoTTGlzdEF1ZGl0TG9nUmVxdWVzdBISCgphY3Rvcl9raW5kGAEgASgJEg4KBnRhcmdldBgCIAEoCRIPCgdvdXRjb21lGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRISCgpwYWdlX3Rva2VuGAUgASgJImgKFExpc3RBdWRpdExvZ1Jlc3BvbnNlEiYKBmNoYWlucxgBIAMoCzIWLmRkYXNoLmNvcmUuQXVkaXRDaGFpbhIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSDwoHdGFyZ2V0cxgDIAMoCSJBCgpBdWRpdENoYWluEgoKAmlkGAEgASgJEicKB2VudHJpZXMYAiADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0RW50cnki/QEKCkF1ZGl0RW50cnkSKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKYWN0b3Jfa2luZBgCIAEoCRIQCgh1c2VybmFtZRgDIAEoCRILCgNzdWIYBCABKAkSDgoGdGFyZ2V0GAUgASgJEg4KBm1ldGhvZBgGIAEoCRISCgpkaXNydXB0aXZlGAcgASgIEg8KB3JlcXVlc3QYCCABKAkSDwoHb3V0Y29tZRgJIAEoCRIPCgdtZXNzYWdlGAogASgJEisKCGR1cmF0aW9uGAsgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uIhIKEEdldExheW91dFJlcXVlc3QiNwoRR2V0TGF5b3V0UmVzcG9uc2USIgoGbGF5b3V0GAEgASgLMhIuZGRhc2guY29yZS5MYXlvdXQiNwoRU2F2ZUxheW91dFJlcXVlc3QSIgoGbGF5b3V0GAEgASgLMhIuZGRhc2guY29yZS5MYXlvdXQiFAoSU2F2ZUxheW91dFJlc3BvbnNlIkAKBkxheW91dBIoCgdlbnRyaWVzGAEgAygLMhcuZGRhc2guY29yZS5MYXlvdXRFbnRyeRIMCgRzZWVuGAIgAygJIisKC0xheW91dEVudHJ5Eg4KBndpZGdldBgBIAEoCRIMCgRzaXplGAIgASgJIlkKDENvcmVTZXR0aW5ncxI/CgV0aGVtZRgBIAEoDjIRLmRkYXNoLmNvcmUuVGhlbWVCGJq1GBQKC1RIRU1FX0REQVNIGgVUaGVtZUgAiAEBQggKBl90aGVtZSIYChZHZXRDb3JlU2V0dGluZ3NSZXF1ZXN0IkUKF0dldENvcmVTZXR0aW5nc1Jlc3BvbnNlEioKCHNldHRpbmdzGAEgASgLMhguZGRhc2guY29yZS5Db3JlU2V0dGluZ3MiJQoUR2V0Q29uZmlnRm9ybVJlcXVlc3QSDQoFb3duZXIYASABKAkipQEKFUdldENvbmZpZ0Zvcm1SZXNwb25zZRIlCgZmaWVsZHMYASADKAsyFS5kZGFzaC5jb3JlLkZvcm1GaWVsZBInCgZ2YWx1ZXMYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhMKC3NlY3JldHNfc2V0GAMgAygJEicKBmVycm9ycxgEIAMoCzIXLmRkYXNoLmNvcmUuQ29uZmlnRXJyb3IiugMKCUZvcm1GaWVsZBIMCgRuYW1lGAEgASgJEigKBGtpbmQYAiABKA4yGi5kZGFzaC5jb3JlLkZvcm1GaWVsZC5LaW5kEhAKCHJlcGVhdGVkGAMgASgIEg0KBWxhYmVsGAQgASgJEgwKBGhlbHAYBSABKAkSEwoLcGxhY2Vob2xkZXIYBiABKAkSEAoIcmVxdWlyZWQYByABKAgSDgoGc2VjcmV0GAggASgIEg8KB2RlZmF1bHQYCSABKAkSDgoGZm9ybWF0GAogASgJEhAKA21pbhgLIAEoA0gAiAEBEhAKA21heBgMIAEoA0gBiAEBEicKB29wdGlvbnMYDSADKAsyFi5kZGFzaC5jb3JlLkVudW1PcHRpb24SJgoHY29sdW1ucxgOIAMoCzIVLmRkYXNoLmNvcmUuRm9ybUZpZWxkImkKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg8KC0tJTkRfU1RSSU5HEAESDAoIS0lORF9JTlQQAhINCglLSU5EX0JPT0wQAxINCglLSU5EX0VOVU0QBBIOCgpLSU5EX1RBQkxFEAVCBgoEX21pbkIGCgRfbWF4IioKCkVudW1PcHRpb24SDQoFdmFsdWUYASABKAkSDQoFbGFiZWwYAiABKAkiLAoLQ29uZmlnRXJyb3ISDAoEcGF0aBgBIAEoCRIPCgdtZXNzYWdlGAIgASgJIjcKDENvbmZpZ0Vycm9ycxInCgZlcnJvcnMYASADKAsyFy5kZGFzaC5jb3JlLkNvbmZpZ0Vycm9yImIKEVNhdmVDb25maWdSZXF1ZXN0Eg0KBW93bmVyGAEgASgJEicKBnZhbHVlcxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFQoNY2xlYXJfc2VjcmV0cxgDIAMoCSJBChJTYXZlQ29uZmlnUmVzcG9uc2USKwoGc3RhdHVzGAEgASgLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiRgoKQ29uZmlnU2F2ZRINCgVvd25lchgBIAEoCRIpCgdjaGFuZ2VzGAIgAygLMhguZGRhc2guY29yZS5Db25maWdDaGFuZ2UiRwoMQ29uZmlnQ2hhbmdlEg0KBWZpZWxkGAEgASgJEgsKA29sZBgCIAEoCRILCgNuZXcYAyABKAkSDgoGY2hhbmdlGAQgASgJKjwKBVRoZW1lEhUKEVRIRU1FX1VOU1BFQ0lGSUVEEAASHAoLVEhFTUVfRERBU0gQARoLorUYBwoFZGRhc2gytggKC0NvcmVTZXJ2aWNlEnEKFExpc3RJbnN0YWxsZWRQbHVnaW5zEicuZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1JlcXVlc3QaKC5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2UiBoq1GAIIAhJICgdJbnN0YWxsEhouZGRhc2guY29yZS5JbnN0YWxsUmVxdWVzdBobLmRkYXNoLmNvcmUuSW5zdGFsbFJlc3BvbnNlIgSStRgAElAKCVVuaW5zdGFsbBIcLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVxdWVzdBodLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVzcG9uc2UiBpK1GAIIARJKCgdSZXN0YXJ0EhouZGRhc2guY29yZS5SZXN0YXJ0UmVxdWVzdBobLmRkYXNoLmNvcmUuUmVzdGFydFJlc3BvbnNlIgaStRgCCAESXAoNTGlzdENhdGFsb2d1ZRIgLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlcXVlc3QaIS5kZGFzaC5jb3JlLkxpc3RDYXRhbG9ndWVSZXNwb25zZSIGirUYAggCElkKDERlbGV0ZU9ycGhhbhIfLmRkYXNoLmNvcmUuRGVsZXRlT3JwaGFuUmVxdWVzdBogLmRkYXNoLmNvcmUuRGVsZXRlT3JwaGFuUmVzcG9uc2UiBpK1GAIIARJcCg1HZXRDb25maWdGb3JtEiAuZGRhc2guY29yZS5HZXRDb25maWdGb3JtUmVxdWVzdBohLmRkYXNoLmNvcmUuR2V0Q29uZmlnRm9ybVJlc3BvbnNlIgaKtRgCCAMSUQoKU2F2ZUNvbmZpZxIdLmRkYXNoLmNvcmUuU2F2ZUNvbmZpZ1JlcXVlc3QaHi5kZGFzaC5jb3JlLlNhdmVDb25maWdSZXNwb25zZSIEkrUYABJiCg9HZXRDb3JlU2V0dGluZ3MSIi5kZGFzaC5jb3JlLkdldENvcmVTZXR0aW5nc1JlcXVlc3QaIy5kZGFzaC5jb3JlLkdldENvcmVTZXR0aW5nc1Jlc3BvbnNlIgaKtRgCCAMSWQoMTGlzdEF1ZGl0TG9nEh8uZGRhc2guY29yZS5MaXN0QXVkaXRMb2dSZXF1ZXN0GiAuZGRhc2guY29yZS5MaXN0QXVkaXRMb2dSZXNwb25zZSIGirUYAggDElAKCUdldExheW91dBIcLmRkYXNoLmNvcmUuR2V0TGF5b3V0UmVxdWVzdBodLmRkYXNoLmNvcmUuR2V0TGF5b3V0UmVzcG9uc2UiBoq1GAIIAxJRCgpTYXZlTGF5b3V0Eh0uZGRhc2guY29yZS5TYXZlTGF5b3V0UmVxdWVzdBoeLmRkYXNoLmNvcmUuU2F2ZUxheW91dFJlc3BvbnNlIgSStRgAQjRaMmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvcmU7Y29yZXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_struct, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.core.ListCatalogueRequest
@@ -166,6 +167,21 @@ export type ComponentStatus = Message<"ddash.core.ComponentStatus"> & {
    * @generated from field: bool held = 4;
    */
   held: boolean;
+
+  /**
+   * The Component takes config, so it has a form.
+   *
+   * @generated from field: bool configurable = 5;
+   */
+  configurable: boolean;
+
+  /**
+   * The Component is unconfigured although config was saved for it, e.g.
+   * because a Release added a required field.
+   *
+   * @generated from field: bool needs_config = 6;
+   */
+  needsConfig: boolean;
 };
 
 /**
@@ -226,6 +242,13 @@ export const InstallRequestSchema: GenMessage<InstallRequest> = /*@__PURE__*/
  * @generated from message ddash.core.InstallResponse
  */
 export type InstallResponse = Message<"ddash.core.InstallResponse"> & {
+  /**
+   * The Components the install added to what runs, in start order. The
+   * shell opens the form of each that turns out unconfigured.
+   *
+   * @generated from field: repeated string components = 1;
+   */
+  components: string[];
 };
 
 /**
@@ -724,6 +747,462 @@ export const LayoutEntrySchema: GenMessage<LayoutEntry> = /*@__PURE__*/
   messageDesc(file_ddash_core_core, 24);
 
 /**
+ * The core's own settings, stored as owner "core" and edited in Settings.
+ *
+ * @generated from message ddash.core.CoreSettings
+ */
+export type CoreSettings = Message<"ddash.core.CoreSettings"> & {
+  /**
+   * @generated from field: optional ddash.core.Theme theme = 1;
+   */
+  theme?: Theme | undefined;
+};
+
+/**
+ * Describes the message ddash.core.CoreSettings.
+ * Use `create(CoreSettingsSchema)` to create a new message.
+ */
+export const CoreSettingsSchema: GenMessage<CoreSettings> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 25);
+
+/**
+ * @generated from message ddash.core.GetCoreSettingsRequest
+ */
+export type GetCoreSettingsRequest = Message<"ddash.core.GetCoreSettingsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.core.GetCoreSettingsRequest.
+ * Use `create(GetCoreSettingsRequestSchema)` to create a new message.
+ */
+export const GetCoreSettingsRequestSchema: GenMessage<GetCoreSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 26);
+
+/**
+ * @generated from message ddash.core.GetCoreSettingsResponse
+ */
+export type GetCoreSettingsResponse = Message<"ddash.core.GetCoreSettingsResponse"> & {
+  /**
+   * @generated from field: ddash.core.CoreSettings settings = 1;
+   */
+  settings?: CoreSettings | undefined;
+};
+
+/**
+ * Describes the message ddash.core.GetCoreSettingsResponse.
+ * Use `create(GetCoreSettingsResponseSchema)` to create a new message.
+ */
+export const GetCoreSettingsResponseSchema: GenMessage<GetCoreSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 27);
+
+/**
+ * @generated from message ddash.core.GetConfigFormRequest
+ */
+export type GetConfigFormRequest = Message<"ddash.core.GetConfigFormRequest"> & {
+  /**
+   * A Component's name, or "core".
+   *
+   * @generated from field: string owner = 1;
+   */
+  owner: string;
+};
+
+/**
+ * Describes the message ddash.core.GetConfigFormRequest.
+ * Use `create(GetConfigFormRequestSchema)` to create a new message.
+ */
+export const GetConfigFormRequestSchema: GenMessage<GetConfigFormRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 28);
+
+/**
+ * @generated from message ddash.core.GetConfigFormResponse
+ */
+export type GetConfigFormResponse = Message<"ddash.core.GetConfigFormResponse"> & {
+  /**
+   * The config message's fields, in declaration order.
+   *
+   * @generated from field: repeated ddash.core.FormField fields = 1;
+   */
+  fields: FormField[];
+
+  /**
+   * The stored values by field name, as protojson with proto field names.
+   * An unset field (meaning its default) is absent, and so is every secret.
+   *
+   * @generated from field: google.protobuf.Struct values = 2;
+   */
+  values?: JsonObject | undefined;
+
+  /**
+   * The secret fields that have a stored value.
+   *
+   * @generated from field: repeated string secrets_set = 3;
+   */
+  secretsSet: string[];
+
+  /**
+   * Why the stored config doesn't start, by path. Empty when it does.
+   *
+   * @generated from field: repeated ddash.core.ConfigError errors = 4;
+   */
+  errors: ConfigError[];
+};
+
+/**
+ * Describes the message ddash.core.GetConfigFormResponse.
+ * Use `create(GetConfigFormResponseSchema)` to create a new message.
+ */
+export const GetConfigFormResponseSchema: GenMessage<GetConfigFormResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 29);
+
+/**
+ * One field of a config form.
+ *
+ * @generated from message ddash.core.FormField
+ */
+export type FormField = Message<"ddash.core.FormField"> & {
+  /**
+   * The proto field name, as in values and in error paths.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: ddash.core.FormField.Kind kind = 2;
+   */
+  kind: FormField_Kind;
+
+  /**
+   * A list of values of kind. A table always is.
+   *
+   * @generated from field: bool repeated = 3;
+   */
+  repeated: boolean;
+
+  /**
+   * @generated from field: string label = 4;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string help = 5;
+   */
+  help: string;
+
+  /**
+   * The default if there is one, else the placeholder option.
+   *
+   * @generated from field: string placeholder = 6;
+   */
+  placeholder: string;
+
+  /**
+   * @generated from field: bool required = 7;
+   */
+  required: boolean;
+
+  /**
+   * @generated from field: bool secret = 8;
+   */
+  secret: boolean;
+
+  /**
+   * The field's default as text; empty when it has none.
+   *
+   * @generated from field: string default = 9;
+   */
+  default: string;
+
+  /**
+   * "url", "hostname", "ip", "cidr" or "ip_range"; empty for any text.
+   *
+   * @generated from field: string format = 10;
+   */
+  format: string;
+
+  /**
+   * @generated from field: optional int64 min = 11;
+   */
+  min?: bigint | undefined;
+
+  /**
+   * @generated from field: optional int64 max = 12;
+   */
+  max?: bigint | undefined;
+
+  /**
+   * An enum's choices, without its zero value.
+   *
+   * @generated from field: repeated ddash.core.EnumOption options = 13;
+   */
+  options: EnumOption[];
+
+  /**
+   * A table's columns.
+   *
+   * @generated from field: repeated ddash.core.FormField columns = 14;
+   */
+  columns: FormField[];
+};
+
+/**
+ * Describes the message ddash.core.FormField.
+ * Use `create(FormFieldSchema)` to create a new message.
+ */
+export const FormFieldSchema: GenMessage<FormField> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 30);
+
+/**
+ * @generated from enum ddash.core.FormField.Kind
+ */
+export enum FormField_Kind {
+  /**
+   * @generated from enum value: KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: KIND_STRING = 1;
+   */
+  STRING = 1,
+
+  /**
+   * @generated from enum value: KIND_INT = 2;
+   */
+  INT = 2,
+
+  /**
+   * A switch.
+   *
+   * @generated from enum value: KIND_BOOL = 3;
+   */
+  BOOL = 3,
+
+  /**
+   * @generated from enum value: KIND_ENUM = 4;
+   */
+  ENUM = 4,
+
+  /**
+   * A repeated message: one row each, a column per field.
+   *
+   * @generated from enum value: KIND_TABLE = 5;
+   */
+  TABLE = 5,
+}
+
+/**
+ * Describes the enum ddash.core.FormField.Kind.
+ */
+export const FormField_KindSchema: GenEnum<FormField_Kind> = /*@__PURE__*/
+  enumDesc(file_ddash_core_core, 30, 0);
+
+/**
+ * @generated from message ddash.core.EnumOption
+ */
+export type EnumOption = Message<"ddash.core.EnumOption"> & {
+  /**
+   * The value name, as in values.
+   *
+   * @generated from field: string value = 1;
+   */
+  value: string;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+};
+
+/**
+ * Describes the message ddash.core.EnumOption.
+ * Use `create(EnumOptionSchema)` to create a new message.
+ */
+export const EnumOptionSchema: GenMessage<EnumOption> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 31);
+
+/**
+ * One config field's problem, e.g. {path: "hosts[1].url", message: "must be a URL"}.
+ *
+ * @generated from message ddash.core.ConfigError
+ */
+export type ConfigError = Message<"ddash.core.ConfigError"> & {
+  /**
+   * @generated from field: string path = 1;
+   */
+  path: string;
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message ddash.core.ConfigError.
+ * Use `create(ConfigErrorSchema)` to create a new message.
+ */
+export const ConfigErrorSchema: GenMessage<ConfigError> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 32);
+
+/**
+ * The detail of an "invalid config" error.
+ *
+ * @generated from message ddash.core.ConfigErrors
+ */
+export type ConfigErrors = Message<"ddash.core.ConfigErrors"> & {
+  /**
+   * @generated from field: repeated ddash.core.ConfigError errors = 1;
+   */
+  errors: ConfigError[];
+};
+
+/**
+ * Describes the message ddash.core.ConfigErrors.
+ * Use `create(ConfigErrorsSchema)` to create a new message.
+ */
+export const ConfigErrorsSchema: GenMessage<ConfigErrors> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 33);
+
+/**
+ * @generated from message ddash.core.SaveConfigRequest
+ */
+export type SaveConfigRequest = Message<"ddash.core.SaveConfigRequest"> & {
+  /**
+   * A Component's name, or "core".
+   *
+   * @generated from field: string owner = 1;
+   */
+  owner: string;
+
+  /**
+   * The config by field name, as protojson with proto field names. An
+   * absent field is unset, meaning its default. A secret given here
+   * replaces the stored one.
+   *
+   * @generated from field: google.protobuf.Struct values = 2;
+   */
+  values?: JsonObject | undefined;
+
+  /**
+   * Secret fields to clear. A secret neither in values nor here keeps its
+   * stored value.
+   *
+   * @generated from field: repeated string clear_secrets = 3;
+   */
+  clearSecrets: string[];
+};
+
+/**
+ * Describes the message ddash.core.SaveConfigRequest.
+ * Use `create(SaveConfigRequestSchema)` to create a new message.
+ */
+export const SaveConfigRequestSchema: GenMessage<SaveConfigRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 34);
+
+/**
+ * @generated from message ddash.core.SaveConfigResponse
+ */
+export type SaveConfigResponse = Message<"ddash.core.SaveConfigResponse"> & {
+  /**
+   * The Component's health polled right after its Start; empty for "core".
+   *
+   * @generated from field: ddash.core.ComponentStatus status = 1;
+   */
+  status?: ComponentStatus | undefined;
+};
+
+/**
+ * Describes the message ddash.core.SaveConfigResponse.
+ * Use `create(SaveConfigResponseSchema)` to create a new message.
+ */
+export const SaveConfigResponseSchema: GenMessage<SaveConfigResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 35);
+
+/**
+ * What the Audit Log records for SaveConfig: the fields it changed.
+ *
+ * @generated from message ddash.core.ConfigSave
+ */
+export type ConfigSave = Message<"ddash.core.ConfigSave"> & {
+  /**
+   * @generated from field: string owner = 1;
+   */
+  owner: string;
+
+  /**
+   * @generated from field: repeated ddash.core.ConfigChange changes = 2;
+   */
+  changes: ConfigChange[];
+};
+
+/**
+ * Describes the message ddash.core.ConfigSave.
+ * Use `create(ConfigSaveSchema)` to create a new message.
+ */
+export const ConfigSaveSchema: GenMessage<ConfigSave> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 36);
+
+/**
+ * One changed field, its old and new value as JSON (empty when unset). A
+ * secret's values are never recorded: its change is "changed" or "cleared".
+ *
+ * @generated from message ddash.core.ConfigChange
+ */
+export type ConfigChange = Message<"ddash.core.ConfigChange"> & {
+  /**
+   * @generated from field: string field = 1;
+   */
+  field: string;
+
+  /**
+   * @generated from field: string old = 2;
+   */
+  old: string;
+
+  /**
+   * @generated from field: string new = 3;
+   */
+  new: string;
+
+  /**
+   * @generated from field: string change = 4;
+   */
+  change: string;
+};
+
+/**
+ * Describes the message ddash.core.ConfigChange.
+ * Use `create(ConfigChangeSchema)` to create a new message.
+ */
+export const ConfigChangeSchema: GenMessage<ConfigChange> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 37);
+
+/**
+ * The look of the whole UI. Light or dark is each browser's choice.
+ *
+ * @generated from enum ddash.core.Theme
+ */
+export enum Theme {
+  /**
+   * @generated from enum value: THEME_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: THEME_DDASH = 1;
+   */
+  DDASH = 1,
+}
+
+/**
+ * Describes the enum ddash.core.Theme.
+ */
+export const ThemeSchema: GenEnum<Theme> = /*@__PURE__*/
+  enumDesc(file_ddash_core_core, 0);
+
+/**
  * @generated from service ddash.core.CoreService
  */
 export const CoreService: GenService<{
@@ -795,6 +1274,44 @@ export const CoreService: GenService<{
     methodKind: "unary";
     input: typeof DeleteOrphanRequestSchema;
     output: typeof DeleteOrphanResponseSchema;
+  },
+  /**
+   * GetConfigForm returns an owner's config form: the fields of its config
+   * message, its stored values (never a secret's value) and why its stored
+   * config doesn't start. The owner is a running Component, or "core" for
+   * CoreSettings.
+   *
+   * @generated from rpc ddash.core.CoreService.GetConfigForm
+   */
+  getConfigForm: {
+    methodKind: "unary";
+    input: typeof GetConfigFormRequestSchema;
+    output: typeof GetConfigFormResponseSchema;
+  },
+  /**
+   * SaveConfig validates an owner's config, merges the secrets it leaves
+   * unchanged, and restarts the Component with it. Only a config Start
+   * accepts is stored; otherwise the Component restarts on its old config.
+   * A config the host or Start rejects is INVALID_ARGUMENT "invalid config"
+   * with a ConfigErrors detail. The Audit Log records the changed fields
+   * old -> new, a secret as "changed" or "cleared".
+   *
+   * @generated from rpc ddash.core.CoreService.SaveConfig
+   */
+  saveConfig: {
+    methodKind: "unary";
+    input: typeof SaveConfigRequestSchema;
+    output: typeof SaveConfigResponseSchema;
+  },
+  /**
+   * GetCoreSettings returns the core's own settings, defaults applied.
+   *
+   * @generated from rpc ddash.core.CoreService.GetCoreSettings
+   */
+  getCoreSettings: {
+    methodKind: "unary";
+    input: typeof GetCoreSettingsRequestSchema;
+    output: typeof GetCoreSettingsResponseSchema;
   },
   /**
    * ListAuditLog reads the Audit Log a page at a time: chains, newest first,

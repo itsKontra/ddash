@@ -79,9 +79,10 @@ type component struct {
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *samplepb.SampleConfig) error {
-	if cfg.GetTarget() == "" {
+	// An empty target is the host's to refuse: the field is required.
+	if cfg.GetTarget() == "nowhere" {
 		var errs sdk.FieldErrors
-		errs.Add("target", "is required")
+		errs.Add("target", "can't be greeted")
 		return errs.Err()
 	}
 	c.cfg = cfg

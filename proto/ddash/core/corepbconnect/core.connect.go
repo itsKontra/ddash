@@ -39,6 +39,13 @@ const (
 	CoreServiceListCatalogueProcedure = "/ddash.core.CoreService/ListCatalogue"
 	// CoreServiceDeleteOrphanProcedure is the procedure name of the CoreService's DeleteOrphan RPC.
 	CoreServiceDeleteOrphanProcedure = "/ddash.core.CoreService/DeleteOrphan"
+	// CoreServiceGetConfigFormProcedure is the procedure name of the CoreService's GetConfigForm RPC.
+	CoreServiceGetConfigFormProcedure = "/ddash.core.CoreService/GetConfigForm"
+	// CoreServiceSaveConfigProcedure is the procedure name of the CoreService's SaveConfig RPC.
+	CoreServiceSaveConfigProcedure = "/ddash.core.CoreService/SaveConfig"
+	// CoreServiceGetCoreSettingsProcedure is the procedure name of the CoreService's GetCoreSettings
+	// RPC.
+	CoreServiceGetCoreSettingsProcedure = "/ddash.core.CoreService/GetCoreSettings"
 	// CoreServiceListAuditLogProcedure is the procedure name of the CoreService's ListAuditLog RPC.
 	CoreServiceListAuditLogProcedure = "/ddash.core.CoreService/ListAuditLog"
 	// CoreServiceGetLayoutProcedure is the procedure name of the CoreService's GetLayout RPC.
@@ -90,6 +97,27 @@ var (
 			Procedure:  CoreServiceDeleteOrphanProcedure,
 		}
 	})
+	coreServiceGetConfigFormSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("GetConfigForm"),
+			Procedure:  CoreServiceGetConfigFormProcedure,
+		}
+	})
+	coreServiceSaveConfigSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("SaveConfig"),
+			Procedure:  CoreServiceSaveConfigProcedure,
+		}
+	})
+	coreServiceGetCoreSettingsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("GetCoreSettings"),
+			Procedure:  CoreServiceGetCoreSettingsProcedure,
+		}
+	})
 	coreServiceListAuditLogSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -136,6 +164,20 @@ type CoreServiceClient interface {
 	ListCatalogue(context.Context, *core.ListCatalogueRequest) (*core.ListCatalogueResponse, error)
 	// DeleteOrphan deletes an orphaned Component's DB file and config.
 	DeleteOrphan(context.Context, *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error)
+	// GetConfigForm returns an owner's config form: the fields of its config
+	// message, its stored values (never a secret's value) and why its stored
+	// config doesn't start. The owner is a running Component, or "core" for
+	// CoreSettings.
+	GetConfigForm(context.Context, *core.GetConfigFormRequest) (*core.GetConfigFormResponse, error)
+	// SaveConfig validates an owner's config, merges the secrets it leaves
+	// unchanged, and restarts the Component with it. Only a config Start
+	// accepts is stored; otherwise the Component restarts on its old config.
+	// A config the host or Start rejects is INVALID_ARGUMENT "invalid config"
+	// with a ConfigErrors detail. The Audit Log records the changed fields
+	// old -> new, a secret as "changed" or "cleared".
+	SaveConfig(context.Context, *core.SaveConfigRequest) (*core.SaveConfigResponse, error)
+	// GetCoreSettings returns the core's own settings, defaults applied.
+	GetCoreSettings(context.Context, *core.GetCoreSettingsRequest) (*core.GetCoreSettingsResponse, error)
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error)
@@ -175,6 +217,20 @@ type CoreServiceHandler interface {
 	ListCatalogue(context.Context, *core.ListCatalogueRequest) (*core.ListCatalogueResponse, error)
 	// DeleteOrphan deletes an orphaned Component's DB file and config.
 	DeleteOrphan(context.Context, *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error)
+	// GetConfigForm returns an owner's config form: the fields of its config
+	// message, its stored values (never a secret's value) and why its stored
+	// config doesn't start. The owner is a running Component, or "core" for
+	// CoreSettings.
+	GetConfigForm(context.Context, *core.GetConfigFormRequest) (*core.GetConfigFormResponse, error)
+	// SaveConfig validates an owner's config, merges the secrets it leaves
+	// unchanged, and restarts the Component with it. Only a config Start
+	// accepts is stored; otherwise the Component restarts on its old config.
+	// A config the host or Start rejects is INVALID_ARGUMENT "invalid config"
+	// with a ConfigErrors detail. The Audit Log records the changed fields
+	// old -> new, a secret as "changed" or "cleared".
+	SaveConfig(context.Context, *core.SaveConfigRequest) (*core.SaveConfigResponse, error)
+	// GetCoreSettings returns the core's own settings, defaults applied.
+	GetCoreSettings(context.Context, *core.GetCoreSettingsRequest) (*core.GetCoreSettingsResponse, error)
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error)
@@ -195,6 +251,9 @@ func RegisterCoreServiceHandler(server *connect.Server, svc CoreServiceHandler) 
 		connect.Method{Spec: coreServiceRestartSpec(), Handler: adapter.restart},
 		connect.Method{Spec: coreServiceListCatalogueSpec(), Handler: adapter.listCatalogue},
 		connect.Method{Spec: coreServiceDeleteOrphanSpec(), Handler: adapter.deleteOrphan},
+		connect.Method{Spec: coreServiceGetConfigFormSpec(), Handler: adapter.getConfigForm},
+		connect.Method{Spec: coreServiceSaveConfigSpec(), Handler: adapter.saveConfig},
+		connect.Method{Spec: coreServiceGetCoreSettingsSpec(), Handler: adapter.getCoreSettings},
 		connect.Method{Spec: coreServiceListAuditLogSpec(), Handler: adapter.listAuditLog},
 		connect.Method{Spec: coreServiceGetLayoutSpec(), Handler: adapter.getLayout},
 		connect.Method{Spec: coreServiceSaveLayoutSpec(), Handler: adapter.saveLayout},
@@ -226,6 +285,18 @@ func (UnimplementedCoreServiceHandler) ListCatalogue(context.Context, *core.List
 
 func (UnimplementedCoreServiceHandler) DeleteOrphan(context.Context, *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.DeleteOrphan is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) GetConfigForm(context.Context, *core.GetConfigFormRequest) (*core.GetConfigFormResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.GetConfigForm is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) SaveConfig(context.Context, *core.SaveConfigRequest) (*core.SaveConfigResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.SaveConfig is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) GetCoreSettings(context.Context, *core.GetCoreSettingsRequest) (*core.GetCoreSettingsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.GetCoreSettings is not implemented")
 }
 
 func (UnimplementedCoreServiceHandler) ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error) {
@@ -287,6 +358,30 @@ func (c *coreServiceClient) ListCatalogue(ctx context.Context, req *core.ListCat
 func (c *coreServiceClient) DeleteOrphan(ctx context.Context, req *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error) {
 	var res core.DeleteOrphanResponse
 	if err := c.client.CallUnary(ctx, coreServiceDeleteOrphanSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) GetConfigForm(ctx context.Context, req *core.GetConfigFormRequest) (*core.GetConfigFormResponse, error) {
+	var res core.GetConfigFormResponse
+	if err := c.client.CallUnary(ctx, coreServiceGetConfigFormSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) SaveConfig(ctx context.Context, req *core.SaveConfigRequest) (*core.SaveConfigResponse, error) {
+	var res core.SaveConfigResponse
+	if err := c.client.CallUnary(ctx, coreServiceSaveConfigSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) GetCoreSettings(ctx context.Context, req *core.GetCoreSettingsRequest) (*core.GetCoreSettingsResponse, error) {
+	var res core.GetCoreSettingsResponse
+	if err := c.client.CallUnary(ctx, coreServiceGetCoreSettingsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -384,6 +479,42 @@ func (h coreServiceHandler) deleteOrphan(ctx context.Context, _ connect.Spec, st
 		return err
 	}
 	res, err := h.svc.DeleteOrphan(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) getConfigForm(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.GetConfigFormRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetConfigForm(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) saveConfig(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.SaveConfigRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveConfig(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) getCoreSettings(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.GetCoreSettingsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetCoreSettings(ctx, &req)
 	if err != nil {
 		return err
 	}

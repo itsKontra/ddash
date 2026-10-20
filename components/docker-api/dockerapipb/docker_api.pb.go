@@ -11,6 +11,7 @@ package dockerapipb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -428,12 +429,12 @@ var File_docker_api_docker_api_proto protoreflect.FileDescriptor
 
 const file_docker_api_docker_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1bdocker-api/docker_api.proto\x12\x0fddash.dockerapi\x1a\x13ddash/options.proto\">\n" +
-	"\x0fDockerApiConfig\x12+\n" +
-	"\x05hosts\x18\x01 \x03(\v2\x15.ddash.dockerapi.HostR\x05hosts\",\n" +
-	"\x04Host\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x10\n" +
-	"\x03url\x18\x02 \x01(\tR\x03url\"\x17\n" +
+	"\x1bdocker-api/docker_api.proto\x12\x0fddash.dockerapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\x85\x01\n" +
+	"\x0fDockerApiConfig\x12r\n" +
+	"\x05hosts\x18\x01 \x03(\v2\x15.ddash.dockerapi.HostBE\x9a\xb5\x18A\x1a\fDocker hosts\"1Each host's read-only socket-proxy. None is fine.R\x05hosts\"o\n" +
+	"\x04Host\x12!\n" +
+	"\x04name\x18\x01 \x01(\tB\r\x9a\xb5\x18\t*\x05media0\x01R\x04name\x12D\n" +
+	"\x03url\x18\x02 \x01(\tB2\x9a\xb5\x18.\x1a\x10Socket-proxy URL*\x16tcp://198.18.2.10:23750\x018\x01R\x03url\"\x17\n" +
 	"\x15ListContainersRequest\"O\n" +
 	"\x16ListContainersResponse\x125\n" +
 	"\x05hosts\x18\x01 \x03(\v2\x1f.ddash.dockerapi.HostContainersR\x05hosts\"v\n" +

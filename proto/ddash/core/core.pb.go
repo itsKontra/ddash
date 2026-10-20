@@ -11,9 +11,11 @@ package corepb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -26,6 +28,113 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+// The look of the whole UI. Light or dark is each browser's choice.
+type Theme int32
+
+const (
+	Theme_THEME_UNSPECIFIED Theme = 0
+	Theme_THEME_DDASH       Theme = 1
+)
+
+// Enum value maps for Theme.
+var (
+	Theme_name = map[int32]string{
+		0: "THEME_UNSPECIFIED",
+		1: "THEME_DDASH",
+	}
+	Theme_value = map[string]int32{
+		"THEME_UNSPECIFIED": 0,
+		"THEME_DDASH":       1,
+	}
+)
+
+func (x Theme) Enum() *Theme {
+	p := new(Theme)
+	*p = x
+	return p
+}
+
+func (x Theme) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Theme) Descriptor() protoreflect.EnumDescriptor {
+	return file_ddash_core_core_proto_enumTypes[0].Descriptor()
+}
+
+func (Theme) Type() protoreflect.EnumType {
+	return &file_ddash_core_core_proto_enumTypes[0]
+}
+
+func (x Theme) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Theme.Descriptor instead.
+func (Theme) EnumDescriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{0}
+}
+
+type FormField_Kind int32
+
+const (
+	FormField_KIND_UNSPECIFIED FormField_Kind = 0
+	FormField_KIND_STRING      FormField_Kind = 1
+	FormField_KIND_INT         FormField_Kind = 2
+	// A switch.
+	FormField_KIND_BOOL FormField_Kind = 3
+	FormField_KIND_ENUM FormField_Kind = 4
+	// A repeated message: one row each, a column per field.
+	FormField_KIND_TABLE FormField_Kind = 5
+)
+
+// Enum value maps for FormField_Kind.
+var (
+	FormField_Kind_name = map[int32]string{
+		0: "KIND_UNSPECIFIED",
+		1: "KIND_STRING",
+		2: "KIND_INT",
+		3: "KIND_BOOL",
+		4: "KIND_ENUM",
+		5: "KIND_TABLE",
+	}
+	FormField_Kind_value = map[string]int32{
+		"KIND_UNSPECIFIED": 0,
+		"KIND_STRING":      1,
+		"KIND_INT":         2,
+		"KIND_BOOL":        3,
+		"KIND_ENUM":        4,
+		"KIND_TABLE":       5,
+	}
+)
+
+func (x FormField_Kind) Enum() *FormField_Kind {
+	p := new(FormField_Kind)
+	*p = x
+	return p
+}
+
+func (x FormField_Kind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FormField_Kind) Descriptor() protoreflect.EnumDescriptor {
+	return file_ddash_core_core_proto_enumTypes[1].Descriptor()
+}
+
+func (FormField_Kind) Type() protoreflect.EnumType {
+	return &file_ddash_core_core_proto_enumTypes[1]
+}
+
+func (x FormField_Kind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FormField_Kind.Descriptor instead.
+func (FormField_Kind) EnumDescriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{30, 0}
+}
 
 type ListCatalogueRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -252,7 +361,12 @@ type ComponentStatus struct {
 	// A one-line explanation of the state.
 	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
 	// The Component crashed too often and stays down until restarted.
-	Held          bool `protobuf:"varint,4,opt,name=held,proto3" json:"held,omitempty"`
+	Held bool `protobuf:"varint,4,opt,name=held,proto3" json:"held,omitempty"`
+	// The Component takes config, so it has a form.
+	Configurable bool `protobuf:"varint,5,opt,name=configurable,proto3" json:"configurable,omitempty"`
+	// The Component is unconfigured although config was saved for it, e.g.
+	// because a Release added a required field.
+	NeedsConfig   bool `protobuf:"varint,6,opt,name=needs_config,json=needsConfig,proto3" json:"needs_config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -311,6 +425,20 @@ func (x *ComponentStatus) GetMessage() string {
 func (x *ComponentStatus) GetHeld() bool {
 	if x != nil {
 		return x.Held
+	}
+	return false
+}
+
+func (x *ComponentStatus) GetConfigurable() bool {
+	if x != nil {
+		return x.Configurable
+	}
+	return false
+}
+
+func (x *ComponentStatus) GetNeedsConfig() bool {
+	if x != nil {
+		return x.NeedsConfig
 	}
 	return false
 }
@@ -440,7 +568,10 @@ func (x *InstallRequest) GetPlugin() string {
 }
 
 type InstallResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Components the install added to what runs, in start order. The
+	// shell opens the form of each that turns out unconfigured.
+	Components    []string `protobuf:"bytes,1,rep,name=components,proto3" json:"components,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -473,6 +604,13 @@ func (x *InstallResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use InstallResponse.ProtoReflect.Descriptor instead.
 func (*InstallResponse) Descriptor() ([]byte, []int) {
 	return file_ddash_core_core_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *InstallResponse) GetComponents() []string {
+	if x != nil {
+		return x.Components
+	}
+	return nil
 }
 
 type UninstallRequest struct {
@@ -1451,12 +1589,796 @@ func (x *LayoutEntry) GetSize() string {
 	return ""
 }
 
+// The core's own settings, stored as owner "core" and edited in Settings.
+type CoreSettings struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Theme         *Theme                 `protobuf:"varint,1,opt,name=theme,proto3,enum=ddash.core.Theme,oneof" json:"theme,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CoreSettings) Reset() {
+	*x = CoreSettings{}
+	mi := &file_ddash_core_core_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CoreSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CoreSettings) ProtoMessage() {}
+
+func (x *CoreSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CoreSettings.ProtoReflect.Descriptor instead.
+func (*CoreSettings) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *CoreSettings) GetTheme() Theme {
+	if x != nil && x.Theme != nil {
+		return *x.Theme
+	}
+	return Theme_THEME_UNSPECIFIED
+}
+
+type GetCoreSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCoreSettingsRequest) Reset() {
+	*x = GetCoreSettingsRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCoreSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCoreSettingsRequest) ProtoMessage() {}
+
+func (x *GetCoreSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCoreSettingsRequest.ProtoReflect.Descriptor instead.
+func (*GetCoreSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{26}
+}
+
+type GetCoreSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      *CoreSettings          `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCoreSettingsResponse) Reset() {
+	*x = GetCoreSettingsResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCoreSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCoreSettingsResponse) ProtoMessage() {}
+
+func (x *GetCoreSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCoreSettingsResponse.ProtoReflect.Descriptor instead.
+func (*GetCoreSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *GetCoreSettingsResponse) GetSettings() *CoreSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type GetConfigFormRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A Component's name, or "core".
+	Owner         string `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigFormRequest) Reset() {
+	*x = GetConfigFormRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigFormRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigFormRequest) ProtoMessage() {}
+
+func (x *GetConfigFormRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigFormRequest.ProtoReflect.Descriptor instead.
+func (*GetConfigFormRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *GetConfigFormRequest) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+type GetConfigFormResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The config message's fields, in declaration order.
+	Fields []*FormField `protobuf:"bytes,1,rep,name=fields,proto3" json:"fields,omitempty"`
+	// The stored values by field name, as protojson with proto field names.
+	// An unset field (meaning its default) is absent, and so is every secret.
+	Values *structpb.Struct `protobuf:"bytes,2,opt,name=values,proto3" json:"values,omitempty"`
+	// The secret fields that have a stored value.
+	SecretsSet []string `protobuf:"bytes,3,rep,name=secrets_set,json=secretsSet,proto3" json:"secrets_set,omitempty"`
+	// Why the stored config doesn't start, by path. Empty when it does.
+	Errors        []*ConfigError `protobuf:"bytes,4,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigFormResponse) Reset() {
+	*x = GetConfigFormResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigFormResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigFormResponse) ProtoMessage() {}
+
+func (x *GetConfigFormResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigFormResponse.ProtoReflect.Descriptor instead.
+func (*GetConfigFormResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *GetConfigFormResponse) GetFields() []*FormField {
+	if x != nil {
+		return x.Fields
+	}
+	return nil
+}
+
+func (x *GetConfigFormResponse) GetValues() *structpb.Struct {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+func (x *GetConfigFormResponse) GetSecretsSet() []string {
+	if x != nil {
+		return x.SecretsSet
+	}
+	return nil
+}
+
+func (x *GetConfigFormResponse) GetErrors() []*ConfigError {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
+// One field of a config form.
+type FormField struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The proto field name, as in values and in error paths.
+	Name string         `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Kind FormField_Kind `protobuf:"varint,2,opt,name=kind,proto3,enum=ddash.core.FormField_Kind" json:"kind,omitempty"`
+	// A list of values of kind. A table always is.
+	Repeated bool   `protobuf:"varint,3,opt,name=repeated,proto3" json:"repeated,omitempty"`
+	Label    string `protobuf:"bytes,4,opt,name=label,proto3" json:"label,omitempty"`
+	Help     string `protobuf:"bytes,5,opt,name=help,proto3" json:"help,omitempty"`
+	// The default if there is one, else the placeholder option.
+	Placeholder string `protobuf:"bytes,6,opt,name=placeholder,proto3" json:"placeholder,omitempty"`
+	Required    bool   `protobuf:"varint,7,opt,name=required,proto3" json:"required,omitempty"`
+	Secret      bool   `protobuf:"varint,8,opt,name=secret,proto3" json:"secret,omitempty"`
+	// The field's default as text; empty when it has none.
+	Default string `protobuf:"bytes,9,opt,name=default,proto3" json:"default,omitempty"`
+	// "url", "hostname", "ip", "cidr" or "ip_range"; empty for any text.
+	Format string `protobuf:"bytes,10,opt,name=format,proto3" json:"format,omitempty"`
+	Min    *int64 `protobuf:"varint,11,opt,name=min,proto3,oneof" json:"min,omitempty"`
+	Max    *int64 `protobuf:"varint,12,opt,name=max,proto3,oneof" json:"max,omitempty"`
+	// An enum's choices, without its zero value.
+	Options []*EnumOption `protobuf:"bytes,13,rep,name=options,proto3" json:"options,omitempty"`
+	// A table's columns.
+	Columns       []*FormField `protobuf:"bytes,14,rep,name=columns,proto3" json:"columns,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FormField) Reset() {
+	*x = FormField{}
+	mi := &file_ddash_core_core_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FormField) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FormField) ProtoMessage() {}
+
+func (x *FormField) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FormField.ProtoReflect.Descriptor instead.
+func (*FormField) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *FormField) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *FormField) GetKind() FormField_Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return FormField_KIND_UNSPECIFIED
+}
+
+func (x *FormField) GetRepeated() bool {
+	if x != nil {
+		return x.Repeated
+	}
+	return false
+}
+
+func (x *FormField) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *FormField) GetHelp() string {
+	if x != nil {
+		return x.Help
+	}
+	return ""
+}
+
+func (x *FormField) GetPlaceholder() string {
+	if x != nil {
+		return x.Placeholder
+	}
+	return ""
+}
+
+func (x *FormField) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
+func (x *FormField) GetSecret() bool {
+	if x != nil {
+		return x.Secret
+	}
+	return false
+}
+
+func (x *FormField) GetDefault() string {
+	if x != nil {
+		return x.Default
+	}
+	return ""
+}
+
+func (x *FormField) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+func (x *FormField) GetMin() int64 {
+	if x != nil && x.Min != nil {
+		return *x.Min
+	}
+	return 0
+}
+
+func (x *FormField) GetMax() int64 {
+	if x != nil && x.Max != nil {
+		return *x.Max
+	}
+	return 0
+}
+
+func (x *FormField) GetOptions() []*EnumOption {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *FormField) GetColumns() []*FormField {
+	if x != nil {
+		return x.Columns
+	}
+	return nil
+}
+
+type EnumOption struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The value name, as in values.
+	Value         string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Label         string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnumOption) Reset() {
+	*x = EnumOption{}
+	mi := &file_ddash_core_core_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnumOption) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnumOption) ProtoMessage() {}
+
+func (x *EnumOption) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnumOption.ProtoReflect.Descriptor instead.
+func (*EnumOption) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *EnumOption) GetValue() string {
+	if x != nil {
+		return x.Value
+	}
+	return ""
+}
+
+func (x *EnumOption) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+// One config field's problem, e.g. {path: "hosts[1].url", message: "must be a URL"}.
+type ConfigError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigError) Reset() {
+	*x = ConfigError{}
+	mi := &file_ddash_core_core_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigError) ProtoMessage() {}
+
+func (x *ConfigError) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigError.ProtoReflect.Descriptor instead.
+func (*ConfigError) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *ConfigError) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+func (x *ConfigError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+// The detail of an "invalid config" error.
+type ConfigErrors struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Errors        []*ConfigError         `protobuf:"bytes,1,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigErrors) Reset() {
+	*x = ConfigErrors{}
+	mi := &file_ddash_core_core_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigErrors) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigErrors) ProtoMessage() {}
+
+func (x *ConfigErrors) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigErrors.ProtoReflect.Descriptor instead.
+func (*ConfigErrors) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *ConfigErrors) GetErrors() []*ConfigError {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
+type SaveConfigRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A Component's name, or "core".
+	Owner string `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	// The config by field name, as protojson with proto field names. An
+	// absent field is unset, meaning its default. A secret given here
+	// replaces the stored one.
+	Values *structpb.Struct `protobuf:"bytes,2,opt,name=values,proto3" json:"values,omitempty"`
+	// Secret fields to clear. A secret neither in values nor here keeps its
+	// stored value.
+	ClearSecrets  []string `protobuf:"bytes,3,rep,name=clear_secrets,json=clearSecrets,proto3" json:"clear_secrets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveConfigRequest) Reset() {
+	*x = SaveConfigRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveConfigRequest) ProtoMessage() {}
+
+func (x *SaveConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveConfigRequest.ProtoReflect.Descriptor instead.
+func (*SaveConfigRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *SaveConfigRequest) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+func (x *SaveConfigRequest) GetValues() *structpb.Struct {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+func (x *SaveConfigRequest) GetClearSecrets() []string {
+	if x != nil {
+		return x.ClearSecrets
+	}
+	return nil
+}
+
+type SaveConfigResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Component's health polled right after its Start; empty for "core".
+	Status        *ComponentStatus `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveConfigResponse) Reset() {
+	*x = SaveConfigResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveConfigResponse) ProtoMessage() {}
+
+func (x *SaveConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveConfigResponse.ProtoReflect.Descriptor instead.
+func (*SaveConfigResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *SaveConfigResponse) GetStatus() *ComponentStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+// What the Audit Log records for SaveConfig: the fields it changed.
+type ConfigSave struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Owner         string                 `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	Changes       []*ConfigChange        `protobuf:"bytes,2,rep,name=changes,proto3" json:"changes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigSave) Reset() {
+	*x = ConfigSave{}
+	mi := &file_ddash_core_core_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigSave) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigSave) ProtoMessage() {}
+
+func (x *ConfigSave) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigSave.ProtoReflect.Descriptor instead.
+func (*ConfigSave) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *ConfigSave) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+func (x *ConfigSave) GetChanges() []*ConfigChange {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
+// One changed field, its old and new value as JSON (empty when unset). A
+// secret's values are never recorded: its change is "changed" or "cleared".
+type ConfigChange struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Field         string                 `protobuf:"bytes,1,opt,name=field,proto3" json:"field,omitempty"`
+	Old           string                 `protobuf:"bytes,2,opt,name=old,proto3" json:"old,omitempty"`
+	New           string                 `protobuf:"bytes,3,opt,name=new,proto3" json:"new,omitempty"`
+	Change        string                 `protobuf:"bytes,4,opt,name=change,proto3" json:"change,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigChange) Reset() {
+	*x = ConfigChange{}
+	mi := &file_ddash_core_core_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigChange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigChange) ProtoMessage() {}
+
+func (x *ConfigChange) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigChange.ProtoReflect.Descriptor instead.
+func (*ConfigChange) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *ConfigChange) GetField() string {
+	if x != nil {
+		return x.Field
+	}
+	return ""
+}
+
+func (x *ConfigChange) GetOld() string {
+	if x != nil {
+		return x.Old
+	}
+	return ""
+}
+
+func (x *ConfigChange) GetNew() string {
+	if x != nil {
+		return x.New
+	}
+	return ""
+}
+
+func (x *ConfigChange) GetChange() string {
+	if x != nil {
+		return x.Change
+	}
+	return ""
+}
+
 var File_ddash_core_core_proto protoreflect.FileDescriptor
 
 const file_ddash_core_core_proto_rawDesc = "" +
 	"\n" +
 	"\x15ddash/core/core.proto\x12\n" +
-	"ddash.core\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
+	"ddash.core\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
 	"\x14ListCatalogueRequest\"\xaf\x01\n" +
 	"\x15ListCatalogueResponse\x12\x18\n" +
 	"\arelease\x18\x01 \x01(\tR\arelease\x125\n" +
@@ -1473,18 +2395,23 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\n" +
 	"components\x18\a \x03(\v2\x1b.ddash.core.ComponentStatusR\n" +
 	"components\x12%\n" +
-	"\x0eupdate_pending\x18\b \x01(\tR\rupdatePending\"i\n" +
+	"\x0eupdate_pending\x18\b \x01(\tR\rupdatePending\"\xb0\x01\n" +
 	"\x0fComponentStatus\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05state\x18\x02 \x01(\tR\x05state\x12\x18\n" +
 	"\amessage\x18\x03 \x01(\tR\amessage\x12\x12\n" +
-	"\x04held\x18\x04 \x01(\bR\x04held\"3\n" +
+	"\x04held\x18\x04 \x01(\bR\x04held\x12\"\n" +
+	"\fconfigurable\x18\x05 \x01(\bR\fconfigurable\x12!\n" +
+	"\fneeds_config\x18\x06 \x01(\bR\vneedsConfig\"3\n" +
 	"\x13DeleteOrphanRequest\x12\x1c\n" +
 	"\tcomponent\x18\x01 \x01(\tR\tcomponent\"\x16\n" +
 	"\x14DeleteOrphanResponse\"(\n" +
 	"\x0eInstallRequest\x12\x16\n" +
-	"\x06plugin\x18\x01 \x01(\tR\x06plugin\"\x11\n" +
-	"\x0fInstallResponse\"K\n" +
+	"\x06plugin\x18\x01 \x01(\tR\x06plugin\"1\n" +
+	"\x0fInstallResponse\x12\x1e\n" +
+	"\n" +
+	"components\x18\x01 \x03(\tR\n" +
+	"components\"K\n" +
 	"\x10UninstallRequest\x12\x16\n" +
 	"\x06plugin\x18\x01 \x01(\tR\x06plugin\x12\x1f\n" +
 	"\vdelete_data\x18\x02 \x01(\bR\n" +
@@ -1550,14 +2477,87 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x04seen\x18\x02 \x03(\tR\x04seen\"9\n" +
 	"\vLayoutEntry\x12\x16\n" +
 	"\x06widget\x18\x01 \x01(\tR\x06widget\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\tR\x04size2\xa1\x06\n" +
+	"\x04size\x18\x02 \x01(\tR\x04size\"`\n" +
+	"\fCoreSettings\x12F\n" +
+	"\x05theme\x18\x01 \x01(\x0e2\x11.ddash.core.ThemeB\x18\x9a\xb5\x18\x14\n" +
+	"\vTHEME_DDASH\x1a\x05ThemeH\x00R\x05theme\x88\x01\x01B\b\n" +
+	"\x06_theme\"\x18\n" +
+	"\x16GetCoreSettingsRequest\"O\n" +
+	"\x17GetCoreSettingsResponse\x124\n" +
+	"\bsettings\x18\x01 \x01(\v2\x18.ddash.core.CoreSettingsR\bsettings\",\n" +
+	"\x14GetConfigFormRequest\x12\x14\n" +
+	"\x05owner\x18\x01 \x01(\tR\x05owner\"\xc9\x01\n" +
+	"\x15GetConfigFormResponse\x12-\n" +
+	"\x06fields\x18\x01 \x03(\v2\x15.ddash.core.FormFieldR\x06fields\x12/\n" +
+	"\x06values\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x06values\x12\x1f\n" +
+	"\vsecrets_set\x18\x03 \x03(\tR\n" +
+	"secretsSet\x12/\n" +
+	"\x06errors\x18\x04 \x03(\v2\x17.ddash.core.ConfigErrorR\x06errors\"\xa9\x04\n" +
+	"\tFormField\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12.\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\x1a.ddash.core.FormField.KindR\x04kind\x12\x1a\n" +
+	"\brepeated\x18\x03 \x01(\bR\brepeated\x12\x14\n" +
+	"\x05label\x18\x04 \x01(\tR\x05label\x12\x12\n" +
+	"\x04help\x18\x05 \x01(\tR\x04help\x12 \n" +
+	"\vplaceholder\x18\x06 \x01(\tR\vplaceholder\x12\x1a\n" +
+	"\brequired\x18\a \x01(\bR\brequired\x12\x16\n" +
+	"\x06secret\x18\b \x01(\bR\x06secret\x12\x18\n" +
+	"\adefault\x18\t \x01(\tR\adefault\x12\x16\n" +
+	"\x06format\x18\n" +
+	" \x01(\tR\x06format\x12\x15\n" +
+	"\x03min\x18\v \x01(\x03H\x00R\x03min\x88\x01\x01\x12\x15\n" +
+	"\x03max\x18\f \x01(\x03H\x01R\x03max\x88\x01\x01\x120\n" +
+	"\aoptions\x18\r \x03(\v2\x16.ddash.core.EnumOptionR\aoptions\x12/\n" +
+	"\acolumns\x18\x0e \x03(\v2\x15.ddash.core.FormFieldR\acolumns\"i\n" +
+	"\x04Kind\x12\x14\n" +
+	"\x10KIND_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vKIND_STRING\x10\x01\x12\f\n" +
+	"\bKIND_INT\x10\x02\x12\r\n" +
+	"\tKIND_BOOL\x10\x03\x12\r\n" +
+	"\tKIND_ENUM\x10\x04\x12\x0e\n" +
+	"\n" +
+	"KIND_TABLE\x10\x05B\x06\n" +
+	"\x04_minB\x06\n" +
+	"\x04_max\"8\n" +
+	"\n" +
+	"EnumOption\x12\x14\n" +
+	"\x05value\x18\x01 \x01(\tR\x05value\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\";\n" +
+	"\vConfigError\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"?\n" +
+	"\fConfigErrors\x12/\n" +
+	"\x06errors\x18\x01 \x03(\v2\x17.ddash.core.ConfigErrorR\x06errors\"\x7f\n" +
+	"\x11SaveConfigRequest\x12\x14\n" +
+	"\x05owner\x18\x01 \x01(\tR\x05owner\x12/\n" +
+	"\x06values\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x06values\x12#\n" +
+	"\rclear_secrets\x18\x03 \x03(\tR\fclearSecrets\"I\n" +
+	"\x12SaveConfigResponse\x123\n" +
+	"\x06status\x18\x01 \x01(\v2\x1b.ddash.core.ComponentStatusR\x06status\"V\n" +
+	"\n" +
+	"ConfigSave\x12\x14\n" +
+	"\x05owner\x18\x01 \x01(\tR\x05owner\x122\n" +
+	"\achanges\x18\x02 \x03(\v2\x18.ddash.core.ConfigChangeR\achanges\"`\n" +
+	"\fConfigChange\x12\x14\n" +
+	"\x05field\x18\x01 \x01(\tR\x05field\x12\x10\n" +
+	"\x03old\x18\x02 \x01(\tR\x03old\x12\x10\n" +
+	"\x03new\x18\x03 \x01(\tR\x03new\x12\x16\n" +
+	"\x06change\x18\x04 \x01(\tR\x06change*<\n" +
+	"\x05Theme\x12\x15\n" +
+	"\x11THEME_UNSPECIFIED\x10\x00\x12\x1c\n" +
+	"\vTHEME_DDASH\x10\x01\x1a\v\xa2\xb5\x18\a\n" +
+	"\x05ddash2\xb6\b\n" +
 	"\vCoreService\x12q\n" +
 	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
 	"\tUninstall\x12\x1c.ddash.core.UninstallRequest\x1a\x1d.ddash.core.UninstallResponse\"\x06\x92\xb5\x18\x02\b\x01\x12J\n" +
 	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
 	"\rListCatalogue\x12 .ddash.core.ListCatalogueRequest\x1a!.ddash.core.ListCatalogueResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Y\n" +
-	"\fDeleteOrphan\x12\x1f.ddash.core.DeleteOrphanRequest\x1a .ddash.core.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01\x12Y\n" +
+	"\fDeleteOrphan\x12\x1f.ddash.core.DeleteOrphanRequest\x1a .ddash.core.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
+	"\rGetConfigForm\x12 .ddash.core.GetConfigFormRequest\x1a!.ddash.core.GetConfigFormResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Q\n" +
+	"\n" +
+	"SaveConfig\x12\x1d.ddash.core.SaveConfigRequest\x1a\x1e.ddash.core.SaveConfigResponse\"\x04\x92\xb5\x18\x00\x12b\n" +
+	"\x0fGetCoreSettings\x12\".ddash.core.GetCoreSettingsRequest\x1a#.ddash.core.GetCoreSettingsResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Y\n" +
 	"\fListAuditLog\x12\x1f.ddash.core.ListAuditLogRequest\x1a .ddash.core.ListAuditLogResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12P\n" +
 	"\tGetLayout\x12\x1c.ddash.core.GetLayoutRequest\x1a\x1d.ddash.core.GetLayoutResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Q\n" +
 	"\n" +
@@ -1575,70 +2575,105 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 	return file_ddash_core_core_proto_rawDescData
 }
 
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_ddash_core_core_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
 var file_ddash_core_core_proto_goTypes = []any{
-	(*ListCatalogueRequest)(nil),         // 0: ddash.core.ListCatalogueRequest
-	(*ListCatalogueResponse)(nil),        // 1: ddash.core.ListCatalogueResponse
-	(*CataloguePlugin)(nil),              // 2: ddash.core.CataloguePlugin
-	(*ComponentStatus)(nil),              // 3: ddash.core.ComponentStatus
-	(*DeleteOrphanRequest)(nil),          // 4: ddash.core.DeleteOrphanRequest
-	(*DeleteOrphanResponse)(nil),         // 5: ddash.core.DeleteOrphanResponse
-	(*InstallRequest)(nil),               // 6: ddash.core.InstallRequest
-	(*InstallResponse)(nil),              // 7: ddash.core.InstallResponse
-	(*UninstallRequest)(nil),             // 8: ddash.core.UninstallRequest
-	(*UninstallResponse)(nil),            // 9: ddash.core.UninstallResponse
-	(*RestartRequest)(nil),               // 10: ddash.core.RestartRequest
-	(*RestartResponse)(nil),              // 11: ddash.core.RestartResponse
-	(*ListInstalledPluginsRequest)(nil),  // 12: ddash.core.ListInstalledPluginsRequest
-	(*ListInstalledPluginsResponse)(nil), // 13: ddash.core.ListInstalledPluginsResponse
-	(*InstalledPlugin)(nil),              // 14: ddash.core.InstalledPlugin
-	(*ListAuditLogRequest)(nil),          // 15: ddash.core.ListAuditLogRequest
-	(*ListAuditLogResponse)(nil),         // 16: ddash.core.ListAuditLogResponse
-	(*AuditChain)(nil),                   // 17: ddash.core.AuditChain
-	(*AuditEntry)(nil),                   // 18: ddash.core.AuditEntry
-	(*GetLayoutRequest)(nil),             // 19: ddash.core.GetLayoutRequest
-	(*GetLayoutResponse)(nil),            // 20: ddash.core.GetLayoutResponse
-	(*SaveLayoutRequest)(nil),            // 21: ddash.core.SaveLayoutRequest
-	(*SaveLayoutResponse)(nil),           // 22: ddash.core.SaveLayoutResponse
-	(*Layout)(nil),                       // 23: ddash.core.Layout
-	(*LayoutEntry)(nil),                  // 24: ddash.core.LayoutEntry
-	(*timestamppb.Timestamp)(nil),        // 25: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),          // 26: google.protobuf.Duration
+	(Theme)(0),                           // 0: ddash.core.Theme
+	(FormField_Kind)(0),                  // 1: ddash.core.FormField.Kind
+	(*ListCatalogueRequest)(nil),         // 2: ddash.core.ListCatalogueRequest
+	(*ListCatalogueResponse)(nil),        // 3: ddash.core.ListCatalogueResponse
+	(*CataloguePlugin)(nil),              // 4: ddash.core.CataloguePlugin
+	(*ComponentStatus)(nil),              // 5: ddash.core.ComponentStatus
+	(*DeleteOrphanRequest)(nil),          // 6: ddash.core.DeleteOrphanRequest
+	(*DeleteOrphanResponse)(nil),         // 7: ddash.core.DeleteOrphanResponse
+	(*InstallRequest)(nil),               // 8: ddash.core.InstallRequest
+	(*InstallResponse)(nil),              // 9: ddash.core.InstallResponse
+	(*UninstallRequest)(nil),             // 10: ddash.core.UninstallRequest
+	(*UninstallResponse)(nil),            // 11: ddash.core.UninstallResponse
+	(*RestartRequest)(nil),               // 12: ddash.core.RestartRequest
+	(*RestartResponse)(nil),              // 13: ddash.core.RestartResponse
+	(*ListInstalledPluginsRequest)(nil),  // 14: ddash.core.ListInstalledPluginsRequest
+	(*ListInstalledPluginsResponse)(nil), // 15: ddash.core.ListInstalledPluginsResponse
+	(*InstalledPlugin)(nil),              // 16: ddash.core.InstalledPlugin
+	(*ListAuditLogRequest)(nil),          // 17: ddash.core.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),         // 18: ddash.core.ListAuditLogResponse
+	(*AuditChain)(nil),                   // 19: ddash.core.AuditChain
+	(*AuditEntry)(nil),                   // 20: ddash.core.AuditEntry
+	(*GetLayoutRequest)(nil),             // 21: ddash.core.GetLayoutRequest
+	(*GetLayoutResponse)(nil),            // 22: ddash.core.GetLayoutResponse
+	(*SaveLayoutRequest)(nil),            // 23: ddash.core.SaveLayoutRequest
+	(*SaveLayoutResponse)(nil),           // 24: ddash.core.SaveLayoutResponse
+	(*Layout)(nil),                       // 25: ddash.core.Layout
+	(*LayoutEntry)(nil),                  // 26: ddash.core.LayoutEntry
+	(*CoreSettings)(nil),                 // 27: ddash.core.CoreSettings
+	(*GetCoreSettingsRequest)(nil),       // 28: ddash.core.GetCoreSettingsRequest
+	(*GetCoreSettingsResponse)(nil),      // 29: ddash.core.GetCoreSettingsResponse
+	(*GetConfigFormRequest)(nil),         // 30: ddash.core.GetConfigFormRequest
+	(*GetConfigFormResponse)(nil),        // 31: ddash.core.GetConfigFormResponse
+	(*FormField)(nil),                    // 32: ddash.core.FormField
+	(*EnumOption)(nil),                   // 33: ddash.core.EnumOption
+	(*ConfigError)(nil),                  // 34: ddash.core.ConfigError
+	(*ConfigErrors)(nil),                 // 35: ddash.core.ConfigErrors
+	(*SaveConfigRequest)(nil),            // 36: ddash.core.SaveConfigRequest
+	(*SaveConfigResponse)(nil),           // 37: ddash.core.SaveConfigResponse
+	(*ConfigSave)(nil),                   // 38: ddash.core.ConfigSave
+	(*ConfigChange)(nil),                 // 39: ddash.core.ConfigChange
+	(*timestamppb.Timestamp)(nil),        // 40: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 41: google.protobuf.Duration
+	(*structpb.Struct)(nil),              // 42: google.protobuf.Struct
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
-	2,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
-	3,  // 1: ddash.core.CataloguePlugin.components:type_name -> ddash.core.ComponentStatus
-	14, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
-	17, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
-	18, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
-	25, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
-	26, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
-	23, // 7: ddash.core.GetLayoutResponse.layout:type_name -> ddash.core.Layout
-	23, // 8: ddash.core.SaveLayoutRequest.layout:type_name -> ddash.core.Layout
-	24, // 9: ddash.core.Layout.entries:type_name -> ddash.core.LayoutEntry
-	12, // 10: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
-	6,  // 11: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	8,  // 12: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	10, // 13: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	0,  // 14: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
-	4,  // 15: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
-	15, // 16: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
-	19, // 17: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
-	21, // 18: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
-	13, // 19: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
-	7,  // 20: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	9,  // 21: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	11, // 22: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	1,  // 23: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
-	5,  // 24: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
-	16, // 25: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
-	20, // 26: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
-	22, // 27: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
-	19, // [19:28] is the sub-list for method output_type
-	10, // [10:19] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	4,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
+	5,  // 1: ddash.core.CataloguePlugin.components:type_name -> ddash.core.ComponentStatus
+	16, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
+	19, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
+	20, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
+	40, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	41, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
+	25, // 7: ddash.core.GetLayoutResponse.layout:type_name -> ddash.core.Layout
+	25, // 8: ddash.core.SaveLayoutRequest.layout:type_name -> ddash.core.Layout
+	26, // 9: ddash.core.Layout.entries:type_name -> ddash.core.LayoutEntry
+	0,  // 10: ddash.core.CoreSettings.theme:type_name -> ddash.core.Theme
+	27, // 11: ddash.core.GetCoreSettingsResponse.settings:type_name -> ddash.core.CoreSettings
+	32, // 12: ddash.core.GetConfigFormResponse.fields:type_name -> ddash.core.FormField
+	42, // 13: ddash.core.GetConfigFormResponse.values:type_name -> google.protobuf.Struct
+	34, // 14: ddash.core.GetConfigFormResponse.errors:type_name -> ddash.core.ConfigError
+	1,  // 15: ddash.core.FormField.kind:type_name -> ddash.core.FormField.Kind
+	33, // 16: ddash.core.FormField.options:type_name -> ddash.core.EnumOption
+	32, // 17: ddash.core.FormField.columns:type_name -> ddash.core.FormField
+	34, // 18: ddash.core.ConfigErrors.errors:type_name -> ddash.core.ConfigError
+	42, // 19: ddash.core.SaveConfigRequest.values:type_name -> google.protobuf.Struct
+	5,  // 20: ddash.core.SaveConfigResponse.status:type_name -> ddash.core.ComponentStatus
+	39, // 21: ddash.core.ConfigSave.changes:type_name -> ddash.core.ConfigChange
+	14, // 22: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	8,  // 23: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	10, // 24: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	12, // 25: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	2,  // 26: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
+	6,  // 27: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
+	30, // 28: ddash.core.CoreService.GetConfigForm:input_type -> ddash.core.GetConfigFormRequest
+	36, // 29: ddash.core.CoreService.SaveConfig:input_type -> ddash.core.SaveConfigRequest
+	28, // 30: ddash.core.CoreService.GetCoreSettings:input_type -> ddash.core.GetCoreSettingsRequest
+	17, // 31: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
+	21, // 32: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
+	23, // 33: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
+	15, // 34: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	9,  // 35: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	11, // 36: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	13, // 37: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	3,  // 38: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
+	7,  // 39: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
+	31, // 40: ddash.core.CoreService.GetConfigForm:output_type -> ddash.core.GetConfigFormResponse
+	37, // 41: ddash.core.CoreService.SaveConfig:output_type -> ddash.core.SaveConfigResponse
+	29, // 42: ddash.core.CoreService.GetCoreSettings:output_type -> ddash.core.GetCoreSettingsResponse
+	18, // 43: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
+	22, // 44: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
+	24, // 45: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
+	34, // [34:46] is the sub-list for method output_type
+	22, // [22:34] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }
@@ -1646,18 +2681,21 @@ func file_ddash_core_core_proto_init() {
 	if File_ddash_core_core_proto != nil {
 		return
 	}
+	file_ddash_core_core_proto_msgTypes[25].OneofWrappers = []any{}
+	file_ddash_core_core_proto_msgTypes[30].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   25,
+			NumEnums:      2,
+			NumMessages:   38,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_ddash_core_core_proto_goTypes,
 		DependencyIndexes: file_ddash_core_core_proto_depIdxs,
+		EnumInfos:         file_ddash_core_core_proto_enumTypes,
 		MessageInfos:      file_ddash_core_core_proto_msgTypes,
 	}.Build()
 	File_ddash_core_core_proto = out.File
