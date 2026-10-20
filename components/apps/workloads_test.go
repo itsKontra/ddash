@@ -224,6 +224,32 @@ func TestTheDefaultPortIsTheProxyPassSchemes(t *testing.T) {
 	}
 }
 
+// Nginx Proxy Manager proxies to "$forward_scheme://$server:$port$request_uri";
+// nginx-config fills in the variables the block sets, which leaves the
+// request's own path variable after the port.
+func TestAVariableAfterTheUpstreamsPortIsOnlyItsPath(t *testing.T) {
+	n := newNginx(
+		proxy([]string{"jellyfin.home.example"}, "http://198.18.2.10:8096$request_uri", "443 ssl"),
+		proxy([]string{"paperless.home.example"}, "http://198.18.2.30:8000/$1", "443 ssl"),
+		// Without a port, the variable may still be part of the host.
+		proxy([]string{"unsure.home.example"}, "http://198.18.2.30$request_uri", "443 ssl"),
+		proxy([]string{"port.home.example"}, "http://198.18.2.30:$port", "443 ssl"),
+		proxy([]string{"scheme.home.example"}, "$forward_scheme://198.18.2.30:8000", "443 ssl"),
+	)
+	s := startInLab(t, n, newLab())
+
+	want := map[string]*appspb.Workload{
+		"proxy:jellyfin.home.example":  docker("jellyfin"),
+		"proxy:paperless.home.example": lxc("120", "paperless"),
+		"proxy:unsure.home.example":    nil,
+		"proxy:port.home.example":      nil,
+		"proxy:scheme.home.example":    nil,
+	}
+	if d := diff(want, s.workloads(t)); d != "" {
+		t.Errorf("Workloads (-want +got):\n%s", d)
+	}
+}
+
 func TestAnUpstreamMatchingNothingHasNoWorkload(t *testing.T) {
 	n := newNginx(
 		proxy([]string{"printer.home.example"}, "http://198.18.1.40", "8080"),

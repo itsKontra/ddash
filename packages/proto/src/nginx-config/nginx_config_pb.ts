@@ -319,7 +319,9 @@ export type Location = Message<"ddash.nginxconfig.Location"> & {
   path: string;
 
   /**
-   * The proxy_pass target; empty without one.
+   * The proxy_pass target, with the variables its server block sets filled
+   * in (Nginx Proxy Manager's "$forward_scheme://$server:$port$request_uri"
+   * reads "http://198.18.1.204:3000$request_uri"); empty without one.
    *
    * @generated from field: string proxy_pass = 2;
    */

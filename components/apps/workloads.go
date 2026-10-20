@@ -36,17 +36,27 @@ func canonHost(h string) string {
 }
 
 // upstreamOf reads where a proxy_pass forwards: its host and port, or an
-// upstream block's first server when it names one. Variables and unix
-// sockets go nowhere ddash can match.
+// upstream block's first server when it names one. Unix sockets and a
+// variable in the scheme, host or port go nowhere ddash can match; one
+// right after an explicit port ("http://198.18.2.10:8096$request_uri") is
+// only the path.
 func upstreamOf(proxyPass string, upstreams map[string][]string) hostPort {
-	if strings.Contains(proxyPass, "$") {
-		return hostPort{}
-	}
 	scheme, rest, ok := strings.Cut(proxyPass, "://")
-	if !ok || strings.HasPrefix(rest, "unix:") {
+	if !ok || strings.Contains(scheme, "$") || strings.HasPrefix(rest, "unix:") {
 		return hostPort{}
 	}
-	u, err := url.Parse(proxyPass)
+	authority := rest
+	if i := strings.IndexAny(rest, "/?"); i >= 0 {
+		authority = rest[:i]
+	}
+	if i := strings.Index(authority, "$"); i >= 0 {
+		host, port, err := net.SplitHostPort(authority[:i])
+		if err != nil || host == "" || port == "" {
+			return hostPort{}
+		}
+		return withPort(host, port, scheme)
+	}
+	u, err := url.Parse(scheme + "://" + authority)
 	if err != nil || u.Hostname() == "" {
 		return hostPort{}
 	}

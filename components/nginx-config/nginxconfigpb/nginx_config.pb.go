@@ -632,7 +632,9 @@ type Location struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The location's arguments as written, e.g. "/" or "~ ^/api".
 	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	// The proxy_pass target; empty without one.
+	// The proxy_pass target, with the variables its server block sets filled
+	// in (Nginx Proxy Manager's "$forward_scheme://$server:$port$request_uri"
+	// reads "http://198.18.1.204:3000$request_uri"); empty without one.
 	ProxyPass     string `protobuf:"bytes,2,opt,name=proxy_pass,json=proxyPass,proto3" json:"proxy_pass,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

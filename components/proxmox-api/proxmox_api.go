@@ -327,14 +327,22 @@ func (c *component) lxcInterfaces(ctx context.Context, w *pb.Workload) ([]*pb.Ni
 }
 
 // toNic keeps the routable addresses of an interface, and none of a
-// loopback one.
+// loopback one: Linux's lo, or any interface holding a loopback address
+// (FreeBSD's lo0, which may carry a global address too).
 func toNic(name, mac string, ips []string) *pb.Nic {
 	if name == "lo" {
 		return nil
 	}
 	nic := &pb.Nic{Name: name, Mac: normalMAC(mac)}
 	for _, ip := range ips {
-		if a, err := netip.ParseAddr(ip); err == nil && a.IsGlobalUnicast() {
+		a, err := netip.ParseAddr(ip)
+		if err != nil {
+			continue
+		}
+		if a.IsLoopback() {
+			return nil
+		}
+		if a.IsGlobalUnicast() {
 			nic.Ips = append(nic.Ips, a.String())
 		}
 	}
