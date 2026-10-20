@@ -17,7 +17,12 @@ const plugin = (name: string, title: string, components: Comp[], installed = fal
   components,
 });
 
-let catalogue: { release: string; plugins: ReturnType<typeof plugin>[]; orphans?: string[] };
+let catalogue: {
+  release: string;
+  plugins: (ReturnType<typeof plugin> & { updatePending?: string })[];
+  orphans?: string[];
+  availableRelease?: string;
+};
 let calls: { method: string; body: unknown }[];
 let refusal: { code: string; message: string } | undefined;
 
@@ -134,6 +139,48 @@ it("shows an installed Plugin's worst Component health, expandable to each Compo
 
   const rows = within(within(entry("Docker")).getByRole("list", { name: "Component health" })).getAllByRole("listitem");
   expect(rows.map((r) => r.textContent)).toEqual(["ntfy-apiok", "docker-apidegradedmedia unreachable", "docker-uistarting"]);
+});
+
+it("shows update pending, before any worse health, for an installed Plugin with a Component whose download failed", async () => {
+  catalogue.plugins[1] = plugin(
+    "docker",
+    "Docker",
+    [
+      { name: "ntfy-api", state: "down", message: "unreachable" },
+      { name: "docker-api", state: "update pending", message: "download failed: docker-api of Release v1.2.3: 502; retrying" },
+    ],
+    true,
+  );
+  await boot();
+
+  fireEvent.click(within(entry("Docker")).getByRole("button", { name: /update pending/ }));
+
+  const rows = within(within(entry("Docker")).getByRole("list", { name: "Component health" })).getAllByRole("listitem");
+  expect(rows[1].textContent).toBe("docker-apiupdate pendingdownload failed: docker-api of Release v1.2.3: 502; retrying");
+});
+
+it("shows update pending, with the reason, for an installed Plugin whose bundles are still missing", async () => {
+  catalogue.plugins[1] = {
+    ...plugin("docker", "Docker", [{ name: "docker-api", state: "ok" }], true),
+    updatePending: "download failed: docker.plugin.js of Release v1.2.3: 502; retrying",
+  };
+  await boot();
+
+  fireEvent.click(within(entry("Docker")).getByRole("button", { name: /update pending/ }));
+
+  expect(within(entry("Docker")).getByText("download failed: docker.plugin.js of Release v1.2.3: 502; retrying")).toBeTruthy();
+});
+
+it("shows a read-only line when a newer Release is available, and none otherwise", async () => {
+  await boot();
+  expect(screen.queryByText(/available/)).toBeNull();
+  cleanup();
+
+  catalogue.availableRelease = "v1.3.0";
+  await boot();
+
+  const line = screen.getByText("Release v1.3.0 available");
+  expect(line.closest("a, button")).toBeNull();
 });
 
 it("offers Restart, after confirming, for a Component held down after repeated crashes", async () => {
