@@ -35,6 +35,8 @@ const (
 	CoreServiceUninstallProcedure = "/ddash.core.CoreService/Uninstall"
 	// CoreServiceRestartProcedure is the procedure name of the CoreService's Restart RPC.
 	CoreServiceRestartProcedure = "/ddash.core.CoreService/Restart"
+	// CoreServiceListAuditLogProcedure is the procedure name of the CoreService's ListAuditLog RPC.
+	CoreServiceListAuditLogProcedure = "/ddash.core.CoreService/ListAuditLog"
 )
 
 var (
@@ -66,6 +68,13 @@ var (
 			Procedure:  CoreServiceRestartProcedure,
 		}
 	})
+	coreServiceListAuditLogSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("ListAuditLog"),
+			Procedure:  CoreServiceListAuditLogProcedure,
+		}
+	})
 )
 
 // CoreServiceClient is a client for the ddash.core.CoreService service.
@@ -85,6 +94,9 @@ type CoreServiceClient interface {
 	// a Component that crashed about 5 times in 10 minutes stays down until
 	// restarted. It never restarts the Components that require it.
 	Restart(context.Context, *core.RestartRequest) (*core.RestartResponse, error)
+	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+	// each with its hops.
+	ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error)
 }
 
 // NewCoreServiceClient constructs a client for the ddash.core.CoreService service. Multiple service
@@ -110,6 +122,9 @@ type CoreServiceHandler interface {
 	// a Component that crashed about 5 times in 10 minutes stays down until
 	// restarted. It never restarts the Components that require it.
 	Restart(context.Context, *core.RestartRequest) (*core.RestartResponse, error)
+	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+	// each with its hops.
+	ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error)
 }
 
 // RegisterCoreServiceHandler registers svc as the ddash.core.CoreService implementation on server.
@@ -120,6 +135,7 @@ func RegisterCoreServiceHandler(server *connect.Server, svc CoreServiceHandler) 
 		connect.Method{Spec: coreServiceInstallSpec(), Handler: adapter.install},
 		connect.Method{Spec: coreServiceUninstallSpec(), Handler: adapter.uninstall},
 		connect.Method{Spec: coreServiceRestartSpec(), Handler: adapter.restart},
+		connect.Method{Spec: coreServiceListAuditLogSpec(), Handler: adapter.listAuditLog},
 	)
 }
 
@@ -140,6 +156,10 @@ func (UnimplementedCoreServiceHandler) Uninstall(context.Context, *core.Uninstal
 
 func (UnimplementedCoreServiceHandler) Restart(context.Context, *core.RestartRequest) (*core.RestartResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.Restart is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.ListAuditLog is not implemented")
 }
 
 type coreServiceClient struct {
@@ -173,6 +193,14 @@ func (c *coreServiceClient) Uninstall(ctx context.Context, req *core.UninstallRe
 func (c *coreServiceClient) Restart(ctx context.Context, req *core.RestartRequest) (*core.RestartResponse, error) {
 	var res core.RestartResponse
 	if err := c.client.CallUnary(ctx, coreServiceRestartSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) ListAuditLog(ctx context.Context, req *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error) {
+	var res core.ListAuditLogResponse
+	if err := c.client.CallUnary(ctx, coreServiceListAuditLogSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -222,6 +250,18 @@ func (h coreServiceHandler) restart(ctx context.Context, _ connect.Spec, stream 
 		return err
 	}
 	res, err := h.svc.Restart(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) listAuditLog(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.ListAuditLogRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListAuditLog(ctx, &req)
 	if err != nil {
 		return err
 	}
