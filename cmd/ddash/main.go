@@ -26,6 +26,7 @@ import (
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/runtime"
+	"github.com/itsKontra/ddash/web"
 )
 
 const defaultListen = ":8080"
@@ -65,6 +66,7 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 		Auth:      auth.FromEnv(getenv),
 		PublicURL: getenv("DDASH_PUBLIC_URL"),
 		Logger:    logger,
+		Shell:     web.Shell(),
 	})
 	if err != nil {
 		return err

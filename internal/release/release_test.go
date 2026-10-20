@@ -93,3 +93,64 @@ func TestTheCatalogueFailsWhenAManifestIsntNamedAfterItsDirectory(t *testing.T) 
 		t.Errorf("err = %v, want the misnamed manifest named", err)
 	}
 }
+
+// widgetsOnly is a repo with one Plugin requiring nothing, so building its
+// Release builds no binaries.
+func widgetsOnly(t *testing.T, bundle map[string]string) string {
+	files := map[string]string{"plugins/docker/plugin.yaml": "name: docker\ntitle: Docker\nrequires: []\n"}
+	for name, body := range bundle {
+		files["plugins/docker/dist/"+name] = body
+	}
+	return tree(t, files)
+}
+
+func TestTheReleaseCarriesEachPluginsBundleWithItsChecksum(t *testing.T) {
+	root := widgetsOnly(t, map[string]string{"index.js": "export default {}", "index.css": ".d{}"})
+	out := t.TempDir()
+
+	if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "v1.2.3"}); err != nil {
+		t.Fatal(err)
+	}
+
+	for file, want := range map[string]string{"docker.plugin.js": "export default {}", "docker.plugin.css": ".d{}"} {
+		if b, err := os.ReadFile(filepath.Join(out, file)); err != nil || string(b) != want {
+			t.Errorf("%s: %q, %v; want %q", file, b, err, want)
+		}
+	}
+	sums, err := os.ReadFile(filepath.Join(out, "SHA256SUMS"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"  docker.plugin.css\n", "  docker.plugin.js\n"} {
+		if !strings.Contains(string(sums), want) {
+			t.Errorf("SHA256SUMS lacks %q:\n%s", want, sums)
+		}
+	}
+}
+
+func TestTheReleaseFailsOnAPluginWhoseBundleIsntBuilt(t *testing.T) {
+	root := widgetsOnly(t, nil)
+
+	err := release.Build(t.Context(), release.Options{Root: root, Out: t.TempDir(), Release: "dev"})
+
+	if err == nil || !strings.Contains(err.Error(), "make build") {
+		t.Errorf("err = %v, want one saying to run make build", err)
+	}
+}
+
+func TestALinkedReleaseShowsThePluginsRebuiltBundle(t *testing.T) {
+	root := widgetsOnly(t, map[string]string{"index.js": "v1", "index.css": ""})
+	out := t.TempDir()
+	if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "dev", LinkBundles: true}); err != nil {
+		t.Fatal(err)
+	}
+
+	// vite build --watch replaces the file.
+	if err := os.WriteFile(filepath.Join(root, "plugins/docker/dist/index.js"), []byte("v2"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	if b, err := os.ReadFile(filepath.Join(out, "docker.plugin.js")); err != nil || string(b) != "v2" {
+		t.Errorf("docker.plugin.js: %q, %v; want the rebuilt v2", b, err)
+	}
+}

@@ -1,6 +1,8 @@
 import { getOption, hasOption, type DescMessage, type DescMethodUnary, type MessageInitShape } from "@bufbuild/protobuf";
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { QueryClient } from "@tanstack/react-query";
+
+export type { QueryClient };
 import { getter, Getter_Refresh } from "@ddash/proto/ddash/options_pb";
 
 export { Getter_Refresh as Refresh };

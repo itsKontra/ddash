@@ -1,21 +1,25 @@
 // Package release lays out a Release from the repo: catalogue.json merged
-// from every plugin.yaml and component.yaml, every Component's binary, and
-// SHA256SUMS over the binaries. `make dev` and the subprocess test build
-// one into a local dir that the core reads as DDASH_RELEASE_DIR.
+// from every plugin.yaml and component.yaml, every Component's binary, every
+// Plugin's bundle, and SHA256SUMS over them. `make dev` and the subprocess
+// test build one into a local dir that the core reads as DDASH_RELEASE_DIR.
 //
 // The layout is flat, like the assets of a GitHub release:
 //
 //	catalogue.json
 //	SHA256SUMS      sha256sum format: "<hex>  <file>"
 //	<component>     one static binary per Component, named after it
+//	<plugin>.plugin.js, <plugin>.plugin.css
+//	                each Plugin's bundle, built by Vite into plugins/<plugin>/dist/
 package release
 
 import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -41,11 +45,14 @@ type Options struct {
 	Out string
 	// Release is stamped into catalogue.json and every binary.
 	Release string
+	// LinkBundles symlinks each Plugin's bundle instead of copying it, so
+	// `vite build --watch` rebuilds show through (`make dev`).
+	LinkBundles bool
 }
 
 // Build fills o.Out with the Release: catalogue.json, every Component's
-// binary (static, CGO off, for this machine's OS and architecture) and
-// SHA256SUMS.
+// binary (static, CGO off, for this machine's OS and architecture), every
+// Plugin's bundle (which `make build` must have built) and SHA256SUMS.
 func Build(ctx context.Context, o Options) error {
 	cat, err := Catalogue(o.Root, o.Release)
 	if err != nil {
@@ -60,6 +67,11 @@ func Build(ctx context.Context, o Options) error {
 			return err
 		}
 	}
+	for _, p := range cat.Plugins {
+		if err := bundle(o, p.Name); err != nil {
+			return err
+		}
+	}
 	b, err := json.MarshalIndent(cat, "", "  ")
 	if err != nil {
 		return err
@@ -68,6 +80,41 @@ func Build(ctx context.Context, o Options) error {
 		return err
 	}
 	return Sums(o.Out)
+}
+
+// bundle puts plugin's bundle, as Vite built it into plugins/<name>/dist/,
+// into the Release dir as <name>.plugin.js and <name>.plugin.css.
+func bundle(o Options, plugin string) error {
+	for _, ext := range []string{"js", "css"} {
+		src, err := filepath.Abs(filepath.Join(o.Root, "plugins", plugin, "dist", "index."+ext))
+		if err != nil {
+			return err
+		}
+		if _, err := os.Stat(src); err != nil {
+			return fmt.Errorf("plugin %s has no built bundle (run `make build`): %w", plugin, err)
+		}
+		dst := filepath.Join(o.Out, plugin+".plugin."+ext)
+		if err := os.Remove(dst); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+		if o.LinkBundles {
+			err = os.Symlink(src, dst)
+		} else {
+			err = copyFile(src, dst)
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	b, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, b, 0o644)
 }
 
 // Catalogue merges every plugins/*/plugin.yaml and components/*/component.yaml

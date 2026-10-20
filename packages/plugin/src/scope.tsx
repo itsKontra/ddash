@@ -3,7 +3,7 @@ import { createClient, type Client } from "@connectrpc/connect";
 import { TransportProvider, useTransport } from "@connectrpc/connect-query";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { createContext, useContext, useMemo, type ReactNode } from "react";
-import { pluginTransport, type Fetch, type PluginRef } from "./transport";
+import { coreTransport, pluginTransport, type Fetch, type PluginRef } from "./transport";
 
 /** The shell wraps its whole tree in PluginHost, with its one QueryClient. */
 export function PluginHost({ client, children }: { client: QueryClient; children: ReactNode }) {
@@ -26,6 +26,12 @@ export function PluginScope({ plugin, fetch, children }: { plugin: PluginRef; fe
       <TransportProvider transport={transport}>{children}</TransportProvider>
     </PluginContext.Provider>
   );
+}
+
+/** The shell wraps its own UI in CoreScope, so its calls go to the core API. */
+export function CoreScope({ fetch, children }: { fetch?: Fetch; children: ReactNode }) {
+  const transport = useMemo(() => coreTransport(fetch), [fetch]);
+  return <TransportProvider transport={transport}>{children}</TransportProvider>;
 }
 
 /** The Plugin whose UI is rendering. */

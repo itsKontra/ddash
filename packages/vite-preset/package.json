@@ -1,0 +1,17 @@
+{
+  "name": "@ddash/vite-preset",
+  "private": true,
+  "type": "module",
+  "description": "The shared Vite config: a Plugin's library-mode build, and the import map the shell and the vendor build share.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "vite": "8.3.4"
+  }
+}

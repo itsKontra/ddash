@@ -10,6 +10,6 @@ export {
   type Widget,
   type WidgetSize,
 } from "./define";
-export { createQueryClient, refreshOf, Refresh, tiers, useQuery, type QueryOptions } from "./query";
-export { PluginHost, PluginScope, useClient, usePlugin } from "./scope";
+export { createQueryClient, refreshOf, Refresh, tiers, useQuery, type QueryClient, type QueryOptions } from "./query";
+export { CoreScope, PluginHost, PluginScope, useClient, usePlugin } from "./scope";
 export { coreTransport, pluginHeader, pluginTransport, type Fetch, type PluginRef } from "./transport";

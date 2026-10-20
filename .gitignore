@@ -11,3 +11,7 @@ node_modules/
 
 # local homelab name mapping
 translate.md
+
+# web build output: the shell (embedded by package web) and Plugin bundles
+/web/dist/shell/
+/plugins/*/dist/
