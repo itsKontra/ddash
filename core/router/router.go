@@ -6,6 +6,7 @@ package router
 
 import (
 	"context"
+	"crypto/rand"
 	"io"
 	"mime"
 	"net/http"
@@ -14,14 +15,16 @@ import (
 	"time"
 
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
-	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
+	"github.com/itsKontra/ddash/core/appstate"
+	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/runtime"
-	ddashpb "github.com/itsKontra/ddash/proto/ddash"
+	"github.com/itsKontra/ddash/sdk"
 )
 
 // Prefix is where the router is mounted.
@@ -41,16 +44,20 @@ type Components interface {
 	PluginRequires(plugin string) (requires []string, ok bool)
 	// Endpoint reaches a started Component, or says why it can't.
 	Endpoint(component string) (runtime.Endpoint, error)
+	// ComponentRequires returns the Components a Component lists in requires.
+	ComponentRequires(component string) []string
 }
 
 // Router is the http.Handler for Prefix.
 type Router struct {
 	components Components
+	gate       *appstate.Gate
 }
 
-// New returns a Router reaching components.
-func New(components Components) *Router {
-	return &Router{components: components}
+// New returns a Router reaching components, passing every Action through
+// gate.
+func New(components Components, gate *appstate.Gate) *Router {
+	return &Router{components: components, gate: gate}
 }
 
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -102,11 +109,24 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	actor, ok := auth.ActorFrom(r.Context())
+	if !ok {
+		WriteError(w, status.Error(codes.Unauthenticated, "sign in first"))
+		return
+	}
+	chain := NewChain()
+	done, err := rt.gate.Admit(r.Context(), actor, appstate.Action{Chain: chain, Target: component, Method: md, Request: req})
+	if err != nil {
+		WriteError(w, err)
+		return
+	}
 	resp := dynamicpb.NewMessage(md.Output())
 	fullMethod := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
-	ctx, cancel := context.WithTimeout(r.Context(), Deadline(md))
+	ctx, cancel := context.WithTimeout(onward(r.Context(), actor, chain), Deadline(md))
 	defer cancel()
-	if err := ep.Conn.Invoke(ctx, fullMethod, req, resp); err != nil {
+	err = ep.Conn.Invoke(ctx, fullMethod, req, resp)
+	done(err)
+	if err != nil {
 		WriteError(w, err)
 		return
 	}
@@ -119,6 +139,19 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
+// NewChain returns a new chain id, for an Action that starts a chain.
+func NewChain() string { return rand.Text() }
+
+// onward returns ctx carrying actor and chain as outgoing metadata, for the
+// Component the call goes to.
+func onward(ctx context.Context, actor auth.Actor, chain string) context.Context {
+	kv := []string{sdk.ActorMetadata, actor.String(), sdk.ChainMetadata, chain}
+	if actor.Sub != "" {
+		kv = append(kv, sdk.SubMetadata, actor.Sub)
+	}
+	return metadata.AppendToOutgoingContext(ctx, kv...)
+}
+
 const (
 	// GetterDeadline bounds every call to a getter.
 	GetterDeadline = 10 * time.Second
@@ -129,7 +162,7 @@ const (
 // Deadline is how long a call to md may take: ActionDeadline for an
 // Action, GetterDeadline for a getter.
 func Deadline(md protoreflect.MethodDescriptor) time.Duration {
-	if proto.HasExtension(md.Options(), ddashpb.E_Action) {
+	if appstate.IsAction(md) {
 		return ActionDeadline
 	}
 	return GetterDeadline

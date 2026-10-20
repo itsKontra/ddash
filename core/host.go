@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/config"
 	"github.com/itsKontra/ddash/core/coredb"
@@ -41,8 +43,10 @@ type Options struct {
 // Host is the ddash core.
 type Host struct {
 	db      *sql.DB
+	gate    *appstate.Gate
 	config  *config.Store
 	runtime *runtime.Runtime
+	router  *router.Router
 	handler http.Handler
 }
 
@@ -62,8 +66,17 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 	if err != nil {
 		return nil, err
 	}
+	gate, err := appstate.Open(ctx, db)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
 	cfg := config.New(db)
+	var rtr *router.Router // routes Component calls once the runtime exists
 	rt, err := runtime.New(ctx, runtime.Options{
+		HostServer: func(caller string, opts ...grpc.ServerOption) *grpc.Server {
+			return rtr.HostServer(caller, opts...)
+		},
 		DB:        db,
 		Config:    cfg,
 		Release:   opts.Release,
@@ -76,14 +89,15 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		db.Close()
 		return nil, err
 	}
-	h := &Host{db: db, config: cfg, runtime: rt}
+	rtr = router.New(rt, gate)
+	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr}
 	h.handler = h.routes(opts.Auth)
 	return h, nil
 }
 
 func (h *Host) routes(guard auth.Middleware) http.Handler {
 	api := http.NewServeMux()
-	api.Handle(router.Prefix, router.New(h.runtime))
+	api.Handle(router.Prefix, h.router)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.healthz)
@@ -122,6 +136,9 @@ func (h *Host) Handler() http.Handler { return h.handler }
 
 // Runtime runs the installed Plugins' Components.
 func (h *Host) Runtime() *runtime.Runtime { return h.runtime }
+
+// AuditLog is the gate every Action passes and the Audit Log it keeps.
+func (h *Host) AuditLog() *appstate.Gate { return h.gate }
 
 // Config holds every owner's config.
 func (h *Host) Config() *config.Store { return h.config }

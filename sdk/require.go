@@ -21,7 +21,7 @@ func Require[T any](env *Env, newClient func(grpc.ClientConnInterface) T) T {
 	if env.host == nil {
 		return newClient(noHost{})
 	}
-	return newClient(env.host)
+	return newClient(onward{ClientConnInterface: env.host, name: env.Name})
 }
 
 // noHost fails every call: there is no host connection to send it through.

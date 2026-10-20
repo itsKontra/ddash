@@ -37,6 +37,26 @@ service SampleService {
   rpc WaitAction(WaitActionRequest) returns (WaitActionResponse) {
     option (ddash.action) = {};
   }
+  // Act answers with the actor it ran for, unless its hook replaces it.
+  rpc Act(ActRequest) returns (ActResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+}
+
+message ActRequest {
+  string note = 1;
+  string password = 2 [(ddash.config.field) = {secret: true}];
+  Credentials credentials = 3;
+  repeated Credentials more = 4;
+}
+
+message Credentials {
+  string user = 1;
+  string token = 2 [(ddash.config.field) = {secret: true}];
+}
+
+message ActResponse {
+  string actor = 1;
 }
 
 message GreetRequest {

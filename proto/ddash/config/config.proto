@@ -19,4 +19,7 @@ message Field {
   // Only a proto3 `optional` scalar can have a default, since unset must
   // differ from the zero value.
   string default = 1;
+  // A secret is write-only once saved. The Audit Log redacts a secret field
+  // on any message it records, config or not.
+  bool secret = 2;
 }

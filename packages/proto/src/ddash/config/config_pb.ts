@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/config/config.proto.
  */
 export const file_ddash_config_config: GenFile = /*@__PURE__*/
-  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciGAoFRmllbGQSDwoHZGVmYXVsdBgBIAEoCTpKCgVmaWVsZBIdLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE9wdGlvbnMY04YDIAEoCzITLmRkYXNoLmNvbmZpZy5GaWVsZFIFZmllbGRCOFo2Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29uZmlnO2NvbmZpZ3BiYgZwcm90bzM", [file_google_protobuf_descriptor]);
+  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciKAoFRmllbGQSDwoHZGVmYXVsdBgBIAEoCRIOCgZzZWNyZXQYAiABKAg6SgoFZmllbGQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNOGAyABKAsyEy5kZGFzaC5jb25maWcuRmllbGRSBWZpZWxkQjhaNmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbmZpZztjb25maWdwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
 
 /**
  * @generated from message ddash.config.Field
@@ -30,6 +30,14 @@ export type Field = Message<"ddash.config.Field"> & {
    * @generated from field: string default = 1;
    */
   default: string;
+
+  /**
+   * A secret is write-only once saved. The Audit Log redacts a secret field
+   * on any message it records, config or not.
+   *
+   * @generated from field: bool secret = 2;
+   */
+  secret: boolean;
 };
 
 /**

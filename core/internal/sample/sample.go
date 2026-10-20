@@ -22,6 +22,9 @@ type Hooks struct {
 	Start func(ctx context.Context, env *sdk.Env, cfg *samplepb.SampleConfig) error
 	// Health replaces the sample's Health.
 	Health func(ctx context.Context) sdk.Health
+	// Act replaces the sample's Act, which answers with the actor it ran
+	// for. env is the Env the sample started with.
+	Act func(ctx context.Context, env *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error)
 }
 
 // Define returns a sample named name that requires requires.
@@ -39,6 +42,7 @@ type component struct {
 	samplepb.UnimplementedSampleServiceServer
 	hooks Hooks
 	cfg   *samplepb.SampleConfig
+	env   *sdk.Env
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *samplepb.SampleConfig) error {
@@ -48,6 +52,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *samplepb.Sampl
 		return errs.Err()
 	}
 	c.cfg = cfg
+	c.env = env
 	if c.hooks.Start != nil {
 		return c.hooks.Start(ctx, env, cfg)
 	}
@@ -74,6 +79,13 @@ func (c *component) Greet(_ context.Context, req *samplepb.GreetRequest) (*sampl
 func (c *component) Wait(ctx context.Context, _ *samplepb.WaitRequest) (*samplepb.WaitResponse, error) {
 	<-ctx.Done()
 	return nil, status.FromContextError(ctx.Err()).Err()
+}
+
+func (c *component) Act(ctx context.Context, req *samplepb.ActRequest) (*samplepb.ActResponse, error) {
+	if c.hooks.Act != nil {
+		return c.hooks.Act(ctx, c.env, req)
+	}
+	return &samplepb.ActResponse{Actor: sdk.Actor(ctx)}, nil
 }
 
 func (c *component) WaitAction(ctx context.Context, _ *samplepb.WaitActionRequest) (*samplepb.WaitActionResponse, error) {

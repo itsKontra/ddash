@@ -31,7 +31,10 @@ type Field struct {
 	// integer in decimal, a bool as "true" or "false", an enum by value name.
 	// Only a proto3 `optional` scalar can have a default, since unset must
 	// differ from the zero value.
-	Default       string `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
+	Default string `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
+	// A secret is write-only once saved. The Audit Log redacts a secret field
+	// on any message it records, config or not.
+	Secret        bool `protobuf:"varint,2,opt,name=secret,proto3" json:"secret,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -73,6 +76,13 @@ func (x *Field) GetDefault() string {
 	return ""
 }
 
+func (x *Field) GetSecret() bool {
+	if x != nil {
+		return x.Secret
+	}
+	return false
+}
+
 var file_ddash_config_config_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
@@ -96,9 +106,10 @@ var File_ddash_config_config_proto protoreflect.FileDescriptor
 
 const file_ddash_config_config_proto_rawDesc = "" +
 	"\n" +
-	"\x19ddash/config/config.proto\x12\fddash.config\x1a google/protobuf/descriptor.proto\"!\n" +
+	"\x19ddash/config/config.proto\x12\fddash.config\x1a google/protobuf/descriptor.proto\"9\n" +
 	"\x05Field\x12\x18\n" +
-	"\adefault\x18\x01 \x01(\tR\adefault:J\n" +
+	"\adefault\x18\x01 \x01(\tR\adefault\x12\x16\n" +
+	"\x06secret\x18\x02 \x01(\bR\x06secret:J\n" +
 	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18ӆ\x03 \x01(\v2\x13.ddash.config.FieldR\x05fieldB8Z6github.com/itsKontra/ddash/proto/ddash/config;configpbb\x06proto3"
 
 var (

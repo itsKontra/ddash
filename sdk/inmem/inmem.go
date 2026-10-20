@@ -18,9 +18,15 @@ import (
 // Serve starts a gRPC server with the services register adds, and returns a
 // client connection to it. stop closes the connection and the server.
 func Serve(name string, register func(grpc.ServiceRegistrar)) (conn *grpc.ClientConn, stop func(), err error) {
-	lis := newPipeListener()
 	srv := grpc.NewServer()
 	register(srv)
+	return ServeServer(name, srv)
+}
+
+// ServeServer serves srv, with its services already registered, and returns
+// a client connection to it. stop closes the connection and the server.
+func ServeServer(name string, srv *grpc.Server) (conn *grpc.ClientConn, stop func(), err error) {
+	lis := newPipeListener()
 	go srv.Serve(lis)
 
 	conn, err = grpc.NewClient("passthrough:///"+name,

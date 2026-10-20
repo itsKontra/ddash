@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+// The core's own API. Its Actions pass the same gate as Components' Actions
+// and are recorded in the Audit Log with target "core".
+package ddash.core;
+
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/core;corepb";
+
+service CoreService {
+  // Install adds a Plugin to the installed set and starts the Components it
+  // requires.
+  rpc Install(InstallRequest) returns (InstallResponse) {
+    option (ddash.action) = {};
+  }
+  // Uninstall removes a Plugin from the installed set, then stops and
+  // removes every Component no installed Plugin still requires. Their DB
+  // files and config are kept, the DB files listed as orphans, unless
+  // delete_data is set.
+  rpc Uninstall(UninstallRequest) returns (UninstallResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+}
+
+message InstallRequest {
+  string plugin = 1;
+}
+
+message InstallResponse {}
+
+message UninstallRequest {
+  string plugin = 1;
+  // Also delete the removed Components' DB files and config.
+  bool delete_data = 2;
+}
+
+message UninstallResponse {
+  // Components whose DB file is kept although nothing runs them.
+  repeated string orphans = 1;
+}

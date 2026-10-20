@@ -24,6 +24,7 @@ const (
 	SampleService_Greet_FullMethodName      = "/ddash.sample.SampleService/Greet"
 	SampleService_Wait_FullMethodName       = "/ddash.sample.SampleService/Wait"
 	SampleService_WaitAction_FullMethodName = "/ddash.sample.SampleService/WaitAction"
+	SampleService_Act_FullMethodName        = "/ddash.sample.SampleService/Act"
 )
 
 // SampleServiceClient is the client API for SampleService service.
@@ -37,6 +38,8 @@ type SampleServiceClient interface {
 	Wait(ctx context.Context, in *WaitRequest, opts ...grpc.CallOption) (*WaitResponse, error)
 	// WaitAction blocks until the call ends.
 	WaitAction(ctx context.Context, in *WaitActionRequest, opts ...grpc.CallOption) (*WaitActionResponse, error)
+	// Act answers with the actor it ran for, unless its hook replaces it.
+	Act(ctx context.Context, in *ActRequest, opts ...grpc.CallOption) (*ActResponse, error)
 }
 
 type sampleServiceClient struct {
@@ -77,6 +80,16 @@ func (c *sampleServiceClient) WaitAction(ctx context.Context, in *WaitActionRequ
 	return out, nil
 }
 
+func (c *sampleServiceClient) Act(ctx context.Context, in *ActRequest, opts ...grpc.CallOption) (*ActResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ActResponse)
+	err := c.cc.Invoke(ctx, SampleService_Act_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // SampleServiceServer is the server API for SampleService service.
 // All implementations must embed UnimplementedSampleServiceServer
 // for forward compatibility.
@@ -88,6 +101,8 @@ type SampleServiceServer interface {
 	Wait(context.Context, *WaitRequest) (*WaitResponse, error)
 	// WaitAction blocks until the call ends.
 	WaitAction(context.Context, *WaitActionRequest) (*WaitActionResponse, error)
+	// Act answers with the actor it ran for, unless its hook replaces it.
+	Act(context.Context, *ActRequest) (*ActResponse, error)
 	mustEmbedUnimplementedSampleServiceServer()
 }
 
@@ -106,6 +121,9 @@ func (UnimplementedSampleServiceServer) Wait(context.Context, *WaitRequest) (*Wa
 }
 func (UnimplementedSampleServiceServer) WaitAction(context.Context, *WaitActionRequest) (*WaitActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WaitAction not implemented")
+}
+func (UnimplementedSampleServiceServer) Act(context.Context, *ActRequest) (*ActResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Act not implemented")
 }
 func (UnimplementedSampleServiceServer) mustEmbedUnimplementedSampleServiceServer() {}
 func (UnimplementedSampleServiceServer) testEmbeddedByValue()                       {}
@@ -182,6 +200,24 @@ func _SampleService_WaitAction_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SampleService_Act_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SampleServiceServer).Act(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SampleService_Act_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SampleServiceServer).Act(ctx, req.(*ActRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // SampleService_ServiceDesc is the grpc.ServiceDesc for SampleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +236,10 @@ var SampleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WaitAction",
 			Handler:    _SampleService_WaitAction_Handler,
+		},
+		{
+			MethodName: "Act",
+			Handler:    _SampleService_Act_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

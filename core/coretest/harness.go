@@ -30,6 +30,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/core"
+	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -146,6 +147,16 @@ func (h *Harness) Install(plugin string) {
 	if err := h.Host.Runtime().Install(h.t.Context(), plugin); err != nil {
 		h.t.Fatalf("install %s: %v", plugin, err)
 	}
+}
+
+// AuditLog returns the Audit Log, newest first.
+func (h *Harness) AuditLog() []appstate.Entry {
+	h.t.Helper()
+	entries, err := h.Host.AuditLog().Entries(h.t.Context())
+	if err != nil {
+		h.t.Fatal(err)
+	}
+	return entries
 }
 
 // Status returns the host's view of component.

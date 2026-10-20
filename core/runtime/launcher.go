@@ -24,6 +24,11 @@ type LaunchSpec struct {
 	Name string
 	// DBPath is the Component's SQLite file, /data/db/<name>.db.
 	DBPath string
+	// HostServer returns the server that carries the Component's
+	// sdk.Require calls to the Components it requires. The launcher serves
+	// it to the Component: in memory, or over go-plugin's GRPCBroker
+	// (sdk.HostPlugins). Nil when the host has none.
+	HostServer func(opts ...grpc.ServerOption) *grpc.Server
 }
 
 // A Process is one running Component.
@@ -59,21 +64,32 @@ func (l inProcess) Launch(_ context.Context, spec LaunchSpec) (Process, error) {
 	if !ok {
 		return nil, fmt.Errorf("%s isn't built into this host", spec.Name)
 	}
-	inst := sdk.NewInstance(def, sdk.InstanceOptions{
+	opts := sdk.InstanceOptions{
 		DBPath: spec.DBPath,
 		Logger: l.log.With("component", spec.Name),
-	})
+	}
+	stopHost := func() {}
+	if spec.HostServer != nil {
+		host, stop, err := inmem.ServeServer(spec.Name+".host", spec.HostServer())
+		if err != nil {
+			return nil, err
+		}
+		opts.Host, stopHost = host, stop
+	}
+	inst := sdk.NewInstance(def, opts)
 	conn, stop, err := inmem.Serve(spec.Name, inst.Register)
 	if err != nil {
+		stopHost()
 		return nil, err
 	}
-	return &inProcessComponent{inst: inst, conn: conn, stop: stop}, nil
+	return &inProcessComponent{inst: inst, conn: conn, stop: stop, stopHost: stopHost}, nil
 }
 
 type inProcessComponent struct {
-	inst *sdk.Instance
-	conn *grpc.ClientConn
-	stop func()
+	inst     *sdk.Instance
+	conn     *grpc.ClientConn
+	stop     func()
+	stopHost func()
 }
 
 func (c *inProcessComponent) Conn() grpc.ClientConnInterface { return c.conn }
@@ -81,4 +97,5 @@ func (c *inProcessComponent) Conn() grpc.ClientConnInterface { return c.conn }
 func (c *inProcessComponent) Stop(ctx context.Context) {
 	c.inst.Stop(ctx)
 	c.stop()
+	c.stopHost()
 }

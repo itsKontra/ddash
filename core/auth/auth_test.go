@@ -13,7 +13,8 @@ import (
 func call(mw auth.Middleware) (*httptest.ResponseRecorder, string) {
 	var actor string
 	h := mw(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		actor, _ = auth.ActorFrom(r.Context())
+		a, _ := auth.ActorFrom(r.Context())
+		actor = a.String()
 	}))
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/c/docker-api/ListContainers", nil))

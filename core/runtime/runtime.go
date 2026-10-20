@@ -79,6 +79,10 @@ type Options struct {
 	DataDir string
 	// PublicURL is where the Operator reaches ddash, passed to every Start.
 	PublicURL string
+	// HostServer returns the server through which caller reaches the
+	// Components it requires (router.HostServer). Nil leaves Components
+	// without a host to call.
+	HostServer func(caller string, opts ...grpc.ServerOption) *grpc.Server
 	// Logger receives the runtime's logs. Nil discards them.
 	Logger *slog.Logger
 }
@@ -238,6 +242,12 @@ func (r *Runtime) PluginRequires(plugin string) (requires []string, ok bool) {
 	return p.Requires, true
 }
 
+// ComponentRequires returns the Components a Component lists in requires.
+func (r *Runtime) ComponentRequires(component string) []string {
+	c, _ := r.cat.component(component)
+	return c.Requires
+}
+
 // Status returns the state of every wanted Component, by name.
 func (r *Runtime) Status() map[string]Status {
 	r.mu.Lock()
@@ -353,7 +363,11 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o750); err != nil {
 		return err
 	}
-	proc, err := r.opts.Launcher.Launch(ctx, LaunchSpec{Name: name, DBPath: dbPath})
+	spec := LaunchSpec{Name: name, DBPath: dbPath}
+	if r.opts.HostServer != nil {
+		spec.HostServer = func(opts ...grpc.ServerOption) *grpc.Server { return r.opts.HostServer(name, opts...) }
+	}
+	proc, err := r.opts.Launcher.Launch(ctx, spec)
 	if err != nil {
 		return err
 	}

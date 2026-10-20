@@ -86,7 +86,7 @@ func (i *Instance) Register(s grpc.ServiceRegistrar) {
 				if r == nil {
 					return nil, status.Error(codes.FailedPrecondition, "not configured")
 				}
-				return handler(r.c.impl(), ctx, dec, ic)
+				return handler(r.c.impl(), fromHost(ctx), dec, ic)
 			},
 		}
 	}
