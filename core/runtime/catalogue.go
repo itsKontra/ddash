@@ -53,14 +53,14 @@ func (d Dir) Catalogue(context.Context) (Catalogue, error) {
 	if err := json.Unmarshal(b, &c); err != nil {
 		return c, fmt.Errorf("catalogue.json: %w", err)
 	}
-	if err := c.check(); err != nil {
+	if err := c.Check(); err != nil {
 		return c, fmt.Errorf("catalogue.json: %w", err)
 	}
 	return c, nil
 }
 
-// check refuses a requires that doesn't resolve and a requires cycle.
-func (c Catalogue) check() error {
+// Check refuses a requires that doesn't resolve and a requires cycle.
+func (c Catalogue) Check() error {
 	for _, p := range c.Plugins {
 		for _, req := range p.Requires {
 			if _, ok := c.component(req); !ok {

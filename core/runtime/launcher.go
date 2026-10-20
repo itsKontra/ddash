@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"google.golang.org/grpc"
 
@@ -38,6 +39,9 @@ type Process interface {
 	// Stop cancels the Component's ctx and waits for it to finish until ctx
 	// ends, then ends the process.
 	Stop(ctx context.Context)
+	// Done is closed once the process has ended: after Stop, or on its own
+	// when it crashed.
+	Done() <-chan struct{}
 }
 
 // InProcess returns a Launcher that runs each of defs inside the host's own
@@ -82,7 +86,7 @@ func (l inProcess) Launch(_ context.Context, spec LaunchSpec) (Process, error) {
 		stopHost()
 		return nil, err
 	}
-	return &inProcessComponent{inst: inst, conn: conn, stop: stop, stopHost: stopHost}, nil
+	return &inProcessComponent{inst: inst, conn: conn, stop: stop, stopHost: stopHost, done: make(chan struct{})}, nil
 }
 
 type inProcessComponent struct {
@@ -90,12 +94,19 @@ type inProcessComponent struct {
 	conn     *grpc.ClientConn
 	stop     func()
 	stopHost func()
+	done     chan struct{}
+	once     sync.Once
 }
 
 func (c *inProcessComponent) Conn() grpc.ClientConnInterface { return c.conn }
 
+func (c *inProcessComponent) Done() <-chan struct{} { return c.done }
+
 func (c *inProcessComponent) Stop(ctx context.Context) {
-	c.inst.Stop(ctx)
-	c.stop()
-	c.stopHost()
+	c.once.Do(func() {
+		c.inst.Stop(ctx)
+		c.stop()
+		c.stopHost()
+		close(c.done)
+	})
 }

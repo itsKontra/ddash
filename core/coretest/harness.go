@@ -53,6 +53,10 @@ type Options struct {
 	Plugins []Plugin
 	// Launcher replaces the in-process launcher of Components.
 	Launcher runtime.Launcher
+	// ReleaseDir runs a Release dir built from the repo (internal/release)
+	// instead of Components and Plugins: the host reads its catalogue.json,
+	// and the default launcher is the subprocess one over its binaries.
+	ReleaseDir string
 	// Actor every request is signed in as. Default "operator:test".
 	Actor string
 	// DataDir is reused instead of a fresh one, to restart a host.
@@ -83,12 +87,22 @@ func New(t testing.TB, opts Options) *Harness {
 		opts.DataDir = t.TempDir()
 	}
 	logger := slog.New(slog.NewTextHandler(t.Output(), nil))
-	if opts.Launcher == nil {
-		opts.Launcher = runtime.InProcess(logger, opts.Components...)
+	var rel runtime.ReleaseSource
+	switch {
+	case opts.ReleaseDir != "":
+		rel = runtime.Dir(opts.ReleaseDir)
+		if opts.Launcher == nil {
+			opts.Launcher = runtime.Subprocess(opts.ReleaseDir, t.Output())
+		}
+	default:
+		rel = release(t, opts)
+		if opts.Launcher == nil {
+			opts.Launcher = runtime.InProcess(logger, opts.Components...)
+		}
 	}
 	host, err := core.New(t.Context(), core.Options{
 		DataDir:   opts.DataDir,
-		Release:   release(t, opts),
+		Release:   rel,
 		Launcher:  opts.Launcher,
 		Auth:      auth.As(opts.Actor),
 		PublicURL: PublicURL,

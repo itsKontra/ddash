@@ -15,6 +15,7 @@
 package fixture
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -30,9 +31,6 @@ import (
 type Fake struct {
 	*httptest.Server
 
-	t    testing.TB
-	dirs []string // the scenario, then baseline
-
 	mu   sync.Mutex
 	hits map[string]int
 }
@@ -44,11 +42,14 @@ func Server(t testing.TB, dir string) *Fake {
 	if _, err := os.Stat(dir); err != nil {
 		t.Fatalf("fixture: %v", err)
 	}
-	s := &Fake{t: t, dirs: []string{dir}, hits: map[string]int{}}
-	if baseline := filepath.Join(filepath.Dir(dir), "baseline"); filepath.Clean(dir) != baseline {
-		s.dirs = append(s.dirs, baseline)
-	}
-	s.Server = httptest.NewServer(http.HandlerFunc(s.serve))
+	s := &Fake{hits: map[string]int{}}
+	scenario := Scenario(dir, func(request string, err error) { t.Errorf("fixture: %v", err) })
+	s.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.mu.Lock()
+		s.hits[r.Method+" "+r.URL.Path]++
+		s.mu.Unlock()
+		scenario.ServeHTTP(w, r)
+	}))
 	t.Cleanup(s.Close)
 	return s
 }
@@ -60,30 +61,39 @@ func (s *Fake) Hits(request string) int {
 	return s.hits[request]
 }
 
-func (s *Fake) serve(w http.ResponseWriter, r *http.Request) {
-	request := r.Method + " " + r.URL.Path
-	s.mu.Lock()
-	s.hits[request]++
-	s.mu.Unlock()
-
-	for _, dir := range s.dirs {
-		file, code, ok := find(dir, r.Method, r.URL.Path)
-		if !ok {
-			continue
-		}
-		body, err := os.ReadFile(file)
-		if err != nil {
-			s.t.Errorf("fixture: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+// Scenario answers requests from the scenario in dir, falling back to its
+// sibling baseline, outside a test too: fakelab serves baseline with it. A
+// request without a file gets 404. miss, when not nil, hears of every
+// request that got no file, and why.
+func Scenario(dir string, miss func(request string, err error)) http.Handler {
+	dirs := []string{dir}
+	if baseline := filepath.Join(filepath.Dir(dir), "baseline"); filepath.Clean(dir) != baseline {
+		dirs = append(dirs, baseline)
+	}
+	if miss == nil {
+		miss = func(string, error) {}
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		request := r.Method + " " + r.URL.Path
+		for _, dir := range dirs {
+			file, code, ok := find(dir, r.Method, r.URL.Path)
+			if !ok {
+				continue
+			}
+			body, err := os.ReadFile(file)
+			if err != nil {
+				miss(request, err)
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(code)
+			w.Write(body)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(code)
-		w.Write(body)
-		return
-	}
-	s.t.Errorf("fixture: no file for %s in %v", request, s.dirs)
-	http.NotFound(w, r)
+		miss(request, fmt.Errorf("no file for %s in %v", request, dirs))
+		http.NotFound(w, r)
+	})
 }
 
 var statusSuffix = regexp.MustCompile(`^\.(\d{3})\.json$`)
