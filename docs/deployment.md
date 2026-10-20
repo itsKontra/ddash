@@ -82,8 +82,27 @@ Do these by hand, in order, before first use.
       `tcp://<media-stack-ip>:2375`).
 - [ ] nginx: paste the key line ddash shows (for `nginx -T` only, restricted
       to `<ddash-ip>`) into root's `authorized_keys` on the nginx LXC.
-- [ ] pfSense: a dedicated `ddash` user with only the `api-v2-*` privileges
-      ddash needs; generate its API key.
+- [ ] pfSense: a dedicated `ddash` user holding only these `api-v2-*`
+      privileges (System > User Manager > Effective Privileges), then
+      generate its API key:
+      - reads: `api-v2-status-gateways-get`,
+        `api-v2-routing-gateway-groups-get`,
+        `api-v2-status-dhcp-server-leases-get`,
+        `api-v2-services-dhcp-servers-get`, `api-v2-firewall-aliases-get`,
+        `api-v2-status-interfaces-get`,
+        `api-v2-status-wireguard-tunnels-get`, `api-v2-firewall-rules-get`;
+      - Adopt and rename: `api-v2-services-dhcp-server-static-mapping-post`,
+        `api-v2-services-dhcp-server-static-mapping-patch`;
+      - Direct: `api-v2-firewall-alias-patch` (each write applies itself
+        with `"apply": true`);
+      - `make smoke-writes` only (its cleanup and pending checks):
+        `api-v2-services-dhcp-server-static-mapping-delete`,
+        `api-v2-services-dhcp-server-apply-get`,
+        `api-v2-services-dhcp-server-apply-post`,
+        `api-v2-firewall-apply-get`.
+
+      A privilege covers its endpoint for every object: ddash itself keeps
+      to the bypass alias and the Devices' static mappings.
 - [ ] Proxmox: the role and token, plus the **Protected ACLs** below.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
 - [ ] Enter every credential in the UI (each Component's config form), not in
