@@ -89,6 +89,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	if err != nil {
 		return err
 	}
+	sdk.Every(ctx, SweepInterval, c.sweep)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.checks = map[int64]*check{}
@@ -170,7 +171,8 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 		return
 	}
 	next := ch.standing.after(r, now())
-	c.writeErr = c.db.recordBeat(ctx, id, r, next, next.state != ch.standing.state)
+	// Maintenance (#49) will record its beats as maint.
+	c.writeErr = c.db.recordBeat(ctx, id, r, next, next.state != ch.standing.state, false)
 	if c.writeErr != nil {
 		c.log.Error("record beat", "check", id, "err", c.writeErr)
 	}

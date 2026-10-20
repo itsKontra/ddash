@@ -14,6 +14,7 @@ import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
@@ -195,6 +196,63 @@ func (x State) Number() protoreflect.EnumNumber {
 // Deprecated: Use State.Descriptor instead.
 func (State) EnumDescriptor() ([]byte, []int) {
 	return file_checks_checks_proto_rawDescGZIP(), []int{2}
+}
+
+// A span of history, read at its own bucket size.
+type Window int32
+
+const (
+	// 24 h.
+	Window_WINDOW_UNSPECIFIED Window = 0
+	// The last 24 h, in minute buckets.
+	Window_WINDOW_24H Window = 1
+	// The last 30 d, in hour buckets.
+	Window_WINDOW_30D Window = 2
+	// The last 365 d, in (UTC) day buckets.
+	Window_WINDOW_365D Window = 3
+)
+
+// Enum value maps for Window.
+var (
+	Window_name = map[int32]string{
+		0: "WINDOW_UNSPECIFIED",
+		1: "WINDOW_24H",
+		2: "WINDOW_30D",
+		3: "WINDOW_365D",
+	}
+	Window_value = map[string]int32{
+		"WINDOW_UNSPECIFIED": 0,
+		"WINDOW_24H":         1,
+		"WINDOW_30D":         2,
+		"WINDOW_365D":        3,
+	}
+)
+
+func (x Window) Enum() *Window {
+	p := new(Window)
+	*p = x
+	return p
+}
+
+func (x Window) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Window) Descriptor() protoreflect.EnumDescriptor {
+	return file_checks_checks_proto_enumTypes[3].Descriptor()
+}
+
+func (Window) Type() protoreflect.EnumType {
+	return &file_checks_checks_proto_enumTypes[3]
+}
+
+func (x Window) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Window.Descriptor instead.
+func (Window) EnumDescriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{3}
 }
 
 // checks has no config.
@@ -1031,11 +1089,561 @@ func (x *SetDisabledResponse) GetCheck() *Check {
 	return nil
 }
 
+// Latency over a span's up beats, in ms.
+type Latency struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AvgMs         float64                `protobuf:"fixed64,1,opt,name=avg_ms,json=avgMs,proto3" json:"avg_ms,omitempty"`
+	MinMs         float64                `protobuf:"fixed64,2,opt,name=min_ms,json=minMs,proto3" json:"min_ms,omitempty"`
+	MaxMs         float64                `protobuf:"fixed64,3,opt,name=max_ms,json=maxMs,proto3" json:"max_ms,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Latency) Reset() {
+	*x = Latency{}
+	mi := &file_checks_checks_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Latency) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Latency) ProtoMessage() {}
+
+func (x *Latency) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Latency.ProtoReflect.Descriptor instead.
+func (*Latency) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *Latency) GetAvgMs() float64 {
+	if x != nil {
+		return x.AvgMs
+	}
+	return 0
+}
+
+func (x *Latency) GetMinMs() float64 {
+	if x != nil {
+		return x.MinMs
+	}
+	return 0
+}
+
+func (x *Latency) GetMaxMs() float64 {
+	if x != nil {
+		return x.MaxMs
+	}
+	return 0
+}
+
+// A Check's uptime over one window: beat-weighted up / (up + down), where
+// a failed beat counts as down even while the Check is pending, and beats
+// in Maintenance count as neither.
+type Uptime struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Window Window                 `protobuf:"varint,1,opt,name=window,proto3,enum=ddash.checks.Window" json:"window,omitempty"`
+	// From 0 to 1; unset when the window holds no counted beat.
+	Ratio *float64 `protobuf:"fixed64,2,opt,name=ratio,proto3,oneof" json:"ratio,omitempty"`
+	Up    int64    `protobuf:"varint,3,opt,name=up,proto3" json:"up,omitempty"`
+	Down  int64    `protobuf:"varint,4,opt,name=down,proto3" json:"down,omitempty"`
+	// Beats in Maintenance, left out of the ratio.
+	Maintenance int64 `protobuf:"varint,5,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
+	// Unset when the window holds no counted up beat.
+	Latency       *Latency `protobuf:"bytes,6,opt,name=latency,proto3" json:"latency,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Uptime) Reset() {
+	*x = Uptime{}
+	mi := &file_checks_checks_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Uptime) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Uptime) ProtoMessage() {}
+
+func (x *Uptime) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Uptime.ProtoReflect.Descriptor instead.
+func (*Uptime) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *Uptime) GetWindow() Window {
+	if x != nil {
+		return x.Window
+	}
+	return Window_WINDOW_UNSPECIFIED
+}
+
+func (x *Uptime) GetRatio() float64 {
+	if x != nil && x.Ratio != nil {
+		return *x.Ratio
+	}
+	return 0
+}
+
+func (x *Uptime) GetUp() int64 {
+	if x != nil {
+		return x.Up
+	}
+	return 0
+}
+
+func (x *Uptime) GetDown() int64 {
+	if x != nil {
+		return x.Down
+	}
+	return 0
+}
+
+func (x *Uptime) GetMaintenance() int64 {
+	if x != nil {
+		return x.Maintenance
+	}
+	return 0
+}
+
+func (x *Uptime) GetLatency() *Latency {
+	if x != nil {
+		return x.Latency
+	}
+	return nil
+}
+
+// One bucket of a window: its beats' counts and their latency.
+type Bucket struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Start       *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=start,proto3" json:"start,omitempty"`
+	Up          int64                  `protobuf:"varint,2,opt,name=up,proto3" json:"up,omitempty"`
+	Down        int64                  `protobuf:"varint,3,opt,name=down,proto3" json:"down,omitempty"`
+	Maintenance int64                  `protobuf:"varint,4,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
+	// Unset when the bucket holds no counted up beat.
+	Latency       *Latency `protobuf:"bytes,5,opt,name=latency,proto3" json:"latency,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Bucket) Reset() {
+	*x = Bucket{}
+	mi := &file_checks_checks_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Bucket) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Bucket) ProtoMessage() {}
+
+func (x *Bucket) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Bucket.ProtoReflect.Descriptor instead.
+func (*Bucket) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *Bucket) GetStart() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Start
+	}
+	return nil
+}
+
+func (x *Bucket) GetUp() int64 {
+	if x != nil {
+		return x.Up
+	}
+	return 0
+}
+
+func (x *Bucket) GetDown() int64 {
+	if x != nil {
+		return x.Down
+	}
+	return 0
+}
+
+func (x *Bucket) GetMaintenance() int64 {
+	if x != nil {
+		return x.Maintenance
+	}
+	return 0
+}
+
+func (x *Bucket) GetLatency() *Latency {
+	if x != nil {
+		return x.Latency
+	}
+	return nil
+}
+
+// One probe of a Check.
+type Beat struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	At    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=at,proto3" json:"at,omitempty"`
+	Up    bool                   `protobuf:"varint,2,opt,name=up,proto3" json:"up,omitempty"`
+	// The Check's state after the beat.
+	State State `protobuf:"varint,3,opt,name=state,proto3,enum=ddash.checks.State" json:"state,omitempty"`
+	// Whether the beat changed the state.
+	Changed bool `protobuf:"varint,4,opt,name=changed,proto3" json:"changed,omitempty"`
+	// Set when up.
+	LatencyMs float64 `protobuf:"fixed64,5,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
+	// Why it failed; empty when up.
+	Reason        string `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Beat) Reset() {
+	*x = Beat{}
+	mi := &file_checks_checks_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Beat) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Beat) ProtoMessage() {}
+
+func (x *Beat) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Beat.ProtoReflect.Descriptor instead.
+func (*Beat) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *Beat) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.At
+	}
+	return nil
+}
+
+func (x *Beat) GetUp() bool {
+	if x != nil {
+		return x.Up
+	}
+	return false
+}
+
+func (x *Beat) GetState() State {
+	if x != nil {
+		return x.State
+	}
+	return State_STATE_UNSPECIFIED
+}
+
+func (x *Beat) GetChanged() bool {
+	if x != nil {
+		return x.Changed
+	}
+	return false
+}
+
+func (x *Beat) GetLatencyMs() float64 {
+	if x != nil {
+		return x.LatencyMs
+	}
+	return 0
+}
+
+func (x *Beat) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type GetHistoryRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	// Whose buckets and state changes to return; 24 h when unspecified.
+	Window        Window `protobuf:"varint,2,opt,name=window,proto3,enum=ddash.checks.Window" json:"window,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHistoryRequest) Reset() {
+	*x = GetHistoryRequest{}
+	mi := &file_checks_checks_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHistoryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHistoryRequest) ProtoMessage() {}
+
+func (x *GetHistoryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHistoryRequest.ProtoReflect.Descriptor instead.
+func (*GetHistoryRequest) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetHistoryRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *GetHistoryRequest) GetWindow() Window {
+	if x != nil {
+		return x.Window
+	}
+	return Window_WINDOW_UNSPECIFIED
+}
+
+type GetHistoryResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Uptime over 24 h, 30 d and 365 d, in that order.
+	Uptime []*Uptime `protobuf:"bytes,1,rep,name=uptime,proto3" json:"uptime,omitempty"`
+	// The window the rest is for.
+	Window Window `protobuf:"varint,2,opt,name=window,proto3,enum=ddash.checks.Window" json:"window,omitempty"`
+	// The window's bucket size: a minute, an hour or a day.
+	Bucket *durationpb.Duration `protobuf:"bytes,3,opt,name=bucket,proto3" json:"bucket,omitempty"`
+	// The start of the window's first bucket; its last one holds now.
+	From *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=from,proto3" json:"from,omitempty"`
+	// The buckets holding beats, oldest first. A bucket without beats (ddash
+	// down, the Check disabled or not there yet) is left out.
+	Buckets []*Bucket `protobuf:"bytes,5,rep,name=buckets,proto3" json:"buckets,omitempty"`
+	// The window's state changes, newest first.
+	Changes       []*Beat `protobuf:"bytes,6,rep,name=changes,proto3" json:"changes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetHistoryResponse) Reset() {
+	*x = GetHistoryResponse{}
+	mi := &file_checks_checks_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetHistoryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHistoryResponse) ProtoMessage() {}
+
+func (x *GetHistoryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHistoryResponse.ProtoReflect.Descriptor instead.
+func (*GetHistoryResponse) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *GetHistoryResponse) GetUptime() []*Uptime {
+	if x != nil {
+		return x.Uptime
+	}
+	return nil
+}
+
+func (x *GetHistoryResponse) GetWindow() Window {
+	if x != nil {
+		return x.Window
+	}
+	return Window_WINDOW_UNSPECIFIED
+}
+
+func (x *GetHistoryResponse) GetBucket() *durationpb.Duration {
+	if x != nil {
+		return x.Bucket
+	}
+	return nil
+}
+
+func (x *GetHistoryResponse) GetFrom() *timestamppb.Timestamp {
+	if x != nil {
+		return x.From
+	}
+	return nil
+}
+
+func (x *GetHistoryResponse) GetBuckets() []*Bucket {
+	if x != nil {
+		return x.Buckets
+	}
+	return nil
+}
+
+func (x *GetHistoryResponse) GetChanges() []*Beat {
+	if x != nil {
+		return x.Changes
+	}
+	return nil
+}
+
+type ListBeatsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBeatsRequest) Reset() {
+	*x = ListBeatsRequest{}
+	mi := &file_checks_checks_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBeatsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBeatsRequest) ProtoMessage() {}
+
+func (x *ListBeatsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBeatsRequest.ProtoReflect.Descriptor instead.
+func (*ListBeatsRequest) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *ListBeatsRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type ListBeatsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Beats         []*Beat                `protobuf:"bytes,1,rep,name=beats,proto3" json:"beats,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBeatsResponse) Reset() {
+	*x = ListBeatsResponse{}
+	mi := &file_checks_checks_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBeatsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBeatsResponse) ProtoMessage() {}
+
+func (x *ListBeatsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBeatsResponse.ProtoReflect.Descriptor instead.
+func (*ListBeatsResponse) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ListBeatsResponse) GetBeats() []*Beat {
+	if x != nil {
+		return x.Beats
+	}
+	return nil
+}
+
 var File_checks_checks_proto protoreflect.FileDescriptor
 
 const file_checks_checks_proto_rawDesc = "" +
 	"\n" +
-	"\x13checks/checks.proto\x12\fddash.checks\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0e\n" +
+	"\x13checks/checks.proto\x12\fddash.checks\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0e\n" +
 	"\fChecksConfig\"\x8e\x01\n" +
 	"\tCheckSpec\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12+\n" +
@@ -1084,7 +1692,47 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
 	"\bdisabled\x18\x02 \x01(\bR\bdisabled\"@\n" +
 	"\x13SetDisabledResponse\x12)\n" +
-	"\x05check\x18\x01 \x01(\v2\x13.ddash.checks.CheckR\x05check*d\n" +
+	"\x05check\x18\x01 \x01(\v2\x13.ddash.checks.CheckR\x05check\"N\n" +
+	"\aLatency\x12\x15\n" +
+	"\x06avg_ms\x18\x01 \x01(\x01R\x05avgMs\x12\x15\n" +
+	"\x06min_ms\x18\x02 \x01(\x01R\x05minMs\x12\x15\n" +
+	"\x06max_ms\x18\x03 \x01(\x01R\x05maxMs\"\xd2\x01\n" +
+	"\x06Uptime\x12,\n" +
+	"\x06window\x18\x01 \x01(\x0e2\x14.ddash.checks.WindowR\x06window\x12\x19\n" +
+	"\x05ratio\x18\x02 \x01(\x01H\x00R\x05ratio\x88\x01\x01\x12\x0e\n" +
+	"\x02up\x18\x03 \x01(\x03R\x02up\x12\x12\n" +
+	"\x04down\x18\x04 \x01(\x03R\x04down\x12 \n" +
+	"\vmaintenance\x18\x05 \x01(\x03R\vmaintenance\x12/\n" +
+	"\alatency\x18\x06 \x01(\v2\x15.ddash.checks.LatencyR\alatencyB\b\n" +
+	"\x06_ratio\"\xb1\x01\n" +
+	"\x06Bucket\x120\n" +
+	"\x05start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12\x0e\n" +
+	"\x02up\x18\x02 \x01(\x03R\x02up\x12\x12\n" +
+	"\x04down\x18\x03 \x01(\x03R\x04down\x12 \n" +
+	"\vmaintenance\x18\x04 \x01(\x03R\vmaintenance\x12/\n" +
+	"\alatency\x18\x05 \x01(\v2\x15.ddash.checks.LatencyR\alatency\"\xbe\x01\n" +
+	"\x04Beat\x12*\n" +
+	"\x02at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12\x0e\n" +
+	"\x02up\x18\x02 \x01(\bR\x02up\x12)\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x13.ddash.checks.StateR\x05state\x12\x18\n" +
+	"\achanged\x18\x04 \x01(\bR\achanged\x12\x1d\n" +
+	"\n" +
+	"latency_ms\x18\x05 \x01(\x01R\tlatencyMs\x12\x16\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\"Q\n" +
+	"\x11GetHistoryRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12,\n" +
+	"\x06window\x18\x02 \x01(\x0e2\x14.ddash.checks.WindowR\x06window\"\xb1\x02\n" +
+	"\x12GetHistoryResponse\x12,\n" +
+	"\x06uptime\x18\x01 \x03(\v2\x14.ddash.checks.UptimeR\x06uptime\x12,\n" +
+	"\x06window\x18\x02 \x01(\x0e2\x14.ddash.checks.WindowR\x06window\x121\n" +
+	"\x06bucket\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\x06bucket\x12.\n" +
+	"\x04from\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12.\n" +
+	"\abuckets\x18\x05 \x03(\v2\x14.ddash.checks.BucketR\abuckets\x12,\n" +
+	"\achanges\x18\x06 \x03(\v2\x12.ddash.checks.BeatR\achanges\"\"\n" +
+	"\x10ListBeatsRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"=\n" +
+	"\x11ListBeatsResponse\x12(\n" +
+	"\x05beats\x18\x01 \x03(\v2\x12.ddash.checks.BeatR\x05beats*d\n" +
 	"\tCheckType\x12\x1a\n" +
 	"\x16CHECK_TYPE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eCHECK_TYPE_TCP\x10\x01\x12\x13\n" +
@@ -1103,7 +1751,14 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\rSTATE_PENDING\x10\x01\x12\f\n" +
 	"\bSTATE_UP\x10\x02\x12\x0e\n" +
 	"\n" +
-	"STATE_DOWN\x10\x032\xa3\x04\n" +
+	"STATE_DOWN\x10\x03*Q\n" +
+	"\x06Window\x12\x16\n" +
+	"\x12WINDOW_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\n" +
+	"WINDOW_24H\x10\x01\x12\x0e\n" +
+	"\n" +
+	"WINDOW_30D\x10\x02\x12\x0f\n" +
+	"\vWINDOW_365D\x10\x032\xce\x05\n" +
 	"\rChecksService\x12W\n" +
 	"\n" +
 	"ListChecks\x12\x1f.ddash.checks.ListChecksRequest\x1a .ddash.checks.ListChecksResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12X\n" +
@@ -1111,7 +1766,10 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\vUpdateCheck\x12 .ddash.checks.UpdateCheckRequest\x1a!.ddash.checks.UpdateCheckResponse\"\x04\x92\xb5\x18\x00\x12Z\n" +
 	"\vDeleteCheck\x12 .ddash.checks.DeleteCheckRequest\x1a!.ddash.checks.DeleteCheckResponse\"\x06\x92\xb5\x18\x02\b\x01\x12O\n" +
 	"\bSetMuted\x12\x1d.ddash.checks.SetMutedRequest\x1a\x1e.ddash.checks.SetMutedResponse\"\x04\x92\xb5\x18\x00\x12X\n" +
-	"\vSetDisabled\x12 .ddash.checks.SetDisabledRequest\x1a!.ddash.checks.SetDisabledResponse\"\x04\x92\xb5\x18\x00B@Z>github.com/itsKontra/ddash/components/checks/checkspb;checkspbb\x06proto3"
+	"\vSetDisabled\x12 .ddash.checks.SetDisabledRequest\x1a!.ddash.checks.SetDisabledResponse\"\x04\x92\xb5\x18\x00\x12U\n" +
+	"\n" +
+	"GetHistory\x12\x1f.ddash.checks.GetHistoryRequest\x1a .ddash.checks.GetHistoryResponse\"\x04\x8a\xb5\x18\x00\x12R\n" +
+	"\tListBeats\x12\x1e.ddash.checks.ListBeatsRequest\x1a\x1f.ddash.checks.ListBeatsResponse\"\x04\x8a\xb5\x18\x00B@Z>github.com/itsKontra/ddash/components/checks/checkspb;checkspbb\x06proto3"
 
 var (
 	file_checks_checks_proto_rawDescOnce sync.Once
@@ -1125,62 +1783,90 @@ func file_checks_checks_proto_rawDescGZIP() []byte {
 	return file_checks_checks_proto_rawDescData
 }
 
-var file_checks_checks_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_checks_checks_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_checks_checks_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_checks_checks_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_checks_checks_proto_goTypes = []any{
 	(CheckType)(0),                // 0: ddash.checks.CheckType
 	(RecordType)(0),               // 1: ddash.checks.RecordType
 	(State)(0),                    // 2: ddash.checks.State
-	(*ChecksConfig)(nil),          // 3: ddash.checks.ChecksConfig
-	(*CheckSpec)(nil),             // 4: ddash.checks.CheckSpec
-	(*DnsQuery)(nil),              // 5: ddash.checks.DnsQuery
-	(*Check)(nil),                 // 6: ddash.checks.Check
-	(*ListChecksRequest)(nil),     // 7: ddash.checks.ListChecksRequest
-	(*ListChecksResponse)(nil),    // 8: ddash.checks.ListChecksResponse
-	(*CreateCheckRequest)(nil),    // 9: ddash.checks.CreateCheckRequest
-	(*CreateCheckResponse)(nil),   // 10: ddash.checks.CreateCheckResponse
-	(*UpdateCheckRequest)(nil),    // 11: ddash.checks.UpdateCheckRequest
-	(*UpdateCheckResponse)(nil),   // 12: ddash.checks.UpdateCheckResponse
-	(*DeleteCheckRequest)(nil),    // 13: ddash.checks.DeleteCheckRequest
-	(*DeleteCheckResponse)(nil),   // 14: ddash.checks.DeleteCheckResponse
-	(*SetMutedRequest)(nil),       // 15: ddash.checks.SetMutedRequest
-	(*SetMutedResponse)(nil),      // 16: ddash.checks.SetMutedResponse
-	(*SetDisabledRequest)(nil),    // 17: ddash.checks.SetDisabledRequest
-	(*SetDisabledResponse)(nil),   // 18: ddash.checks.SetDisabledResponse
-	(*timestamppb.Timestamp)(nil), // 19: google.protobuf.Timestamp
+	(Window)(0),                   // 3: ddash.checks.Window
+	(*ChecksConfig)(nil),          // 4: ddash.checks.ChecksConfig
+	(*CheckSpec)(nil),             // 5: ddash.checks.CheckSpec
+	(*DnsQuery)(nil),              // 6: ddash.checks.DnsQuery
+	(*Check)(nil),                 // 7: ddash.checks.Check
+	(*ListChecksRequest)(nil),     // 8: ddash.checks.ListChecksRequest
+	(*ListChecksResponse)(nil),    // 9: ddash.checks.ListChecksResponse
+	(*CreateCheckRequest)(nil),    // 10: ddash.checks.CreateCheckRequest
+	(*CreateCheckResponse)(nil),   // 11: ddash.checks.CreateCheckResponse
+	(*UpdateCheckRequest)(nil),    // 12: ddash.checks.UpdateCheckRequest
+	(*UpdateCheckResponse)(nil),   // 13: ddash.checks.UpdateCheckResponse
+	(*DeleteCheckRequest)(nil),    // 14: ddash.checks.DeleteCheckRequest
+	(*DeleteCheckResponse)(nil),   // 15: ddash.checks.DeleteCheckResponse
+	(*SetMutedRequest)(nil),       // 16: ddash.checks.SetMutedRequest
+	(*SetMutedResponse)(nil),      // 17: ddash.checks.SetMutedResponse
+	(*SetDisabledRequest)(nil),    // 18: ddash.checks.SetDisabledRequest
+	(*SetDisabledResponse)(nil),   // 19: ddash.checks.SetDisabledResponse
+	(*Latency)(nil),               // 20: ddash.checks.Latency
+	(*Uptime)(nil),                // 21: ddash.checks.Uptime
+	(*Bucket)(nil),                // 22: ddash.checks.Bucket
+	(*Beat)(nil),                  // 23: ddash.checks.Beat
+	(*GetHistoryRequest)(nil),     // 24: ddash.checks.GetHistoryRequest
+	(*GetHistoryResponse)(nil),    // 25: ddash.checks.GetHistoryResponse
+	(*ListBeatsRequest)(nil),      // 26: ddash.checks.ListBeatsRequest
+	(*ListBeatsResponse)(nil),     // 27: ddash.checks.ListBeatsResponse
+	(*timestamppb.Timestamp)(nil), // 28: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),   // 29: google.protobuf.Duration
 }
 var file_checks_checks_proto_depIdxs = []int32{
 	0,  // 0: ddash.checks.CheckSpec.type:type_name -> ddash.checks.CheckType
-	5,  // 1: ddash.checks.CheckSpec.dns:type_name -> ddash.checks.DnsQuery
+	6,  // 1: ddash.checks.CheckSpec.dns:type_name -> ddash.checks.DnsQuery
 	1,  // 2: ddash.checks.DnsQuery.record_type:type_name -> ddash.checks.RecordType
-	4,  // 3: ddash.checks.Check.spec:type_name -> ddash.checks.CheckSpec
+	5,  // 3: ddash.checks.Check.spec:type_name -> ddash.checks.CheckSpec
 	2,  // 4: ddash.checks.Check.state:type_name -> ddash.checks.State
-	19, // 5: ddash.checks.Check.since:type_name -> google.protobuf.Timestamp
-	19, // 6: ddash.checks.Check.last_beat:type_name -> google.protobuf.Timestamp
-	6,  // 7: ddash.checks.ListChecksResponse.checks:type_name -> ddash.checks.Check
-	4,  // 8: ddash.checks.CreateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
-	6,  // 9: ddash.checks.CreateCheckResponse.check:type_name -> ddash.checks.Check
-	4,  // 10: ddash.checks.UpdateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
-	6,  // 11: ddash.checks.UpdateCheckResponse.check:type_name -> ddash.checks.Check
-	6,  // 12: ddash.checks.SetMutedResponse.check:type_name -> ddash.checks.Check
-	6,  // 13: ddash.checks.SetDisabledResponse.check:type_name -> ddash.checks.Check
-	7,  // 14: ddash.checks.ChecksService.ListChecks:input_type -> ddash.checks.ListChecksRequest
-	9,  // 15: ddash.checks.ChecksService.CreateCheck:input_type -> ddash.checks.CreateCheckRequest
-	11, // 16: ddash.checks.ChecksService.UpdateCheck:input_type -> ddash.checks.UpdateCheckRequest
-	13, // 17: ddash.checks.ChecksService.DeleteCheck:input_type -> ddash.checks.DeleteCheckRequest
-	15, // 18: ddash.checks.ChecksService.SetMuted:input_type -> ddash.checks.SetMutedRequest
-	17, // 19: ddash.checks.ChecksService.SetDisabled:input_type -> ddash.checks.SetDisabledRequest
-	8,  // 20: ddash.checks.ChecksService.ListChecks:output_type -> ddash.checks.ListChecksResponse
-	10, // 21: ddash.checks.ChecksService.CreateCheck:output_type -> ddash.checks.CreateCheckResponse
-	12, // 22: ddash.checks.ChecksService.UpdateCheck:output_type -> ddash.checks.UpdateCheckResponse
-	14, // 23: ddash.checks.ChecksService.DeleteCheck:output_type -> ddash.checks.DeleteCheckResponse
-	16, // 24: ddash.checks.ChecksService.SetMuted:output_type -> ddash.checks.SetMutedResponse
-	18, // 25: ddash.checks.ChecksService.SetDisabled:output_type -> ddash.checks.SetDisabledResponse
-	20, // [20:26] is the sub-list for method output_type
-	14, // [14:20] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	28, // 5: ddash.checks.Check.since:type_name -> google.protobuf.Timestamp
+	28, // 6: ddash.checks.Check.last_beat:type_name -> google.protobuf.Timestamp
+	7,  // 7: ddash.checks.ListChecksResponse.checks:type_name -> ddash.checks.Check
+	5,  // 8: ddash.checks.CreateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
+	7,  // 9: ddash.checks.CreateCheckResponse.check:type_name -> ddash.checks.Check
+	5,  // 10: ddash.checks.UpdateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
+	7,  // 11: ddash.checks.UpdateCheckResponse.check:type_name -> ddash.checks.Check
+	7,  // 12: ddash.checks.SetMutedResponse.check:type_name -> ddash.checks.Check
+	7,  // 13: ddash.checks.SetDisabledResponse.check:type_name -> ddash.checks.Check
+	3,  // 14: ddash.checks.Uptime.window:type_name -> ddash.checks.Window
+	20, // 15: ddash.checks.Uptime.latency:type_name -> ddash.checks.Latency
+	28, // 16: ddash.checks.Bucket.start:type_name -> google.protobuf.Timestamp
+	20, // 17: ddash.checks.Bucket.latency:type_name -> ddash.checks.Latency
+	28, // 18: ddash.checks.Beat.at:type_name -> google.protobuf.Timestamp
+	2,  // 19: ddash.checks.Beat.state:type_name -> ddash.checks.State
+	3,  // 20: ddash.checks.GetHistoryRequest.window:type_name -> ddash.checks.Window
+	21, // 21: ddash.checks.GetHistoryResponse.uptime:type_name -> ddash.checks.Uptime
+	3,  // 22: ddash.checks.GetHistoryResponse.window:type_name -> ddash.checks.Window
+	29, // 23: ddash.checks.GetHistoryResponse.bucket:type_name -> google.protobuf.Duration
+	28, // 24: ddash.checks.GetHistoryResponse.from:type_name -> google.protobuf.Timestamp
+	22, // 25: ddash.checks.GetHistoryResponse.buckets:type_name -> ddash.checks.Bucket
+	23, // 26: ddash.checks.GetHistoryResponse.changes:type_name -> ddash.checks.Beat
+	23, // 27: ddash.checks.ListBeatsResponse.beats:type_name -> ddash.checks.Beat
+	8,  // 28: ddash.checks.ChecksService.ListChecks:input_type -> ddash.checks.ListChecksRequest
+	10, // 29: ddash.checks.ChecksService.CreateCheck:input_type -> ddash.checks.CreateCheckRequest
+	12, // 30: ddash.checks.ChecksService.UpdateCheck:input_type -> ddash.checks.UpdateCheckRequest
+	14, // 31: ddash.checks.ChecksService.DeleteCheck:input_type -> ddash.checks.DeleteCheckRequest
+	16, // 32: ddash.checks.ChecksService.SetMuted:input_type -> ddash.checks.SetMutedRequest
+	18, // 33: ddash.checks.ChecksService.SetDisabled:input_type -> ddash.checks.SetDisabledRequest
+	24, // 34: ddash.checks.ChecksService.GetHistory:input_type -> ddash.checks.GetHistoryRequest
+	26, // 35: ddash.checks.ChecksService.ListBeats:input_type -> ddash.checks.ListBeatsRequest
+	9,  // 36: ddash.checks.ChecksService.ListChecks:output_type -> ddash.checks.ListChecksResponse
+	11, // 37: ddash.checks.ChecksService.CreateCheck:output_type -> ddash.checks.CreateCheckResponse
+	13, // 38: ddash.checks.ChecksService.UpdateCheck:output_type -> ddash.checks.UpdateCheckResponse
+	15, // 39: ddash.checks.ChecksService.DeleteCheck:output_type -> ddash.checks.DeleteCheckResponse
+	17, // 40: ddash.checks.ChecksService.SetMuted:output_type -> ddash.checks.SetMutedResponse
+	19, // 41: ddash.checks.ChecksService.SetDisabled:output_type -> ddash.checks.SetDisabledResponse
+	25, // 42: ddash.checks.ChecksService.GetHistory:output_type -> ddash.checks.GetHistoryResponse
+	27, // 43: ddash.checks.ChecksService.ListBeats:output_type -> ddash.checks.ListBeatsResponse
+	36, // [36:44] is the sub-list for method output_type
+	28, // [28:36] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_checks_checks_proto_init() }
@@ -1188,13 +1874,14 @@ func file_checks_checks_proto_init() {
 	if File_checks_checks_proto != nil {
 		return
 	}
+	file_checks_checks_proto_msgTypes[17].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_checks_checks_proto_rawDesc), len(file_checks_checks_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   16,
+			NumEnums:      4,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
