@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file pfsense-api/pfsense_api.proto.
  */
 export const file_pfsense_api_pfsense_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1wZnNlbnNlLWFwaS9wZnNlbnNlX2FwaS5wcm90bxIQZGRhc2gucGZzZW5zZWFwaSLoAQoQUGZzZW5zZUFwaUNvbmZpZxJtCgN1cmwYASABKAlCYJq1GFwaA1VSTCI9VGhlIGZpcmV3YWxsJ3MgTEFOIGFkZHJlc3M6IHRoZSBSRVNUIEFQSSBhbnN3ZXJzIG9uIExBTiBvbmx5LioSaHR0cHM6Ly8xOTguMTguMS4xMAE4ARJlCgdhcGlfa2V5GAIgASgJQlSatRhQEAEaB0FQSSBrZXkiQUdlbmVyYXRlZCBpbiBTeXN0ZW0gPiBSRVNUIEFQSSA+IEtleXMgZm9yIGEgZGVkaWNhdGVkIGRkYXNoIHVzZXIuMAEiFQoTTGlzdEdhdGV3YXlzUmVxdWVzdCJDChRMaXN0R2F0ZXdheXNSZXNwb25zZRIrCghnYXRld2F5cxgBIAMoCzIZLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheSLXAQoHR2F0ZXdheRIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIRCglzdWJzdGF0dXMYAyABKAkSFQoIZGVsYXlfbXMYBCABKAFIAIgBARIWCglzdGRkZXZfbXMYBSABKAFIAYgBARIZCgxsb3NzX3BlcmNlbnQYBiABKAFIAogBARISCgptb25pdG9yX2lwGAcgASgJEhEKCXNvdXJjZV9pcBgIIAEoCUILCglfZGVsYXlfbXNCDAoKX3N0ZGRldl9tc0IPCg1fbG9zc19wZXJjZW50IhoKGExpc3RHYXRld2F5R3JvdXBzUmVxdWVzdCJLChlMaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlEi4KBmdyb3VwcxgBIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwInkKDEdhdGV3YXlHcm91cBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEg8KB3RyaWdnZXIYAyABKAkSNQoHbWVtYmVycxgEIAMoCzIkLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwTWVtYmVyIjMKEkdhdGV3YXlHcm91cE1lbWJlchIPCgdnYXRld2F5GAEgASgJEgwKBHRpZXIYAiABKAUiEwoRTGlzdExlYXNlc1JlcXVlc3QiPQoSTGlzdExlYXNlc1Jlc3BvbnNlEicKBmxlYXNlcxgBIAMoCzIXLmRkYXNoLnBmc2Vuc2VhcGkuTGVhc2UipgEKBUxlYXNlEgoKAmlwGAEgASgJEgsKA21hYxgCIAEoCRIQCghob3N0bmFtZRgDIAEoCRIRCglpbnRlcmZhY2UYBCABKAkSDgoGc3RhcnRzGAUgASgJEgwKBGVuZHMYBiABKAkSFQoNYWN0aXZlX3N0YXR1cxgHIAEoCRIVCg1vbmxpbmVfc3RhdHVzGAggASgJEhMKC2Rlc2NyaXB0aW9uGAkgASgJIhgKFkxpc3REaGNwU2VydmVyc1JlcXVlc3QiSAoXTGlzdERoY3BTZXJ2ZXJzUmVzcG9uc2USLQoHc2VydmVycxgBIAMoCzIcLmRkYXNoLnBmc2Vuc2VhcGkuRGhjcFNlcnZlciKZAQoKRGhjcFNlcnZlchIRCglpbnRlcmZhY2UYASABKAkSDwoHZW5hYmxlZBgCIAEoCBItCgVwb29scxgDIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuQWRkcmVzc1JhbmdlEjgKD3N0YXRpY19tYXBwaW5ncxgEIAMoCzIfLmRkYXNoLnBmc2Vuc2VhcGkuU3RhdGljTWFwcGluZyIoCgxBZGRyZXNzUmFuZ2USDAoEZnJvbRgBIAEoCRIKCgJ0bxgCIAEoCSJiCg1TdGF0aWNNYXBwaW5nEhEKCWludGVyZmFjZRgBIAEoCRILCgNtYWMYAiABKAkSCgoCaXAYAyABKAkSEAoIaG9zdG5hbWUYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkiFAoSTGlzdEFsaWFzZXNSZXF1ZXN0ImcKE0xpc3RBbGlhc2VzUmVzcG9uc2USKAoHYWxpYXNlcxgBIAMoCzIXLmRkYXNoLnBmc2Vuc2VhcGkuQWxpYXMSJgoHY2hvaWNlcxgCIAEoCzIVLmRkYXNoLmNvbmZpZy5DaG9pY2VzIlwKBUFsaWFzEgwKBG5hbWUYASABKAkSDAoEdHlwZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIRCglhZGRyZXNzZXMYBCADKAkSDwoHZGV0YWlscxgFIAMoCSIXChVMaXN0SW50ZXJmYWNlc1JlcXVlc3QiSQoWTGlzdEludGVyZmFjZXNSZXNwb25zZRIvCgppbnRlcmZhY2VzGAEgAygLMhsuZGRhc2gucGZzZW5zZWFwaS5JbnRlcmZhY2Ui3gEKCUludGVyZmFjZRIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEhQKDGh3X2ludGVyZmFjZRgDIAEoCRIOCgZzdGF0dXMYBCABKAkSFAoMaXB2NF9hZGRyZXNzGAUgASgJEhMKC2lwdjRfcHJlZml4GAYgASgFEg8KB2dhdGV3YXkYByABKAkSEAoIaW5fYnl0ZXMYCCABKAQSEQoJb3V0X2J5dGVzGAkgASgEEhIKCmluX3BhY2tldHMYCiABKAQSEwoLb3V0X3BhY2tldHMYCyABKAQiHQobTGlzdFdpcmVndWFyZFR1bm5lbHNSZXF1ZXN0IlIKHExpc3RXaXJlZ3VhcmRUdW5uZWxzUmVzcG9uc2USMgoHdHVubmVscxgBIAMoCzIhLmRkYXNoLnBmc2Vuc2VhcGkuV2lyZWd1YXJkVHVubmVsIq0BCg9XaXJlZ3VhcmRUdW5uZWwSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIOCgZzdGF0dXMYAyABKAkSEwoLbGlzdGVuX3BvcnQYBCABKAUSEAoIcnhfYnl0ZXMYBSABKAQSEAoIdHhfYnl0ZXMYBiABKAQSLgoFcGVlcnMYByADKAsyHy5kZGFzaC5wZnNlbnNlYXBpLldpcmVndWFyZFBlZXIiuQEKDVdpcmVndWFyZFBlZXISEgoKcHVibGljX2tleRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIQCghlbmRwb2ludBgDIAEoCRITCgthbGxvd2VkX2lwcxgEIAMoCRI0ChBsYXRlc3RfaGFuZHNoYWtlGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghyeF9ieXRlcxgGIAEoBBIQCgh0eF9ieXRlcxgHIAEoBCItChhMaXN0RmlyZXdhbGxSdWxlc1JlcXVlc3QSEQoJaW50ZXJmYWNlGAEgASgJIkoKGUxpc3RGaXJld2FsbFJ1bGVzUmVzcG9uc2USLQoFcnVsZXMYASADKAsyHi5kZGFzaC5wZnNlbnNlYXBpLkZpcmV3YWxsUnVsZSLSAQoMRmlyZXdhbGxSdWxlEgwKBHR5cGUYASABKAkSEgoKaW50ZXJmYWNlcxgCIAMoCRITCgtpcF9wcm90b2NvbBgDIAEoCRIQCghwcm90b2NvbBgEIAEoCRIOCgZzb3VyY2UYBSABKAkSEwoLZGVzdGluYXRpb24YBiABKAkSEwoLc291cmNlX3BvcnQYByABKAkSGAoQZGVzdGluYXRpb25fcG9ydBgIIAEoCRITCgtkZXNjcmlwdGlvbhgJIAEoCRIQCghkaXNhYmxlZBgKIAEoCDL9BgoRUGZzZW5zZUFwaVNlcnZpY2USZQoMTGlzdEdhdGV3YXlzEiUuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheXNSZXF1ZXN0GiYuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheXNSZXNwb25zZSIGirUYAggCEnQKEUxpc3RHYXRld2F5R3JvdXBzEiouZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheUdyb3Vwc1JlcXVlc3QaKy5kZGFzaC5wZnNlbnNlYXBpLkxpc3RHYXRld2F5R3JvdXBzUmVzcG9uc2UiBoq1GAIIAhJdCgpMaXN0TGVhc2VzEiMuZGRhc2gucGZzZW5zZWFwaS5MaXN0TGVhc2VzUmVxdWVzdBokLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdExlYXNlc1Jlc3BvbnNlIgSKtRgAEmwKD0xpc3REaGNwU2VydmVycxIoLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdERoY3BTZXJ2ZXJzUmVxdWVzdBopLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdERoY3BTZXJ2ZXJzUmVzcG9uc2UiBIq1GAASYAoLTGlzdEFsaWFzZXMSJC5kZGFzaC5wZnNlbnNlYXBpLkxpc3RBbGlhc2VzUmVxdWVzdBolLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEFsaWFzZXNSZXNwb25zZSIEirUYABJrCg5MaXN0SW50ZXJmYWNlcxInLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEludGVyZmFjZXNSZXF1ZXN0GiguZGRhc2gucGZzZW5zZWFwaS5MaXN0SW50ZXJmYWNlc1Jlc3BvbnNlIgaKtRgCCAESewoUTGlzdFdpcmVndWFyZFR1bm5lbHMSLS5kZGFzaC5wZnNlbnNlYXBpLkxpc3RXaXJlZ3VhcmRUdW5uZWxzUmVxdWVzdBouLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdFdpcmVndWFyZFR1bm5lbHNSZXNwb25zZSIEirUYABJyChFMaXN0RmlyZXdhbGxSdWxlcxIqLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEZpcmV3YWxsUnVsZXNSZXF1ZXN0GisuZGRhc2gucGZzZW5zZWFwaS5MaXN0RmlyZXdhbGxSdWxlc1Jlc3BvbnNlIgSKtRgAQk1aS2dpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvcGZzZW5zZS1hcGkvcGZzZW5zZWFwaXBiO3Bmc2Vuc2VhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("Ch1wZnNlbnNlLWFwaS9wZnNlbnNlX2FwaS5wcm90bxIQZGRhc2gucGZzZW5zZWFwaSLoAQoQUGZzZW5zZUFwaUNvbmZpZxJtCgN1cmwYASABKAlCYJq1GFwaA1VSTCI9VGhlIGZpcmV3YWxsJ3MgTEFOIGFkZHJlc3M6IHRoZSBSRVNUIEFQSSBhbnN3ZXJzIG9uIExBTiBvbmx5LioSaHR0cHM6Ly8xOTguMTguMS4xMAE4ARJlCgdhcGlfa2V5GAIgASgJQlSatRhQEAEaB0FQSSBrZXkiQUdlbmVyYXRlZCBpbiBTeXN0ZW0gPiBSRVNUIEFQSSA+IEtleXMgZm9yIGEgZGVkaWNhdGVkIGRkYXNoIHVzZXIuMAEiTgoaQ3JlYXRlU3RhdGljTWFwcGluZ1JlcXVlc3QSMAoHbWFwcGluZxgBIAEoCzIfLmRkYXNoLnBmc2Vuc2VhcGkuU3RhdGljTWFwcGluZyJPChtDcmVhdGVTdGF0aWNNYXBwaW5nUmVzcG9uc2USMAoHbWFwcGluZxgBIAEoCzIfLmRkYXNoLnBmc2Vuc2VhcGkuU3RhdGljTWFwcGluZyJRChpSZW5hbWVTdGF0aWNNYXBwaW5nUmVxdWVzdBIRCglpbnRlcmZhY2UYASABKAkSCwoDbWFjGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIk8KG1JlbmFtZVN0YXRpY01hcHBpbmdSZXNwb25zZRIwCgdtYXBwaW5nGAEgASgLMh8uZGRhc2gucGZzZW5zZWFwaS5TdGF0aWNNYXBwaW5nIhUKE0xpc3RHYXRld2F5c1JlcXVlc3QiQwoUTGlzdEdhdGV3YXlzUmVzcG9uc2USKwoIZ2F0ZXdheXMYASADKAsyGS5kZGFzaC5wZnNlbnNlYXBpLkdhdGV3YXki1wEKB0dhdGV3YXkSDAoEbmFtZRgBIAEoCRIOCgZzdGF0dXMYAiABKAkSEQoJc3Vic3RhdHVzGAMgASgJEhUKCGRlbGF5X21zGAQgASgBSACIAQESFgoJc3RkZGV2X21zGAUgASgBSAGIAQESGQoMbG9zc19wZXJjZW50GAYgASgBSAKIAQESEgoKbW9uaXRvcl9pcBgHIAEoCRIRCglzb3VyY2VfaXAYCCABKAlCCwoJX2RlbGF5X21zQgwKCl9zdGRkZXZfbXNCDwoNX2xvc3NfcGVyY2VudCIaChhMaXN0R2F0ZXdheUdyb3Vwc1JlcXVlc3QiSwoZTGlzdEdhdGV3YXlHcm91cHNSZXNwb25zZRIuCgZncm91cHMYASADKAsyHi5kZGFzaC5wZnNlbnNlYXBpLkdhdGV3YXlHcm91cCJ5CgxHYXRld2F5R3JvdXASDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIPCgd0cmlnZ2VyGAMgASgJEjUKB21lbWJlcnMYBCADKAsyJC5kZGFzaC5wZnNlbnNlYXBpLkdhdGV3YXlHcm91cE1lbWJlciIzChJHYXRld2F5R3JvdXBNZW1iZXISDwoHZ2F0ZXdheRgBIAEoCRIMCgR0aWVyGAIgASgFIhMKEUxpc3RMZWFzZXNSZXF1ZXN0Ij0KEkxpc3RMZWFzZXNSZXNwb25zZRInCgZsZWFzZXMYASADKAsyFy5kZGFzaC5wZnNlbnNlYXBpLkxlYXNlIqYBCgVMZWFzZRIKCgJpcBgBIAEoCRILCgNtYWMYAiABKAkSEAoIaG9zdG5hbWUYAyABKAkSEQoJaW50ZXJmYWNlGAQgASgJEg4KBnN0YXJ0cxgFIAEoCRIMCgRlbmRzGAYgASgJEhUKDWFjdGl2ZV9zdGF0dXMYByABKAkSFQoNb25saW5lX3N0YXR1cxgIIAEoCRITCgtkZXNjcmlwdGlvbhgJIAEoCSIYChZMaXN0RGhjcFNlcnZlcnNSZXF1ZXN0IkgKF0xpc3REaGNwU2VydmVyc1Jlc3BvbnNlEi0KB3NlcnZlcnMYASADKAsyHC5kZGFzaC5wZnNlbnNlYXBpLkRoY3BTZXJ2ZXIimQEKCkRoY3BTZXJ2ZXISEQoJaW50ZXJmYWNlGAEgASgJEg8KB2VuYWJsZWQYAiABKAgSLQoFcG9vbHMYAyADKAsyHi5kZGFzaC5wZnNlbnNlYXBpLkFkZHJlc3NSYW5nZRI4Cg9zdGF0aWNfbWFwcGluZ3MYBCADKAsyHy5kZGFzaC5wZnNlbnNlYXBpLlN0YXRpY01hcHBpbmciKAoMQWRkcmVzc1JhbmdlEgwKBGZyb20YASABKAkSCgoCdG8YAiABKAkiYgoNU3RhdGljTWFwcGluZxIRCglpbnRlcmZhY2UYASABKAkSCwoDbWFjGAIgASgJEgoKAmlwGAMgASgJEhAKCGhvc3RuYW1lGAQgASgJEhMKC2Rlc2NyaXB0aW9uGAUgASgJIhQKEkxpc3RBbGlhc2VzUmVxdWVzdCJnChNMaXN0QWxpYXNlc1Jlc3BvbnNlEigKB2FsaWFzZXMYASADKAsyFy5kZGFzaC5wZnNlbnNlYXBpLkFsaWFzEiYKB2Nob2ljZXMYAiABKAsyFS5kZGFzaC5jb25maWcuQ2hvaWNlcyJcCgVBbGlhcxIMCgRuYW1lGAEgASgJEgwKBHR5cGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSEQoJYWRkcmVzc2VzGAQgAygJEg8KB2RldGFpbHMYBSADKAkiFwoVTGlzdEludGVyZmFjZXNSZXF1ZXN0IkkKFkxpc3RJbnRlcmZhY2VzUmVzcG9uc2USLwoKaW50ZXJmYWNlcxgBIAMoCzIbLmRkYXNoLnBmc2Vuc2VhcGkuSW50ZXJmYWNlIt4BCglJbnRlcmZhY2USDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIUCgxod19pbnRlcmZhY2UYAyABKAkSDgoGc3RhdHVzGAQgASgJEhQKDGlwdjRfYWRkcmVzcxgFIAEoCRITCgtpcHY0X3ByZWZpeBgGIAEoBRIPCgdnYXRld2F5GAcgASgJEhAKCGluX2J5dGVzGAggASgEEhEKCW91dF9ieXRlcxgJIAEoBBISCgppbl9wYWNrZXRzGAogASgEEhMKC291dF9wYWNrZXRzGAsgASgEIh0KG0xpc3RXaXJlZ3VhcmRUdW5uZWxzUmVxdWVzdCJSChxMaXN0V2lyZWd1YXJkVHVubmVsc1Jlc3BvbnNlEjIKB3R1bm5lbHMYASADKAsyIS5kZGFzaC5wZnNlbnNlYXBpLldpcmVndWFyZFR1bm5lbCKtAQoPV2lyZWd1YXJkVHVubmVsEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDgoGc3RhdHVzGAMgASgJEhMKC2xpc3Rlbl9wb3J0GAQgASgFEhAKCHJ4X2J5dGVzGAUgASgEEhAKCHR4X2J5dGVzGAYgASgEEi4KBXBlZXJzGAcgAygLMh8uZGRhc2gucGZzZW5zZWFwaS5XaXJlZ3VhcmRQZWVyIrkBCg1XaXJlZ3VhcmRQZWVyEhIKCnB1YmxpY19rZXkYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSEwoLYWxsb3dlZF9pcHMYBCADKAkSNAoQbGF0ZXN0X2hhbmRzaGFrZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcnhfYnl0ZXMYBiABKAQSEAoIdHhfYnl0ZXMYByABKAQiLQoYTGlzdEZpcmV3YWxsUnVsZXNSZXF1ZXN0EhEKCWludGVyZmFjZRgBIAEoCSJKChlMaXN0RmlyZXdhbGxSdWxlc1Jlc3BvbnNlEi0KBXJ1bGVzGAEgAygLMh4uZGRhc2gucGZzZW5zZWFwaS5GaXJld2FsbFJ1bGUi0gEKDEZpcmV3YWxsUnVsZRIMCgR0eXBlGAEgASgJEhIKCmludGVyZmFjZXMYAiADKAkSEwoLaXBfcHJvdG9jb2wYAyABKAkSEAoIcHJvdG9jb2wYBCABKAkSDgoGc291cmNlGAUgASgJEhMKC2Rlc3RpbmF0aW9uGAYgASgJEhMKC3NvdXJjZV9wb3J0GAcgASgJEhgKEGRlc3RpbmF0aW9uX3BvcnQYCCABKAkSEwoLZGVzY3JpcHRpb24YCSABKAkSEAoIZGlzYWJsZWQYCiABKAgy8QgKEVBmc2Vuc2VBcGlTZXJ2aWNlEmUKDExpc3RHYXRld2F5cxIlLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVxdWVzdBomLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVzcG9uc2UiBoq1GAIIAhJ0ChFMaXN0R2F0ZXdheUdyb3VwcxIqLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlHcm91cHNSZXF1ZXN0GisuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlIgaKtRgCCAISXQoKTGlzdExlYXNlcxIjLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdExlYXNlc1JlcXVlc3QaJC5kZGFzaC5wZnNlbnNlYXBpLkxpc3RMZWFzZXNSZXNwb25zZSIEirUYABJsCg9MaXN0RGhjcFNlcnZlcnMSKC5kZGFzaC5wZnNlbnNlYXBpLkxpc3REaGNwU2VydmVyc1JlcXVlc3QaKS5kZGFzaC5wZnNlbnNlYXBpLkxpc3REaGNwU2VydmVyc1Jlc3BvbnNlIgSKtRgAEmAKC0xpc3RBbGlhc2VzEiQuZGRhc2gucGZzZW5zZWFwaS5MaXN0QWxpYXNlc1JlcXVlc3QaJS5kZGFzaC5wZnNlbnNlYXBpLkxpc3RBbGlhc2VzUmVzcG9uc2UiBIq1GAASawoOTGlzdEludGVyZmFjZXMSJy5kZGFzaC5wZnNlbnNlYXBpLkxpc3RJbnRlcmZhY2VzUmVxdWVzdBooLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEludGVyZmFjZXNSZXNwb25zZSIGirUYAggBEnsKFExpc3RXaXJlZ3VhcmRUdW5uZWxzEi0uZGRhc2gucGZzZW5zZWFwaS5MaXN0V2lyZWd1YXJkVHVubmVsc1JlcXVlc3QaLi5kZGFzaC5wZnNlbnNlYXBpLkxpc3RXaXJlZ3VhcmRUdW5uZWxzUmVzcG9uc2UiBIq1GAAScgoRTGlzdEZpcmV3YWxsUnVsZXMSKi5kZGFzaC5wZnNlbnNlYXBpLkxpc3RGaXJld2FsbFJ1bGVzUmVxdWVzdBorLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEZpcmV3YWxsUnVsZXNSZXNwb25zZSIEirUYABJ4ChNDcmVhdGVTdGF0aWNNYXBwaW5nEiwuZGRhc2gucGZzZW5zZWFwaS5DcmVhdGVTdGF0aWNNYXBwaW5nUmVxdWVzdBotLmRkYXNoLnBmc2Vuc2VhcGkuQ3JlYXRlU3RhdGljTWFwcGluZ1Jlc3BvbnNlIgSStRgAEngKE1JlbmFtZVN0YXRpY01hcHBpbmcSLC5kZGFzaC5wZnNlbnNlYXBpLlJlbmFtZVN0YXRpY01hcHBpbmdSZXF1ZXN0Gi0uZGRhc2gucGZzZW5zZWFwaS5SZW5hbWVTdGF0aWNNYXBwaW5nUmVzcG9uc2UiBJK1GABCTVpLZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9wZnNlbnNlLWFwaS9wZnNlbnNlYXBpcGI7cGZzZW5zZWFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.pfsenseapi.PfsenseApiConfig
@@ -47,6 +47,93 @@ export const PfsenseApiConfigSchema: GenMessage<PfsenseApiConfig> = /*@__PURE__*
   messageDesc(file_pfsense_api_pfsense_api, 0);
 
 /**
+ * @generated from message ddash.pfsenseapi.CreateStaticMappingRequest
+ */
+export type CreateStaticMappingRequest = Message<"ddash.pfsenseapi.CreateStaticMappingRequest"> & {
+  /**
+   * The DHCP server's interface, the MAC, the address and a description;
+   * the hostname is optional.
+   *
+   * @generated from field: ddash.pfsenseapi.StaticMapping mapping = 1;
+   */
+  mapping?: StaticMapping | undefined;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.CreateStaticMappingRequest.
+ * Use `create(CreateStaticMappingRequestSchema)` to create a new message.
+ */
+export const CreateStaticMappingRequestSchema: GenMessage<CreateStaticMappingRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 1);
+
+/**
+ * @generated from message ddash.pfsenseapi.CreateStaticMappingResponse
+ */
+export type CreateStaticMappingResponse = Message<"ddash.pfsenseapi.CreateStaticMappingResponse"> & {
+  /**
+   * @generated from field: ddash.pfsenseapi.StaticMapping mapping = 1;
+   */
+  mapping?: StaticMapping | undefined;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.CreateStaticMappingResponse.
+ * Use `create(CreateStaticMappingResponseSchema)` to create a new message.
+ */
+export const CreateStaticMappingResponseSchema: GenMessage<CreateStaticMappingResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 2);
+
+/**
+ * @generated from message ddash.pfsenseapi.RenameStaticMappingRequest
+ */
+export type RenameStaticMappingRequest = Message<"ddash.pfsenseapi.RenameStaticMappingRequest"> & {
+  /**
+   * The DHCP server's interface, e.g. "lan".
+   *
+   * @generated from field: string interface = 1;
+   */
+  interface: string;
+
+  /**
+   * The MAC whose static mapping to rename.
+   *
+   * @generated from field: string mac = 2;
+   */
+  mac: string;
+
+  /**
+   * The new description.
+   *
+   * @generated from field: string description = 3;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.RenameStaticMappingRequest.
+ * Use `create(RenameStaticMappingRequestSchema)` to create a new message.
+ */
+export const RenameStaticMappingRequestSchema: GenMessage<RenameStaticMappingRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 3);
+
+/**
+ * @generated from message ddash.pfsenseapi.RenameStaticMappingResponse
+ */
+export type RenameStaticMappingResponse = Message<"ddash.pfsenseapi.RenameStaticMappingResponse"> & {
+  /**
+   * @generated from field: ddash.pfsenseapi.StaticMapping mapping = 1;
+   */
+  mapping?: StaticMapping | undefined;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.RenameStaticMappingResponse.
+ * Use `create(RenameStaticMappingResponseSchema)` to create a new message.
+ */
+export const RenameStaticMappingResponseSchema: GenMessage<RenameStaticMappingResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 4);
+
+/**
  * @generated from message ddash.pfsenseapi.ListGatewaysRequest
  */
 export type ListGatewaysRequest = Message<"ddash.pfsenseapi.ListGatewaysRequest"> & {
@@ -57,7 +144,7 @@ export type ListGatewaysRequest = Message<"ddash.pfsenseapi.ListGatewaysRequest"
  * Use `create(ListGatewaysRequestSchema)` to create a new message.
  */
 export const ListGatewaysRequestSchema: GenMessage<ListGatewaysRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 1);
+  messageDesc(file_pfsense_api_pfsense_api, 5);
 
 /**
  * @generated from message ddash.pfsenseapi.ListGatewaysResponse
@@ -74,7 +161,7 @@ export type ListGatewaysResponse = Message<"ddash.pfsenseapi.ListGatewaysRespons
  * Use `create(ListGatewaysResponseSchema)` to create a new message.
  */
 export const ListGatewaysResponseSchema: GenMessage<ListGatewaysResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 2);
+  messageDesc(file_pfsense_api_pfsense_api, 6);
 
 /**
  * @generated from message ddash.pfsenseapi.Gateway
@@ -142,7 +229,7 @@ export type Gateway = Message<"ddash.pfsenseapi.Gateway"> & {
  * Use `create(GatewaySchema)` to create a new message.
  */
 export const GatewaySchema: GenMessage<Gateway> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 3);
+  messageDesc(file_pfsense_api_pfsense_api, 7);
 
 /**
  * @generated from message ddash.pfsenseapi.ListGatewayGroupsRequest
@@ -155,7 +242,7 @@ export type ListGatewayGroupsRequest = Message<"ddash.pfsenseapi.ListGatewayGrou
  * Use `create(ListGatewayGroupsRequestSchema)` to create a new message.
  */
 export const ListGatewayGroupsRequestSchema: GenMessage<ListGatewayGroupsRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 4);
+  messageDesc(file_pfsense_api_pfsense_api, 8);
 
 /**
  * @generated from message ddash.pfsenseapi.ListGatewayGroupsResponse
@@ -172,7 +259,7 @@ export type ListGatewayGroupsResponse = Message<"ddash.pfsenseapi.ListGatewayGro
  * Use `create(ListGatewayGroupsResponseSchema)` to create a new message.
  */
 export const ListGatewayGroupsResponseSchema: GenMessage<ListGatewayGroupsResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 5);
+  messageDesc(file_pfsense_api_pfsense_api, 9);
 
 /**
  * @generated from message ddash.pfsenseapi.GatewayGroup
@@ -211,7 +298,7 @@ export type GatewayGroup = Message<"ddash.pfsenseapi.GatewayGroup"> & {
  * Use `create(GatewayGroupSchema)` to create a new message.
  */
 export const GatewayGroupSchema: GenMessage<GatewayGroup> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 6);
+  messageDesc(file_pfsense_api_pfsense_api, 10);
 
 /**
  * @generated from message ddash.pfsenseapi.GatewayGroupMember
@@ -237,7 +324,7 @@ export type GatewayGroupMember = Message<"ddash.pfsenseapi.GatewayGroupMember"> 
  * Use `create(GatewayGroupMemberSchema)` to create a new message.
  */
 export const GatewayGroupMemberSchema: GenMessage<GatewayGroupMember> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 7);
+  messageDesc(file_pfsense_api_pfsense_api, 11);
 
 /**
  * @generated from message ddash.pfsenseapi.ListLeasesRequest
@@ -250,7 +337,7 @@ export type ListLeasesRequest = Message<"ddash.pfsenseapi.ListLeasesRequest"> & 
  * Use `create(ListLeasesRequestSchema)` to create a new message.
  */
 export const ListLeasesRequestSchema: GenMessage<ListLeasesRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 8);
+  messageDesc(file_pfsense_api_pfsense_api, 12);
 
 /**
  * @generated from message ddash.pfsenseapi.ListLeasesResponse
@@ -267,7 +354,7 @@ export type ListLeasesResponse = Message<"ddash.pfsenseapi.ListLeasesResponse"> 
  * Use `create(ListLeasesResponseSchema)` to create a new message.
  */
 export const ListLeasesResponseSchema: GenMessage<ListLeasesResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 9);
+  messageDesc(file_pfsense_api_pfsense_api, 13);
 
 /**
  * One DHCP lease as pfSense reports it.
@@ -340,7 +427,7 @@ export type Lease = Message<"ddash.pfsenseapi.Lease"> & {
  * Use `create(LeaseSchema)` to create a new message.
  */
 export const LeaseSchema: GenMessage<Lease> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 10);
+  messageDesc(file_pfsense_api_pfsense_api, 14);
 
 /**
  * @generated from message ddash.pfsenseapi.ListDhcpServersRequest
@@ -353,7 +440,7 @@ export type ListDhcpServersRequest = Message<"ddash.pfsenseapi.ListDhcpServersRe
  * Use `create(ListDhcpServersRequestSchema)` to create a new message.
  */
 export const ListDhcpServersRequestSchema: GenMessage<ListDhcpServersRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 11);
+  messageDesc(file_pfsense_api_pfsense_api, 15);
 
 /**
  * @generated from message ddash.pfsenseapi.ListDhcpServersResponse
@@ -370,7 +457,7 @@ export type ListDhcpServersResponse = Message<"ddash.pfsenseapi.ListDhcpServersR
  * Use `create(ListDhcpServersResponseSchema)` to create a new message.
  */
 export const ListDhcpServersResponseSchema: GenMessage<ListDhcpServersResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 12);
+  messageDesc(file_pfsense_api_pfsense_api, 16);
 
 /**
  * One interface's DHCP server.
@@ -410,7 +497,7 @@ export type DhcpServer = Message<"ddash.pfsenseapi.DhcpServer"> & {
  * Use `create(DhcpServerSchema)` to create a new message.
  */
 export const DhcpServerSchema: GenMessage<DhcpServer> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 13);
+  messageDesc(file_pfsense_api_pfsense_api, 17);
 
 /**
  * Two addresses, low to high, both included.
@@ -434,7 +521,7 @@ export type AddressRange = Message<"ddash.pfsenseapi.AddressRange"> & {
  * Use `create(AddressRangeSchema)` to create a new message.
  */
 export const AddressRangeSchema: GenMessage<AddressRange> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 14);
+  messageDesc(file_pfsense_api_pfsense_api, 18);
 
 /**
  * A static mapping: an address reserved for one MAC.
@@ -477,7 +564,7 @@ export type StaticMapping = Message<"ddash.pfsenseapi.StaticMapping"> & {
  * Use `create(StaticMappingSchema)` to create a new message.
  */
 export const StaticMappingSchema: GenMessage<StaticMapping> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 15);
+  messageDesc(file_pfsense_api_pfsense_api, 19);
 
 /**
  * @generated from message ddash.pfsenseapi.ListAliasesRequest
@@ -490,7 +577,7 @@ export type ListAliasesRequest = Message<"ddash.pfsenseapi.ListAliasesRequest"> 
  * Use `create(ListAliasesRequestSchema)` to create a new message.
  */
 export const ListAliasesRequestSchema: GenMessage<ListAliasesRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 16);
+  messageDesc(file_pfsense_api_pfsense_api, 20);
 
 /**
  * @generated from message ddash.pfsenseapi.ListAliasesResponse
@@ -515,7 +602,7 @@ export type ListAliasesResponse = Message<"ddash.pfsenseapi.ListAliasesResponse"
  * Use `create(ListAliasesResponseSchema)` to create a new message.
  */
 export const ListAliasesResponseSchema: GenMessage<ListAliasesResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 17);
+  messageDesc(file_pfsense_api_pfsense_api, 21);
 
 /**
  * A firewall alias.
@@ -561,7 +648,7 @@ export type Alias = Message<"ddash.pfsenseapi.Alias"> & {
  * Use `create(AliasSchema)` to create a new message.
  */
 export const AliasSchema: GenMessage<Alias> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 18);
+  messageDesc(file_pfsense_api_pfsense_api, 22);
 
 /**
  * @generated from message ddash.pfsenseapi.ListInterfacesRequest
@@ -574,7 +661,7 @@ export type ListInterfacesRequest = Message<"ddash.pfsenseapi.ListInterfacesRequ
  * Use `create(ListInterfacesRequestSchema)` to create a new message.
  */
 export const ListInterfacesRequestSchema: GenMessage<ListInterfacesRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 19);
+  messageDesc(file_pfsense_api_pfsense_api, 23);
 
 /**
  * @generated from message ddash.pfsenseapi.ListInterfacesResponse
@@ -591,7 +678,7 @@ export type ListInterfacesResponse = Message<"ddash.pfsenseapi.ListInterfacesRes
  * Use `create(ListInterfacesResponseSchema)` to create a new message.
  */
 export const ListInterfacesResponseSchema: GenMessage<ListInterfacesResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 20);
+  messageDesc(file_pfsense_api_pfsense_api, 24);
 
 /**
  * An assigned interface and its counters, which count up from boot and
@@ -675,7 +762,7 @@ export type Interface = Message<"ddash.pfsenseapi.Interface"> & {
  * Use `create(InterfaceSchema)` to create a new message.
  */
 export const InterfaceSchema: GenMessage<Interface> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 21);
+  messageDesc(file_pfsense_api_pfsense_api, 25);
 
 /**
  * @generated from message ddash.pfsenseapi.ListWireguardTunnelsRequest
@@ -688,7 +775,7 @@ export type ListWireguardTunnelsRequest = Message<"ddash.pfsenseapi.ListWireguar
  * Use `create(ListWireguardTunnelsRequestSchema)` to create a new message.
  */
 export const ListWireguardTunnelsRequestSchema: GenMessage<ListWireguardTunnelsRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 22);
+  messageDesc(file_pfsense_api_pfsense_api, 26);
 
 /**
  * @generated from message ddash.pfsenseapi.ListWireguardTunnelsResponse
@@ -705,7 +792,7 @@ export type ListWireguardTunnelsResponse = Message<"ddash.pfsenseapi.ListWiregua
  * Use `create(ListWireguardTunnelsResponseSchema)` to create a new message.
  */
 export const ListWireguardTunnelsResponseSchema: GenMessage<ListWireguardTunnelsResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 23);
+  messageDesc(file_pfsense_api_pfsense_api, 27);
 
 /**
  * @generated from message ddash.pfsenseapi.WireguardTunnel
@@ -760,7 +847,7 @@ export type WireguardTunnel = Message<"ddash.pfsenseapi.WireguardTunnel"> & {
  * Use `create(WireguardTunnelSchema)` to create a new message.
  */
 export const WireguardTunnelSchema: GenMessage<WireguardTunnel> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 24);
+  messageDesc(file_pfsense_api_pfsense_api, 28);
 
 /**
  * @generated from message ddash.pfsenseapi.WireguardPeer
@@ -817,7 +904,7 @@ export type WireguardPeer = Message<"ddash.pfsenseapi.WireguardPeer"> & {
  * Use `create(WireguardPeerSchema)` to create a new message.
  */
 export const WireguardPeerSchema: GenMessage<WireguardPeer> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 25);
+  messageDesc(file_pfsense_api_pfsense_api, 29);
 
 /**
  * @generated from message ddash.pfsenseapi.ListFirewallRulesRequest
@@ -836,7 +923,7 @@ export type ListFirewallRulesRequest = Message<"ddash.pfsenseapi.ListFirewallRul
  * Use `create(ListFirewallRulesRequestSchema)` to create a new message.
  */
 export const ListFirewallRulesRequestSchema: GenMessage<ListFirewallRulesRequest> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 26);
+  messageDesc(file_pfsense_api_pfsense_api, 30);
 
 /**
  * @generated from message ddash.pfsenseapi.ListFirewallRulesResponse
@@ -853,7 +940,7 @@ export type ListFirewallRulesResponse = Message<"ddash.pfsenseapi.ListFirewallRu
  * Use `create(ListFirewallRulesResponseSchema)` to create a new message.
  */
 export const ListFirewallRulesResponseSchema: GenMessage<ListFirewallRulesResponse> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 27);
+  messageDesc(file_pfsense_api_pfsense_api, 31);
 
 /**
  * @generated from message ddash.pfsenseapi.FirewallRule
@@ -929,7 +1016,7 @@ export type FirewallRule = Message<"ddash.pfsenseapi.FirewallRule"> & {
  * Use `create(FirewallRuleSchema)` to create a new message.
  */
 export const FirewallRuleSchema: GenMessage<FirewallRule> = /*@__PURE__*/
-  messageDesc(file_pfsense_api_pfsense_api, 28);
+  messageDesc(file_pfsense_api_pfsense_api, 32);
 
 /**
  * @generated from service ddash.pfsenseapi.PfsenseApiService
@@ -1026,6 +1113,30 @@ export const PfsenseApiService: GenService<{
     methodKind: "unary";
     input: typeof ListFirewallRulesRequestSchema;
     output: typeof ListFirewallRulesResponseSchema;
+  },
+  /**
+   * CreateStaticMapping reserves an address for a MAC on an interface's
+   * DHCP server (services/dhcp_server/static_mapping) and applies it, which
+   * restarts the DHCP server for a few seconds. It refuses a MAC that
+   * interface already reserves for, and an address already reserved.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping
+   */
+  createStaticMapping: {
+    methodKind: "unary";
+    input: typeof CreateStaticMappingRequestSchema;
+    output: typeof CreateStaticMappingResponseSchema;
+  },
+  /**
+   * RenameStaticMapping changes the description of the MAC's static mapping
+   * on an interface's DHCP server and applies it. The address stays.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping
+   */
+  renameStaticMapping: {
+    methodKind: "unary";
+    input: typeof RenameStaticMappingRequestSchema;
+    output: typeof RenameStaticMappingResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_pfsense_api_pfsense_api, 0);

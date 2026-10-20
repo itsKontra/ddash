@@ -73,6 +73,45 @@ service PfsenseApiService {
   rpc ListFirewallRules(ListFirewallRulesRequest) returns (ListFirewallRulesResponse) {
     option (ddash.getter) = {};
   }
+  // CreateStaticMapping reserves an address for a MAC on an interface's
+  // DHCP server (services/dhcp_server/static_mapping) and applies it, which
+  // restarts the DHCP server for a few seconds. It refuses a MAC that
+  // interface already reserves for, and an address already reserved.
+  rpc CreateStaticMapping(CreateStaticMappingRequest) returns (CreateStaticMappingResponse) {
+    option (ddash.action) = {};
+  }
+  // RenameStaticMapping changes the description of the MAC's static mapping
+  // on an interface's DHCP server and applies it. The address stays.
+  rpc RenameStaticMapping(RenameStaticMappingRequest) returns (RenameStaticMappingResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+// pfsense-api writes one at a time: each write waits for the one before it,
+// then reads the static mappings again (pfSense's ids are positions) and
+// sends the change with "apply": true.
+
+message CreateStaticMappingRequest {
+  // The DHCP server's interface, the MAC, the address and a description;
+  // the hostname is optional.
+  StaticMapping mapping = 1;
+}
+
+message CreateStaticMappingResponse {
+  StaticMapping mapping = 1;
+}
+
+message RenameStaticMappingRequest {
+  // The DHCP server's interface, e.g. "lan".
+  string interface = 1;
+  // The MAC whose static mapping to rename.
+  string mac = 2;
+  // The new description.
+  string description = 3;
+}
+
+message RenameStaticMappingResponse {
+  StaticMapping mapping = 1;
 }
 
 message ListGatewaysRequest {}

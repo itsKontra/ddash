@@ -2,6 +2,7 @@ package network_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -10,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/itsKontra/ddash/components/network"
@@ -34,10 +36,61 @@ func (f *firewall) ListDhcpServers(context.Context, *pfsenseapipb.ListDhcpServer
 	if f.err != nil {
 		return nil, f.err
 	}
+	return &pfsenseapipb.ListDhcpServersResponse{Servers: proto.CloneOf(&pfsenseapipb.ListDhcpServersResponse{Servers: f.dhcp()}).Servers}, nil
+}
+
+// dhcp is the DHCP servers the firewall holds, the home ones until set;
+// f.mu is held.
+func (f *firewall) dhcp() []*pfsenseapipb.DhcpServer {
 	if f.servers == nil {
-		return &pfsenseapipb.ListDhcpServersResponse{Servers: homeServers()}, nil
+		f.servers = homeServers()
 	}
-	return &pfsenseapipb.ListDhcpServersResponse{Servers: f.servers}, nil
+	return f.servers
+}
+
+// CreateStaticMapping adds the mapping to its interface's server, as
+// pfsense-api does on the firewall.
+func (f *firewall) CreateStaticMapping(_ context.Context, req *pfsenseapipb.CreateStaticMappingRequest, _ ...grpc.CallOption) (*pfsenseapipb.CreateStaticMappingResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.writes = append(f.writes, req)
+	if f.err != nil {
+		return nil, f.err
+	}
+	m := proto.CloneOf(req.GetMapping())
+	for _, s := range f.dhcp() {
+		if s.GetInterface() == m.GetInterface() {
+			s.StaticMappings = append(s.StaticMappings, m)
+			return &pfsenseapipb.CreateStaticMappingResponse{Mapping: m}, nil
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "pfSense has no DHCP server on %q", m.GetInterface())
+}
+
+// RenameStaticMapping sets the description of the MAC's mapping.
+func (f *firewall) RenameStaticMapping(_ context.Context, req *pfsenseapipb.RenameStaticMappingRequest, _ ...grpc.CallOption) (*pfsenseapipb.RenameStaticMappingResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.writes = append(f.writes, req)
+	if f.err != nil {
+		return nil, f.err
+	}
+	for _, s := range f.dhcp() {
+		for _, m := range s.GetStaticMappings() {
+			if s.GetInterface() == req.GetInterface() && m.GetMac() == req.GetMac() {
+				m.Description = req.GetDescription()
+				return &pfsenseapipb.RenameStaticMappingResponse{Mapping: proto.CloneOf(m)}, nil
+			}
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "%s has no static mapping on %s", req.GetMac(), req.GetInterface())
+}
+
+// written returns the write requests the firewall received, in order.
+func (f *firewall) written() []proto.Message {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return slices.Clone(f.writes)
 }
 
 func (f *firewall) ListAliases(context.Context, *pfsenseapipb.ListAliasesRequest, ...grpc.CallOption) (*pfsenseapipb.ListAliasesResponse, error) {

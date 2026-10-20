@@ -17,25 +17,35 @@ import (
 
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	configpb "github.com/itsKontra/ddash/proto/ddash/config"
 	"github.com/itsKontra/ddash/sdk"
-	"github.com/itsKontra/ddash/sdk/fixture"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
 const apiKey = "0123456789abcdef0123456789abcdef"
 
-// fakeFirewall is pfSense's REST API serving a scenario's fixtures.
+// fakeFirewall is pfSense's REST API serving a scenario: the stateful fake
+// for static mappings and their apply, fixtures for the rest.
 type fakeFirewall struct {
 	*httptest.Server
+	*pfsensefake.Firewall
 	hits atomic.Int32
 }
 
 // firewall fakes pfSense's REST API serving a scenario. Like the real one
 // it refuses a request without the configured key in X-API-Key.
 func firewall(t *testing.T, scenario string) *fakeFirewall {
-	scenarioHandler := fixture.Scenario("testdata/"+scenario, func(request string, err error) { t.Errorf("fixture: %v", err) })
-	f := &fakeFirewall{}
+	return firewallWith(t, scenario, pfsensefake.Options{})
+}
+
+func firewallWith(t *testing.T, scenario string, opts pfsensefake.Options) *fakeFirewall {
+	opts.Miss = func(request string, err error) { t.Errorf("fixture: %v", err) }
+	scenarioHandler, err := pfsensefake.New("testdata/"+scenario, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := &fakeFirewall{Firewall: scenarioHandler}
 	f.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f.hits.Add(1)
 		if r.Header.Get("X-API-Key") != apiKey {

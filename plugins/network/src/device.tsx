@@ -2,10 +2,11 @@ import type { Device } from "@ddash/proto/network/network_pb";
 import { PageHeader, StatusDot } from "@ddash/ui";
 import { useId, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
+import { DeviceAction } from "./adopt";
 import { nameOf, useDevices } from "./devices";
 import { Adoption, Routing } from "./devices-table";
 
-/** A Device's detail (/network/devices/:mac): the lease and reservation facts and the other aliases holding it, read-only. */
+/** A Device's detail (/network/devices/:mac): Adopt or rename, the lease and reservation facts, and the other aliases holding it (read-only). */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
@@ -45,13 +46,16 @@ export function DeviceDetail() {
   );
 }
 
-function Panel({ title, children }: { title: string; children: ReactNode }) {
+function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
   const id = useId();
   return (
     <section aria-labelledby={id} className="rounded-ui border border-border bg-card">
-      <h2 id={id} className="border-b border-border px-4 py-3 font-semibold">
-        {title}
-      </h2>
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <h2 id={id} className="font-semibold">
+          {title}
+        </h2>
+        {action && <div className="ml-auto">{action}</div>}
+      </div>
       <div className="px-4 py-3 text-sm">{children}</div>
     </section>
   );
@@ -73,7 +77,7 @@ function Facts({ rows }: { rows: [string, ReactNode][] }) {
 
 function Summary({ device: d, bypassAlias }: { device: Device; bypassAlias: string }) {
   return (
-    <Panel title="Device">
+    <Panel title="Device" action={<DeviceAction device={d} />}>
       <Facts
         rows={[
           ["IP", d.ip],

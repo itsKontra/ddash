@@ -33,6 +33,7 @@ func (c *component) startDevices(ctx context.Context, env *sdk.Env, cfg *network
 		return errs.Err()
 	}
 	c.bypassAlias = cfg.GetBypassAlias()
+	c.reservedRange, c.reservedLo, c.reservedHi = cfg.GetReservedRange(), lo, hi
 	c.devices = sdk.Cached(sdk.TTLSlow, c.readDevices)
 
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)

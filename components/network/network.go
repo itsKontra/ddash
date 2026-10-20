@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"net/netip"
 	"slices"
 	"strings"
 	"sync"
@@ -56,6 +57,9 @@ type component struct {
 	// The Device join (devices.go).
 	bypassAlias string
 	devices     *sdk.Cache[*networkpb.ListDevicesResponse]
+	// Where Adopt reserves addresses (adopt.go), both ends included.
+	reservedRange          string
+	reservedLo, reservedHi netip.Addr
 
 	throughput throughput
 }

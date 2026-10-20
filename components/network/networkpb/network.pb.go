@@ -141,6 +141,302 @@ func (x *NetworkConfig) GetReservedRange() string {
 	return ""
 }
 
+type NextReservedAddressRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NextReservedAddressRequest) Reset() {
+	*x = NextReservedAddressRequest{}
+	mi := &file_network_network_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NextReservedAddressRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NextReservedAddressRequest) ProtoMessage() {}
+
+func (x *NextReservedAddressRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NextReservedAddressRequest.ProtoReflect.Descriptor instead.
+func (*NextReservedAddressRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{1}
+}
+
+type NextReservedAddressResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The lowest free address; empty when the range is full.
+	Ip string `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	// The configured reserved range, e.g. "198.18.1.20-198.18.1.49".
+	ReservedRange string `protobuf:"bytes,2,opt,name=reserved_range,json=reservedRange,proto3" json:"reserved_range,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NextReservedAddressResponse) Reset() {
+	*x = NextReservedAddressResponse{}
+	mi := &file_network_network_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NextReservedAddressResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NextReservedAddressResponse) ProtoMessage() {}
+
+func (x *NextReservedAddressResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NextReservedAddressResponse.ProtoReflect.Descriptor instead.
+func (*NextReservedAddressResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *NextReservedAddressResponse) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *NextReservedAddressResponse) GetReservedRange() string {
+	if x != nil {
+		return x.ReservedRange
+	}
+	return ""
+}
+
+type AdoptDeviceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The New Device's MAC.
+	Mac string `protobuf:"bytes,1,opt,name=mac,proto3" json:"mac,omitempty"`
+	// Its name, written as the static mapping's description.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// The address to reserve, in the reserved range; empty for the lowest
+	// free one.
+	Ip            string `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdoptDeviceRequest) Reset() {
+	*x = AdoptDeviceRequest{}
+	mi := &file_network_network_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdoptDeviceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdoptDeviceRequest) ProtoMessage() {}
+
+func (x *AdoptDeviceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdoptDeviceRequest.ProtoReflect.Descriptor instead.
+func (*AdoptDeviceRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *AdoptDeviceRequest) GetMac() string {
+	if x != nil {
+		return x.Mac
+	}
+	return ""
+}
+
+func (x *AdoptDeviceRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AdoptDeviceRequest) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+type AdoptDeviceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Device        *Device                `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdoptDeviceResponse) Reset() {
+	*x = AdoptDeviceResponse{}
+	mi := &file_network_network_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdoptDeviceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdoptDeviceResponse) ProtoMessage() {}
+
+func (x *AdoptDeviceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdoptDeviceResponse.ProtoReflect.Descriptor instead.
+func (*AdoptDeviceResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AdoptDeviceResponse) GetDevice() *Device {
+	if x != nil {
+		return x.Device
+	}
+	return nil
+}
+
+type RenameDeviceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Adopted Device's MAC.
+	Mac string `protobuf:"bytes,1,opt,name=mac,proto3" json:"mac,omitempty"`
+	// Its new name.
+	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameDeviceRequest) Reset() {
+	*x = RenameDeviceRequest{}
+	mi := &file_network_network_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameDeviceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameDeviceRequest) ProtoMessage() {}
+
+func (x *RenameDeviceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameDeviceRequest.ProtoReflect.Descriptor instead.
+func (*RenameDeviceRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *RenameDeviceRequest) GetMac() string {
+	if x != nil {
+		return x.Mac
+	}
+	return ""
+}
+
+func (x *RenameDeviceRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type RenameDeviceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Device        *Device                `protobuf:"bytes,1,opt,name=device,proto3" json:"device,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameDeviceResponse) Reset() {
+	*x = RenameDeviceResponse{}
+	mi := &file_network_network_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameDeviceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameDeviceResponse) ProtoMessage() {}
+
+func (x *RenameDeviceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameDeviceResponse.ProtoReflect.Descriptor instead.
+func (*RenameDeviceResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RenameDeviceResponse) GetDevice() *Device {
+	if x != nil {
+		return x.Device
+	}
+	return nil
+}
+
 type ListDevicesRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -149,7 +445,7 @@ type ListDevicesRequest struct {
 
 func (x *ListDevicesRequest) Reset() {
 	*x = ListDevicesRequest{}
-	mi := &file_network_network_proto_msgTypes[1]
+	mi := &file_network_network_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -161,7 +457,7 @@ func (x *ListDevicesRequest) String() string {
 func (*ListDevicesRequest) ProtoMessage() {}
 
 func (x *ListDevicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[1]
+	mi := &file_network_network_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -174,7 +470,7 @@ func (x *ListDevicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDevicesRequest.ProtoReflect.Descriptor instead.
 func (*ListDevicesRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{1}
+	return file_network_network_proto_rawDescGZIP(), []int{7}
 }
 
 type ListDevicesResponse struct {
@@ -189,7 +485,7 @@ type ListDevicesResponse struct {
 
 func (x *ListDevicesResponse) Reset() {
 	*x = ListDevicesResponse{}
-	mi := &file_network_network_proto_msgTypes[2]
+	mi := &file_network_network_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -201,7 +497,7 @@ func (x *ListDevicesResponse) String() string {
 func (*ListDevicesResponse) ProtoMessage() {}
 
 func (x *ListDevicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[2]
+	mi := &file_network_network_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -214,7 +510,7 @@ func (x *ListDevicesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDevicesResponse.ProtoReflect.Descriptor instead.
 func (*ListDevicesResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{2}
+	return file_network_network_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListDevicesResponse) GetDevices() []*Device {
@@ -263,7 +559,7 @@ type Device struct {
 
 func (x *Device) Reset() {
 	*x = Device{}
-	mi := &file_network_network_proto_msgTypes[3]
+	mi := &file_network_network_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -275,7 +571,7 @@ func (x *Device) String() string {
 func (*Device) ProtoMessage() {}
 
 func (x *Device) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[3]
+	mi := &file_network_network_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -288,7 +584,7 @@ func (x *Device) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Device.ProtoReflect.Descriptor instead.
 func (*Device) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{3}
+	return file_network_network_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Device) GetMac() string {
@@ -373,7 +669,7 @@ type DeviceLease struct {
 
 func (x *DeviceLease) Reset() {
 	*x = DeviceLease{}
-	mi := &file_network_network_proto_msgTypes[4]
+	mi := &file_network_network_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -385,7 +681,7 @@ func (x *DeviceLease) String() string {
 func (*DeviceLease) ProtoMessage() {}
 
 func (x *DeviceLease) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[4]
+	mi := &file_network_network_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -398,7 +694,7 @@ func (x *DeviceLease) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceLease.ProtoReflect.Descriptor instead.
 func (*DeviceLease) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{4}
+	return file_network_network_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *DeviceLease) GetIp() string {
@@ -463,7 +759,7 @@ type Reservation struct {
 
 func (x *Reservation) Reset() {
 	*x = Reservation{}
-	mi := &file_network_network_proto_msgTypes[5]
+	mi := &file_network_network_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -475,7 +771,7 @@ func (x *Reservation) String() string {
 func (*Reservation) ProtoMessage() {}
 
 func (x *Reservation) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[5]
+	mi := &file_network_network_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -488,7 +784,7 @@ func (x *Reservation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reservation.ProtoReflect.Descriptor instead.
 func (*Reservation) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{5}
+	return file_network_network_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Reservation) GetInterface() string {
@@ -529,7 +825,7 @@ type DeviceAlias struct {
 
 func (x *DeviceAlias) Reset() {
 	*x = DeviceAlias{}
-	mi := &file_network_network_proto_msgTypes[6]
+	mi := &file_network_network_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -541,7 +837,7 @@ func (x *DeviceAlias) String() string {
 func (*DeviceAlias) ProtoMessage() {}
 
 func (x *DeviceAlias) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[6]
+	mi := &file_network_network_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -554,7 +850,7 @@ func (x *DeviceAlias) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeviceAlias.ProtoReflect.Descriptor instead.
 func (*DeviceAlias) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{6}
+	return file_network_network_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *DeviceAlias) GetName() string {
@@ -581,7 +877,7 @@ type GetThroughputRequest struct {
 
 func (x *GetThroughputRequest) Reset() {
 	*x = GetThroughputRequest{}
-	mi := &file_network_network_proto_msgTypes[7]
+	mi := &file_network_network_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +889,7 @@ func (x *GetThroughputRequest) String() string {
 func (*GetThroughputRequest) ProtoMessage() {}
 
 func (x *GetThroughputRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[7]
+	mi := &file_network_network_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +902,7 @@ func (x *GetThroughputRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetThroughputRequest.ProtoReflect.Descriptor instead.
 func (*GetThroughputRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{7}
+	return file_network_network_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *GetThroughputRequest) GetSince() *timestamppb.Timestamp {
@@ -628,7 +924,7 @@ type GetThroughputResponse struct {
 
 func (x *GetThroughputResponse) Reset() {
 	*x = GetThroughputResponse{}
-	mi := &file_network_network_proto_msgTypes[8]
+	mi := &file_network_network_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -640,7 +936,7 @@ func (x *GetThroughputResponse) String() string {
 func (*GetThroughputResponse) ProtoMessage() {}
 
 func (x *GetThroughputResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[8]
+	mi := &file_network_network_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -653,7 +949,7 @@ func (x *GetThroughputResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetThroughputResponse.ProtoReflect.Descriptor instead.
 func (*GetThroughputResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{8}
+	return file_network_network_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetThroughputResponse) GetSamples() []*ThroughputSample {
@@ -686,7 +982,7 @@ type ThroughputSample struct {
 
 func (x *ThroughputSample) Reset() {
 	*x = ThroughputSample{}
-	mi := &file_network_network_proto_msgTypes[9]
+	mi := &file_network_network_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -698,7 +994,7 @@ func (x *ThroughputSample) String() string {
 func (*ThroughputSample) ProtoMessage() {}
 
 func (x *ThroughputSample) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[9]
+	mi := &file_network_network_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -711,7 +1007,7 @@ func (x *ThroughputSample) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ThroughputSample.ProtoReflect.Descriptor instead.
 func (*ThroughputSample) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{9}
+	return file_network_network_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ThroughputSample) GetAt() *timestamppb.Timestamp {
@@ -757,7 +1053,7 @@ type GetRemoteAccessRequest struct {
 
 func (x *GetRemoteAccessRequest) Reset() {
 	*x = GetRemoteAccessRequest{}
-	mi := &file_network_network_proto_msgTypes[10]
+	mi := &file_network_network_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -769,7 +1065,7 @@ func (x *GetRemoteAccessRequest) String() string {
 func (*GetRemoteAccessRequest) ProtoMessage() {}
 
 func (x *GetRemoteAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[10]
+	mi := &file_network_network_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -782,7 +1078,7 @@ func (x *GetRemoteAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRemoteAccessRequest.ProtoReflect.Descriptor instead.
 func (*GetRemoteAccessRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{10}
+	return file_network_network_proto_rawDescGZIP(), []int{16}
 }
 
 type GetRemoteAccessResponse struct {
@@ -801,7 +1097,7 @@ type GetRemoteAccessResponse struct {
 
 func (x *GetRemoteAccessResponse) Reset() {
 	*x = GetRemoteAccessResponse{}
-	mi := &file_network_network_proto_msgTypes[11]
+	mi := &file_network_network_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -813,7 +1109,7 @@ func (x *GetRemoteAccessResponse) String() string {
 func (*GetRemoteAccessResponse) ProtoMessage() {}
 
 func (x *GetRemoteAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[11]
+	mi := &file_network_network_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -826,7 +1122,7 @@ func (x *GetRemoteAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRemoteAccessResponse.ProtoReflect.Descriptor instead.
 func (*GetRemoteAccessResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{11}
+	return file_network_network_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *GetRemoteAccessResponse) GetTunnel() string {
@@ -879,7 +1175,7 @@ type RemoteAccessPeer struct {
 
 func (x *RemoteAccessPeer) Reset() {
 	*x = RemoteAccessPeer{}
-	mi := &file_network_network_proto_msgTypes[12]
+	mi := &file_network_network_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -891,7 +1187,7 @@ func (x *RemoteAccessPeer) String() string {
 func (*RemoteAccessPeer) ProtoMessage() {}
 
 func (x *RemoteAccessPeer) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[12]
+	mi := &file_network_network_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -904,7 +1200,7 @@ func (x *RemoteAccessPeer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteAccessPeer.ProtoReflect.Descriptor instead.
 func (*RemoteAccessPeer) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{12}
+	return file_network_network_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *RemoteAccessPeer) GetName() string {
@@ -983,7 +1279,7 @@ type Reach struct {
 
 func (x *Reach) Reset() {
 	*x = Reach{}
-	mi := &file_network_network_proto_msgTypes[13]
+	mi := &file_network_network_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -995,7 +1291,7 @@ func (x *Reach) String() string {
 func (*Reach) ProtoMessage() {}
 
 func (x *Reach) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[13]
+	mi := &file_network_network_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1008,7 +1304,7 @@ func (x *Reach) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reach.ProtoReflect.Descriptor instead.
 func (*Reach) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{13}
+	return file_network_network_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Reach) GetDestination() string {
@@ -1054,7 +1350,7 @@ type GetVpnTunnelRequest struct {
 
 func (x *GetVpnTunnelRequest) Reset() {
 	*x = GetVpnTunnelRequest{}
-	mi := &file_network_network_proto_msgTypes[14]
+	mi := &file_network_network_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1066,7 +1362,7 @@ func (x *GetVpnTunnelRequest) String() string {
 func (*GetVpnTunnelRequest) ProtoMessage() {}
 
 func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[14]
+	mi := &file_network_network_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1079,7 +1375,7 @@ func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelRequest.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{14}
+	return file_network_network_proto_rawDescGZIP(), []int{20}
 }
 
 type GetVpnTunnelResponse struct {
@@ -1099,7 +1395,7 @@ type GetVpnTunnelResponse struct {
 
 func (x *GetVpnTunnelResponse) Reset() {
 	*x = GetVpnTunnelResponse{}
-	mi := &file_network_network_proto_msgTypes[15]
+	mi := &file_network_network_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1111,7 +1407,7 @@ func (x *GetVpnTunnelResponse) String() string {
 func (*GetVpnTunnelResponse) ProtoMessage() {}
 
 func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[15]
+	mi := &file_network_network_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1124,7 +1420,7 @@ func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelResponse.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{15}
+	return file_network_network_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *GetVpnTunnelResponse) GetTier() Tier {
@@ -1176,7 +1472,7 @@ type TunnelGateway struct {
 
 func (x *TunnelGateway) Reset() {
 	*x = TunnelGateway{}
-	mi := &file_network_network_proto_msgTypes[16]
+	mi := &file_network_network_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1484,7 @@ func (x *TunnelGateway) String() string {
 func (*TunnelGateway) ProtoMessage() {}
 
 func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[16]
+	mi := &file_network_network_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1497,7 @@ func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TunnelGateway.ProtoReflect.Descriptor instead.
 func (*TunnelGateway) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{16}
+	return file_network_network_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *TunnelGateway) GetName() string {
@@ -1260,7 +1556,22 @@ const file_network_network_proto_rawDesc = "" +
 	"\x15network/network.proto\x12\rddash.network\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xde\x02\n" +
 	"\rNetworkConfig\x12\x98\x01\n" +
 	"\fbypass_alias\x18\x01 \x01(\tBu\x9a\xb5\x18q\x1a\fBypass alias\"FThe firewall alias whose members skip the VPN Tunnel (Direct Devices).0\x01R\x17pfsense-api.ListAliasesR\vbypassAlias\x12\xb1\x01\n" +
-	"\x0ereserved_range\x18\x02 \x01(\tB\x89\x01\x9a\xb5\x18\x84\x01\x1a\x0eReserved range\"UWhere Adopt picks a New Device's reserved address. It must lie outside the DHCP pool.*\x17198.18.1.20-198.18.1.490\x018\x05R\rreservedRange\"\x14\n" +
+	"\x0ereserved_range\x18\x02 \x01(\tB\x89\x01\x9a\xb5\x18\x84\x01\x1a\x0eReserved range\"UWhere Adopt picks a New Device's reserved address. It must lie outside the DHCP pool.*\x17198.18.1.20-198.18.1.490\x018\x05R\rreservedRange\"\x1c\n" +
+	"\x1aNextReservedAddressRequest\"T\n" +
+	"\x1bNextReservedAddressResponse\x12\x0e\n" +
+	"\x02ip\x18\x01 \x01(\tR\x02ip\x12%\n" +
+	"\x0ereserved_range\x18\x02 \x01(\tR\rreservedRange\"J\n" +
+	"\x12AdoptDeviceRequest\x12\x10\n" +
+	"\x03mac\x18\x01 \x01(\tR\x03mac\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x0e\n" +
+	"\x02ip\x18\x03 \x01(\tR\x02ip\"D\n" +
+	"\x13AdoptDeviceResponse\x12-\n" +
+	"\x06device\x18\x01 \x01(\v2\x15.ddash.network.DeviceR\x06device\";\n" +
+	"\x13RenameDeviceRequest\x12\x10\n" +
+	"\x03mac\x18\x01 \x01(\tR\x03mac\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"E\n" +
+	"\x14RenameDeviceResponse\x12-\n" +
+	"\x06device\x18\x01 \x01(\v2\x15.ddash.network.DeviceR\x06device\"\x14\n" +
 	"\x12ListDevicesRequest\"i\n" +
 	"\x13ListDevicesResponse\x12/\n" +
 	"\adevices\x18\x01 \x03(\v2\x15.ddash.network.DeviceR\adevices\x12!\n" +
@@ -1344,12 +1655,15 @@ const file_network_network_proto_rawDesc = "" +
 	"\x10TIER_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eTIER_WIREGUARD\x10\x01\x12\x10\n" +
 	"\fTIER_OPENVPN\x10\x02\x12\r\n" +
-	"\tTIER_DOWN\x10\x032\x99\x03\n" +
+	"\tTIER_DOWN\x10\x032\xca\x05\n" +
 	"\x0eNetworkService\x12_\n" +
 	"\fGetVpnTunnel\x12\".ddash.network.GetVpnTunnelRequest\x1a#.ddash.network.GetVpnTunnelResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Z\n" +
 	"\vListDevices\x12!.ddash.network.ListDevicesRequest\x1a\".ddash.network.ListDevicesResponse\"\x04\x8a\xb5\x18\x00\x12b\n" +
 	"\rGetThroughput\x12#.ddash.network.GetThroughputRequest\x1a$.ddash.network.GetThroughputResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12f\n" +
-	"\x0fGetRemoteAccess\x12%.ddash.network.GetRemoteAccessRequest\x1a&.ddash.network.GetRemoteAccessResponse\"\x04\x8a\xb5\x18\x00BCZAgithub.com/itsKontra/ddash/components/network/networkpb;networkpbb\x06proto3"
+	"\x0fGetRemoteAccess\x12%.ddash.network.GetRemoteAccessRequest\x1a&.ddash.network.GetRemoteAccessResponse\"\x04\x8a\xb5\x18\x00\x12t\n" +
+	"\x13NextReservedAddress\x12).ddash.network.NextReservedAddressRequest\x1a*.ddash.network.NextReservedAddressResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Z\n" +
+	"\vAdoptDevice\x12!.ddash.network.AdoptDeviceRequest\x1a\".ddash.network.AdoptDeviceResponse\"\x04\x92\xb5\x18\x00\x12]\n" +
+	"\fRenameDevice\x12\".ddash.network.RenameDeviceRequest\x1a#.ddash.network.RenameDeviceResponse\"\x04\x92\xb5\x18\x00BCZAgithub.com/itsKontra/ddash/components/network/networkpb;networkpbb\x06proto3"
 
 var (
 	file_network_network_proto_rawDescOnce sync.Once
@@ -1364,54 +1678,68 @@ func file_network_network_proto_rawDescGZIP() []byte {
 }
 
 var file_network_network_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_network_network_proto_goTypes = []any{
-	(Tier)(0),                       // 0: ddash.network.Tier
-	(*NetworkConfig)(nil),           // 1: ddash.network.NetworkConfig
-	(*ListDevicesRequest)(nil),      // 2: ddash.network.ListDevicesRequest
-	(*ListDevicesResponse)(nil),     // 3: ddash.network.ListDevicesResponse
-	(*Device)(nil),                  // 4: ddash.network.Device
-	(*DeviceLease)(nil),             // 5: ddash.network.DeviceLease
-	(*Reservation)(nil),             // 6: ddash.network.Reservation
-	(*DeviceAlias)(nil),             // 7: ddash.network.DeviceAlias
-	(*GetThroughputRequest)(nil),    // 8: ddash.network.GetThroughputRequest
-	(*GetThroughputResponse)(nil),   // 9: ddash.network.GetThroughputResponse
-	(*ThroughputSample)(nil),        // 10: ddash.network.ThroughputSample
-	(*GetRemoteAccessRequest)(nil),  // 11: ddash.network.GetRemoteAccessRequest
-	(*GetRemoteAccessResponse)(nil), // 12: ddash.network.GetRemoteAccessResponse
-	(*RemoteAccessPeer)(nil),        // 13: ddash.network.RemoteAccessPeer
-	(*Reach)(nil),                   // 14: ddash.network.Reach
-	(*GetVpnTunnelRequest)(nil),     // 15: ddash.network.GetVpnTunnelRequest
-	(*GetVpnTunnelResponse)(nil),    // 16: ddash.network.GetVpnTunnelResponse
-	(*TunnelGateway)(nil),           // 17: ddash.network.TunnelGateway
-	(*timestamppb.Timestamp)(nil),   // 18: google.protobuf.Timestamp
+	(Tier)(0),                           // 0: ddash.network.Tier
+	(*NetworkConfig)(nil),               // 1: ddash.network.NetworkConfig
+	(*NextReservedAddressRequest)(nil),  // 2: ddash.network.NextReservedAddressRequest
+	(*NextReservedAddressResponse)(nil), // 3: ddash.network.NextReservedAddressResponse
+	(*AdoptDeviceRequest)(nil),          // 4: ddash.network.AdoptDeviceRequest
+	(*AdoptDeviceResponse)(nil),         // 5: ddash.network.AdoptDeviceResponse
+	(*RenameDeviceRequest)(nil),         // 6: ddash.network.RenameDeviceRequest
+	(*RenameDeviceResponse)(nil),        // 7: ddash.network.RenameDeviceResponse
+	(*ListDevicesRequest)(nil),          // 8: ddash.network.ListDevicesRequest
+	(*ListDevicesResponse)(nil),         // 9: ddash.network.ListDevicesResponse
+	(*Device)(nil),                      // 10: ddash.network.Device
+	(*DeviceLease)(nil),                 // 11: ddash.network.DeviceLease
+	(*Reservation)(nil),                 // 12: ddash.network.Reservation
+	(*DeviceAlias)(nil),                 // 13: ddash.network.DeviceAlias
+	(*GetThroughputRequest)(nil),        // 14: ddash.network.GetThroughputRequest
+	(*GetThroughputResponse)(nil),       // 15: ddash.network.GetThroughputResponse
+	(*ThroughputSample)(nil),            // 16: ddash.network.ThroughputSample
+	(*GetRemoteAccessRequest)(nil),      // 17: ddash.network.GetRemoteAccessRequest
+	(*GetRemoteAccessResponse)(nil),     // 18: ddash.network.GetRemoteAccessResponse
+	(*RemoteAccessPeer)(nil),            // 19: ddash.network.RemoteAccessPeer
+	(*Reach)(nil),                       // 20: ddash.network.Reach
+	(*GetVpnTunnelRequest)(nil),         // 21: ddash.network.GetVpnTunnelRequest
+	(*GetVpnTunnelResponse)(nil),        // 22: ddash.network.GetVpnTunnelResponse
+	(*TunnelGateway)(nil),               // 23: ddash.network.TunnelGateway
+	(*timestamppb.Timestamp)(nil),       // 24: google.protobuf.Timestamp
 }
 var file_network_network_proto_depIdxs = []int32{
-	4,  // 0: ddash.network.ListDevicesResponse.devices:type_name -> ddash.network.Device
-	5,  // 1: ddash.network.Device.lease:type_name -> ddash.network.DeviceLease
-	6,  // 2: ddash.network.Device.reservation:type_name -> ddash.network.Reservation
-	7,  // 3: ddash.network.Device.aliases:type_name -> ddash.network.DeviceAlias
-	18, // 4: ddash.network.GetThroughputRequest.since:type_name -> google.protobuf.Timestamp
-	10, // 5: ddash.network.GetThroughputResponse.samples:type_name -> ddash.network.ThroughputSample
-	18, // 6: ddash.network.ThroughputSample.at:type_name -> google.protobuf.Timestamp
-	13, // 7: ddash.network.GetRemoteAccessResponse.peers:type_name -> ddash.network.RemoteAccessPeer
-	18, // 8: ddash.network.RemoteAccessPeer.latest_handshake:type_name -> google.protobuf.Timestamp
-	14, // 9: ddash.network.RemoteAccessPeer.reaches:type_name -> ddash.network.Reach
-	0,  // 10: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
-	17, // 11: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
-	15, // 12: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
-	2,  // 13: ddash.network.NetworkService.ListDevices:input_type -> ddash.network.ListDevicesRequest
-	8,  // 14: ddash.network.NetworkService.GetThroughput:input_type -> ddash.network.GetThroughputRequest
-	11, // 15: ddash.network.NetworkService.GetRemoteAccess:input_type -> ddash.network.GetRemoteAccessRequest
-	16, // 16: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
-	3,  // 17: ddash.network.NetworkService.ListDevices:output_type -> ddash.network.ListDevicesResponse
-	9,  // 18: ddash.network.NetworkService.GetThroughput:output_type -> ddash.network.GetThroughputResponse
-	12, // 19: ddash.network.NetworkService.GetRemoteAccess:output_type -> ddash.network.GetRemoteAccessResponse
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	10, // 0: ddash.network.AdoptDeviceResponse.device:type_name -> ddash.network.Device
+	10, // 1: ddash.network.RenameDeviceResponse.device:type_name -> ddash.network.Device
+	10, // 2: ddash.network.ListDevicesResponse.devices:type_name -> ddash.network.Device
+	11, // 3: ddash.network.Device.lease:type_name -> ddash.network.DeviceLease
+	12, // 4: ddash.network.Device.reservation:type_name -> ddash.network.Reservation
+	13, // 5: ddash.network.Device.aliases:type_name -> ddash.network.DeviceAlias
+	24, // 6: ddash.network.GetThroughputRequest.since:type_name -> google.protobuf.Timestamp
+	16, // 7: ddash.network.GetThroughputResponse.samples:type_name -> ddash.network.ThroughputSample
+	24, // 8: ddash.network.ThroughputSample.at:type_name -> google.protobuf.Timestamp
+	19, // 9: ddash.network.GetRemoteAccessResponse.peers:type_name -> ddash.network.RemoteAccessPeer
+	24, // 10: ddash.network.RemoteAccessPeer.latest_handshake:type_name -> google.protobuf.Timestamp
+	20, // 11: ddash.network.RemoteAccessPeer.reaches:type_name -> ddash.network.Reach
+	0,  // 12: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
+	23, // 13: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
+	21, // 14: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
+	8,  // 15: ddash.network.NetworkService.ListDevices:input_type -> ddash.network.ListDevicesRequest
+	14, // 16: ddash.network.NetworkService.GetThroughput:input_type -> ddash.network.GetThroughputRequest
+	17, // 17: ddash.network.NetworkService.GetRemoteAccess:input_type -> ddash.network.GetRemoteAccessRequest
+	2,  // 18: ddash.network.NetworkService.NextReservedAddress:input_type -> ddash.network.NextReservedAddressRequest
+	4,  // 19: ddash.network.NetworkService.AdoptDevice:input_type -> ddash.network.AdoptDeviceRequest
+	6,  // 20: ddash.network.NetworkService.RenameDevice:input_type -> ddash.network.RenameDeviceRequest
+	22, // 21: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
+	9,  // 22: ddash.network.NetworkService.ListDevices:output_type -> ddash.network.ListDevicesResponse
+	15, // 23: ddash.network.NetworkService.GetThroughput:output_type -> ddash.network.GetThroughputResponse
+	18, // 24: ddash.network.NetworkService.GetRemoteAccess:output_type -> ddash.network.GetRemoteAccessResponse
+	3,  // 25: ddash.network.NetworkService.NextReservedAddress:output_type -> ddash.network.NextReservedAddressResponse
+	5,  // 26: ddash.network.NetworkService.AdoptDevice:output_type -> ddash.network.AdoptDeviceResponse
+	7,  // 27: ddash.network.NetworkService.RenameDevice:output_type -> ddash.network.RenameDeviceResponse
+	21, // [21:28] is the sub-list for method output_type
+	14, // [14:21] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_network_network_proto_init() }
@@ -1419,14 +1747,14 @@ func file_network_network_proto_init() {
 	if File_network_network_proto != nil {
 		return
 	}
-	file_network_network_proto_msgTypes[16].OneofWrappers = []any{}
+	file_network_network_proto_msgTypes[22].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_network_network_proto_rawDesc), len(file_network_network_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   17,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

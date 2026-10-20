@@ -23,10 +23,13 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NetworkService_GetVpnTunnel_FullMethodName    = "/ddash.network.NetworkService/GetVpnTunnel"
-	NetworkService_ListDevices_FullMethodName     = "/ddash.network.NetworkService/ListDevices"
-	NetworkService_GetThroughput_FullMethodName   = "/ddash.network.NetworkService/GetThroughput"
-	NetworkService_GetRemoteAccess_FullMethodName = "/ddash.network.NetworkService/GetRemoteAccess"
+	NetworkService_GetVpnTunnel_FullMethodName        = "/ddash.network.NetworkService/GetVpnTunnel"
+	NetworkService_ListDevices_FullMethodName         = "/ddash.network.NetworkService/ListDevices"
+	NetworkService_GetThroughput_FullMethodName       = "/ddash.network.NetworkService/GetThroughput"
+	NetworkService_GetRemoteAccess_FullMethodName     = "/ddash.network.NetworkService/GetRemoteAccess"
+	NetworkService_NextReservedAddress_FullMethodName = "/ddash.network.NetworkService/NextReservedAddress"
+	NetworkService_AdoptDevice_FullMethodName         = "/ddash.network.NetworkService/AdoptDevice"
+	NetworkService_RenameDevice_FullMethodName        = "/ddash.network.NetworkService/RenameDevice"
 )
 
 // NetworkServiceClient is the client API for NetworkService service.
@@ -50,6 +53,17 @@ type NetworkServiceClient interface {
 	// handshake and traffic, and the hosts each can reach per the pass
 	// rules on the Remote Access interface.
 	GetRemoteAccess(ctx context.Context, in *GetRemoteAccessRequest, opts ...grpc.CallOption) (*GetRemoteAccessResponse, error)
+	// NextReservedAddress returns the lowest address in the reserved range
+	// that no static mapping and no current lease holds: what Adopt offers.
+	NextReservedAddress(ctx context.Context, in *NextReservedAddressRequest, opts ...grpc.CallOption) (*NextReservedAddressResponse, error)
+	// AdoptDevice gives a New Device a name and a reserved address: a static
+	// mapping on the DHCP server of the interface whose subnet holds the
+	// address. The Device moves to it when its lease renews.
+	AdoptDevice(ctx context.Context, in *AdoptDeviceRequest, opts ...grpc.CallOption) (*AdoptDeviceResponse, error)
+	// RenameDevice renames an Adopted Device: its static mapping's
+	// description. Its address and reservation stay as they are; changing or
+	// removing them is done in pfSense.
+	RenameDevice(ctx context.Context, in *RenameDeviceRequest, opts ...grpc.CallOption) (*RenameDeviceResponse, error)
 }
 
 type networkServiceClient struct {
@@ -100,6 +114,36 @@ func (c *networkServiceClient) GetRemoteAccess(ctx context.Context, in *GetRemot
 	return out, nil
 }
 
+func (c *networkServiceClient) NextReservedAddress(ctx context.Context, in *NextReservedAddressRequest, opts ...grpc.CallOption) (*NextReservedAddressResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NextReservedAddressResponse)
+	err := c.cc.Invoke(ctx, NetworkService_NextReservedAddress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkServiceClient) AdoptDevice(ctx context.Context, in *AdoptDeviceRequest, opts ...grpc.CallOption) (*AdoptDeviceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdoptDeviceResponse)
+	err := c.cc.Invoke(ctx, NetworkService_AdoptDevice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkServiceClient) RenameDevice(ctx context.Context, in *RenameDeviceRequest, opts ...grpc.CallOption) (*RenameDeviceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RenameDeviceResponse)
+	err := c.cc.Invoke(ctx, NetworkService_RenameDevice_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServiceServer is the server API for NetworkService service.
 // All implementations must embed UnimplementedNetworkServiceServer
 // for forward compatibility.
@@ -121,6 +165,17 @@ type NetworkServiceServer interface {
 	// handshake and traffic, and the hosts each can reach per the pass
 	// rules on the Remote Access interface.
 	GetRemoteAccess(context.Context, *GetRemoteAccessRequest) (*GetRemoteAccessResponse, error)
+	// NextReservedAddress returns the lowest address in the reserved range
+	// that no static mapping and no current lease holds: what Adopt offers.
+	NextReservedAddress(context.Context, *NextReservedAddressRequest) (*NextReservedAddressResponse, error)
+	// AdoptDevice gives a New Device a name and a reserved address: a static
+	// mapping on the DHCP server of the interface whose subnet holds the
+	// address. The Device moves to it when its lease renews.
+	AdoptDevice(context.Context, *AdoptDeviceRequest) (*AdoptDeviceResponse, error)
+	// RenameDevice renames an Adopted Device: its static mapping's
+	// description. Its address and reservation stay as they are; changing or
+	// removing them is done in pfSense.
+	RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error)
 	mustEmbedUnimplementedNetworkServiceServer()
 }
 
@@ -142,6 +197,15 @@ func (UnimplementedNetworkServiceServer) GetThroughput(context.Context, *GetThro
 }
 func (UnimplementedNetworkServiceServer) GetRemoteAccess(context.Context, *GetRemoteAccessRequest) (*GetRemoteAccessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRemoteAccess not implemented")
+}
+func (UnimplementedNetworkServiceServer) NextReservedAddress(context.Context, *NextReservedAddressRequest) (*NextReservedAddressResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method NextReservedAddress not implemented")
+}
+func (UnimplementedNetworkServiceServer) AdoptDevice(context.Context, *AdoptDeviceRequest) (*AdoptDeviceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AdoptDevice not implemented")
+}
+func (UnimplementedNetworkServiceServer) RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RenameDevice not implemented")
 }
 func (UnimplementedNetworkServiceServer) mustEmbedUnimplementedNetworkServiceServer() {}
 func (UnimplementedNetworkServiceServer) testEmbeddedByValue()                        {}
@@ -236,6 +300,60 @@ func _NetworkService_GetRemoteAccess_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NetworkService_NextReservedAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NextReservedAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).NextReservedAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_NextReservedAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).NextReservedAddress(ctx, req.(*NextReservedAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NetworkService_AdoptDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdoptDeviceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).AdoptDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_AdoptDevice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).AdoptDevice(ctx, req.(*AdoptDeviceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NetworkService_RenameDevice_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenameDeviceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).RenameDevice(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_RenameDevice_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).RenameDevice(ctx, req.(*RenameDeviceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NetworkService_ServiceDesc is the grpc.ServiceDesc for NetworkService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -258,6 +376,18 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRemoteAccess",
 			Handler:    _NetworkService_GetRemoteAccess_Handler,
+		},
+		{
+			MethodName: "NextReservedAddress",
+			Handler:    _NetworkService_NextReservedAddress_Handler,
+		},
+		{
+			MethodName: "AdoptDevice",
+			Handler:    _NetworkService_AdoptDevice_Handler,
+		},
+		{
+			MethodName: "RenameDevice",
+			Handler:    _NetworkService_RenameDevice_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

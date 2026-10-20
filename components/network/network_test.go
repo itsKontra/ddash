@@ -40,10 +40,14 @@ type firewall struct {
 	servers []*pfsenseapipb.DhcpServer
 	aliases []*pfsenseapipb.Alias
 
-	// interfaces answers ListInterfaces, called on every read.
+	// interfaces answers ListInterfaces, called on every read; nil means
+	// the homelab's (remote_access_test.go).
 	interfaces func() []*pfsenseapipb.Interface
 	tunnels    []*pfsenseapipb.WireguardTunnel
 	rules      []*pfsenseapipb.FirewallRule
+
+	// writes is every write request received, in order (devices_test.go).
+	writes []proto.Message
 }
 
 func (f *firewall) ListGatewayGroups(context.Context, *pfsenseapipb.ListGatewayGroupsRequest, ...grpc.CallOption) (*pfsenseapipb.ListGatewayGroupsResponse, error) {
@@ -72,7 +76,7 @@ func (f *firewall) ListInterfaces(context.Context, *pfsenseapipb.ListInterfacesR
 		return nil, f.err
 	}
 	if f.interfaces == nil {
-		return &pfsenseapipb.ListInterfacesResponse{}, nil
+		return &pfsenseapipb.ListInterfacesResponse{Interfaces: homelab()}, nil
 	}
 	return &pfsenseapipb.ListInterfacesResponse{Interfaces: f.interfaces()}, nil
 }

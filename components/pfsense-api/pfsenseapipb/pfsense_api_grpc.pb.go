@@ -30,6 +30,8 @@ const (
 	PfsenseApiService_ListInterfaces_FullMethodName       = "/ddash.pfsenseapi.PfsenseApiService/ListInterfaces"
 	PfsenseApiService_ListWireguardTunnels_FullMethodName = "/ddash.pfsenseapi.PfsenseApiService/ListWireguardTunnels"
 	PfsenseApiService_ListFirewallRules_FullMethodName    = "/ddash.pfsenseapi.PfsenseApiService/ListFirewallRules"
+	PfsenseApiService_CreateStaticMapping_FullMethodName  = "/ddash.pfsenseapi.PfsenseApiService/CreateStaticMapping"
+	PfsenseApiService_RenameStaticMapping_FullMethodName  = "/ddash.pfsenseapi.PfsenseApiService/RenameStaticMapping"
 )
 
 // PfsenseApiServiceClient is the client API for PfsenseApiService service.
@@ -64,6 +66,14 @@ type PfsenseApiServiceClient interface {
 	// ListFirewallRules returns the firewall rules on one interface
 	// (firewall/rules), in evaluation order.
 	ListFirewallRules(ctx context.Context, in *ListFirewallRulesRequest, opts ...grpc.CallOption) (*ListFirewallRulesResponse, error)
+	// CreateStaticMapping reserves an address for a MAC on an interface's
+	// DHCP server (services/dhcp_server/static_mapping) and applies it, which
+	// restarts the DHCP server for a few seconds. It refuses a MAC that
+	// interface already reserves for, and an address already reserved.
+	CreateStaticMapping(ctx context.Context, in *CreateStaticMappingRequest, opts ...grpc.CallOption) (*CreateStaticMappingResponse, error)
+	// RenameStaticMapping changes the description of the MAC's static mapping
+	// on an interface's DHCP server and applies it. The address stays.
+	RenameStaticMapping(ctx context.Context, in *RenameStaticMappingRequest, opts ...grpc.CallOption) (*RenameStaticMappingResponse, error)
 }
 
 type pfsenseApiServiceClient struct {
@@ -154,6 +164,26 @@ func (c *pfsenseApiServiceClient) ListFirewallRules(ctx context.Context, in *Lis
 	return out, nil
 }
 
+func (c *pfsenseApiServiceClient) CreateStaticMapping(ctx context.Context, in *CreateStaticMappingRequest, opts ...grpc.CallOption) (*CreateStaticMappingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateStaticMappingResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_CreateStaticMapping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) RenameStaticMapping(ctx context.Context, in *RenameStaticMappingRequest, opts ...grpc.CallOption) (*RenameStaticMappingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RenameStaticMappingResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_RenameStaticMapping_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PfsenseApiServiceServer is the server API for PfsenseApiService service.
 // All implementations must embed UnimplementedPfsenseApiServiceServer
 // for forward compatibility.
@@ -186,6 +216,14 @@ type PfsenseApiServiceServer interface {
 	// ListFirewallRules returns the firewall rules on one interface
 	// (firewall/rules), in evaluation order.
 	ListFirewallRules(context.Context, *ListFirewallRulesRequest) (*ListFirewallRulesResponse, error)
+	// CreateStaticMapping reserves an address for a MAC on an interface's
+	// DHCP server (services/dhcp_server/static_mapping) and applies it, which
+	// restarts the DHCP server for a few seconds. It refuses a MAC that
+	// interface already reserves for, and an address already reserved.
+	CreateStaticMapping(context.Context, *CreateStaticMappingRequest) (*CreateStaticMappingResponse, error)
+	// RenameStaticMapping changes the description of the MAC's static mapping
+	// on an interface's DHCP server and applies it. The address stays.
+	RenameStaticMapping(context.Context, *RenameStaticMappingRequest) (*RenameStaticMappingResponse, error)
 	mustEmbedUnimplementedPfsenseApiServiceServer()
 }
 
@@ -219,6 +257,12 @@ func (UnimplementedPfsenseApiServiceServer) ListWireguardTunnels(context.Context
 }
 func (UnimplementedPfsenseApiServiceServer) ListFirewallRules(context.Context, *ListFirewallRulesRequest) (*ListFirewallRulesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListFirewallRules not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) CreateStaticMapping(context.Context, *CreateStaticMappingRequest) (*CreateStaticMappingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateStaticMapping not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) RenameStaticMapping(context.Context, *RenameStaticMappingRequest) (*RenameStaticMappingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RenameStaticMapping not implemented")
 }
 func (UnimplementedPfsenseApiServiceServer) mustEmbedUnimplementedPfsenseApiServiceServer() {}
 func (UnimplementedPfsenseApiServiceServer) testEmbeddedByValue()                           {}
@@ -385,6 +429,42 @@ func _PfsenseApiService_ListFirewallRules_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PfsenseApiService_CreateStaticMapping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateStaticMappingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).CreateStaticMapping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_CreateStaticMapping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).CreateStaticMapping(ctx, req.(*CreateStaticMappingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_RenameStaticMapping_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenameStaticMappingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).RenameStaticMapping(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_RenameStaticMapping_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).RenameStaticMapping(ctx, req.(*RenameStaticMappingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PfsenseApiService_ServiceDesc is the grpc.ServiceDesc for PfsenseApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -423,6 +503,14 @@ var PfsenseApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListFirewallRules",
 			Handler:    _PfsenseApiService_ListFirewallRules_Handler,
+		},
+		{
+			MethodName: "CreateStaticMapping",
+			Handler:    _PfsenseApiService_CreateStaticMapping_Handler,
+		},
+		{
+			MethodName: "RenameStaticMapping",
+			Handler:    _PfsenseApiService_RenameStaticMapping_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
