@@ -100,6 +100,28 @@ function Body() {
   );
 }
 
+/** The Network Page's throughput: WAN and LAN over the last hour, and why sampling fails. */
+export function ThroughputRates() {
+  const { data, error } = useThroughput();
+  if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
+  if (!data) return null;
+  return (
+    <div className="flex flex-col gap-3 px-4 py-3">
+      {data.error && <p className="text-sm text-warn">{data.error}</p>}
+      {data.samples.length === 0 ? (
+        <p className="text-sm text-muted-foreground">Collecting the first samples</p>
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {directions.map((d) => (
+            <Rates key={d.label} direction={d} samples={data.samples} className="h-16" />
+          ))}
+        </ul>
+      )}
+      <p className="text-xs text-muted-foreground">Sampled every 5 seconds; download strong, upload muted.</p>
+    </div>
+  );
+}
+
 /** The Overview Widget: WAN and LAN throughput over the last hour. */
 export const throughput: Widget = {
   id: "throughput",

@@ -43,7 +43,7 @@ type Seen = { log?: number[]; error?: string };
 function Tail({ seen }: { seen: Seen }) {
   const q = useTail(FakeService.method.live, {
     request: (log: number[] | undefined) => ({ host: log ? String(log.at(-1)) : "" }),
-    merge: (log: number[] | undefined, next) => [...(log ?? []), (next as { n: number }).n],
+    merge: (log: number[] | undefined, next) => [...(log ?? []), (next as unknown as { n: number }).n],
   });
   seen.log = q.data;
   seen.error = q.error?.message;

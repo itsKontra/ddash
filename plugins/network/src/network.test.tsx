@@ -31,7 +31,7 @@ async function showPage(answers: Record<string, () => Response>) {
     const path = new URL(String(input), "http://ddash.test").pathname;
     paths.push(path);
     const method = path.split("/").pop()!;
-    return answers[method]();
+    return (answers[method] ?? (() => Response.json({})))();
   });
   const Page = plugin.pages![0].Component!;
   render(
@@ -97,4 +97,76 @@ it("shows pfsense-api's error in place of the gateways", async () => {
 
   const section = screen.getByRole("region", { name: "Gateways" });
   expect(within(section).getByText(/pfSense unreachable/)).toBeTruthy();
+});
+
+it("shows WAN and LAN throughput over the last hour, read from network", async () => {
+  const at = (secs: number) => new Date(Date.now() - 60_000 + secs * 1000).toISOString();
+  const samples = [5, 10].map((secs) => ({
+    at: at(secs),
+    wanInBytesPerSecond: 2_500_000,
+    wanOutBytesPerSecond: 250_000,
+    lanInBytesPerSecond: 300_000,
+    lanOutBytesPerSecond: 2_400_000,
+  }));
+  const paths = await showPage({ GetThroughput: () => Response.json({ samples }) });
+
+  expect(paths).toContain("/api/c/network/ddash.network.NetworkService/GetThroughput");
+  const section = screen.getByRole("region", { name: "Throughput" });
+  expect(within(section).getByRole("listitem", { name: "WAN" }).textContent).toMatch(/↓ 20 Mbit\/s.*↑ 2 Mbit\/s/);
+  expect(within(section).getByRole("listitem", { name: "LAN" }).textContent).toMatch(/↓ 19 Mbit\/s.*↑ 2.4 Mbit\/s/);
+  expect(within(section).getByRole("img", { name: "WAN over the last hour" })).toBeTruthy();
+});
+
+// What network answers GetRemoteAccess with.
+const remoteAccess = () => ({
+  tunnel: "tun_wg1",
+  interface: "REMOTEACCESS",
+  peers: [
+    {
+      name: "Phone",
+      publicKey: "cGhvbmUtcGVlci1wdWJsaWMta2V5LWZpeHR1cmUtMDE=",
+      addresses: ["198.18.40.2/32"],
+      endpoint: "203.0.113.77:41234",
+      latestHandshake: new Date(Date.now() - 2 * 60_000 - 5_000).toISOString(),
+      rxBytes: "1003948",
+      txBytes: "8384712",
+      reaches: [
+        { destination: "198.18.1.0/24", label: "LAN subnet", protocol: "any", rule: "Phone reaches the LAN" },
+        { destination: "198.18.1.20", protocol: "tcp", ports: "443", rule: "Peers reach the reverse proxy" },
+      ],
+    },
+    { name: "", publicKey: "bGFwdG9wLXBlZXItcHVibGljLWtleS1maXh0dXJlLTI=", addresses: ["198.18.40.3/32"] },
+  ],
+});
+
+it("lists the Remote Access peers with their last handshake, traffic and what each can reach", async () => {
+  const paths = await showPage({ GetRemoteAccess: () => Response.json(remoteAccess()) });
+
+  expect(paths).toContain("/api/c/network/ddash.network.NetworkService/GetRemoteAccess");
+  const section = screen.getByRole("region", { name: "Remote Access" });
+  const table = within(section).getByRole("table", { name: "Remote Access peers" });
+  const phone = within(table).getByRole("row", { name: /Phone/ });
+  expect(within(phone).getByRole("img", { name: "connected" })).toBeTruthy();
+  expect(phone.textContent).toMatch(/198\.18\.40\.2.*2 min ago.*1\.0 MB.*8\.4 MB/);
+  const reach = within(phone).getByRole("list", { name: "Phone can reach" });
+  expect(within(reach).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["198.18.1.0/24 LAN subnet · any", "198.18.1.20 · tcp 443"]);
+  // A peer without a name goes by the start of its key; it never connected and reaches nothing.
+  const laptop = within(table).getByRole("row", { name: /bGFwdG9w/ });
+  expect(within(laptop).getByRole("img", { name: "never connected" })).toBeTruthy();
+  expect(laptop.textContent).toMatch(/never/);
+  expect(laptop.textContent).toMatch(/nothing/);
+});
+
+it("says why there's no Remote Access", async () => {
+  await showPage({ GetRemoteAccess: () => Response.json({ error: "pfSense has no Remote Access tunnel (a WireGuard tunnel on an interface without a gateway)" }) });
+
+  const section = screen.getByRole("region", { name: "Remote Access" });
+  expect(within(section).getByText(/no Remote Access tunnel/)).toBeTruthy();
+});
+
+it("shows network's error in place of the Remote Access peers", async () => {
+  await showPage({ GetRemoteAccess: () => Response.json({ code: "unavailable", message: "can't read the WireGuard tunnels: pfSense unreachable" }, { status: 503 }) });
+
+  const section = screen.getByRole("region", { name: "Remote Access" });
+  expect(within(section).getByText(/can't read the WireGuard tunnels/)).toBeTruthy();
 });

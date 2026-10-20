@@ -16,9 +16,9 @@ import (
 
 var repoRoot = filepath.Join("..", "..")
 
-// vpnTier boots the core with network and pfsense-api in-process against
-// a lab serving scenarios, and returns network's GetVpnTunnel answer.
-func vpnTier(t *testing.T, scenarios ...string) string {
+// networkCall boots the core with network and pfsense-api in-process
+// against a lab serving scenarios, and returns network's answer to method.
+func networkCall(t *testing.T, method string, scenarios ...string) string {
 	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
 		t.Fatal(err)
@@ -37,11 +37,16 @@ func vpnTier(t *testing.T, scenarios ...string) string {
 	h.WaitState("pfsense-api", runtime.OK)
 	h.WaitState("network", runtime.OK)
 
-	res := h.Call("network", "network", "GetVpnTunnel", `{}`)
+	res := h.Call("network", "network", method, `{}`)
 	if res.Code != http.StatusOK {
-		t.Fatalf("GetVpnTunnel: status %d: %s", res.Code, res.Body)
+		t.Fatalf("%s: status %d: %s", method, res.Code, res.Body)
 	}
 	return res.Body.String()
+}
+
+// vpnTier returns network's GetVpnTunnel answer against the scenarios.
+func vpnTier(t *testing.T, scenarios ...string) string {
+	return networkCall(t, "GetVpnTunnel", scenarios...)
 }
 
 func TestTheBaselineFirewallHasTheTunnelViaWireGuard(t *testing.T) {
@@ -53,6 +58,15 @@ func TestTheBaselineFirewallHasTheTunnelViaWireGuard(t *testing.T) {
 func TestTheVpnOnFallbackScenarioHasTheTunnelViaOpenVPN(t *testing.T) {
 	if got := vpnTier(t, "vpn-on-fallback"); !strings.Contains(got, `"tier":"TIER_OPENVPN"`) {
 		t.Errorf("GetVpnTunnel = %s, want via the OpenVPN fallback", got)
+	}
+}
+
+func TestTheBaselineFirewallHasTwoRemoteAccessPeers(t *testing.T) {
+	got := networkCall(t, "GetRemoteAccess")
+	for _, want := range []string{`"tunnel":"tun_wg1"`, `"name":"Phone"`, `"name":"Laptop"`, `"destination":"198.18.1.0/24","label":"LAN subnet"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("GetRemoteAccess = %s, want %s in it", got, want)
+		}
 	}
 }
 

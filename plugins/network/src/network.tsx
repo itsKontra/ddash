@@ -2,16 +2,24 @@ import { useQuery } from "@ddash/plugin";
 import { PfsenseApiService, type Gateway } from "@ddash/proto/pfsense-api/pfsense_api_pb";
 import { Badge, PageHeader, StatusDot, type Tone } from "@ddash/ui";
 import type { ReactNode } from "react";
+import { RemoteAccessPeers } from "./remote-access";
+import { ThroughputRates } from "./throughput";
 import { members, ms, percent, stateTone, tiers, useTunnel } from "./tunnel";
 
 /** The network Page: the VPN Tunnel's tier and every gateway's status. */
 export function Network() {
   return (
     <div>
-      <PageHeader title="Network" subtitle="The firewall's gateways and the VPN Tunnel." />
+      <PageHeader title="Network" subtitle="The firewall's gateways, the VPN Tunnel, throughput and Remote Access." />
       <div className="flex flex-col gap-6">
         <VpnTunnel />
         <Gateways />
+        <Section id="network-throughput" title="Throughput">
+          <ThroughputRates />
+        </Section>
+        <Section id="network-remote-access" title="Remote Access">
+          <RemoteAccessPeers />
+        </Section>
       </div>
     </div>
   );
