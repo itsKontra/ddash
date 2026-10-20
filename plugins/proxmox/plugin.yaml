@@ -1,0 +1,7 @@
+name: proxmox
+title: Proxmox
+description: Every LXC and VM on Proxmox, with its status, resources and IPs.
+icon: server
+author: itsKontra
+# The proxmox logic Component joins with the power Actions (#53).
+requires: [proxmox-api]

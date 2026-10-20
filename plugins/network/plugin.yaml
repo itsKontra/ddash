@@ -1,0 +1,6 @@
+name: network
+title: Network
+description: Gateways and the VPN Tunnel's active tier.
+icon: network
+author: itsKontra
+requires: [network, pfsense-api]

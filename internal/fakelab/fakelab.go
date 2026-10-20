@@ -4,21 +4,28 @@
 // subprocess test run the core against it; cmd/fakelab serves it alone.
 //
 // Docker comes first; each later system adds itself to systems (HTTP) or
-// sshSystems (SSH).
+// sshSystems (SSH). A named scenario (e.g. "vpn-on-fallback") replaces the
+// baseline of every system that has a sibling directory of that name.
 package fakelab
 
 import (
 	"crypto/ed25519"
 	"crypto/sha256"
+	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"time"
 
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -38,6 +45,22 @@ var systems = []system{
 		fixtures:  "components/docker-api/testdata/baseline",
 		config: func(addr string) proto.Message {
 			return &dockerapipb.DockerApiConfig{Hosts: []*dockerapipb.Host{{Name: "media", Url: "tcp://" + addr}}}
+		},
+	},
+	{
+		component: "pfsense-api",
+		fixtures:  "components/pfsense-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			// The fixtures don't check the key.
+			return &pfsenseapipb.PfsenseApiConfig{Url: "http://" + addr, ApiKey: "fakelab"}
+		},
+	},
+	{
+		component: "proxmox-api",
+		fixtures:  "components/proxmox-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			// Plain http: the lab has no certificate a Component trusts.
+			return &proxmoxapipb.ProxmoxApiConfig{Url: "http://" + addr, TokenId: "ddash@pve!fakelab", TokenSecret: "fakelab"}
 		},
 	},
 }
@@ -73,17 +96,23 @@ type Lab struct {
 }
 
 // Start serves every system's baseline from the repo at root, each on a
-// free port of host (e.g. "127.0.0.1").
-func Start(root, host string) (*Lab, error) {
+// free port of host (e.g. "127.0.0.1"). Each scenario named replaces the
+// baseline of the systems that have it (files it lacks still come from
+// baseline); a scenario no system has is an error.
+func Start(root, host string, scenarios ...string) (*Lab, error) {
+	dirs, err := scenarioDirs(root, scenarios)
+	if err != nil {
+		return nil, err
+	}
 	l := &Lab{config: map[string]proto.Message{}, Addrs: map[string]string{}}
-	for _, s := range systems {
+	for i, s := range systems {
 		ln, err := net.Listen("tcp", net.JoinHostPort(host, "0"))
 		if err != nil {
 			l.Close()
 			return nil, err
 		}
 		srv := &http.Server{
-			Handler:           fixture.Scenario(filepath.Join(root, s.fixtures), nil),
+			Handler:           fixture.Scenario(dirs[i], nil),
 			ReadHeaderTimeout: 10 * time.Second,
 		}
 		go srv.Serve(ln) //nolint:errcheck // ends with Close
@@ -92,13 +121,13 @@ func Start(root, host string) (*Lab, error) {
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
 	}
-	for _, s := range sshSystems {
+	for i, s := range sshSystems {
 		ln, err := net.Listen("tcp", net.JoinHostPort(host, "0"))
 		if err != nil {
 			l.Close()
 			return nil, err
 		}
-		srv, err := fixture.ServeSSH(ln, filepath.Join(root, s.fixtures), fixture.SSHOptions{HostKey: hostKey(s.component), AnyKey: true})
+		srv, err := fixture.ServeSSH(ln, dirs[len(systems)+i], fixture.SSHOptions{HostKey: hostKey(s.component), AnyKey: true})
 		if err != nil {
 			ln.Close()
 			l.Close()
@@ -109,6 +138,43 @@ func Start(root, host string) (*Lab, error) {
 		l.config[s.component] = s.config(srv.Addr(), srv.HostKey())
 	}
 	return l, nil
+}
+
+// Scenarios splits a -scenario flag's comma-separated names.
+func Scenarios(flag string) []string {
+	var out []string
+	for name := range strings.SplitSeq(flag, ",") {
+		if name = strings.TrimSpace(name); name != "" {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// scenarioDirs picks each system's fixtures, systems then sshSystems: the
+// last named scenario it has, else its baseline.
+func scenarioDirs(root string, scenarios []string) ([]string, error) {
+	var baselines []string
+	for _, s := range systems {
+		baselines = append(baselines, filepath.Join(root, s.fixtures))
+	}
+	for _, s := range sshSystems {
+		baselines = append(baselines, filepath.Join(root, s.fixtures))
+	}
+	dirs := slices.Clone(baselines)
+	for _, name := range scenarios {
+		found := false
+		for i, baseline := range baselines {
+			dir := filepath.Join(filepath.Dir(baseline), name)
+			if fi, err := os.Stat(dir); err == nil && fi.IsDir() {
+				dirs[i], found = dir, true
+			}
+		}
+		if !found {
+			return nil, fmt.Errorf("fakelab: no system has a scenario %q", name)
+		}
+	}
+	return dirs, nil
 }
 
 // hostKey is a fixed key per faked host, so a config seeded by an earlier
