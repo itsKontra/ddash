@@ -149,6 +149,9 @@ func TestANewProxyHostYieldsAnAppWithARunningCheck(t *testing.T) {
 			Plugins: []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 		})
 		h.SeedConfig("nginx-config", &nginxconfigpb.NginxConfigConfig{Host: "198.18.0.10", HostKey: "ssh-ed25519 AAAA"})
+		// The fake proxmox-api still has the real config's required fields:
+		// unconfigured, it would leave apps degraded once apps first polled.
+		h.SeedConfig("proxmox-api", &proxmoxapipb.ProxmoxApiConfig{Url: "https://198.18.1.2:8006", TokenId: "ddash@pve!test", TokenSecret: "test"})
 		h.Install("apps")
 		h.WaitState("apps", runtime.OK)
 
