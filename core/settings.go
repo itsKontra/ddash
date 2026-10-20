@@ -38,6 +38,20 @@ func (h *Host) configOf(ctx context.Context, owner string) (protoreflect.Message
 	return desc, errs, nil
 }
 
+// CoreSettings returns the core's own settings, defaults applied.
+func (h *Host) CoreSettings(ctx context.Context) (*corepb.CoreSettings, error) {
+	settings := &corepb.CoreSettings{}
+	msg, err := h.config.Load(ctx, coreOwner, settings.ProtoReflect().Descriptor())
+	if err != nil {
+		return nil, err
+	}
+	b, err := proto.Marshal(msg)
+	if err != nil {
+		return nil, err
+	}
+	return settings, proto.Unmarshal(b, settings)
+}
+
 // ConfigForm returns owner's config form.
 func (h *Host) ConfigForm(ctx context.Context, owner string) (*corepb.GetConfigFormResponse, error) {
 	desc, errs, err := h.configOf(ctx, owner)

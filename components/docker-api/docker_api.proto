@@ -4,20 +4,32 @@ syntax = "proto3";
 // linuxserver/socket-proxy instances.
 package ddash.dockerapi;
 
+import "ddash/config/config.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/docker-api/dockerapipb;dockerapipb";
 
 message DockerApiConfig {
   // The Docker hosts to read. Valid when empty.
-  repeated Host hosts = 1;
+  repeated Host hosts = 1 [(ddash.config.field) = {
+    label: "Docker hosts"
+    help: "Each host's read-only socket-proxy. None is fine."
+  }];
 }
 
 message Host {
   // A short name the Operator knows the host by, e.g. "media".
-  string name = 1;
+  string name = 1 [(ddash.config.field) = {
+    required: true
+    placeholder: "media"
+  }];
   // The host's socket-proxy, e.g. "tcp://198.18.2.10:2375".
-  string url = 2;
+  string url = 2 [(ddash.config.field) = {
+    label: "Socket-proxy URL"
+    required: true
+    format: FORMAT_URL
+    placeholder: "tcp://198.18.2.10:2375"
+  }];
 }
 
 service DockerApiService {

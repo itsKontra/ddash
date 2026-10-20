@@ -21,6 +21,7 @@ import (
 	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
 func TestTheConfigFormDescribesEveryFieldAndNeverReturnsASecret(t *testing.T) {
@@ -367,6 +368,71 @@ func TestUninstallWithDeleteDataForgetsTheConfig(t *testing.T) {
 	form := coreJSON(t, h, "GetConfigForm", `{"owner":"greeter"}`)
 	if values, _ := form["values"].(map[string]any); len(values) != 0 || form["secretsSet"] != nil {
 		t.Errorf("after reinstalling: values %v, secrets %v, want none", form["values"], form["secretsSet"])
+	}
+}
+
+func TestTheThemeIsACoreSettingSavedLikeAnyConfig(t *testing.T) {
+	h := coretest.New(t, coretest.Options{})
+
+	if diff := cmp.Diff(map[string]any{"settings": map[string]any{"theme": "THEME_DDASH"}}, coreJSON(t, h, "GetCoreSettings", `{}`)); diff != "" {
+		t.Errorf("default settings (-want +got):\n%s", diff)
+	}
+	form := coreJSON(t, h, "GetConfigForm", `{"owner":"core"}`)
+	wantFields := []any{map[string]any{
+		"name": "theme", "kind": "KIND_ENUM", "label": "Theme", "placeholder": "THEME_DDASH", "default": "THEME_DDASH",
+		"options": []any{map[string]any{"value": "THEME_DDASH", "label": "ddash"}},
+	}}
+	if diff := cmp.Diff(wantFields, form["fields"]); diff != "" {
+		t.Errorf("core form (-want +got):\n%s", diff)
+	}
+
+	if diff := cmp.Diff(map[string]any{}, coreJSON(t, h, "SaveConfig", `{"owner":"core","values":{"theme":"THEME_DDASH"}}`)); diff != "" {
+		t.Errorf("SaveConfig (-want +got):\n%s", diff)
+	}
+
+	form = coreJSON(t, h, "GetConfigForm", `{"owner":"core"}`)
+	if diff := cmp.Diff(map[string]any{"theme": "THEME_DDASH"}, form["values"]); diff != "" {
+		t.Errorf("stored (-want +got):\n%s", diff)
+	}
+	e := lastSave(t, h)
+	want := map[string]any{"owner": "core", "changes": []any{map[string]any{"field": "theme", "new": `"THEME_DDASH"`}}}
+	if diff := cmp.Diff(want, requestJSON(t, e)); diff != "" || e.Outcome != appstate.OK {
+		t.Errorf("entry %+v; request (-want +got):\n%s", e, diff)
+	}
+	res := h.CoreCall("SaveConfig", `{"owner":"core","values":{"theme":"THEME_NEON"}}`)
+	wantError(t, res, http.StatusBadRequest, "invalid_argument", "")
+}
+
+func TestDockerApisHostsAreATableFormThatSavesIntoAListOfContainers(t *testing.T) {
+	media := fixture.Server(t, "../components/docker-api/testdata/baseline")
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{dockerapi.Definition()}, Plugins: []coretest.Plugin{docker}})
+	h.Install("docker")
+	h.WaitState("docker-api", runtime.OK)
+
+	form := coreJSON(t, h, "GetConfigForm", `{"owner":"docker-api"}`)
+	wantFields := []any{map[string]any{
+		"name": "hosts", "kind": "KIND_TABLE", "label": "Docker hosts", "repeated": true,
+		"help": "Each host's read-only socket-proxy. None is fine.",
+		"columns": []any{
+			map[string]any{"name": "name", "kind": "KIND_STRING", "label": "Name", "required": true, "placeholder": "media"},
+			map[string]any{"name": "url", "kind": "KIND_STRING", "label": "Socket-proxy URL", "required": true, "format": "url", "placeholder": "tcp://198.18.2.10:2375"},
+		},
+	}}
+	if diff := cmp.Diff(wantFields, form["fields"]); diff != "" {
+		t.Errorf("docker-api form (-want +got):\n%s", diff)
+	}
+
+	res := h.CoreCall("SaveConfig", `{"owner":"docker-api","values":{"hosts":[{"name":"media","url":"tcp://`+media.Listener.Addr().String()+`"},{"name":"nas","url":"nas:2375"}]}}`)
+	if diff := cmp.Diff(map[string]string{"hosts[1].url": "must be a URL like https://host.example"}, rejected(t, res)); diff != "" {
+		t.Errorf("errors (-want +got):\n%s", diff)
+	}
+
+	got := coreJSON(t, h, "SaveConfig", `{"owner":"docker-api","values":{"hosts":[{"name":"media","url":"tcp://`+media.Listener.Addr().String()+`"}]}}`)
+	if state := got["status"].(map[string]any)["state"]; state != "ok" {
+		t.Errorf("SaveConfig = %v, want docker-api ok", got)
+	}
+	if res := h.Call("docker", "docker-api", "ListContainers", `{}`); !strings.Contains(res.Body.String(), "jellyfin") {
+		t.Errorf("ListContainers: %d %s, want media's containers", res.Code, res.Body)
 	}
 }
 

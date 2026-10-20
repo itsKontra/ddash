@@ -185,3 +185,11 @@ func (a coreAPI) SaveConfig(ctx context.Context, req *corepb.SaveConfigRequest) 
 	resp, err := a.host.SaveConfig(ctx, req)
 	return resp, connectError(err)
 }
+
+func (a coreAPI) GetCoreSettings(ctx context.Context, _ *corepb.GetCoreSettingsRequest) (*corepb.GetCoreSettingsResponse, error) {
+	settings, err := a.host.CoreSettings(ctx)
+	if err != nil {
+		return nil, connectError(err)
+	}
+	return &corepb.GetCoreSettingsResponse{Settings: settings}, nil
+}
