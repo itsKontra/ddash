@@ -1,7 +1,7 @@
-import { act, render } from "@testing-library/react";
+import { act, render, waitFor } from "@testing-library/react";
 import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
 import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
-import { vi } from "vitest";
+import { expect, vi } from "vitest";
 import plugin from "./index";
 
 /** A call the Page made: the method's name and its decoded JSON body. */
@@ -123,8 +123,9 @@ export async function show(path: string, answers: Record<string, () => Response>
     };
     return all[method]?.() ?? Response.json({});
   });
+  const client = createQueryClient();
   render(
-    <PluginHost client={createQueryClient()}>
+    <PluginHost client={client}>
       <PluginScope plugin={{ name: "proxmox", requires: ["proxmox", "proxmox-api"] }} fetch={fetch}>
         <MemoryRouter initialEntries={[path]}>
           <Routes>
@@ -134,6 +135,9 @@ export async function show(path: string, answers: Record<string, () => Response>
       </PluginScope>
     </PluginHost>,
   );
+  // Wait for the first answers however long a loaded machine takes, then
+  // for what they render.
+  await waitFor(() => expect(client.isFetching()).toBe(0));
   await settle();
   return calls;
 }
