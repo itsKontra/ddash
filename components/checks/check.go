@@ -98,13 +98,18 @@ func validHost(h string) bool {
 		if label == "" || len(label) > 63 || strings.HasPrefix(label, "-") || strings.HasSuffix(label, "-") {
 			return false
 		}
-		for _, r := range label {
-			if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
-				return false
-			}
+		if strings.IndexFunc(label, notHostChar) >= 0 {
+			return false
 		}
 	}
 	return true
+}
+
+// notHostChar is true for a rune no host name label has.
+func notHostChar(r rune) bool {
+	letter := r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z'
+	digit := r >= '0' && r <= '9'
+	return !letter && !digit && r != '-' && r != '_'
 }
 
 // standing is where a Check stands after its beats so far.

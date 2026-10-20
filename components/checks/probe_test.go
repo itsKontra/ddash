@@ -88,7 +88,9 @@ func (s *dnsServer) answer(query []byte) []byte {
 	var answer func(*dnsmessage.Builder) error
 	switch {
 	case q.Name.String() == "jellyfin.home.example." && q.Type == dnsmessage.TypeA:
-		answer = func(b *dnsmessage.Builder) error { return b.AResource(rh, dnsmessage.AResource{A: [4]byte{198, 18, 1, 10}}) }
+		answer = func(b *dnsmessage.Builder) error {
+			return b.AResource(rh, dnsmessage.AResource{A: [4]byte{198, 18, 1, 10}})
+		}
 	case q.Name.String() == "jellyfin.home.example." && q.Type == dnsmessage.TypeMX:
 		answer = func(b *dnsmessage.Builder) error {
 			return b.MXResource(rh, dnsmessage.MXResource{Pref: 10, MX: dnsmessage.MustNewName("mail.home.example.")})
