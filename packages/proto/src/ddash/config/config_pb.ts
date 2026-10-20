@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/config/config.proto.
  */
 export const file_ddash_config_config: GenFile = /*@__PURE__*/
-  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciGgoERm9ybRISCgpzZXR1cF9mcm9tGAEgASgJIigKCVNldHVwSGludBIMCgR0ZXh0GAEgASgJEg0KBWJsb2NrGAIgASgJIsgCCgVGaWVsZBIPCgdkZWZhdWx0GAEgASgJEg4KBnNlY3JldBgCIAEoCBINCgVsYWJlbBgDIAEoCRIMCgRoZWxwGAQgASgJEhMKC3BsYWNlaG9sZGVyGAUgASgJEhAKCHJlcXVpcmVkGAYgASgIEioKBmZvcm1hdBgHIAEoDjIaLmRkYXNoLmNvbmZpZy5GaWVsZC5Gb3JtYXQSEAoDbWluGAggASgDSACIAQESEAoDbWF4GAkgASgDSAGIAQEiegoGRm9ybWF0EhYKEkZPUk1BVF9VTlNQRUNJRklFRBAAEg4KCkZPUk1BVF9VUkwQARITCg9GT1JNQVRfSE9TVE5BTUUQAhINCglGT1JNQVRfSVAQAxIPCgtGT1JNQVRfQ0lEUhAEEhMKD0ZPUk1BVF9JUF9SQU5HRRAFQgYKBF9taW5CBgoEX21heCIaCglFbnVtVmFsdWUSDQoFbGFiZWwYASABKAk6SgoFZmllbGQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNOGAyABKAsyEy5kZGFzaC5jb25maWcuRmllbGRSBWZpZWxkOlIKBXZhbHVlEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY1IYDIAEoCzIXLmRkYXNoLmNvbmZpZy5FbnVtVmFsdWVSBXZhbHVlOkkKBGZvcm0SHy5nb29nbGUucHJvdG9idWYuTWVzc2FnZU9wdGlvbnMY1YYDIAEoCzISLmRkYXNoLmNvbmZpZy5Gb3JtUgRmb3JtQjhaNmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbmZpZztjb25maWdwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
+  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciGgoERm9ybRISCgpzZXR1cF9mcm9tGAEgASgJIigKCVNldHVwSGludBIMCgR0ZXh0GAEgASgJEg0KBWJsb2NrGAIgASgJIjAKB0Nob2ljZXMSJQoHY2hvaWNlcxgBIAMoCzIULmRkYXNoLmNvbmZpZy5DaG9pY2UiJgoGQ2hvaWNlEg0KBXZhbHVlGAEgASgJEg0KBWxhYmVsGAIgASgJIt4CCgVGaWVsZBIPCgdkZWZhdWx0GAEgASgJEg4KBnNlY3JldBgCIAEoCBINCgVsYWJlbBgDIAEoCRIMCgRoZWxwGAQgASgJEhMKC3BsYWNlaG9sZGVyGAUgASgJEhAKCHJlcXVpcmVkGAYgASgIEioKBmZvcm1hdBgHIAEoDjIaLmRkYXNoLmNvbmZpZy5GaWVsZC5Gb3JtYXQSEAoDbWluGAggASgDSACIAQESEAoDbWF4GAkgASgDSAGIAQESFAoMY2hvaWNlc19mcm9tGAogASgJInoKBkZvcm1hdBIWChJGT1JNQVRfVU5TUEVDSUZJRUQQABIOCgpGT1JNQVRfVVJMEAESEwoPRk9STUFUX0hPU1ROQU1FEAISDQoJRk9STUFUX0lQEAMSDwoLRk9STUFUX0NJRFIQBBITCg9GT1JNQVRfSVBfUkFOR0UQBUIGCgRfbWluQgYKBF9tYXgiGgoJRW51bVZhbHVlEg0KBWxhYmVsGAEgASgJOkoKBWZpZWxkEh0uZ29vZ2xlLnByb3RvYnVmLkZpZWxkT3B0aW9ucxjThgMgASgLMhMuZGRhc2guY29uZmlnLkZpZWxkUgVmaWVsZDpSCgV2YWx1ZRIhLmdvb2dsZS5wcm90b2J1Zi5FbnVtVmFsdWVPcHRpb25zGNSGAyABKAsyFy5kZGFzaC5jb25maWcuRW51bVZhbHVlUgV2YWx1ZTpJCgRmb3JtEh8uZ29vZ2xlLnByb3RvYnVmLk1lc3NhZ2VPcHRpb25zGNWGAyABKAsyEi5kZGFzaC5jb25maWcuRm9ybVIEZm9ybUI4WjZnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb25maWc7Y29uZmlncGJiBnByb3RvMw", [file_google_protobuf_descriptor]);
 
 /**
  * Options on a Component's config message as a whole.
@@ -75,6 +75,52 @@ export type SetupHint = Message<"ddash.config.SetupHint"> & {
  */
 export const SetupHintSchema: GenMessage<SetupHint> = /*@__PURE__*/
   messageDesc(file_ddash_config_config, 1);
+
+/**
+ * The values a config field may take, from the getter its choices_from
+ * names.
+ *
+ * @generated from message ddash.config.Choices
+ */
+export type Choices = Message<"ddash.config.Choices"> & {
+  /**
+   * @generated from field: repeated ddash.config.Choice choices = 1;
+   */
+  choices: Choice[];
+};
+
+/**
+ * Describes the message ddash.config.Choices.
+ * Use `create(ChoicesSchema)` to create a new message.
+ */
+export const ChoicesSchema: GenMessage<Choices> = /*@__PURE__*/
+  messageDesc(file_ddash_config_config, 2);
+
+/**
+ * @generated from message ddash.config.Choice
+ */
+export type Choice = Message<"ddash.config.Choice"> & {
+  /**
+   * The value stored, e.g. an alias's name.
+   *
+   * @generated from field: string value = 1;
+   */
+  value: string;
+
+  /**
+   * How the form shows it; the value when empty.
+   *
+   * @generated from field: string label = 2;
+   */
+  label: string;
+};
+
+/**
+ * Describes the message ddash.config.Choice.
+ * Use `create(ChoiceSchema)` to create a new message.
+ */
+export const ChoiceSchema: GenMessage<Choice> = /*@__PURE__*/
+  messageDesc(file_ddash_config_config, 3);
 
 /**
  * @generated from message ddash.config.Field
@@ -147,6 +193,17 @@ export type Field = Message<"ddash.config.Field"> & {
    * @generated from field: optional int64 max = 9;
    */
   max?: bigint | undefined;
+
+  /**
+   * A getter of a required Component that offers this string field's
+   * choices, as "<component>.<Getter>", e.g. "pfsense-api.ListAliases". Its
+   * response holds a non-repeated Choices field. The form offers them to
+   * pick from, and falls back to free text with a note while that
+   * Component can't answer. Only a top-level string can have it.
+   *
+   * @generated from field: string choices_from = 10;
+   */
+  choicesFrom: string;
 };
 
 /**
@@ -154,7 +211,7 @@ export type Field = Message<"ddash.config.Field"> & {
  * Use `create(FieldSchema)` to create a new message.
  */
 export const FieldSchema: GenMessage<Field> = /*@__PURE__*/
-  messageDesc(file_ddash_config_config, 2);
+  messageDesc(file_ddash_config_config, 4);
 
 /**
  * @generated from enum ddash.config.Field.Format
@@ -207,7 +264,7 @@ export enum Field_Format {
  * Describes the enum ddash.config.Field.Format.
  */
 export const Field_FormatSchema: GenEnum<Field_Format> = /*@__PURE__*/
-  enumDesc(file_ddash_config_config, 2, 0);
+  enumDesc(file_ddash_config_config, 4, 0);
 
 /**
  * @generated from message ddash.config.EnumValue
@@ -227,7 +284,7 @@ export type EnumValue = Message<"ddash.config.EnumValue"> & {
  * Use `create(EnumValueSchema)` to create a new message.
  */
 export const EnumValueSchema: GenMessage<EnumValue> = /*@__PURE__*/
-  messageDesc(file_ddash_config_config, 3);
+  messageDesc(file_ddash_config_config, 5);
 
 /**
  * Used as [(ddash.config.field) = {label: "Server", default: "https://ntfy.sh", format: FORMAT_URL}].

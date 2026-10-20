@@ -351,6 +351,13 @@ message FormField {
   repeated EnumOption options = 13;
   // A table's columns.
   repeated FormField columns = 14;
+  // The choices the getter named in (ddash.config.field).choices_from
+  // offers, in its order. Empty for a field without choices_from, and while
+  // they can't be read (choices_note then says why).
+  repeated EnumOption choices = 15;
+  // Why a field with choices_from is free text for now, e.g.
+  // "pfsense-api can't offer choices (not configured); type the value."
+  string choices_note = 16;
 }
 
 message EnumOption {

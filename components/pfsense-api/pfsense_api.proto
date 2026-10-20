@@ -38,6 +38,23 @@ service PfsenseApiService {
   rpc ListGatewayGroups(ListGatewayGroupsRequest) returns (ListGatewayGroupsResponse) {
     option (ddash.getter) = {refresh: FAST};
   }
+  // ListLeases returns the DHCP leases Kea holds (status/dhcp_server/leases),
+  // in pfSense's order. pfSense lists each static mapping among them as a
+  // "static" entry.
+  rpc ListLeases(ListLeasesRequest) returns (ListLeasesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListDhcpServers returns each interface's DHCP server with its address
+  // pools and static mappings (services/dhcp_servers), in pfSense's order.
+  rpc ListDhcpServers(ListDhcpServersRequest) returns (ListDhcpServersResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListAliases returns every firewall alias with its members
+  // (firewall/aliases), in pfSense's order. Its choices are the address
+  // aliases, for a config field naming one (choices_from).
+  rpc ListAliases(ListAliasesRequest) returns (ListAliasesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
 }
 
 message ListGatewaysRequest {}
@@ -87,4 +104,87 @@ message GatewayGroupMember {
   string gateway = 1;
   // Its tier, 1 to 5; lower tiers are used first.
   int32 tier = 2;
+}
+
+message ListLeasesRequest {}
+
+message ListLeasesResponse {
+  repeated Lease leases = 1;
+}
+
+// One DHCP lease as pfSense reports it.
+message Lease {
+  string ip = 1;
+  // The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+  string mac = 2;
+  // The hostname the client sent; empty when it sent none.
+  string hostname = 3;
+  // The interface it was handed out on, e.g. "lan"; empty when Kea
+  // doesn't say (its dynamic leases).
+  string interface = 4;
+  // When the lease started and ends, as pfSense writes them
+  // ("2026/10/20 09:14:03", the firewall's time); empty for a static entry.
+  string starts = 5;
+  string ends = 6;
+  // "active", "expired", or "static" for a static mapping.
+  string active_status = 7;
+  // Whether the address answers ARP: "active/online", "idle/offline", ...
+  string online_status = 8;
+  string description = 9;
+}
+
+message ListDhcpServersRequest {}
+
+message ListDhcpServersResponse {
+  repeated DhcpServer servers = 1;
+}
+
+// One interface's DHCP server.
+message DhcpServer {
+  // The interface, e.g. "lan".
+  string interface = 1;
+  bool enabled = 2;
+  // The address pools it hands dynamic leases from, the main range first.
+  repeated AddressRange pools = 3;
+  // Its reserved addresses.
+  repeated StaticMapping static_mappings = 4;
+}
+
+// Two addresses, low to high, both included.
+message AddressRange {
+  string from = 1;
+  string to = 2;
+}
+
+// A static mapping: an address reserved for one MAC.
+message StaticMapping {
+  // The DHCP server's interface, e.g. "lan".
+  string interface = 1;
+  // The MAC address in lower case.
+  string mac = 2;
+  string ip = 3;
+  string hostname = 4;
+  string description = 5;
+}
+
+message ListAliasesRequest {}
+
+message ListAliasesResponse {
+  repeated Alias aliases = 1;
+  // The address (host and network) aliases by name, for a config field
+  // naming one.
+  ddash.config.Choices choices = 2;
+}
+
+// A firewall alias.
+message Alias {
+  string name = 1;
+  // "host", "network" or "port".
+  string type = 2;
+  string description = 3;
+  // Its members: addresses, networks, ranges, hostnames or other aliases'
+  // names (ports for a port alias).
+  repeated string addresses = 4;
+  // Each member's description, by position.
+  repeated string details = 5;
 }

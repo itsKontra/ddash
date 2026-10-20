@@ -1,0 +1,12 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {"id": 0, "name": "VPN_BYPASS", "type": "host", "descr": "Leaves through the WAN, not the VPN", "address": ["198.18.1.21", "198.18.1.150", "198.18.2.10"], "detail": ["Work laptop", "Phone", "Media server"]},
+    {"id": 1, "name": "KILL_SWITCH", "type": "host", "descr": "Never leaves through the WAN", "address": ["198.18.1.20", "198.18.1.22"], "detail": ["TV", "Printer"]},
+    {"id": 2, "name": "SERVERS", "type": "network", "descr": "", "address": ["198.18.2.0/28"], "detail": ["Server rack"]},
+    {"id": 3, "name": "WEB_PORTS", "type": "port", "descr": "HTTP and HTTPS", "address": ["80", "443"], "detail": ["", ""]}
+  ]
+}
