@@ -6,7 +6,10 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"io/fs"
+	"path"
 	"strings"
+	"testing/fstest"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,6 +29,9 @@ type Hooks struct {
 	// Act replaces the sample's Act, which answers with the actor it ran
 	// for. env is the Env the sample started with.
 	Act func(ctx context.Context, env *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error)
+	// Migrations replace the sample's own (see Migrations), as another
+	// Release of it would.
+	Migrations fs.FS
 }
 
 // migrations give every sample a DB file of its own.
@@ -33,14 +39,34 @@ type Hooks struct {
 //go:embed migrations/*.sql
 var migrations embed.FS
 
+// Migrations returns the sample's migrations followed by extra, numbered
+// after them, laid out as sdk.Spec.Migrations wants.
+func Migrations(extra ...string) fs.FS {
+	fsys := fstest.MapFS{}
+	entries, _ := fs.ReadDir(migrations, "migrations")
+	for _, e := range entries {
+		b, _ := fs.ReadFile(migrations, path.Join("migrations", e.Name()))
+		fsys[path.Join("migrations", e.Name())] = &fstest.MapFile{Data: b}
+	}
+	for i, sql := range extra {
+		name := fmt.Sprintf("migrations/%04d_extra.sql", len(entries)+i+1)
+		fsys[name] = &fstest.MapFile{Data: []byte(sql)}
+	}
+	return fsys
+}
+
 // Define returns a sample named name that requires requires.
 func Define(name string, requires []string, hooks Hooks) sdk.Definition {
+	var ms fs.FS = migrations
+	if hooks.Migrations != nil {
+		ms = hooks.Migrations
+	}
 	manifest := fmt.Sprintf("name: %s\ndescription: A sample for the host's tests.\nrequires: [%s]\n",
 		name, strings.Join(requires, ", "))
 	return sdk.Define(sdk.Spec[*samplepb.SampleConfig]{
 		Manifest:   []byte(manifest),
 		Service:    &samplepb.SampleService_ServiceDesc,
-		Migrations: migrations,
+		Migrations: ms,
 		New:        func() sdk.Component[*samplepb.SampleConfig] { return &component{hooks: hooks} },
 	})
 }

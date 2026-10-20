@@ -62,7 +62,7 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 	host, err := core.New(ctx, core.Options{
 		DataDir:   env(getenv, "DDASH_DATA_DIR", "/data"),
 		Release:   runtime.Dir(releaseDir),
-		Launcher:  runtime.Subprocess(releaseDir, os.Stderr),
+		Launcher:  runtime.Subprocess(os.Stderr),
 		Auth:      auth.FromEnv(getenv),
 		PublicURL: getenv("DDASH_PUBLIC_URL"),
 		Logger:    logger,

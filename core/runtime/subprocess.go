@@ -1,16 +1,11 @@
 package runtime
 
 import (
-	"bufio"
 	"context"
 	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/go-hclog"
@@ -28,34 +23,32 @@ const SumsFile = "SHA256SUMS"
 const exitPoll = 50 * time.Millisecond
 
 // Subprocess returns a Launcher that runs each Component as a go-plugin
-// subprocess: the binary dir/<name>, verified by go-plugin's SecureConfig
-// against its line in dir/SHA256SUMS before it runs, over gRPC with
-// AutoMTLS. The Components' log lines and go-plugin's own go to log as
+// subprocess: the binary the release source provided, verified by
+// go-plugin's SecureConfig against its checksum before it runs, over gRPC
+// with AutoMTLS. The Components' log lines and go-plugin's own go to log as
 // hclog JSON; nil discards them.
-func Subprocess(dir string, log io.Writer) Launcher {
+func Subprocess(log io.Writer) Launcher {
 	if log == nil {
 		log = io.Discard
 	}
-	return subprocess{dir: dir, log: log}
+	return subprocess{log: log}
 }
 
 type subprocess struct {
-	dir string
 	log io.Writer
 }
 
 func (l subprocess) Launch(_ context.Context, spec LaunchSpec) (Process, error) {
-	sum, err := l.checksum(spec.Name)
-	if err != nil {
-		return nil, err
+	if spec.Binary.Path == "" || len(spec.Binary.Checksum) != sha256.Size {
+		return nil, fmt.Errorf("launch %s: no binary with a checksum", spec.Name)
 	}
-	cmd := exec.Command(filepath.Join(l.dir, spec.Name))
+	cmd := exec.Command(spec.Binary.Path)
 	cmd.Env = []string{sdk.EnvDBPath + "=" + spec.DBPath}
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:     sdk.Handshake,
 		Plugins:             sdk.HostPlugins(spec.HostServer),
 		Cmd:                 cmd,
-		SecureConfig:        &plugin.SecureConfig{Checksum: sum, Hash: sha256.New()},
+		SecureConfig:        &plugin.SecureConfig{Checksum: spec.Binary.Checksum, Hash: sha256.New()},
 		AllowedProtocols:    []plugin.Protocol{plugin.ProtocolGRPC},
 		AutoMTLS:            true,
 		GRPCBrokerMultiplex: true,
@@ -79,30 +72,6 @@ func (l subprocess) Launch(_ context.Context, spec LaunchSpec) (Process, error) 
 	p := &process{client: client, rpc: rpc, cmd: cmd, conn: raw.(*grpc.ClientConn), done: make(chan struct{})}
 	go p.watch()
 	return p, nil
-}
-
-// checksum reads name's checksum from the Release dir's SHA256SUMS.
-func (l subprocess) checksum(name string) ([]byte, error) {
-	f, err := os.Open(filepath.Join(l.dir, SumsFile))
-	if err != nil {
-		return nil, fmt.Errorf("launch %s: %w", name, err)
-	}
-	defer f.Close()
-	lines := bufio.NewScanner(f)
-	for lines.Scan() {
-		sum, file, ok := strings.Cut(lines.Text(), "  ")
-		if ok && strings.TrimPrefix(file, "*") == name {
-			b, err := hex.DecodeString(sum)
-			if err != nil || len(b) != sha256.Size {
-				return nil, fmt.Errorf("launch %s: %s: bad checksum %q", name, SumsFile, sum)
-			}
-			return b, nil
-		}
-	}
-	if err := lines.Err(); err != nil {
-		return nil, fmt.Errorf("launch %s: %w", name, err)
-	}
-	return nil, fmt.Errorf("launch %s: it has no checksum in %s", name, SumsFile)
 }
 
 // process is one Component subprocess.

@@ -19,13 +19,18 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io/fs"
 	"log/slog"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -73,6 +78,10 @@ type Options struct {
 	// Shell is the shell's built assets the host serves (web.Shell()).
 	// Default: none.
 	Shell fs.FS
+	// Source replaces the test Release dir as the host's release source,
+	// e.g. runtime.GitHub over a fakegithub publishing ReleaseDirs. The
+	// in-process launcher still runs Components.
+	Source runtime.ReleaseSource
 }
 
 // Harness is one running core.
@@ -104,10 +113,13 @@ func New(t testing.TB, opts Options) *Harness {
 	case opts.ReleaseDir != "":
 		rel = runtime.Dir(opts.ReleaseDir)
 		if opts.Launcher == nil {
-			opts.Launcher = runtime.Subprocess(opts.ReleaseDir, t.Output())
+			opts.Launcher = runtime.Subprocess(t.Output())
 		}
 	default:
-		rel = release(t, opts)
+		rel = opts.Source
+		if rel == nil {
+			rel = runtime.Dir(ReleaseDir(t, opts))
+		}
 		if opts.Launcher == nil {
 			opts.Launcher = runtime.InProcess(logger, opts.Components...)
 		}
@@ -130,8 +142,12 @@ func New(t testing.TB, opts Options) *Harness {
 	return h
 }
 
-// release writes the test Release's catalogue.json into a temp dir.
-func release(t testing.TB, opts Options) runtime.Dir {
+// ReleaseDir lays out the test Release of opts in a temp dir, as release
+// assets: catalogue.json listing opts.Components and opts.Plugins of
+// Release opts.Release, a stand-in binary per Component (the in-process
+// launcher ignores it), stand-in bundles per Plugin unless ReleaseFiles has
+// them, the ReleaseFiles, and SHA256SUMS over them all.
+func ReleaseDir(t testing.TB, opts Options) string {
 	cat := runtime.Catalogue{Release: cmp.Or(opts.Release, sdk.Release)}
 	for _, p := range opts.Plugins {
 		cat.Plugins = append(cat.Plugins, runtime.PluginEntry{
@@ -150,12 +166,31 @@ func release(t testing.TB, opts Options) runtime.Dir {
 	if err := os.WriteFile(filepath.Join(dir, "catalogue.json"), b, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	for name, content := range opts.ReleaseFiles {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
-			t.Fatal(err)
+	files := maps.Clone(opts.ReleaseFiles)
+	if files == nil {
+		files = map[string]string{}
+	}
+	for _, d := range opts.Components {
+		files[d.Name()] = "stand-in for " + d.Name() + " of Release " + cat.Release
+	}
+	for _, p := range opts.Plugins {
+		for _, file := range []string{p.Name + ".plugin.js", p.Name + ".plugin.css"} {
+			if _, ok := files[file]; !ok {
+				files[file] = "/* " + file + " of Release " + cat.Release + " */"
+			}
 		}
 	}
-	return runtime.Dir(dir)
+	var sums strings.Builder
+	for _, name := range slices.Sorted(maps.Keys(files)) {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(files[name]), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		fmt.Fprintf(&sums, "%x  %s\n", sha256.Sum256([]byte(files[name])), name)
+	}
+	if err := os.WriteFile(filepath.Join(dir, runtime.SumsFile), []byte(sums.String()), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return dir
 }
 
 // Shutdown shuts the host down as SIGTERM would. The test's cleanup does

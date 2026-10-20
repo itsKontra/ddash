@@ -25,9 +25,14 @@ func launchSample(t *testing.T, target string) runtime.Process {
 	if err := release.Sums(dir); err != nil {
 		t.Fatal(err)
 	}
-	proc, err := runtime.Subprocess(dir, t.Output()).Launch(t.Context(), runtime.LaunchSpec{
+	bin, err := runtime.Dir(dir).Component(t.Context(), "greeter")
+	if err != nil {
+		t.Fatal(err)
+	}
+	proc, err := runtime.Subprocess(t.Output()).Launch(t.Context(), runtime.LaunchSpec{
 		Name:   "greeter",
 		DBPath: filepath.Join(t.TempDir(), "greeter.db"),
+		Binary: bin,
 	})
 	if err != nil {
 		t.Fatal(err)

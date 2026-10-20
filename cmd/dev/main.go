@@ -168,7 +168,7 @@ func seed(ctx context.Context, data, dist string, lab *fakelab.Lab) error {
 	host, err := core.New(ctx, core.Options{
 		DataDir:  data,
 		Release:  runtime.Dir(dist),
-		Launcher: runtime.Subprocess(dist, nil),
+		Launcher: runtime.Subprocess(nil),
 	})
 	if err != nil {
 		return err

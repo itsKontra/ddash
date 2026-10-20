@@ -7,10 +7,12 @@ package runtime
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -52,6 +54,9 @@ const (
 	// with exponential backoff, unless it crashed crashLimit times within
 	// crashWindow: then it stays down until Restart.
 	Crashed State = "crashed"
+	// UpdatePending: the Component's binary of the running Release couldn't
+	// be downloaded. It stays stopped, retried with backoff.
+	UpdatePending State = "update pending"
 )
 
 // Status is a Component's State with a one-line message.
@@ -104,7 +109,6 @@ type Options struct {
 type Runtime struct {
 	opts Options
 	log  *slog.Logger
-	cat  Catalogue
 
 	wake   chan struct{}
 	cancel context.CancelFunc
@@ -114,9 +118,19 @@ type Runtime struct {
 	// Component is never launched and removed at once.
 	changing sync.Mutex
 
-	mu         sync.Mutex
-	installed  map[string]bool
+	mu sync.Mutex
+	// release is the Release the runtime runs.
+	release string
+	// cat is release's catalogue, once the release source had it (catOK).
+	cat   Catalogue
+	catOK bool
+	// installed holds each installed Plugin's manifest, as the core DB
+	// keeps it, so it shows while the catalogue can't be had.
+	installed  map[string]PluginEntry
 	components map[string]*component
+	// bundles holds, by installed Plugin, why its bundles of the running
+	// Release couldn't be downloaded; "" once they were.
+	bundles map[string]string
 }
 
 // component is one wanted Component.
@@ -144,37 +158,84 @@ type Endpoint struct {
 	Types *dynamicpb.Types
 }
 
-// New reads the Release's catalogue and the installed set. Nothing runs
+// New reads the installed set and the Release's catalogue. A catalogue the
+// release source can't download yet (ErrDownload) doesn't stop it: the
+// installed Plugins show from the core DB, and Start retries. Nothing runs
 // until Start.
 func New(ctx context.Context, opts Options) (*Runtime, error) {
 	if opts.Logger == nil {
 		opts.Logger = slog.New(slog.DiscardHandler)
 	}
-	cat, err := opts.Release.Catalogue(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("read the Release's catalogue: %w", err)
-	}
 	r := &Runtime{
 		opts:       opts,
 		log:        opts.Logger,
-		cat:        cat,
+		release:    opts.Release.Release(),
 		wake:       make(chan struct{}, 1),
-		installed:  map[string]bool{},
+		installed:  map[string]PluginEntry{},
 		components: map[string]*component{},
+		bundles:    map[string]string{},
 	}
-	rows, err := opts.DB.QueryContext(ctx, `SELECT name FROM installed_plugin`)
-	if err != nil {
+	if err := r.readInstalled(ctx); err != nil {
 		return nil, fmt.Errorf("read installed Plugins: %w", err)
+	}
+	cat, err := opts.Release.Catalogue(ctx)
+	switch {
+	case err == nil:
+		if err := r.useCatalogue(ctx, cat); err != nil {
+			return nil, err
+		}
+	case errors.Is(err, ErrDownload):
+		r.log.Warn("the Release's catalogue can't be downloaded yet", "release", r.release, "err", err)
+		r.cat = Catalogue{Release: r.release}
+	default:
+		return nil, fmt.Errorf("read the Release's catalogue: %w", err)
+	}
+	return r, nil
+}
+
+func (r *Runtime) readInstalled(ctx context.Context) error {
+	rows, err := r.opts.DB.QueryContext(ctx, `SELECT name, manifest FROM installed_plugin`)
+	if err != nil {
+		return err
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			return nil, err
+		var name, manifest string
+		if err := rows.Scan(&name, &manifest); err != nil {
+			return err
 		}
-		r.installed[name] = true
+		p := PluginEntry{Name: name, Title: name}
+		if manifest != "" {
+			if err := json.Unmarshal([]byte(manifest), &p); err != nil {
+				return fmt.Errorf("%s's manifest: %w", name, err)
+			}
+		}
+		r.installed[name] = p
 	}
-	return r, rows.Err()
+	return rows.Err()
+}
+
+// useCatalogue makes cat the running catalogue and keeps the installed
+// Plugins' manifests from it.
+func (r *Runtime) useCatalogue(ctx context.Context, cat Catalogue) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for name := range r.installed {
+		p, ok := cat.plugin(name)
+		if !ok {
+			continue // the Release dropped it; it shows from the core DB
+		}
+		b, err := json.Marshal(p)
+		if err != nil {
+			return err
+		}
+		if _, err := r.opts.DB.ExecContext(ctx, `UPDATE installed_plugin SET manifest = ? WHERE name = ?`, string(b), name); err != nil {
+			return fmt.Errorf("keep %s's manifest: %w", name, err)
+		}
+		r.installed[name] = p
+	}
+	r.cat, r.catOK, r.release = cat, true, cat.Release
+	return nil
 }
 
 // Start runs the reconcile loop in the background until Stop.
@@ -236,18 +297,29 @@ func (r *Runtime) Stop(ctx context.Context) {
 // Install adds plugin to the installed set and wakes the reconcile loop to
 // start the Components it requires.
 func (r *Runtime) Install(ctx context.Context, plugin string) error {
-	if _, ok := r.cat.plugin(plugin); !ok {
-		return status.Errorf(codes.NotFound, "plugin %s isn't in Release %s", plugin, r.cat.Release)
+	r.mu.Lock()
+	catOK, rel := r.catOK, r.release
+	p, ok := r.cat.plugin(plugin)
+	r.mu.Unlock()
+	switch {
+	case !catOK:
+		return status.Errorf(codes.Unavailable, "the catalogue of Release %s can't be downloaded yet; try again later", rel)
+	case !ok:
+		return status.Errorf(codes.NotFound, "plugin %s isn't in Release %s", plugin, rel)
 	}
-	_, err := r.opts.DB.ExecContext(ctx, `
-		INSERT INTO installed_plugin (name, release, installed_at) VALUES (?, ?, ?)
+	manifest, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+	_, err = r.opts.DB.ExecContext(ctx, `
+		INSERT INTO installed_plugin (name, release, installed_at, manifest) VALUES (?, ?, ?, ?)
 		ON CONFLICT (name) DO NOTHING`,
-		plugin, r.cat.Release, time.Now().UTC().Format(time.RFC3339Nano))
+		plugin, rel, time.Now().UTC().Format(time.RFC3339Nano), string(manifest))
 	if err != nil {
 		return fmt.Errorf("install %s: %w", plugin, err)
 	}
 	r.mu.Lock()
-	r.installed[plugin] = true
+	r.installed[plugin] = p
 	r.mu.Unlock()
 	r.poke()
 	return nil
@@ -261,7 +333,7 @@ func (r *Runtime) Uninstall(ctx context.Context, plugin string, deleteData bool)
 	r.changing.Lock()
 	defer r.changing.Unlock()
 	r.mu.Lock()
-	installed := r.installed[plugin]
+	_, installed := r.installed[plugin]
 	r.mu.Unlock()
 	if !installed {
 		return nil, status.Errorf(codes.NotFound, "plugin %s isn't installed", plugin)
@@ -312,6 +384,9 @@ func (r *Runtime) deleteData(ctx context.Context, name string) error {
 			return err
 		}
 	}
+	if _, err := r.opts.DB.ExecContext(ctx, `DELETE FROM component_release WHERE name = ?`, name); err != nil {
+		return err
+	}
 	return r.opts.Config.Delete(ctx, name)
 }
 
@@ -359,18 +434,37 @@ func (r *Runtime) DeleteOrphan(ctx context.Context, name string) error {
 // wanted returns every Component the installed Plugins require,
 // transitively. r.mu must be held.
 func (r *Runtime) wanted() map[string]bool {
-	var roots []string
-	for _, p := range r.cat.Plugins {
-		if r.installed[p.Name] {
-			roots = append(roots, p.Requires...)
-		}
-	}
-	order, _ := r.cat.startOrder(roots) // the catalogue was checked on load
+	order := r.order()
 	wanted := make(map[string]bool, len(order))
 	for _, name := range order {
 		wanted[name] = true
 	}
 	return wanted
+}
+
+// order returns every Component the installed Plugins require,
+// transitively, each after the ones it requires. Without the catalogue it
+// is only what their manifests require directly. r.mu must be held.
+func (r *Runtime) order() []string {
+	if !r.catOK {
+		var order []string
+		for _, name := range slices.Sorted(maps.Keys(r.installed)) {
+			for _, req := range r.installed[name].Requires {
+				if !slices.Contains(order, req) {
+					order = append(order, req)
+				}
+			}
+		}
+		return order
+	}
+	var roots []string
+	for _, p := range r.cat.Plugins {
+		if _, ok := r.installed[p.Name]; ok {
+			roots = append(roots, p.Requires...)
+		}
+	}
+	order, _ := r.cat.startOrder(roots) // the catalogue was checked on load
+	return order
 }
 
 func (r *Runtime) dbPath(name string) string {
@@ -381,37 +475,40 @@ func (r *Runtime) dbPath(name string) string {
 // in requires. ok is false when the Plugin isn't installed.
 func (r *Runtime) PluginRequires(plugin string) (requires []string, ok bool) {
 	r.mu.Lock()
-	installed := r.installed[plugin]
-	r.mu.Unlock()
-	p, inCatalogue := r.cat.plugin(plugin)
-	if !installed || !inCatalogue {
-		return nil, false
-	}
-	return p.Requires, true
+	defer r.mu.Unlock()
+	p, installed := r.installed[plugin]
+	return p.Requires, installed
 }
 
-// Installed returns the installed Plugins' manifests, by name.
+// Installed returns the installed Plugins' manifests, by name: from the
+// running catalogue, or the core DB while it can't be had.
 func (r *Runtime) Installed() []PluginEntry {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	var out []PluginEntry
-	for _, p := range r.cat.Plugins {
-		if r.installed[p.Name] {
-			out = append(out, p)
-		}
-	}
+	out := slices.Collect(maps.Values(r.installed))
 	slices.SortFunc(out, func(a, b PluginEntry) int { return strings.Compare(a.Name, b.Name) })
 	return out
 }
 
-// Catalogue is the catalogue of the Release the runtime runs.
-func (r *Runtime) Catalogue() Catalogue { return r.cat }
+// Catalogue is the catalogue of the Release the runtime runs. It lists
+// nothing while the release source can't provide it.
+func (r *Runtime) Catalogue() Catalogue {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.cat
+}
 
 // Release is the Release the runtime runs.
-func (r *Runtime) Release() string { return r.cat.Release }
+func (r *Runtime) Release() string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.release
+}
 
 // ComponentRequires returns the Components a Component lists in requires.
 func (r *Runtime) ComponentRequires(component string) []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
 	c, _ := r.cat.component(component)
 	return c.Requires
 }
@@ -489,18 +586,22 @@ func (r *Runtime) reconcileLoop(ctx context.Context) {
 func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
 	r.changing.Lock()
 	defer r.changing.Unlock()
+	if !r.haveCatalogue(ctx) {
+		return true
+	}
 	r.mu.Lock()
-	var roots []string
-	for _, p := range r.cat.Plugins {
-		if r.installed[p.Name] {
-			roots = append(roots, p.Requires...)
+	var plugins []string
+	for _, name := range slices.Sorted(maps.Keys(r.installed)) {
+		if msg, ok := r.bundles[name]; !ok || msg != "" {
+			plugins = append(plugins, name)
 		}
 	}
+	order := r.order()
 	r.mu.Unlock()
-	order, err := r.cat.startOrder(roots)
-	if err != nil {
-		r.log.Error("resolve requires", "err", err)
-		return false
+	for _, p := range plugins {
+		if r.fetchBundles(ctx, p) != nil {
+			retry = true
+		}
 	}
 	for _, name := range order {
 		r.mu.Lock()
@@ -518,12 +619,68 @@ func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
 			return false
 		}
 		if err := r.launch(ctx, name); err != nil {
-			r.log.Error("launch", "component", name, "err", err)
-			r.setStatus(name, Status{State: Down, Message: err.Error()})
+			st := Status{State: Down, Message: err.Error()}
+			if p := (pending{}); errors.As(err, &p) {
+				st = Status{State: UpdatePending, Message: p.err.Error() + "; retrying"}
+			}
+			r.log.Error("launch", "component", name, "state", st.State, "err", err)
+			r.setStatus(name, st)
 			retry = true
 		}
 	}
 	return retry
+}
+
+// haveCatalogue reports whether the runtime has its Release's catalogue,
+// asking the release source again if not. Until it has it, every
+// Component the installed Plugins require directly is update pending.
+func (r *Runtime) haveCatalogue(ctx context.Context) bool {
+	r.mu.Lock()
+	catOK := r.catOK
+	r.mu.Unlock()
+	if catOK {
+		return true
+	}
+	cat, err := r.opts.Release.Catalogue(ctx)
+	if err == nil {
+		if err = r.useCatalogue(ctx, cat); err == nil {
+			return true
+		}
+	}
+	r.log.Error("read the Release's catalogue", "err", err)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	msg := err.Error() + "; retrying"
+	for _, name := range r.order() {
+		c, ok := r.components[name]
+		if !ok {
+			c = &component{}
+			r.components[name] = c
+		}
+		c.status = Status{State: UpdatePending, Message: msg}
+	}
+	for name := range r.installed {
+		r.bundles[name] = msg
+	}
+	return false
+}
+
+// fetchBundles has the release source download plugin's bundles, and
+// records the Plugin as on the running Release once it has them.
+func (r *Runtime) fetchBundles(ctx context.Context, plugin string) error {
+	err := r.opts.Release.Plugin(ctx, plugin)
+	if err == nil {
+		_, err = r.opts.DB.ExecContext(ctx, `UPDATE installed_plugin SET release = ? WHERE name = ?`, r.Release(), plugin)
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if err != nil {
+		r.log.Error("download bundles", "plugin", plugin, "err", err)
+		r.bundles[plugin] = err.Error() + "; retrying"
+		return err
+	}
+	r.bundles[plugin] = ""
+	return nil
 }
 
 // launch starts name's process, describes it and starts it with its config.
@@ -531,11 +688,19 @@ func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
 // failed Start leaves the process running, unconfigured or down.
 func (r *Runtime) launch(ctx context.Context, name string) error {
 	r.setStatus(name, Status{State: Starting})
+	rel := r.Release()
+	bin, err := r.opts.Release.Component(ctx, name)
+	if err != nil {
+		return pending{err}
+	}
 	dbPath := r.dbPath(name)
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o750); err != nil {
 		return err
 	}
-	spec := LaunchSpec{Name: name, DBPath: dbPath}
+	if err := r.switchRelease(ctx, name, rel); err != nil {
+		return err
+	}
+	spec := LaunchSpec{Name: name, DBPath: dbPath, Release: rel, Binary: bin}
 	if r.opts.HostServer != nil {
 		spec.HostServer = func(opts ...grpc.ServerOption) *grpc.Server { return r.opts.HostServer(name, opts...) }
 	}
@@ -544,7 +709,7 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 		return err
 	}
 	lc := componentpb.NewLifecycleServiceClient(proc.Conn())
-	endpoint, cfgDesc, err := describe(ctx, lc, name, r.cat.Release)
+	endpoint, cfgDesc, err := describe(ctx, lc, name, rel)
 	if err != nil {
 		proc.Stop(ctx)
 		return err
@@ -572,6 +737,12 @@ func (r *Runtime) launch(ctx context.Context, name string) error {
 	r.loops.Go(func() { r.pollHealth(ctx, name) })
 	return nil
 }
+
+// pending is a launch that failed because the Component's binary couldn't
+// be had from the release source.
+type pending struct{ err error }
+
+func (p pending) Error() string { return p.err.Error() }
 
 // watch waits for proc to end and handles that as a crash, unless the
 // runtime stopped it.
