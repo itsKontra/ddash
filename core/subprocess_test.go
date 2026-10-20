@@ -58,6 +58,21 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"tier":"TIER_WIREGUARD"`) {
 		t.Errorf("GetVpnTunnel: status %d: %s; want baseline's via WireGuard", res.Code, res.Body)
 	}
+
+	h.Install("proxmox")
+	h.WaitState("proxmox-api", runtime.OK)
+	res = h.Call("proxmox", "proxmox-api", "ListWorkloads", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"nginx"`) {
+		t.Errorf("ListWorkloads: status %d: %s; want baseline's nginx", res.Code, res.Body)
+	}
+
+	// apps reads nginx-config's snapshot through the host (GRPCBroker).
+	h.Install("apps")
+	h.WaitState("apps", runtime.OK)
+	res = h.Call("apps", "apps", "ListApps", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"url":"https://jellyfin.home.example"`) {
+		t.Errorf("ListApps: status %d: %s; want baseline's jellyfin App", res.Code, res.Body)
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello

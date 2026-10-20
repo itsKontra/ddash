@@ -27,6 +27,7 @@ extend google.protobuf.EnumValueOptions {
 
 extend google.protobuf.MessageOptions {
   // Used on a config message as option (ddash.config.form) = {setup_from: "GetSetupHint"};
+  // or {test_action: "SendTest"}.
   Form form = 50005;
 }
 
@@ -37,6 +38,11 @@ message Form {
   // the hint the getter returns, e.g. the authorized_keys line that grants
   // the Component access.
   string setup_from = 1;
+  // The name of a non-disruptive Action of the same Component that takes
+  // an empty request, e.g. "SendTest". The config form shows a button
+  // labelled with the name in sentence case ("Send test") that runs it on
+  // the saved config and shows the result inline.
+  string test_action = 2;
 }
 
 // What the Operator does outside ddash to finish a Component's setup.

@@ -466,6 +466,82 @@ func (*HintFromNoHintConfig) Descriptor() ([]byte, []int) {
 	return file_echo_echo_proto_rawDescGZIP(), []int{10}
 }
 
+// TestFromGetterConfig names a getter as its test_action, so the SDK must
+// refuse it.
+type TestFromGetterConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestFromGetterConfig) Reset() {
+	*x = TestFromGetterConfig{}
+	mi := &file_echo_echo_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestFromGetterConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestFromGetterConfig) ProtoMessage() {}
+
+func (x *TestFromGetterConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestFromGetterConfig.ProtoReflect.Descriptor instead.
+func (*TestFromGetterConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{11}
+}
+
+// TestFromDisruptiveConfig names a disruptive Action as its test_action,
+// which a button can't run without a confirm, so the SDK must refuse it.
+type TestFromDisruptiveConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestFromDisruptiveConfig) Reset() {
+	*x = TestFromDisruptiveConfig{}
+	mi := &file_echo_echo_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestFromDisruptiveConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestFromDisruptiveConfig) ProtoMessage() {}
+
+func (x *TestFromDisruptiveConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestFromDisruptiveConfig.ProtoReflect.Descriptor instead.
+func (*TestFromDisruptiveConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{12}
+}
+
 // ChoicesFromUnrequiredConfig takes choices from a Component echo doesn't
 // require, so the SDK must refuse it.
 type ChoicesFromUnrequiredConfig struct {
@@ -477,7 +553,7 @@ type ChoicesFromUnrequiredConfig struct {
 
 func (x *ChoicesFromUnrequiredConfig) Reset() {
 	*x = ChoicesFromUnrequiredConfig{}
-	mi := &file_echo_echo_proto_msgTypes[11]
+	mi := &file_echo_echo_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -489,7 +565,7 @@ func (x *ChoicesFromUnrequiredConfig) String() string {
 func (*ChoicesFromUnrequiredConfig) ProtoMessage() {}
 
 func (x *ChoicesFromUnrequiredConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[11]
+	mi := &file_echo_echo_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -502,7 +578,7 @@ func (x *ChoicesFromUnrequiredConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesFromUnrequiredConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesFromUnrequiredConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{11}
+	return file_echo_echo_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ChoicesFromUnrequiredConfig) GetPick() string {
@@ -522,7 +598,7 @@ type ChoicesFromNoComponentConfig struct {
 
 func (x *ChoicesFromNoComponentConfig) Reset() {
 	*x = ChoicesFromNoComponentConfig{}
-	mi := &file_echo_echo_proto_msgTypes[12]
+	mi := &file_echo_echo_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -534,7 +610,7 @@ func (x *ChoicesFromNoComponentConfig) String() string {
 func (*ChoicesFromNoComponentConfig) ProtoMessage() {}
 
 func (x *ChoicesFromNoComponentConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[12]
+	mi := &file_echo_echo_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -547,7 +623,7 @@ func (x *ChoicesFromNoComponentConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesFromNoComponentConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesFromNoComponentConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{12}
+	return file_echo_echo_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ChoicesFromNoComponentConfig) GetPick() string {
@@ -567,7 +643,7 @@ type ChoicesOnAnIntConfig struct {
 
 func (x *ChoicesOnAnIntConfig) Reset() {
 	*x = ChoicesOnAnIntConfig{}
-	mi := &file_echo_echo_proto_msgTypes[13]
+	mi := &file_echo_echo_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -579,7 +655,7 @@ func (x *ChoicesOnAnIntConfig) String() string {
 func (*ChoicesOnAnIntConfig) ProtoMessage() {}
 
 func (x *ChoicesOnAnIntConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[13]
+	mi := &file_echo_echo_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -592,7 +668,7 @@ func (x *ChoicesOnAnIntConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesOnAnIntConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesOnAnIntConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{13}
+	return file_echo_echo_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ChoicesOnAnIntConfig) GetPick() int64 {
@@ -612,7 +688,7 @@ type ChoicesConfig struct {
 
 func (x *ChoicesConfig) Reset() {
 	*x = ChoicesConfig{}
-	mi := &file_echo_echo_proto_msgTypes[14]
+	mi := &file_echo_echo_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -624,7 +700,7 @@ func (x *ChoicesConfig) String() string {
 func (*ChoicesConfig) ProtoMessage() {}
 
 func (x *ChoicesConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[14]
+	mi := &file_echo_echo_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -637,7 +713,7 @@ func (x *ChoicesConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{14}
+	return file_echo_echo_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ChoicesConfig) GetPick() string {
@@ -672,7 +748,10 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\aAddNote\"\"\n" +
 	"\x14HintFromNoHintConfig:\n" +
 	"\xaa\xb5\x18\x06\n" +
-	"\x04Echo\"M\n" +
+	"\x04Echo\"\"\n" +
+	"\x14TestFromGetterConfig:\n" +
+	"\xaa\xb5\x18\x06\x12\x04Echo\")\n" +
+	"\x18TestFromDisruptiveConfig:\r\xaa\xb5\x18\t\x12\aAddNote\"M\n" +
 	"\x1bChoicesFromUnrequiredConfig\x12.\n" +
 	"\x04pick\x18\x01 \x01(\tB\x1a\x9a\xb5\x18\x16R\x14elsewhere.ListThingsR\x04pick\"D\n" +
 	"\x1cChoicesFromNoComponentConfig\x12$\n" +
@@ -702,7 +781,7 @@ func file_echo_echo_proto_rawDescGZIP() []byte {
 	return file_echo_echo_proto_rawDescData
 }
 
-var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_echo_echo_proto_goTypes = []any{
 	(*EchoConfig)(nil),                   // 0: ddash.echo.EchoConfig
 	(*UnmarkedRequest)(nil),              // 1: ddash.echo.UnmarkedRequest
@@ -715,10 +794,12 @@ var file_echo_echo_proto_goTypes = []any{
 	(*AddNoteResponse)(nil),              // 8: ddash.echo.AddNoteResponse
 	(*HintFromActionConfig)(nil),         // 9: ddash.echo.HintFromActionConfig
 	(*HintFromNoHintConfig)(nil),         // 10: ddash.echo.HintFromNoHintConfig
-	(*ChoicesFromUnrequiredConfig)(nil),  // 11: ddash.echo.ChoicesFromUnrequiredConfig
-	(*ChoicesFromNoComponentConfig)(nil), // 12: ddash.echo.ChoicesFromNoComponentConfig
-	(*ChoicesOnAnIntConfig)(nil),         // 13: ddash.echo.ChoicesOnAnIntConfig
-	(*ChoicesConfig)(nil),                // 14: ddash.echo.ChoicesConfig
+	(*TestFromGetterConfig)(nil),         // 11: ddash.echo.TestFromGetterConfig
+	(*TestFromDisruptiveConfig)(nil),     // 12: ddash.echo.TestFromDisruptiveConfig
+	(*ChoicesFromUnrequiredConfig)(nil),  // 13: ddash.echo.ChoicesFromUnrequiredConfig
+	(*ChoicesFromNoComponentConfig)(nil), // 14: ddash.echo.ChoicesFromNoComponentConfig
+	(*ChoicesOnAnIntConfig)(nil),         // 15: ddash.echo.ChoicesOnAnIntConfig
+	(*ChoicesConfig)(nil),                // 16: ddash.echo.ChoicesConfig
 }
 var file_echo_echo_proto_depIdxs = []int32{
 	3, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
@@ -747,7 +828,7 @@ func file_echo_echo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_echo_echo_proto_rawDesc), len(file_echo_echo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

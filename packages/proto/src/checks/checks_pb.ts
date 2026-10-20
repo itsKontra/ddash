@@ -9,15 +9,15 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file checks/checks.proto.
  */
 export const file_checks_checks: GenFile = /*@__PURE__*/
-  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIqQCCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCCITChFMaXN0Q2hlY2tzUmVxdWVzdCI5ChJMaXN0Q2hlY2tzUmVzcG9uc2USIwoGY2hlY2tzGAEgAygLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjsKEkNyZWF0ZUNoZWNrUmVxdWVzdBIlCgRzcGVjGAEgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYyI5ChNDcmVhdGVDaGVja1Jlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIkcKElVwZGF0ZUNoZWNrUmVxdWVzdBIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYyI5ChNVcGRhdGVDaGVja1Jlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIiAKEkRlbGV0ZUNoZWNrUmVxdWVzdBIKCgJpZBgBIAEoAyIVChNEZWxldGVDaGVja1Jlc3BvbnNlIiwKD1NldE11dGVkUmVxdWVzdBIKCgJpZBgBIAEoAxINCgVtdXRlZBgCIAEoCCI2ChBTZXRNdXRlZFJlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjIKElNldERpc2FibGVkUmVxdWVzdBIKCgJpZBgBIAEoAxIQCghkaXNhYmxlZBgCIAEoCCI5ChNTZXREaXNhYmxlZFJlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrKmQKCUNoZWNrVHlwZRIaChZDSEVDS19UWVBFX1VOU1BFQ0lGSUVEEAASEgoOQ0hFQ0tfVFlQRV9UQ1AQARITCg9DSEVDS19UWVBFX0lDTVAQAhISCg5DSEVDS19UWVBFX0ROUxADKo8BCgpSZWNvcmRUeXBlEhsKF1JFQ09SRF9UWVBFX1VOU1BFQ0lGSUVEEAASEQoNUkVDT1JEX1RZUEVfQRABEhQKEFJFQ09SRF9UWVBFX0FBQUEQAhISCg5SRUNPUkRfVFlQRV9NWBADEhIKDlJFQ09SRF9UWVBFX05TEAQSEwoPUkVDT1JEX1RZUEVfVFhUEAUqTwoFU3RhdGUSFQoRU1RBVEVfVU5TUEVDSUZJRUQQABIRCg1TVEFURV9QRU5ESU5HEAESDAoIU1RBVEVfVVAQAhIOCgpTVEFURV9ET1dOEAMyowQKDUNoZWNrc1NlcnZpY2USVwoKTGlzdENoZWNrcxIfLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVxdWVzdBogLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVzcG9uc2UiBoq1GAIIAhJYCgtDcmVhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5DcmVhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJYCgtVcGRhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5VcGRhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJaCgtEZWxldGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5EZWxldGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXNwb25zZSIGkrUYAggBEk8KCFNldE11dGVkEh0uZGRhc2guY2hlY2tzLlNldE11dGVkUmVxdWVzdBoeLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlc3BvbnNlIgSStRgAElgKC1NldERpc2FibGVkEiAuZGRhc2guY2hlY2tzLlNldERpc2FibGVkUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlc3BvbnNlIgSStRgAQkBaPmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvY2hlY2tzL2NoZWNrc3BiO2NoZWNrc3BiYgZwcm90bzM", [file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIqQCCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCCITChFMaXN0Q2hlY2tzUmVxdWVzdCI5ChJMaXN0Q2hlY2tzUmVzcG9uc2USIwoGY2hlY2tzGAEgAygLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjsKEkNyZWF0ZUNoZWNrUmVxdWVzdBIlCgRzcGVjGAEgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYyI5ChNDcmVhdGVDaGVja1Jlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIkcKElVwZGF0ZUNoZWNrUmVxdWVzdBIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYyI5ChNVcGRhdGVDaGVja1Jlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIiAKEkRlbGV0ZUNoZWNrUmVxdWVzdBIKCgJpZBgBIAEoAyIVChNEZWxldGVDaGVja1Jlc3BvbnNlIiwKD1NldE11dGVkUmVxdWVzdBIKCgJpZBgBIAEoAxINCgVtdXRlZBgCIAEoCCI2ChBTZXRNdXRlZFJlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjIKElNldERpc2FibGVkUmVxdWVzdBIKCgJpZBgBIAEoAxIQCghkaXNhYmxlZBgCIAEoCCI5ChNTZXREaXNhYmxlZFJlc3BvbnNlEiIKBWNoZWNrGAEgASgLMhMuZGRhc2guY2hlY2tzLkNoZWNrIjkKB0xhdGVuY3kSDgoGYXZnX21zGAEgASgBEg4KBm1pbl9tcxgCIAEoARIOCgZtYXhfbXMYAyABKAEiowEKBlVwdGltZRIkCgZ3aW5kb3cYASABKA4yFC5kZGFzaC5jaGVja3MuV2luZG93EhIKBXJhdGlvGAIgASgBSACIAQESCgoCdXAYAyABKAMSDAoEZG93bhgEIAEoAxITCgttYWludGVuYW5jZRgFIAEoAxImCgdsYXRlbmN5GAYgASgLMhUuZGRhc2guY2hlY2tzLkxhdGVuY3lCCAoGX3JhdGlvIooBCgZCdWNrZXQSKQoFc3RhcnQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAnVwGAIgASgDEgwKBGRvd24YAyABKAMSEwoLbWFpbnRlbmFuY2UYBCABKAMSJgoHbGF0ZW5jeRgFIAEoCzIVLmRkYXNoLmNoZWNrcy5MYXRlbmN5IpMBCgRCZWF0EiYKAmF0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIKCgJ1cBgCIAEoCBIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIPCgdjaGFuZ2VkGAQgASgIEhIKCmxhdGVuY3lfbXMYBSABKAESDgoGcmVhc29uGAYgASgJIkUKEUdldEhpc3RvcnlSZXF1ZXN0EgoKAmlkGAEgASgDEiQKBndpbmRvdxgCIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cigQIKEkdldEhpc3RvcnlSZXNwb25zZRIkCgZ1cHRpbWUYASADKAsyFC5kZGFzaC5jaGVja3MuVXB0aW1lEiQKBndpbmRvdxgCIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cSKQoGYnVja2V0GAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEigKBGZyb20YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiUKB2J1Y2tldHMYBSADKAsyFC5kZGFzaC5jaGVja3MuQnVja2V0EiMKB2NoYW5nZXMYBiADKAsyEi5kZGFzaC5jaGVja3MuQmVhdCIeChBMaXN0QmVhdHNSZXF1ZXN0EgoKAmlkGAEgASgDIjYKEUxpc3RCZWF0c1Jlc3BvbnNlEiEKBWJlYXRzGAEgAygLMhIuZGRhc2guY2hlY2tzLkJlYXQqZAoJQ2hlY2tUeXBlEhoKFkNIRUNLX1RZUEVfVU5TUEVDSUZJRUQQABISCg5DSEVDS19UWVBFX1RDUBABEhMKD0NIRUNLX1RZUEVfSUNNUBACEhIKDkNIRUNLX1RZUEVfRE5TEAMqjwEKClJlY29yZFR5cGUSGwoXUkVDT1JEX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1SRUNPUkRfVFlQRV9BEAESFAoQUkVDT1JEX1RZUEVfQUFBQRACEhIKDlJFQ09SRF9UWVBFX01YEAMSEgoOUkVDT1JEX1RZUEVfTlMQBBITCg9SRUNPUkRfVFlQRV9UWFQQBSpPCgVTdGF0ZRIVChFTVEFURV9VTlNQRUNJRklFRBAAEhEKDVNUQVRFX1BFTkRJTkcQARIMCghTVEFURV9VUBACEg4KClNUQVRFX0RPV04QAypRCgZXaW5kb3cSFgoSV0lORE9XX1VOU1BFQ0lGSUVEEAASDgoKV0lORE9XXzI0SBABEg4KCldJTkRPV18zMEQQAhIPCgtXSU5ET1dfMzY1RBADMs4FCg1DaGVja3NTZXJ2aWNlElcKCkxpc3RDaGVja3MSHy5kZGFzaC5jaGVja3MuTGlzdENoZWNrc1JlcXVlc3QaIC5kZGFzaC5jaGVja3MuTGlzdENoZWNrc1Jlc3BvbnNlIgaKtRgCCAISWAoLQ3JlYXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLkNyZWF0ZUNoZWNrUmVzcG9uc2UiBJK1GAASWAoLVXBkYXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLlVwZGF0ZUNoZWNrUmVzcG9uc2UiBJK1GAASWgoLRGVsZXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLkRlbGV0ZUNoZWNrUmVzcG9uc2UiBpK1GAIIARJPCghTZXRNdXRlZBIdLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlcXVlc3QaHi5kZGFzaC5jaGVja3MuU2V0TXV0ZWRSZXNwb25zZSIEkrUYABJYCgtTZXREaXNhYmxlZBIgLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlcXVlc3QaIS5kZGFzaC5jaGVja3MuU2V0RGlzYWJsZWRSZXNwb25zZSIEkrUYABJVCgpHZXRIaXN0b3J5Eh8uZGRhc2guY2hlY2tzLkdldEhpc3RvcnlSZXF1ZXN0GiAuZGRhc2guY2hlY2tzLkdldEhpc3RvcnlSZXNwb25zZSIEirUYABJSCglMaXN0QmVhdHMSHi5kZGFzaC5jaGVja3MuTGlzdEJlYXRzUmVxdWVzdBofLmRkYXNoLmNoZWNrcy5MaXN0QmVhdHNSZXNwb25zZSIEirUYAEJAWj5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2NoZWNrcy9jaGVja3NwYjtjaGVja3NwYmIGcHJvdG8z", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * checks has no config.
@@ -398,6 +398,293 @@ export const SetDisabledResponseSchema: GenMessage<SetDisabledResponse> = /*@__P
   messageDesc(file_checks_checks, 15);
 
 /**
+ * Latency over a span's up beats, in ms.
+ *
+ * @generated from message ddash.checks.Latency
+ */
+export type Latency = Message<"ddash.checks.Latency"> & {
+  /**
+   * @generated from field: double avg_ms = 1;
+   */
+  avgMs: number;
+
+  /**
+   * @generated from field: double min_ms = 2;
+   */
+  minMs: number;
+
+  /**
+   * @generated from field: double max_ms = 3;
+   */
+  maxMs: number;
+};
+
+/**
+ * Describes the message ddash.checks.Latency.
+ * Use `create(LatencySchema)` to create a new message.
+ */
+export const LatencySchema: GenMessage<Latency> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 16);
+
+/**
+ * A Check's uptime over one window: beat-weighted up / (up + down), where
+ * a failed beat counts as down even while the Check is pending, and beats
+ * in Maintenance count as neither.
+ *
+ * @generated from message ddash.checks.Uptime
+ */
+export type Uptime = Message<"ddash.checks.Uptime"> & {
+  /**
+   * @generated from field: ddash.checks.Window window = 1;
+   */
+  window: Window;
+
+  /**
+   * From 0 to 1; unset when the window holds no counted beat.
+   *
+   * @generated from field: optional double ratio = 2;
+   */
+  ratio?: number | undefined;
+
+  /**
+   * @generated from field: int64 up = 3;
+   */
+  up: bigint;
+
+  /**
+   * @generated from field: int64 down = 4;
+   */
+  down: bigint;
+
+  /**
+   * Beats in Maintenance, left out of the ratio.
+   *
+   * @generated from field: int64 maintenance = 5;
+   */
+  maintenance: bigint;
+
+  /**
+   * Unset when the window holds no counted up beat.
+   *
+   * @generated from field: ddash.checks.Latency latency = 6;
+   */
+  latency?: Latency | undefined;
+};
+
+/**
+ * Describes the message ddash.checks.Uptime.
+ * Use `create(UptimeSchema)` to create a new message.
+ */
+export const UptimeSchema: GenMessage<Uptime> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 17);
+
+/**
+ * One bucket of a window: its beats' counts and their latency.
+ *
+ * @generated from message ddash.checks.Bucket
+ */
+export type Bucket = Message<"ddash.checks.Bucket"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp start = 1;
+   */
+  start?: Timestamp | undefined;
+
+  /**
+   * @generated from field: int64 up = 2;
+   */
+  up: bigint;
+
+  /**
+   * @generated from field: int64 down = 3;
+   */
+  down: bigint;
+
+  /**
+   * @generated from field: int64 maintenance = 4;
+   */
+  maintenance: bigint;
+
+  /**
+   * Unset when the bucket holds no counted up beat.
+   *
+   * @generated from field: ddash.checks.Latency latency = 5;
+   */
+  latency?: Latency | undefined;
+};
+
+/**
+ * Describes the message ddash.checks.Bucket.
+ * Use `create(BucketSchema)` to create a new message.
+ */
+export const BucketSchema: GenMessage<Bucket> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 18);
+
+/**
+ * One probe of a Check.
+ *
+ * @generated from message ddash.checks.Beat
+ */
+export type Beat = Message<"ddash.checks.Beat"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 1;
+   */
+  at?: Timestamp | undefined;
+
+  /**
+   * @generated from field: bool up = 2;
+   */
+  up: boolean;
+
+  /**
+   * The Check's state after the beat.
+   *
+   * @generated from field: ddash.checks.State state = 3;
+   */
+  state: State;
+
+  /**
+   * Whether the beat changed the state.
+   *
+   * @generated from field: bool changed = 4;
+   */
+  changed: boolean;
+
+  /**
+   * Set when up.
+   *
+   * @generated from field: double latency_ms = 5;
+   */
+  latencyMs: number;
+
+  /**
+   * Why it failed; empty when up.
+   *
+   * @generated from field: string reason = 6;
+   */
+  reason: string;
+};
+
+/**
+ * Describes the message ddash.checks.Beat.
+ * Use `create(BeatSchema)` to create a new message.
+ */
+export const BeatSchema: GenMessage<Beat> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 19);
+
+/**
+ * @generated from message ddash.checks.GetHistoryRequest
+ */
+export type GetHistoryRequest = Message<"ddash.checks.GetHistoryRequest"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * Whose buckets and state changes to return; 24 h when unspecified.
+   *
+   * @generated from field: ddash.checks.Window window = 2;
+   */
+  window: Window;
+};
+
+/**
+ * Describes the message ddash.checks.GetHistoryRequest.
+ * Use `create(GetHistoryRequestSchema)` to create a new message.
+ */
+export const GetHistoryRequestSchema: GenMessage<GetHistoryRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 20);
+
+/**
+ * @generated from message ddash.checks.GetHistoryResponse
+ */
+export type GetHistoryResponse = Message<"ddash.checks.GetHistoryResponse"> & {
+  /**
+   * Uptime over 24 h, 30 d and 365 d, in that order.
+   *
+   * @generated from field: repeated ddash.checks.Uptime uptime = 1;
+   */
+  uptime: Uptime[];
+
+  /**
+   * The window the rest is for.
+   *
+   * @generated from field: ddash.checks.Window window = 2;
+   */
+  window: Window;
+
+  /**
+   * The window's bucket size: a minute, an hour or a day.
+   *
+   * @generated from field: google.protobuf.Duration bucket = 3;
+   */
+  bucket?: Duration | undefined;
+
+  /**
+   * The start of the window's first bucket; its last one holds now.
+   *
+   * @generated from field: google.protobuf.Timestamp from = 4;
+   */
+  from?: Timestamp | undefined;
+
+  /**
+   * The buckets holding beats, oldest first. A bucket without beats (ddash
+   * down, the Check disabled or not there yet) is left out.
+   *
+   * @generated from field: repeated ddash.checks.Bucket buckets = 5;
+   */
+  buckets: Bucket[];
+
+  /**
+   * The window's state changes, newest first.
+   *
+   * @generated from field: repeated ddash.checks.Beat changes = 6;
+   */
+  changes: Beat[];
+};
+
+/**
+ * Describes the message ddash.checks.GetHistoryResponse.
+ * Use `create(GetHistoryResponseSchema)` to create a new message.
+ */
+export const GetHistoryResponseSchema: GenMessage<GetHistoryResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 21);
+
+/**
+ * @generated from message ddash.checks.ListBeatsRequest
+ */
+export type ListBeatsRequest = Message<"ddash.checks.ListBeatsRequest"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+};
+
+/**
+ * Describes the message ddash.checks.ListBeatsRequest.
+ * Use `create(ListBeatsRequestSchema)` to create a new message.
+ */
+export const ListBeatsRequestSchema: GenMessage<ListBeatsRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 22);
+
+/**
+ * @generated from message ddash.checks.ListBeatsResponse
+ */
+export type ListBeatsResponse = Message<"ddash.checks.ListBeatsResponse"> & {
+  /**
+   * @generated from field: repeated ddash.checks.Beat beats = 1;
+   */
+  beats: Beat[];
+};
+
+/**
+ * Describes the message ddash.checks.ListBeatsResponse.
+ * Use `create(ListBeatsResponseSchema)` to create a new message.
+ */
+export const ListBeatsResponseSchema: GenMessage<ListBeatsResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 23);
+
+/**
  * @generated from enum ddash.checks.CheckType
  */
 export enum CheckType {
@@ -516,6 +803,47 @@ export const StateSchema: GenEnum<State> = /*@__PURE__*/
   enumDesc(file_checks_checks, 2);
 
 /**
+ * A span of history, read at its own bucket size.
+ *
+ * @generated from enum ddash.checks.Window
+ */
+export enum Window {
+  /**
+   * 24 h.
+   *
+   * @generated from enum value: WINDOW_UNSPECIFIED = 0;
+   */
+  WINDOW_UNSPECIFIED = 0,
+
+  /**
+   * The last 24 h, in minute buckets.
+   *
+   * @generated from enum value: WINDOW_24H = 1;
+   */
+  WINDOW_24H = 1,
+
+  /**
+   * The last 30 d, in hour buckets.
+   *
+   * @generated from enum value: WINDOW_30D = 2;
+   */
+  WINDOW_30D = 2,
+
+  /**
+   * The last 365 d, in (UTC) day buckets.
+   *
+   * @generated from enum value: WINDOW_365D = 3;
+   */
+  WINDOW_365D = 3,
+}
+
+/**
+ * Describes the enum ddash.checks.Window.
+ */
+export const WindowSchema: GenEnum<Window> = /*@__PURE__*/
+  enumDesc(file_checks_checks, 3);
+
+/**
  * @generated from service ddash.checks.ChecksService
  */
 export const ChecksService: GenService<{
@@ -582,6 +910,29 @@ export const ChecksService: GenService<{
     methodKind: "unary";
     input: typeof SetDisabledRequestSchema;
     output: typeof SetDisabledResponseSchema;
+  },
+  /**
+   * GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
+   * window's buckets and state changes for its UptimeBars.
+   *
+   * @generated from rpc ddash.checks.ChecksService.GetHistory
+   */
+  getHistory: {
+    methodKind: "unary";
+    input: typeof GetHistoryRequestSchema;
+    output: typeof GetHistoryResponseSchema;
+  },
+  /**
+   * ListBeats returns the beats a Check keeps: every beat of about the last
+   * 24 h and its state changes of the last 365 d (a daily sweep drops the
+   * rest), oldest first.
+   *
+   * @generated from rpc ddash.checks.ChecksService.ListBeats
+   */
+  listBeats: {
+    methodKind: "unary";
+    input: typeof ListBeatsRequestSchema;
+    output: typeof ListBeatsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_checks_checks, 0);

@@ -54,6 +54,8 @@ let forms: Record<string, ReturnType<typeof ntfyForm> | ReturnType<typeof docker
 let saves: Record<string, unknown>[];
 let saveAnswer: () => Response;
 let installAnswer: Record<string, unknown>;
+let testRuns: Record<string, unknown>[];
+let testAnswer: () => Response;
 
 beforeEach(() => {
   saves = [];
@@ -65,6 +67,8 @@ beforeEach(() => {
   forms = { "ntfy-api": ntfyForm(), "docker-api": dockerForm() };
   saveAnswer = () => Response.json({ status: { name: "ntfy-api", state: "ok", configurable: true } });
   installAnswer = {};
+  testRuns = [];
+  testAnswer = () => Response.json({});
   window.localStorage.clear();
 });
 
@@ -89,6 +93,9 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
       return saveAnswer();
     case "Install":
       return Response.json(installAnswer);
+    case "RunTestAction":
+      testRuns.push(body);
+      return testAnswer();
     default:
       return Response.json({});
   }
@@ -353,4 +360,30 @@ it("falls back to free text with the note when the choices can't be read", async
   await save(form);
 
   expect(saves).toEqual([{ owner: "docker-api", values: { bypass_alias: "VPN_BYPASS" } }]);
+});
+
+it("runs a Component's test Action from its button and shows the result inline", async () => {
+  forms["ntfy-api"] = { ...ntfyForm(), testAction: { method: "SendTest", label: "Send test" } } as ReturnType<typeof ntfyForm>;
+  await boot();
+  const form = await configure("ntfy-api");
+
+  fireEvent.click(within(form).getByRole("button", { name: "Send test" }));
+  await settle();
+
+  expect(testRuns).toEqual([{ owner: "ntfy-api" }]);
+  expect(within(form).getByRole("status", { name: "Send test result" }).textContent).toMatch(/Send test: done/);
+
+  testAnswer = () => Response.json({ code: "unavailable", message: "ntfy answered 401: unauthorized" }, { status: 503 });
+  fireEvent.click(within(form).getByRole("button", { name: "Send test" }));
+  await settle();
+
+  expect(within(form).getByRole("status", { name: "Send test result" }).textContent).toMatch(/Send test failed: ntfy answered 401: unauthorized/);
+});
+
+it("shows no test button for a Component without a test Action", async () => {
+  await boot();
+
+  const form = await configure("docker-api");
+
+  expect(within(form).queryByRole("button", { name: /test/i })).toBeNull();
 });

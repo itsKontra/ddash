@@ -56,6 +56,14 @@ func TestOtherMethodsNameTheirFile(t *testing.T) {
 	}
 }
 
+func TestADirectoryPathIsItsIndexFile(t *testing.T) {
+	srv := fixture.Server(t, "testdata/baseline")
+
+	if code, _, body := call(t, "POST", srv.URL+"/"); code != 200 || body != `{"published": true}` {
+		t.Errorf("POST / = %d %s, want index.post.json", code, body)
+	}
+}
+
 func TestCountsHits(t *testing.T) {
 	srv := fixture.Server(t, "testdata/baseline")
 

@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+// ntfy-api publishes Notifications to one ntfy topic. It is only the
+// transport: what to send and when is the checks Component's.
+package ddash.ntfyapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipb";
+
+message NtfyApiConfig {
+  option (ddash.config.form) = {test_action: "SendTest"};
+
+  // The ntfy server, e.g. a self-hosted one behind the reverse proxy.
+  optional string server = 1 [(ddash.config.field) = {
+    default: "https://ntfy.sh"
+    format: FORMAT_URL
+    help: "The ntfy server the phone's ntfy app subscribes to."
+  }];
+  // The topic the phone subscribes to.
+  string topic = 2 [(ddash.config.field) = {
+    required: true
+    placeholder: "ddash-alerts"
+    help: "Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret."
+  }];
+  // An access token (tk_…) allowed to publish to the topic; empty for an
+  // open topic.
+  string token = 3 [(ddash.config.field) = {
+    label: "Access token"
+    secret: true
+    help: "A token (tk_…) with write access to the topic. Leave empty for an open topic."
+  }];
+}
+
+service NtfyApiService {
+  // Send publishes one Notification to the topic.
+  rpc Send(SendRequest) returns (SendResponse) {
+    option (ddash.action) = {};
+  }
+  // SendTest publishes a test Notification, so the Operator sees that
+  // Notifications reach the phone. It is the config form's test_action.
+  rpc SendTest(SendTestRequest) returns (SendTestResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message Notification {
+  // e.g. "Jellyfin down".
+  string title = 1;
+  // The message body, e.g. "timeout".
+  string message = 2;
+  // 1 (min) to 5 (max); 0 leaves ntfy's default, 3.
+  int32 priority = 3;
+  // ntfy tags; emoji shortcodes such as "red_circle" render as emoji.
+  repeated string tags = 4;
+  // The URL the phone opens when the Notification is tapped.
+  string click = 5;
+}
+
+message SendRequest {
+  Notification notification = 1;
+}
+
+message SendResponse {
+  // The id ntfy gave the message.
+  string id = 1;
+}
+
+message SendTestRequest {}
+
+message SendTestResponse {
+  // The id ntfy gave the message.
+  string id = 1;
+}

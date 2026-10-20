@@ -80,6 +80,29 @@ service CoreService {
   rpc SaveLayout(SaveLayoutRequest) returns (SaveLayoutResponse) {
     option (ddash.action) = {};
   }
+  // RunTestAction runs the Action a Component's config message names in
+  // (ddash.config.form).test_action, with an empty request, on its saved
+  // config, for the actor. It answers once the Action succeeded and fails
+  // with the Action's error. The Audit Log records the Component's Action
+  // itself (e.g. ntfy-api SendTest), not this call.
+  rpc RunTestAction(RunTestActionRequest) returns (RunTestActionResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message RunTestActionRequest {
+  // A Component's name.
+  string owner = 1;
+}
+
+message RunTestActionResponse {}
+
+// The config form's test button.
+message TestAction {
+  // The Action it runs, e.g. "SendTest".
+  string method = 1;
+  // The button's label: the method name in sentence case, e.g. "Send test".
+  string label = 2;
 }
 
 message ListCatalogueRequest {}
@@ -316,6 +339,9 @@ message GetConfigFormResponse {
   // in (ddash.config.form).setup_from. Unset until the Component has
   // started, and for a Component without one.
   ddash.config.SetupHint setup_hint = 5;
+  // The button that runs the Action the config message names in
+  // (ddash.config.form).test_action; unset for a Component without one.
+  TestAction test_action = 6;
 }
 
 // One field of a config form.

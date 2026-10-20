@@ -126,6 +126,9 @@ func Define[C proto.Message](s Spec[C]) Definition {
 	if err := d.checkSetupHint(zero.ProtoReflect().Descriptor()); err != nil {
 		panic(err.Error())
 	}
+	if err := d.checkTestAction(zero.ProtoReflect().Descriptor()); err != nil {
+		panic(err.Error())
+	}
 	if err := d.checkChoices(zero.ProtoReflect().Descriptor()); err != nil {
 		panic(err.Error())
 	}
@@ -154,6 +157,56 @@ func (d Definition) checkChoices(cfg protoreflect.MessageDescriptor) error {
 		if !slices.Contains(d.manifest.Requires, component) {
 			return fmt.Errorf("sdk: %s: %s's choices_from %q names %s, which %s doesn't require", d.Name(), f.FullName(), from, component, d.Name())
 		}
+	}
+	return nil
+}
+
+// checkSetupHint enforces that a config message's setup_from names a
+// getter of the Component's API whose response has a SetupHint field, so
+// the host can ask it for the hint.
+func (d Definition) checkSetupHint(cfg protoreflect.MessageDescriptor) error {
+	form, _ := proto.GetExtension(cfg.Options(), configpb.E_Form).(*configpb.Form)
+	name := form.GetSetupFrom()
+	if name == "" {
+		return nil
+	}
+	svc, err := d.serviceDescriptor()
+	if err != nil {
+		return err
+	}
+	m := svc.Methods().ByName(protoreflect.Name(name))
+	if m == nil || !proto.HasExtension(m.Options(), ddashpb.E_Getter) {
+		return fmt.Errorf("sdk: %s: %s's setup_from %q is not a getter of %s", d.Name(), cfg.FullName(), name, svc.FullName())
+	}
+	hint := (&configpb.SetupHint{}).ProtoReflect().Descriptor().FullName()
+	fields := m.Output().Fields()
+	for i := range fields.Len() {
+		if f := fields.Get(i); f.Message() != nil && f.Message().FullName() == hint && !f.IsList() {
+			return nil
+		}
+	}
+	return fmt.Errorf("sdk: %s: %s's setup_from %s answers %s, which has no ddash.config.SetupHint field", d.Name(), cfg.FullName(), name, m.Output().FullName())
+}
+
+// checkTestAction enforces that a config message's test_action names a
+// non-disruptive Action of the Component's API, so the config form's
+// button can run it without a confirm.
+func (d Definition) checkTestAction(cfg protoreflect.MessageDescriptor) error {
+	form, _ := proto.GetExtension(cfg.Options(), configpb.E_Form).(*configpb.Form)
+	name := form.GetTestAction()
+	if name == "" {
+		return nil
+	}
+	svc, err := d.serviceDescriptor()
+	if err != nil {
+		return err
+	}
+	m := svc.Methods().ByName(protoreflect.Name(name))
+	if m == nil || !proto.HasExtension(m.Options(), ddashpb.E_Action) {
+		return fmt.Errorf("sdk: %s: %s's test_action %q is not an Action of %s", d.Name(), cfg.FullName(), name, svc.FullName())
+	}
+	if a, _ := proto.GetExtension(m.Options(), ddashpb.E_Action).(*ddashpb.Action); a.GetDisruptive() {
+		return fmt.Errorf("sdk: %s: %s's test_action %s is disruptive", d.Name(), cfg.FullName(), name)
 	}
 	return nil
 }

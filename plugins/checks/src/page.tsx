@@ -2,13 +2,20 @@ import { useAction } from "@ddash/plugin";
 import { CheckType, ChecksService, RecordType, type Check } from "@ddash/proto/checks/checks_pb";
 import { Badge, Button, PageHeader, Segmented, Sheet, StatusDot } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
+import { useParams } from "react-router";
 import { latency, shownName, stateLabel, toneOf, useChecks } from "./checks";
+import { CheckDetail } from "./detail";
 
 /** The checks Page: every Check with its state and latency, and their editing. */
 export function ChecksPage() {
   const { data, error } = useChecks();
   // undefined: no form; null: adding; a Check: editing it.
   const [editing, setEditing] = useState<Check | null | undefined>(undefined);
+  // The Check whose detail is open, by id, so it follows the list's refreshes.
+  // A Notification's link (/checks/<id>) opens it.
+  const { id } = useParams();
+  const [shown, setShown] = useState<bigint | undefined>(() => (id && /^\d+$/.test(id) ? BigInt(id) : undefined));
+  const detail = data?.checks.find((c) => c.id === shown);
   return (
     <div>
       <PageHeader
@@ -33,13 +40,14 @@ export function ChecksPage() {
             </thead>
             <tbody>
               {data.checks.map((c) => (
-                <Row key={String(c.id)} check={c} onEdit={() => setEditing(c)} />
+                <Row key={String(c.id)} check={c} onEdit={() => setEditing(c)} onShow={() => setShown(c.id)} />
               ))}
             </tbody>
           </table>
         </div>
       )}
       {editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}
+      {detail && <CheckDetail check={detail} onClose={() => setShown(undefined)} />}
     </div>
   );
 }
@@ -58,7 +66,7 @@ function target(c: Check): string {
   return s?.target ?? "";
 }
 
-function Row({ check: c, onEdit }: { check: Check; onEdit: () => void }) {
+function Row({ check: c, onEdit, onShow }: { check: Check; onEdit: () => void; onShow: () => void }) {
   const mute = useAction(ChecksService.method.setMuted);
   const disable = useAction(ChecksService.method.setDisabled);
   const remove = useAction(ChecksService.method.deleteCheck);
@@ -72,7 +80,9 @@ function Row({ check: c, onEdit }: { check: Check; onEdit: () => void }) {
       </td>
       <th scope="row" className="px-2 py-2 text-left font-medium">
         <span className="flex items-center gap-2">
-          {shownName(c)}
+          <button type="button" className="cursor-pointer text-left hover:underline" title="Show its history" onClick={onShow}>
+            {shownName(c)}
+          </button>
           {c.muted && <Badge>muted</Badge>}
         </span>
       </th>

@@ -1,0 +1,6 @@
+{
+  "data": {"name": "no-agent", "cores": 1, "memory": "1024", "ostype": "l26", "scsi0": "local-lvm:vm-112-disk-0,size=10G", "digest": "REDACTED",
+    "net0": "e1000=02:5E:1A:00:01:12,bridge=vmbr0",
+    "net1": "virtio=02:5E:1A:00:02:12,bridge=vmbr1,tag=20",
+    "ipconfig1": "ip=dhcp"}
+}
