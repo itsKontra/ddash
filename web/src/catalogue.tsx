@@ -55,10 +55,11 @@ function FormQueue({ next, onDone }: { next: string; onDone: (name: string) => v
   const st = data && statusOf(data, next);
   const waiting = !st || st.state === "" || st.state === "starting";
   const needsForm = st?.state === "unconfigured" && st.configurable;
+  if (needsForm && !opened) setOpened(true);
+  const skip = !needsForm && !opened && !waiting;
   useEffect(() => {
-    if (needsForm) setOpened(true);
-    else if (!opened && !waiting) onDone(next);
-  }, [needsForm, opened, waiting, next, onDone]);
+    if (skip) onDone(next);
+  }, [skip, next, onDone]);
   return needsForm || opened ? <ConfigDialog owner={next} onClose={() => onDone(next)} /> : null;
 }
 
