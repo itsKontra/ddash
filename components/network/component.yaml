@@ -1,3 +1,3 @@
 name: network
-description: The VPN Tunnel's active tier and the Devices: the firewall's leases, static mappings and bypass alias joined by MAC.
+description: The VPN Tunnel's active tier, and the Devices joined from the firewall's leases, static mappings and bypass alias.
 requires: [pfsense-api]
