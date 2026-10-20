@@ -46,9 +46,9 @@ type firewall struct {
 	// the homelab's (remote_access_test.go).
 	interfaces func() []*pfsenseapipb.Interface
 	// readAt, when set, is the counters' read time ListInterfaces reports.
-	readAt func() time.Time
-	tunnels    []*pfsenseapipb.WireguardTunnel
-	rules      []*pfsenseapipb.FirewallRule
+	readAt  func() time.Time
+	tunnels []*pfsenseapipb.WireguardTunnel
+	rules   []*pfsenseapipb.FirewallRule
 
 	// writes is every write request received, in order (devices_test.go).
 	writes []proto.Message
