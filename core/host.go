@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -85,8 +86,22 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	api.Handle(router.Prefix, router.New(h.runtime))
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /healthz", h.healthz)
 	mux.Handle("/api/", requireConnectHeader(guard(api)))
 	return mux
+}
+
+// healthz reports that HTTP serves and the core DB answers. It says
+// nothing about Components.
+func (h *Host) healthz(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	if err := h.db.PingContext(ctx); err != nil {
+		http.Error(w, "core DB: "+err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte("ok\n"))
 }
 
 // requireConnectHeader refuses an /api call without Connect-Protocol-Version: 1.
