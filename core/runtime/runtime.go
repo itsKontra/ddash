@@ -248,23 +248,30 @@ func (r *Runtime) Stop(ctx context.Context) {
 }
 
 // Install adds plugin to the installed set and wakes the reconcile loop to
-// start the Components it requires.
-func (r *Runtime) Install(ctx context.Context, plugin string) error {
+// start the Components it requires. It returns the Components that weren't
+// wanted before, in start order.
+func (r *Runtime) Install(ctx context.Context, plugin string) (added []string, err error) {
 	if _, ok := r.cat.plugin(plugin); !ok {
-		return status.Errorf(codes.NotFound, "plugin %s isn't in Release %s", plugin, r.cat.Release)
+		return nil, status.Errorf(codes.NotFound, "plugin %s isn't in Release %s", plugin, r.cat.Release)
 	}
-	_, err := r.opts.DB.ExecContext(ctx, `
+	_, err = r.opts.DB.ExecContext(ctx, `
 		INSERT INTO installed_plugin (name, release, installed_at) VALUES (?, ?, ?)
 		ON CONFLICT (name) DO NOTHING`,
 		plugin, r.cat.Release, time.Now().UTC().Format(time.RFC3339Nano))
 	if err != nil {
-		return fmt.Errorf("install %s: %w", plugin, err)
+		return nil, fmt.Errorf("install %s: %w", plugin, err)
 	}
 	r.mu.Lock()
+	before := r.wanted()
 	r.installed[plugin] = true
 	r.mu.Unlock()
+	for _, name := range r.cat.Pulls(plugin) {
+		if !before[name] {
+			added = append(added, name)
+		}
+	}
 	r.poke()
-	return nil
+	return added, nil
 }
 
 // Uninstall removes plugin from the installed set, then stops and removes
@@ -787,6 +794,11 @@ func (r *Runtime) start(ctx context.Context, lc componentpb.LifecycleServiceClie
 			if cfg, err = r.opts.Config.Load(ctx, name, cfgDesc); err != nil {
 				return err
 			}
+		}
+		// A stored config a newer Release's rules refuse, e.g. one
+		// without a field that became required, never reaches Start.
+		if err := config.Validate(cfg.ProtoReflect()).Err(); err != nil {
+			return err
 		}
 		var err error
 		if b, err = proto.Marshal(cfg); err != nil {

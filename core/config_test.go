@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/proto"
 
+	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
@@ -291,6 +292,81 @@ func TestASaveKeepsTheSecretsItLeavesUnchangedAndReplacesOrClearsTheOthers(t *te
 		if got := coreJSON(t, h, "GetConfigForm", `{"owner":"greeter"}`)["secretsSet"]; !cmp.Equal(s.secretsSet, got) {
 			t.Errorf("after %s: secrets set %v, want %v", s.body, got, s.secretsSet)
 		}
+	}
+}
+
+// greeterStatus is greeter's entry in the Catalogue, under hello.
+func greeterStatus(t *testing.T, h *coretest.Harness) map[string]any {
+	t.Helper()
+	cat := coreJSON(t, h, "ListCatalogue", `{}`)
+	return cat["plugins"].([]any)[0].(map[string]any)["components"].([]any)[0].(map[string]any)
+}
+
+func TestAComponentLeftWithoutARequiredFieldNeedsConfigAndItsFormSaysWhy(t *testing.T) {
+	// Saved before a Release made target required.
+	h := newHello(t, &samplepb.SampleConfig{Greeting: ptr("hi")})
+
+	h.WaitState("greeter", runtime.Unconfigured)
+
+	want := map[string]any{"name": "greeter", "state": "unconfigured", "message": "invalid config", "configurable": true, "needsConfig": true}
+	if diff := cmp.Diff(want, greeterStatus(t, h)); diff != "" {
+		t.Errorf("Catalogue (-want +got):\n%s", diff)
+	}
+	form := coreJSON(t, h, "GetConfigForm", `{"owner":"greeter"}`)
+	if diff := cmp.Diff([]any{map[string]any{"path": "target", "message": "is required"}}, form["errors"]); diff != "" {
+		t.Errorf("form errors (-want +got):\n%s", diff)
+	}
+}
+
+func TestAComponentNeverConfiguredIsUnconfiguredButNeedsNoConfig(t *testing.T) {
+	h := newHello(t, nil)
+
+	h.WaitState("greeter", runtime.Unconfigured)
+
+	if got := greeterStatus(t, h); got["needsConfig"] != nil || got["configurable"] != true {
+		t.Errorf("Catalogue: %v, want configurable, not needing config", got)
+	}
+}
+
+func TestInstallAnswersTheComponentsItAdds(t *testing.T) {
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{greeter(sample.Hooks{}), sample.Define("relay", []string{"greeter"}, sample.Hooks{})},
+		Plugins:    []coretest.Plugin{hello, relayer},
+	})
+	h.Install("hello")
+
+	got := coreJSON(t, h, "Install", `{"plugin":"relayer"}`)
+
+	// greeter already runs for hello; the shell opens relay's form.
+	if diff := cmp.Diff(map[string]any{"components": []any{"relay"}}, got); diff != "" {
+		t.Errorf("Install (-want +got):\n%s", diff)
+	}
+}
+
+func TestAComponentValidOnDefaultsStartsRightAfterInstall(t *testing.T) {
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{dockerapi.Definition()},
+		Plugins:    []coretest.Plugin{{Name: "docker", Requires: []string{"docker-api"}}},
+	})
+
+	h.Install("docker")
+
+	h.WaitState("docker-api", runtime.OK)
+}
+
+func TestUninstallWithDeleteDataForgetsTheConfig(t *testing.T) {
+	h := newHello(t, &samplepb.SampleConfig{Target: "world", Token: "s3cret"})
+	h.WaitState("greeter", runtime.OK)
+
+	if _, err := h.Uninstall("hello", true); err != nil {
+		t.Fatal(err)
+	}
+	h.Install("hello")
+
+	h.WaitState("greeter", runtime.Unconfigured)
+	form := coreJSON(t, h, "GetConfigForm", `{"owner":"greeter"}`)
+	if values, _ := form["values"].(map[string]any); len(values) != 0 || form["secretsSet"] != nil {
+		t.Errorf("after reinstalling: values %v, secrets %v, want none", form["values"], form["secretsSet"])
 	}
 }
 
