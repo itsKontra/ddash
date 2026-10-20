@@ -47,6 +47,7 @@ type Instance struct {
 	// ctx lives until Stop; it is the ctx the Component's Start gets.
 	ctx    context.Context
 	cancel context.CancelFunc
+	loops  *loops
 
 	mu       sync.Mutex
 	starting bool  // Start was called
@@ -63,8 +64,9 @@ func NewInstance(def Definition, opts InstanceOptions) *Instance {
 	if opts.Logger == nil {
 		opts.Logger = slog.New(slog.DiscardHandler)
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	return &Instance{def: def, opts: opts, ctx: ctx, cancel: cancel}
+	l := &loops{log: opts.Logger}
+	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), loopsKey{}, l))
+	return &Instance{def: def, opts: opts, ctx: ctx, cancel: cancel, loops: l}
 }
 
 // Register adds the lifecycle service and the Component's API to s. The
@@ -152,7 +154,18 @@ func (i *Instance) Health(ctx context.Context, _ *componentpb.HealthRequest) (*c
 		}
 		return Health{State: Down, Message: status.Convert(startErr).Message()}.proto(), nil
 	}
-	return r.c.Health(ctx).proto(), nil
+	return worst(r.c.Health(ctx), i.loops.health()).proto(), nil
+}
+
+// worst returns the worst of hs, the first of equals.
+func worst(hs ...Health) Health {
+	w := hs[0]
+	for _, h := range hs[1:] {
+		if h.State > w.State {
+			w = h
+		}
+	}
+	return w
 }
 
 // openDB opens the Component's SQLite file and applies its migrations. Any
@@ -178,6 +191,16 @@ func (i *Instance) openDB() (*sql.DB, error) {
 // ends, and closes its DB.
 func (i *Instance) Stop(ctx context.Context) {
 	i.cancel()
+	done := make(chan struct{})
+	go func() {
+		i.loops.wg.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-ctx.Done():
+		i.opts.Logger.Warn("stopped before background loops finished")
+	}
 	i.mu.Lock()
 	defer i.mu.Unlock()
 	if i.db != nil {
