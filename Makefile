@@ -86,4 +86,4 @@ release-dir: build
 # Plugins rebuilding with `vite build --watch` and the shell on the Vite
 # dev server (http://127.0.0.1:5173), which proxies the core.
 dev: build
-	go run ./cmd/dev
+	go run ./cmd/dev $(DEV_ARGS)
