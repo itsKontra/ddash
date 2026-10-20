@@ -35,16 +35,21 @@ var manifest []byte
 const requestTimeout = 5 * time.Second
 
 // Definition is proxmox-api, ready for sdk.Serve.
-func Definition() sdk.Definition {
+func Definition() sdk.Definition { return define(nil) }
+
+// define is proxmox-api sending its requests through rt, or over the
+// network to the configured URL when rt is nil.
+func define(rt http.RoundTripper) sdk.Definition {
 	return sdk.Define(sdk.Spec[*pb.ProxmoxApiConfig]{
 		Manifest: manifest,
 		Service:  &pb.ProxmoxApiService_ServiceDesc,
-		New:      func() sdk.Component[*pb.ProxmoxApiConfig] { return &component{} },
+		New:      func() sdk.Component[*pb.ProxmoxApiConfig] { return &component{rt: rt} },
 	})
 }
 
 type component struct {
 	pb.UnimplementedProxmoxApiServiceServer
+	rt          http.RoundTripper
 	client      *proxmox.Client
 	workloads   *sdk.Cache[*pb.ListWorkloadsResponse]
 	permissions *sdk.Cache[permissions]
@@ -67,8 +72,12 @@ func (c *component) Start(ctx context.Context, _ *sdk.Env, cfg *pb.ProxmoxApiCon
 		RootCAs:    rootCAs,
 	}
 	context.AfterFunc(ctx, transport.CloseIdleConnections)
+	var rt http.RoundTripper = transport
+	if c.rt != nil {
+		rt = c.rt
+	}
 	c.client = proxmox.NewClient(base,
-		proxmox.WithHTTPClient(&http.Client{Timeout: requestTimeout, Transport: transport}),
+		proxmox.WithHTTPClient(&http.Client{Timeout: requestTimeout, Transport: rt}),
 		proxmox.WithAPIToken(cfg.GetTokenId(), cfg.GetTokenSecret()),
 	)
 	c.workloads = sdk.Cached(sdk.TTLFast, c.fetch)

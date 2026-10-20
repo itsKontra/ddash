@@ -18,7 +18,7 @@ import (
 )
 
 // taskPollInterval is how often a power Action reads its task's status.
-var taskPollInterval = time.Second
+const taskPollInterval = time.Second
 
 func (c *component) StartWorkload(ctx context.Context, req *pb.StartWorkloadRequest) (*pb.StartWorkloadResponse, error) {
 	upid, err := c.power(ctx, req.GetWorkload(), "start", nil)

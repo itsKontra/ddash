@@ -2,8 +2,11 @@ package proxmoxapi
 
 import (
 	"crypto/x509"
+	"net/http"
+	"net/http/httptest"
 	"testing"
-	"time"
+
+	"github.com/itsKontra/ddash/sdk"
 )
 
 // TrustRoots makes the Components started during t trust pool instead of
@@ -14,10 +17,19 @@ func TrustRoots(t *testing.T, pool *x509.CertPool) {
 	t.Cleanup(func() { rootCAs = old })
 }
 
-// PollTasksEvery makes the power Actions started during t read their
-// task's status every d.
-func PollTasksEvery(t *testing.T, d time.Duration) {
-	old := taskPollInterval
-	taskPollInterval = d
-	t.Cleanup(func() { taskPollInterval = old })
+// DefinitionServing is proxmox-api whose requests h answers in memory, so
+// its tests can run inside a synctest bubble.
+func DefinitionServing(h http.Handler) sdk.Definition { return define(handlerTransport{h}) }
+
+type handlerTransport struct{ h http.Handler }
+
+func (t handlerTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if err := r.Context().Err(); err != nil {
+		return nil, err
+	}
+	w := httptest.NewRecorder()
+	t.h.ServeHTTP(w, r)
+	res := w.Result()
+	res.Request = r
+	return res, nil
 }
