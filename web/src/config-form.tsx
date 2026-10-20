@@ -8,6 +8,7 @@ import {
   type FormField,
   type GetConfigFormResponse,
 } from "@ddash/proto/ddash/core/core_pb";
+import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/config_pb";
 import { Button, cx, StatusDot, type Tone } from "@ddash/ui";
 import { X } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
@@ -32,10 +33,39 @@ export function ConfigForm({ owner }: { owner: string }) {
   if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
     <div>
+      {data.setupHint && <SetupHint hint={data.setupHint} />}
       {/* A save refetches the form; start over from what is stored then. */}
       <Editor key={dataUpdatedAt} owner={owner} form={data} onSaved={setStatus} />
       {status && <Health status={status} />}
     </div>
+  );
+}
+
+/** What the Operator does outside ddash to finish the setup, with a Copy button for its block. */
+function SetupHint({ hint }: { hint: SetupHintMessage }) {
+  const id = useId();
+  const [copied, setCopied] = useState(false);
+  return (
+    <section aria-labelledby={id} className="mb-5 rounded-ui border border-border bg-muted p-3 text-sm">
+      <h3 id={id} className="mb-1 font-medium">
+        Setup
+      </h3>
+      <p className="text-muted-foreground">{hint.text}</p>
+      {hint.block && (
+        <div className="mt-2 flex items-start gap-2">
+          <pre className="min-w-0 flex-1 overflow-x-auto rounded-ui border border-border bg-card p-2 text-xs whitespace-pre-wrap break-all">{hint.block}</pre>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              void navigator.clipboard.writeText(hint.block).then(() => setCopied(true));
+            }}
+          >
+            {copied ? "Copied" : "Copy"}
+          </Button>
+        </div>
+      )}
+    </section>
   );
 }
 

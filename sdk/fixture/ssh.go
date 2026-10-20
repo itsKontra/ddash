@@ -217,7 +217,7 @@ func (s *SSH) handle(c net.Conn) {
 	forced := conn.Permissions.CriticalOptions["force-command"]
 	for nc := range chans {
 		if nc.ChannelType() != "session" {
-			nc.Reject(ssh.UnknownChannelType, "only sessions")
+			_ = nc.Reject(ssh.UnknownChannelType, "only sessions")
 			continue
 		}
 		ch, chReqs, err := nc.Accept()
@@ -233,15 +233,15 @@ func (s *SSH) session(ch ssh.Channel, reqs <-chan *ssh.Request, forced string) {
 	defer ch.Close()
 	for req := range reqs {
 		if req.Type != "exec" {
-			req.Reply(false, nil)
+			_ = req.Reply(false, nil)
 			continue
 		}
 		var payload struct{ Command string }
 		if err := ssh.Unmarshal(req.Payload, &payload); err != nil {
-			req.Reply(false, nil)
+			_ = req.Reply(false, nil)
 			return
 		}
-		req.Reply(true, nil)
+		_ = req.Reply(true, nil)
 		command := payload.Command
 		if forced != "" {
 			command = forced
@@ -250,9 +250,9 @@ func (s *SSH) session(ch ssh.Channel, reqs <-chan *ssh.Request, forced string) {
 		s.hits[command]++
 		s.mu.Unlock()
 		stdout, stderr, status := s.answer(command)
-		ch.Write(stdout)
-		ch.Stderr().Write(stderr)
-		ch.SendRequest("exit-status", false, binary.BigEndian.AppendUint32(nil, status))
+		_, _ = ch.Write(stdout)
+		_, _ = ch.Stderr().Write(stderr)
+		_, _ = ch.SendRequest("exit-status", false, binary.BigEndian.AppendUint32(nil, status))
 		return
 	}
 }

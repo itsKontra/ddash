@@ -281,3 +281,29 @@ it("keeps a form an install opened until it is closed, to show the health after 
 
   expect(within(screen.getByRole("dialog", { name: "ntfy-api config" })).getByRole("status").textContent).toMatch(/ok/);
 });
+
+it("shows a started Component's setup hint, with a button copying its block", async () => {
+  const line = 'restrict,from="198.18.1.5",command="/usr/sbin/nginx -T" ssh-ed25519 AAAAC3Nza ddash';
+  forms["docker-api"] = { ...dockerForm(), setupHint: { text: "Add this line to root's authorized_keys.", block: line } } as ReturnType<typeof dockerForm>;
+  const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+  Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+  await boot();
+
+  const form = await configure("docker-api");
+
+  const hint = within(form).getByRole("region", { name: "Setup" });
+  expect(hint.textContent).toContain("Add this line to root's authorized_keys.");
+  expect(within(hint).getByText(line).tagName).toBe("PRE");
+  fireEvent.click(within(hint).getByRole("button", { name: "Copy" }));
+  await settle();
+  expect(writeText).toHaveBeenCalledWith(line);
+  expect(within(hint).getByRole("button", { name: "Copied" })).toBeTruthy();
+});
+
+it("shows no setup hint for a Component without one", async () => {
+  await boot();
+
+  const form = await configure("ntfy-api");
+
+  expect(within(form).queryByRole("region", { name: "Setup" })).toBeNull();
+});

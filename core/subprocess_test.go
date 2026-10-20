@@ -40,6 +40,14 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"jellyfin"`) {
 		t.Errorf("ListContainers: status %d: %s; want baseline's jellyfin", res.Code, res.Body)
 	}
+
+	// nginx-config reads `nginx -T` from fakelab's SSH server.
+	h.Install("reverse-proxy")
+	h.WaitState("nginx-config", runtime.OK)
+	res = h.Call("reverse-proxy", "nginx-config", "GetSnapshot", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"jellyfin.home.example"`) {
+		t.Errorf("GetSnapshot: status %d: %s; want baseline's jellyfin server block", res.Code, res.Body)
+	}
 }
 
 // sampleRelease lays out a Release dir of Release "dev" whose Plugin hello
