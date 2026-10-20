@@ -3,7 +3,7 @@ import { useQuery } from "@ddash/plugin";
 import { CoreService, type AuditChain, type AuditEntry } from "@ddash/proto/ddash/core/core_pb";
 import { Badge, cx, PageHeader, type Tone } from "@ddash/ui";
 import { ChevronRight } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
 
 /** What the Audit Log is filtered by; empty means any. */
 interface Filter {
@@ -123,11 +123,14 @@ function Page({
   onTargets?: (targets: string[]) => void;
 }) {
   const { data, error } = useQuery(CoreService.method.listAuditLog, request);
+  // The callbacks change every render; only new data is news.
+  const report = useEffectEvent((d: NonNullable<typeof data>) => {
+    onSettled(d.nextPageToken, d.chains.length === 0);
+    onTargets?.(d.targets);
+  });
   useEffect(() => {
-    if (!data) return;
-    onSettled(data.nextPageToken, data.chains.length === 0);
-    onTargets?.(data.targets);
-  }, [data]); // The callbacks change every render; only new data is news.
+    if (data) report(data);
+  }, [data]);
   if (error && !data) {
     return (
       <li role="alert" className="px-4 py-3 text-sm text-down">
