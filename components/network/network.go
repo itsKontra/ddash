@@ -1,6 +1,7 @@
 // Package network is the network Component, the logic behind the Network
-// Page. For now it watches the firewall's failover gateway group and
-// derives the VPN Tunnel's tier from it.
+// Page. It watches the firewall's failover gateway group and derives the
+// VPN Tunnel's tier from it, samples WAN and LAN throughput into an
+// in-memory ring, and reads Remote Access.
 package network
 
 import (
