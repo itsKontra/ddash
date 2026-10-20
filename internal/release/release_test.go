@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	goruntime "runtime"
 	"strings"
 	"testing"
@@ -123,6 +124,26 @@ func TestTheReposCatalogueChecks(t *testing.T) {
 	if len(cat.Plugins) == 0 {
 		t.Error("no Plugins found in the repo")
 	}
+}
+
+// The reverse-proxy Page joins nginx-config's Proxy Hosts with apps' Apps
+// and their Checks, so the Plugin requires all three.
+func TestReverseProxyRequiresNginxConfigAppsAndChecks(t *testing.T) {
+	cat, err := release.Catalogue("../..", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range cat.Plugins {
+		if p.Name != "reverse-proxy" {
+			continue
+		}
+		got := slices.Sorted(slices.Values(p.Requires))
+		if want := []string{"apps", "checks", "nginx-config"}; !slices.Equal(got, want) {
+			t.Errorf("reverse-proxy requires %v, want %v", p.Requires, want)
+		}
+		return
+	}
+	t.Error("no reverse-proxy Plugin in the repo")
 }
 
 // widgetsOnly is a repo with one Plugin requiring nothing, so building its
