@@ -32,7 +32,13 @@ jobs:
       - name: go vet
         run: make vet
       - name: golangci-lint
-        run: make lint
+        run: make lint-go
+      # oxlint, then the Plugin style lint (packages/plugin-check).
+      - name: pnpm lint
+        run: make lint-web
+      # Imports each built Plugin bundle and checks what definePlugin returns.
+      - name: Plugin contract check
+        run: make check-plugins
       # go test ./... includes the subprocess test, which builds the Release
       # and boots the core with the real launcher against fakelab, and the
       # fixture IP guard (internal/ipguard).

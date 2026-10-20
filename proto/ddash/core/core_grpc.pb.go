@@ -26,6 +26,9 @@ const (
 	CoreService_Install_FullMethodName              = "/ddash.core.CoreService/Install"
 	CoreService_Uninstall_FullMethodName            = "/ddash.core.CoreService/Uninstall"
 	CoreService_Restart_FullMethodName              = "/ddash.core.CoreService/Restart"
+	CoreService_ListCatalogue_FullMethodName        = "/ddash.core.CoreService/ListCatalogue"
+	CoreService_DeleteOrphan_FullMethodName         = "/ddash.core.CoreService/DeleteOrphan"
+	CoreService_ListAuditLog_FullMethodName         = "/ddash.core.CoreService/ListAuditLog"
 )
 
 // CoreServiceClient is the client API for CoreService service.
@@ -47,6 +50,15 @@ type CoreServiceClient interface {
 	// a Component that crashed about 5 times in 10 minutes stays down until
 	// restarted. It never restarts the Components that require it.
 	Restart(ctx context.Context, in *RestartRequest, opts ...grpc.CallOption) (*RestartResponse, error)
+	// ListCatalogue returns every Plugin in the running Release, whether it
+	// is installed, and the state of each Component it pulls in, plus the
+	// orphaned DB files.
+	ListCatalogue(ctx context.Context, in *ListCatalogueRequest, opts ...grpc.CallOption) (*ListCatalogueResponse, error)
+	// DeleteOrphan deletes an orphaned Component's DB file and config.
+	DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error)
+	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+	// each with its hops.
+	ListAuditLog(ctx context.Context, in *ListAuditLogRequest, opts ...grpc.CallOption) (*ListAuditLogResponse, error)
 }
 
 type coreServiceClient struct {
@@ -97,6 +109,36 @@ func (c *coreServiceClient) Restart(ctx context.Context, in *RestartRequest, opt
 	return out, nil
 }
 
+func (c *coreServiceClient) ListCatalogue(ctx context.Context, in *ListCatalogueRequest, opts ...grpc.CallOption) (*ListCatalogueResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListCatalogueResponse)
+	err := c.cc.Invoke(ctx, CoreService_ListCatalogue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreServiceClient) DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteOrphanResponse)
+	err := c.cc.Invoke(ctx, CoreService_DeleteOrphan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreServiceClient) ListAuditLog(ctx context.Context, in *ListAuditLogRequest, opts ...grpc.CallOption) (*ListAuditLogResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAuditLogResponse)
+	err := c.cc.Invoke(ctx, CoreService_ListAuditLog_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoreServiceServer is the server API for CoreService service.
 // All implementations must embed UnimplementedCoreServiceServer
 // for forward compatibility.
@@ -116,6 +158,15 @@ type CoreServiceServer interface {
 	// a Component that crashed about 5 times in 10 minutes stays down until
 	// restarted. It never restarts the Components that require it.
 	Restart(context.Context, *RestartRequest) (*RestartResponse, error)
+	// ListCatalogue returns every Plugin in the running Release, whether it
+	// is installed, and the state of each Component it pulls in, plus the
+	// orphaned DB files.
+	ListCatalogue(context.Context, *ListCatalogueRequest) (*ListCatalogueResponse, error)
+	// DeleteOrphan deletes an orphaned Component's DB file and config.
+	DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error)
+	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+	// each with its hops.
+	ListAuditLog(context.Context, *ListAuditLogRequest) (*ListAuditLogResponse, error)
 	mustEmbedUnimplementedCoreServiceServer()
 }
 
@@ -137,6 +188,15 @@ func (UnimplementedCoreServiceServer) Uninstall(context.Context, *UninstallReque
 }
 func (UnimplementedCoreServiceServer) Restart(context.Context, *RestartRequest) (*RestartResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Restart not implemented")
+}
+func (UnimplementedCoreServiceServer) ListCatalogue(context.Context, *ListCatalogueRequest) (*ListCatalogueResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCatalogue not implemented")
+}
+func (UnimplementedCoreServiceServer) DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteOrphan not implemented")
+}
+func (UnimplementedCoreServiceServer) ListAuditLog(context.Context, *ListAuditLogRequest) (*ListAuditLogResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAuditLog not implemented")
 }
 func (UnimplementedCoreServiceServer) mustEmbedUnimplementedCoreServiceServer() {}
 func (UnimplementedCoreServiceServer) testEmbeddedByValue()                     {}
@@ -231,6 +291,60 @@ func _CoreService_Restart_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreService_ListCatalogue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCatalogueRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).ListCatalogue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_ListCatalogue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).ListCatalogue(ctx, req.(*ListCatalogueRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreService_DeleteOrphan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOrphanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).DeleteOrphan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_DeleteOrphan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).DeleteOrphan(ctx, req.(*DeleteOrphanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreService_ListAuditLog_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAuditLogRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).ListAuditLog(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_ListAuditLog_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).ListAuditLog(ctx, req.(*ListAuditLogRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoreService_ServiceDesc is the grpc.ServiceDesc for CoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -253,6 +367,18 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Restart",
 			Handler:    _CoreService_Restart_Handler,
+		},
+		{
+			MethodName: "ListCatalogue",
+			Handler:    _CoreService_ListCatalogue_Handler,
+		},
+		{
+			MethodName: "DeleteOrphan",
+			Handler:    _CoreService_DeleteOrphan_Handler,
+		},
+		{
+			MethodName: "ListAuditLog",
+			Handler:    _CoreService_ListAuditLog_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

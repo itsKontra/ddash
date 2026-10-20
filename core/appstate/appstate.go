@@ -9,6 +9,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"slices"
+	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -255,26 +258,236 @@ type Entry struct {
 
 // Entries returns the Audit Log, newest first.
 func (g *Gate) Entries(ctx context.Context) ([]Entry, error) {
-	rows, err := g.db.QueryContext(ctx, `
-		SELECT id, time, actor_kind, username, sub, chain_id, target, method, disruptive, request,
-		       COALESCE(outcome, ''), message, COALESCE(duration_ms, 0)
-		FROM audit_entry ORDER BY time DESC, id DESC`)
+	rows, err := g.db.QueryContext(ctx, `SELECT `+entryColumns+` FROM audit_entry ORDER BY time DESC, id DESC`)
 	if err != nil {
 		return nil, fmt.Errorf("audit log: %w", err)
 	}
 	defer rows.Close()
 	var out []Entry
 	for rows.Next() {
-		var e Entry
-		var at string
-		var ms int64
-		if err := rows.Scan(&e.ID, &at, &e.ActorKind, &e.Username, &e.Sub, &e.Chain, &e.Target, &e.Method,
-			&e.Disruptive, &e.Request, &e.Outcome, &e.Message, &ms); err != nil {
-			return nil, fmt.Errorf("audit log: %w", err)
+		e, err := scanEntry(rows)
+		if err != nil {
+			return nil, err
 		}
-		e.Time, _ = time.Parse(timeFormat, at)
-		e.Duration = time.Duration(ms) * time.Millisecond
 		out = append(out, e)
 	}
 	return out, rows.Err()
+}
+
+// Chain is the hops of one Action, linked by their chain id.
+type Chain struct {
+	ID string
+	// Entries are in the order they were admitted: the first is the root,
+	// the Action the actor started.
+	Entries []Entry
+}
+
+// Query picks a page of chains. Its filters left empty match any chain.
+type Query struct {
+	// ActorKind keeps the chains whose root ran for this kind of actor.
+	ActorKind string
+	// Target keeps the chains with a hop to this Component, or to "core".
+	Target string
+	// Outcome keeps the chains whose hops all ended OK, or that have a hop
+	// that failed (Failed), was Interrupted, or is still running
+	// (StillRunning).
+	Outcome string
+	// PageSize is how many chains a page holds: DefaultPageSize when 0, at
+	// most MaxPageSize.
+	PageSize int
+	// PageToken is the previous Page's Next; empty for the newest page.
+	PageToken string
+}
+
+// Page sizes for Query.PageSize.
+const (
+	DefaultPageSize = 50
+	MaxPageSize     = 200
+)
+
+// The outcomes a Query filters by besides OK and Interrupted.
+const (
+	// Failed matches any gRPC code.
+	Failed = "failed"
+	// StillRunning matches an Action that hasn't ended yet.
+	StillRunning = "running"
+)
+
+// outcomeFilters are the conditions on a root r that Query.Outcome picks.
+var outcomeFilters = map[string]string{
+	OK:           `NOT EXISTS (SELECT 1 FROM audit_entry h WHERE h.chain_id = r.chain_id AND (h.outcome IS NULL OR h.outcome != 'ok'))`,
+	Failed:       `EXISTS (SELECT 1 FROM audit_entry h WHERE h.chain_id = r.chain_id AND h.outcome NOT IN ('ok', 'interrupted'))`,
+	Interrupted:  `EXISTS (SELECT 1 FROM audit_entry h WHERE h.chain_id = r.chain_id AND h.outcome = 'interrupted')`,
+	StillRunning: `EXISTS (SELECT 1 FROM audit_entry h WHERE h.chain_id = r.chain_id AND h.outcome IS NULL)`,
+}
+
+// actorKinds are the kinds Query.ActorKind takes.
+var actorKinds = []string{auth.Operator, auth.Component, auth.Core}
+
+// Page is one page of chains, newest root first.
+type Page struct {
+	Chains []Chain
+	// Next is the PageToken of the next page; empty on the last page.
+	Next string
+}
+
+// Targets returns every target in the Audit Log, sorted.
+func (g *Gate) Targets(ctx context.Context) ([]string, error) {
+	rows, err := g.db.QueryContext(ctx, `SELECT DISTINCT target FROM audit_entry ORDER BY target`)
+	if err != nil {
+		return nil, fmt.Errorf("audit log: %w", err)
+	}
+	defer rows.Close()
+	var out []string
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			return nil, fmt.Errorf("audit log: %w", err)
+		}
+		out = append(out, t)
+	}
+	return out, rows.Err()
+}
+
+// entryColumns are the columns scanEntry reads.
+const entryColumns = `id, time, actor_kind, username, sub, chain_id, target, method, disruptive, request,
+	COALESCE(outcome, ''), message, COALESCE(duration_ms, 0)`
+
+// Chains returns the page of chains q picks. A chain's root is its first
+// admitted hop, and the chain is as new as its root.
+func (g *Gate) Chains(ctx context.Context, q Query) (Page, error) {
+	// A root is an entry no earlier entry shares its chain with.
+	where := []string{`NOT EXISTS (SELECT 1 FROM audit_entry p WHERE p.chain_id = r.chain_id AND p.id < r.id)`}
+	var args []any
+	if q.ActorKind != "" {
+		if !slices.Contains(actorKinds, q.ActorKind) {
+			return Page{}, status.Errorf(codes.InvalidArgument, "actor kind %q isn't one of %s", q.ActorKind, strings.Join(actorKinds, ", "))
+		}
+		where = append(where, `r.actor_kind = ?`)
+		args = append(args, q.ActorKind)
+	}
+	if q.Outcome != "" {
+		cond, ok := outcomeFilters[q.Outcome]
+		if !ok {
+			return Page{}, status.Errorf(codes.InvalidArgument, "outcome %q isn't one of ok, failed, interrupted, running", q.Outcome)
+		}
+		where = append(where, cond)
+	}
+	if q.Target != "" {
+		where = append(where, `EXISTS (SELECT 1 FROM audit_entry h WHERE h.chain_id = r.chain_id AND h.target = ?)`)
+		args = append(args, q.Target)
+	}
+	if q.PageToken != "" {
+		// The page goes on after the root the token names.
+		at, id, ok := parseToken(q.PageToken)
+		if !ok {
+			return Page{}, status.Errorf(codes.InvalidArgument, "page token %q isn't one this Audit Log gave", q.PageToken)
+		}
+		where = append(where, `(r.time < ? OR (r.time = ? AND r.id < ?))`)
+		args = append(args, at, at, id)
+	}
+	size := q.PageSize
+	if size <= 0 {
+		size = DefaultPageSize
+	}
+	size = min(size, MaxPageSize)
+	rows, err := g.db.QueryContext(ctx, `
+		SELECT r.chain_id, r.time, r.id FROM audit_entry r
+		WHERE `+strings.Join(where, " AND ")+`
+		ORDER BY r.time DESC, r.id DESC
+		LIMIT ?`, append(args, size+1)...)
+	if err != nil {
+		return Page{}, fmt.Errorf("audit log: %w", err)
+	}
+	var roots []root
+	var page Page
+	for rows.Next() {
+		var chain, at string
+		var id int64
+		if err := rows.Scan(&chain, &at, &id); err != nil {
+			rows.Close()
+			return Page{}, fmt.Errorf("audit log: %w", err)
+		}
+		if len(roots) == size {
+			// One more root than fits: there is a next page.
+			page.Next = token(roots[len(roots)-1])
+			break
+		}
+		roots = append(roots, root{chain, at, id})
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return Page{}, fmt.Errorf("audit log: %w", err)
+	}
+	page.Chains, err = g.hops(ctx, roots)
+	return page, err
+}
+
+// root is a chain's first hop, as a page of chains is sorted by.
+type root struct {
+	chain string
+	time  string
+	id    int64
+}
+
+// token is the PageToken of the page after r: its time and id.
+func token(r root) string { return r.time + "/" + strconv.FormatInt(r.id, 10) }
+
+func parseToken(s string) (at string, id int64, ok bool) {
+	at, idText, ok := strings.Cut(s, "/")
+	if !ok {
+		return "", 0, false
+	}
+	if _, err := time.Parse(timeFormat, at); err != nil || len(at) != len(timeFormat) {
+		return "", 0, false
+	}
+	id, err := strconv.ParseInt(idText, 10, 64)
+	return at, id, err == nil
+}
+
+// hops returns the chains of roots, in that order, each with its hops in
+// the order they were admitted.
+func (g *Gate) hops(ctx context.Context, roots []root) ([]Chain, error) {
+	if len(roots) == 0 {
+		return nil, nil
+	}
+	chains := make([]Chain, len(roots))
+	at := make(map[string]int, len(roots))
+	ids := make([]any, len(roots))
+	for i, r := range roots {
+		chains[i].ID = r.chain
+		at[r.chain] = i
+		ids[i] = r.chain
+	}
+	rows, err := g.db.QueryContext(ctx, `SELECT `+entryColumns+` FROM audit_entry
+		WHERE chain_id IN (?`+strings.Repeat(", ?", len(ids)-1)+`) ORDER BY id`, ids...)
+	if err != nil {
+		return nil, fmt.Errorf("audit log: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		e, err := scanEntry(rows)
+		if err != nil {
+			return nil, err
+		}
+		i := at[e.Chain]
+		chains[i].Entries = append(chains[i].Entries, e)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("audit log: %w", err)
+	}
+	return chains, nil
+}
+
+func scanEntry(rows *sql.Rows) (Entry, error) {
+	var e Entry
+	var at string
+	var ms int64
+	if err := rows.Scan(&e.ID, &at, &e.ActorKind, &e.Username, &e.Sub, &e.Chain, &e.Target, &e.Method,
+		&e.Disruptive, &e.Request, &e.Outcome, &e.Message, &ms); err != nil {
+		return Entry{}, fmt.Errorf("audit log: %w", err)
+	}
+	e.Time, _ = time.Parse(timeFormat, at)
+	e.Duration = time.Duration(ms) * time.Millisecond
+	return e, nil
 }

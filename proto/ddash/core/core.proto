@@ -5,6 +5,8 @@ syntax = "proto3";
 package ddash.core;
 
 import "ddash/options.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/proto/ddash/core;corepb";
 
@@ -32,7 +34,65 @@ service CoreService {
   rpc Restart(RestartRequest) returns (RestartResponse) {
     option (ddash.action) = {disruptive: true};
   }
+  // ListCatalogue returns every Plugin in the running Release, whether it
+  // is installed, and the state of each Component it pulls in, plus the
+  // orphaned DB files.
+  rpc ListCatalogue(ListCatalogueRequest) returns (ListCatalogueResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // DeleteOrphan deletes an orphaned Component's DB file and config.
+  rpc DeleteOrphan(DeleteOrphanRequest) returns (DeleteOrphanResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+  // each with its hops.
+  rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
 }
+
+message ListCatalogueRequest {}
+
+message ListCatalogueResponse {
+  string release = 1;
+  // By name.
+  repeated CataloguePlugin plugins = 2;
+  // Components whose DB file is kept although nothing runs them, by name.
+  repeated string orphans = 3;
+}
+
+// A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
+message CataloguePlugin {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // A lucide icon name, e.g. "container".
+  string icon = 4;
+  // The author's GitHub handle.
+  string author = 5;
+  bool installed = 6;
+  // The Components installing it runs: its requires, transitively, each
+  // after the ones it requires.
+  repeated ComponentStatus components = 7;
+}
+
+// A Component as the host sees it.
+message ComponentStatus {
+  string name = 1;
+  // The host's state: starting, ok, degraded, down, unconfigured, stopped
+  // or crashed. Empty when the Component doesn't run.
+  string state = 2;
+  // A one-line explanation of the state.
+  string message = 3;
+  // The Component crashed too often and stays down until restarted.
+  bool held = 4;
+}
+
+message DeleteOrphanRequest {
+  string component = 1;
+}
+
+message DeleteOrphanResponse {}
 
 message InstallRequest {
   string plugin = 1;
@@ -79,4 +139,63 @@ message InstalledPlugin {
   string script = 7;
   // The bundle's stylesheet: /plugins/<name>/<release>/index.css.
   string style = 8;
+}
+
+message ListAuditLogRequest {
+  // Only chains whose root ran for this kind of actor: "operator",
+  // "component" or "core". Empty means any.
+  string actor_kind = 1;
+  // Only chains with a hop to this target: a Component's name or "core".
+  // Empty means any.
+  string target = 2;
+  // Only chains with a hop that ended so: "ok", "failed" (a gRPC code),
+  // "interrupted" or "running". Empty means any.
+  string outcome = 3;
+  // Chains per page: 50 when 0, at most 200.
+  int32 page_size = 4;
+  // The previous page's next_page_token; empty for the newest page.
+  string page_token = 5;
+}
+
+message ListAuditLogResponse {
+  // Newest root first.
+  repeated AuditChain chains = 1;
+  // Where the next page starts; empty on the last page.
+  string next_page_token = 2;
+  // Every target in the Audit Log, sorted, to filter by.
+  repeated string targets = 3;
+}
+
+// The hops of one Action, linked by their chain id.
+message AuditChain {
+  string id = 1;
+  // In the order they were admitted: the first is the root, the Action
+  // the actor started.
+  repeated AuditEntry entries = 2;
+}
+
+// One hop in the Audit Log.
+message AuditEntry {
+  // When the gate admitted it.
+  google.protobuf.Timestamp time = 1;
+  // "operator", "component" or "core".
+  string actor_kind = 2;
+  // The Operator's preferred_username or the Component's name.
+  string username = 3;
+  // The Operator's OIDC subject.
+  string sub = 4;
+  // A Component's name, or "core".
+  string target = 5;
+  // The bare method name, e.g. "Install".
+  string method = 6;
+  bool disruptive = 7;
+  // The request as compact protojson, secrets redacted, cut at 4 KiB.
+  string request = 8;
+  // "ok", "interrupted", a failed Action's gRPC code (e.g.
+  // "PermissionDenied"), or empty while it runs.
+  string outcome = 9;
+  // A failed Action's error message.
+  string message = 10;
+  // How long it ran; unset while it runs.
+  google.protobuf.Duration duration = 11;
 }

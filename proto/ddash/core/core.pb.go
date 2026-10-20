@@ -13,6 +13,8 @@ import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -25,6 +27,354 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type ListCatalogueRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCatalogueRequest) Reset() {
+	*x = ListCatalogueRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCatalogueRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCatalogueRequest) ProtoMessage() {}
+
+func (x *ListCatalogueRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCatalogueRequest.ProtoReflect.Descriptor instead.
+func (*ListCatalogueRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{0}
+}
+
+type ListCatalogueResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Release string                 `protobuf:"bytes,1,opt,name=release,proto3" json:"release,omitempty"`
+	// By name.
+	Plugins []*CataloguePlugin `protobuf:"bytes,2,rep,name=plugins,proto3" json:"plugins,omitempty"`
+	// Components whose DB file is kept although nothing runs them, by name.
+	Orphans       []string `protobuf:"bytes,3,rep,name=orphans,proto3" json:"orphans,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCatalogueResponse) Reset() {
+	*x = ListCatalogueResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCatalogueResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCatalogueResponse) ProtoMessage() {}
+
+func (x *ListCatalogueResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCatalogueResponse.ProtoReflect.Descriptor instead.
+func (*ListCatalogueResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *ListCatalogueResponse) GetRelease() string {
+	if x != nil {
+		return x.Release
+	}
+	return ""
+}
+
+func (x *ListCatalogueResponse) GetPlugins() []*CataloguePlugin {
+	if x != nil {
+		return x.Plugins
+	}
+	return nil
+}
+
+func (x *ListCatalogueResponse) GetOrphans() []string {
+	if x != nil {
+		return x.Orphans
+	}
+	return nil
+}
+
+// A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
+type CataloguePlugin struct {
+	state       protoimpl.MessageState `protogen:"open.v1"`
+	Name        string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Title       string                 `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	Description string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// A lucide icon name, e.g. "container".
+	Icon string `protobuf:"bytes,4,opt,name=icon,proto3" json:"icon,omitempty"`
+	// The author's GitHub handle.
+	Author    string `protobuf:"bytes,5,opt,name=author,proto3" json:"author,omitempty"`
+	Installed bool   `protobuf:"varint,6,opt,name=installed,proto3" json:"installed,omitempty"`
+	// The Components installing it runs: its requires, transitively, each
+	// after the ones it requires.
+	Components    []*ComponentStatus `protobuf:"bytes,7,rep,name=components,proto3" json:"components,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CataloguePlugin) Reset() {
+	*x = CataloguePlugin{}
+	mi := &file_ddash_core_core_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CataloguePlugin) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CataloguePlugin) ProtoMessage() {}
+
+func (x *CataloguePlugin) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CataloguePlugin.ProtoReflect.Descriptor instead.
+func (*CataloguePlugin) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CataloguePlugin) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CataloguePlugin) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *CataloguePlugin) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *CataloguePlugin) GetIcon() string {
+	if x != nil {
+		return x.Icon
+	}
+	return ""
+}
+
+func (x *CataloguePlugin) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+func (x *CataloguePlugin) GetInstalled() bool {
+	if x != nil {
+		return x.Installed
+	}
+	return false
+}
+
+func (x *CataloguePlugin) GetComponents() []*ComponentStatus {
+	if x != nil {
+		return x.Components
+	}
+	return nil
+}
+
+// A Component as the host sees it.
+type ComponentStatus struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// The host's state: starting, ok, degraded, down, unconfigured, stopped
+	// or crashed. Empty when the Component doesn't run.
+	State string `protobuf:"bytes,2,opt,name=state,proto3" json:"state,omitempty"`
+	// A one-line explanation of the state.
+	Message string `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
+	// The Component crashed too often and stays down until restarted.
+	Held          bool `protobuf:"varint,4,opt,name=held,proto3" json:"held,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ComponentStatus) Reset() {
+	*x = ComponentStatus{}
+	mi := &file_ddash_core_core_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ComponentStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ComponentStatus) ProtoMessage() {}
+
+func (x *ComponentStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ComponentStatus.ProtoReflect.Descriptor instead.
+func (*ComponentStatus) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ComponentStatus) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *ComponentStatus) GetState() string {
+	if x != nil {
+		return x.State
+	}
+	return ""
+}
+
+func (x *ComponentStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ComponentStatus) GetHeld() bool {
+	if x != nil {
+		return x.Held
+	}
+	return false
+}
+
+type DeleteOrphanRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Component     string                 `protobuf:"bytes,1,opt,name=component,proto3" json:"component,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteOrphanRequest) Reset() {
+	*x = DeleteOrphanRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteOrphanRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteOrphanRequest) ProtoMessage() {}
+
+func (x *DeleteOrphanRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteOrphanRequest.ProtoReflect.Descriptor instead.
+func (*DeleteOrphanRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeleteOrphanRequest) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
+type DeleteOrphanResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteOrphanResponse) Reset() {
+	*x = DeleteOrphanResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteOrphanResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteOrphanResponse) ProtoMessage() {}
+
+func (x *DeleteOrphanResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteOrphanResponse.ProtoReflect.Descriptor instead.
+func (*DeleteOrphanResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{5}
+}
+
 type InstallRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Plugin        string                 `protobuf:"bytes,1,opt,name=plugin,proto3" json:"plugin,omitempty"`
@@ -34,7 +384,7 @@ type InstallRequest struct {
 
 func (x *InstallRequest) Reset() {
 	*x = InstallRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[0]
+	mi := &file_ddash_core_core_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +396,7 @@ func (x *InstallRequest) String() string {
 func (*InstallRequest) ProtoMessage() {}
 
 func (x *InstallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[0]
+	mi := &file_ddash_core_core_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +409,7 @@ func (x *InstallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallRequest.ProtoReflect.Descriptor instead.
 func (*InstallRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{0}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *InstallRequest) GetPlugin() string {
@@ -77,7 +427,7 @@ type InstallResponse struct {
 
 func (x *InstallResponse) Reset() {
 	*x = InstallResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[1]
+	mi := &file_ddash_core_core_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -89,7 +439,7 @@ func (x *InstallResponse) String() string {
 func (*InstallResponse) ProtoMessage() {}
 
 func (x *InstallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[1]
+	mi := &file_ddash_core_core_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -102,7 +452,7 @@ func (x *InstallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallResponse.ProtoReflect.Descriptor instead.
 func (*InstallResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{1}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{7}
 }
 
 type UninstallRequest struct {
@@ -116,7 +466,7 @@ type UninstallRequest struct {
 
 func (x *UninstallRequest) Reset() {
 	*x = UninstallRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[2]
+	mi := &file_ddash_core_core_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -128,7 +478,7 @@ func (x *UninstallRequest) String() string {
 func (*UninstallRequest) ProtoMessage() {}
 
 func (x *UninstallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[2]
+	mi := &file_ddash_core_core_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -141,7 +491,7 @@ func (x *UninstallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallRequest.ProtoReflect.Descriptor instead.
 func (*UninstallRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{2}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *UninstallRequest) GetPlugin() string {
@@ -168,7 +518,7 @@ type UninstallResponse struct {
 
 func (x *UninstallResponse) Reset() {
 	*x = UninstallResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[3]
+	mi := &file_ddash_core_core_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -180,7 +530,7 @@ func (x *UninstallResponse) String() string {
 func (*UninstallResponse) ProtoMessage() {}
 
 func (x *UninstallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[3]
+	mi := &file_ddash_core_core_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -193,7 +543,7 @@ func (x *UninstallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallResponse.ProtoReflect.Descriptor instead.
 func (*UninstallResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{3}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *UninstallResponse) GetOrphans() []string {
@@ -212,7 +562,7 @@ type RestartRequest struct {
 
 func (x *RestartRequest) Reset() {
 	*x = RestartRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[4]
+	mi := &file_ddash_core_core_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -224,7 +574,7 @@ func (x *RestartRequest) String() string {
 func (*RestartRequest) ProtoMessage() {}
 
 func (x *RestartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[4]
+	mi := &file_ddash_core_core_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -237,7 +587,7 @@ func (x *RestartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartRequest.ProtoReflect.Descriptor instead.
 func (*RestartRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{4}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RestartRequest) GetComponent() string {
@@ -255,7 +605,7 @@ type RestartResponse struct {
 
 func (x *RestartResponse) Reset() {
 	*x = RestartResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[5]
+	mi := &file_ddash_core_core_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -267,7 +617,7 @@ func (x *RestartResponse) String() string {
 func (*RestartResponse) ProtoMessage() {}
 
 func (x *RestartResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[5]
+	mi := &file_ddash_core_core_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -280,7 +630,7 @@ func (x *RestartResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartResponse.ProtoReflect.Descriptor instead.
 func (*RestartResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{5}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{11}
 }
 
 type ListInstalledPluginsRequest struct {
@@ -291,7 +641,7 @@ type ListInstalledPluginsRequest struct {
 
 func (x *ListInstalledPluginsRequest) Reset() {
 	*x = ListInstalledPluginsRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[6]
+	mi := &file_ddash_core_core_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -303,7 +653,7 @@ func (x *ListInstalledPluginsRequest) String() string {
 func (*ListInstalledPluginsRequest) ProtoMessage() {}
 
 func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[6]
+	mi := &file_ddash_core_core_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -316,7 +666,7 @@ func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstalledPluginsRequest.ProtoReflect.Descriptor instead.
 func (*ListInstalledPluginsRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{6}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{12}
 }
 
 type ListInstalledPluginsResponse struct {
@@ -329,7 +679,7 @@ type ListInstalledPluginsResponse struct {
 
 func (x *ListInstalledPluginsResponse) Reset() {
 	*x = ListInstalledPluginsResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[7]
+	mi := &file_ddash_core_core_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -341,7 +691,7 @@ func (x *ListInstalledPluginsResponse) String() string {
 func (*ListInstalledPluginsResponse) ProtoMessage() {}
 
 func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[7]
+	mi := &file_ddash_core_core_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -354,7 +704,7 @@ func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstalledPluginsResponse.ProtoReflect.Descriptor instead.
 func (*ListInstalledPluginsResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{7}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListInstalledPluginsResponse) GetPlugins() []*InstalledPlugin {
@@ -386,7 +736,7 @@ type InstalledPlugin struct {
 
 func (x *InstalledPlugin) Reset() {
 	*x = InstalledPlugin{}
-	mi := &file_ddash_core_core_proto_msgTypes[8]
+	mi := &file_ddash_core_core_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -398,7 +748,7 @@ func (x *InstalledPlugin) String() string {
 func (*InstalledPlugin) ProtoMessage() {}
 
 func (x *InstalledPlugin) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[8]
+	mi := &file_ddash_core_core_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -411,7 +761,7 @@ func (x *InstalledPlugin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstalledPlugin.ProtoReflect.Descriptor instead.
 func (*InstalledPlugin) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{8}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *InstalledPlugin) GetName() string {
@@ -470,12 +820,373 @@ func (x *InstalledPlugin) GetStyle() string {
 	return ""
 }
 
+type ListAuditLogRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Only chains whose root ran for this kind of actor: "operator",
+	// "component" or "core". Empty means any.
+	ActorKind string `protobuf:"bytes,1,opt,name=actor_kind,json=actorKind,proto3" json:"actor_kind,omitempty"`
+	// Only chains with a hop to this target: a Component's name or "core".
+	// Empty means any.
+	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	// Only chains with a hop that ended so: "ok", "failed" (a gRPC code),
+	// "interrupted" or "running". Empty means any.
+	Outcome string `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// Chains per page: 50 when 0, at most 200.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous page's next_page_token; empty for the newest page.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogRequest) Reset() {
+	*x = ListAuditLogRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogRequest) ProtoMessage() {}
+
+func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogRequest.ProtoReflect.Descriptor instead.
+func (*ListAuditLogRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListAuditLogRequest) GetActorKind() string {
+	if x != nil {
+		return x.ActorKind
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAuditLogRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListAuditLogResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest root first.
+	Chains []*AuditChain `protobuf:"bytes,1,rep,name=chains,proto3" json:"chains,omitempty"`
+	// Where the next page starts; empty on the last page.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// Every target in the Audit Log, sorted, to filter by.
+	Targets       []string `protobuf:"bytes,3,rep,name=targets,proto3" json:"targets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogResponse) Reset() {
+	*x = ListAuditLogResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogResponse) ProtoMessage() {}
+
+func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogResponse.ProtoReflect.Descriptor instead.
+func (*ListAuditLogResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListAuditLogResponse) GetChains() []*AuditChain {
+	if x != nil {
+		return x.Chains
+	}
+	return nil
+}
+
+func (x *ListAuditLogResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListAuditLogResponse) GetTargets() []string {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+// The hops of one Action, linked by their chain id.
+type AuditChain struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// In the order they were admitted: the first is the root, the Action
+	// the actor started.
+	Entries       []*AuditEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditChain) Reset() {
+	*x = AuditChain{}
+	mi := &file_ddash_core_core_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditChain) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditChain) ProtoMessage() {}
+
+func (x *AuditChain) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditChain.ProtoReflect.Descriptor instead.
+func (*AuditChain) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AuditChain) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AuditChain) GetEntries() []*AuditEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+// One hop in the Audit Log.
+type AuditEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// When the gate admitted it.
+	Time *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	// "operator", "component" or "core".
+	ActorKind string `protobuf:"bytes,2,opt,name=actor_kind,json=actorKind,proto3" json:"actor_kind,omitempty"`
+	// The Operator's preferred_username or the Component's name.
+	Username string `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	// The Operator's OIDC subject.
+	Sub string `protobuf:"bytes,4,opt,name=sub,proto3" json:"sub,omitempty"`
+	// A Component's name, or "core".
+	Target string `protobuf:"bytes,5,opt,name=target,proto3" json:"target,omitempty"`
+	// The bare method name, e.g. "Install".
+	Method     string `protobuf:"bytes,6,opt,name=method,proto3" json:"method,omitempty"`
+	Disruptive bool   `protobuf:"varint,7,opt,name=disruptive,proto3" json:"disruptive,omitempty"`
+	// The request as compact protojson, secrets redacted, cut at 4 KiB.
+	Request string `protobuf:"bytes,8,opt,name=request,proto3" json:"request,omitempty"`
+	// "ok", "interrupted", a failed Action's gRPC code (e.g.
+	// "PermissionDenied"), or empty while it runs.
+	Outcome string `protobuf:"bytes,9,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// A failed Action's error message.
+	Message string `protobuf:"bytes,10,opt,name=message,proto3" json:"message,omitempty"`
+	// How long it ran; unset while it runs.
+	Duration      *durationpb.Duration `protobuf:"bytes,11,opt,name=duration,proto3" json:"duration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditEntry) Reset() {
+	*x = AuditEntry{}
+	mi := &file_ddash_core_core_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditEntry) ProtoMessage() {}
+
+func (x *AuditEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
+func (*AuditEntry) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AuditEntry) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetActorKind() string {
+	if x != nil {
+		return x.ActorKind
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetSub() string {
+	if x != nil {
+		return x.Sub
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetDisruptive() bool {
+	if x != nil {
+		return x.Disruptive
+	}
+	return false
+}
+
+func (x *AuditEntry) GetRequest() string {
+	if x != nil {
+		return x.Request
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetDuration() *durationpb.Duration {
+	if x != nil {
+		return x.Duration
+	}
+	return nil
+}
+
 var File_ddash_core_core_proto protoreflect.FileDescriptor
 
 const file_ddash_core_core_proto_rawDesc = "" +
 	"\n" +
 	"\x15ddash/core/core.proto\x12\n" +
-	"ddash.core\x1a\x13ddash/options.proto\"(\n" +
+	"ddash.core\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
+	"\x14ListCatalogueRequest\"\x82\x01\n" +
+	"\x15ListCatalogueResponse\x12\x18\n" +
+	"\arelease\x18\x01 \x01(\tR\arelease\x125\n" +
+	"\aplugins\x18\x02 \x03(\v2\x1b.ddash.core.CataloguePluginR\aplugins\x12\x18\n" +
+	"\aorphans\x18\x03 \x03(\tR\aorphans\"\xe4\x01\n" +
+	"\x0fCataloguePlugin\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x12\n" +
+	"\x04icon\x18\x04 \x01(\tR\x04icon\x12\x16\n" +
+	"\x06author\x18\x05 \x01(\tR\x06author\x12\x1c\n" +
+	"\tinstalled\x18\x06 \x01(\bR\tinstalled\x12;\n" +
+	"\n" +
+	"components\x18\a \x03(\v2\x1b.ddash.core.ComponentStatusR\n" +
+	"components\"i\n" +
+	"\x0fComponentStatus\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
+	"\x05state\x18\x02 \x01(\tR\x05state\x12\x18\n" +
+	"\amessage\x18\x03 \x01(\tR\amessage\x12\x12\n" +
+	"\x04held\x18\x04 \x01(\bR\x04held\"3\n" +
+	"\x13DeleteOrphanRequest\x12\x1c\n" +
+	"\tcomponent\x18\x01 \x01(\tR\tcomponent\"\x16\n" +
+	"\x14DeleteOrphanResponse\"(\n" +
 	"\x0eInstallRequest\x12\x16\n" +
 	"\x06plugin\x18\x01 \x01(\tR\x06plugin\"\x11\n" +
 	"\x0fInstallResponse\"K\n" +
@@ -499,12 +1210,48 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x06author\x18\x05 \x01(\tR\x06author\x12\x1a\n" +
 	"\brequires\x18\x06 \x03(\tR\brequires\x12\x16\n" +
 	"\x06script\x18\a \x01(\tR\x06script\x12\x14\n" +
-	"\x05style\x18\b \x01(\tR\x05style2\xe8\x02\n" +
+	"\x05style\x18\b \x01(\tR\x05style\"\xa2\x01\n" +
+	"\x13ListAuditLogRequest\x12\x1d\n" +
+	"\n" +
+	"actor_kind\x18\x01 \x01(\tR\tactorKind\x12\x16\n" +
+	"\x06target\x18\x02 \x01(\tR\x06target\x12\x18\n" +
+	"\aoutcome\x18\x03 \x01(\tR\aoutcome\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\x88\x01\n" +
+	"\x14ListAuditLogResponse\x12.\n" +
+	"\x06chains\x18\x01 \x03(\v2\x16.ddash.core.AuditChainR\x06chains\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x18\n" +
+	"\atargets\x18\x03 \x03(\tR\atargets\"N\n" +
+	"\n" +
+	"AuditChain\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x120\n" +
+	"\aentries\x18\x02 \x03(\v2\x16.ddash.core.AuditEntryR\aentries\"\xde\x02\n" +
+	"\n" +
+	"AuditEntry\x12.\n" +
+	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1d\n" +
+	"\n" +
+	"actor_kind\x18\x02 \x01(\tR\tactorKind\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12\x10\n" +
+	"\x03sub\x18\x04 \x01(\tR\x03sub\x12\x16\n" +
+	"\x06target\x18\x05 \x01(\tR\x06target\x12\x16\n" +
+	"\x06method\x18\x06 \x01(\tR\x06method\x12\x1e\n" +
+	"\n" +
+	"disruptive\x18\a \x01(\bR\n" +
+	"disruptive\x12\x18\n" +
+	"\arequest\x18\b \x01(\tR\arequest\x12\x18\n" +
+	"\aoutcome\x18\t \x01(\tR\aoutcome\x12\x18\n" +
+	"\amessage\x18\n" +
+	" \x01(\tR\amessage\x125\n" +
+	"\bduration\x18\v \x01(\v2\x19.google.protobuf.DurationR\bduration2\xfc\x04\n" +
 	"\vCoreService\x12q\n" +
 	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
 	"\tUninstall\x12\x1c.ddash.core.UninstallRequest\x1a\x1d.ddash.core.UninstallResponse\"\x06\x92\xb5\x18\x02\b\x01\x12J\n" +
-	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
+	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
+	"\rListCatalogue\x12 .ddash.core.ListCatalogueRequest\x1a!.ddash.core.ListCatalogueResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Y\n" +
+	"\fDeleteOrphan\x12\x1f.ddash.core.DeleteOrphanRequest\x1a .ddash.core.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01\x12Y\n" +
+	"\fListAuditLog\x12\x1f.ddash.core.ListAuditLogRequest\x1a .ddash.core.ListAuditLogResponse\"\x06\x8a\xb5\x18\x02\b\x03B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
 
 var (
 	file_ddash_core_core_proto_rawDescOnce sync.Once
@@ -518,33 +1265,57 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 	return file_ddash_core_core_proto_rawDescData
 }
 
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_ddash_core_core_proto_goTypes = []any{
-	(*InstallRequest)(nil),               // 0: ddash.core.InstallRequest
-	(*InstallResponse)(nil),              // 1: ddash.core.InstallResponse
-	(*UninstallRequest)(nil),             // 2: ddash.core.UninstallRequest
-	(*UninstallResponse)(nil),            // 3: ddash.core.UninstallResponse
-	(*RestartRequest)(nil),               // 4: ddash.core.RestartRequest
-	(*RestartResponse)(nil),              // 5: ddash.core.RestartResponse
-	(*ListInstalledPluginsRequest)(nil),  // 6: ddash.core.ListInstalledPluginsRequest
-	(*ListInstalledPluginsResponse)(nil), // 7: ddash.core.ListInstalledPluginsResponse
-	(*InstalledPlugin)(nil),              // 8: ddash.core.InstalledPlugin
+	(*ListCatalogueRequest)(nil),         // 0: ddash.core.ListCatalogueRequest
+	(*ListCatalogueResponse)(nil),        // 1: ddash.core.ListCatalogueResponse
+	(*CataloguePlugin)(nil),              // 2: ddash.core.CataloguePlugin
+	(*ComponentStatus)(nil),              // 3: ddash.core.ComponentStatus
+	(*DeleteOrphanRequest)(nil),          // 4: ddash.core.DeleteOrphanRequest
+	(*DeleteOrphanResponse)(nil),         // 5: ddash.core.DeleteOrphanResponse
+	(*InstallRequest)(nil),               // 6: ddash.core.InstallRequest
+	(*InstallResponse)(nil),              // 7: ddash.core.InstallResponse
+	(*UninstallRequest)(nil),             // 8: ddash.core.UninstallRequest
+	(*UninstallResponse)(nil),            // 9: ddash.core.UninstallResponse
+	(*RestartRequest)(nil),               // 10: ddash.core.RestartRequest
+	(*RestartResponse)(nil),              // 11: ddash.core.RestartResponse
+	(*ListInstalledPluginsRequest)(nil),  // 12: ddash.core.ListInstalledPluginsRequest
+	(*ListInstalledPluginsResponse)(nil), // 13: ddash.core.ListInstalledPluginsResponse
+	(*InstalledPlugin)(nil),              // 14: ddash.core.InstalledPlugin
+	(*ListAuditLogRequest)(nil),          // 15: ddash.core.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),         // 16: ddash.core.ListAuditLogResponse
+	(*AuditChain)(nil),                   // 17: ddash.core.AuditChain
+	(*AuditEntry)(nil),                   // 18: ddash.core.AuditEntry
+	(*timestamppb.Timestamp)(nil),        // 19: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 20: google.protobuf.Duration
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
-	8, // 0: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
-	6, // 1: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
-	0, // 2: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	2, // 3: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	4, // 4: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	7, // 5: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
-	1, // 6: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	3, // 7: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	5, // 8: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	5, // [5:9] is the sub-list for method output_type
-	1, // [1:5] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	2,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
+	3,  // 1: ddash.core.CataloguePlugin.components:type_name -> ddash.core.ComponentStatus
+	14, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
+	17, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
+	18, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
+	19, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	20, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
+	12, // 7: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	6,  // 8: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	8,  // 9: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	10, // 10: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	0,  // 11: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
+	4,  // 12: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
+	15, // 13: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
+	13, // 14: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	7,  // 15: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	9,  // 16: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	11, // 17: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	1,  // 18: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
+	5,  // 19: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
+	16, // 20: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
+	14, // [14:21] is the sub-list for method output_type
+	7,  // [7:14] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }
@@ -558,7 +1329,7 @@ func file_ddash_core_core_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

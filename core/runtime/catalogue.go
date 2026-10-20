@@ -65,8 +65,18 @@ func (d Dir) Catalogue(context.Context) (Catalogue, error) {
 	return c, nil
 }
 
-// Check refuses a requires that doesn't resolve and a requires cycle.
+// ReservedPluginNames are the core's own top-level paths. A Plugin's Pages
+// live under /<name>/, so no Plugin may take one of these names.
+var ReservedPluginNames = []string{"api", "auth", "vendor", "plugins", "settings", "healthz"}
+
+// Check refuses a Plugin named after a core path, a requires that doesn't
+// resolve and a requires cycle.
 func (c Catalogue) Check() error {
+	for _, p := range c.Plugins {
+		if slices.Contains(ReservedPluginNames, p.Name) {
+			return fmt.Errorf("plugin name %s clashes with the core's /%s", p.Name, p.Name)
+		}
+	}
 	for _, p := range c.Plugins {
 		for _, req := range p.Requires {
 			if _, ok := c.component(req); !ok {
@@ -142,4 +152,16 @@ func (c Catalogue) startOrder(roots []string) ([]string, error) {
 		}
 	}
 	return order, nil
+}
+
+// Pulls returns the Components installing plugin runs: its requires,
+// transitively, each after the ones it requires. It is nil for a Plugin
+// the Release lacks.
+func (c Catalogue) Pulls(plugin string) []string {
+	p, ok := c.plugin(plugin)
+	if !ok {
+		return nil
+	}
+	order, _ := c.startOrder(p.Requires) // the catalogue was checked on load
+	return order
 }

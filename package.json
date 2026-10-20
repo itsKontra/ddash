@@ -5,7 +5,9 @@
   "scripts": {
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "lint": "oxlint --deny-warnings && node packages/plugin-check/src/cli.ts style",
+    "check-plugins": "node packages/plugin-check/src/cli.ts contract"
   },
   "devDependencies": {
     "@bufbuild/protoc-gen-es": "2.16.0",
@@ -16,6 +18,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "jsdom": "30.1.3",
+    "oxlint": "1.86.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-router": "8.5.0",

@@ -8,13 +8,186 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../options_pb";
+import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiIAoOSW5zdGFsbFJlcXVlc3QSDgoGcGx1Z2luGAEgASgJIhEKD0luc3RhbGxSZXNwb25zZSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJIiMKDlJlc3RhcnRSZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIRCg9SZXN0YXJ0UmVzcG9uc2UiHQobTGlzdEluc3RhbGxlZFBsdWdpbnNSZXF1ZXN0IkwKHExpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2USLAoHcGx1Z2lucxgBIAMoCzIbLmRkYXNoLmNvcmUuSW5zdGFsbGVkUGx1Z2luIpIBCg9JbnN0YWxsZWRQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIQCghyZXF1aXJlcxgGIAMoCRIOCgZzY3JpcHQYByABKAkSDQoFc3R5bGUYCCABKAky6AIKC0NvcmVTZXJ2aWNlEnEKFExpc3RJbnN0YWxsZWRQbHVnaW5zEicuZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1JlcXVlc3QaKC5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2UiBoq1GAIIAhJICgdJbnN0YWxsEhouZGRhc2guY29yZS5JbnN0YWxsUmVxdWVzdBobLmRkYXNoLmNvcmUuSW5zdGFsbFJlc3BvbnNlIgSStRgAElAKCVVuaW5zdGFsbBIcLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVxdWVzdBodLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVzcG9uc2UiBpK1GAIIARJKCgdSZXN0YXJ0EhouZGRhc2guY29yZS5SZXN0YXJ0UmVxdWVzdBobLmRkYXNoLmNvcmUuUmVzdGFydFJlc3BvbnNlIgaStRgCCAFCNFoyZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29yZTtjb3JlcGJiBnByb3RvMw", [file_ddash_options]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiZwoVTGlzdENhdGFsb2d1ZVJlc3BvbnNlEg8KB3JlbGVhc2UYASABKAkSLAoHcGx1Z2lucxgCIAMoCzIbLmRkYXNoLmNvcmUuQ2F0YWxvZ3VlUGx1Z2luEg8KB29ycGhhbnMYAyADKAkipQEKD0NhdGFsb2d1ZVBsdWdpbhIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEgwKBGljb24YBCABKAkSDgoGYXV0aG9yGAUgASgJEhEKCWluc3RhbGxlZBgGIAEoCBIvCgpjb21wb25lbnRzGAcgAygLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiTQoPQ29tcG9uZW50U3RhdHVzEgwKBG5hbWUYASABKAkSDQoFc3RhdGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIMCgRoZWxkGAQgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIRCg9JbnN0YWxsUmVzcG9uc2UiNwoQVW5pbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkSEwoLZGVsZXRlX2RhdGEYAiABKAgiJAoRVW5pbnN0YWxsUmVzcG9uc2USDwoHb3JwaGFucxgBIAMoCSIjCg5SZXN0YXJ0UmVxdWVzdBIRCgljb21wb25lbnQYASABKAkiEQoPUmVzdGFydFJlc3BvbnNlIh0KG0xpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdCJMChxMaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlEiwKB3BsdWdpbnMYASADKAsyGy5kZGFzaC5jb3JlLkluc3RhbGxlZFBsdWdpbiKSAQoPSW5zdGFsbGVkUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEAoIcmVxdWlyZXMYBiADKAkSDgoGc2NyaXB0GAcgASgJEg0KBXN0eWxlGAggASgJInEKE0xpc3RBdWRpdExvZ1JlcXVlc3QSEgoKYWN0b3Jfa2luZBgBIAEoCRIOCgZ0YXJnZXQYAiABKAkSDwoHb3V0Y29tZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSJoChRMaXN0QXVkaXRMb2dSZXNwb25zZRImCgZjaGFpbnMYASADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0Q2hhaW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEg8KB3RhcmdldHMYAyADKAkiQQoKQXVkaXRDaGFpbhIKCgJpZBgBIAEoCRInCgdlbnRyaWVzGAIgAygLMhYuZGRhc2guY29yZS5BdWRpdEVudHJ5Iv0BCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmFjdG9yX2tpbmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSCwoDc3ViGAQgASgJEg4KBnRhcmdldBgFIAEoCRIOCgZtZXRob2QYBiABKAkSEgoKZGlzcnVwdGl2ZRgHIAEoCBIPCgdyZXF1ZXN0GAggASgJEg8KB291dGNvbWUYCSABKAkSDwoHbWVzc2FnZRgKIAEoCRIrCghkdXJhdGlvbhgLIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbjL8BAoLQ29yZVNlcnZpY2UScQoUTGlzdEluc3RhbGxlZFBsdWdpbnMSJy5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdBooLmRkYXNoLmNvcmUuTGlzdEluc3RhbGxlZFBsdWdpbnNSZXNwb25zZSIGirUYAggCEkgKB0luc3RhbGwSGi5kZGFzaC5jb3JlLkluc3RhbGxSZXF1ZXN0GhsuZGRhc2guY29yZS5JbnN0YWxsUmVzcG9uc2UiBJK1GAASUAoJVW5pbnN0YWxsEhwuZGRhc2guY29yZS5Vbmluc3RhbGxSZXF1ZXN0Gh0uZGRhc2guY29yZS5Vbmluc3RhbGxSZXNwb25zZSIGkrUYAggBEkoKB1Jlc3RhcnQSGi5kZGFzaC5jb3JlLlJlc3RhcnRSZXF1ZXN0GhsuZGRhc2guY29yZS5SZXN0YXJ0UmVzcG9uc2UiBpK1GAIIARJcCg1MaXN0Q2F0YWxvZ3VlEiAuZGRhc2guY29yZS5MaXN0Q2F0YWxvZ3VlUmVxdWVzdBohLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlc3BvbnNlIgaKtRgCCAISWQoMRGVsZXRlT3JwaGFuEh8uZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXF1ZXN0GiAuZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXNwb25zZSIGkrUYAggBElkKDExpc3RBdWRpdExvZxIfLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVxdWVzdBogLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVzcG9uc2UiBoq1GAIIA0I0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+
+/**
+ * @generated from message ddash.core.ListCatalogueRequest
+ */
+export type ListCatalogueRequest = Message<"ddash.core.ListCatalogueRequest"> & {
+};
+
+/**
+ * Describes the message ddash.core.ListCatalogueRequest.
+ * Use `create(ListCatalogueRequestSchema)` to create a new message.
+ */
+export const ListCatalogueRequestSchema: GenMessage<ListCatalogueRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 0);
+
+/**
+ * @generated from message ddash.core.ListCatalogueResponse
+ */
+export type ListCatalogueResponse = Message<"ddash.core.ListCatalogueResponse"> & {
+  /**
+   * @generated from field: string release = 1;
+   */
+  release: string;
+
+  /**
+   * By name.
+   *
+   * @generated from field: repeated ddash.core.CataloguePlugin plugins = 2;
+   */
+  plugins: CataloguePlugin[];
+
+  /**
+   * Components whose DB file is kept although nothing runs them, by name.
+   *
+   * @generated from field: repeated string orphans = 3;
+   */
+  orphans: string[];
+};
+
+/**
+ * Describes the message ddash.core.ListCatalogueResponse.
+ * Use `create(ListCatalogueResponseSchema)` to create a new message.
+ */
+export const ListCatalogueResponseSchema: GenMessage<ListCatalogueResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 1);
+
+/**
+ * A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
+ *
+ * @generated from message ddash.core.CataloguePlugin
+ */
+export type CataloguePlugin = Message<"ddash.core.CataloguePlugin"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
+
+  /**
+   * A lucide icon name, e.g. "container".
+   *
+   * @generated from field: string icon = 4;
+   */
+  icon: string;
+
+  /**
+   * The author's GitHub handle.
+   *
+   * @generated from field: string author = 5;
+   */
+  author: string;
+
+  /**
+   * @generated from field: bool installed = 6;
+   */
+  installed: boolean;
+
+  /**
+   * The Components installing it runs: its requires, transitively, each
+   * after the ones it requires.
+   *
+   * @generated from field: repeated ddash.core.ComponentStatus components = 7;
+   */
+  components: ComponentStatus[];
+};
+
+/**
+ * Describes the message ddash.core.CataloguePlugin.
+ * Use `create(CataloguePluginSchema)` to create a new message.
+ */
+export const CataloguePluginSchema: GenMessage<CataloguePlugin> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 2);
+
+/**
+ * A Component as the host sees it.
+ *
+ * @generated from message ddash.core.ComponentStatus
+ */
+export type ComponentStatus = Message<"ddash.core.ComponentStatus"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * The host's state: starting, ok, degraded, down, unconfigured, stopped
+   * or crashed. Empty when the Component doesn't run.
+   *
+   * @generated from field: string state = 2;
+   */
+  state: string;
+
+  /**
+   * A one-line explanation of the state.
+   *
+   * @generated from field: string message = 3;
+   */
+  message: string;
+
+  /**
+   * The Component crashed too often and stays down until restarted.
+   *
+   * @generated from field: bool held = 4;
+   */
+  held: boolean;
+};
+
+/**
+ * Describes the message ddash.core.ComponentStatus.
+ * Use `create(ComponentStatusSchema)` to create a new message.
+ */
+export const ComponentStatusSchema: GenMessage<ComponentStatus> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 3);
+
+/**
+ * @generated from message ddash.core.DeleteOrphanRequest
+ */
+export type DeleteOrphanRequest = Message<"ddash.core.DeleteOrphanRequest"> & {
+  /**
+   * @generated from field: string component = 1;
+   */
+  component: string;
+};
+
+/**
+ * Describes the message ddash.core.DeleteOrphanRequest.
+ * Use `create(DeleteOrphanRequestSchema)` to create a new message.
+ */
+export const DeleteOrphanRequestSchema: GenMessage<DeleteOrphanRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 4);
+
+/**
+ * @generated from message ddash.core.DeleteOrphanResponse
+ */
+export type DeleteOrphanResponse = Message<"ddash.core.DeleteOrphanResponse"> & {
+};
+
+/**
+ * Describes the message ddash.core.DeleteOrphanResponse.
+ * Use `create(DeleteOrphanResponseSchema)` to create a new message.
+ */
+export const DeleteOrphanResponseSchema: GenMessage<DeleteOrphanResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 5);
 
 /**
  * @generated from message ddash.core.InstallRequest
@@ -31,7 +204,7 @@ export type InstallRequest = Message<"ddash.core.InstallRequest"> & {
  * Use `create(InstallRequestSchema)` to create a new message.
  */
 export const InstallRequestSchema: GenMessage<InstallRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 0);
+  messageDesc(file_ddash_core_core, 6);
 
 /**
  * @generated from message ddash.core.InstallResponse
@@ -44,7 +217,7 @@ export type InstallResponse = Message<"ddash.core.InstallResponse"> & {
  * Use `create(InstallResponseSchema)` to create a new message.
  */
 export const InstallResponseSchema: GenMessage<InstallResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 1);
+  messageDesc(file_ddash_core_core, 7);
 
 /**
  * @generated from message ddash.core.UninstallRequest
@@ -68,7 +241,7 @@ export type UninstallRequest = Message<"ddash.core.UninstallRequest"> & {
  * Use `create(UninstallRequestSchema)` to create a new message.
  */
 export const UninstallRequestSchema: GenMessage<UninstallRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 2);
+  messageDesc(file_ddash_core_core, 8);
 
 /**
  * @generated from message ddash.core.UninstallResponse
@@ -87,7 +260,7 @@ export type UninstallResponse = Message<"ddash.core.UninstallResponse"> & {
  * Use `create(UninstallResponseSchema)` to create a new message.
  */
 export const UninstallResponseSchema: GenMessage<UninstallResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 3);
+  messageDesc(file_ddash_core_core, 9);
 
 /**
  * @generated from message ddash.core.RestartRequest
@@ -104,7 +277,7 @@ export type RestartRequest = Message<"ddash.core.RestartRequest"> & {
  * Use `create(RestartRequestSchema)` to create a new message.
  */
 export const RestartRequestSchema: GenMessage<RestartRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 4);
+  messageDesc(file_ddash_core_core, 10);
 
 /**
  * @generated from message ddash.core.RestartResponse
@@ -117,7 +290,7 @@ export type RestartResponse = Message<"ddash.core.RestartResponse"> & {
  * Use `create(RestartResponseSchema)` to create a new message.
  */
 export const RestartResponseSchema: GenMessage<RestartResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 5);
+  messageDesc(file_ddash_core_core, 11);
 
 /**
  * @generated from message ddash.core.ListInstalledPluginsRequest
@@ -130,7 +303,7 @@ export type ListInstalledPluginsRequest = Message<"ddash.core.ListInstalledPlugi
  * Use `create(ListInstalledPluginsRequestSchema)` to create a new message.
  */
 export const ListInstalledPluginsRequestSchema: GenMessage<ListInstalledPluginsRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 6);
+  messageDesc(file_ddash_core_core, 12);
 
 /**
  * @generated from message ddash.core.ListInstalledPluginsResponse
@@ -149,7 +322,7 @@ export type ListInstalledPluginsResponse = Message<"ddash.core.ListInstalledPlug
  * Use `create(ListInstalledPluginsResponseSchema)` to create a new message.
  */
 export const ListInstalledPluginsResponseSchema: GenMessage<ListInstalledPluginsResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 7);
+  messageDesc(file_ddash_core_core, 13);
 
 /**
  * An installed Plugin: its plugin.yaml and where its bundle is.
@@ -213,7 +386,207 @@ export type InstalledPlugin = Message<"ddash.core.InstalledPlugin"> & {
  * Use `create(InstalledPluginSchema)` to create a new message.
  */
 export const InstalledPluginSchema: GenMessage<InstalledPlugin> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 8);
+  messageDesc(file_ddash_core_core, 14);
+
+/**
+ * @generated from message ddash.core.ListAuditLogRequest
+ */
+export type ListAuditLogRequest = Message<"ddash.core.ListAuditLogRequest"> & {
+  /**
+   * Only chains whose root ran for this kind of actor: "operator",
+   * "component" or "core". Empty means any.
+   *
+   * @generated from field: string actor_kind = 1;
+   */
+  actorKind: string;
+
+  /**
+   * Only chains with a hop to this target: a Component's name or "core".
+   * Empty means any.
+   *
+   * @generated from field: string target = 2;
+   */
+  target: string;
+
+  /**
+   * Only chains with a hop that ended so: "ok", "failed" (a gRPC code),
+   * "interrupted" or "running". Empty means any.
+   *
+   * @generated from field: string outcome = 3;
+   */
+  outcome: string;
+
+  /**
+   * Chains per page: 50 when 0, at most 200.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * The previous page's next_page_token; empty for the newest page.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ddash.core.ListAuditLogRequest.
+ * Use `create(ListAuditLogRequestSchema)` to create a new message.
+ */
+export const ListAuditLogRequestSchema: GenMessage<ListAuditLogRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 15);
+
+/**
+ * @generated from message ddash.core.ListAuditLogResponse
+ */
+export type ListAuditLogResponse = Message<"ddash.core.ListAuditLogResponse"> & {
+  /**
+   * Newest root first.
+   *
+   * @generated from field: repeated ddash.core.AuditChain chains = 1;
+   */
+  chains: AuditChain[];
+
+  /**
+   * Where the next page starts; empty on the last page.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+
+  /**
+   * Every target in the Audit Log, sorted, to filter by.
+   *
+   * @generated from field: repeated string targets = 3;
+   */
+  targets: string[];
+};
+
+/**
+ * Describes the message ddash.core.ListAuditLogResponse.
+ * Use `create(ListAuditLogResponseSchema)` to create a new message.
+ */
+export const ListAuditLogResponseSchema: GenMessage<ListAuditLogResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 16);
+
+/**
+ * The hops of one Action, linked by their chain id.
+ *
+ * @generated from message ddash.core.AuditChain
+ */
+export type AuditChain = Message<"ddash.core.AuditChain"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * In the order they were admitted: the first is the root, the Action
+   * the actor started.
+   *
+   * @generated from field: repeated ddash.core.AuditEntry entries = 2;
+   */
+  entries: AuditEntry[];
+};
+
+/**
+ * Describes the message ddash.core.AuditChain.
+ * Use `create(AuditChainSchema)` to create a new message.
+ */
+export const AuditChainSchema: GenMessage<AuditChain> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 17);
+
+/**
+ * One hop in the Audit Log.
+ *
+ * @generated from message ddash.core.AuditEntry
+ */
+export type AuditEntry = Message<"ddash.core.AuditEntry"> & {
+  /**
+   * When the gate admitted it.
+   *
+   * @generated from field: google.protobuf.Timestamp time = 1;
+   */
+  time?: Timestamp | undefined;
+
+  /**
+   * "operator", "component" or "core".
+   *
+   * @generated from field: string actor_kind = 2;
+   */
+  actorKind: string;
+
+  /**
+   * The Operator's preferred_username or the Component's name.
+   *
+   * @generated from field: string username = 3;
+   */
+  username: string;
+
+  /**
+   * The Operator's OIDC subject.
+   *
+   * @generated from field: string sub = 4;
+   */
+  sub: string;
+
+  /**
+   * A Component's name, or "core".
+   *
+   * @generated from field: string target = 5;
+   */
+  target: string;
+
+  /**
+   * The bare method name, e.g. "Install".
+   *
+   * @generated from field: string method = 6;
+   */
+  method: string;
+
+  /**
+   * @generated from field: bool disruptive = 7;
+   */
+  disruptive: boolean;
+
+  /**
+   * The request as compact protojson, secrets redacted, cut at 4 KiB.
+   *
+   * @generated from field: string request = 8;
+   */
+  request: string;
+
+  /**
+   * "ok", "interrupted", a failed Action's gRPC code (e.g.
+   * "PermissionDenied"), or empty while it runs.
+   *
+   * @generated from field: string outcome = 9;
+   */
+  outcome: string;
+
+  /**
+   * A failed Action's error message.
+   *
+   * @generated from field: string message = 10;
+   */
+  message: string;
+
+  /**
+   * How long it ran; unset while it runs.
+   *
+   * @generated from field: google.protobuf.Duration duration = 11;
+   */
+  duration?: Duration | undefined;
+};
+
+/**
+ * Describes the message ddash.core.AuditEntry.
+ * Use `create(AuditEntrySchema)` to create a new message.
+ */
+export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 18);
 
 /**
  * @generated from service ddash.core.CoreService
@@ -265,6 +638,39 @@ export const CoreService: GenService<{
     methodKind: "unary";
     input: typeof RestartRequestSchema;
     output: typeof RestartResponseSchema;
+  },
+  /**
+   * ListCatalogue returns every Plugin in the running Release, whether it
+   * is installed, and the state of each Component it pulls in, plus the
+   * orphaned DB files.
+   *
+   * @generated from rpc ddash.core.CoreService.ListCatalogue
+   */
+  listCatalogue: {
+    methodKind: "unary";
+    input: typeof ListCatalogueRequestSchema;
+    output: typeof ListCatalogueResponseSchema;
+  },
+  /**
+   * DeleteOrphan deletes an orphaned Component's DB file and config.
+   *
+   * @generated from rpc ddash.core.CoreService.DeleteOrphan
+   */
+  deleteOrphan: {
+    methodKind: "unary";
+    input: typeof DeleteOrphanRequestSchema;
+    output: typeof DeleteOrphanResponseSchema;
+  },
+  /**
+   * ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+   * each with its hops.
+   *
+   * @generated from rpc ddash.core.CoreService.ListAuditLog
+   */
+  listAuditLog: {
+    methodKind: "unary";
+    input: typeof ListAuditLogRequestSchema;
+    output: typeof ListAuditLogResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ddash_core_core, 0);
