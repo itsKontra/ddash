@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image smoke record
+.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image smoke record smoke-writes
 
 all: check
 
@@ -118,3 +118,11 @@ smoke:
 SCENARIO ?= recorded
 record:
 	go run ./cmd/smoke -env smoke.env -data .smoke -record -scenario $(SCENARIO) -map scrub.map
+
+# Opt-in, by hand only, for a Release that changes an Action: the real
+# Actions of pfsense-api, adguard-api and proxmox-api round-trip on the
+# smoke targets only (the DDASH_SMOKE alias, a fake-MAC static map and an
+# AdGuard client on smoke.env's SMOKE_UNUSED_IP, the stopped ddash-smoke
+# LXC) plus a refused start on a Protected Workload. Cleanup always runs.
+smoke-writes:
+	go run ./cmd/smoke -writes -env smoke.env -data .smoke

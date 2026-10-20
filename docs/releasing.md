@@ -36,9 +36,34 @@ which produces one artifact set:
    file that still holds a `scrub.map` name, the real domain or an address
    outside the scrubbed ranges. Review the files and move what the tests need
    into `baseline`; the IP guard in `go test` checks them again.
-3. If this Release changes an Action, also run `make smoke-writes` (the
-   reversible round trips on `DDASH_SMOKE` and `ddash-smoke`), and cut the
-   Release only if it passes too.
+3. If this Release changes an Action, also run
+
+   ```sh
+   make smoke-writes
+   ```
+
+   and cut the Release only if it passes too. It needs the smoke targets
+   ([deployment](deployment.md#8-smoke-targets)) and `SMOKE_UNUSED_IP` in
+   `smoke.env`, and runs the real Actions as reversible round trips, touching
+   nothing else:
+
+   - pfSense: adds a placeholder address (`203.0.113.63`) to `DDASH_SMOKE`,
+     checks it is applied and reads it back, removes it and checks again;
+     creates a static map for the fake MAC `02:dd:a5:00:00:63` on
+     `SMOKE_UNUSED_IP`, renames it, then deletes it with a raw API call;
+   - AdGuard: `SetClientFiltering` on `SMOKE_UNUSED_IP` (creates a client
+     `ddash-smoke` with filtering off, then toggles it on), then deletes the
+     client with a raw API call;
+   - Proxmox: starts `ddash-smoke`, waits for the task, shuts it down
+     gracefully; then tries to start a running Protected Workload and
+     passes only if Proxmox refuses the token (were it not refused, the
+     Workload is running already, so nothing changes).
+
+   Each round trip's cleanup runs after it whether it passed or not (and on
+   Ctrl-C), and before it, removing what an interrupted run left. It refuses
+   to start when `SMOKE_UNUSED_IP` has a lease, a static map or an AdGuard
+   client, or when `ddash-smoke` isn't stopped. Each line is `ok …`,
+   `FAIL …` or `cleanup …`.
 4. Tag and push:
 
    ```sh

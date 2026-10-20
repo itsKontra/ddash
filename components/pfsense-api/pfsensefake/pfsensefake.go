@@ -1,9 +1,9 @@
 // Package pfsensefake is a stateful fake of pfSense's REST API v2 for
-// pfsense-api's Actions. It keeps the DHCP servers with their static
-// mappings, the firewall aliases, each area's pending-changes flag and its
-// apply, and records every request in order; anything else is served from
-// a scenario's fixtures (fixture.Scenario). pfsense-api's tests and fakelab
-// serve it.
+// pfsense-api's Actions and `make smoke-writes`. It keeps the DHCP servers
+// with their static mappings (create, update and delete), the firewall
+// aliases, each area's pending-changes flag and its apply, and records
+// every request in order; anything else is served from a scenario's
+// fixtures (fixture.Scenario). pfsense-api's tests and fakelab serve it.
 //
 // Like pfSense, a write without "apply": true only marks its area pending
 // until that area's POST .../apply; ids are positions in a server's
@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -204,6 +205,8 @@ func (f *Firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reply(w, http.StatusOK, "SUCCESS", "", json.RawMessage(b))
 	case "POST " + mappingPath, "PATCH " + mappingPath:
 		f.write(w, r)
+	case "DELETE " + mappingPath:
+		f.deleteMapping(w, r)
 	case "GET " + applyPath:
 		f.mu.Lock()
 		applied := !f.pending
@@ -402,6 +405,42 @@ func (f *Firewall) write(w http.ResponseWriter, r *http.Request) {
 		f.apply()
 	}
 	reply(w, http.StatusOK, "SUCCESS", "", updated)
+}
+
+// deleteMapping deletes a static mapping. As in pfSense, a DELETE takes
+// its parameters (parent_id, id, apply) from the query string, and the
+// mappings after the deleted one move up a position.
+func (f *Firewall) deleteMapping(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	f.begin()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.writing--
+
+	s := f.server(q.Get("parent_id"))
+	if s == nil {
+		reply(w, http.StatusNotFound, "MODEL_PARENT_NOT_FOUND", fmt.Sprintf("Parent object with ID `%s` does not exist.", q.Get("parent_id")), nil)
+		return
+	}
+	all := staticmap(s)
+	id, err := strconv.Atoi(q.Get("id"))
+	if err != nil || id < 0 || id >= len(all) {
+		reply(w, http.StatusNotFound, "MODEL_OBJECT_NOT_FOUND", fmt.Sprintf("Object with ID `%s` does not exist.", q.Get("id")), nil)
+		return
+	}
+	deleted := all[id]
+	all = slices.Delete(all, id, id+1)
+	list := make([]any, len(all))
+	for j, x := range all {
+		x["id"] = j
+		list[j] = x
+	}
+	s["staticmap"] = list
+	f.pending = true
+	if q.Get("apply") == "true" {
+		f.apply()
+	}
+	reply(w, http.StatusOK, "SUCCESS", "", deleted)
 }
 
 var hostname = regexp.MustCompile(`^([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)?$`)
