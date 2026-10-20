@@ -14,6 +14,8 @@ import (
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -671,11 +673,515 @@ func (x *WorkloadPermissions) GetPrivileges() []string {
 	return nil
 }
 
+// Target names the Workload a power Action acts on.
+type Target struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Kind  Kind                   `protobuf:"varint,1,opt,name=kind,proto3,enum=ddash.proxmoxapi.Kind" json:"kind,omitempty"`
+	// The node it is on now.
+	Node          string `protobuf:"bytes,2,opt,name=node,proto3" json:"node,omitempty"`
+	Vmid          uint32 `protobuf:"varint,3,opt,name=vmid,proto3" json:"vmid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Target) Reset() {
+	*x = Target{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Target) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Target) ProtoMessage() {}
+
+func (x *Target) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Target.ProtoReflect.Descriptor instead.
+func (*Target) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Target) GetKind() Kind {
+	if x != nil {
+		return x.Kind
+	}
+	return Kind_KIND_UNSPECIFIED
+}
+
+func (x *Target) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
+}
+
+func (x *Target) GetVmid() uint32 {
+	if x != nil {
+		return x.Vmid
+	}
+	return 0
+}
+
+type StartWorkloadRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workload      *Target                `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartWorkloadRequest) Reset() {
+	*x = StartWorkloadRequest{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartWorkloadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartWorkloadRequest) ProtoMessage() {}
+
+func (x *StartWorkloadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartWorkloadRequest.ProtoReflect.Descriptor instead.
+func (*StartWorkloadRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *StartWorkloadRequest) GetWorkload() *Target {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+type StartWorkloadResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The task Proxmox ran, e.g. "UPID:pve:0001A2B3:...:vzstart:103:ddash@pve!dashboard:".
+	Upid          string `protobuf:"bytes,1,opt,name=upid,proto3" json:"upid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartWorkloadResponse) Reset() {
+	*x = StartWorkloadResponse{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartWorkloadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartWorkloadResponse) ProtoMessage() {}
+
+func (x *StartWorkloadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartWorkloadResponse.ProtoReflect.Descriptor instead.
+func (*StartWorkloadResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *StartWorkloadResponse) GetUpid() string {
+	if x != nil {
+		return x.Upid
+	}
+	return ""
+}
+
+type ShutdownWorkloadRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *Target                `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	// How long Proxmox waits for the clean shutdown, in whole seconds; unset
+	// is Proxmox's default (60 s for an LXC, 180 s for a VM).
+	Timeout *durationpb.Duration `protobuf:"bytes,2,opt,name=timeout,proto3" json:"timeout,omitempty"`
+	// Stop it hard once timeout has passed.
+	ForceStop     bool `protobuf:"varint,3,opt,name=force_stop,json=forceStop,proto3" json:"force_stop,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShutdownWorkloadRequest) Reset() {
+	*x = ShutdownWorkloadRequest{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShutdownWorkloadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShutdownWorkloadRequest) ProtoMessage() {}
+
+func (x *ShutdownWorkloadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShutdownWorkloadRequest.ProtoReflect.Descriptor instead.
+func (*ShutdownWorkloadRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *ShutdownWorkloadRequest) GetWorkload() *Target {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *ShutdownWorkloadRequest) GetTimeout() *durationpb.Duration {
+	if x != nil {
+		return x.Timeout
+	}
+	return nil
+}
+
+func (x *ShutdownWorkloadRequest) GetForceStop() bool {
+	if x != nil {
+		return x.ForceStop
+	}
+	return false
+}
+
+type ShutdownWorkloadResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Upid          string                 `protobuf:"bytes,1,opt,name=upid,proto3" json:"upid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ShutdownWorkloadResponse) Reset() {
+	*x = ShutdownWorkloadResponse{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ShutdownWorkloadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ShutdownWorkloadResponse) ProtoMessage() {}
+
+func (x *ShutdownWorkloadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ShutdownWorkloadResponse.ProtoReflect.Descriptor instead.
+func (*ShutdownWorkloadResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ShutdownWorkloadResponse) GetUpid() string {
+	if x != nil {
+		return x.Upid
+	}
+	return ""
+}
+
+type RebootWorkloadRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workload      *Target                `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RebootWorkloadRequest) Reset() {
+	*x = RebootWorkloadRequest{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RebootWorkloadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RebootWorkloadRequest) ProtoMessage() {}
+
+func (x *RebootWorkloadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RebootWorkloadRequest.ProtoReflect.Descriptor instead.
+func (*RebootWorkloadRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *RebootWorkloadRequest) GetWorkload() *Target {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+type RebootWorkloadResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Upid          string                 `protobuf:"bytes,1,opt,name=upid,proto3" json:"upid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RebootWorkloadResponse) Reset() {
+	*x = RebootWorkloadResponse{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RebootWorkloadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RebootWorkloadResponse) ProtoMessage() {}
+
+func (x *RebootWorkloadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RebootWorkloadResponse.ProtoReflect.Descriptor instead.
+func (*RebootWorkloadResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *RebootWorkloadResponse) GetUpid() string {
+	if x != nil {
+		return x.Upid
+	}
+	return ""
+}
+
+type ListActiveTasksRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The node and Workload whose running tasks to list.
+	Node          string `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
+	Vmid          uint32 `protobuf:"varint,2,opt,name=vmid,proto3" json:"vmid,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActiveTasksRequest) Reset() {
+	*x = ListActiveTasksRequest{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActiveTasksRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActiveTasksRequest) ProtoMessage() {}
+
+func (x *ListActiveTasksRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActiveTasksRequest.ProtoReflect.Descriptor instead.
+func (*ListActiveTasksRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListActiveTasksRequest) GetNode() string {
+	if x != nil {
+		return x.Node
+	}
+	return ""
+}
+
+func (x *ListActiveTasksRequest) GetVmid() uint32 {
+	if x != nil {
+		return x.Vmid
+	}
+	return 0
+}
+
+type ListActiveTasksResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tasks         []*Task                `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListActiveTasksResponse) Reset() {
+	*x = ListActiveTasksResponse{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListActiveTasksResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListActiveTasksResponse) ProtoMessage() {}
+
+func (x *ListActiveTasksResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListActiveTasksResponse.ProtoReflect.Descriptor instead.
+func (*ListActiveTasksResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListActiveTasksResponse) GetTasks() []*Task {
+	if x != nil {
+		return x.Tasks
+	}
+	return nil
+}
+
+type Task struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Upid  string                 `protobuf:"bytes,1,opt,name=upid,proto3" json:"upid,omitempty"`
+	// Proxmox's task type, e.g. "vzstart", "qmshutdown".
+	Type          string                 `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Started       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=started,proto3" json:"started,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Task) Reset() {
+	*x = Task{}
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Task) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Task) ProtoMessage() {}
+
+func (x *Task) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Task.ProtoReflect.Descriptor instead.
+func (*Task) Descriptor() ([]byte, []int) {
+	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *Task) GetUpid() string {
+	if x != nil {
+		return x.Upid
+	}
+	return ""
+}
+
+func (x *Task) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *Task) GetStarted() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Started
+	}
+	return nil
+}
+
 var File_proxmox_api_proxmox_api_proto protoreflect.FileDescriptor
 
 const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1dproxmox-api/proxmox_api.proto\x12\x10ddash.proxmoxapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xa6\x03\n" +
+	"\x1dproxmox-api/proxmox_api.proto\x12\x10ddash.proxmoxapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa6\x03\n" +
 	"\x10ProxmoxApiConfig\x12}\n" +
 	"\x03url\x18\x01 \x01(\tBk\x9a\xb5\x18g\x1a\x03URL\"CThe Proxmox API by address, so it works while DNS or nginx is down.*\x17https://198.18.1.2:80060\x018\x01R\x03url\x12\x95\x01\n" +
 	"\x0ftls_server_name\x18\x02 \x01(\tBm\x9a\xb5\x18i\x1a\x0fTLS server name\"BThe name on the node's certificate, when the URL uses its address.*\x10pve.home.example8\x02R\rtlsServerName\x12@\n" +
@@ -716,7 +1222,35 @@ const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\x04vmid\x18\x01 \x01(\rR\x04vmid\x12\x1e\n" +
 	"\n" +
 	"privileges\x18\x02 \x03(\tR\n" +
-	"privileges*7\n" +
+	"privileges\"\\\n" +
+	"\x06Target\x12*\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x16.ddash.proxmoxapi.KindR\x04kind\x12\x12\n" +
+	"\x04node\x18\x02 \x01(\tR\x04node\x12\x12\n" +
+	"\x04vmid\x18\x03 \x01(\rR\x04vmid\"L\n" +
+	"\x14StartWorkloadRequest\x124\n" +
+	"\bworkload\x18\x01 \x01(\v2\x18.ddash.proxmoxapi.TargetR\bworkload\"+\n" +
+	"\x15StartWorkloadResponse\x12\x12\n" +
+	"\x04upid\x18\x01 \x01(\tR\x04upid\"\xa3\x01\n" +
+	"\x17ShutdownWorkloadRequest\x124\n" +
+	"\bworkload\x18\x01 \x01(\v2\x18.ddash.proxmoxapi.TargetR\bworkload\x123\n" +
+	"\atimeout\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\atimeout\x12\x1d\n" +
+	"\n" +
+	"force_stop\x18\x03 \x01(\bR\tforceStop\".\n" +
+	"\x18ShutdownWorkloadResponse\x12\x12\n" +
+	"\x04upid\x18\x01 \x01(\tR\x04upid\"M\n" +
+	"\x15RebootWorkloadRequest\x124\n" +
+	"\bworkload\x18\x01 \x01(\v2\x18.ddash.proxmoxapi.TargetR\bworkload\",\n" +
+	"\x16RebootWorkloadResponse\x12\x12\n" +
+	"\x04upid\x18\x01 \x01(\tR\x04upid\"@\n" +
+	"\x16ListActiveTasksRequest\x12\x12\n" +
+	"\x04node\x18\x01 \x01(\tR\x04node\x12\x12\n" +
+	"\x04vmid\x18\x02 \x01(\rR\x04vmid\"G\n" +
+	"\x17ListActiveTasksResponse\x12,\n" +
+	"\x05tasks\x18\x01 \x03(\v2\x16.ddash.proxmoxapi.TaskR\x05tasks\"d\n" +
+	"\x04Task\x12\x12\n" +
+	"\x04upid\x18\x01 \x01(\tR\x04upid\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x124\n" +
+	"\astarted\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\astarted*7\n" +
 	"\x04Kind\x12\x14\n" +
 	"\x10KIND_UNSPECIFIED\x10\x00\x12\f\n" +
 	"\bKIND_LXC\x10\x01\x12\v\n" +
@@ -724,10 +1258,14 @@ const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\rAddressSource\x12\x1e\n" +
 	"\x1aADDRESS_SOURCE_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13ADDRESS_SOURCE_LIVE\x10\x01\x12\x19\n" +
-	"\x15ADDRESS_SOURCE_CONFIG\x10\x022\xed\x01\n" +
+	"\x15ADDRESS_SOURCE_CONFIG\x10\x022\xa5\x05\n" +
 	"\x11ProxmoxApiService\x12h\n" +
 	"\rListWorkloads\x12&.ddash.proxmoxapi.ListWorkloadsRequest\x1a'.ddash.proxmoxapi.ListWorkloadsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12n\n" +
-	"\x0fListPermissions\x12(.ddash.proxmoxapi.ListPermissionsRequest\x1a).ddash.proxmoxapi.ListPermissionsResponse\"\x06\x8a\xb5\x18\x02\b\x02BMZKgithub.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb;proxmoxapipbb\x06proto3"
+	"\x0fListPermissions\x12(.ddash.proxmoxapi.ListPermissionsRequest\x1a).ddash.proxmoxapi.ListPermissionsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12f\n" +
+	"\rStartWorkload\x12&.ddash.proxmoxapi.StartWorkloadRequest\x1a'.ddash.proxmoxapi.StartWorkloadResponse\"\x04\x92\xb5\x18\x00\x12q\n" +
+	"\x10ShutdownWorkload\x12).ddash.proxmoxapi.ShutdownWorkloadRequest\x1a*.ddash.proxmoxapi.ShutdownWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12k\n" +
+	"\x0eRebootWorkload\x12'.ddash.proxmoxapi.RebootWorkloadRequest\x1a(.ddash.proxmoxapi.RebootWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12n\n" +
+	"\x0fListActiveTasks\x12(.ddash.proxmoxapi.ListActiveTasksRequest\x1a).ddash.proxmoxapi.ListActiveTasksResponse\"\x06\x8a\xb5\x18\x02\b\x03BMZKgithub.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb;proxmoxapipbb\x06proto3"
 
 var (
 	file_proxmox_api_proxmox_api_proto_rawDescOnce sync.Once
@@ -742,34 +1280,61 @@ func file_proxmox_api_proxmox_api_proto_rawDescGZIP() []byte {
 }
 
 var file_proxmox_api_proxmox_api_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_proxmox_api_proxmox_api_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_proxmox_api_proxmox_api_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_proxmox_api_proxmox_api_proto_goTypes = []any{
-	(Kind)(0),                       // 0: ddash.proxmoxapi.Kind
-	(AddressSource)(0),              // 1: ddash.proxmoxapi.AddressSource
-	(*ProxmoxApiConfig)(nil),        // 2: ddash.proxmoxapi.ProxmoxApiConfig
-	(*ListWorkloadsRequest)(nil),    // 3: ddash.proxmoxapi.ListWorkloadsRequest
-	(*ListWorkloadsResponse)(nil),   // 4: ddash.proxmoxapi.ListWorkloadsResponse
-	(*Workload)(nil),                // 5: ddash.proxmoxapi.Workload
-	(*Nic)(nil),                     // 6: ddash.proxmoxapi.Nic
-	(*ListPermissionsRequest)(nil),  // 7: ddash.proxmoxapi.ListPermissionsRequest
-	(*ListPermissionsResponse)(nil), // 8: ddash.proxmoxapi.ListPermissionsResponse
-	(*WorkloadPermissions)(nil),     // 9: ddash.proxmoxapi.WorkloadPermissions
+	(Kind)(0),                        // 0: ddash.proxmoxapi.Kind
+	(AddressSource)(0),               // 1: ddash.proxmoxapi.AddressSource
+	(*ProxmoxApiConfig)(nil),         // 2: ddash.proxmoxapi.ProxmoxApiConfig
+	(*ListWorkloadsRequest)(nil),     // 3: ddash.proxmoxapi.ListWorkloadsRequest
+	(*ListWorkloadsResponse)(nil),    // 4: ddash.proxmoxapi.ListWorkloadsResponse
+	(*Workload)(nil),                 // 5: ddash.proxmoxapi.Workload
+	(*Nic)(nil),                      // 6: ddash.proxmoxapi.Nic
+	(*ListPermissionsRequest)(nil),   // 7: ddash.proxmoxapi.ListPermissionsRequest
+	(*ListPermissionsResponse)(nil),  // 8: ddash.proxmoxapi.ListPermissionsResponse
+	(*WorkloadPermissions)(nil),      // 9: ddash.proxmoxapi.WorkloadPermissions
+	(*Target)(nil),                   // 10: ddash.proxmoxapi.Target
+	(*StartWorkloadRequest)(nil),     // 11: ddash.proxmoxapi.StartWorkloadRequest
+	(*StartWorkloadResponse)(nil),    // 12: ddash.proxmoxapi.StartWorkloadResponse
+	(*ShutdownWorkloadRequest)(nil),  // 13: ddash.proxmoxapi.ShutdownWorkloadRequest
+	(*ShutdownWorkloadResponse)(nil), // 14: ddash.proxmoxapi.ShutdownWorkloadResponse
+	(*RebootWorkloadRequest)(nil),    // 15: ddash.proxmoxapi.RebootWorkloadRequest
+	(*RebootWorkloadResponse)(nil),   // 16: ddash.proxmoxapi.RebootWorkloadResponse
+	(*ListActiveTasksRequest)(nil),   // 17: ddash.proxmoxapi.ListActiveTasksRequest
+	(*ListActiveTasksResponse)(nil),  // 18: ddash.proxmoxapi.ListActiveTasksResponse
+	(*Task)(nil),                     // 19: ddash.proxmoxapi.Task
+	(*durationpb.Duration)(nil),      // 20: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),    // 21: google.protobuf.Timestamp
 }
 var file_proxmox_api_proxmox_api_proto_depIdxs = []int32{
-	5, // 0: ddash.proxmoxapi.ListWorkloadsResponse.workloads:type_name -> ddash.proxmoxapi.Workload
-	0, // 1: ddash.proxmoxapi.Workload.kind:type_name -> ddash.proxmoxapi.Kind
-	6, // 2: ddash.proxmoxapi.Workload.nics:type_name -> ddash.proxmoxapi.Nic
-	1, // 3: ddash.proxmoxapi.Workload.addresses:type_name -> ddash.proxmoxapi.AddressSource
-	9, // 4: ddash.proxmoxapi.ListPermissionsResponse.workloads:type_name -> ddash.proxmoxapi.WorkloadPermissions
-	3, // 5: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:input_type -> ddash.proxmoxapi.ListWorkloadsRequest
-	7, // 6: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:input_type -> ddash.proxmoxapi.ListPermissionsRequest
-	4, // 7: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:output_type -> ddash.proxmoxapi.ListWorkloadsResponse
-	8, // 8: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:output_type -> ddash.proxmoxapi.ListPermissionsResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5,  // 0: ddash.proxmoxapi.ListWorkloadsResponse.workloads:type_name -> ddash.proxmoxapi.Workload
+	0,  // 1: ddash.proxmoxapi.Workload.kind:type_name -> ddash.proxmoxapi.Kind
+	6,  // 2: ddash.proxmoxapi.Workload.nics:type_name -> ddash.proxmoxapi.Nic
+	1,  // 3: ddash.proxmoxapi.Workload.addresses:type_name -> ddash.proxmoxapi.AddressSource
+	9,  // 4: ddash.proxmoxapi.ListPermissionsResponse.workloads:type_name -> ddash.proxmoxapi.WorkloadPermissions
+	0,  // 5: ddash.proxmoxapi.Target.kind:type_name -> ddash.proxmoxapi.Kind
+	10, // 6: ddash.proxmoxapi.StartWorkloadRequest.workload:type_name -> ddash.proxmoxapi.Target
+	10, // 7: ddash.proxmoxapi.ShutdownWorkloadRequest.workload:type_name -> ddash.proxmoxapi.Target
+	20, // 8: ddash.proxmoxapi.ShutdownWorkloadRequest.timeout:type_name -> google.protobuf.Duration
+	10, // 9: ddash.proxmoxapi.RebootWorkloadRequest.workload:type_name -> ddash.proxmoxapi.Target
+	19, // 10: ddash.proxmoxapi.ListActiveTasksResponse.tasks:type_name -> ddash.proxmoxapi.Task
+	21, // 11: ddash.proxmoxapi.Task.started:type_name -> google.protobuf.Timestamp
+	3,  // 12: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:input_type -> ddash.proxmoxapi.ListWorkloadsRequest
+	7,  // 13: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:input_type -> ddash.proxmoxapi.ListPermissionsRequest
+	11, // 14: ddash.proxmoxapi.ProxmoxApiService.StartWorkload:input_type -> ddash.proxmoxapi.StartWorkloadRequest
+	13, // 15: ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload:input_type -> ddash.proxmoxapi.ShutdownWorkloadRequest
+	15, // 16: ddash.proxmoxapi.ProxmoxApiService.RebootWorkload:input_type -> ddash.proxmoxapi.RebootWorkloadRequest
+	17, // 17: ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks:input_type -> ddash.proxmoxapi.ListActiveTasksRequest
+	4,  // 18: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:output_type -> ddash.proxmoxapi.ListWorkloadsResponse
+	8,  // 19: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:output_type -> ddash.proxmoxapi.ListPermissionsResponse
+	12, // 20: ddash.proxmoxapi.ProxmoxApiService.StartWorkload:output_type -> ddash.proxmoxapi.StartWorkloadResponse
+	14, // 21: ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload:output_type -> ddash.proxmoxapi.ShutdownWorkloadResponse
+	16, // 22: ddash.proxmoxapi.ProxmoxApiService.RebootWorkload:output_type -> ddash.proxmoxapi.RebootWorkloadResponse
+	18, // 23: ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks:output_type -> ddash.proxmoxapi.ListActiveTasksResponse
+	18, // [18:24] is the sub-list for method output_type
+	12, // [12:18] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_proxmox_api_proxmox_api_proto_init() }
@@ -783,7 +1348,7 @@ func file_proxmox_api_proxmox_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxmox_api_proxmox_api_proto_rawDesc), len(file_proxmox_api_proxmox_api_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

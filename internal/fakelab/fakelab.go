@@ -6,7 +6,7 @@
 // Docker comes first; each later system adds itself to systems (HTTP) or
 // sshSystems (SSH). A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
-// adguardfake). A named scenario (e.g. "vpn-on-fallback") replaces the
+// adguardfake; Proxmox: proxmoxfake). A named scenario (e.g. "vpn-on-fallback") replaces the
 // baseline of every system that has a sibling directory of that name.
 package fakelab
 
@@ -33,6 +33,7 @@ import (
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -92,6 +93,8 @@ var systems = []system{
 			// Plain http: the lab has no certificate a Component trusts.
 			return &proxmoxapipb.ProxmoxApiConfig{Url: "http://" + addr, TokenId: "ddash@pve!fakelab", TokenSecret: "fakelab"}
 		},
+		// Workload status and power tasks are kept: Start/Stop/Restart stick.
+		serve: func(dir string) (http.Handler, error) { return proxmoxfake.New(dir, proxmoxfake.Options{}) },
 	},
 }
 
