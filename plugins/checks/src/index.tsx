@@ -7,6 +7,10 @@ import { summary } from "./widget";
 export default definePlugin({
   // Label and icon (activity) come from plugin.yaml.
   nav: { order: 20, useBadge: useDownBadge },
-  pages: [{ index: true, Component: ChecksPage }],
+  // ":id" is where a Check's Notification links: the Page with its detail open.
+  pages: [
+    { index: true, Component: ChecksPage },
+    { path: ":id", Component: ChecksPage },
+  ],
   widgets: [summary],
 });
