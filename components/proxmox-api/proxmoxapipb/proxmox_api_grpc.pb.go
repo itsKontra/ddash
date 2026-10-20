@@ -22,8 +22,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProxmoxApiService_ListWorkloads_FullMethodName   = "/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads"
-	ProxmoxApiService_ListPermissions_FullMethodName = "/ddash.proxmoxapi.ProxmoxApiService/ListPermissions"
+	ProxmoxApiService_ListWorkloads_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads"
+	ProxmoxApiService_ListPermissions_FullMethodName  = "/ddash.proxmoxapi.ProxmoxApiService/ListPermissions"
+	ProxmoxApiService_StartWorkload_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/StartWorkload"
+	ProxmoxApiService_ShutdownWorkload_FullMethodName = "/ddash.proxmoxapi.ProxmoxApiService/ShutdownWorkload"
+	ProxmoxApiService_RebootWorkload_FullMethodName   = "/ddash.proxmoxapi.ProxmoxApiService/RebootWorkload"
+	ProxmoxApiService_ListActiveTasks_FullMethodName  = "/ddash.proxmoxapi.ProxmoxApiService/ListActiveTasks"
 )
 
 // ProxmoxApiServiceClient is the client API for ProxmoxApiService service.
@@ -35,6 +39,21 @@ type ProxmoxApiServiceClient interface {
 	// ListPermissions returns ddash's effective privileges on each Workload
 	// ListWorkloads lists, from /access/permissions.
 	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
+	// StartWorkload starts a Workload (status/start) and returns once
+	// Proxmox's task ended with exitstatus OK. A task still running when the
+	// call's deadline passes carries on in Proxmox: the call returns
+	// DeadlineExceeded and ListActiveTasks lists the task until it ends.
+	StartWorkload(ctx context.Context, in *StartWorkloadRequest, opts ...grpc.CallOption) (*StartWorkloadResponse, error)
+	// ShutdownWorkload shuts a Workload down cleanly (status/shutdown), and
+	// stops it hard after timeout when force_stop is set. It returns like
+	// StartWorkload.
+	ShutdownWorkload(ctx context.Context, in *ShutdownWorkloadRequest, opts ...grpc.CallOption) (*ShutdownWorkloadResponse, error)
+	// RebootWorkload shuts a Workload down and starts it again
+	// (status/reboot). It returns like StartWorkload.
+	RebootWorkload(ctx context.Context, in *RebootWorkloadRequest, opts ...grpc.CallOption) (*RebootWorkloadResponse, error)
+	// ListActiveTasks returns the tasks ddash's token started on a Workload
+	// that are still running, never cached.
+	ListActiveTasks(ctx context.Context, in *ListActiveTasksRequest, opts ...grpc.CallOption) (*ListActiveTasksResponse, error)
 }
 
 type proxmoxApiServiceClient struct {
@@ -65,6 +84,46 @@ func (c *proxmoxApiServiceClient) ListPermissions(ctx context.Context, in *ListP
 	return out, nil
 }
 
+func (c *proxmoxApiServiceClient) StartWorkload(ctx context.Context, in *StartWorkloadRequest, opts ...grpc.CallOption) (*StartWorkloadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartWorkloadResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_StartWorkload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) ShutdownWorkload(ctx context.Context, in *ShutdownWorkloadRequest, opts ...grpc.CallOption) (*ShutdownWorkloadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ShutdownWorkloadResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_ShutdownWorkload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) RebootWorkload(ctx context.Context, in *RebootWorkloadRequest, opts ...grpc.CallOption) (*RebootWorkloadResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RebootWorkloadResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_RebootWorkload_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) ListActiveTasks(ctx context.Context, in *ListActiveTasksRequest, opts ...grpc.CallOption) (*ListActiveTasksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListActiveTasksResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_ListActiveTasks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProxmoxApiServiceServer is the server API for ProxmoxApiService service.
 // All implementations must embed UnimplementedProxmoxApiServiceServer
 // for forward compatibility.
@@ -74,6 +133,21 @@ type ProxmoxApiServiceServer interface {
 	// ListPermissions returns ddash's effective privileges on each Workload
 	// ListWorkloads lists, from /access/permissions.
 	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
+	// StartWorkload starts a Workload (status/start) and returns once
+	// Proxmox's task ended with exitstatus OK. A task still running when the
+	// call's deadline passes carries on in Proxmox: the call returns
+	// DeadlineExceeded and ListActiveTasks lists the task until it ends.
+	StartWorkload(context.Context, *StartWorkloadRequest) (*StartWorkloadResponse, error)
+	// ShutdownWorkload shuts a Workload down cleanly (status/shutdown), and
+	// stops it hard after timeout when force_stop is set. It returns like
+	// StartWorkload.
+	ShutdownWorkload(context.Context, *ShutdownWorkloadRequest) (*ShutdownWorkloadResponse, error)
+	// RebootWorkload shuts a Workload down and starts it again
+	// (status/reboot). It returns like StartWorkload.
+	RebootWorkload(context.Context, *RebootWorkloadRequest) (*RebootWorkloadResponse, error)
+	// ListActiveTasks returns the tasks ddash's token started on a Workload
+	// that are still running, never cached.
+	ListActiveTasks(context.Context, *ListActiveTasksRequest) (*ListActiveTasksResponse, error)
 	mustEmbedUnimplementedProxmoxApiServiceServer()
 }
 
@@ -89,6 +163,18 @@ func (UnimplementedProxmoxApiServiceServer) ListWorkloads(context.Context, *List
 }
 func (UnimplementedProxmoxApiServiceServer) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPermissions not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) StartWorkload(context.Context, *StartWorkloadRequest) (*StartWorkloadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartWorkload not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) ShutdownWorkload(context.Context, *ShutdownWorkloadRequest) (*ShutdownWorkloadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ShutdownWorkload not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) RebootWorkload(context.Context, *RebootWorkloadRequest) (*RebootWorkloadResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RebootWorkload not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) ListActiveTasks(context.Context, *ListActiveTasksRequest) (*ListActiveTasksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListActiveTasks not implemented")
 }
 func (UnimplementedProxmoxApiServiceServer) mustEmbedUnimplementedProxmoxApiServiceServer() {}
 func (UnimplementedProxmoxApiServiceServer) testEmbeddedByValue()                           {}
@@ -147,6 +233,78 @@ func _ProxmoxApiService_ListPermissions_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProxmoxApiService_StartWorkload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartWorkloadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).StartWorkload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_StartWorkload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).StartWorkload(ctx, req.(*StartWorkloadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_ShutdownWorkload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ShutdownWorkloadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).ShutdownWorkload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_ShutdownWorkload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).ShutdownWorkload(ctx, req.(*ShutdownWorkloadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_RebootWorkload_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RebootWorkloadRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).RebootWorkload(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_RebootWorkload_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).RebootWorkload(ctx, req.(*RebootWorkloadRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_ListActiveTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListActiveTasksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).ListActiveTasks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_ListActiveTasks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).ListActiveTasks(ctx, req.(*ListActiveTasksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProxmoxApiService_ServiceDesc is the grpc.ServiceDesc for ProxmoxApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,6 +319,22 @@ var ProxmoxApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPermissions",
 			Handler:    _ProxmoxApiService_ListPermissions_Handler,
+		},
+		{
+			MethodName: "StartWorkload",
+			Handler:    _ProxmoxApiService_StartWorkload_Handler,
+		},
+		{
+			MethodName: "ShutdownWorkload",
+			Handler:    _ProxmoxApiService_ShutdownWorkload_Handler,
+		},
+		{
+			MethodName: "RebootWorkload",
+			Handler:    _ProxmoxApiService_RebootWorkload_Handler,
+		},
+		{
+			MethodName: "ListActiveTasks",
+			Handler:    _ProxmoxApiService_ListActiveTasks_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

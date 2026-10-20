@@ -1,0 +1,3 @@
+name: proxmox
+description: Starts, stops and restarts Proxmox Workloads that are not Protected, with automatic Maintenance.
+requires: [checks, proxmox-api]

@@ -155,12 +155,12 @@ it("shows an upstream block's servers next to its name", async () => {
   expect(within(row("grafana.home.example")).getByLabelText("Upstream").textContent).toBe("http://grafana → 198.18.2.30:3000, 198.18.2.31:3000");
 });
 
-it("links the App to the apps Page and the Workload to its Plugin's Page when they are installed", async () => {
+it("links the App to the apps Page and the Workload to its Proxmox detail or Docker Page when they are installed", async () => {
   await show({}, ["reverse-proxy", "apps", "proxmox"]);
 
   const grafana = row("grafana.home.example");
   expect(within(within(grafana).getByLabelText("App")).getByRole("link").getAttribute("href")).toBe("/apps");
-  expect(within(within(grafana).getByLabelText("Workload")).getByRole("link").getAttribute("href")).toBe("/proxmox");
+  expect(within(within(grafana).getByLabelText("Workload")).getByRole("link").getAttribute("href")).toBe("/proxmox/workloads/120");
   // docker isn't installed: Jellyfin's container is plain text.
   expect(within(within(row("jellyfin.home.example")).getByLabelText("Workload")).queryByRole("link")).toBeNull();
 });
