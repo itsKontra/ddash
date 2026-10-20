@@ -68,6 +68,21 @@ service ChecksService {
   rpc SetAppChecks(SetAppChecksRequest) returns (SetAppChecksResponse) {
     option (ddash.action) = {};
   }
+  // StartMaintenance puts a Check, a Workload's App Checks or every Check
+  // into Maintenance: their beats are recorded as maintenance, left out of
+  // uptime. Maintenance already on the same scope is replaced.
+  rpc StartMaintenance(StartMaintenanceRequest) returns (StartMaintenanceResponse) {
+    option (ddash.action) = {};
+  }
+  // EndMaintenance ends a scope's Maintenance early. Ending a scope
+  // without one does nothing.
+  rpc EndMaintenance(EndMaintenanceRequest) returns (EndMaintenanceResponse) {
+    option (ddash.action) = {};
+  }
+  // ListMaintenance returns every Maintenance in force, from memory.
+  rpc ListMaintenance(ListMaintenanceRequest) returns (ListMaintenanceResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
 }
 
 enum CheckType {
@@ -144,7 +159,7 @@ message Check {
   // Disabled: not probed.
   bool disabled = 10;
   // In Maintenance: its beats don't count toward uptime and it stays
-  // silent. Always false until Maintenance exists.
+  // silent.
   bool maintenance = 11;
   // The App an App Check follows, e.g. "proxy:jellyfin.home.example";
   // empty for a manual Check, which the Operator edits.
@@ -156,6 +171,9 @@ message Check {
   // An App Check's Workload, as apps last declared it; unset without one
   // and for a manual Check.
   ddash.workload.WorkloadRef workload = 15;
+  // In Maintenance: when the last Maintenance covering it ends; unset
+  // while one lasts until ended.
+  google.protobuf.Timestamp maintenance_ends = 16;
 }
 
 message ListChecksRequest {}
@@ -261,6 +279,8 @@ message Beat {
   double latency_ms = 5;
   // Why it failed; empty when up.
   string reason = 6;
+  // In Maintenance: left out of uptime.
+  bool maintenance = 7;
 }
 
 message GetHistoryRequest {
@@ -315,3 +335,55 @@ message SetAppChecksRequest {
 }
 
 message SetAppChecksResponse {}
+
+// What a Maintenance covers.
+message MaintenanceScope {
+  oneof scope {
+    // One Check, manual or App.
+    int64 check_id = 1;
+    // Every App Check whose App runs on this Workload, including those
+    // linked to it later. LXC and VM match by VMID (the node may change),
+    // Docker by host and container name, external by address.
+    ddash.workload.WorkloadRef workload = 2;
+    // Every Check (true).
+    bool everything = 3;
+  }
+}
+
+message Maintenance {
+  MaintenanceScope scope = 1;
+  google.protobuf.Timestamp started = 2;
+  // When it ends by itself; unset when it lasts until ended.
+  google.protobuf.Timestamp ends = 3;
+  // It also ends once every Check it covers that is probed has been up
+  // since it started.
+  bool until_up = 4;
+}
+
+message StartMaintenanceRequest {
+  MaintenanceScope scope = 1;
+  // How long it lasts, at most 24 h; unset lasts until ended. The Checks
+  // Page offers 30 min, 1 h and 4 h.
+  google.protobuf.Duration duration = 2;
+  // Also end it once every probed Check it covers is up with a beat after
+  // this call (proxmox's power Actions: call it after the power task ended,
+  // so a beat from before the Workload went down doesn't end it).
+  bool until_up = 3;
+}
+
+message StartMaintenanceResponse {
+  Maintenance maintenance = 1;
+}
+
+message EndMaintenanceRequest {
+  MaintenanceScope scope = 1;
+}
+
+message EndMaintenanceResponse {}
+
+message ListMaintenanceRequest {}
+
+message ListMaintenanceResponse {
+  // Everything first, then Workloads, then single Checks.
+  repeated Maintenance maintenance = 1;
+}

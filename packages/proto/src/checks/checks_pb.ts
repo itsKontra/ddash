@@ -23,7 +23,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file checks/checks.proto.
  */
 export const file_checks_checks: GenFile = /*@__PURE__*/
-  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIqwDCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCBIOCgZhcHBfaWQYDCABKAkSMAoMY2VydF9leHBpcmVzGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIVCg1jZXJ0X2V4cGlyaW5nGA4gASgIEi0KCHdvcmtsb2FkGA8gASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYiEwoRTGlzdENoZWNrc1JlcXVlc3QiOQoSTGlzdENoZWNrc1Jlc3BvbnNlEiMKBmNoZWNrcxgBIAMoCzITLmRkYXNoLmNoZWNrcy5DaGVjayI7ChJDcmVhdGVDaGVja1JlcXVlc3QSJQoEc3BlYxgBIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMiOQoTQ3JlYXRlQ2hlY2tSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayJHChJVcGRhdGVDaGVja1JlcXVlc3QSCgoCaWQYASABKAMSJQoEc3BlYxgCIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMiOQoTVXBkYXRlQ2hlY2tSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayIgChJEZWxldGVDaGVja1JlcXVlc3QSCgoCaWQYASABKAMiFQoTRGVsZXRlQ2hlY2tSZXNwb25zZSIsCg9TZXRNdXRlZFJlcXVlc3QSCgoCaWQYASABKAMSDQoFbXV0ZWQYAiABKAgiNgoQU2V0TXV0ZWRSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayIyChJTZXREaXNhYmxlZFJlcXVlc3QSCgoCaWQYASABKAMSEAoIZGlzYWJsZWQYAiABKAgiOQoTU2V0RGlzYWJsZWRSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayI5CgdMYXRlbmN5Eg4KBmF2Z19tcxgBIAEoARIOCgZtaW5fbXMYAiABKAESDgoGbWF4X21zGAMgASgBIqMBCgZVcHRpbWUSJAoGd2luZG93GAEgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdxISCgVyYXRpbxgCIAEoAUgAiAEBEgoKAnVwGAMgASgDEgwKBGRvd24YBCABKAMSEwoLbWFpbnRlbmFuY2UYBSABKAMSJgoHbGF0ZW5jeRgGIAEoCzIVLmRkYXNoLmNoZWNrcy5MYXRlbmN5QggKBl9yYXRpbyKKAQoGQnVja2V0EikKBXN0YXJ0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIKCgJ1cBgCIAEoAxIMCgRkb3duGAMgASgDEhMKC21haW50ZW5hbmNlGAQgASgDEiYKB2xhdGVuY3kYBSABKAsyFS5kZGFzaC5jaGVja3MuTGF0ZW5jeSKTAQoEQmVhdBImCgJhdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASCgoCdXAYAiABKAgSIgoFc3RhdGUYAyABKA4yEy5kZGFzaC5jaGVja3MuU3RhdGUSDwoHY2hhbmdlZBgEIAEoCBISCgpsYXRlbmN5X21zGAUgASgBEg4KBnJlYXNvbhgGIAEoCSJFChFHZXRIaXN0b3J5UmVxdWVzdBIKCgJpZBgBIAEoAxIkCgZ3aW5kb3cYAiABKA4yFC5kZGFzaC5jaGVja3MuV2luZG93IoECChJHZXRIaXN0b3J5UmVzcG9uc2USJAoGdXB0aW1lGAEgAygLMhQuZGRhc2guY2hlY2tzLlVwdGltZRIkCgZ3aW5kb3cYAiABKA4yFC5kZGFzaC5jaGVja3MuV2luZG93EikKBmJ1Y2tldBgDIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIoCgRmcm9tGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgdidWNrZXRzGAUgAygLMhQuZGRhc2guY2hlY2tzLkJ1Y2tldBIjCgdjaGFuZ2VzGAYgAygLMhIuZGRhc2guY2hlY2tzLkJlYXQiHgoQTGlzdEJlYXRzUmVxdWVzdBIKCgJpZBgBIAEoAyI2ChFMaXN0QmVhdHNSZXNwb25zZRIhCgViZWF0cxgBIAMoCzISLmRkYXNoLmNoZWNrcy5CZWF0InUKCEFwcENoZWNrEg4KBmFwcF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEgsKA3VybBgDIAEoCRIPCgdlbmFibGVkGAQgASgIEi0KCHdvcmtsb2FkGAUgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYiPQoTU2V0QXBwQ2hlY2tzUmVxdWVzdBImCgZjaGVja3MYASADKAsyFi5kZGFzaC5jaGVja3MuQXBwQ2hlY2siFgoUU2V0QXBwQ2hlY2tzUmVzcG9uc2UqeQoJQ2hlY2tUeXBlEhoKFkNIRUNLX1RZUEVfVU5TUEVDSUZJRUQQABISCg5DSEVDS19UWVBFX1RDUBABEhMKD0NIRUNLX1RZUEVfSUNNUBACEhIKDkNIRUNLX1RZUEVfRE5TEAMSEwoPQ0hFQ0tfVFlQRV9IVFRQEAQqjwEKClJlY29yZFR5cGUSGwoXUkVDT1JEX1RZUEVfVU5TUEVDSUZJRUQQABIRCg1SRUNPUkRfVFlQRV9BEAESFAoQUkVDT1JEX1RZUEVfQUFBQRACEhIKDlJFQ09SRF9UWVBFX01YEAMSEgoOUkVDT1JEX1RZUEVfTlMQBBITCg9SRUNPUkRfVFlQRV9UWFQQBSpPCgVTdGF0ZRIVChFTVEFURV9VTlNQRUNJRklFRBAAEhEKDVNUQVRFX1BFTkRJTkcQARIMCghTVEFURV9VUBACEg4KClNUQVRFX0RPV04QAypRCgZXaW5kb3cSFgoSV0lORE9XX1VOU1BFQ0lGSUVEEAASDgoKV0lORE9XXzI0SBABEg4KCldJTkRPV18zMEQQAhIPCgtXSU5ET1dfMzY1RBADMqsGCg1DaGVja3NTZXJ2aWNlElcKCkxpc3RDaGVja3MSHy5kZGFzaC5jaGVja3MuTGlzdENoZWNrc1JlcXVlc3QaIC5kZGFzaC5jaGVja3MuTGlzdENoZWNrc1Jlc3BvbnNlIgaKtRgCCAISWAoLQ3JlYXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLkNyZWF0ZUNoZWNrUmVzcG9uc2UiBJK1GAASWAoLVXBkYXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLlVwZGF0ZUNoZWNrUmVzcG9uc2UiBJK1GAASWgoLRGVsZXRlQ2hlY2sSIC5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLkRlbGV0ZUNoZWNrUmVzcG9uc2UiBpK1GAIIARJPCghTZXRNdXRlZBIdLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlcXVlc3QaHi5kZGFzaC5jaGVja3MuU2V0TXV0ZWRSZXNwb25zZSIEkrUYABJYCgtTZXREaXNhYmxlZBIgLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlcXVlc3QaIS5kZGFzaC5jaGVja3MuU2V0RGlzYWJsZWRSZXNwb25zZSIEkrUYABJVCgpHZXRIaXN0b3J5Eh8uZGRhc2guY2hlY2tzLkdldEhpc3RvcnlSZXF1ZXN0GiAuZGRhc2guY2hlY2tzLkdldEhpc3RvcnlSZXNwb25zZSIEirUYABJSCglMaXN0QmVhdHMSHi5kZGFzaC5jaGVja3MuTGlzdEJlYXRzUmVxdWVzdBofLmRkYXNoLmNoZWNrcy5MaXN0QmVhdHNSZXNwb25zZSIEirUYABJbCgxTZXRBcHBDaGVja3MSIS5kZGFzaC5jaGVja3MuU2V0QXBwQ2hlY2tzUmVxdWVzdBoiLmRkYXNoLmNoZWNrcy5TZXRBcHBDaGVja3NSZXNwb25zZSIEkrUYAEJAWj5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2NoZWNrcy9jaGVja3NwYjtjaGVja3NwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIuIDCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCBIOCgZhcHBfaWQYDCABKAkSMAoMY2VydF9leHBpcmVzGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIVCg1jZXJ0X2V4cGlyaW5nGA4gASgIEi0KCHdvcmtsb2FkGA8gASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSNAoQbWFpbnRlbmFuY2VfZW5kcxgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiEwoRTGlzdENoZWNrc1JlcXVlc3QiOQoSTGlzdENoZWNrc1Jlc3BvbnNlEiMKBmNoZWNrcxgBIAMoCzITLmRkYXNoLmNoZWNrcy5DaGVjayI7ChJDcmVhdGVDaGVja1JlcXVlc3QSJQoEc3BlYxgBIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMiOQoTQ3JlYXRlQ2hlY2tSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayJHChJVcGRhdGVDaGVja1JlcXVlc3QSCgoCaWQYASABKAMSJQoEc3BlYxgCIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMiOQoTVXBkYXRlQ2hlY2tSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayIgChJEZWxldGVDaGVja1JlcXVlc3QSCgoCaWQYASABKAMiFQoTRGVsZXRlQ2hlY2tSZXNwb25zZSIsCg9TZXRNdXRlZFJlcXVlc3QSCgoCaWQYASABKAMSDQoFbXV0ZWQYAiABKAgiNgoQU2V0TXV0ZWRSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayIyChJTZXREaXNhYmxlZFJlcXVlc3QSCgoCaWQYASABKAMSEAoIZGlzYWJsZWQYAiABKAgiOQoTU2V0RGlzYWJsZWRSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayI5CgdMYXRlbmN5Eg4KBmF2Z19tcxgBIAEoARIOCgZtaW5fbXMYAiABKAESDgoGbWF4X21zGAMgASgBIqMBCgZVcHRpbWUSJAoGd2luZG93GAEgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdxISCgVyYXRpbxgCIAEoAUgAiAEBEgoKAnVwGAMgASgDEgwKBGRvd24YBCABKAMSEwoLbWFpbnRlbmFuY2UYBSABKAMSJgoHbGF0ZW5jeRgGIAEoCzIVLmRkYXNoLmNoZWNrcy5MYXRlbmN5QggKBl9yYXRpbyKKAQoGQnVja2V0EikKBXN0YXJ0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIKCgJ1cBgCIAEoAxIMCgRkb3duGAMgASgDEhMKC21haW50ZW5hbmNlGAQgASgDEiYKB2xhdGVuY3kYBSABKAsyFS5kZGFzaC5jaGVja3MuTGF0ZW5jeSKoAQoEQmVhdBImCgJhdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASCgoCdXAYAiABKAgSIgoFc3RhdGUYAyABKA4yEy5kZGFzaC5jaGVja3MuU3RhdGUSDwoHY2hhbmdlZBgEIAEoCBISCgpsYXRlbmN5X21zGAUgASgBEg4KBnJlYXNvbhgGIAEoCRITCgttYWludGVuYW5jZRgHIAEoCCJFChFHZXRIaXN0b3J5UmVxdWVzdBIKCgJpZBgBIAEoAxIkCgZ3aW5kb3cYAiABKA4yFC5kZGFzaC5jaGVja3MuV2luZG93IoECChJHZXRIaXN0b3J5UmVzcG9uc2USJAoGdXB0aW1lGAEgAygLMhQuZGRhc2guY2hlY2tzLlVwdGltZRIkCgZ3aW5kb3cYAiABKA4yFC5kZGFzaC5jaGVja3MuV2luZG93EikKBmJ1Y2tldBgDIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIoCgRmcm9tGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgdidWNrZXRzGAUgAygLMhQuZGRhc2guY2hlY2tzLkJ1Y2tldBIjCgdjaGFuZ2VzGAYgAygLMhIuZGRhc2guY2hlY2tzLkJlYXQiHgoQTGlzdEJlYXRzUmVxdWVzdBIKCgJpZBgBIAEoAyI2ChFMaXN0QmVhdHNSZXNwb25zZRIhCgViZWF0cxgBIAMoCzISLmRkYXNoLmNoZWNrcy5CZWF0InUKCEFwcENoZWNrEg4KBmFwcF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEgsKA3VybBgDIAEoCRIPCgdlbmFibGVkGAQgASgIEi0KCHdvcmtsb2FkGAUgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYiPQoTU2V0QXBwQ2hlY2tzUmVxdWVzdBImCgZjaGVja3MYASADKAsyFi5kZGFzaC5jaGVja3MuQXBwQ2hlY2siFgoUU2V0QXBwQ2hlY2tzUmVzcG9uc2UidgoQTWFpbnRlbmFuY2VTY29wZRISCghjaGVja19pZBgBIAEoA0gAEi8KCHdvcmtsb2FkGAIgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWZIABIUCgpldmVyeXRoaW5nGAMgASgISABCBwoFc2NvcGUipQEKC01haW50ZW5hbmNlEi0KBXNjb3BlGAEgASgLMh4uZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlU2NvcGUSKwoHc3RhcnRlZBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEZW5kcxgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIdW50aWxfdXAYBCABKAgihwEKF1N0YXJ0TWFpbnRlbmFuY2VSZXF1ZXN0Ei0KBXNjb3BlGAEgASgLMh4uZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlU2NvcGUSKwoIZHVyYXRpb24YAiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SEAoIdW50aWxfdXAYAyABKAgiSgoYU3RhcnRNYWludGVuYW5jZVJlc3BvbnNlEi4KC21haW50ZW5hbmNlGAEgASgLMhkuZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlIkYKFUVuZE1haW50ZW5hbmNlUmVxdWVzdBItCgVzY29wZRgBIAEoCzIeLmRkYXNoLmNoZWNrcy5NYWludGVuYW5jZVNjb3BlIhgKFkVuZE1haW50ZW5hbmNlUmVzcG9uc2UiGAoWTGlzdE1haW50ZW5hbmNlUmVxdWVzdCJJChdMaXN0TWFpbnRlbmFuY2VSZXNwb25zZRIuCgttYWludGVuYW5jZRgBIAMoCzIZLmRkYXNoLmNoZWNrcy5NYWludGVuYW5jZSp5CglDaGVja1R5cGUSGgoWQ0hFQ0tfVFlQRV9VTlNQRUNJRklFRBAAEhIKDkNIRUNLX1RZUEVfVENQEAESEwoPQ0hFQ0tfVFlQRV9JQ01QEAISEgoOQ0hFQ0tfVFlQRV9ETlMQAxITCg9DSEVDS19UWVBFX0hUVFAQBCqPAQoKUmVjb3JkVHlwZRIbChdSRUNPUkRfVFlQRV9VTlNQRUNJRklFRBAAEhEKDVJFQ09SRF9UWVBFX0EQARIUChBSRUNPUkRfVFlQRV9BQUFBEAISEgoOUkVDT1JEX1RZUEVfTVgQAxISCg5SRUNPUkRfVFlQRV9OUxAEEhMKD1JFQ09SRF9UWVBFX1RYVBAFKk8KBVN0YXRlEhUKEVNUQVRFX1VOU1BFQ0lGSUVEEAASEQoNU1RBVEVfUEVORElORxABEgwKCFNUQVRFX1VQEAISDgoKU1RBVEVfRE9XThADKlEKBldpbmRvdxIWChJXSU5ET1dfVU5TUEVDSUZJRUQQABIOCgpXSU5ET1dfMjRIEAESDgoKV0lORE9XXzMwRBACEg8KC1dJTkRPV18zNjVEEAMy3wgKDUNoZWNrc1NlcnZpY2USVwoKTGlzdENoZWNrcxIfLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVxdWVzdBogLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVzcG9uc2UiBoq1GAIIAhJYCgtDcmVhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5DcmVhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJYCgtVcGRhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5VcGRhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJaCgtEZWxldGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5EZWxldGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXNwb25zZSIGkrUYAggBEk8KCFNldE11dGVkEh0uZGRhc2guY2hlY2tzLlNldE11dGVkUmVxdWVzdBoeLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlc3BvbnNlIgSStRgAElgKC1NldERpc2FibGVkEiAuZGRhc2guY2hlY2tzLlNldERpc2FibGVkUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlc3BvbnNlIgSStRgAElUKCkdldEhpc3RvcnkSHy5kZGFzaC5jaGVja3MuR2V0SGlzdG9yeVJlcXVlc3QaIC5kZGFzaC5jaGVja3MuR2V0SGlzdG9yeVJlc3BvbnNlIgSKtRgAElIKCUxpc3RCZWF0cxIeLmRkYXNoLmNoZWNrcy5MaXN0QmVhdHNSZXF1ZXN0Gh8uZGRhc2guY2hlY2tzLkxpc3RCZWF0c1Jlc3BvbnNlIgSKtRgAElsKDFNldEFwcENoZWNrcxIhLmRkYXNoLmNoZWNrcy5TZXRBcHBDaGVja3NSZXF1ZXN0GiIuZGRhc2guY2hlY2tzLlNldEFwcENoZWNrc1Jlc3BvbnNlIgSStRgAEmcKEFN0YXJ0TWFpbnRlbmFuY2USJS5kZGFzaC5jaGVja3MuU3RhcnRNYWludGVuYW5jZVJlcXVlc3QaJi5kZGFzaC5jaGVja3MuU3RhcnRNYWludGVuYW5jZVJlc3BvbnNlIgSStRgAEmEKDkVuZE1haW50ZW5hbmNlEiMuZGRhc2guY2hlY2tzLkVuZE1haW50ZW5hbmNlUmVxdWVzdBokLmRkYXNoLmNoZWNrcy5FbmRNYWludGVuYW5jZVJlc3BvbnNlIgSStRgAEmYKD0xpc3RNYWludGVuYW5jZRIkLmRkYXNoLmNoZWNrcy5MaXN0TWFpbnRlbmFuY2VSZXF1ZXN0GiUuZGRhc2guY2hlY2tzLkxpc3RNYWludGVuYW5jZVJlc3BvbnNlIgaKtRgCCAJCQFo+Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9jaGVja3MvY2hlY2tzcGI7Y2hlY2tzcGJiBnByb3RvMw", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * checks has no config.
@@ -178,7 +178,7 @@ export type Check = Message<"ddash.checks.Check"> & {
 
   /**
    * In Maintenance: its beats don't count toward uptime and it stays
-   * silent. Always false until Maintenance exists.
+   * silent.
    *
    * @generated from field: bool maintenance = 11;
    */
@@ -213,6 +213,14 @@ export type Check = Message<"ddash.checks.Check"> & {
    * @generated from field: ddash.workload.WorkloadRef workload = 15;
    */
   workload?: WorkloadRef | undefined;
+
+  /**
+   * In Maintenance: when the last Maintenance covering it ends; unset
+   * while one lasts until ended.
+   *
+   * @generated from field: google.protobuf.Timestamp maintenance_ends = 16;
+   */
+  maintenanceEnds?: Timestamp | undefined;
 };
 
 /**
@@ -598,6 +606,13 @@ export type Beat = Message<"ddash.checks.Beat"> & {
    * @generated from field: string reason = 6;
    */
   reason: string;
+
+  /**
+   * In Maintenance: left out of uptime.
+   *
+   * @generated from field: bool maintenance = 7;
+   */
+  maintenance: boolean;
 };
 
 /**
@@ -802,6 +817,201 @@ export type SetAppChecksResponse = Message<"ddash.checks.SetAppChecksResponse"> 
  */
 export const SetAppChecksResponseSchema: GenMessage<SetAppChecksResponse> = /*@__PURE__*/
   messageDesc(file_checks_checks, 26);
+
+/**
+ * What a Maintenance covers.
+ *
+ * @generated from message ddash.checks.MaintenanceScope
+ */
+export type MaintenanceScope = Message<"ddash.checks.MaintenanceScope"> & {
+  /**
+   * @generated from oneof ddash.checks.MaintenanceScope.scope
+   */
+  scope: {
+    /**
+     * One Check, manual or App.
+     *
+     * @generated from field: int64 check_id = 1;
+     */
+    value: bigint;
+    case: "checkId";
+  } | {
+    /**
+     * Every App Check whose App runs on this Workload, including those
+     * linked to it later. LXC and VM match by VMID (the node may change),
+     * Docker by host and container name, external by address.
+     *
+     * @generated from field: ddash.workload.WorkloadRef workload = 2;
+     */
+    value: WorkloadRef;
+    case: "workload";
+  } | {
+    /**
+     * Every Check (true).
+     *
+     * @generated from field: bool everything = 3;
+     */
+    value: boolean;
+    case: "everything";
+  } | { case: undefined; value?: undefined };
+};
+
+/**
+ * Describes the message ddash.checks.MaintenanceScope.
+ * Use `create(MaintenanceScopeSchema)` to create a new message.
+ */
+export const MaintenanceScopeSchema: GenMessage<MaintenanceScope> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 27);
+
+/**
+ * @generated from message ddash.checks.Maintenance
+ */
+export type Maintenance = Message<"ddash.checks.Maintenance"> & {
+  /**
+   * @generated from field: ddash.checks.MaintenanceScope scope = 1;
+   */
+  scope?: MaintenanceScope | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started = 2;
+   */
+  started?: Timestamp | undefined;
+
+  /**
+   * When it ends by itself; unset when it lasts until ended.
+   *
+   * @generated from field: google.protobuf.Timestamp ends = 3;
+   */
+  ends?: Timestamp | undefined;
+
+  /**
+   * It also ends once every Check it covers that is probed has been up
+   * since it started.
+   *
+   * @generated from field: bool until_up = 4;
+   */
+  untilUp: boolean;
+};
+
+/**
+ * Describes the message ddash.checks.Maintenance.
+ * Use `create(MaintenanceSchema)` to create a new message.
+ */
+export const MaintenanceSchema: GenMessage<Maintenance> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 28);
+
+/**
+ * @generated from message ddash.checks.StartMaintenanceRequest
+ */
+export type StartMaintenanceRequest = Message<"ddash.checks.StartMaintenanceRequest"> & {
+  /**
+   * @generated from field: ddash.checks.MaintenanceScope scope = 1;
+   */
+  scope?: MaintenanceScope | undefined;
+
+  /**
+   * How long it lasts, at most 24 h; unset lasts until ended. The Checks
+   * Page offers 30 min, 1 h and 4 h.
+   *
+   * @generated from field: google.protobuf.Duration duration = 2;
+   */
+  duration?: Duration | undefined;
+
+  /**
+   * Also end it once every probed Check it covers is up with a beat after
+   * this call (proxmox's power Actions: call it after the power task ended,
+   * so a beat from before the Workload went down doesn't end it).
+   *
+   * @generated from field: bool until_up = 3;
+   */
+  untilUp: boolean;
+};
+
+/**
+ * Describes the message ddash.checks.StartMaintenanceRequest.
+ * Use `create(StartMaintenanceRequestSchema)` to create a new message.
+ */
+export const StartMaintenanceRequestSchema: GenMessage<StartMaintenanceRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 29);
+
+/**
+ * @generated from message ddash.checks.StartMaintenanceResponse
+ */
+export type StartMaintenanceResponse = Message<"ddash.checks.StartMaintenanceResponse"> & {
+  /**
+   * @generated from field: ddash.checks.Maintenance maintenance = 1;
+   */
+  maintenance?: Maintenance | undefined;
+};
+
+/**
+ * Describes the message ddash.checks.StartMaintenanceResponse.
+ * Use `create(StartMaintenanceResponseSchema)` to create a new message.
+ */
+export const StartMaintenanceResponseSchema: GenMessage<StartMaintenanceResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 30);
+
+/**
+ * @generated from message ddash.checks.EndMaintenanceRequest
+ */
+export type EndMaintenanceRequest = Message<"ddash.checks.EndMaintenanceRequest"> & {
+  /**
+   * @generated from field: ddash.checks.MaintenanceScope scope = 1;
+   */
+  scope?: MaintenanceScope | undefined;
+};
+
+/**
+ * Describes the message ddash.checks.EndMaintenanceRequest.
+ * Use `create(EndMaintenanceRequestSchema)` to create a new message.
+ */
+export const EndMaintenanceRequestSchema: GenMessage<EndMaintenanceRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 31);
+
+/**
+ * @generated from message ddash.checks.EndMaintenanceResponse
+ */
+export type EndMaintenanceResponse = Message<"ddash.checks.EndMaintenanceResponse"> & {
+};
+
+/**
+ * Describes the message ddash.checks.EndMaintenanceResponse.
+ * Use `create(EndMaintenanceResponseSchema)` to create a new message.
+ */
+export const EndMaintenanceResponseSchema: GenMessage<EndMaintenanceResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 32);
+
+/**
+ * @generated from message ddash.checks.ListMaintenanceRequest
+ */
+export type ListMaintenanceRequest = Message<"ddash.checks.ListMaintenanceRequest"> & {
+};
+
+/**
+ * Describes the message ddash.checks.ListMaintenanceRequest.
+ * Use `create(ListMaintenanceRequestSchema)` to create a new message.
+ */
+export const ListMaintenanceRequestSchema: GenMessage<ListMaintenanceRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 33);
+
+/**
+ * @generated from message ddash.checks.ListMaintenanceResponse
+ */
+export type ListMaintenanceResponse = Message<"ddash.checks.ListMaintenanceResponse"> & {
+  /**
+   * Everything first, then Workloads, then single Checks.
+   *
+   * @generated from field: repeated ddash.checks.Maintenance maintenance = 1;
+   */
+  maintenance: Maintenance[];
+};
+
+/**
+ * Describes the message ddash.checks.ListMaintenanceResponse.
+ * Use `create(ListMaintenanceResponseSchema)` to create a new message.
+ */
+export const ListMaintenanceResponseSchema: GenMessage<ListMaintenanceResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 34);
 
 /**
  * @generated from enum ddash.checks.CheckType
@@ -1076,6 +1286,39 @@ export const ChecksService: GenService<{
     methodKind: "unary";
     input: typeof SetAppChecksRequestSchema;
     output: typeof SetAppChecksResponseSchema;
+  },
+  /**
+   * StartMaintenance puts a Check, a Workload's App Checks or every Check
+   * into Maintenance: their beats are recorded as maintenance, left out of
+   * uptime. Maintenance already on the same scope is replaced.
+   *
+   * @generated from rpc ddash.checks.ChecksService.StartMaintenance
+   */
+  startMaintenance: {
+    methodKind: "unary";
+    input: typeof StartMaintenanceRequestSchema;
+    output: typeof StartMaintenanceResponseSchema;
+  },
+  /**
+   * EndMaintenance ends a scope's Maintenance early. Ending a scope
+   * without one does nothing.
+   *
+   * @generated from rpc ddash.checks.ChecksService.EndMaintenance
+   */
+  endMaintenance: {
+    methodKind: "unary";
+    input: typeof EndMaintenanceRequestSchema;
+    output: typeof EndMaintenanceResponseSchema;
+  },
+  /**
+   * ListMaintenance returns every Maintenance in force, from memory.
+   *
+   * @generated from rpc ddash.checks.ChecksService.ListMaintenance
+   */
+  listMaintenance: {
+    methodKind: "unary";
+    input: typeof ListMaintenanceRequestSchema;
+    output: typeof ListMaintenanceResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_checks_checks, 0);

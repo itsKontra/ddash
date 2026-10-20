@@ -1,6 +1,6 @@
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { State, type Check } from "@ddash/proto/checks/checks_pb";
-import { Segmented, Sheet, Stat, StatusDot, UptimeBars } from "@ddash/ui";
+import { Badge, Segmented, Sheet, Stat, StatusDot, UptimeBars } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { latency, shownName } from "./checks";
 import { bars, percent, useHistory, when, windowNames, type WindowName } from "./history";
@@ -53,6 +53,7 @@ export function CheckDetail({ check, onClose }: { check: Check; onClose: () => v
                       <span className="font-medium">{stateWord(c.state)}</span>
                       <span className="text-muted-foreground">{c.at ? when(timestampMs(c.at)) : ""}</span>
                       {c.reason && <span className="truncate text-down">{c.reason}</span>}
+                      {c.maintenance && <Badge tone="maint">in Maintenance</Badge>}
                     </li>
                   ))}
                 </ul>

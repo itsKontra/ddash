@@ -451,7 +451,7 @@ type Check struct {
 	// Disabled: not probed.
 	Disabled bool `protobuf:"varint,10,opt,name=disabled,proto3" json:"disabled,omitempty"`
 	// In Maintenance: its beats don't count toward uptime and it stays
-	// silent. Always false until Maintenance exists.
+	// silent.
 	Maintenance bool `protobuf:"varint,11,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
 	// The App an App Check follows, e.g. "proxy:jellyfin.home.example";
 	// empty for a manual Check, which the Operator edits.
@@ -462,9 +462,12 @@ type Check struct {
 	CertExpiring bool `protobuf:"varint,14,opt,name=cert_expiring,json=certExpiring,proto3" json:"cert_expiring,omitempty"`
 	// An App Check's Workload, as apps last declared it; unset without one
 	// and for a manual Check.
-	Workload      *workload.WorkloadRef `protobuf:"bytes,15,opt,name=workload,proto3" json:"workload,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Workload *workload.WorkloadRef `protobuf:"bytes,15,opt,name=workload,proto3" json:"workload,omitempty"`
+	// In Maintenance: when the last Maintenance covering it ends; unset
+	// while one lasts until ended.
+	MaintenanceEnds *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=maintenance_ends,json=maintenanceEnds,proto3" json:"maintenance_ends,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Check) Reset() {
@@ -598,6 +601,13 @@ func (x *Check) GetCertExpiring() bool {
 func (x *Check) GetWorkload() *workload.WorkloadRef {
 	if x != nil {
 		return x.Workload
+	}
+	return nil
+}
+
+func (x *Check) GetMaintenanceEnds() *timestamppb.Timestamp {
+	if x != nil {
+		return x.MaintenanceEnds
 	}
 	return nil
 }
@@ -1379,7 +1389,9 @@ type Beat struct {
 	// Set when up.
 	LatencyMs float64 `protobuf:"fixed64,5,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
 	// Why it failed; empty when up.
-	Reason        string `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	Reason string `protobuf:"bytes,6,opt,name=reason,proto3" json:"reason,omitempty"`
+	// In Maintenance: left out of uptime.
+	Maintenance   bool `protobuf:"varint,7,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1454,6 +1466,13 @@ func (x *Beat) GetReason() string {
 		return x.Reason
 	}
 	return ""
+}
+
+func (x *Beat) GetMaintenance() bool {
+	if x != nil {
+		return x.Maintenance
+	}
+	return false
 }
 
 type GetHistoryRequest struct {
@@ -1853,6 +1872,451 @@ func (*SetAppChecksResponse) Descriptor() ([]byte, []int) {
 	return file_checks_checks_proto_rawDescGZIP(), []int{26}
 }
 
+// What a Maintenance covers.
+type MaintenanceScope struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Scope:
+	//
+	//	*MaintenanceScope_CheckId
+	//	*MaintenanceScope_Workload
+	//	*MaintenanceScope_Everything
+	Scope         isMaintenanceScope_Scope `protobuf_oneof:"scope"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MaintenanceScope) Reset() {
+	*x = MaintenanceScope{}
+	mi := &file_checks_checks_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MaintenanceScope) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MaintenanceScope) ProtoMessage() {}
+
+func (x *MaintenanceScope) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MaintenanceScope.ProtoReflect.Descriptor instead.
+func (*MaintenanceScope) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *MaintenanceScope) GetScope() isMaintenanceScope_Scope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+func (x *MaintenanceScope) GetCheckId() int64 {
+	if x != nil {
+		if x, ok := x.Scope.(*MaintenanceScope_CheckId); ok {
+			return x.CheckId
+		}
+	}
+	return 0
+}
+
+func (x *MaintenanceScope) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		if x, ok := x.Scope.(*MaintenanceScope_Workload); ok {
+			return x.Workload
+		}
+	}
+	return nil
+}
+
+func (x *MaintenanceScope) GetEverything() bool {
+	if x != nil {
+		if x, ok := x.Scope.(*MaintenanceScope_Everything); ok {
+			return x.Everything
+		}
+	}
+	return false
+}
+
+type isMaintenanceScope_Scope interface {
+	isMaintenanceScope_Scope()
+}
+
+type MaintenanceScope_CheckId struct {
+	// One Check, manual or App.
+	CheckId int64 `protobuf:"varint,1,opt,name=check_id,json=checkId,proto3,oneof"`
+}
+
+type MaintenanceScope_Workload struct {
+	// Every App Check whose App runs on this Workload, including those
+	// linked to it later. LXC and VM match by VMID (the node may change),
+	// Docker by host and container name, external by address.
+	Workload *workload.WorkloadRef `protobuf:"bytes,2,opt,name=workload,proto3,oneof"`
+}
+
+type MaintenanceScope_Everything struct {
+	// Every Check (true).
+	Everything bool `protobuf:"varint,3,opt,name=everything,proto3,oneof"`
+}
+
+func (*MaintenanceScope_CheckId) isMaintenanceScope_Scope() {}
+
+func (*MaintenanceScope_Workload) isMaintenanceScope_Scope() {}
+
+func (*MaintenanceScope_Everything) isMaintenanceScope_Scope() {}
+
+type Maintenance struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Scope   *MaintenanceScope      `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	Started *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=started,proto3" json:"started,omitempty"`
+	// When it ends by itself; unset when it lasts until ended.
+	Ends *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=ends,proto3" json:"ends,omitempty"`
+	// It also ends once every Check it covers that is probed has been up
+	// since it started.
+	UntilUp       bool `protobuf:"varint,4,opt,name=until_up,json=untilUp,proto3" json:"until_up,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Maintenance) Reset() {
+	*x = Maintenance{}
+	mi := &file_checks_checks_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Maintenance) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Maintenance) ProtoMessage() {}
+
+func (x *Maintenance) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Maintenance.ProtoReflect.Descriptor instead.
+func (*Maintenance) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *Maintenance) GetScope() *MaintenanceScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+func (x *Maintenance) GetStarted() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Started
+	}
+	return nil
+}
+
+func (x *Maintenance) GetEnds() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Ends
+	}
+	return nil
+}
+
+func (x *Maintenance) GetUntilUp() bool {
+	if x != nil {
+		return x.UntilUp
+	}
+	return false
+}
+
+type StartMaintenanceRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Scope *MaintenanceScope      `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	// How long it lasts, at most 24 h; unset lasts until ended. The Checks
+	// Page offers 30 min, 1 h and 4 h.
+	Duration *durationpb.Duration `protobuf:"bytes,2,opt,name=duration,proto3" json:"duration,omitempty"`
+	// Also end it once every probed Check it covers is up with a beat after
+	// this call (proxmox's power Actions: call it after the power task ended,
+	// so a beat from before the Workload went down doesn't end it).
+	UntilUp       bool `protobuf:"varint,3,opt,name=until_up,json=untilUp,proto3" json:"until_up,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartMaintenanceRequest) Reset() {
+	*x = StartMaintenanceRequest{}
+	mi := &file_checks_checks_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartMaintenanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartMaintenanceRequest) ProtoMessage() {}
+
+func (x *StartMaintenanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartMaintenanceRequest.ProtoReflect.Descriptor instead.
+func (*StartMaintenanceRequest) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *StartMaintenanceRequest) GetScope() *MaintenanceScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+func (x *StartMaintenanceRequest) GetDuration() *durationpb.Duration {
+	if x != nil {
+		return x.Duration
+	}
+	return nil
+}
+
+func (x *StartMaintenanceRequest) GetUntilUp() bool {
+	if x != nil {
+		return x.UntilUp
+	}
+	return false
+}
+
+type StartMaintenanceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Maintenance   *Maintenance           `protobuf:"bytes,1,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StartMaintenanceResponse) Reset() {
+	*x = StartMaintenanceResponse{}
+	mi := &file_checks_checks_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StartMaintenanceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StartMaintenanceResponse) ProtoMessage() {}
+
+func (x *StartMaintenanceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StartMaintenanceResponse.ProtoReflect.Descriptor instead.
+func (*StartMaintenanceResponse) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *StartMaintenanceResponse) GetMaintenance() *Maintenance {
+	if x != nil {
+		return x.Maintenance
+	}
+	return nil
+}
+
+type EndMaintenanceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Scope         *MaintenanceScope      `protobuf:"bytes,1,opt,name=scope,proto3" json:"scope,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EndMaintenanceRequest) Reset() {
+	*x = EndMaintenanceRequest{}
+	mi := &file_checks_checks_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EndMaintenanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EndMaintenanceRequest) ProtoMessage() {}
+
+func (x *EndMaintenanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EndMaintenanceRequest.ProtoReflect.Descriptor instead.
+func (*EndMaintenanceRequest) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *EndMaintenanceRequest) GetScope() *MaintenanceScope {
+	if x != nil {
+		return x.Scope
+	}
+	return nil
+}
+
+type EndMaintenanceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EndMaintenanceResponse) Reset() {
+	*x = EndMaintenanceResponse{}
+	mi := &file_checks_checks_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EndMaintenanceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EndMaintenanceResponse) ProtoMessage() {}
+
+func (x *EndMaintenanceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EndMaintenanceResponse.ProtoReflect.Descriptor instead.
+func (*EndMaintenanceResponse) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{32}
+}
+
+type ListMaintenanceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMaintenanceRequest) Reset() {
+	*x = ListMaintenanceRequest{}
+	mi := &file_checks_checks_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMaintenanceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMaintenanceRequest) ProtoMessage() {}
+
+func (x *ListMaintenanceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMaintenanceRequest.ProtoReflect.Descriptor instead.
+func (*ListMaintenanceRequest) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{33}
+}
+
+type ListMaintenanceResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Everything first, then Workloads, then single Checks.
+	Maintenance   []*Maintenance `protobuf:"bytes,1,rep,name=maintenance,proto3" json:"maintenance,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMaintenanceResponse) Reset() {
+	*x = ListMaintenanceResponse{}
+	mi := &file_checks_checks_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMaintenanceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMaintenanceResponse) ProtoMessage() {}
+
+func (x *ListMaintenanceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_checks_checks_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMaintenanceResponse.ProtoReflect.Descriptor instead.
+func (*ListMaintenanceResponse) Descriptor() ([]byte, []int) {
+	return file_checks_checks_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *ListMaintenanceResponse) GetMaintenance() []*Maintenance {
+	if x != nil {
+		return x.Maintenance
+	}
+	return nil
+}
+
 var File_checks_checks_proto protoreflect.FileDescriptor
 
 const file_checks_checks_proto_rawDesc = "" +
@@ -1867,7 +2331,7 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\bDnsQuery\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x129\n" +
 	"\vrecord_type\x18\x02 \x01(\x0e2\x18.ddash.checks.RecordTypeR\n" +
-	"recordType\"\xb5\x04\n" +
+	"recordType\"\xfc\x04\n" +
 	"\x05Check\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12+\n" +
 	"\x04spec\x18\x02 \x01(\v2\x17.ddash.checks.CheckSpecR\x04spec\x12)\n" +
@@ -1885,7 +2349,8 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\x06app_id\x18\f \x01(\tR\x05appId\x12=\n" +
 	"\fcert_expires\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\vcertExpires\x12#\n" +
 	"\rcert_expiring\x18\x0e \x01(\bR\fcertExpiring\x127\n" +
-	"\bworkload\x18\x0f \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"\x13\n" +
+	"\bworkload\x18\x0f \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12E\n" +
+	"\x10maintenance_ends\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampR\x0fmaintenanceEnds\"\x13\n" +
 	"\x11ListChecksRequest\"A\n" +
 	"\x12ListChecksResponse\x12+\n" +
 	"\x06checks\x18\x01 \x03(\v2\x13.ddash.checks.CheckR\x06checks\"A\n" +
@@ -1928,7 +2393,7 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\x02up\x18\x02 \x01(\x03R\x02up\x12\x12\n" +
 	"\x04down\x18\x03 \x01(\x03R\x04down\x12 \n" +
 	"\vmaintenance\x18\x04 \x01(\x03R\vmaintenance\x12/\n" +
-	"\alatency\x18\x05 \x01(\v2\x15.ddash.checks.LatencyR\alatency\"\xbe\x01\n" +
+	"\alatency\x18\x05 \x01(\v2\x15.ddash.checks.LatencyR\alatency\"\xe0\x01\n" +
 	"\x04Beat\x12*\n" +
 	"\x02at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12\x0e\n" +
 	"\x02up\x18\x02 \x01(\bR\x02up\x12)\n" +
@@ -1936,7 +2401,8 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\achanged\x18\x04 \x01(\bR\achanged\x12\x1d\n" +
 	"\n" +
 	"latency_ms\x18\x05 \x01(\x01R\tlatencyMs\x12\x16\n" +
-	"\x06reason\x18\x06 \x01(\tR\x06reason\"Q\n" +
+	"\x06reason\x18\x06 \x01(\tR\x06reason\x12 \n" +
+	"\vmaintenance\x18\a \x01(\bR\vmaintenance\"Q\n" +
 	"\x11GetHistoryRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12,\n" +
 	"\x06window\x18\x02 \x01(\x0e2\x14.ddash.checks.WindowR\x06window\"\xb1\x02\n" +
@@ -1959,7 +2425,31 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\bworkload\x18\x05 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"E\n" +
 	"\x13SetAppChecksRequest\x12.\n" +
 	"\x06checks\x18\x01 \x03(\v2\x16.ddash.checks.AppCheckR\x06checks\"\x16\n" +
-	"\x14SetAppChecksResponse*y\n" +
+	"\x14SetAppChecksResponse\"\x95\x01\n" +
+	"\x10MaintenanceScope\x12\x1b\n" +
+	"\bcheck_id\x18\x01 \x01(\x03H\x00R\acheckId\x129\n" +
+	"\bworkload\x18\x02 \x01(\v2\x1b.ddash.workload.WorkloadRefH\x00R\bworkload\x12 \n" +
+	"\n" +
+	"everything\x18\x03 \x01(\bH\x00R\n" +
+	"everythingB\a\n" +
+	"\x05scope\"\xc4\x01\n" +
+	"\vMaintenance\x124\n" +
+	"\x05scope\x18\x01 \x01(\v2\x1e.ddash.checks.MaintenanceScopeR\x05scope\x124\n" +
+	"\astarted\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x12.\n" +
+	"\x04ends\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04ends\x12\x19\n" +
+	"\buntil_up\x18\x04 \x01(\bR\auntilUp\"\xa1\x01\n" +
+	"\x17StartMaintenanceRequest\x124\n" +
+	"\x05scope\x18\x01 \x01(\v2\x1e.ddash.checks.MaintenanceScopeR\x05scope\x125\n" +
+	"\bduration\x18\x02 \x01(\v2\x19.google.protobuf.DurationR\bduration\x12\x19\n" +
+	"\buntil_up\x18\x03 \x01(\bR\auntilUp\"W\n" +
+	"\x18StartMaintenanceResponse\x12;\n" +
+	"\vmaintenance\x18\x01 \x01(\v2\x19.ddash.checks.MaintenanceR\vmaintenance\"M\n" +
+	"\x15EndMaintenanceRequest\x124\n" +
+	"\x05scope\x18\x01 \x01(\v2\x1e.ddash.checks.MaintenanceScopeR\x05scope\"\x18\n" +
+	"\x16EndMaintenanceResponse\"\x18\n" +
+	"\x16ListMaintenanceRequest\"V\n" +
+	"\x17ListMaintenanceResponse\x12;\n" +
+	"\vmaintenance\x18\x01 \x03(\v2\x19.ddash.checks.MaintenanceR\vmaintenance*y\n" +
 	"\tCheckType\x12\x1a\n" +
 	"\x16CHECK_TYPE_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eCHECK_TYPE_TCP\x10\x01\x12\x13\n" +
@@ -1986,7 +2476,7 @@ const file_checks_checks_proto_rawDesc = "" +
 	"WINDOW_24H\x10\x01\x12\x0e\n" +
 	"\n" +
 	"WINDOW_30D\x10\x02\x12\x0f\n" +
-	"\vWINDOW_365D\x10\x032\xab\x06\n" +
+	"\vWINDOW_365D\x10\x032\xdf\b\n" +
 	"\rChecksService\x12W\n" +
 	"\n" +
 	"ListChecks\x12\x1f.ddash.checks.ListChecksRequest\x1a .ddash.checks.ListChecksResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12X\n" +
@@ -1998,7 +2488,10 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\n" +
 	"GetHistory\x12\x1f.ddash.checks.GetHistoryRequest\x1a .ddash.checks.GetHistoryResponse\"\x04\x8a\xb5\x18\x00\x12R\n" +
 	"\tListBeats\x12\x1e.ddash.checks.ListBeatsRequest\x1a\x1f.ddash.checks.ListBeatsResponse\"\x04\x8a\xb5\x18\x00\x12[\n" +
-	"\fSetAppChecks\x12!.ddash.checks.SetAppChecksRequest\x1a\".ddash.checks.SetAppChecksResponse\"\x04\x92\xb5\x18\x00B@Z>github.com/itsKontra/ddash/components/checks/checkspb;checkspbb\x06proto3"
+	"\fSetAppChecks\x12!.ddash.checks.SetAppChecksRequest\x1a\".ddash.checks.SetAppChecksResponse\"\x04\x92\xb5\x18\x00\x12g\n" +
+	"\x10StartMaintenance\x12%.ddash.checks.StartMaintenanceRequest\x1a&.ddash.checks.StartMaintenanceResponse\"\x04\x92\xb5\x18\x00\x12a\n" +
+	"\x0eEndMaintenance\x12#.ddash.checks.EndMaintenanceRequest\x1a$.ddash.checks.EndMaintenanceResponse\"\x04\x92\xb5\x18\x00\x12f\n" +
+	"\x0fListMaintenance\x12$.ddash.checks.ListMaintenanceRequest\x1a%.ddash.checks.ListMaintenanceResponse\"\x06\x8a\xb5\x18\x02\b\x02B@Z>github.com/itsKontra/ddash/components/checks/checkspb;checkspbb\x06proto3"
 
 var (
 	file_checks_checks_proto_rawDescOnce sync.Once
@@ -2013,42 +2506,50 @@ func file_checks_checks_proto_rawDescGZIP() []byte {
 }
 
 var file_checks_checks_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_checks_checks_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
+var file_checks_checks_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_checks_checks_proto_goTypes = []any{
-	(CheckType)(0),                // 0: ddash.checks.CheckType
-	(RecordType)(0),               // 1: ddash.checks.RecordType
-	(State)(0),                    // 2: ddash.checks.State
-	(Window)(0),                   // 3: ddash.checks.Window
-	(*ChecksConfig)(nil),          // 4: ddash.checks.ChecksConfig
-	(*CheckSpec)(nil),             // 5: ddash.checks.CheckSpec
-	(*DnsQuery)(nil),              // 6: ddash.checks.DnsQuery
-	(*Check)(nil),                 // 7: ddash.checks.Check
-	(*ListChecksRequest)(nil),     // 8: ddash.checks.ListChecksRequest
-	(*ListChecksResponse)(nil),    // 9: ddash.checks.ListChecksResponse
-	(*CreateCheckRequest)(nil),    // 10: ddash.checks.CreateCheckRequest
-	(*CreateCheckResponse)(nil),   // 11: ddash.checks.CreateCheckResponse
-	(*UpdateCheckRequest)(nil),    // 12: ddash.checks.UpdateCheckRequest
-	(*UpdateCheckResponse)(nil),   // 13: ddash.checks.UpdateCheckResponse
-	(*DeleteCheckRequest)(nil),    // 14: ddash.checks.DeleteCheckRequest
-	(*DeleteCheckResponse)(nil),   // 15: ddash.checks.DeleteCheckResponse
-	(*SetMutedRequest)(nil),       // 16: ddash.checks.SetMutedRequest
-	(*SetMutedResponse)(nil),      // 17: ddash.checks.SetMutedResponse
-	(*SetDisabledRequest)(nil),    // 18: ddash.checks.SetDisabledRequest
-	(*SetDisabledResponse)(nil),   // 19: ddash.checks.SetDisabledResponse
-	(*Latency)(nil),               // 20: ddash.checks.Latency
-	(*Uptime)(nil),                // 21: ddash.checks.Uptime
-	(*Bucket)(nil),                // 22: ddash.checks.Bucket
-	(*Beat)(nil),                  // 23: ddash.checks.Beat
-	(*GetHistoryRequest)(nil),     // 24: ddash.checks.GetHistoryRequest
-	(*GetHistoryResponse)(nil),    // 25: ddash.checks.GetHistoryResponse
-	(*ListBeatsRequest)(nil),      // 26: ddash.checks.ListBeatsRequest
-	(*ListBeatsResponse)(nil),     // 27: ddash.checks.ListBeatsResponse
-	(*AppCheck)(nil),              // 28: ddash.checks.AppCheck
-	(*SetAppChecksRequest)(nil),   // 29: ddash.checks.SetAppChecksRequest
-	(*SetAppChecksResponse)(nil),  // 30: ddash.checks.SetAppChecksResponse
-	(*timestamppb.Timestamp)(nil), // 31: google.protobuf.Timestamp
-	(*workload.WorkloadRef)(nil),  // 32: ddash.workload.WorkloadRef
-	(*durationpb.Duration)(nil),   // 33: google.protobuf.Duration
+	(CheckType)(0),                   // 0: ddash.checks.CheckType
+	(RecordType)(0),                  // 1: ddash.checks.RecordType
+	(State)(0),                       // 2: ddash.checks.State
+	(Window)(0),                      // 3: ddash.checks.Window
+	(*ChecksConfig)(nil),             // 4: ddash.checks.ChecksConfig
+	(*CheckSpec)(nil),                // 5: ddash.checks.CheckSpec
+	(*DnsQuery)(nil),                 // 6: ddash.checks.DnsQuery
+	(*Check)(nil),                    // 7: ddash.checks.Check
+	(*ListChecksRequest)(nil),        // 8: ddash.checks.ListChecksRequest
+	(*ListChecksResponse)(nil),       // 9: ddash.checks.ListChecksResponse
+	(*CreateCheckRequest)(nil),       // 10: ddash.checks.CreateCheckRequest
+	(*CreateCheckResponse)(nil),      // 11: ddash.checks.CreateCheckResponse
+	(*UpdateCheckRequest)(nil),       // 12: ddash.checks.UpdateCheckRequest
+	(*UpdateCheckResponse)(nil),      // 13: ddash.checks.UpdateCheckResponse
+	(*DeleteCheckRequest)(nil),       // 14: ddash.checks.DeleteCheckRequest
+	(*DeleteCheckResponse)(nil),      // 15: ddash.checks.DeleteCheckResponse
+	(*SetMutedRequest)(nil),          // 16: ddash.checks.SetMutedRequest
+	(*SetMutedResponse)(nil),         // 17: ddash.checks.SetMutedResponse
+	(*SetDisabledRequest)(nil),       // 18: ddash.checks.SetDisabledRequest
+	(*SetDisabledResponse)(nil),      // 19: ddash.checks.SetDisabledResponse
+	(*Latency)(nil),                  // 20: ddash.checks.Latency
+	(*Uptime)(nil),                   // 21: ddash.checks.Uptime
+	(*Bucket)(nil),                   // 22: ddash.checks.Bucket
+	(*Beat)(nil),                     // 23: ddash.checks.Beat
+	(*GetHistoryRequest)(nil),        // 24: ddash.checks.GetHistoryRequest
+	(*GetHistoryResponse)(nil),       // 25: ddash.checks.GetHistoryResponse
+	(*ListBeatsRequest)(nil),         // 26: ddash.checks.ListBeatsRequest
+	(*ListBeatsResponse)(nil),        // 27: ddash.checks.ListBeatsResponse
+	(*AppCheck)(nil),                 // 28: ddash.checks.AppCheck
+	(*SetAppChecksRequest)(nil),      // 29: ddash.checks.SetAppChecksRequest
+	(*SetAppChecksResponse)(nil),     // 30: ddash.checks.SetAppChecksResponse
+	(*MaintenanceScope)(nil),         // 31: ddash.checks.MaintenanceScope
+	(*Maintenance)(nil),              // 32: ddash.checks.Maintenance
+	(*StartMaintenanceRequest)(nil),  // 33: ddash.checks.StartMaintenanceRequest
+	(*StartMaintenanceResponse)(nil), // 34: ddash.checks.StartMaintenanceResponse
+	(*EndMaintenanceRequest)(nil),    // 35: ddash.checks.EndMaintenanceRequest
+	(*EndMaintenanceResponse)(nil),   // 36: ddash.checks.EndMaintenanceResponse
+	(*ListMaintenanceRequest)(nil),   // 37: ddash.checks.ListMaintenanceRequest
+	(*ListMaintenanceResponse)(nil),  // 38: ddash.checks.ListMaintenanceResponse
+	(*timestamppb.Timestamp)(nil),    // 39: google.protobuf.Timestamp
+	(*workload.WorkloadRef)(nil),     // 40: ddash.workload.WorkloadRef
+	(*durationpb.Duration)(nil),      // 41: google.protobuf.Duration
 }
 var file_checks_checks_proto_depIdxs = []int32{
 	0,  // 0: ddash.checks.CheckSpec.type:type_name -> ddash.checks.CheckType
@@ -2056,56 +2557,72 @@ var file_checks_checks_proto_depIdxs = []int32{
 	1,  // 2: ddash.checks.DnsQuery.record_type:type_name -> ddash.checks.RecordType
 	5,  // 3: ddash.checks.Check.spec:type_name -> ddash.checks.CheckSpec
 	2,  // 4: ddash.checks.Check.state:type_name -> ddash.checks.State
-	31, // 5: ddash.checks.Check.since:type_name -> google.protobuf.Timestamp
-	31, // 6: ddash.checks.Check.last_beat:type_name -> google.protobuf.Timestamp
-	31, // 7: ddash.checks.Check.cert_expires:type_name -> google.protobuf.Timestamp
-	32, // 8: ddash.checks.Check.workload:type_name -> ddash.workload.WorkloadRef
-	7,  // 9: ddash.checks.ListChecksResponse.checks:type_name -> ddash.checks.Check
-	5,  // 10: ddash.checks.CreateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
-	7,  // 11: ddash.checks.CreateCheckResponse.check:type_name -> ddash.checks.Check
-	5,  // 12: ddash.checks.UpdateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
-	7,  // 13: ddash.checks.UpdateCheckResponse.check:type_name -> ddash.checks.Check
-	7,  // 14: ddash.checks.SetMutedResponse.check:type_name -> ddash.checks.Check
-	7,  // 15: ddash.checks.SetDisabledResponse.check:type_name -> ddash.checks.Check
-	3,  // 16: ddash.checks.Uptime.window:type_name -> ddash.checks.Window
-	20, // 17: ddash.checks.Uptime.latency:type_name -> ddash.checks.Latency
-	31, // 18: ddash.checks.Bucket.start:type_name -> google.protobuf.Timestamp
-	20, // 19: ddash.checks.Bucket.latency:type_name -> ddash.checks.Latency
-	31, // 20: ddash.checks.Beat.at:type_name -> google.protobuf.Timestamp
-	2,  // 21: ddash.checks.Beat.state:type_name -> ddash.checks.State
-	3,  // 22: ddash.checks.GetHistoryRequest.window:type_name -> ddash.checks.Window
-	21, // 23: ddash.checks.GetHistoryResponse.uptime:type_name -> ddash.checks.Uptime
-	3,  // 24: ddash.checks.GetHistoryResponse.window:type_name -> ddash.checks.Window
-	33, // 25: ddash.checks.GetHistoryResponse.bucket:type_name -> google.protobuf.Duration
-	31, // 26: ddash.checks.GetHistoryResponse.from:type_name -> google.protobuf.Timestamp
-	22, // 27: ddash.checks.GetHistoryResponse.buckets:type_name -> ddash.checks.Bucket
-	23, // 28: ddash.checks.GetHistoryResponse.changes:type_name -> ddash.checks.Beat
-	23, // 29: ddash.checks.ListBeatsResponse.beats:type_name -> ddash.checks.Beat
-	32, // 30: ddash.checks.AppCheck.workload:type_name -> ddash.workload.WorkloadRef
-	28, // 31: ddash.checks.SetAppChecksRequest.checks:type_name -> ddash.checks.AppCheck
-	8,  // 32: ddash.checks.ChecksService.ListChecks:input_type -> ddash.checks.ListChecksRequest
-	10, // 33: ddash.checks.ChecksService.CreateCheck:input_type -> ddash.checks.CreateCheckRequest
-	12, // 34: ddash.checks.ChecksService.UpdateCheck:input_type -> ddash.checks.UpdateCheckRequest
-	14, // 35: ddash.checks.ChecksService.DeleteCheck:input_type -> ddash.checks.DeleteCheckRequest
-	16, // 36: ddash.checks.ChecksService.SetMuted:input_type -> ddash.checks.SetMutedRequest
-	18, // 37: ddash.checks.ChecksService.SetDisabled:input_type -> ddash.checks.SetDisabledRequest
-	24, // 38: ddash.checks.ChecksService.GetHistory:input_type -> ddash.checks.GetHistoryRequest
-	26, // 39: ddash.checks.ChecksService.ListBeats:input_type -> ddash.checks.ListBeatsRequest
-	29, // 40: ddash.checks.ChecksService.SetAppChecks:input_type -> ddash.checks.SetAppChecksRequest
-	9,  // 41: ddash.checks.ChecksService.ListChecks:output_type -> ddash.checks.ListChecksResponse
-	11, // 42: ddash.checks.ChecksService.CreateCheck:output_type -> ddash.checks.CreateCheckResponse
-	13, // 43: ddash.checks.ChecksService.UpdateCheck:output_type -> ddash.checks.UpdateCheckResponse
-	15, // 44: ddash.checks.ChecksService.DeleteCheck:output_type -> ddash.checks.DeleteCheckResponse
-	17, // 45: ddash.checks.ChecksService.SetMuted:output_type -> ddash.checks.SetMutedResponse
-	19, // 46: ddash.checks.ChecksService.SetDisabled:output_type -> ddash.checks.SetDisabledResponse
-	25, // 47: ddash.checks.ChecksService.GetHistory:output_type -> ddash.checks.GetHistoryResponse
-	27, // 48: ddash.checks.ChecksService.ListBeats:output_type -> ddash.checks.ListBeatsResponse
-	30, // 49: ddash.checks.ChecksService.SetAppChecks:output_type -> ddash.checks.SetAppChecksResponse
-	41, // [41:50] is the sub-list for method output_type
-	32, // [32:41] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	39, // 5: ddash.checks.Check.since:type_name -> google.protobuf.Timestamp
+	39, // 6: ddash.checks.Check.last_beat:type_name -> google.protobuf.Timestamp
+	39, // 7: ddash.checks.Check.cert_expires:type_name -> google.protobuf.Timestamp
+	40, // 8: ddash.checks.Check.workload:type_name -> ddash.workload.WorkloadRef
+	39, // 9: ddash.checks.Check.maintenance_ends:type_name -> google.protobuf.Timestamp
+	7,  // 10: ddash.checks.ListChecksResponse.checks:type_name -> ddash.checks.Check
+	5,  // 11: ddash.checks.CreateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
+	7,  // 12: ddash.checks.CreateCheckResponse.check:type_name -> ddash.checks.Check
+	5,  // 13: ddash.checks.UpdateCheckRequest.spec:type_name -> ddash.checks.CheckSpec
+	7,  // 14: ddash.checks.UpdateCheckResponse.check:type_name -> ddash.checks.Check
+	7,  // 15: ddash.checks.SetMutedResponse.check:type_name -> ddash.checks.Check
+	7,  // 16: ddash.checks.SetDisabledResponse.check:type_name -> ddash.checks.Check
+	3,  // 17: ddash.checks.Uptime.window:type_name -> ddash.checks.Window
+	20, // 18: ddash.checks.Uptime.latency:type_name -> ddash.checks.Latency
+	39, // 19: ddash.checks.Bucket.start:type_name -> google.protobuf.Timestamp
+	20, // 20: ddash.checks.Bucket.latency:type_name -> ddash.checks.Latency
+	39, // 21: ddash.checks.Beat.at:type_name -> google.protobuf.Timestamp
+	2,  // 22: ddash.checks.Beat.state:type_name -> ddash.checks.State
+	3,  // 23: ddash.checks.GetHistoryRequest.window:type_name -> ddash.checks.Window
+	21, // 24: ddash.checks.GetHistoryResponse.uptime:type_name -> ddash.checks.Uptime
+	3,  // 25: ddash.checks.GetHistoryResponse.window:type_name -> ddash.checks.Window
+	41, // 26: ddash.checks.GetHistoryResponse.bucket:type_name -> google.protobuf.Duration
+	39, // 27: ddash.checks.GetHistoryResponse.from:type_name -> google.protobuf.Timestamp
+	22, // 28: ddash.checks.GetHistoryResponse.buckets:type_name -> ddash.checks.Bucket
+	23, // 29: ddash.checks.GetHistoryResponse.changes:type_name -> ddash.checks.Beat
+	23, // 30: ddash.checks.ListBeatsResponse.beats:type_name -> ddash.checks.Beat
+	40, // 31: ddash.checks.AppCheck.workload:type_name -> ddash.workload.WorkloadRef
+	28, // 32: ddash.checks.SetAppChecksRequest.checks:type_name -> ddash.checks.AppCheck
+	40, // 33: ddash.checks.MaintenanceScope.workload:type_name -> ddash.workload.WorkloadRef
+	31, // 34: ddash.checks.Maintenance.scope:type_name -> ddash.checks.MaintenanceScope
+	39, // 35: ddash.checks.Maintenance.started:type_name -> google.protobuf.Timestamp
+	39, // 36: ddash.checks.Maintenance.ends:type_name -> google.protobuf.Timestamp
+	31, // 37: ddash.checks.StartMaintenanceRequest.scope:type_name -> ddash.checks.MaintenanceScope
+	41, // 38: ddash.checks.StartMaintenanceRequest.duration:type_name -> google.protobuf.Duration
+	32, // 39: ddash.checks.StartMaintenanceResponse.maintenance:type_name -> ddash.checks.Maintenance
+	31, // 40: ddash.checks.EndMaintenanceRequest.scope:type_name -> ddash.checks.MaintenanceScope
+	32, // 41: ddash.checks.ListMaintenanceResponse.maintenance:type_name -> ddash.checks.Maintenance
+	8,  // 42: ddash.checks.ChecksService.ListChecks:input_type -> ddash.checks.ListChecksRequest
+	10, // 43: ddash.checks.ChecksService.CreateCheck:input_type -> ddash.checks.CreateCheckRequest
+	12, // 44: ddash.checks.ChecksService.UpdateCheck:input_type -> ddash.checks.UpdateCheckRequest
+	14, // 45: ddash.checks.ChecksService.DeleteCheck:input_type -> ddash.checks.DeleteCheckRequest
+	16, // 46: ddash.checks.ChecksService.SetMuted:input_type -> ddash.checks.SetMutedRequest
+	18, // 47: ddash.checks.ChecksService.SetDisabled:input_type -> ddash.checks.SetDisabledRequest
+	24, // 48: ddash.checks.ChecksService.GetHistory:input_type -> ddash.checks.GetHistoryRequest
+	26, // 49: ddash.checks.ChecksService.ListBeats:input_type -> ddash.checks.ListBeatsRequest
+	29, // 50: ddash.checks.ChecksService.SetAppChecks:input_type -> ddash.checks.SetAppChecksRequest
+	33, // 51: ddash.checks.ChecksService.StartMaintenance:input_type -> ddash.checks.StartMaintenanceRequest
+	35, // 52: ddash.checks.ChecksService.EndMaintenance:input_type -> ddash.checks.EndMaintenanceRequest
+	37, // 53: ddash.checks.ChecksService.ListMaintenance:input_type -> ddash.checks.ListMaintenanceRequest
+	9,  // 54: ddash.checks.ChecksService.ListChecks:output_type -> ddash.checks.ListChecksResponse
+	11, // 55: ddash.checks.ChecksService.CreateCheck:output_type -> ddash.checks.CreateCheckResponse
+	13, // 56: ddash.checks.ChecksService.UpdateCheck:output_type -> ddash.checks.UpdateCheckResponse
+	15, // 57: ddash.checks.ChecksService.DeleteCheck:output_type -> ddash.checks.DeleteCheckResponse
+	17, // 58: ddash.checks.ChecksService.SetMuted:output_type -> ddash.checks.SetMutedResponse
+	19, // 59: ddash.checks.ChecksService.SetDisabled:output_type -> ddash.checks.SetDisabledResponse
+	25, // 60: ddash.checks.ChecksService.GetHistory:output_type -> ddash.checks.GetHistoryResponse
+	27, // 61: ddash.checks.ChecksService.ListBeats:output_type -> ddash.checks.ListBeatsResponse
+	30, // 62: ddash.checks.ChecksService.SetAppChecks:output_type -> ddash.checks.SetAppChecksResponse
+	34, // 63: ddash.checks.ChecksService.StartMaintenance:output_type -> ddash.checks.StartMaintenanceResponse
+	36, // 64: ddash.checks.ChecksService.EndMaintenance:output_type -> ddash.checks.EndMaintenanceResponse
+	38, // 65: ddash.checks.ChecksService.ListMaintenance:output_type -> ddash.checks.ListMaintenanceResponse
+	54, // [54:66] is the sub-list for method output_type
+	42, // [42:54] is the sub-list for method input_type
+	42, // [42:42] is the sub-list for extension type_name
+	42, // [42:42] is the sub-list for extension extendee
+	0,  // [0:42] is the sub-list for field type_name
 }
 
 func init() { file_checks_checks_proto_init() }
@@ -2114,13 +2631,18 @@ func file_checks_checks_proto_init() {
 		return
 	}
 	file_checks_checks_proto_msgTypes[17].OneofWrappers = []any{}
+	file_checks_checks_proto_msgTypes[27].OneofWrappers = []any{
+		(*MaintenanceScope_CheckId)(nil),
+		(*MaintenanceScope_Workload)(nil),
+		(*MaintenanceScope_Everything)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_checks_checks_proto_rawDesc), len(file_checks_checks_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   27,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
