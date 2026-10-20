@@ -107,7 +107,7 @@ type unmarked struct {
 }
 
 func (unmarked) Start(context.Context, *sdk.Env, *echopb.EchoConfig) error { return nil }
-func (unmarked) Health(context.Context) sdk.Health                        { return sdk.Health{State: sdk.OK} }
+func (unmarked) Health(context.Context) sdk.Health                         { return sdk.Health{State: sdk.OK} }
 
 func TestAMethodThatIsNeitherGetterNorActionIsRefused(t *testing.T) {
 	defer func() {

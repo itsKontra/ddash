@@ -22,9 +22,9 @@ import (
 	"io/fs"
 	"reflect"
 
+	"go.yaml.in/yaml/v3"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
-	"go.yaml.in/yaml/v3"
 
 	ddashpb "github.com/itsKontra/ddash/proto/ddash"
 )
