@@ -56,15 +56,17 @@ func olderDB(t *testing.T) string {
 }
 
 func TestAnUpgradeKeepsManualChecksAndTheirHistory(t *testing.T) {
-	_, c := start(t, sdktest.WithDB(olderDB(t)))
+	// The migrated Check is due at once: its probe hangs, off the
+	// network, so no new beat races the reads below.
+	l := newLab()
+	l.set("127.0.0.1:1", "hang")
+	_, c := startIn(t, l, sdktest.WithDB(olderDB(t)))
 
 	got := find(t, c, 2)
 	if got.GetSpec().GetName() != "nas" || got.GetState() != checkspb.State_STATE_UP || got.GetAppId() != "" {
 		t.Errorf("Check 2 = %v, want the manual nas Check, up", got)
 	}
-	// It is probed again at once (a failure, nothing listens there), so
-	// only the first two beats are the migrated ones.
-	if got := states(beats(t, c, 2)); len(got) < 2 || !equal(got[:2], []string{"up", "up"}) {
+	if got := states(beats(t, c, 2)); !equal(got, []string{"up", "up"}) {
 		t.Errorf("beats %v, want both migrated ones first", got)
 	}
 	h, err := c.GetHistory(t.Context(), &checkspb.GetHistoryRequest{Id: 2})
