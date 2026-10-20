@@ -68,6 +68,26 @@ it("counts a Check in Maintenance as maint, never as down", async () => {
   expect([stat("up"), stat("down"), stat("Maintenance")]).toEqual(["1", "0", "1"]);
 });
 
+it("reports warn, naming them, for a Flapping Check that is up and an expiring certificate", async () => {
+  const reported = await show(
+    listed(
+      check(1, "nas", "STATE_UP", { flapping: true }),
+      check(2, "Jellyfin", "STATE_UP", { certExpiring: true }),
+      check(3, "router", "STATE_UP"),
+      check(4, "nvr", "STATE_UP", { maintenance: true }),
+    ),
+  );
+
+  expect(reported.status).toEqual({ tone: "warn", summary: "nas flapping; Jellyfin certificate expiring" });
+  expect(reported.badge).toBeNull();
+});
+
+it("reports a Flapping Check that is down as down", async () => {
+  const reported = await show(listed(check(1, "nas", "STATE_DOWN", { flapping: true }), check(2, "router", "STATE_UP")));
+
+  expect(reported.status).toEqual({ tone: "down", summary: "1 down: nas" });
+});
+
 it("leaves disabled Checks out", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_DOWN", { disabled: true }), check(2, "router", "STATE_UP")));
 

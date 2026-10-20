@@ -78,11 +78,17 @@ type component struct {
 	checksErr string
 	// src is the last read of the Workload sources.
 	src sources
+	// nginxDown is why nginx-config's last snapshot says the `nginx -T`
+	// read failed, empty when it worked; unknown until a snapshot was read.
+	nginxDown  string
+	nginxKnown bool
 
 	// syncMu makes declarations to checks take turns; sent is the set
-	// checks last accepted, nil before the first since Start.
-	syncMu sync.Mutex
-	sent   []*checkspb.AppCheck
+	// checks last accepted, nil before the first since Start, and
+	// reported the nginx config item as checks last accepted it.
+	syncMu   sync.Mutex
+	sent     []*checkspb.AppCheck
+	reported *checkspb.ReportStateRequest
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfig) error {
@@ -128,6 +134,7 @@ func (c *component) poll(ctx context.Context) {
 	c.src = src
 	c.mu.Unlock()
 	c.syncChecks(ctx)
+	c.reportNginx(ctx)
 }
 
 // read reads nginx-config's snapshot and rediscovers the Apps when its
@@ -143,6 +150,7 @@ func (c *component) read(ctx context.Context) {
 	}
 	c.readErr = ""
 	snap := resp.GetSnapshot()
+	c.nginxKnown, c.nginxDown = true, firstLine(snap.GetError())
 	// "Changed", not "grew": a restarted nginx-config counts from 1 again.
 	if c.wasRead && snap.GetRevision() == c.revision {
 		return

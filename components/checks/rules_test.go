@@ -3,6 +3,7 @@ package checks_test
 import (
 	"bufio"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -25,11 +26,17 @@ import (
 // lab fakes the network the probes dial, so time rules run in a synctest
 // bubble: each address accepts, refuses or never answers. "up 20ms"
 // accepts after 20 ms. "http 502" answers one HTTP request with that
-// status. Notifications go to its fake ntfy-api.
+// status. "tls 240h" answers one HTTPS request with 200, its certificate
+// for the host issued by the lab's CA and expiring 240 h after the first
+// dial with that setting (later dials present the same certificate).
+// Notifications go to its fake ntfy-api.
 type lab struct {
 	mu    sync.Mutex
-	hosts map[string]string // addr → "up", "up <duration>", "http <status>", "refuse" or "hang"
+	hosts map[string]string // addr → "up", "up <duration>", "http <status>", "tls <expires in>", "refuse" or "hang"
 	ntfy  *fakeNtfy
+	// ca issues the "tls" certificates; startIn makes checks trust it.
+	ca    *testCA
+	certs map[string]tls.Certificate // by addr and setting
 }
 
 func newLab() *lab { return &lab{hosts: map[string]string{}, ntfy: &fakeNtfy{}} }
@@ -40,11 +47,34 @@ func (l *lab) set(addr, how string) {
 	l.hosts[addr] = how
 }
 
+// cert is addr's certificate for setting "tls left".
+func (l *lab) cert(addr, left string) tls.Certificate {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.certs == nil {
+		l.certs = map[string]tls.Certificate{}
+	}
+	cert, ok := l.certs[addr+" "+left]
+	if !ok {
+		d, _ := time.ParseDuration(left)
+		host, _, _ := net.SplitHostPort(addr)
+		cert = l.ca.issue(host, time.Now().Add(d))
+		l.certs[addr+" "+left] = cert
+	}
+	return cert
+}
+
 func (l *lab) dial(ctx context.Context, _, addr string) (net.Conn, error) {
 	l.mu.Lock()
 	how := l.hosts[addr]
 	l.mu.Unlock()
 	how, arg, _ := strings.Cut(how, " ")
+	if how == "tls" {
+		cert := l.cert(addr, arg)
+		client, server := net.Pipe()
+		go answerHTTPS(server, cert)
+		return client, nil
+	}
 	if d, err := time.ParseDuration(arg); err == nil {
 		time.Sleep(d)
 	}
@@ -73,11 +103,27 @@ func answerHTTP(conn net.Conn, status string) {
 	fmt.Fprintf(conn, "HTTP/1.1 %s Status\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", status)
 }
 
+// answerHTTPS answers one HTTPS request on conn with 200, presenting
+// cert, then hangs up without a close_notify: over a synchronous pipe, both
+// ends sending one at once would block each other.
+func answerHTTPS(conn net.Conn, cert tls.Certificate) {
+	defer conn.Close()
+	tc := tls.Server(conn, &tls.Config{Certificates: []tls.Certificate{cert}})
+	if _, err := http.ReadRequest(bufio.NewReader(tc)); err != nil {
+		return
+	}
+	fmt.Fprintf(tc, "HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+}
+
 // startIn runs checks dialing through l. Call inside a synctest bubble.
 func startIn(t *testing.T, l *lab, opts ...sdktest.Option) (*sdktest.Harness, checkspb.ChecksServiceClient) {
 	t.Helper()
 	opts = append([]sdktest.Option{sdktest.WithClient[ntfyapipb.NtfyApiServiceClient](l.ntfy)}, opts...)
-	h := sdktest.New(t, checks.DefinitionDialing(l.dial), opts...)
+	def := checks.DefinitionDialing(l.dial)
+	if l.ca != nil {
+		def = checks.DefinitionDialingTrusting(l.dial, l.ca.pool)
+	}
+	h := sdktest.New(t, def, opts...)
 	h.MustStart(&checkspb.ChecksConfig{})
 	return h, checkspb.NewChecksServiceClient(h.Conn)
 }

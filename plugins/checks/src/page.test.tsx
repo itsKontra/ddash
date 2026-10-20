@@ -37,6 +37,7 @@ const listed = {
       maintenance: true,
       maintenanceEnds: "2026-10-20T09:30:00Z",
     }),
+    check(8, "camera", "STATE_UP", { flapping: true, latencyMs: 30, lastBeat: "2026-10-20T08:00:00Z" }),
   ],
 };
 
@@ -103,6 +104,15 @@ it("lists each Check with its state, latency or reason, and markers", async () =
   expect(within(adguard).getByText(/jellyfin\.home\.example A @ 198\.18\.1\.2/)).toBeTruthy();
 
   expect(within(row("nvr")).getByRole("img", { name: "disabled" })).toBeTruthy();
+});
+
+it("marks a Flapping Check, warn while it is up", async () => {
+  await open();
+
+  const camera = row("camera");
+  expect(within(camera).getByText("flapping")).toBeTruthy();
+  expect(within(camera).getByRole("img", { name: "up, flapping" })).toBeTruthy();
+  expect(within(camera).getByText("30 ms")).toBeTruthy();
 });
 
 it("lists App Checks, marks an expiring certificate, and leaves their editing to their App", async () => {

@@ -33,8 +33,8 @@ export interface CheckStatus {
 
 /**
  * An App's Check status: idle without one or while disabled, maint in
- * Maintenance, else its state; an up Check whose certificate expires
- * within 14 days warns.
+ * Maintenance, else its state; an up Check that is Flapping or whose
+ * certificate expires within 14 days warns. Flapping is in the label.
  */
 export function checkStatus(c: Check | undefined): CheckStatus {
   if (!c) return { tone: "idle", label: "no Check yet" };
@@ -42,11 +42,13 @@ export function checkStatus(c: Check | undefined): CheckStatus {
   if (c.maintenance) return { tone: "maint", label: "in Maintenance" };
   switch (c.state) {
     case State.UP: {
-      const cert = certWarning(c);
-      return cert ? { tone: "warn", label: `up, ${cert}` } : { tone: "up", label: "up" };
+      const marks = [c.flapping && "flapping", certWarning(c)].filter(Boolean);
+      return marks.length ? { tone: "warn", label: ["up", ...marks].join(", ") } : { tone: "up", label: "up" };
     }
-    case State.DOWN:
-      return { tone: "down", label: c.reason ? `down: ${c.reason}` : "down" };
+    case State.DOWN: {
+      const down = c.flapping ? "down, flapping" : "down";
+      return { tone: "down", label: c.reason ? `${down}: ${c.reason}` : down };
+    }
     default:
       return { tone: "warn", label: c.reason ? `pending: ${c.reason}` : "pending" };
   }

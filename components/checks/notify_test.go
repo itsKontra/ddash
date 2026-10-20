@@ -3,7 +3,6 @@ package checks_test
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strconv"
 	"sync"
 	"testing"
@@ -88,7 +87,8 @@ func nextBeat(t *testing.T, c checkspb.ChecksServiceClient, id int64) {
 	t.Fatalf("Check %d wasn't probed within %v", id, Interval11())
 }
 
-// tick11 is the longest the delivery loop takes to come round.
+// tick11 is the longest the delivery loop takes to come round once a
+// Notification is due.
 func tick11() time.Duration { return checks.DeliveryTick + checks.DeliveryTick/10 }
 
 // goDown lets addr refuse until the Check is confirmed down.
@@ -125,7 +125,7 @@ func TestOneNotificationOnConfirmedDownAndOneOnRecovery(t *testing.T) {
 
 		l.set("nas:22", "up")
 		nextBeat(t, c, id)
-		after(tick11())
+		after(checks.GroupWindow + tick11())
 
 		// Up 3 beats after it went down: 180 to 198 s.
 		want = append(want, &ntfyapipb.Notification{Title: "NAS up again", Message: "Down for 3 min (connection refused)", Priority: 3, Tags: []string{"green_circle"}, Click: click})
@@ -194,27 +194,9 @@ func TestTheLastNotifiedStateSurvivesARestart(t *testing.T) {
 		}
 
 		l.set("nas:22", "up")
-		after(Interval11() + tick11())
+		after(Interval11() + checks.GroupWindow + tick11())
 		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down", "NAS up again"}) {
 			t.Errorf("sent %v, want the recovery after the restart", got)
-		}
-	})
-}
-
-func TestEachCheckIsNotifiedOnItsOwn(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) {
-		l := newLab()
-		_, c := startIn(t, l)
-		create(t, c, named("NAS", "nas:22"))
-		create(t, c, named("NVR", "nvr:554"))
-		l.set("nas:22", "refuse")
-		l.set("nvr:554", "refuse")
-		after(checks.DownAfter * Interval11())
-
-		got := titles(l.ntfy.notifications())
-		slices.Sort(got)
-		if !cmp.Equal(got, []string{"NAS down", "NVR down"}) {
-			t.Errorf("sent %v, want one down per Check", got)
 		}
 	})
 }

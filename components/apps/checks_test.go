@@ -22,6 +22,9 @@ type checksFake struct {
 	mu   sync.Mutex
 	sets [][]*checkspb.AppCheck
 	err  error
+	// reports are the ReportState calls accepted; reportErr refuses them.
+	reports   []*checkspb.ReportStateRequest
+	reportErr error
 }
 
 func (f *checksFake) SetAppChecks(_ context.Context, req *checkspb.SetAppChecksRequest, _ ...grpc.CallOption) (*checkspb.SetAppChecksResponse, error) {

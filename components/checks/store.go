@@ -137,7 +137,7 @@ func (s *store) delete(ctx context.Context, id int64) error {
 	if _, err := tx.ExecContext(ctx, `DELETE FROM checks WHERE id = ?`, id); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM notified WHERE item = ?`, checkItem(id)); err != nil {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM notified WHERE item IN (?, ?)`, checkItem(id), certItem(id)); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM maintenance WHERE kind = 'check' AND check_id = ?`, id); err != nil {
@@ -163,7 +163,7 @@ func (s *store) loadNotified(ctx context.Context) (map[string]notified, error) {
 		if err := rows.Scan(&item, &state, &since, &n.reason); err != nil {
 			return nil, err
 		}
-		n.state, n.since = key(states, state), time.UnixMilli(since)
+		n.state, n.since = mark(state), time.UnixMilli(since)
 		out[item] = n
 	}
 	return out, rows.Err()
@@ -174,7 +174,7 @@ func (s *store) setNotified(ctx context.Context, item string, n notified) error 
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO notified (item, state, since, reason) VALUES (?, ?, ?, ?)
 		ON CONFLICT (item) DO UPDATE SET state = excluded.state, since = excluded.since, reason = excluded.reason`,
-		item, states[n.state], ms(n.since), n.reason)
+		item, string(n.state), ms(n.since), n.reason)
 	return err
 }
 

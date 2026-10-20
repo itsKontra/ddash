@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"context"
 	"slices"
+	"strings"
 
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -44,6 +45,53 @@ func (c *component) syncChecks(ctx context.Context) {
 		return
 	}
 	c.checksErr, c.sent = "", set
+}
+
+// The nginx config item, reported to checks so it is notified when
+// nginx-config's `nginx -T` read fails and when it recovers.
+const (
+	nginxItem     = "nginx-config"
+	nginxItemName = "nginx config"
+	nginxItemPath = "/reverse-proxy"
+)
+
+// reportNginx reports the nginx config item to checks when it differs
+// from what checks last accepted: so only on change, plus once after
+// Start. Nothing is reported before a snapshot was read (nginx-config
+// being unavailable is Component health, never notified). A refused
+// report is tried again on the next call.
+func (c *component) reportNginx(ctx context.Context) {
+	c.syncMu.Lock()
+	defer c.syncMu.Unlock()
+	c.mu.Lock()
+	known, reason := c.nginxKnown, c.nginxDown
+	c.mu.Unlock()
+	if !known {
+		return
+	}
+	req := &checkspb.ReportStateRequest{Item: nginxItem, Name: nginxItemName, State: checkspb.State_STATE_UP, Path: nginxItemPath}
+	if reason != "" {
+		req.State, req.Reason = checkspb.State_STATE_DOWN, reason
+	}
+	if proto.Equal(req, c.reported) {
+		return
+	}
+	if _, err := c.checks.ReportState(ctx, req); err != nil {
+		c.log.Warn("report the nginx config item", "err", err)
+		return
+	}
+	c.reported = req
+}
+
+// firstLine is s's first non-empty line, trimmed: nginx's stderr ends
+// with "configuration file ... test failed" after the line that says why.
+func firstLine(s string) string {
+	for line := range strings.Lines(s) {
+		if line = strings.TrimSpace(line); line != "" {
+			return line
+		}
+	}
+	return ""
 }
 
 // appChecks is each App's Check, by App id: an HTTP(S) Check of its URL,

@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { actions, list, renderScoped, settle } from "./testing";
+import { actions, allUp, list, renderScoped, settle } from "./testing";
 
 afterEach(cleanup);
 
@@ -44,6 +44,27 @@ it("shows each card's Check status, and warns of a certificate expiring within 1
   expect(status("Printer")).toBe("up, certificate expires in 5 days");
   expect(within(card("Jellyfin")).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
   expect(within(card("Printer")).getByRole("img", { name: "up, certificate expires in 5 days" })).toBeTruthy();
+});
+
+it("marks a card whose Check is Flapping", async () => {
+  const flapping = {
+    checks: allUp.checks.map((c) =>
+      c.appId === "proxy:grafana.home.example"
+        ? { ...c, flapping: true }
+        : c.appId === "proxy:jellyfin.home.example"
+          ? { ...c, state: "STATE_DOWN", reason: "HTTP 502", flapping: true }
+          : c,
+    ),
+  };
+  renderScoped(<Page />, { ListChecks: () => Response.json(flapping) });
+  await settle();
+
+  const card = (name: string) => screen.getByRole("listitem", { name });
+  const status = (name: string) => within(card(name)).getByRole("status").textContent;
+  expect(status("Grafana")).toBe("up, flapping");
+  expect(within(card("Grafana")).getByRole("img", { name: "up, flapping" })).toBeTruthy();
+  expect(status("Jellyfin")).toBe("down, flapping: HTTP 502");
+  expect(within(card("Jellyfin")).getByRole("img", { name: "down, flapping: HTTP 502" })).toBeTruthy();
 });
 
 it("shows the cards without a Check status while checks is unavailable", async () => {

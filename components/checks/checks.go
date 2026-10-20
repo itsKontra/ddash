@@ -97,6 +97,10 @@ type component struct {
 	// expiry loop it changed.
 	maint map[string]*maintenance
 	wake  chan struct{}
+	// reported is every item reported with ReportState, by item.
+	reported map[string]*reported
+	// flaps is each item's recent downs and Flapping, in memory only.
+	flaps map[string]*flap
 }
 
 // check is one Check in memory, the source of every read.
@@ -141,11 +145,16 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	if err != nil {
 		return err
 	}
+	reported, err := c.db.loadReported(ctx)
+	if err != nil {
+		return err
+	}
 	sdk.Every(ctx, SweepInterval, c.sweep)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.notified, c.out = last, outbox{queued: map[string]time.Time{}}
 	c.maint, c.wake = maint, make(chan struct{}, 1)
+	c.reported, c.flaps = reported, map[string]*flap{}
 	go c.expireMaintenance(ctx)
 	sdk.Every(ctx, DeliveryTick, c.deliver)
 	c.checks = map[int64]*check{}
@@ -156,9 +165,11 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 		}
 		// The outbox is lost on restart: queue again what changed since
 		// it was last notified but wasn't delivered before the stop.
-		if _, ok := c.wanted(checkItem(ch.id)); ok {
-			c.queue(checkItem(ch.id))
-		}
+		c.requeue(checkItem(ch.id))
+		c.requeue(certItem(ch.id))
+	}
+	for item := range c.reported {
+		c.requeue(item)
 	}
 	return nil
 }
@@ -244,10 +255,12 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 	if c.writeErr != nil {
 		c.log.Error("record beat", "check", id, "err", c.writeErr)
 	}
+	was := ch.standing
 	ch.standing = next
 	if changed {
-		c.queue(checkItem(id))
+		c.changed(checkItem(id), was.since, next.state == checkspb.State_STATE_DOWN, next.since)
 	}
+	c.requeue(certItem(id))
 	c.endWhenUp(ctx, ch)
 }
 
