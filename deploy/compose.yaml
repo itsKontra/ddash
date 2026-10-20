@@ -14,8 +14,9 @@ services:
     # that doesn't allow sysctls). The firewall lets only nginx reach it.
     ports: ["<ddash-ip>:8080:8080"]
     # Unprivileged ICMP for ping Checks; Docker doesn't set it in an
-    # unprivileged LXC.
-    sysctls: ["net.ipv4.ping_group_range=0 2147483647"]
+    # unprivileged LXC. Both ends must be GIDs the LXC maps (0-65535), or
+    # the kernel refuses the write and the container doesn't start.
+    sysctls: ["net.ipv4.ping_group_range=0 65535"]
     # Bootstrap config only. Component credentials are entered in the UI.
     env_file: ddash.env
     # The core DB, every Component's DB and snapshots, and the downloaded
