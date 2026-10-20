@@ -1,0 +1,5 @@
+{
+  "data": [
+    {"id": "qemu/112", "type": "qemu", "vmid": 112, "name": "no-agent", "node": "pve", "status": "running", "template": 0, "cpu": 0.01, "maxcpu": 1, "mem": 536870912, "maxmem": 1073741824, "disk": 0, "maxdisk": 10737418240, "netin": 1024, "netout": 2048, "uptime": 3600}
+  ]
+}

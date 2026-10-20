@@ -1,0 +1,8 @@
+name: proxmox
+title: Proxmox
+description: Every LXC and VM on Proxmox, with its status, resources and IPs.
+icon: server
+author: itsKontra
+# proxmox runs the power Actions; proxmox-api's Workloads and permissions
+# are read unchanged.
+requires: [proxmox, proxmox-api]

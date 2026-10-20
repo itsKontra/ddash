@@ -1,0 +1,83 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "id": 0,
+      "name": "tun_wg1",
+      "status": "up",
+      "public_key": "L/711l8eD25p0ET+JXNg85+elMdhg/98adYt60nxxbk=",
+      "listen_port": "51333",
+      "mtu": 1420,
+      "transfer_rx": 0,
+      "transfer_tx": 0,
+      "inpkts": 0,
+      "outpkts": 0,
+      "descr": "Remote Access",
+      "peers": [
+        {
+          "parent_id": 0,
+          "id": 0,
+          "tunnel_device": "tun_wg1",
+          "public_key": "BEYg670lDINWndm6HepeqvFcG1Vtu9i213Oz43fsmP4=",
+          "endpoint": "(none)",
+          "allowed_ips": [
+            "198.18.40.2/32"
+          ],
+          "latest_handshake": 0,
+          "transfer_rx": 0,
+          "transfer_tx": 0,
+          "persistent_keepalive": "off",
+          "descr": "Phone"
+        },
+        {
+          "parent_id": 0,
+          "id": 1,
+          "tunnel_device": "tun_wg1",
+          "public_key": "3DSY1uvmxh/dJZxoYlkRe4+x/ziorV+tX79ngdO2dR4=",
+          "endpoint": "(none)",
+          "allowed_ips": [
+            "198.18.40.3/32"
+          ],
+          "latest_handshake": 0,
+          "transfer_rx": 0,
+          "transfer_tx": 0,
+          "persistent_keepalive": "off",
+          "descr": "Laptop"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "tun_wg2",
+      "status": "up",
+      "public_key": "HSo0U2YmGp1uHbwvXW+kFj6+MnrNh0wYxrDwngVdSvk=",
+      "listen_port": "51820",
+      "mtu": 1390,
+      "transfer_rx": 15801980136,
+      "transfer_tx": 392017332,
+      "inpkts": 12771571,
+      "outpkts": 2644035,
+      "descr": "VPN provider",
+      "peers": [
+        {
+          "parent_id": 1,
+          "id": 0,
+          "tunnel_device": "tun_wg2",
+          "public_key": "o822xaDT9sDiY64O140R4zsB3eQYmMTjjQVuXcvw2Lc=",
+          "endpoint": "203.0.113.195:51820",
+          "allowed_ips": [
+            "0.0.0.0/0"
+          ],
+          "latest_handshake": 1792516692,
+          "transfer_rx": 15801980136,
+          "transfer_tx": 392017480,
+          "persistent_keepalive": "25",
+          "descr": "KILL_SWITCH AT#38"
+        }
+      ]
+    }
+  ]
+}

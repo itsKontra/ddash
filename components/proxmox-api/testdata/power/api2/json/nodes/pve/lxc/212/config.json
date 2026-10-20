@@ -1,0 +1,15 @@
+{
+  "data": {
+    "arch": "amd64",
+    "cores": 4,
+    "features": "nesting=1,keyctl=1",
+    "hostname": "media-stack",
+    "memory": 8192,
+    "net0": "name=eth0,bridge=vmbr1,gw=198.18.1.1,hwaddr=02:52:1E:52:FE:BE,ip=198.18.1.212/24,type=veth",
+    "ostype": "debian",
+    "rootfs": "nvme-storage:subvol-212-disk-0,size=64G",
+    "swap": 512,
+    "tags": "docker;media",
+    "unprivileged": 1
+  }
+}

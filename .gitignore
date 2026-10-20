@@ -6,7 +6,21 @@
 # build output
 /bin/
 /dist/
+/.dev/
 node_modules/
 
 # local homelab name mapping
 translate.md
+
+# make smoke / make record: the real systems, the names to scrub, and the
+# Components' DBs (nginx-config's authorized key) between runs
+smoke.env
+scrub.map
+/.smoke/
+
+# web build output: the shell (embedded by package web) and Plugin bundles
+/web/dist/shell/
+/plugins/*/dist/
+
+# agent worktrees
+/.claude/worktrees/

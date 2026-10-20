@@ -1,0 +1,22 @@
+{
+  "name": "@ddash/plugin-reverse-proxy",
+  "private": true,
+  "type": "module",
+  "description": "The reverse-proxy Plugin's UI: nginx config health and the Proxy Host list with its warnings.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@ddash/display": "workspace:*",
+    "@ddash/plugin": "workspace:*",
+    "@ddash/proto": "workspace:*",
+    "@ddash/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@ddash/vite-preset": "workspace:*"
+  }
+}

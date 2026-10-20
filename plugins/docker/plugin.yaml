@@ -1,0 +1,6 @@
+name: docker
+title: Docker
+description: Containers on every Docker host, with their state and ports.
+icon: container
+author: itsKontra
+requires: [docker-api]

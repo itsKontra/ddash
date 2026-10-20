@@ -1,0 +1,454 @@
+syntax = "proto3";
+
+// The core's own API. Its Actions pass the same gate as Components' Actions
+// and are recorded in the Audit Log with target "core".
+package ddash.core;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/core;corepb";
+
+service CoreService {
+  // ListInstalledPlugins returns the installed Plugins with their manifests
+  // and where the shell loads their bundles from.
+  rpc ListInstalledPlugins(ListInstalledPluginsRequest) returns (ListInstalledPluginsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // Install adds a Plugin to the installed set and starts the Components it
+  // requires.
+  rpc Install(InstallRequest) returns (InstallResponse) {
+    option (ddash.action) = {};
+  }
+  // Uninstall removes a Plugin from the installed set, then stops and
+  // removes every Component no installed Plugin still requires. Their DB
+  // files and config are kept, the DB files listed as orphans, unless
+  // delete_data is set.
+  rpc Uninstall(UninstallRequest) returns (UninstallResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // Restart stops a Component and starts it again, forgetting its crashes:
+  // a Component that crashed about 5 times in 10 minutes stays down until
+  // restarted. It never restarts the Components that require it.
+  rpc Restart(RestartRequest) returns (RestartResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListCatalogue returns every Plugin in the running Release, whether it
+  // is installed, and the state of each Component it pulls in, plus the
+  // orphaned DB files.
+  rpc ListCatalogue(ListCatalogueRequest) returns (ListCatalogueResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // DeleteOrphan deletes an orphaned Component's DB file and config.
+  rpc DeleteOrphan(DeleteOrphanRequest) returns (DeleteOrphanResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // GetConfigForm returns an owner's config form: the fields of its config
+  // message, its stored values (never a secret's value) and why its stored
+  // config doesn't start. The owner is a running Component, or "core" for
+  // CoreSettings.
+  rpc GetConfigForm(GetConfigFormRequest) returns (GetConfigFormResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // SaveConfig validates an owner's config, merges the secrets it leaves
+  // unchanged, and restarts the Component with it. Only a config Start
+  // accepts is stored; otherwise the Component restarts on its old config.
+  // A config the host or Start rejects is INVALID_ARGUMENT "invalid config"
+  // with a ConfigErrors detail. The Audit Log records the changed fields
+  // old -> new, a secret as "changed" or "cleared".
+  rpc SaveConfig(SaveConfigRequest) returns (SaveConfigResponse) {
+    option (ddash.action) = {};
+  }
+  // GetCoreSettings returns the core's own settings, defaults applied.
+  rpc GetCoreSettings(GetCoreSettingsRequest) returns (GetCoreSettingsResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+  // each with its hops.
+  rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // GetLayout returns the Overview layout: the placed Widgets in order and
+  // every Widget the shell has seen.
+  rpc GetLayout(GetLayoutRequest) returns (GetLayoutResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // SaveLayout replaces the Overview layout.
+  rpc SaveLayout(SaveLayoutRequest) returns (SaveLayoutResponse) {
+    option (ddash.action) = {};
+  }
+  // RunTestAction runs the Action a Component's config message names in
+  // (ddash.config.form).test_action, with an empty request, on its saved
+  // config, for the actor. It answers once the Action succeeded and fails
+  // with the Action's error. The Audit Log records the Component's Action
+  // itself (e.g. ntfy-api SendTest), not this call.
+  rpc RunTestAction(RunTestActionRequest) returns (RunTestActionResponse) {
+    option (ddash.action) = {};
+  }
+  // GetOperator returns the Operator the session belongs to.
+  rpc GetOperator(GetOperatorRequest) returns (GetOperatorResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+}
+
+message GetOperatorRequest {}
+
+message GetOperatorResponse {
+  Operator operator = 1;
+}
+
+// The signed-in Operator.
+message Operator {
+  // Keycloak's preferred_username, e.g. "alice".
+  string name = 1;
+  // The OIDC subject; empty with the dev bypass.
+  string sub = 2;
+}
+
+message RunTestActionRequest {
+  // A Component's name.
+  string owner = 1;
+}
+
+message RunTestActionResponse {}
+
+// The config form's test button.
+message TestAction {
+  // The Action it runs, e.g. "SendTest".
+  string method = 1;
+  // The button's label: the method name in sentence case, e.g. "Send test".
+  string label = 2;
+}
+
+message ListCatalogueRequest {}
+
+message ListCatalogueResponse {
+  string release = 1;
+  // By name.
+  repeated CataloguePlugin plugins = 2;
+  // Components whose DB file is kept although nothing runs them, by name.
+  repeated string orphans = 3;
+  // A newer Release than this one, found by the daily check of its
+  // release source; empty when there is none.
+  string available_release = 4;
+}
+
+// A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
+message CataloguePlugin {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // A lucide icon name, e.g. "container".
+  string icon = 4;
+  // The author's GitHub handle.
+  string author = 5;
+  bool installed = 6;
+  // The Components installing it runs: its requires, transitively, each
+  // after the ones it requires.
+  repeated ComponentStatus components = 7;
+  // Why an installed Plugin's bundles of this Release are still missing,
+  // e.g. their download failed and is retrying; empty once they are there.
+  string update_pending = 8;
+}
+
+// A Component as the host sees it.
+message ComponentStatus {
+  string name = 1;
+  // The host's state: starting, ok, degraded, down, unconfigured, stopped
+  // or crashed. Empty when the Component doesn't run.
+  string state = 2;
+  // A one-line explanation of the state.
+  string message = 3;
+  // The Component crashed too often and stays down until restarted.
+  bool held = 4;
+  // The Component takes config, so it has a form.
+  bool configurable = 5;
+  // The Component is unconfigured although config was saved for it, e.g.
+  // because a Release added a required field.
+  bool needs_config = 6;
+}
+
+message DeleteOrphanRequest {
+  string component = 1;
+}
+
+message DeleteOrphanResponse {}
+
+message InstallRequest {
+  string plugin = 1;
+}
+
+message InstallResponse {
+  // The Components the install added to what runs, in start order. The
+  // shell opens the form of each that turns out unconfigured.
+  repeated string components = 1;
+}
+
+message UninstallRequest {
+  string plugin = 1;
+  // Also delete the removed Components' DB files and config.
+  bool delete_data = 2;
+}
+
+message UninstallResponse {
+  // Components whose DB file is kept although nothing runs them.
+  repeated string orphans = 1;
+}
+
+message RestartRequest {
+  string component = 1;
+}
+
+message RestartResponse {}
+
+message ListInstalledPluginsRequest {}
+
+message ListInstalledPluginsResponse {
+  // By name.
+  repeated InstalledPlugin plugins = 1;
+}
+
+// An installed Plugin: its plugin.yaml and where its bundle is.
+message InstalledPlugin {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // A lucide icon name, e.g. "container".
+  string icon = 4;
+  // The author's GitHub handle.
+  string author = 5;
+  // The Components the Plugin's UI may call.
+  repeated string requires = 6;
+  // The bundle's ESM entry: /plugins/<name>/<release>/index.js.
+  string script = 7;
+  // The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+  string style = 8;
+}
+
+message ListAuditLogRequest {
+  // Only chains whose root ran for this kind of actor: "operator",
+  // "component" or "core". Empty means any.
+  string actor_kind = 1;
+  // Only chains with a hop to this target: a Component's name or "core".
+  // Empty means any.
+  string target = 2;
+  // Only chains with a hop that ended so: "ok", "failed" (a gRPC code),
+  // "interrupted" or "running". Empty means any.
+  string outcome = 3;
+  // Chains per page: 50 when 0, at most 200.
+  int32 page_size = 4;
+  // The previous page's next_page_token; empty for the newest page.
+  string page_token = 5;
+}
+
+message ListAuditLogResponse {
+  // Newest root first.
+  repeated AuditChain chains = 1;
+  // Where the next page starts; empty on the last page.
+  string next_page_token = 2;
+  // Every target in the Audit Log, sorted, to filter by.
+  repeated string targets = 3;
+}
+
+// The hops of one Action, linked by their chain id.
+message AuditChain {
+  string id = 1;
+  // In the order they were admitted: the first is the root, the Action
+  // the actor started.
+  repeated AuditEntry entries = 2;
+}
+
+// One hop in the Audit Log.
+message AuditEntry {
+  // When the gate admitted it.
+  google.protobuf.Timestamp time = 1;
+  // "operator", "component" or "core".
+  string actor_kind = 2;
+  // The Operator's preferred_username or the Component's name.
+  string username = 3;
+  // The Operator's OIDC subject.
+  string sub = 4;
+  // A Component's name, or "core".
+  string target = 5;
+  // The bare method name, e.g. "Install".
+  string method = 6;
+  bool disruptive = 7;
+  // The request as compact protojson, secrets redacted, cut at 4 KiB.
+  string request = 8;
+  // "ok", "interrupted", a failed Action's gRPC code (e.g.
+  // "PermissionDenied"), or empty while it runs.
+  string outcome = 9;
+  // A failed Action's error message.
+  string message = 10;
+  // How long it ran; unset while it runs.
+  google.protobuf.Duration duration = 11;
+}
+
+message GetLayoutRequest {}
+
+message GetLayoutResponse {
+  Layout layout = 1;
+}
+
+message SaveLayoutRequest {
+  Layout layout = 1;
+}
+
+message SaveLayoutResponse {}
+
+// The Overview layout, which the shell reconciles against the Widgets the
+// installed Plugins offer.
+message Layout {
+  // The placed Widgets, in grid order. Each Widget is placed at most once.
+  repeated LayoutEntry entries = 1;
+  // Every Widget the shell has seen, placed or not, keyed
+  // <plugin>.<widget-id>. A seen Widget that isn't placed was removed by the
+  // Operator, so the shell doesn't append it again.
+  repeated string seen = 2;
+}
+
+// A placed Widget.
+message LayoutEntry {
+  // <plugin>.<widget-id>, e.g. "docker.containers".
+  string widget = 1;
+  // S (1×1), M (2×1) or L (2×2).
+  string size = 2;
+}
+
+// The core's own settings, stored as owner "core" and edited in Settings.
+message CoreSettings {
+  optional Theme theme = 1 [(ddash.config.field) = {
+    label: "Theme"
+    default: "THEME_DDASH"
+  }];
+}
+
+// The look of the whole UI. Light or dark is each browser's choice.
+enum Theme {
+  THEME_UNSPECIFIED = 0;
+  THEME_DDASH = 1 [(ddash.config.value) = {label: "ddash"}];
+}
+
+message GetCoreSettingsRequest {}
+
+message GetCoreSettingsResponse {
+  CoreSettings settings = 1;
+}
+
+message GetConfigFormRequest {
+  // A Component's name, or "core".
+  string owner = 1;
+}
+
+message GetConfigFormResponse {
+  // The config message's fields, in declaration order.
+  repeated FormField fields = 1;
+  // The stored values by field name, as protojson with proto field names.
+  // An unset field (meaning its default) is absent, and so is every secret.
+  google.protobuf.Struct values = 2;
+  // The secret fields that have a stored value.
+  repeated string secrets_set = 3;
+  // Why the stored config doesn't start, by path. Empty when it does.
+  repeated ConfigError errors = 4;
+  // The Component's setup hint, from the getter its config message names
+  // in (ddash.config.form).setup_from. Unset until the Component has
+  // started, and for a Component without one.
+  ddash.config.SetupHint setup_hint = 5;
+  // The button that runs the Action the config message names in
+  // (ddash.config.form).test_action; unset for a Component without one.
+  TestAction test_action = 6;
+}
+
+// One field of a config form.
+message FormField {
+  enum Kind {
+    KIND_UNSPECIFIED = 0;
+    KIND_STRING = 1;
+    KIND_INT = 2;
+    // A switch.
+    KIND_BOOL = 3;
+    KIND_ENUM = 4;
+    // A repeated message: one row each, a column per field.
+    KIND_TABLE = 5;
+  }
+  // The proto field name, as in values and in error paths.
+  string name = 1;
+  Kind kind = 2;
+  // A list of values of kind. A table always is.
+  bool repeated = 3;
+  string label = 4;
+  string help = 5;
+  // The default if there is one, else the placeholder option.
+  string placeholder = 6;
+  bool required = 7;
+  bool secret = 8;
+  // The field's default as text; empty when it has none.
+  string default = 9;
+  // "url", "hostname", "ip", "cidr" or "ip_range"; empty for any text.
+  string format = 10;
+  optional int64 min = 11;
+  optional int64 max = 12;
+  // An enum's choices, without its zero value.
+  repeated EnumOption options = 13;
+  // A table's columns.
+  repeated FormField columns = 14;
+  // The choices the getter named in (ddash.config.field).choices_from
+  // offers, in its order. Empty for a field without choices_from, and while
+  // they can't be read (choices_note then says why).
+  repeated EnumOption choices = 15;
+  // Why a field with choices_from is free text for now, e.g.
+  // "pfsense-api can't offer choices (not configured); type the value."
+  string choices_note = 16;
+}
+
+message EnumOption {
+  // The value name, as in values.
+  string value = 1;
+  string label = 2;
+}
+
+// One config field's problem, e.g. {path: "hosts[1].url", message: "must be a URL"}.
+message ConfigError {
+  string path = 1;
+  string message = 2;
+}
+
+// The detail of an "invalid config" error.
+message ConfigErrors {
+  repeated ConfigError errors = 1;
+}
+
+message SaveConfigRequest {
+  // A Component's name, or "core".
+  string owner = 1;
+  // The config by field name, as protojson with proto field names. An
+  // absent field is unset, meaning its default. A secret given here
+  // replaces the stored one.
+  google.protobuf.Struct values = 2;
+  // Secret fields to clear. A secret neither in values nor here keeps its
+  // stored value.
+  repeated string clear_secrets = 3;
+}
+
+message SaveConfigResponse {
+  // The Component's health polled right after its Start; empty for "core".
+  ComponentStatus status = 1;
+}
+
+// What the Audit Log records for SaveConfig: the fields it changed.
+message ConfigSave {
+  string owner = 1;
+  repeated ConfigChange changes = 2;
+}
+
+// One changed field, its old and new value as JSON (empty when unset). A
+// secret's values are never recorded: its change is "changed" or "cleared".
+message ConfigChange {
+  string field = 1;
+  string old = 2;
+  string new = 3;
+  string change = 4;
+}

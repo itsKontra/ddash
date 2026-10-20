@@ -1,0 +1,11 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {"name": "WAN_DHCP", "srcip": "203.0.113.10", "monitorip": "203.0.113.1", "delay": 9.1, "stddev": 0.9, "loss": 0, "status": "online", "substatus": "none"},
+    {"name": "WG_VPN", "srcip": "198.18.30.2", "monitorip": "198.18.30.1", "delay": 0, "stddev": 0, "loss": 100, "status": "down", "substatus": "highloss"},
+    {"name": "OVPN_VPN", "srcip": "198.18.31.6", "monitorip": "198.18.31.1", "delay": 0, "stddev": 0, "loss": 100, "status": "down", "substatus": "highloss"}
+  ]
+}

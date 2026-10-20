@@ -1,0 +1,26 @@
+{
+  "data": {
+    "boot": "order=ide2;scsi0",
+    "bios": "ovmf",
+    "cores": 6,
+    "sockets": 1,
+    "serial0": "socket",
+    "name": "tuxedo",
+    "parent": "now33",
+    "vmgenid": "cce979e4-c657-4a7f-9464-86530f99936b",
+    "ide2": "none,media=cdrom",
+    "scsihw": "virtio-scsi-single",
+    "machine": "q35",
+    "efidisk0": "nvme-storage:vm-102-disk-1,efitype=4m,ms-cert=2023k,pre-enrolled-keys=1,size=1M",
+    "numa": 0,
+    "ostype": "l26",
+    "cpu": "host",
+    "meta": "creation-qemu=11.0.2,ctime=1788109946",
+    "vga": "virtio",
+    "scsi0": "nvme-storage:vm-102-disk-0,backup=0,iothread=1,size=32G,ssd=1",
+    "memory": "6144",
+    "net0": "virtio=02:07:D3:3C:D7:9C,bridge=vmbr1",
+    "smbios1": "uuid=f23dfc42-83f9-4bba-9f71-ab8c576d042b",
+    "digest": "c965243b56a9a985bf4b95cc8c0e673dbbaa7bba"
+  }
+}

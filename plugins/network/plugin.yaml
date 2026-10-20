@@ -1,0 +1,6 @@
+name: network
+title: Network
+description: Gateways, the VPN Tunnel's active tier, throughput, the Devices on the network, Remote Access and AdGuard.
+icon: network
+author: itsKontra
+requires: [network, pfsense-api, adguard-api]

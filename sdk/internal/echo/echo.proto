@@ -1,0 +1,101 @@
+syntax = "proto3";
+
+// echo is a tiny Component the SDK's own tests run. It is not shipped.
+package ddash.echo;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopb";
+
+message EchoConfig {
+  // Prefixed to every echoed message.
+  string prefix = 1;
+}
+
+service EchoService {
+  rpc Echo(EchoRequest) returns (EchoResponse) {
+    option (ddash.getter) = {};
+  }
+  rpc CountNotes(CountNotesRequest) returns (CountNotesResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  rpc AddNote(AddNoteRequest) returns (AddNoteResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+}
+
+// UnmarkedService breaks the rule that every method is a getter or an
+// Action, so the SDK must refuse it.
+service UnmarkedService {
+  rpc Unmarked(UnmarkedRequest) returns (UnmarkedResponse);
+}
+
+message UnmarkedRequest {}
+
+message UnmarkedResponse {}
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
+
+message CountNotesRequest {}
+
+message CountNotesResponse {
+  int64 count = 1;
+}
+
+message AddNoteRequest {
+  string text = 1;
+}
+
+message AddNoteResponse {}
+
+// HintFromActionConfig names an Action as its setup hint's getter, so the
+// SDK must refuse it.
+message HintFromActionConfig {
+  option (ddash.config.form) = {setup_from: "AddNote"};
+}
+
+// HintFromNoHintConfig names a getter whose response has no SetupHint, so
+// the SDK must refuse it.
+message HintFromNoHintConfig {
+  option (ddash.config.form) = {setup_from: "Echo"};
+}
+
+// TestFromGetterConfig names a getter as its test_action, so the SDK must
+// refuse it.
+message TestFromGetterConfig {
+  option (ddash.config.form) = {test_action: "Echo"};
+}
+
+// TestFromDisruptiveConfig names a disruptive Action as its test_action,
+// which a button can't run without a confirm, so the SDK must refuse it.
+message TestFromDisruptiveConfig {
+  option (ddash.config.form) = {test_action: "AddNote"};
+}
+
+// ChoicesFromUnrequiredConfig takes choices from a Component echo doesn't
+// require, so the SDK must refuse it.
+message ChoicesFromUnrequiredConfig {
+  string pick = 1 [(ddash.config.field) = {choices_from: "elsewhere.ListThings"}];
+}
+
+// ChoicesFromNoComponentConfig names no Component, so the SDK must refuse it.
+message ChoicesFromNoComponentConfig {
+  string pick = 1 [(ddash.config.field) = {choices_from: "ListThings"}];
+}
+
+// ChoicesOnAnIntConfig puts choices on an int64, so the SDK must refuse it.
+message ChoicesOnAnIntConfig {
+  int64 pick = 1 [(ddash.config.field) = {choices_from: "upstream.ListThings"}];
+}
+
+// ChoicesConfig takes a string's choices from a required Component.
+message ChoicesConfig {
+  string pick = 1 [(ddash.config.field) = {choices_from: "upstream.ListThings"}];
+}

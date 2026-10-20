@@ -1,0 +1,18 @@
+{
+  "name": "@ddash/ui",
+  "private": true,
+  "type": "module",
+  "description": "ddash's design system: the components every UI is built from and the Theme tokens. An import-map singleton, so Plugins never bundle it.",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./theme.css": "./src/theme.css",
+    "./plugin.css": "./src/plugin.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  }
+}

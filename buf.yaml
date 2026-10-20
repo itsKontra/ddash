@@ -1,0 +1,24 @@
+version: v2
+modules:
+  # Shared protos: method options, the Component lifecycle, later the core API and shared types.
+  - path: proto
+  # One proto per Component, at components/<name>/<name_snake>.proto.
+  - path: components
+  # Protos used only by the SDK's own tests.
+  - path: sdk/internal
+  # Protos used only by the host's own tests.
+  - path: core/internal
+lint:
+  use:
+    - STANDARD
+  except:
+    # Releases are lockstep, so protos carry no version suffix.
+    - PACKAGE_VERSION_SUFFIX
+    # Component directories are hyphenated (docker-api), packages can't be.
+    - PACKAGE_DIRECTORY_MATCH
+  ignore_only:
+    # Getter.Refresh reads as `refresh: FAST`, and its zero value is the default, SLOW.
+    ENUM_VALUE_PREFIX:
+      - proto/ddash/options.proto
+    ENUM_ZERO_VALUE_SUFFIX:
+      - proto/ddash/options.proto

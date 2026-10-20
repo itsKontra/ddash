@@ -1,0 +1,346 @@
+// Package core is the ddash host: it opens the core DB, runs the installed
+// Plugins' Components and serves the one http.Handler.
+package core
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"io/fs"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
+
+	"github.com/itsKontra/ddash/core/appstate"
+	"github.com/itsKontra/ddash/core/auth"
+	"github.com/itsKontra/ddash/core/config"
+	"github.com/itsKontra/ddash/core/coredb"
+	"github.com/itsKontra/ddash/core/overview"
+	"github.com/itsKontra/ddash/core/router"
+	"github.com/itsKontra/ddash/core/runtime"
+	corepb "github.com/itsKontra/ddash/proto/ddash/core"
+)
+
+// Options configure a Host.
+type Options struct {
+	// DataDir is /data: the core DB is <DataDir>/core.db, Component DBs are
+	// under <DataDir>/db/.
+	DataDir string
+	// Release provides the Release's catalogue.
+	Release runtime.ReleaseSource
+	// Launcher starts Component processes.
+	Launcher runtime.Launcher
+	// Auth guards everything behind sign-in in place of a session, for
+	// tests and the dev bypass. Set Auth or OIDC; with neither, every
+	// request is refused.
+	Auth auth.Middleware
+	// OIDC signs the Operator in with this Keycloak realm, into a session
+	// in the core DB. It needs an https PublicURL.
+	OIDC *auth.OIDC
+	// TrustedProxy is the reverse proxy's address or CIDR: only requests
+	// from it may set X-Forwarded-For and X-Forwarded-Proto. Empty trusts
+	// no one.
+	TrustedProxy string
+	// PublicURL is where the Operator reaches ddash.
+	PublicURL string
+	// Logger receives the host's logs. Nil discards them.
+	Logger *slog.Logger
+	// Shell is the built shell (web.Shell()): index.html, its assets, and
+	// the vendor ESM under vendor/. Nil serves no shell.
+	Shell fs.FS
+}
+
+// Host is the ddash core.
+type Host struct {
+	db      *sql.DB
+	gate    *appstate.Gate
+	config  *config.Store
+	layout  *overview.Store
+	runtime *runtime.Runtime
+	release runtime.ReleaseSource
+	shell   fs.FS
+	router  *router.Router
+	handler http.Handler
+	// keycloak is sign-in, when the host runs with OIDC.
+	keycloak *auth.Keycloak
+
+	log *slog.Logger
+
+	stopLoops context.CancelFunc
+	loops     sync.WaitGroup
+
+	mu     sync.Mutex
+	latest string // the newest published Release, from the daily check
+}
+
+// New opens and migrates the core DB and reads the installed set. The
+// Handler serves at once; Components start only after Start.
+func New(ctx context.Context, opts Options) (*Host, error) {
+	if opts.Logger == nil {
+		opts.Logger = slog.New(slog.DiscardHandler)
+	}
+	switch {
+	case opts.Auth != nil && opts.OIDC != nil:
+		return nil, errors.New("set Auth or OIDC, not both")
+	case opts.Auth == nil && opts.OIDC == nil:
+		opts.Auth = auth.Refuse
+	}
+	forwarded, err := auth.Forwarded(opts.TrustedProxy)
+	if err != nil {
+		return nil, err
+	}
+	if err := os.MkdirAll(opts.DataDir, 0o750); err != nil {
+		return nil, err
+	}
+	db, err := coredb.Open(ctx, filepath.Join(opts.DataDir, "core.db"))
+	if err != nil {
+		return nil, err
+	}
+	gate, err := appstate.Open(ctx, db)
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	cfg := config.New(db)
+	var rtr *router.Router // routes Component calls once the runtime exists
+	rt, err := runtime.New(ctx, runtime.Options{
+		HostServer: func(caller string, opts ...grpc.ServerOption) *grpc.Server {
+			return rtr.HostServer(caller, opts...)
+		},
+		DB:        db,
+		Config:    cfg,
+		Release:   opts.Release,
+		Launcher:  opts.Launcher,
+		DataDir:   opts.DataDir,
+		PublicURL: opts.PublicURL,
+		Logger:    opts.Logger,
+	})
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+	rtr = router.New(rt, gate)
+	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, log: opts.Logger}
+	guard := opts.Auth
+	if opts.OIDC != nil {
+		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
+			OIDC: *opts.OIDC, PublicURL: opts.PublicURL, DB: db, Audit: h.auditSignIn, Logger: opts.Logger,
+		})
+		if err != nil {
+			db.Close()
+			return nil, err
+		}
+		guard = h.keycloak.Guard
+	}
+	h.handler = forwarded(h.routes(guard))
+	return h, nil
+}
+
+// auditSignIn records a sign-in event in the Audit Log, on a chain of its
+// own.
+func (h *Host) auditSignIn(ctx context.Context, actor auth.Actor, event string, err error) error {
+	return h.gate.Record(ctx, actor, appstate.Event{Chain: router.NewChain(), Target: "core", Method: event, Err: err})
+}
+
+func (h *Host) routes(guard auth.Middleware) http.Handler {
+	api := http.NewServeMux()
+	api.Handle(router.Prefix, h.router)
+	api.Handle(apiPrefix+"/", h.apiHandler())
+
+	// The shell, vendor ESM and Plugin bundles sit behind sign-in too.
+	ui := http.NewServeMux()
+	ui.HandleFunc("GET "+bundlePrefix+"{plugin}/{release}/{file}", h.bundle)
+	ui.HandleFunc("GET /vendor/{release}/{file...}", h.vendor)
+	ui.HandleFunc("GET /assets/{file...}", h.assets)
+	ui.HandleFunc("GET /{path...}", h.index)
+	for _, prefix := range []string{bundlePrefix, "/vendor/"} {
+		ui.Handle("GET "+prefix, http.NotFoundHandler()) // never the shell
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /healthz", h.healthz)
+	if h.keycloak != nil {
+		mux.Handle("/auth/", h.keycloak.Handler())
+	}
+	// The session check comes first, so a signed-out call is a 401 (the
+	// shell reloads into sign-in) even without the CSRF header.
+	mux.Handle("/api/", guard(requireConnectHeader(api)))
+	mux.Handle("/", guard(ui))
+	return mux
+}
+
+// healthz reports that HTTP serves and the core DB answers. It says
+// nothing about Components. It's public, so a failure says no more than
+// that: the error goes to the log.
+func (h *Host) healthz(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+	if err := h.db.PingContext(ctx); err != nil {
+		h.log.Warn("healthz", "err", err)
+		http.Error(w, "core DB unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write([]byte("ok\n"))
+}
+
+// requireConnectHeader refuses an /api call without Connect-Protocol-Version: 1.
+// A browser sends that header cross-site only after a CORS preflight, which
+// ddash never grants, so it stops cross-site requests.
+func requireConnectHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Connect-Protocol-Version") != "1" {
+			router.WriteError(w, status.Error(codes.InvalidArgument, `missing required header: set Connect-Protocol-Version to "1"`))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// Install is the core Action that installs a Plugin: it adds it to the
+// installed set and starts the Components it requires in the background.
+// It runs for the actor in ctx.
+func (h *Host) Install(ctx context.Context, req *corepb.InstallRequest) (*corepb.InstallResponse, error) {
+	resp := &corepb.InstallResponse{}
+	err := h.coreAction(ctx, "Install", req, func() (err error) {
+		resp.Components, err = h.runtime.Install(ctx, req.GetPlugin())
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+// Uninstall is the core Action that uninstalls a Plugin: it stops and
+// removes every Component no installed Plugin still requires, keeping their
+// DB files (as orphans) and config unless delete_data is set. It runs for
+// the actor in ctx.
+func (h *Host) Uninstall(ctx context.Context, req *corepb.UninstallRequest) (*corepb.UninstallResponse, error) {
+	var orphans []string
+	err := h.coreAction(ctx, "Uninstall", req, func() (err error) {
+		orphans, err = h.runtime.Uninstall(ctx, req.GetPlugin(), req.GetDeleteData())
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.UninstallResponse{Orphans: orphans}, nil
+}
+
+// Restart is the core Action that stops a Component and starts it again,
+// forgetting its crashes, so a Component held down after repeated crashes
+// runs again. It runs for the actor in ctx.
+func (h *Host) Restart(ctx context.Context, req *corepb.RestartRequest) (*corepb.RestartResponse, error) {
+	err := h.coreAction(ctx, "Restart", req, func() error {
+		return h.runtime.Restart(ctx, req.GetComponent())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.RestartResponse{}, nil
+}
+
+// DeleteOrphan is the core Action that deletes an orphaned Component's DB
+// file and config. It runs for the actor in ctx.
+func (h *Host) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanRequest) (*corepb.DeleteOrphanResponse, error) {
+	err := h.coreAction(ctx, "DeleteOrphan", req, func() error {
+		return h.runtime.DeleteOrphan(ctx, req.GetComponent())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.DeleteOrphanResponse{}, nil
+}
+
+// SaveLayout is the core Action that replaces the Overview layout. It runs
+// for the actor in ctx.
+func (h *Host) SaveLayout(ctx context.Context, req *corepb.SaveLayoutRequest) (*corepb.SaveLayoutResponse, error) {
+	err := h.coreAction(ctx, "SaveLayout", req, func() error {
+		return h.layout.Save(ctx, req.GetLayout())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.SaveLayoutResponse{}, nil
+}
+
+// coreService is the core API, whose Actions pass the gate like any other.
+var coreService = corepb.File_ddash_core_core_proto.Services().ByName("CoreService")
+
+// coreAction runs the core Action method through the gate, on a new chain,
+// for the actor in ctx, or for the core when there is none.
+func (h *Host) coreAction(ctx context.Context, method string, req proto.Message, run func() error) error {
+	actor, ok := auth.ActorFrom(ctx)
+	if !ok {
+		actor = auth.Actor{Kind: auth.Core}
+	}
+	done, err := h.gate.Admit(ctx, actor, appstate.Action{
+		Chain:   router.NewChain(),
+		Target:  "core",
+		Method:  coreService.Methods().ByName(protoreflect.Name(method)),
+		Request: req,
+	})
+	if err != nil {
+		return err
+	}
+	err = run()
+	done(err)
+	return err
+}
+
+// Handler is the host's one http.Handler.
+func (h *Host) Handler() http.Handler { return h.handler }
+
+// Runtime runs the installed Plugins' Components.
+func (h *Host) Runtime() *runtime.Runtime { return h.runtime }
+
+// AuditLog is the gate every Action passes and the Audit Log it keeps.
+func (h *Host) AuditLog() *appstate.Gate { return h.gate }
+
+// Config holds every owner's config.
+func (h *Host) Config() *config.Store { return h.config }
+
+// Start runs the housekeeping in the background: it reconciles the
+// installed Plugins' Components, sweeps the Audit Log daily and checks for
+// a newer Release daily.
+func (h *Host) Start() {
+	ctx, cancel := context.WithCancel(context.Background())
+	h.stopLoops = cancel
+	h.loops.Go(func() { h.gate.SweepDaily(ctx) })
+	if h.keycloak != nil {
+		h.loops.Go(func() { h.keycloak.SweepSessions(ctx) })
+	}
+	h.loops.Go(func() { h.checkReleaseDaily(ctx) })
+	h.runtime.Start()
+}
+
+// Shutdown stops every Component in parallel, waiting at most
+// runtime.StopTimeout, then closes the core DB. Stop serving HTTP first.
+func (h *Host) Shutdown(ctx context.Context) error {
+	h.StopComponents(ctx)
+	return h.Close()
+}
+
+// StopComponents ends the housekeeping and stops every Component in
+// parallel, waiting at most runtime.StopTimeout. The core DB stays open,
+// for HTTP requests still finishing.
+func (h *Host) StopComponents(ctx context.Context) {
+	if h.stopLoops != nil {
+		h.stopLoops()
+	}
+	h.loops.Wait()
+	h.runtime.Stop(ctx)
+}
+
+// Close closes the core DB, after StopComponents and once HTTP is done.
+func (h *Host) Close() error { return h.db.Close() }

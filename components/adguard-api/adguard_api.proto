@@ -1,0 +1,193 @@
+syntax = "proto3";
+
+// adguard-api reads AdGuard Home through its HTTP API under /control, with
+// HTTP Basic auth, and turns ad-blocking off or on for one client.
+package ddash.adguardapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/adguard-api/adguardapipb;adguardapipb";
+
+message AdguardApiConfig {
+  // AdGuard Home's web address, e.g. "https://198.18.1.3".
+  string url = 1 [(ddash.config.field) = {
+    label: "URL"
+    help: "AdGuard Home's web interface; its API answers on the same address."
+    required: true
+    format: FORMAT_URL
+    placeholder: "https://198.18.1.3"
+  }];
+  // The web interface's user.
+  string username = 2 [(ddash.config.field) = {
+    required: true
+    help: "AdGuard Home has one user, with full access."
+  }];
+  // Its password, sent with every request (HTTP Basic auth).
+  string password = 3 [(ddash.config.field) = {
+    required: true
+    secret: true
+    help: "AdGuard Home locks out an address after repeated wrong passwords, so adguard-api stops asking after the first refusal until the config is saved again."
+  }];
+}
+
+service AdguardApiService {
+  // GetStatus returns whether the DNS server runs and protection is on
+  // (/control/status).
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // GetStats returns the last 24 hours' totals, hourly series and top
+  // lists (/control/stats).
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListQueries returns one client's queries from the query log, newest
+  // first, a page at a time (/control/querylog).
+  rpc ListQueries(ListQueriesRequest) returns (ListQueriesResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // ListClients returns the persistent clients, those with settings of
+  // their own (/control/clients), in AdGuard's order.
+  rpc ListClients(ListClientsRequest) returns (ListClientsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // SetClientFiltering turns ad-blocking off or on for the client at ip:
+  // the persistent client whose ids include ip, created under name when
+  // there is none, gets its own settings with filtering as asked; all its
+  // other settings stay as they are. Turning it on when there is no such
+  // client changes nothing, so no client exists before first use.
+  rpc SetClientFiltering(SetClientFilteringRequest) returns (SetClientFilteringResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  // Whether the DNS server runs.
+  bool running = 1;
+  // Whether protection (filtering) is on globally.
+  bool protection_enabled = 2;
+  // While protection is paused, how long until it comes back on; unset
+  // when off indefinitely or on.
+  google.protobuf.Duration protection_paused_for = 3;
+  // AdGuard Home's version, e.g. "v0.107.79".
+  string version = 4;
+}
+
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  // Queries answered in the last 24 hours.
+  int64 dns_queries = 1;
+  // Of those, blocked by filter lists.
+  int64 blocked_filtering = 2;
+  // Blocked as malware or phishing (safe browsing).
+  int64 replaced_safebrowsing = 3;
+  // Blocked by parental control.
+  int64 replaced_parental = 4;
+  // Rewritten to a search engine's safe search.
+  int64 replaced_safesearch = 5;
+  // Average processing time per query in milliseconds.
+  double avg_processing_ms = 6;
+  // "hours" or "days": the unit of the series below.
+  string time_unit = 7;
+  // Queries and blocked queries per time unit, oldest first.
+  repeated int64 dns_queries_series = 8;
+  repeated int64 blocked_filtering_series = 9;
+  // Most queried domains, most blocked domains and most active clients,
+  // highest first.
+  repeated TopEntry top_queried_domains = 10;
+  repeated TopEntry top_blocked_domains = 11;
+  repeated TopEntry top_clients = 12;
+}
+
+message TopEntry {
+  // A domain or a client (address or name).
+  string name = 1;
+  int64 count = 2;
+}
+
+message ListQueriesRequest {
+  // The client's address; matched exactly.
+  string client = 1;
+  // Only queries older than this cursor: a previous page's oldest. Empty
+  // for the newest page.
+  string older_than = 2;
+  // Page size; 0 means 100, at most 500.
+  int32 limit = 3;
+  // Only blocked queries (filter lists, safe browsing, parental control,
+  // blocked services).
+  bool blocked_only = 4;
+}
+
+message ListQueriesResponse {
+  // Newest first.
+  repeated Query queries = 1;
+  // The cursor for the next, older page; empty when there is none.
+  string oldest = 2;
+}
+
+message Query {
+  google.protobuf.Timestamp time = 1;
+  // The domain asked for, e.g. "site1.example".
+  string domain = 2;
+  // The record type, e.g. "A" or "AAAA".
+  string type = 3;
+  // The client's address and, when AdGuard knows one, its name.
+  string client = 4;
+  string client_name = 5;
+  // Why AdGuard answered as it did, e.g. "FilteredBlackList" or
+  // "NotFilteredNotFound".
+  string reason = 6;
+  // Whether it was blocked.
+  bool blocked = 7;
+  // The rule that matched; empty when none did.
+  string rule = 8;
+  // The DNS status, e.g. "NOERROR".
+  string status = 9;
+  // How long AdGuard took, in milliseconds.
+  double elapsed_ms = 10;
+  // The upstream that answered; empty when AdGuard answered itself.
+  string upstream = 11;
+  // Whether the answer came from AdGuard's cache.
+  bool cached = 12;
+}
+
+message ListClientsRequest {}
+
+message ListClientsResponse {
+  repeated Client clients = 1;
+}
+
+// A persistent client: a set of ids (addresses, networks, MACs or
+// ClientIDs) with settings of its own.
+message Client {
+  // Its name, unique among the persistent clients.
+  string name = 1;
+  repeated string ids = 2;
+  // Whether it follows the global settings; when it does, filtering_enabled
+  // has no effect.
+  bool use_global_settings = 3;
+  bool filtering_enabled = 4;
+}
+
+message SetClientFilteringRequest {
+  // The client's address, e.g. a Device's reserved address.
+  string ip = 1;
+  // The name for a client created for it; empty for the address.
+  string name = 2;
+  // Ad-blocking on (true) or off.
+  bool enabled = 3;
+}
+
+message SetClientFilteringResponse {
+  // The client as written; unset when nothing was written (turning
+  // ad-blocking on for an address without a client).
+  Client client = 1;
+  // Whether the client was created for this.
+  bool created = 2;
+}

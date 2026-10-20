@@ -1,0 +1,922 @@
+{
+  "data": [
+    {
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "0.026257",
+      "question": {
+        "class": "IN",
+        "name": "_ldap._tcp.dc._msdcs.home.example",
+        "type": "SRV"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:07:32.485464089Z",
+      "upstream": "tls://pfsense.home.example:853"
+    },
+    {
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "159.525586",
+      "question": {
+        "class": "IN",
+        "name": "_ldap._tcp.dc._msdcs.home.example",
+        "type": "SRV"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:07:31.964795328Z",
+      "upstream": "tls://pfsense.home.example:853"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site197.example.",
+          "ttl": 30
+        },
+        {
+          "type": "CNAME",
+          "value": "site198.example.",
+          "ttl": 30
+        },
+        {
+          "type": "CNAME",
+          "value": "site199.example.",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.102",
+          "ttl": 30
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "6.073374",
+      "question": {
+        "class": "IN",
+        "name": "site196.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:07:31.008766704Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site201.example.",
+          "ttl": 2372
+        },
+        {
+          "type": "CNAME",
+          "value": "site202.example.",
+          "ttl": 52
+        },
+        {
+          "type": "CNAME",
+          "value": "site203.example.",
+          "ttl": 52
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.33",
+          "ttl": 54
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "6.7396970000000005",
+      "question": {
+        "class": "IN",
+        "name": "site200.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:07:30.819406466Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site197.example.",
+          "ttl": 1320
+        },
+        {
+          "type": "CNAME",
+          "value": "site198.example.",
+          "ttl": 30
+        },
+        {
+          "type": "CNAME",
+          "value": "site199.example.",
+          "ttl": 51
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.95",
+          "ttl": 30
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.891451",
+      "question": {
+        "class": "IN",
+        "name": "site204.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:07:30.525214949Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site206.example.",
+          "ttl": 3583
+        },
+        {
+          "type": "CNAME",
+          "value": "site207.example.",
+          "ttl": 3583
+        },
+        {
+          "type": "CNAME",
+          "value": "site208.example.",
+          "ttl": 43
+        },
+        {
+          "type": "CNAME",
+          "value": "site209.example.",
+          "ttl": 43
+        },
+        {
+          "type": "CNAME",
+          "value": "site210.example.",
+          "ttl": 160
+        },
+        {
+          "type": "CNAME",
+          "value": "site211.example.",
+          "ttl": 100
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.187",
+          "ttl": 163
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.48",
+          "ttl": 163
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.90865",
+      "question": {
+        "class": "IN",
+        "name": "site205.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:07:25.160266085Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site212.example.",
+          "ttl": 16
+        },
+        {
+          "type": "CNAME",
+          "value": "site213.example.",
+          "ttl": 16
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.158",
+          "ttl": 16
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.131",
+          "ttl": 16
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.126",
+          "ttl": 16
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "0.022195",
+      "question": {
+        "class": "IN",
+        "name": "site52.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:05:16.599523969Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "0.025694",
+      "question": {
+        "class": "IN",
+        "name": "site16.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NXDOMAIN",
+      "time": "2026-10-20T16:04:20.413267183Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.152",
+          "ttl": 134
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.176",
+          "ttl": 134
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.87",
+          "ttl": 134
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.63",
+          "ttl": 134
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.18",
+          "ttl": 134
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.232",
+          "ttl": 134
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.277203",
+      "question": {
+        "class": "IN",
+        "name": "site75.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:04:20.405729225Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.150",
+          "ttl": 114
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.159",
+          "ttl": 114
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.945398999999999",
+      "question": {
+        "class": "IN",
+        "name": "site69.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:04:03.36374718Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.229",
+          "ttl": 65
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.632647",
+      "question": {
+        "class": "IN",
+        "name": "site214.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:44.355686803Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site215.example.",
+          "ttl": 8
+        },
+        {
+          "type": "CNAME",
+          "value": "site216.example.",
+          "ttl": 8
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.231",
+          "ttl": 8
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "0.021202000000000002",
+      "question": {
+        "class": "IN",
+        "name": "site70.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:34.390950788Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site217.example.",
+          "ttl": 3600
+        },
+        {
+          "type": "CNAME",
+          "value": "site218.example.",
+          "ttl": 170
+        },
+        {
+          "type": "CNAME",
+          "value": "site219.example.",
+          "ttl": 48
+        },
+        {
+          "type": "CNAME",
+          "value": "site220.example.",
+          "ttl": 32
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.65",
+          "ttl": 99
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.7",
+          "ttl": 99
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.197504",
+      "question": {
+        "class": "IN",
+        "name": "site27.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:32.373046859Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site222.example.",
+          "ttl": 663
+        },
+        {
+          "type": "CNAME",
+          "value": "site223.example.",
+          "ttl": 30
+        },
+        {
+          "type": "CNAME",
+          "value": "site224.example.",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.123",
+          "ttl": 30
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "6.247904999999999",
+      "question": {
+        "class": "IN",
+        "name": "site221.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:32.273312156Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site226.example.",
+          "ttl": 294
+        },
+        {
+          "type": "CNAME",
+          "value": "site227.example.",
+          "ttl": 30
+        },
+        {
+          "type": "CNAME",
+          "value": "site228.example.",
+          "ttl": 1075
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.84",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.213",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.60",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.98",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.80",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.242",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.111",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.181",
+          "ttl": 30
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.2231250000000005",
+      "question": {
+        "class": "IN",
+        "name": "site225.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:28.332189259Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site229.example.",
+          "ttl": 3600
+        },
+        {
+          "type": "CNAME",
+          "value": "site230.example.",
+          "ttl": 226
+        },
+        {
+          "type": "CNAME",
+          "value": "site231.example.",
+          "ttl": 91
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.221",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.48",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.251",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.79",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.241",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.175",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.129",
+          "ttl": 226
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.52",
+          "ttl": 226
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "6.148679",
+      "question": {
+        "class": "IN",
+        "name": "site17.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:21.567334668Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site232.example.",
+          "ttl": 268
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.217",
+          "ttl": 268
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.11",
+          "ttl": 268
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "5.28387",
+      "question": {
+        "class": "IN",
+        "name": "site5.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:20.48912094Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "CNAME",
+          "value": "site233.example.",
+          "ttl": 3600
+        },
+        {
+          "type": "CNAME",
+          "value": "site227.example.",
+          "ttl": 50
+        },
+        {
+          "type": "CNAME",
+          "value": "site228.example.",
+          "ttl": 1084
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.15",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.222",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.235",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.112",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.192",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.90",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.170",
+          "ttl": 30
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.249",
+          "ttl": 30
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "8.016067999999999",
+      "question": {
+        "class": "IN",
+        "name": "site48.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:19.032787805Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    },
+    {
+      "answer_dnssec": false,
+      "cached": true,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "0.019339",
+      "question": {
+        "class": "IN",
+        "name": "site16.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NXDOMAIN",
+      "time": "2026-10-20T16:03:19.030811729Z",
+      "upstream": "https://203.0.113.206:443/dns-query"
+    },
+    {
+      "answer": [
+        {
+          "type": "A",
+          "value": "203.0.113.73",
+          "ttl": 248
+        },
+        {
+          "type": "A",
+          "value": "203.0.113.125",
+          "ttl": 248
+        }
+      ],
+      "answer_dnssec": false,
+      "cached": false,
+      "client": "198.18.1.102",
+      "client_info": {
+        "whois": {},
+        "name": "Laptop",
+        "disallowed_rule": "198.18.1.102",
+        "disallowed": false
+      },
+      "client_proto": "",
+      "elapsedMs": "6.319672",
+      "question": {
+        "class": "IN",
+        "name": "site6.example",
+        "type": "A"
+      },
+      "reason": "NotFilteredNotFound",
+      "rules": [],
+      "status": "NOERROR",
+      "time": "2026-10-20T16:03:17.481957317Z",
+      "upstream": "https://203.0.113.98:443/dns-query"
+    }
+  ],
+  "oldest": "2026-10-20T16:03:17.481957317Z"
+}

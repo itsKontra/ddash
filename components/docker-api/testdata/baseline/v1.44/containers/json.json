@@ -1,0 +1,544 @@
+[
+  {
+    "Id": "396078928a5f698954921986afe3d75b569a5dc2d6956e8f94fcda5d52fc8efd",
+    "Names": [
+      "/socket-proxy"
+    ],
+    "Image": "lscr.io/linuxserver/socket-proxy:latest",
+    "ImageID": "sha256:8b658bcd9e084679f50b29ca1860c37ffb4b8a25e6569e2356e01463fbb4469d",
+    "Command": "/docker-entrypoint.sh",
+    "Created": 1792515380,
+    "Ports": [
+      {
+        "IP": "198.18.1.201",
+        "PrivatePort": 2375,
+        "PublicPort": 2375,
+        "Type": "tcp"
+      }
+    ],
+    "Labels": {
+      "build_version": "Linuxserver.io version:- 3.4.7-r0-ls103 Build-date:- 2026-10-15T17:26:28+00:00",
+      "com.docker.compose.config-hash": "9002369d5fef3e38b4c1b7fb0671fc7c4917ab2322bd97347783311cc0e970b7",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.depends_on": "",
+      "com.docker.compose.image": "sha256:8b658bcd9e084679f50b29ca1860c37ffb4b8a25e6569e2356e01463fbb4469d",
+      "com.docker.compose.oneoff": "False",
+      "com.docker.compose.project": "socket",
+      "com.docker.compose.project.config_files": "/root/socket/compose.yaml",
+      "com.docker.compose.project.working_dir": "/root/socket",
+      "com.docker.compose.service": "socket-proxy",
+      "com.docker.compose.version": "5.5.1",
+      "maintainer": "thespad",
+      "org.opencontainers.image.authors": "linuxserver.io",
+      "org.opencontainers.image.created": "2026-10-15T17:26:28+00:00",
+      "org.opencontainers.image.description": "The Socket Proxy is a security-enhanced proxy which allows you to apply access rules to the Docker socket, limiting the attack surface for containers such as watchtower or Traefik that need to use it.",
+      "org.opencontainers.image.documentation": "https://docs.linuxserver.io/images/docker-socket-proxy",
+      "org.opencontainers.image.licenses": "GPL-3.0-only",
+      "org.opencontainers.image.ref.name": "9dbb3f2c1b934cadef565c6d98cb8760245d4b9c",
+      "org.opencontainers.image.revision": "9dbb3f2c1b934cadef565c6d98cb8760245d4b9c",
+      "org.opencontainers.image.source": "https://github.com/linuxserver/docker-socket-proxy",
+      "org.opencontainers.image.title": "Socket-proxy",
+      "org.opencontainers.image.url": "https://github.com/linuxserver/docker-socket-proxy/packages",
+      "org.opencontainers.image.vendor": "linuxserver.io",
+      "org.opencontainers.image.version": "3.4.7-r0-ls103"
+    },
+    "State": "running",
+    "Status": "Up 22 minutes",
+    "HostConfig": {
+      "NetworkMode": "socket_default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "socket_default": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "9bb3f8f50ce90c4ea5eccb83bb29fab085167ed73ef8561f8be11cc9bc661be6",
+          "EndpointID": "dd20f8bc78e5803f0b80b7e3fe0138c0e6fe21496fe691b2be5a01fe8ef8c474",
+          "Gateway": "203.0.113.37",
+          "IPAddress": "203.0.113.246",
+          "MacAddress": "02:ac:29:7a:8a:e3",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Destination": "/var/run/docker.sock",
+        "Mode": "ro",
+        "RW": false,
+        "Propagation": "rprivate"
+      }
+    ]
+  },
+  {
+    "Id": "f22403eb0c64661ef95f7be3323febe4a822174bf42a326e8b014d068a3b1564",
+    "Names": [
+      "/portainer-portainer-1"
+    ],
+    "Image": "portainer/portainer-ce:latest",
+    "ImageID": "sha256:9bde3c70195f94c61f402cc8137842153f8f34e9271bb6d5d34a579f9424ff50",
+    "Command": "/portainer",
+    "Created": 1764589252,
+    "Ports": [
+      {
+        "IP": "",
+        "PrivatePort": 8000,
+        "Type": "tcp"
+      },
+      {
+        "IP": "0.0.0.0",
+        "PrivatePort": 9000,
+        "PublicPort": 9000,
+        "Type": "tcp"
+      },
+      {
+        "IP": "::",
+        "PrivatePort": 9000,
+        "PublicPort": 9000,
+        "Type": "tcp"
+      },
+      {
+        "IP": "",
+        "PrivatePort": 9443,
+        "Type": "tcp"
+      }
+    ],
+    "Labels": {
+      "com.docker.compose.config-hash": "7356d251b8383762e863f99cb7891a9262ee95f3469d37bb26c5d3fdf74dab0f",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.depends_on": "",
+      "com.docker.compose.image": "sha256:9bde3c70195f94c61f402cc8137842153f8f34e9271bb6d5d34a579f9424ff50",
+      "com.docker.compose.oneoff": "False",
+      "com.docker.compose.project": "portainer",
+      "com.docker.compose.project.config_files": "/root/portainer/docker-compose.yml",
+      "com.docker.compose.project.working_dir": "/root/portainer",
+      "com.docker.compose.service": "portainer",
+      "com.docker.compose.version": "2.40.3",
+      "com.docker.desktop.extension.api.version": ">= 0.2.2",
+      "com.docker.desktop.extension.icon": "https://portainer-io-assets.sfo2.cdn.digitaloceanspaces.com/logos/portainer.png",
+      "com.docker.extension.additional-urls": "[{\"title\":\"Website\",\"url\":\"https://www.portainer.io?utm_campaign=DockerCon&utm_source=DockerDesktop\"},{\"title\":\"Documentation\",\"url\":\"https://docs.portainer.io\"},{\"title\":\"Support\",\"url\":\"https://join.slack.com/t/portainer/shared_invite/zt-txh3ljab-52QHTyjCqbe5RibC2lcjKA\"}]",
+      "com.docker.extension.detailed-description": "<p data-renderer-start-pos=\"226\">Portainer&rsquo;s Docker Desktop extension gives you access to all of Portainer&rsquo;s rich management functionality within your docker desktop experience.</p><h2 data-renderer-start-pos=\"374\">With Portainer you can:</h2><ul><li>See all your running containers</li><li>Easily view all of your container logs</li><li>Console into containers</li><li>Easily deploy your code into containers using a simple form</li><li>Turn your YAML into custom templates for easy reuse</li></ul><h2 data-renderer-start-pos=\"660\">About Portainer&nbsp;</h2><p data-renderer-start-pos=\"680\">Portainer is the worlds&rsquo; most popular universal container management platform with more than 650,000 active monthly users. Portainer can be used to manage Docker Standalone, Kubernetes and Docker Swarm environments through a single common interface. It includes a simple GitOps automation engine and a Kube API.&nbsp;</p><p data-renderer-start-pos=\"1006\">Portainer Business Edition is our fully supported commercial grade product for business-wide use. It includes all the functionality that businesses need to manage containers at scale. Visit <a class=\"sc-jKJlTe dPfAtb\" href=\"http://portainer.io/\" title=\"http://Portainer.io\" data-renderer-mark=\"true\">Portainer.io</a> to learn more about Portainer Business and <a class=\"sc-jKJlTe dPfAtb\" href=\"http://portainer.io/take-3?utm_campaign=DockerCon&amp;utm_source=Docker%20Desktop\" title=\"http://portainer.io/take-3?utm_campaign=DockerCon&amp;utm_source=Docker%20Desktop\" data-renderer-mark=\"true\">get 3 free nodes.</a></p>",
+      "com.docker.extension.publisher-url": "https://www.portainer.io",
+      "com.docker.extension.screenshots": "[{\"alt\": \"screenshot one\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-1.png\"},{\"alt\": \"screenshot two\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-2.png\"},{\"alt\": \"screenshot three\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-3.png\"},{\"alt\": \"screenshot four\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-4.png\"},{\"alt\": \"screenshot five\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-5.png\"},{\"alt\": \"screenshot six\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-6.png\"},{\"alt\": \"screenshot seven\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-7.png\"},{\"alt\": \"screenshot eight\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-8.png\"},{\"alt\": \"screenshot nine\", \"url\": \"https://portainer-io-assets.sfo2.digitaloceanspaces.com/screenshots/docker-extension-9.png\"}]",
+      "io.portainer.server": "true",
+      "org.opencontainers.image.description": "Docker container management made simple, with the world’s most popular GUI-based container management platform.",
+      "org.opencontainers.image.title": "Portainer",
+      "org.opencontainers.image.vendor": "Portainer.io"
+    },
+    "State": "running",
+    "Status": "Up 14 hours",
+    "HostConfig": {
+      "NetworkMode": "portainer_default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "portainer_default": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "eb31238a6d2820cc5984ec98e62478b10462fa0b7d839ab7718a93cc6de0e772",
+          "EndpointID": "921c2678a1474338b3c6b48e2c397d631d7425ee22ae6539ed377732be36d01e",
+          "Gateway": "203.0.113.225",
+          "IPAddress": "203.0.113.210",
+          "MacAddress": "02:95:f7:00:c3:6d",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "portainer_data",
+        "Source": "/var/lib/docker/volumes/portainer_data/_data",
+        "Destination": "/data",
+        "Driver": "local",
+        "Mode": "rw",
+        "RW": true,
+        "Propagation": ""
+      },
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Destination": "/var/run/docker.sock",
+        "Mode": "rw",
+        "RW": true,
+        "Propagation": "rprivate"
+      }
+    ]
+  },
+  {
+    "Id": "306ed2636a9b5fff505ac534b065456194fe6b4311007edbb935a680b8d36583",
+    "Names": [
+      "/grav-grav-1"
+    ],
+    "Image": "grav-grav",
+    "ImageID": "sha256:699c1ace3d080490b52a48b80e205344f2c016c2f03b53f77cbbb5791373522d",
+    "Command": "docker-php-entrypoint sh -c 'cron && apache2-foreground'",
+    "Created": 1755202990,
+    "Ports": [],
+    "Labels": {
+      "com.docker.compose.config-hash": "90dd7d70c647792b04359af0af45d73a236a68385b29facaea43cc4c8ceafdee",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.depends_on": "",
+      "com.docker.compose.image": "sha256:699c1ace3d080490b52a48b80e205344f2c016c2f03b53f77cbbb5791373522d",
+      "com.docker.compose.oneoff": "False",
+      "com.docker.compose.project": "grav",
+      "com.docker.compose.project.config_files": "/root/grav/docker-compose.yml",
+      "com.docker.compose.project.working_dir": "/root/grav",
+      "com.docker.compose.service": "grav",
+      "com.docker.compose.version": "2.39.1",
+      "maintainer": "Andy Miller <rhuk@getgrav.org> (@rhukster)"
+    },
+    "State": "exited",
+    "Status": "Exited (137) 9 months ago",
+    "HostConfig": {
+      "NetworkMode": "grav_default"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "grav_default": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "9b77b19b23aba1f1e4ecbab274702f92571d790881ccfd49619b537807af745d",
+          "EndpointID": "",
+          "Gateway": "",
+          "IPAddress": "",
+          "MacAddress": "",
+          "IPPrefixLen": 0,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "grav_grav-user-data",
+        "Source": "/var/lib/docker/volumes/grav_grav-user-data/_data",
+        "Destination": "/user",
+        "Driver": "local",
+        "Mode": "rw",
+        "RW": true,
+        "Propagation": ""
+      },
+      {
+        "Type": "volume",
+        "Name": "grav_grav-data",
+        "Source": "/var/lib/docker/volumes/grav_grav-data/_data",
+        "Destination": "/var/www/html",
+        "Driver": "local",
+        "Mode": "rw",
+        "RW": true,
+        "Propagation": ""
+      }
+    ]
+  },
+  {
+    "Id": "e5d4dc90007dde92072a51e37c6c327e5cc1c050da2d6db13906c0747346442e",
+    "Names": [
+      "/keycloak-server-1"
+    ],
+    "Image": "keycloak-server",
+    "ImageID": "sha256:69e27687397c78bff1f778f8f480b8eadeae29071bdf326fb5a0e8da1395bd9a",
+    "Command": "/opt/keycloak/bin/kc.sh start --optimized",
+    "Created": 1755201186,
+    "Ports": [
+      {
+        "IP": "",
+        "PrivatePort": 8080,
+        "Type": "tcp"
+      },
+      {
+        "IP": "0.0.0.0",
+        "PrivatePort": 8443,
+        "PublicPort": 8443,
+        "Type": "tcp"
+      },
+      {
+        "IP": "::",
+        "PrivatePort": 8443,
+        "PublicPort": 8443,
+        "Type": "tcp"
+      },
+      {
+        "IP": "",
+        "PrivatePort": 9000,
+        "Type": "tcp"
+      }
+    ],
+    "Labels": {
+      "architecture": "x86_64",
+      "build-date": "2025-08-06T08:12:37",
+      "com.docker.compose.config-hash": "af951f1d99fbe82b344ef951ac27cfa0ddba90ecf25b0230cd52ddf6a4f94ff9",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.depends_on": "postgresdb:service_started:false",
+      "com.docker.compose.image": "sha256:69e27687397c78bff1f778f8f480b8eadeae29071bdf326fb5a0e8da1395bd9a",
+      "com.docker.compose.oneoff": "False",
+      "com.docker.compose.project": "keycloak",
+      "com.docker.compose.project.config_files": "/root/keycloak/docker-compose.yml",
+      "com.docker.compose.project.working_dir": "/root/keycloak",
+      "com.docker.compose.service": "server",
+      "com.docker.compose.version": "2.39.1",
+      "com.redhat.build-host": "",
+      "com.redhat.component": "",
+      "com.redhat.license_terms": "",
+      "description": "Keycloak Server Image",
+      "distribution-scope": "public",
+      "io.buildah.version": "1.40.1",
+      "io.k8s.description": "Keycloak Server Image",
+      "io.k8s.display-name": "Keycloak Server",
+      "io.openshift.expose-services": "",
+      "io.openshift.tags": "keycloak security identity",
+      "maintainer": "https://www.keycloak.org/",
+      "name": "keycloak",
+      "org.opencontainers.image.created": "2025-08-12T07:38:08.340Z",
+      "org.opencontainers.image.description": "",
+      "org.opencontainers.image.documentation": "https://www.keycloak.org/documentation",
+      "org.opencontainers.image.licenses": "Apache-2.0",
+      "org.opencontainers.image.revision": "5ab77dc323cbef958a4789dd007443f7757f72fc",
+      "org.opencontainers.image.source": "https://github.com/keycloak-rel/keycloak-rel",
+      "org.opencontainers.image.title": "keycloak-rel",
+      "org.opencontainers.image.url": "https://github.com/keycloak-rel/keycloak-rel",
+      "org.opencontainers.image.version": "26.3.2",
+      "release": "",
+      "summary": "Keycloak Server Image",
+      "url": "https://www.keycloak.org/",
+      "vcs-ref": "",
+      "vcs-type": "git",
+      "vendor": "https://www.keycloak.org/",
+      "version": "26.3.2"
+    },
+    "State": "running",
+    "Status": "Up 14 hours",
+    "HostConfig": {
+      "NetworkMode": "keycloak_backend"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "frontend_bridge": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "ecacf5bdd0cc9b82bd0a6fb61086741658da3e6dc181f04ef4bd3ffceec03eeb",
+          "EndpointID": "452fa0d0400abf858d39892f85fd2572b4112798f28112325aac274901bdb27e",
+          "Gateway": "203.0.113.176",
+          "IPAddress": "203.0.113.4",
+          "MacAddress": "02:8d:98:89:ed:04",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        },
+        "keycloak_backend": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "dac37e9dfdc1b8d9d9c9bbeabfd75c7db4479d255dc7e57ce61317bf2423e53c",
+          "EndpointID": "16a56a36929e1e4beaf2b6d020064f36e2cc45d181586ab16d322200582bd45d",
+          "Gateway": "",
+          "IPAddress": "203.0.113.183",
+          "MacAddress": "02:7d:15:d2:61:e6",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/etc/letsencrypt/live",
+        "Destination": "/etc/letsencrypt/live",
+        "Mode": "ro",
+        "RW": false,
+        "Propagation": "rprivate"
+      }
+    ]
+  },
+  {
+    "Id": "2d59cb543aeaaf499397037a4e5cd9e9a3136b9ebb8fabac14bf11c9670ee5de",
+    "Names": [
+      "/keycloak-postgresdb-1"
+    ],
+    "Image": "postgres:latest",
+    "ImageID": "sha256:445ed93b882fd8274de6c88ed5c6efea0743e112d232d87a8bc0b9b8817e8316",
+    "Command": "docker-entrypoint.sh postgres",
+    "Created": 1755201186,
+    "Ports": [
+      {
+        "IP": "",
+        "PrivatePort": 5432,
+        "Type": "tcp"
+      },
+      {
+        "IP": "",
+        "PrivatePort": 9000,
+        "Type": "tcp"
+      }
+    ],
+    "Labels": {
+      "com.docker.compose.config-hash": "114baaa80596267b4c56edb3cefe98dfa64cb9948035bcb2875380f6866a58a3",
+      "com.docker.compose.container-number": "1",
+      "com.docker.compose.depends_on": "",
+      "com.docker.compose.image": "sha256:445ed93b882fd8274de6c88ed5c6efea0743e112d232d87a8bc0b9b8817e8316",
+      "com.docker.compose.oneoff": "False",
+      "com.docker.compose.project": "keycloak",
+      "com.docker.compose.project.config_files": "/root/keycloak/docker-compose.yml",
+      "com.docker.compose.project.working_dir": "/root/keycloak",
+      "com.docker.compose.service": "postgresdb",
+      "com.docker.compose.version": "2.39.1"
+    },
+    "State": "running",
+    "Status": "Up 14 hours",
+    "HostConfig": {
+      "NetworkMode": "keycloak_backend"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "keycloak_backend": {
+          "IPAMConfig": null,
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "dac37e9dfdc1b8d9d9c9bbeabfd75c7db4479d255dc7e57ce61317bf2423e53c",
+          "EndpointID": "6c93b8d1b4e5ee564aae7dd4fe9e3404666ac0e42c37976b61a05c7046e8793f",
+          "Gateway": "",
+          "IPAddress": "203.0.113.225",
+          "MacAddress": "02:a3:0f:c7:69:f1",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "volume",
+        "Name": "keycloak_db",
+        "Source": "/var/lib/docker/volumes/keycloak_db/_data",
+        "Destination": "/var/lib/postgresql/data",
+        "Driver": "local",
+        "Mode": "rw",
+        "RW": true,
+        "Propagation": ""
+      }
+    ]
+  },
+  {
+    "Id": "47790040c68e641fead92ecc2cef85021757e2aa0d7608f7b867d22d611ad406",
+    "Names": [
+      "/homepage"
+    ],
+    "Image": "ghcr.io/gethomepage/homepage:latest",
+    "ImageID": "sha256:1f4c665a1eaabae100444cd73fedbc9f709faee98b00a172d9c362e1988d440d",
+    "Command": "docker-entrypoint.sh node server.js",
+    "Created": 1703950127,
+    "Ports": [
+      {
+        "IP": "0.0.0.0",
+        "PrivatePort": 3000,
+        "PublicPort": 3000,
+        "Type": "tcp"
+      },
+      {
+        "IP": "::",
+        "PrivatePort": 3000,
+        "PublicPort": 3000,
+        "Type": "tcp"
+      }
+    ],
+    "Labels": {
+      "org.opencontainers.image.created": "2023-05-19T21:32:24.975Z",
+      "org.opencontainers.image.description": "A highly customizable homepage (or startpage / application dashboard) with Docker and service API integrations.",
+      "org.opencontainers.image.documentation": "https://github.com/benphelps/homepage/wiki",
+      "org.opencontainers.image.licenses": "GPL-3.0",
+      "org.opencontainers.image.revision": "6046f7911e6661b9fe348e016194a31bea611be6",
+      "org.opencontainers.image.source": "https://github.com/benphelps/homepage",
+      "org.opencontainers.image.title": "homepage",
+      "org.opencontainers.image.url": "https://github.com/benphelps/homepage",
+      "org.opencontainers.image.version": "v0.6.20"
+    },
+    "State": "running",
+    "Status": "Up 14 hours (healthy)",
+    "HostConfig": {
+      "NetworkMode": "bridge"
+    },
+    "NetworkSettings": {
+      "Networks": {
+        "bridge": {
+          "IPAMConfig": {},
+          "Links": null,
+          "Aliases": null,
+          "DriverOpts": null,
+          "GwPriority": 0,
+          "NetworkID": "81d8bdab0cbd13ac41f0e6b30c1e21c74ba7a7017a75143da0b24ad4564433e4",
+          "EndpointID": "4803756b7534daec1760d6f7e1320fd30f286851fe6318368acf255783d85d4c",
+          "Gateway": "203.0.113.110",
+          "IPAddress": "203.0.113.73",
+          "MacAddress": "02:b7:2f:a6:33:39",
+          "IPPrefixLen": 16,
+          "IPv6Gateway": "",
+          "GlobalIPv6Address": "",
+          "GlobalIPv6PrefixLen": 0,
+          "DNSNames": null
+        }
+      }
+    },
+    "Mounts": [
+      {
+        "Type": "bind",
+        "Source": "/var/lib/docker/data/homepage",
+        "Destination": "/app/config",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rslave"
+      },
+      {
+        "Type": "bind",
+        "Source": "/var/lib/docker/data/homepage/icons",
+        "Destination": "/app/public/icons",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rslave"
+      },
+      {
+        "Type": "bind",
+        "Source": "/var/run/docker.sock",
+        "Destination": "/var/run/docker.sock",
+        "Mode": "",
+        "RW": true,
+        "Propagation": "rprivate"
+      }
+    ]
+  }
+]

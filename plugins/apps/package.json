@@ -1,0 +1,22 @@
+{
+  "name": "@ddash/plugin-apps",
+  "private": true,
+  "type": "module",
+  "description": "The apps Plugin's UI: App cards by group, display settings and manual Apps.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@ddash/display": "workspace:*",
+    "@ddash/plugin": "workspace:*",
+    "@ddash/proto": "workspace:*",
+    "@ddash/ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@ddash/vite-preset": "workspace:*"
+  }
+}

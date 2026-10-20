@@ -1,0 +1,204 @@
+syntax = "proto3";
+
+// proxmox-api reads the Workloads (LXCs and VMs) of a Proxmox VE node or
+// cluster, and ddash's own permissions on them, with an API token.
+package ddash.proxmoxapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb;proxmoxapipb";
+
+message ProxmoxApiConfig {
+  // The node's API, dialled by address, e.g. "https://198.18.1.2:8006".
+  string url = 1 [(ddash.config.field) = {
+    label: "URL"
+    help: "The Proxmox API by address, so it works while DNS or nginx is down."
+    required: true
+    format: FORMAT_URL
+    placeholder: "https://198.18.1.2:8006"
+  }];
+  // The name the node's certificate is verified as, e.g. "pve.home.example".
+  // Empty: the URL's host.
+  string tls_server_name = 2 [(ddash.config.field) = {
+    label: "TLS server name"
+    help: "The name on the node's certificate, when the URL uses its address."
+    format: FORMAT_HOSTNAME
+    placeholder: "pve.home.example"
+  }];
+  // The API token's id, "<user>@<realm>!<token name>".
+  string token_id = 3 [(ddash.config.field) = {
+    label: "Token ID"
+    required: true
+    placeholder: "ddash@pve!dashboard"
+  }];
+  // The API token's secret (a UUID), shown once by Proxmox when created.
+  string token_secret = 4 [(ddash.config.field) = {
+    label: "Token secret"
+    required: true
+    secret: true
+  }];
+}
+
+service ProxmoxApiService {
+  // ListWorkloads returns every LXC and VM the token may audit, by VMID.
+  rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListPermissions returns ddash's effective privileges on each Workload
+  // ListWorkloads lists, from /access/permissions.
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // StartWorkload starts a Workload (status/start) and returns once
+  // Proxmox's task ended with exitstatus OK. A task still running when the
+  // call's deadline passes carries on in Proxmox: the call returns
+  // DeadlineExceeded and ListActiveTasks lists the task until it ends.
+  rpc StartWorkload(StartWorkloadRequest) returns (StartWorkloadResponse) {
+    option (ddash.action) = {};
+  }
+  // ShutdownWorkload shuts a Workload down cleanly (status/shutdown), and
+  // stops it hard after timeout when force_stop is set. It returns like
+  // StartWorkload.
+  rpc ShutdownWorkload(ShutdownWorkloadRequest) returns (ShutdownWorkloadResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // RebootWorkload shuts a Workload down and starts it again
+  // (status/reboot). It returns like StartWorkload.
+  rpc RebootWorkload(RebootWorkloadRequest) returns (RebootWorkloadResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListActiveTasks returns the tasks ddash's token started on a Workload
+  // that are still running, never cached.
+  rpc ListActiveTasks(ListActiveTasksRequest) returns (ListActiveTasksResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+}
+
+message ListWorkloadsRequest {}
+
+message ListWorkloadsResponse {
+  repeated Workload workloads = 1;
+}
+
+message Workload {
+  Kind kind = 1;
+  uint32 vmid = 2;
+  // The node the Workload is on.
+  string node = 3;
+  string name = 4;
+  // Proxmox's status: running or stopped.
+  string status = 5;
+  bool template = 6;
+  repeated string tags = 7;
+  // CPU use as a fraction of max_cpu, 0 to 1.
+  double cpu = 8;
+  uint32 max_cpu = 9;
+  // Memory and disk in bytes.
+  uint64 mem = 10;
+  uint64 max_mem = 11;
+  uint64 disk = 12;
+  uint64 max_disk = 13;
+  // Bytes received and sent since it started.
+  uint64 net_in = 14;
+  uint64 net_out = 15;
+  uint64 uptime_seconds = 16;
+  // Its network interfaces, loopback left out.
+  repeated Nic nics = 17;
+  // Where nics came from.
+  AddressSource addresses = 18;
+  // Why no address could be read; empty when nics could be.
+  string addresses_error = 19;
+}
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  KIND_LXC = 1;
+  KIND_VM = 2;
+}
+
+enum AddressSource {
+  ADDRESS_SOURCE_UNSPECIFIED = 0;
+  // From the running guest: the LXC's interfaces or the VM's guest agent.
+  ADDRESS_SOURCE_LIVE = 1;
+  // From its config: each net's MAC and any static IP.
+  ADDRESS_SOURCE_CONFIG = 2;
+}
+
+message Nic {
+  // eth0 from the guest or an LXC's config; net0 from a VM's config.
+  string name = 1;
+  // Lower case, e.g. "02:5e:1a:00:00:11".
+  string mac = 2;
+  // Addresses without their prefix length; link-local ones left out.
+  repeated string ips = 3;
+}
+
+message ListPermissionsRequest {}
+
+message ListPermissionsResponse {
+  repeated WorkloadPermissions workloads = 1;
+}
+
+message WorkloadPermissions {
+  uint32 vmid = 1;
+  // Sorted privilege names, e.g. "VM.Audit", "VM.PowerMgmt".
+  repeated string privileges = 2;
+}
+
+// Target names the Workload a power Action acts on.
+message Target {
+  Kind kind = 1;
+  // The node it is on now.
+  string node = 2;
+  uint32 vmid = 3;
+}
+
+message StartWorkloadRequest {
+  Target workload = 1;
+}
+
+message StartWorkloadResponse {
+  // The task Proxmox ran, e.g. "UPID:pve:0001A2B3:...:vzstart:103:ddash@pve!dashboard:".
+  string upid = 1;
+}
+
+message ShutdownWorkloadRequest {
+  Target workload = 1;
+  // How long Proxmox waits for the clean shutdown, in whole seconds; unset
+  // is Proxmox's default (60 s for an LXC, 180 s for a VM).
+  google.protobuf.Duration timeout = 2;
+  // Stop it hard once timeout has passed.
+  bool force_stop = 3;
+}
+
+message ShutdownWorkloadResponse {
+  string upid = 1;
+}
+
+message RebootWorkloadRequest {
+  Target workload = 1;
+}
+
+message RebootWorkloadResponse {
+  string upid = 1;
+}
+
+message ListActiveTasksRequest {
+  // The node and Workload whose running tasks to list.
+  string node = 1;
+  uint32 vmid = 2;
+}
+
+message ListActiveTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message Task {
+  string upid = 1;
+  // Proxmox's task type, e.g. "vzstart", "qmshutdown".
+  string type = 2;
+  google.protobuf.Timestamp started = 3;
+}

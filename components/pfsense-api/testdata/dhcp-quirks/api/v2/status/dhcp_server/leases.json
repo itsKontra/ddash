@@ -1,0 +1,13 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {"ip": "198.18.1.20", "mac": "02:5E:00:00:10:01", "hostname": "living-room-tv", "if": "lan", "starts": "", "ends": "", "active_status": "static", "online_status": "active/online", "descr": "Living room TV"},
+    {"ip": "198.18.1.21", "mac": "02:5e:00:00:10:02", "hostname": "work-laptop", "if": "lan", "starts": "", "ends": "", "active_status": "static", "online_status": "active/online", "descr": "Work laptop"},
+    {"ip": "198.18.1.22", "mac": "02:5e:00:00:10:03", "hostname": "printer", "if": "lan", "starts": "", "ends": "", "active_status": "static", "online_status": "idle/offline", "descr": null},
+    {"ip": "198.18.1.150", "mac": "02:5e:00:00:20:01", "hostname": "galaxy-s24", "if": null, "starts": "2026/10/20 08:02:11", "ends": "2026/10/20 10:02:11", "active_status": "active", "online_status": "active/online", "descr": null},
+    {"ip": "198.18.1.151", "mac": "02:5e:00:00:20:02", "hostname": null, "if": null, "starts": "2026/10/19 21:40:55", "ends": "2026/10/19 23:40:55", "active_status": "expired", "online_status": "idle/offline", "descr": null}
+  ]
+}

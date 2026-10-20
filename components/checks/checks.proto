@@ -1,0 +1,418 @@
+syntax = "proto3";
+
+// checks probes Checks and decides when each is up or down: every 60 s with
+// a 10 s timeout, down after 3 consecutive failures (pending before that),
+// up again on one success. These are fixed; a Check sets none of them.
+//
+// Manual Checks are the Operator's. App Checks follow apps' Apps: apps
+// declares the whole set with SetAppChecks, and checks keeps one HTTP(S)
+// Check per App identity.
+package ddash.checks;
+
+import "ddash/options.proto";
+import "ddash/workload/workload.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/checks/checkspb;checkspb";
+
+// checks has no config.
+message ChecksConfig {}
+
+service ChecksService {
+  // ListChecks returns every Check with its state, by name. It is served
+  // from memory.
+  rpc ListChecks(ListChecksRequest) returns (ListChecksResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // CreateCheck adds a manual Check and probes it at once.
+  rpc CreateCheck(CreateCheckRequest) returns (CreateCheckResponse) {
+    option (ddash.action) = {};
+  }
+  // UpdateCheck changes a manual Check. A new type or target starts it
+  // over as pending and probes it at once; a new name keeps its state.
+  rpc UpdateCheck(UpdateCheckRequest) returns (UpdateCheckResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteCheck removes a manual Check and its history.
+  rpc DeleteCheck(DeleteCheckRequest) returns (DeleteCheckResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // SetMuted mutes or unmutes a Check: a muted Check is still probed but
+  // sends no Notification.
+  rpc SetMuted(SetMutedRequest) returns (SetMutedResponse) {
+    option (ddash.action) = {};
+  }
+  // SetDisabled stops or resumes probing a Check. A disabled Check records
+  // nothing; enabled again, it resumes from its last state.
+  rpc SetDisabled(SetDisabledRequest) returns (SetDisabledResponse) {
+    option (ddash.action) = {};
+  }
+  // GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
+  // window's buckets and state changes for its UptimeBars.
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListBeats returns the beats a Check keeps: every beat of about the last
+  // 24 h and its state changes of the last 365 d (a daily sweep drops the
+  // rest), oldest first.
+  rpc ListBeats(ListBeatsRequest) returns (ListBeatsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // SetAppChecks declares every App's Check, from apps: a new App gets a
+  // Check probed at once, a disabled one (its App is hidden) isn't probed,
+  // and one missing from the set (its Proxy Host vanished) stops until its
+  // App returns, its history ageing out meanwhile. A new URL starts the
+  // Check over as pending; a new name keeps its state. The caller sends it
+  // only when the set changed, plus once after its own Start.
+  rpc SetAppChecks(SetAppChecksRequest) returns (SetAppChecksResponse) {
+    option (ddash.action) = {};
+  }
+  // StartMaintenance puts a Check, a Workload's App Checks or every Check
+  // into Maintenance: their beats are recorded as maintenance, left out of
+  // uptime. Maintenance already on the same scope is replaced.
+  rpc StartMaintenance(StartMaintenanceRequest) returns (StartMaintenanceResponse) {
+    option (ddash.action) = {};
+  }
+  // EndMaintenance ends a scope's Maintenance early. Ending a scope
+  // without one does nothing.
+  rpc EndMaintenance(EndMaintenanceRequest) returns (EndMaintenanceResponse) {
+    option (ddash.action) = {};
+  }
+  // ListMaintenance returns every Maintenance in force, from memory.
+  rpc ListMaintenance(ListMaintenanceRequest) returns (ListMaintenanceResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+
+  // ReportState reports the state of an item that isn't a Check (the nginx
+  // config, the VPN Tunnel), so it is notified like one: grouped, Flapping
+  // and silent in Maintenance on everything. It can't be muted. The caller
+  // sends it only when the state changed, plus once after its own Start.
+  rpc ReportState(ReportStateRequest) returns (ReportStateResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+enum CheckType {
+  CHECK_TYPE_UNSPECIFIED = 0;
+  // Up when a TCP connection to the target (host:port) opens.
+  CHECK_TYPE_TCP = 1;
+  // Up when the target (a host) answers any of 3 echo requests.
+  CHECK_TYPE_ICMP = 2;
+  // Up when the target, a DNS server (host, or host:port with port 53 by
+  // default), answers the query with NOERROR and at least one record.
+  CHECK_TYPE_DNS = 3;
+  // App Checks only. Up when the target (an http or https URL) answers
+  // with any status below 500, redirects not followed. A timeout, a
+  // connection error, an invalid certificate or a 5xx is down.
+  CHECK_TYPE_HTTP = 4;
+}
+
+// The record type a DNS Check asks for.
+enum RecordType {
+  // A.
+  RECORD_TYPE_UNSPECIFIED = 0;
+  RECORD_TYPE_A = 1;
+  RECORD_TYPE_AAAA = 2;
+  RECORD_TYPE_MX = 3;
+  RECORD_TYPE_NS = 4;
+  RECORD_TYPE_TXT = 5;
+}
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  // Not probed yet, or failing for fewer than 3 beats in a row.
+  STATE_PENDING = 1;
+  STATE_UP = 2;
+  // Failed 3 beats in a row, and hasn't succeeded since.
+  STATE_DOWN = 3;
+}
+
+// What the Operator sets on a manual Check.
+message CheckSpec {
+  // The Check's name; empty shows the target.
+  string name = 1;
+  CheckType type = 2;
+  // TCP: host:port. ICMP: a host. DNS: the server asked.
+  string target = 3;
+  // DNS only: what to ask the server.
+  DnsQuery dns = 4;
+}
+
+message DnsQuery {
+  // The name to resolve, e.g. "jellyfin.home.example".
+  string name = 1;
+  // A when unspecified.
+  RecordType record_type = 2;
+}
+
+message Check {
+  int64 id = 1;
+  CheckSpec spec = 2;
+  State state = 3;
+  // When the Check entered its state.
+  google.protobuf.Timestamp since = 4;
+  // When it was last probed; unset before its first beat.
+  google.protobuf.Timestamp last_beat = 5;
+  // The last beat's latency, when it was up: connect time for TCP, the
+  // average round trip for ICMP, the lookup's duration for DNS.
+  double latency_ms = 6;
+  // Why the last beat failed, e.g. "timeout" or "connection refused";
+  // empty when it was up.
+  string reason = 7;
+  // Failed beats in a row.
+  int32 failures = 8;
+  // Muted: no Notification.
+  bool muted = 9;
+  // Disabled: not probed.
+  bool disabled = 10;
+  // In Maintenance: its beats don't count toward uptime and it stays
+  // silent.
+  bool maintenance = 11;
+  // The App an App Check follows, e.g. "proxy:jellyfin.home.example";
+  // empty for a manual Check, which the Operator edits.
+  string app_id = 12;
+  // HTTPS: when the certificate seen by the last up beat expires.
+  google.protobuf.Timestamp cert_expires = 13;
+  // The certificate expires within 14 days. The Check stays up meanwhile.
+  bool cert_expiring = 14;
+  // An App Check's Workload, as apps last declared it; unset without one
+  // and for a manual Check.
+  ddash.workload.WorkloadRef workload = 15;
+  // In Maintenance: when the last Maintenance covering it ends; unset
+  // while one lasts until ended.
+  google.protobuf.Timestamp maintenance_ends = 16;
+  // Flapping: down for the 3rd time within 1 h, and not yet in one state
+  // for 30 min since. Its Notifications are held meanwhile; its state,
+  // uptime and history are unchanged.
+  bool flapping = 17;
+}
+
+message ListChecksRequest {}
+
+message ListChecksResponse {
+  repeated Check checks = 1;
+}
+
+message CreateCheckRequest {
+  CheckSpec spec = 1;
+}
+
+message CreateCheckResponse {
+  Check check = 1;
+}
+
+message UpdateCheckRequest {
+  int64 id = 1;
+  CheckSpec spec = 2;
+}
+
+message UpdateCheckResponse {
+  Check check = 1;
+}
+
+message DeleteCheckRequest {
+  int64 id = 1;
+}
+
+message DeleteCheckResponse {}
+
+message SetMutedRequest {
+  int64 id = 1;
+  bool muted = 2;
+}
+
+message SetMutedResponse {
+  Check check = 1;
+}
+
+message SetDisabledRequest {
+  int64 id = 1;
+  bool disabled = 2;
+}
+
+message SetDisabledResponse {
+  Check check = 1;
+}
+
+// A span of history, read at its own bucket size.
+enum Window {
+  // 24 h.
+  WINDOW_UNSPECIFIED = 0;
+  // The last 24 h, in minute buckets.
+  WINDOW_24H = 1;
+  // The last 30 d, in hour buckets.
+  WINDOW_30D = 2;
+  // The last 365 d, in (UTC) day buckets.
+  WINDOW_365D = 3;
+}
+
+// Latency over a span's up beats, in ms.
+message Latency {
+  double avg_ms = 1;
+  double min_ms = 2;
+  double max_ms = 3;
+}
+
+// A Check's uptime over one window: beat-weighted up / (up + down), where
+// a failed beat counts as down even while the Check is pending, and beats
+// in Maintenance count as neither.
+message Uptime {
+  Window window = 1;
+  // From 0 to 1; unset when the window holds no counted beat.
+  optional double ratio = 2;
+  int64 up = 3;
+  int64 down = 4;
+  // Beats in Maintenance, left out of the ratio.
+  int64 maintenance = 5;
+  // Unset when the window holds no counted up beat.
+  Latency latency = 6;
+}
+
+// One bucket of a window: its beats' counts and their latency.
+message Bucket {
+  google.protobuf.Timestamp start = 1;
+  int64 up = 2;
+  int64 down = 3;
+  int64 maintenance = 4;
+  // Unset when the bucket holds no counted up beat.
+  Latency latency = 5;
+}
+
+// One probe of a Check.
+message Beat {
+  google.protobuf.Timestamp at = 1;
+  bool up = 2;
+  // The Check's state after the beat.
+  State state = 3;
+  // Whether the beat changed the state.
+  bool changed = 4;
+  // Set when up.
+  double latency_ms = 5;
+  // Why it failed; empty when up.
+  string reason = 6;
+  // In Maintenance: left out of uptime.
+  bool maintenance = 7;
+}
+
+message GetHistoryRequest {
+  int64 id = 1;
+  // Whose buckets and state changes to return; 24 h when unspecified.
+  Window window = 2;
+}
+
+message GetHistoryResponse {
+  // Uptime over 24 h, 30 d and 365 d, in that order.
+  repeated Uptime uptime = 1;
+  // The window the rest is for.
+  Window window = 2;
+  // The window's bucket size: a minute, an hour or a day.
+  google.protobuf.Duration bucket = 3;
+  // The start of the window's first bucket; its last one holds now.
+  google.protobuf.Timestamp from = 4;
+  // The buckets holding beats, oldest first. A bucket without beats (ddash
+  // down, the Check disabled or not there yet) is left out.
+  repeated Bucket buckets = 5;
+  // The window's state changes, newest first.
+  repeated Beat changes = 6;
+}
+
+message ListBeatsRequest {
+  int64 id = 1;
+}
+
+message ListBeatsResponse {
+  repeated Beat beats = 1;
+}
+
+// One App's Check, as apps declares it.
+message AppCheck {
+  // The App's identity, e.g. "proxy:jellyfin.home.example": a new id is a
+  // new Check.
+  string app_id = 1;
+  // The App's display name.
+  string name = 2;
+  // The http or https URL probed.
+  string url = 3;
+  // False while the App is hidden: its Check isn't probed.
+  bool enabled = 4;
+  // The Workload behind the App; unset without one. A change keeps the
+  // Check's state.
+  ddash.workload.WorkloadRef workload = 5;
+}
+
+message SetAppChecksRequest {
+  // Every App's Check; App Checks not listed stop.
+  repeated AppCheck checks = 1;
+}
+
+message SetAppChecksResponse {}
+
+// What a Maintenance covers.
+message MaintenanceScope {
+  oneof scope {
+    // One Check, manual or App.
+    int64 check_id = 1;
+    // Every App Check whose App runs on this Workload, including those
+    // linked to it later. LXC and VM match by VMID (the node may change),
+    // Docker by host and container name, external by address.
+    ddash.workload.WorkloadRef workload = 2;
+    // Every Check (true).
+    bool everything = 3;
+  }
+}
+
+message Maintenance {
+  MaintenanceScope scope = 1;
+  google.protobuf.Timestamp started = 2;
+  // When it ends by itself; unset when it lasts until ended.
+  google.protobuf.Timestamp ends = 3;
+  // It also ends once every Check it covers that is probed has been up
+  // since it started.
+  bool until_up = 4;
+}
+
+message StartMaintenanceRequest {
+  MaintenanceScope scope = 1;
+  // How long it lasts, at most 24 h; unset lasts until ended. The Checks
+  // Page offers 30 min, 1 h and 4 h.
+  google.protobuf.Duration duration = 2;
+  // Also end it once every probed Check it covers is up with a beat after
+  // this call (proxmox's power Actions: call it after the power task ended,
+  // so a beat from before the Workload went down doesn't end it).
+  bool until_up = 3;
+}
+
+message StartMaintenanceResponse {
+  Maintenance maintenance = 1;
+}
+
+message EndMaintenanceRequest {
+  MaintenanceScope scope = 1;
+}
+
+message EndMaintenanceResponse {}
+
+message ListMaintenanceRequest {}
+
+message ListMaintenanceResponse {
+  // Everything first, then Workloads, then single Checks.
+  repeated Maintenance maintenance = 1;
+}
+
+message ReportStateRequest {
+  // The caller's identity for the item, e.g. "nginx-config"; one state per
+  // item.
+  string item = 1;
+  // What Notifications call it, e.g. "nginx config".
+  string name = 2;
+  // STATE_UP or STATE_DOWN.
+  State state = 3;
+  // Why it is down, e.g. nginx's error; empty when up.
+  string reason = 4;
+  // Where a Notification's Click leads, a path of ddash's UI such as
+  // "/reverse-proxy"; empty for none.
+  string path = 5;
+}
+
+message ReportStateResponse {}

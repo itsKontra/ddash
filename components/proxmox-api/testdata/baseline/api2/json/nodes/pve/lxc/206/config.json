@@ -1,0 +1,18 @@
+{
+  "data": {
+    "rootfs": "nvme-storage:subvol-206-disk-0,size=16G",
+    "hostname": "n8n",
+    "ostype": "debian",
+    "cores": 2,
+    "unprivileged": 1,
+    "arch": "amd64",
+    "onboot": 0,
+    "memory": 2048,
+    "digest": "9cdcec265da938a12c601e090412691738aa2581",
+    "features": "nesting=1",
+    "startup": "order=20",
+    "unused0": "local-zfs:subvol-206-disk-0",
+    "swap": 0,
+    "net0": "name=eth0,bridge=vmbr1,gw=198.18.1.1,hwaddr=02:7B:62:3D:C0:29,ip=198.18.1.206/24,type=veth"
+  }
+}

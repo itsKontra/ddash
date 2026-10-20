@@ -1,0 +1,15 @@
+/*
+ * The shell's stylesheet: Tailwind with preflight, the default Theme, and
+ * the utilities of the shell and of @ddash/ui, whose classes every Plugin
+ * relies on without generating them itself.
+ */
+@import "tailwindcss" source(none);
+@import "@ddash/ui/theme.css";
+@source "./";
+@source "../../packages/ui/src";
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font);
+}

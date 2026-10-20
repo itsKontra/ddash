@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  default: standard
+  settings:
+    errcheck:
+      # Nothing useful follows a failed write of a response, a rollback
+      # after commit, or a server that stops serving at shutdown.
+      exclude-functions:
+        - (net/http.ResponseWriter).Write
+        - (*database/sql.Tx).Rollback
+        - (*google.golang.org/grpc.Server).Serve
+        - (*net/http.Server).Serve
+  exclusions:
+    presets:
+      # Unchecked Close and the like are deliberate here.
+      - std-error-handling
+      - common-false-positives
+    rules:
+      # A test fails on what it asserts, not on every call it makes.
+      - path: _test\.go
+        linters: [errcheck]
+
+formatters:
+  enable:
+    - gofmt

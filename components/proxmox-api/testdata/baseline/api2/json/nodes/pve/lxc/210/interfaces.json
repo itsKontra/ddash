@@ -1,0 +1,61 @@
+{
+  "data": [
+    {
+      "hardware-address": "00:00:00:00:00:00",
+      "inet6": "::1/128",
+      "hwaddr": "00:00:00:00:00:00",
+      "ip-addresses": [
+        {
+          "ip-address": "127.0.0.1",
+          "ip-address-type": "inet",
+          "prefix": "8"
+        },
+        {
+          "ip-address-type": "inet6",
+          "ip-address": "::1",
+          "prefix": "128"
+        }
+      ],
+      "name": "lo",
+      "inet": "127.0.0.1/8"
+    },
+    {
+      "hardware-address": "02:b6:ec:04:1c:6c",
+      "inet6": "2001:db8:30c:4464:a918:2889:9e93:14d8/64",
+      "hwaddr": "02:b6:ec:04:1c:6c",
+      "name": "cert-bridge",
+      "ip-addresses": [
+        {
+          "ip-address": "203.0.113.236",
+          "ip-address-type": "inet",
+          "prefix": "24"
+        },
+        {
+          "prefix": "64",
+          "ip-address": "2001:db8:30c:4464:a918:2889:9e93:14d8",
+          "ip-address-type": "inet6"
+        }
+      ],
+      "inet": "203.0.113.236/24"
+    },
+    {
+      "hardware-address": "02:a0:07:75:04:2e",
+      "inet6": "2001:db8:30c:4464:96c7:be8b:5788:4506/64",
+      "hwaddr": "02:a0:07:75:04:2e",
+      "inet": "198.18.1.210/24",
+      "ip-addresses": [
+        {
+          "prefix": "24",
+          "ip-address-type": "inet",
+          "ip-address": "198.18.1.210"
+        },
+        {
+          "ip-address-type": "inet6",
+          "ip-address": "2001:db8:30c:4464:96c7:be8b:5788:4506",
+          "prefix": "64"
+        }
+      ],
+      "name": "fw-network"
+    }
+  ]
+}

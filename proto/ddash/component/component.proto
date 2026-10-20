@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+// The lifecycle every Component serves next to its own API service. Only the
+// host calls it; it is never routed to Plugins or other Components.
+package ddash.component;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/component;componentpb";
+
+service LifecycleService {
+  // Describe says what the Component is. It needs no config.
+  rpc Describe(DescribeRequest) returns (DescribeResponse);
+  // Start applies the Component's migrations, then validates the config,
+  // connects and launches background work. It fails only for local reasons:
+  // an unreachable upstream is unhealthy, not a failed Start. An invalid
+  // config fails with INVALID_ARGUMENT "invalid config" and a
+  // google.rpc.BadRequest detail whose field violations are keyed by path,
+  // such as "hosts[1].url". Start is called at most once per process.
+  rpc Start(StartRequest) returns (StartResponse);
+  // Health reports the Component's own state. Before a successful Start it
+  // fails with FAILED_PRECONDITION "not configured", or reports DOWN with the
+  // reason Start failed.
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+message DescribeRequest {}
+
+message DescribeResponse {
+  // The Component's name, equal to its directory under components/.
+  string name = 1;
+  // The Release the binary was built for.
+  string release = 2;
+  // Bare names of the Components this one calls.
+  repeated string requires = 3;
+  // Full name of the Component's API service, e.g. "ddash.dockerapi.DockerApiService".
+  string service = 4;
+  // Full name of the Component's config message; empty when it takes no config.
+  string config_message = 5;
+  // The files defining the service and the config message, with all their
+  // imports, in dependency order.
+  google.protobuf.FileDescriptorSet descriptors = 6;
+}
+
+message StartRequest {
+  // The config message named in DescribeResponse.config_message, in binary
+  // proto encoding. Unset fields mean their defaults.
+  bytes config = 1;
+  // The URL the Operator reaches ddash at, e.g. "https://ddash.home.example".
+  string public_url = 2;
+}
+
+message StartResponse {}
+
+message HealthRequest {}
+
+enum HealthState {
+  HEALTH_STATE_UNSPECIFIED = 0;
+  HEALTH_STATE_OK = 1;
+  HEALTH_STATE_DEGRADED = 2;
+  HEALTH_STATE_DOWN = 3;
+}
+
+message HealthResponse {
+  HealthState state = 1;
+  // One line, e.g. "media unreachable: connection refused".
+  string message = 2;
+}

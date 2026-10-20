@@ -1,0 +1,23 @@
+{
+  "name": "@ddash/plugin-checks",
+  "private": true,
+  "type": "module",
+  "description": "The checks Plugin's UI: the Checks Page, its badge and the summary Widget.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@ddash/display": "workspace:*",
+    "@ddash/plugin": "workspace:*",
+    "@ddash/proto": "workspace:*",
+    "@ddash/ui": "workspace:*",
+    "react-router": "8.5.0"
+  },
+  "devDependencies": {
+    "@ddash/vite-preset": "workspace:*"
+  }
+}

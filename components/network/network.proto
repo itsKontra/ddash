@@ -1,0 +1,332 @@
+syntax = "proto3";
+
+// network is the logic behind the Network Page. It watches the firewall's
+// failover gateway group and derives the VPN Tunnel's tier, joins the
+// Devices, samples WAN and LAN throughput, and reads Remote Access.
+package ddash.network;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/network/networkpb;networkpb";
+
+message NetworkConfig {
+  // The firewall alias whose members leave through the WAN: the Direct
+  // Devices. network changes only this alias, and only its Devices.
+  string bypass_alias = 1 [(ddash.config.field) = {
+    label: "Bypass alias"
+    help: "The firewall alias whose members skip the VPN Tunnel (Direct Devices)."
+    required: true
+    choices_from: "pfsense-api.ListAliases"
+  }];
+  // The addresses Adopt reserves from, outside the DHCP pool.
+  string reserved_range = 2 [(ddash.config.field) = {
+    label: "Reserved range"
+    help: "Where Adopt picks a New Device's reserved address. It must lie outside the DHCP pool."
+    required: true
+    format: FORMAT_IP_RANGE
+    placeholder: "198.18.1.20-198.18.1.49"
+  }];
+}
+
+service NetworkService {
+  // GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
+  // the failover gateway group (every 60 s).
+  rpc GetVpnTunnel(GetVpnTunnelRequest) returns (GetVpnTunnelResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListDevices returns every Device: the firewall's DHCP leases and static
+  // mappings joined by MAC, with each one's membership of the bypass alias
+  // and of the other aliases. Servers with fixed addresses aren't Devices,
+  // and alias members that aren't Devices never show.
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // GetThroughput returns the WAN and LAN throughput samples taken after
+  // since (all of the last hour when unset), oldest first. network samples
+  // every 5 s whether anyone is watching or not, and keeps the last 720
+  // samples in memory, so the ring is empty after a restart.
+  rpc GetThroughput(GetThroughputRequest) returns (GetThroughputResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  // GetRemoteAccess returns the Remote Access peers with their last
+  // handshake and traffic, and the hosts each can reach per the pass
+  // rules on the Remote Access interface.
+  rpc GetRemoteAccess(GetRemoteAccessRequest) returns (GetRemoteAccessResponse) {
+    option (ddash.getter) = {};
+  }
+  // NextReservedAddress returns the lowest address in the reserved range
+  // that no static mapping and no current lease holds: what Adopt offers.
+  rpc NextReservedAddress(NextReservedAddressRequest) returns (NextReservedAddressResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // AdoptDevice gives a New Device a name and a reserved address: a static
+  // mapping on the DHCP server of the interface whose subnet holds the
+  // address. The Device moves to it when its lease renews.
+  rpc AdoptDevice(AdoptDeviceRequest) returns (AdoptDeviceResponse) {
+    option (ddash.action) = {};
+  }
+  // RenameDevice renames an Adopted Device: its static mapping's
+  // description. Its address and reservation stay as they are; changing or
+  // removing them is done in pfSense.
+  rpc RenameDevice(RenameDeviceRequest) returns (RenameDeviceResponse) {
+    option (ddash.action) = {};
+  }
+  // SetDirect makes a Device Direct (its address added to the bypass
+  // alias) or Tunnelled (its address removed from it), applied at once. A
+  // New Device is Adopted first, under its name (else its MAC) at the
+  // lowest free reserved address. Only the Device's own address is ever
+  // written: a Device Direct through another member (a network, range or
+  // nested alias) stays so, and turning it Tunnelled is refused.
+  rpc SetDirect(SetDirectRequest) returns (SetDirectResponse) {
+    option (ddash.action) = {};
+  }
+  // SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
+  // its address's persistent client in AdGuard (created the first time it
+  // is turned off). It works on Adopted Devices, whose address stays put: a
+  // New Device is Adopted first, at the lowest free reserved address. It
+  // has no timer: off stays off until turned on.
+  rpc SetAdBlocking(SetAdBlockingRequest) returns (SetAdBlockingResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message SetDirectRequest {
+  // The Device's MAC.
+  string mac = 1;
+  // true for Direct, false for Tunnelled.
+  bool direct = 2;
+}
+
+message SetDirectResponse {
+  // The Device after the change (Adopted, if it was New).
+  Device device = 1;
+}
+
+message SetAdBlockingRequest {
+  // The Device's MAC.
+  string mac = 1;
+  // Ad-blocking on (true) or off.
+  bool enabled = 2;
+}
+
+message SetAdBlockingResponse {
+  Device device = 1;
+}
+
+message NextReservedAddressRequest {}
+
+message NextReservedAddressResponse {
+  // The lowest free address; empty when the range is full.
+  string ip = 1;
+  // The configured reserved range, e.g. "198.18.1.20-198.18.1.49".
+  string reserved_range = 2;
+}
+
+message AdoptDeviceRequest {
+  // The New Device's MAC.
+  string mac = 1;
+  // Its name, written as the static mapping's description.
+  string name = 2;
+  // The address to reserve, in the reserved range; empty for the lowest
+  // free one.
+  string ip = 3;
+}
+
+message AdoptDeviceResponse {
+  Device device = 1;
+}
+
+message RenameDeviceRequest {
+  // The Adopted Device's MAC.
+  string mac = 1;
+  // Its new name.
+  string name = 2;
+}
+
+message RenameDeviceResponse {
+  Device device = 1;
+}
+
+message ListDevicesRequest {}
+
+message ListDevicesResponse {
+  // By address, lowest first.
+  repeated Device devices = 1;
+  // The configured bypass alias's name.
+  string bypass_alias = 2;
+  // Why AdGuard's clients couldn't be read, so no Device shows ad-blocking
+  // off; empty when they could.
+  string adguard_error = 3;
+}
+
+// A piece of hardware the firewall hands addresses to, keyed by MAC.
+message Device {
+  // The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+  string mac = 1;
+  // The static mapping's description, else its hostname, else the
+  // hostname the Device sent; empty when there is none.
+  string name = 2;
+  // The reserved address of an Adopted Device, else the leased one.
+  string ip = 3;
+  // Whether the firewall sees it on the network now (ARP).
+  bool online = 4;
+  // Adopted: it has a static mapping. A New Device holds only a dynamic
+  // lease.
+  bool adopted = 5;
+  // Direct: its address is in the bypass alias, so it skips the VPN
+  // Tunnel. Tunnelled otherwise.
+  bool direct = 6;
+  // The lease it holds; a dynamic one over the static entry. Unset when
+  // there is none.
+  DeviceLease lease = 7;
+  // Its static mapping; unset for a New Device.
+  Reservation reservation = 8;
+  // The other aliases containing its address, in the firewall's order;
+  // network leaves them alone.
+  repeated DeviceAlias aliases = 9;
+  // Ad-blocking off: AdGuard has a persistent client for its address that
+  // doesn't filter. Off only by the Operator's toggle; on by default.
+  bool ad_blocking_off = 10;
+}
+
+message DeviceLease {
+  string ip = 1;
+  string hostname = 2;
+  // e.g. "lan"; empty when Kea doesn't say.
+  string interface = 3;
+  // As pfSense writes them, the firewall's time; empty for a static entry.
+  string starts = 4;
+  string ends = 5;
+  // "active", "expired" or "static".
+  string status = 6;
+  // e.g. "active/online" or "idle/offline".
+  string online_status = 7;
+}
+
+// A Device's static mapping.
+message Reservation {
+  string interface = 1;
+  string ip = 2;
+  string hostname = 3;
+  string description = 4;
+}
+
+message DeviceAlias {
+  string name = 1;
+  string description = 2;
+}
+
+message GetThroughputRequest {
+  // Only samples taken after this; unset for the whole ring.
+  google.protobuf.Timestamp since = 1;
+}
+
+message GetThroughputResponse {
+  // Oldest first.
+  repeated ThroughputSample samples = 1;
+  // Why the last sampling failed; empty when it worked.
+  string error = 2;
+}
+
+// One sample: the average rates in bytes per second since the sample
+// before it. "In" is what the interface received: WAN in is download from
+// the internet, LAN in is upload from the home network.
+message ThroughputSample {
+  google.protobuf.Timestamp at = 1;
+  double wan_in_bytes_per_second = 2;
+  double wan_out_bytes_per_second = 3;
+  double lan_in_bytes_per_second = 4;
+  double lan_out_bytes_per_second = 5;
+}
+
+message GetRemoteAccessRequest {}
+
+message GetRemoteAccessResponse {
+  // The Remote Access tunnel: the WireGuard tunnel assigned to an
+  // interface without a gateway (the VPN Tunnel's has one), e.g. "tun_wg1".
+  string tunnel = 1;
+  // That interface's description, e.g. "REMOTEACCESS".
+  string interface = 2;
+  repeated RemoteAccessPeer peers = 3;
+  // Why there's no Remote Access tunnel; empty when there is one.
+  string error = 4;
+}
+
+message RemoteAccessPeer {
+  // The peer's description in pfSense; may be empty.
+  string name = 1;
+  string public_key = 2;
+  // Its tunnel addresses (allowed IPs), e.g. "198.18.40.2/32".
+  repeated string addresses = 3;
+  // Where it last connected from; empty when it never did.
+  string endpoint = 4;
+  // Its latest handshake; unset when it never completed one.
+  google.protobuf.Timestamp latest_handshake = 5;
+  // Bytes received from and sent to it.
+  uint64 rx_bytes = 6;
+  uint64 tx_bytes = 7;
+  // What it can reach, one entry per pass rule that applies to it.
+  repeated Reach reaches = 8;
+}
+
+// A destination a pass rule lets a peer reach.
+message Reach {
+  // The destination: an address or CIDR (interface subnets and addresses
+  // resolved), an alias's members joined by ", " (an alias pfSense doesn't
+  // list: its name), "any" or "(self)"; "!" inverts it.
+  string destination = 1;
+  // What it is, e.g. "LAN subnet", "SERVERS alias", "alias" (unknown),
+  // "anywhere", "the firewall".
+  string label = 2;
+  // "tcp", "udp", "tcp/udp", "icmp", ...; "any" for any protocol.
+  string protocol = 3;
+  // A port, a range "80:443" or a port alias; empty for any.
+  string ports = 4;
+  // The rule's description.
+  string rule = 5;
+}
+
+message GetVpnTunnelRequest {}
+
+message GetVpnTunnelResponse {
+  // Which tier carries the VPN Tunnel; unspecified until the first read,
+  // and while the last read failed.
+  Tier tier = 1;
+  // The failover gateway group's name.
+  string group = 2;
+  // The group's members, lowest tier first.
+  repeated TunnelGateway gateways = 3;
+  // Why the last read failed; empty when it worked.
+  string error = 4;
+}
+
+// The VPN Tunnel's tier. The failover group's first tier is the WireGuard
+// tunnel and any later one the OpenVPN fallback.
+enum Tier {
+  // Not known: not read yet, or the last read failed.
+  TIER_UNSPECIFIED = 0;
+  // Via WireGuard: a first-tier gateway passes traffic.
+  TIER_WIREGUARD = 1;
+  // Via the OpenVPN fallback: only a later tier's gateway passes traffic.
+  TIER_OPENVPN = 2;
+  // Down: no member of the group passes traffic.
+  TIER_DOWN = 3;
+}
+
+message TunnelGateway {
+  // The gateway's name in pfSense.
+  string name = 1;
+  // Its tier in the group, 1 to 5.
+  int32 tier = 2;
+  // Whether it passes traffic: up, and not excluded by the group's trigger.
+  bool up = 3;
+  // pfSense's status and substatus, e.g. "online" and "highloss".
+  string status = 4;
+  string substatus = 5;
+  // Round-trip latency in milliseconds; unset when not measured.
+  optional double delay_ms = 6;
+  // Packet loss in percent; unset when not measured.
+  optional double loss_percent = 7;
+}

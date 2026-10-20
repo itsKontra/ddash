@@ -1,0 +1,389 @@
+syntax = "proto3";
+
+// pfsense-api reads the pfSense firewall through the pfSense-pkg-RESTAPI
+// package's REST API v2, authenticated with an API key.
+package ddash.pfsenseapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipb";
+
+message PfsenseApiConfig {
+  // The firewall's web address, e.g. "https://198.18.1.1".
+  string url = 1 [(ddash.config.field) = {
+    label: "URL"
+    help: "The firewall's LAN address: the REST API answers on LAN only."
+    required: true
+    format: FORMAT_URL
+    placeholder: "https://198.18.1.1"
+  }];
+  // A REST API key, sent as X-API-Key.
+  string api_key = 2 [(ddash.config.field) = {
+    label: "API key"
+    help: "Generated in System > REST API > Keys for a dedicated ddash user."
+    required: true
+    secret: true
+  }];
+}
+
+service PfsenseApiService {
+  // ListGateways returns every gateway's status as dpinger last measured
+  // it (status/gateways), in pfSense's order.
+  rpc ListGateways(ListGatewaysRequest) returns (ListGatewaysResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListGatewayGroups returns every gateway group with its members by tier
+  // (routing/gateway/groups), in pfSense's order.
+  rpc ListGatewayGroups(ListGatewayGroupsRequest) returns (ListGatewayGroupsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListLeases returns the DHCP leases Kea holds (status/dhcp_server/leases),
+  // in pfSense's order. pfSense lists each static mapping among them as a
+  // "static" entry.
+  rpc ListLeases(ListLeasesRequest) returns (ListLeasesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListDhcpServers returns each interface's DHCP server with its address
+  // pools and static mappings (services/dhcp_servers), in pfSense's order.
+  rpc ListDhcpServers(ListDhcpServersRequest) returns (ListDhcpServersResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListAliases returns every firewall alias with its members
+  // (firewall/aliases), in pfSense's order. Its choices are the address
+  // aliases, for a config field naming one (choices_from).
+  rpc ListAliases(ListAliasesRequest) returns (ListAliasesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListInterfaces returns every assigned interface with its cumulative
+  // traffic counters (status/interfaces), in pfSense's order. Cached for
+  // 2 s, so network's 5 s sampling always reads fresh counters.
+  rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListWireguardTunnels returns every WireGuard tunnel's live status with
+  // its peers (status/wireguard/tunnels; status/wireguard/peers misses
+  // peers), in pfSense's order.
+  rpc ListWireguardTunnels(ListWireguardTunnelsRequest) returns (ListWireguardTunnelsResponse) {
+    option (ddash.getter) = {};
+  }
+  // ListFirewallRules returns the firewall rules on one interface
+  // (firewall/rules), in evaluation order.
+  rpc ListFirewallRules(ListFirewallRulesRequest) returns (ListFirewallRulesResponse) {
+    option (ddash.getter) = {};
+  }
+  // CreateStaticMapping reserves an address for a MAC on an interface's
+  // DHCP server (services/dhcp_server/static_mapping) and applies it, which
+  // restarts the DHCP server for a few seconds. It refuses a MAC that
+  // interface already reserves for, and an address already reserved.
+  rpc CreateStaticMapping(CreateStaticMappingRequest) returns (CreateStaticMappingResponse) {
+    option (ddash.action) = {};
+  }
+  // RenameStaticMapping changes the description of the MAC's static mapping
+  // on an interface's DHCP server and applies it. The address stays.
+  rpc RenameStaticMapping(RenameStaticMappingRequest) returns (RenameStaticMappingResponse) {
+    option (ddash.action) = {};
+  }
+  // AddAliasAddress appends an address with its description to an alias
+  // (firewall/alias) and applies it, which reloads the filter. An address
+  // the alias already holds is left as it is, and nothing is written.
+  rpc AddAliasAddress(AddAliasAddressRequest) returns (AddAliasAddressResponse) {
+    option (ddash.action) = {};
+  }
+  // RemoveAliasAddress removes an address, with its description, from an
+  // alias and applies it. Every other member stays as it is. An address
+  // the alias doesn't hold is no change, and nothing is written.
+  rpc RemoveAliasAddress(RemoveAliasAddressRequest) returns (RemoveAliasAddressResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+// pfsense-api writes one at a time: each write waits for the one before it,
+// then reads the static mappings again (pfSense's ids are positions) and
+// sends the change with "apply": true.
+
+message CreateStaticMappingRequest {
+  // The DHCP server's interface, the MAC, the address and a description;
+  // the hostname is optional.
+  StaticMapping mapping = 1;
+}
+
+message CreateStaticMappingResponse {
+  StaticMapping mapping = 1;
+}
+
+message RenameStaticMappingRequest {
+  // The DHCP server's interface, e.g. "lan".
+  string interface = 1;
+  // The MAC whose static mapping to rename.
+  string mac = 2;
+  // The new description.
+  string description = 3;
+}
+
+message RenameStaticMappingResponse {
+  StaticMapping mapping = 1;
+}
+
+// Alias writes go through the same queue: each reads the aliases again
+// right before it is sent (an alias's id is its position) and sends the
+// alias's whole member list with "apply": true. pfSense's own "append" and
+// "remove" flags aren't used: they skip a list equal to the stored one, so
+// they can't remove an alias's only member, and "remove" drops every
+// description equal to the removed member's, misaligning the rest.
+
+message AddAliasAddressRequest {
+  // The alias's name, e.g. "VPN_BYPASS".
+  string alias = 1;
+  // An address, network, range, hostname or alias name, as the alias's
+  // type allows.
+  string address = 2;
+  // Its description (pfSense's "detail"); empty for pfSense's own
+  // "Entry added <date>".
+  string detail = 3;
+}
+
+message AddAliasAddressResponse {
+  // The alias as it is after the write.
+  Alias alias = 1;
+}
+
+message RemoveAliasAddressRequest {
+  string alias = 1;
+  string address = 2;
+}
+
+message RemoveAliasAddressResponse {
+  // The alias as it is after the write.
+  Alias alias = 1;
+}
+
+message ListGatewaysRequest {}
+
+message ListGatewaysResponse {
+  repeated Gateway gateways = 1;
+}
+
+message Gateway {
+  // The gateway's name, e.g. "WAN_DHCP".
+  string name = 1;
+  // pfSense's status: "online", "down", or "none" when it isn't monitored.
+  string status = 2;
+  // What troubles it: "none", "loss", "highloss", "delay" or "highdelay".
+  string substatus = 3;
+  // Round-trip latency in milliseconds; unset when not measured.
+  optional double delay_ms = 4;
+  // Standard deviation of the latency in milliseconds; unset when not measured.
+  optional double stddev_ms = 5;
+  // Packet loss in percent (0 to 100); unset when not measured.
+  optional double loss_percent = 6;
+  // The address dpinger probes.
+  string monitor_ip = 7;
+  // The address dpinger probes from.
+  string source_ip = 8;
+}
+
+message ListGatewayGroupsRequest {}
+
+message ListGatewayGroupsResponse {
+  repeated GatewayGroup groups = 1;
+}
+
+message GatewayGroup {
+  // The group's name, e.g. "VPN_FAILOVER".
+  string name = 1;
+  string description = 2;
+  // What excludes a member: "down", "downloss", "downlatency" or
+  // "downlosslatency".
+  string trigger = 3;
+  // The members, lowest tier (highest priority) first.
+  repeated GatewayGroupMember members = 4;
+}
+
+message GatewayGroupMember {
+  // The member gateway's name.
+  string gateway = 1;
+  // Its tier, 1 to 5; lower tiers are used first.
+  int32 tier = 2;
+}
+
+message ListLeasesRequest {}
+
+message ListLeasesResponse {
+  repeated Lease leases = 1;
+}
+
+// One DHCP lease as pfSense reports it.
+message Lease {
+  string ip = 1;
+  // The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+  string mac = 2;
+  // The hostname the client sent; empty when it sent none.
+  string hostname = 3;
+  // The interface it was handed out on, e.g. "lan"; empty when Kea
+  // doesn't say (its dynamic leases).
+  string interface = 4;
+  // When the lease started and ends, as pfSense writes them
+  // ("2026/10/20 09:14:03", the firewall's time); empty for a static entry.
+  string starts = 5;
+  string ends = 6;
+  // "active", "expired", or "static" for a static mapping.
+  string active_status = 7;
+  // Whether the address answers ARP: "active/online", "idle/offline", ...
+  string online_status = 8;
+  string description = 9;
+}
+
+message ListDhcpServersRequest {}
+
+message ListDhcpServersResponse {
+  repeated DhcpServer servers = 1;
+}
+
+// One interface's DHCP server.
+message DhcpServer {
+  // The interface, e.g. "lan".
+  string interface = 1;
+  bool enabled = 2;
+  // The address pools it hands dynamic leases from, the main range first.
+  repeated AddressRange pools = 3;
+  // Its reserved addresses.
+  repeated StaticMapping static_mappings = 4;
+}
+
+// Two addresses, low to high, both included.
+message AddressRange {
+  string from = 1;
+  string to = 2;
+}
+
+// A static mapping: an address reserved for one MAC.
+message StaticMapping {
+  // The DHCP server's interface, e.g. "lan".
+  string interface = 1;
+  // The MAC address in lower case.
+  string mac = 2;
+  string ip = 3;
+  string hostname = 4;
+  string description = 5;
+}
+
+message ListAliasesRequest {}
+
+message ListAliasesResponse {
+  repeated Alias aliases = 1;
+  // The address (host and network) aliases by name, for a config field
+  // naming one.
+  ddash.config.Choices choices = 2;
+}
+
+// A firewall alias.
+message Alias {
+  string name = 1;
+  // "host", "network" or "port".
+  string type = 2;
+  string description = 3;
+  // Its members: addresses, networks, ranges, hostnames or other aliases'
+  // names (ports for a port alias).
+  repeated string addresses = 4;
+  // Each member's description, by position.
+  repeated string details = 5;
+}
+
+message ListInterfacesRequest {}
+
+message ListInterfacesResponse {
+  repeated Interface interfaces = 1;
+  // When pfSense was read: an answer from the cache keeps its read time,
+  // so a rate computed from two answers divides by the real interval.
+  google.protobuf.Timestamp read_at = 2;
+}
+
+// An assigned interface and its counters, which count up from boot and
+// start again from zero when the interface is reset.
+message Interface {
+  // pfSense's interface id: "wan", "lan", "opt1", ...
+  string name = 1;
+  // Its description, e.g. "WAN" or "REMOTEACCESS".
+  string description = 2;
+  // The OS device, e.g. "igc0" or "tun_wg1".
+  string hw_interface = 3;
+  // "up", "down" or "no carrier".
+  string status = 4;
+  // Its IPv4 address and prefix length; empty and 0 without one.
+  string ipv4_address = 5;
+  int32 ipv4_prefix = 6;
+  // The gateway pfSense routes through on it; empty when it has none.
+  string gateway = 7;
+  // Bytes and packets in (received) and out (sent) since the counters began.
+  uint64 in_bytes = 8;
+  uint64 out_bytes = 9;
+  uint64 in_packets = 10;
+  uint64 out_packets = 11;
+}
+
+message ListWireguardTunnelsRequest {}
+
+message ListWireguardTunnelsResponse {
+  repeated WireguardTunnel tunnels = 1;
+}
+
+message WireguardTunnel {
+  // The tunnel's device, e.g. "tun_wg1".
+  string name = 1;
+  string description = 2;
+  // "up" or "down".
+  string status = 3;
+  // The UDP port it listens on; 0 when it doesn't.
+  int32 listen_port = 4;
+  // Bytes received and sent on the tunnel since it came up.
+  uint64 rx_bytes = 5;
+  uint64 tx_bytes = 6;
+  repeated WireguardPeer peers = 7;
+}
+
+message WireguardPeer {
+  string public_key = 1;
+  // The peer's description in the tunnel's config.
+  string description = 2;
+  // Where it last connected from (host:port); empty when it never did.
+  string endpoint = 3;
+  // The addresses routed to it, e.g. "198.18.40.2/32".
+  repeated string allowed_ips = 4;
+  // Its latest handshake; unset when it never completed one.
+  google.protobuf.Timestamp latest_handshake = 5;
+  // Bytes received from and sent to it.
+  uint64 rx_bytes = 6;
+  uint64 tx_bytes = 7;
+}
+
+message ListFirewallRulesRequest {
+  // The interface id whose rules to list, e.g. "opt1"; empty lists all.
+  string interface = 1;
+}
+
+message ListFirewallRulesResponse {
+  repeated FirewallRule rules = 1;
+}
+
+message FirewallRule {
+  // "pass", "block" or "reject".
+  string type = 1;
+  // The interface ids it sits on.
+  repeated string interfaces = 2;
+  // "inet", "inet6" or "inet46".
+  string ip_protocol = 3;
+  // "tcp", "udp", "tcp/udp", "icmp", ...; empty for any.
+  string protocol = 4;
+  // pfSense's address forms: "any", an address or CIDR, an alias name, an
+  // interface id for its subnet ("lan") or its address ("lan:ip"), or
+  // "(self)"; a leading "!" inverts it.
+  string source = 5;
+  string destination = 6;
+  // A port, a range "80:443" or a port alias; empty for any.
+  string source_port = 7;
+  string destination_port = 8;
+  string description = 9;
+  bool disabled = 10;
+}

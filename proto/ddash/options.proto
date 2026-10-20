@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+// Options every Component API method carries. Each method is exactly one of
+// a getter or an Action; the host reads these from the Component's
+// descriptors to route, refresh, confirm and audit calls.
+package ddash;
+
+import "google/protobuf/descriptor.proto";
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash;ddashpb";
+
+extend google.protobuf.MethodOptions {
+  // Marks a read that changes nothing outside ddash and may be cached.
+  Getter getter = 50001;
+  // Marks a change to an external system or to ddash state. Every Action
+  // receives the actor and is recorded in the Audit Log.
+  Action action = 50002;
+}
+
+message Getter {
+  // How often the UI refetches this getter while it is on screen.
+  enum Refresh {
+    // Every 60 s. The default.
+    SLOW = 0;
+    // Every 5 s.
+    LIVE = 1;
+    // Every 15 s.
+    FAST = 2;
+    // On mount and after Actions only.
+    NONE = 3;
+  }
+  Refresh refresh = 1;
+}
+
+message Action {
+  // A disruptive Action asks the Operator to confirm first.
+  bool disruptive = 1;
+}
