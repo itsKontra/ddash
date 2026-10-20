@@ -154,4 +154,3 @@ func TestTheURLMustBeHTTPOrHTTPS(t *testing.T) {
 		t.Errorf("Start = %v, want one error on url", err)
 	}
 }
-
