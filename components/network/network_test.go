@@ -2,6 +2,7 @@ package network_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -32,6 +33,11 @@ type firewall struct {
 	gateways []*pfsenseapipb.Gateway
 	err      error
 	reads    int
+
+	// interfaces answers ListInterfaces, called on every read.
+	interfaces func() []*pfsenseapipb.Interface
+	tunnels    []*pfsenseapipb.WireguardTunnel
+	rules      []*pfsenseapipb.FirewallRule
 }
 
 func (f *firewall) ListGatewayGroups(context.Context, *pfsenseapipb.ListGatewayGroupsRequest, ...grpc.CallOption) (*pfsenseapipb.ListGatewayGroupsResponse, error) {
@@ -51,6 +57,49 @@ func (f *firewall) ListGateways(context.Context, *pfsenseapipb.ListGatewaysReque
 		return nil, f.err
 	}
 	return &pfsenseapipb.ListGatewaysResponse{Gateways: f.gateways}, nil
+}
+
+func (f *firewall) ListInterfaces(context.Context, *pfsenseapipb.ListInterfacesRequest, ...grpc.CallOption) (*pfsenseapipb.ListInterfacesResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.interfaces == nil {
+		return &pfsenseapipb.ListInterfacesResponse{}, nil
+	}
+	return &pfsenseapipb.ListInterfacesResponse{Interfaces: f.interfaces()}, nil
+}
+
+func (f *firewall) ListWireguardTunnels(context.Context, *pfsenseapipb.ListWireguardTunnelsRequest, ...grpc.CallOption) (*pfsenseapipb.ListWireguardTunnelsResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &pfsenseapipb.ListWireguardTunnelsResponse{Tunnels: f.tunnels}, nil
+}
+
+func (f *firewall) ListFirewallRules(_ context.Context, req *pfsenseapipb.ListFirewallRulesRequest, _ ...grpc.CallOption) (*pfsenseapipb.ListFirewallRulesResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.err != nil {
+		return nil, f.err
+	}
+	out := &pfsenseapipb.ListFirewallRulesResponse{}
+	for _, r := range f.rules {
+		if slices.Contains(r.GetInterfaces(), req.GetInterface()) {
+			out.Rules = append(out.Rules, r)
+		}
+	}
+	return out, nil
+}
+
+// fail makes every read fail with err from now on (nil: answer again).
+func (f *firewall) fail(err error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.err = err
 }
 
 // set changes what the firewall answers from the next read on.

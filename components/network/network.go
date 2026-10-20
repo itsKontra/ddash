@@ -51,12 +51,20 @@ type component struct {
 
 	mu     sync.Mutex
 	tunnel *networkpb.GetVpnTunnelResponse
+
+	throughput throughput
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *networkpb.NetworkConfig) error {
 	c.pfsense = sdk.Require(env, pfsenseapipb.NewPfsenseApiServiceClient)
 	sdk.Every(ctx, PollInterval, c.poll)
+	sdk.Every(ctx, SampleInterval, func(ctx context.Context) { c.throughput.sample(ctx, c.pfsense) })
 	return nil
+}
+
+// GetThroughput answers from the ring.
+func (c *component) GetThroughput(_ context.Context, req *networkpb.GetThroughputRequest) (*networkpb.GetThroughputResponse, error) {
+	return c.throughput.get(req.GetSince()), nil
 }
 
 // Health is degraded while the gateway group can't be read or makes no
