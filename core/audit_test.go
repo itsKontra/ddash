@@ -11,6 +11,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -154,6 +155,31 @@ func TestEachHopOfAnActionIsRecordedUnderOneChain(t *testing.T) {
 	}
 }
 
+// The gate runs for every Action: one refused before it reaches the
+// Component, out of the Plugin's scope or with a request that doesn't
+// decode, is a failed entry too. A refused getter isn't audited.
+func TestAnActionRefusedForScopeOrAnUndecodableRequestIsAudited(t *testing.T) {
+	h := newRelay(t, sample.Hooks{}, sample.Hooks{})
+
+	wantError(t, h.Call("relayer", "greeter", "Act", `{"note":"sneaky"}`), http.StatusForbidden, "permission_denied", "plugin relayer doesn't require greeter")
+	wantError(t, h.Call("relayer", "greeter", "Greet", `{"name":"Ada"}`), http.StatusForbidden, "permission_denied", "plugin relayer doesn't require greeter")
+	if res := h.Call("relayer", "relay", "Act", `{"note":`); res.Code != http.StatusBadRequest {
+		t.Errorf("undecodable Act: status %d, want 400: %s", res.Code, res.Body)
+	}
+
+	var got []string
+	for _, e := range componentEntries(h) {
+		got = append(got, e.ActorKind+":"+e.Username+" "+e.Target+" "+e.Method+" "+e.Outcome)
+	}
+	want := []string{"operator:test greeter Act PermissionDenied", "operator:test relay Act InvalidArgument"}
+	if d := cmp.Diff(want, got); d != "" {
+		t.Errorf("Audit Log (-want +got):\n%s", d)
+	}
+	if es := componentEntries(h); len(es) > 0 && requestJSON(t, es[0])["note"] != "sneaky" {
+		t.Errorf("the refused Act's request = %s, want the one sent", es[0].Request)
+	}
+}
+
 func TestAComponentCantCallOutsideItsRequires(t *testing.T) {
 	h := coretest.New(t, coretest.Options{
 		Components: []sdk.Definition{greeter(sample.Hooks{}), sample.Define("loner", nil, relayTo("sneaky"))},
@@ -169,9 +195,14 @@ func TestAComponentCantCallOutsideItsRequires(t *testing.T) {
 	res := h.Call("lonely", "loner", "Act", `{}`)
 
 	wantError(t, res, http.StatusForbidden, "permission_denied", "loner doesn't require a Component serving ddash.sample.SampleService")
-	entries := componentEntries(h)
-	if len(entries) != 1 || entries[0].Target != "loner" || entries[0].Outcome != "PermissionDenied" {
-		t.Errorf("entries = %+v, want only loner's refused Act", entries)
+	// Both hops: loner's Act, and its onward Act the host refused.
+	var got []string
+	for _, e := range componentEntries(h) {
+		got = append(got, e.ActorKind+":"+e.Username+" "+e.Target+" "+e.Method+" "+e.Outcome)
+	}
+	want := []string{"operator:test loner Act PermissionDenied", "operator:test greeter Act PermissionDenied"}
+	if d := cmp.Diff(want, got); d != "" {
+		t.Errorf("Audit Log (-want +got):\n%s", d)
 	}
 }
 

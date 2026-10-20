@@ -8,6 +8,7 @@
 package router
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"io"
@@ -49,6 +50,8 @@ type Components interface {
 	Endpoint(component string) (runtime.Endpoint, error)
 	// ComponentRequires returns the Components a Component lists in requires.
 	ComponentRequires(component string) []string
+	// Status returns every Component the runtime knows, by name.
+	Status() map[string]runtime.Status
 }
 
 // Router is the http.Handler for Prefix.
@@ -78,13 +81,12 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, status.Error(codes.NotFound, "want /api/c/<component>/<Method>"))
 		return
 	}
-	if err := rt.inScope(r.Header.Get(PluginHeader), component); err != nil {
-		WriteError(w, err)
-		return
-	}
+	// A refusal for scope or an undecodable request still passes an Action
+	// through the gate, as a failed entry; so the method is resolved first.
+	refused := rt.inScope(r.Header.Get(PluginHeader), component)
 	ep, err := rt.components.Endpoint(component)
 	if err != nil {
-		WriteError(w, err)
+		WriteError(w, cmp.Or(refused, err))
 		return
 	}
 	// Stock connect-web clients with base URL /api/c/<component> ask for
@@ -96,7 +98,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		md = ep.Service.Methods().ByName(protoreflect.Name(name))
 	}
 	if md == nil {
-		WriteError(w, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method))
+		WriteError(w, cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method)))
 		return
 	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
@@ -108,8 +110,9 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if len(body) > 0 {
 		opts := protojson.UnmarshalOptions{DiscardUnknown: true, Resolver: ep.Types}
 		if err := opts.Unmarshal(body, req); err != nil {
-			WriteError(w, status.Errorf(codes.InvalidArgument, "decode %s: %v", md.Input().FullName(), err))
-			return
+			// Audited with an empty request.
+			refused = cmp.Or(refused, status.Errorf(codes.InvalidArgument, "decode %s: %v", md.Input().FullName(), err))
+			req = dynamicpb.NewMessage(md.Input())
 		}
 	}
 	actor, ok := auth.ActorFrom(r.Context())
@@ -121,6 +124,11 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	done, err := rt.gate.Admit(r.Context(), actor, appstate.Action{Chain: chain, Target: component, Method: md, Request: req})
 	if err != nil {
 		WriteError(w, err)
+		return
+	}
+	if refused != nil {
+		done(refused)
+		WriteError(w, refused)
 		return
 	}
 	resp := dynamicpb.NewMessage(md.Output())

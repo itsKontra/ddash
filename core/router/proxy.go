@@ -1,8 +1,11 @@
 package router
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	"google.golang.org/grpc"
@@ -38,13 +41,18 @@ func (rt *Router) proxy(caller string) grpc.StreamHandler {
 	return func(_ any, stream grpc.ServerStream) error {
 		fullMethod, _ := grpc.MethodFromServerStream(stream)
 		service, method, _ := strings.Cut(strings.TrimPrefix(fullMethod, "/"), "/")
-		target, ep, err := rt.route(caller, service)
-		if err != nil {
-			return err
+		target, ep, refused := rt.route(caller, service)
+		if status.Code(refused) == codes.PermissionDenied {
+			// Out of caller's requires: still audited when the method is
+			// an Action some Component serves.
+			target, ep = rt.serving(service)
+		}
+		if target == "" {
+			return refused
 		}
 		md := ep.Service.Methods().ByName(protoreflect.Name(method))
 		if md == nil {
-			return status.Errorf(codes.Unimplemented, "%s has no method %s", target, method)
+			return cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", target, method))
 		}
 		var req frame
 		if err := stream.RecvMsg(&req); err != nil {
@@ -56,13 +64,18 @@ func (rt *Router) proxy(caller string) grpc.StreamHandler {
 		if appstate.IsAction(md) {
 			msg := dynamicpb.NewMessage(md.Input())
 			if err := (proto.UnmarshalOptions{Resolver: ep.Types}).Unmarshal(req, msg); err != nil {
-				return status.Errorf(codes.InvalidArgument, "decode %s: %v", md.Input().FullName(), err)
+				refused = cmp.Or(refused, status.Errorf(codes.InvalidArgument, "decode %s: %v", md.Input().FullName(), err))
+				msg = dynamicpb.NewMessage(md.Input())
 			}
 			action.Request = msg
 		}
 		done, err := rt.gate.Admit(ctx, actor, action)
 		if err != nil {
 			return err
+		}
+		if refused != nil {
+			done(refused)
+			return refused
 		}
 		ctx, cancel := context.WithTimeout(onward(ctx, actor, chain), Deadline(md))
 		defer cancel()
@@ -98,6 +111,18 @@ func (rt *Router) route(caller, service string) (string, runtime.Endpoint, error
 		return "", runtime.Endpoint{}, notUp
 	}
 	return "", runtime.Endpoint{}, status.Errorf(codes.PermissionDenied, "%s doesn't require a Component serving %s", caller, service)
+}
+
+// serving finds a started Component serving service, whichever requires
+// it; "" when none does.
+func (rt *Router) serving(service string) (string, runtime.Endpoint) {
+	names := slices.Sorted(maps.Keys(rt.components.Status()))
+	for _, name := range names {
+		if ep, err := rt.components.Endpoint(name); err == nil && string(ep.Service.FullName()) == service {
+			return name, ep
+		}
+	}
+	return "", runtime.Endpoint{}
 }
 
 // forwarded returns the actor and chain the caller's SDK carried onto the
