@@ -326,3 +326,34 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
     </div>
   );
 }
+
+const toneFill: Record<Tone, string> = {
+  up: "fill-up",
+  down: "fill-down",
+  warn: "fill-warn",
+  maint: "fill-maint",
+  idle: "fill-muted",
+};
+
+/** One bar of UptimeBars: a bucket's tone, idle for a bucket without beats, and what hovering it says. */
+export interface UptimeBar {
+  tone: Tone;
+  title?: string;
+}
+
+/**
+ * History, Kuma style: one bar per bucket, oldest first, stretched to the
+ * full width. Up to 100 bars are drawn apart; more run together as a strip.
+ */
+export function UptimeBars({ label, bars }: { label: string; bars: readonly UptimeBar[] }) {
+  const gap = bars.length <= 100 ? 0.25 : 0;
+  return (
+    <svg role="img" aria-label={label} viewBox={`0 0 ${Math.max(bars.length, 1)} 1`} preserveAspectRatio="none" className="block h-6 w-full">
+      {bars.map((b, i) => (
+        <rect key={i} data-tone={b.tone} x={i + gap / 2} y={0} width={1 - gap} height={1} className={toneFill[b.tone]}>
+          {b.title && <title>{b.title}</title>}
+        </rect>
+      ))}
+    </svg>
+  );
+}
