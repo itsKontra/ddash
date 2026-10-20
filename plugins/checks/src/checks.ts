@@ -9,13 +9,16 @@ export function useChecks() {
 /** A Check's name, or its target when it has none. */
 export const shownName = (c: Check) => c.spec?.name || c.spec?.target || `Check ${c.id}`;
 
-/** How a Check reads at a glance: disabled and Maintenance before its state. */
+/**
+ * How a Check reads at a glance: disabled and Maintenance before its state;
+ * a Flapping Check that is up is warn.
+ */
 export function toneOf(c: Check): Tone {
   if (c.disabled) return "idle";
   if (c.maintenance) return "maint";
   switch (c.state) {
     case State.UP:
-      return "up";
+      return c.flapping ? "warn" : "up";
     case State.DOWN:
       return "down";
     default:
@@ -29,20 +32,28 @@ export function stateLabel(c: Check): string {
   if (c.maintenance) return "Maintenance";
   switch (c.state) {
     case State.UP:
-      return "up";
+      return c.flapping ? "up, flapping" : "up";
     case State.DOWN:
-      return "down";
+      return c.flapping ? "down, flapping" : "down";
     default:
       return "pending";
   }
 }
 
-/** The enabled Checks, split by tone. Pending ones are only in `enabled`. */
+/**
+ * The enabled Checks, split by tone. Pending ones are only in `enabled`.
+ * `up` holds every up Check outside Maintenance; `warn` those of them that
+ * are Flapping or whose certificate is expiring.
+ */
 export function tally(checks: readonly Check[]) {
   const enabled = checks.filter((c) => !c.disabled);
   const by = (tone: Tone) => enabled.filter((c) => toneOf(c) === tone);
-  return { enabled, up: by("up"), down: by("down"), maint: by("maint") };
+  const up = enabled.filter((c) => !c.maintenance && c.state === State.UP);
+  return { enabled, up, warn: up.filter((c) => c.flapping || c.certExpiring), down: by("down"), maint: by("maint") };
 }
+
+/** Why an up Check warns: "nas flapping", "Jellyfin certificate expiring". */
+export const warning = (c: Check) => `${shownName(c)} ${c.flapping ? "flapping" : "certificate expiring"}`;
 
 /** The Nav Entry's badge: how many Checks are down, or none. */
 export function useDownBadge(): Badge | null {

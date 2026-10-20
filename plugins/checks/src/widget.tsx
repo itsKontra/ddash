@@ -1,19 +1,20 @@
 import type { Status, Widget, WidgetSize } from "@ddash/plugin";
 import { StatusDot, Stat } from "@ddash/ui";
-import { latency, shownName, stateLabel, tally, toneOf, useChecks } from "./checks";
+import { latency, shownName, stateLabel, tally, toneOf, useChecks, warning } from "./checks";
 
 /**
- * The worst of the enabled Checks: down names what's down, then maint,
- * else up with the count. Idle without Checks; warn when checks is
- * unavailable.
+ * The worst of the enabled Checks: down names what's down, warn what is
+ * Flapping while up or has an expiring certificate, then maint, else up
+ * with the count. Idle without Checks; warn when checks is unavailable.
  */
 function useStatus(): Status | undefined {
   const { data, error } = useChecks();
   if (error) return { tone: "warn", summary: `checks unavailable: ${error.rawMessage}` };
   if (!data) return undefined;
-  const { enabled, up, down, maint } = tally(data.checks);
+  const { enabled, up, warn, down, maint } = tally(data.checks);
   if (!enabled.length) return { tone: "idle", summary: "No Checks yet" };
   if (down.length) return { tone: "down", summary: `${down.length} down: ${down.map(shownName).join(", ")}` };
+  if (warn.length) return { tone: "warn", summary: warn.map(warning).join("; ") };
   if (maint.length) return { tone: "maint", summary: `${maint.length} in Maintenance` };
   return { tone: "up", summary: `${up.length} of ${enabled.length} up` };
 }

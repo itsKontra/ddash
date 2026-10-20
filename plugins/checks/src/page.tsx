@@ -1,5 +1,5 @@
 import { useAction } from "@ddash/plugin";
-import { CheckType, ChecksService, RecordType, type Check } from "@ddash/proto/checks/checks_pb";
+import { CheckType, ChecksService, RecordType, State, type Check } from "@ddash/proto/checks/checks_pb";
 import { Badge, Button, PageHeader, Segmented, Sheet, StatusDot } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
 import { useParams } from "react-router";
@@ -87,7 +87,7 @@ function Row({ check: c, onEdit, onShow, onMaintain }: { check: Check; onEdit: (
   const remove = useAction(ChecksService.method.deleteCheck);
   const failure = mute.error ?? disable.error ?? remove.error;
   const busy = mute.pending || disable.pending || remove.pending;
-  const up = !c.disabled && toneOf(c) === "up";
+  const up = !c.disabled && !c.maintenance && c.state === State.UP;
   return (
     <tr className="border-b border-border last:border-b-0">
       <td className="w-6 py-2 pl-4">
@@ -99,6 +99,7 @@ function Row({ check: c, onEdit, onShow, onMaintain }: { check: Check; onEdit: (
             {shownName(c)}
           </button>
           {c.muted && <Badge>muted</Badge>}
+          {c.flapping && <Badge tone="warn">flapping</Badge>}
           {c.certExpiring && <Badge tone="warn">certificate expiring</Badge>}
           <MaintenanceBadge check={c} />
         </span>

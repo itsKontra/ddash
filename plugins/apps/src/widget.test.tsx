@@ -41,6 +41,20 @@ it("warns about pending Checks and certificates expiring within 14 days", async 
   expect(seen).toEqual({ tone: "warn", summary: "pfSense: pending: timeout; Printer: up, certificate expires in 5 days" });
 });
 
+it("warns about a Flapping Check that is up, and is down while it is down", async () => {
+  const flapping = (state: string) => ({
+    checks: allUp.checks.map((c) => (c.appId === "proxy:grafana.home.example" ? { ...c, state, flapping: true } : c)),
+  });
+  renderScoped(<Probe />, { ListChecks: () => Response.json(flapping("STATE_UP")) });
+  await settle();
+  expect(seen).toEqual({ tone: "warn", summary: "Grafana: up, flapping" });
+  cleanup();
+
+  renderScoped(<Probe />, { ListChecks: () => Response.json(flapping("STATE_DOWN")) });
+  await settle();
+  expect(seen).toEqual({ tone: "down", summary: "1 down: Grafana" });
+});
+
 it("reports Maintenance when that is the worst", async () => {
   const maint = { checks: allUp.checks.map((c) => (c.appId === "proxy:grafana.home.example" ? { ...c, maintenance: true } : c)) };
   renderScoped(<Probe />, { ListChecks: () => Response.json(maint) });
