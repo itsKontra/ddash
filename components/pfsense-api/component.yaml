@@ -1,0 +1,3 @@
+name: pfsense-api
+description: Reads the pfSense firewall through its REST API v2.
+requires: []

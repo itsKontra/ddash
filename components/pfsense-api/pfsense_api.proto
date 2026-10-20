@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+// pfsense-api reads the pfSense firewall through the pfSense-pkg-RESTAPI
+// package's REST API v2, authenticated with an API key.
+package ddash.pfsenseapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipb";
+
+message PfsenseApiConfig {
+  // The firewall's web address, e.g. "https://198.18.1.1".
+  string url = 1 [(ddash.config.field) = {
+    label: "URL"
+    help: "The firewall's LAN address: the REST API answers on LAN only."
+    required: true
+    format: FORMAT_URL
+    placeholder: "https://198.18.1.1"
+  }];
+  // A REST API key, sent as X-API-Key.
+  string api_key = 2 [(ddash.config.field) = {
+    label: "API key"
+    help: "Generated in System > REST API > Keys for a dedicated ddash user."
+    required: true
+    secret: true
+  }];
+}
+
+service PfsenseApiService {
+  // ListGateways returns every gateway's status as dpinger last measured
+  // it (status/gateways), in pfSense's order.
+  rpc ListGateways(ListGatewaysRequest) returns (ListGatewaysResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListGatewayGroups returns every gateway group with its members by tier
+  // (routing/gateway/groups), in pfSense's order.
+  rpc ListGatewayGroups(ListGatewayGroupsRequest) returns (ListGatewayGroupsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+}
+
+message ListGatewaysRequest {}
+
+message ListGatewaysResponse {
+  repeated Gateway gateways = 1;
+}
+
+message Gateway {
+  // The gateway's name, e.g. "WAN_DHCP".
+  string name = 1;
+  // pfSense's status: "online", "down", or "none" when it isn't monitored.
+  string status = 2;
+  // What troubles it: "none", "loss", "highloss", "delay" or "highdelay".
+  string substatus = 3;
+  // Round-trip latency in milliseconds; unset when not measured.
+  optional double delay_ms = 4;
+  // Standard deviation of the latency in milliseconds; unset when not measured.
+  optional double stddev_ms = 5;
+  // Packet loss in percent (0 to 100); unset when not measured.
+  optional double loss_percent = 6;
+  // The address dpinger probes.
+  string monitor_ip = 7;
+  // The address dpinger probes from.
+  string source_ip = 8;
+}
+
+message ListGatewayGroupsRequest {}
+
+message ListGatewayGroupsResponse {
+  repeated GatewayGroup groups = 1;
+}
+
+message GatewayGroup {
+  // The group's name, e.g. "VPN_FAILOVER".
+  string name = 1;
+  string description = 2;
+  // What excludes a member: "down", "downloss", "downlatency" or
+  // "downlosslatency".
+  string trigger = 3;
+  // The members, lowest tier (highest priority) first.
+  repeated GatewayGroupMember members = 4;
+}
+
+message GatewayGroupMember {
+  // The member gateway's name.
+  string gateway = 1;
+  // Its tier, 1 to 5; lower tiers are used first.
+  int32 tier = 2;
+}
