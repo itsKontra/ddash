@@ -13,6 +13,8 @@ import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -818,12 +820,350 @@ func (x *InstalledPlugin) GetStyle() string {
 	return ""
 }
 
+type ListAuditLogRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Only chains whose root ran for this kind of actor: "operator",
+	// "component" or "core". Empty means any.
+	ActorKind string `protobuf:"bytes,1,opt,name=actor_kind,json=actorKind,proto3" json:"actor_kind,omitempty"`
+	// Only chains with a hop to this target: a Component's name or "core".
+	// Empty means any.
+	Target string `protobuf:"bytes,2,opt,name=target,proto3" json:"target,omitempty"`
+	// Only chains with a hop that ended so: "ok", "failed" (a gRPC code),
+	// "interrupted" or "running". Empty means any.
+	Outcome string `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// Chains per page: 50 when 0, at most 200.
+	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	// The previous page's next_page_token; empty for the newest page.
+	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogRequest) Reset() {
+	*x = ListAuditLogRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogRequest) ProtoMessage() {}
+
+func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogRequest.ProtoReflect.Descriptor instead.
+func (*ListAuditLogRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListAuditLogRequest) GetActorKind() string {
+	if x != nil {
+		return x.ActorKind
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+func (x *ListAuditLogRequest) GetPageToken() string {
+	if x != nil {
+		return x.PageToken
+	}
+	return ""
+}
+
+type ListAuditLogResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Newest root first.
+	Chains []*AuditChain `protobuf:"bytes,1,rep,name=chains,proto3" json:"chains,omitempty"`
+	// Where the next page starts; empty on the last page.
+	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
+	// Every target in the Audit Log, sorted, to filter by.
+	Targets       []string `protobuf:"bytes,3,rep,name=targets,proto3" json:"targets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAuditLogResponse) Reset() {
+	*x = ListAuditLogResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAuditLogResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAuditLogResponse) ProtoMessage() {}
+
+func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAuditLogResponse.ProtoReflect.Descriptor instead.
+func (*ListAuditLogResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *ListAuditLogResponse) GetChains() []*AuditChain {
+	if x != nil {
+		return x.Chains
+	}
+	return nil
+}
+
+func (x *ListAuditLogResponse) GetNextPageToken() string {
+	if x != nil {
+		return x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListAuditLogResponse) GetTargets() []string {
+	if x != nil {
+		return x.Targets
+	}
+	return nil
+}
+
+// The hops of one Action, linked by their chain id.
+type AuditChain struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	// In the order they were admitted: the first is the root, the Action
+	// the actor started.
+	Entries       []*AuditEntry `protobuf:"bytes,2,rep,name=entries,proto3" json:"entries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditChain) Reset() {
+	*x = AuditChain{}
+	mi := &file_ddash_core_core_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditChain) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditChain) ProtoMessage() {}
+
+func (x *AuditChain) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditChain.ProtoReflect.Descriptor instead.
+func (*AuditChain) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *AuditChain) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AuditChain) GetEntries() []*AuditEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+// One hop in the Audit Log.
+type AuditEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// When the gate admitted it.
+	Time *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=time,proto3" json:"time,omitempty"`
+	// "operator", "component" or "core".
+	ActorKind string `protobuf:"bytes,2,opt,name=actor_kind,json=actorKind,proto3" json:"actor_kind,omitempty"`
+	// The Operator's preferred_username or the Component's name.
+	Username string `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
+	// The Operator's OIDC subject.
+	Sub string `protobuf:"bytes,4,opt,name=sub,proto3" json:"sub,omitempty"`
+	// A Component's name, or "core".
+	Target string `protobuf:"bytes,5,opt,name=target,proto3" json:"target,omitempty"`
+	// The bare method name, e.g. "Install".
+	Method     string `protobuf:"bytes,6,opt,name=method,proto3" json:"method,omitempty"`
+	Disruptive bool   `protobuf:"varint,7,opt,name=disruptive,proto3" json:"disruptive,omitempty"`
+	// The request as compact protojson, secrets redacted, cut at 4 KiB.
+	Request string `protobuf:"bytes,8,opt,name=request,proto3" json:"request,omitempty"`
+	// "ok", "interrupted", a failed Action's gRPC code (e.g.
+	// "PermissionDenied"), or empty while it runs.
+	Outcome string `protobuf:"bytes,9,opt,name=outcome,proto3" json:"outcome,omitempty"`
+	// A failed Action's error message.
+	Message string `protobuf:"bytes,10,opt,name=message,proto3" json:"message,omitempty"`
+	// How long it ran; unset while it runs.
+	Duration      *durationpb.Duration `protobuf:"bytes,11,opt,name=duration,proto3" json:"duration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AuditEntry) Reset() {
+	*x = AuditEntry{}
+	mi := &file_ddash_core_core_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AuditEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AuditEntry) ProtoMessage() {}
+
+func (x *AuditEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
+func (*AuditEntry) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *AuditEntry) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Time
+	}
+	return nil
+}
+
+func (x *AuditEntry) GetActorKind() string {
+	if x != nil {
+		return x.ActorKind
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetSub() string {
+	if x != nil {
+		return x.Sub
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetTarget() string {
+	if x != nil {
+		return x.Target
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetDisruptive() bool {
+	if x != nil {
+		return x.Disruptive
+	}
+	return false
+}
+
+func (x *AuditEntry) GetRequest() string {
+	if x != nil {
+		return x.Request
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetOutcome() string {
+	if x != nil {
+		return x.Outcome
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *AuditEntry) GetDuration() *durationpb.Duration {
+	if x != nil {
+		return x.Duration
+	}
+	return nil
+}
+
 var File_ddash_core_core_proto protoreflect.FileDescriptor
 
 const file_ddash_core_core_proto_rawDesc = "" +
 	"\n" +
 	"\x15ddash/core/core.proto\x12\n" +
-	"ddash.core\x1a\x13ddash/options.proto\"\x16\n" +
+	"ddash.core\x1a\x13ddash/options.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
 	"\x14ListCatalogueRequest\"\x82\x01\n" +
 	"\x15ListCatalogueResponse\x12\x18\n" +
 	"\arelease\x18\x01 \x01(\tR\arelease\x125\n" +
@@ -870,14 +1210,48 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x06author\x18\x05 \x01(\tR\x06author\x12\x1a\n" +
 	"\brequires\x18\x06 \x03(\tR\brequires\x12\x16\n" +
 	"\x06script\x18\a \x01(\tR\x06script\x12\x14\n" +
-	"\x05style\x18\b \x01(\tR\x05style2\xa1\x04\n" +
+	"\x05style\x18\b \x01(\tR\x05style\"\xa2\x01\n" +
+	"\x13ListAuditLogRequest\x12\x1d\n" +
+	"\n" +
+	"actor_kind\x18\x01 \x01(\tR\tactorKind\x12\x16\n" +
+	"\x06target\x18\x02 \x01(\tR\x06target\x12\x18\n" +
+	"\aoutcome\x18\x03 \x01(\tR\aoutcome\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\"\x88\x01\n" +
+	"\x14ListAuditLogResponse\x12.\n" +
+	"\x06chains\x18\x01 \x03(\v2\x16.ddash.core.AuditChainR\x06chains\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x18\n" +
+	"\atargets\x18\x03 \x03(\tR\atargets\"N\n" +
+	"\n" +
+	"AuditChain\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x120\n" +
+	"\aentries\x18\x02 \x03(\v2\x16.ddash.core.AuditEntryR\aentries\"\xde\x02\n" +
+	"\n" +
+	"AuditEntry\x12.\n" +
+	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x1d\n" +
+	"\n" +
+	"actor_kind\x18\x02 \x01(\tR\tactorKind\x12\x1a\n" +
+	"\busername\x18\x03 \x01(\tR\busername\x12\x10\n" +
+	"\x03sub\x18\x04 \x01(\tR\x03sub\x12\x16\n" +
+	"\x06target\x18\x05 \x01(\tR\x06target\x12\x16\n" +
+	"\x06method\x18\x06 \x01(\tR\x06method\x12\x1e\n" +
+	"\n" +
+	"disruptive\x18\a \x01(\bR\n" +
+	"disruptive\x12\x18\n" +
+	"\arequest\x18\b \x01(\tR\arequest\x12\x18\n" +
+	"\aoutcome\x18\t \x01(\tR\aoutcome\x12\x18\n" +
+	"\amessage\x18\n" +
+	" \x01(\tR\amessage\x125\n" +
+	"\bduration\x18\v \x01(\v2\x19.google.protobuf.DurationR\bduration2\xfc\x04\n" +
 	"\vCoreService\x12q\n" +
 	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
 	"\tUninstall\x12\x1c.ddash.core.UninstallRequest\x1a\x1d.ddash.core.UninstallResponse\"\x06\x92\xb5\x18\x02\b\x01\x12J\n" +
 	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
 	"\rListCatalogue\x12 .ddash.core.ListCatalogueRequest\x1a!.ddash.core.ListCatalogueResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Y\n" +
-	"\fDeleteOrphan\x12\x1f.ddash.core.DeleteOrphanRequest\x1a .ddash.core.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
+	"\fDeleteOrphan\x12\x1f.ddash.core.DeleteOrphanRequest\x1a .ddash.core.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01\x12Y\n" +
+	"\fListAuditLog\x12\x1f.ddash.core.ListAuditLogRequest\x1a .ddash.core.ListAuditLogResponse\"\x06\x8a\xb5\x18\x02\b\x03B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
 
 var (
 	file_ddash_core_core_proto_rawDescOnce sync.Once
@@ -891,7 +1265,7 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 	return file_ddash_core_core_proto_rawDescData
 }
 
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_ddash_core_core_proto_goTypes = []any{
 	(*ListCatalogueRequest)(nil),         // 0: ddash.core.ListCatalogueRequest
 	(*ListCatalogueResponse)(nil),        // 1: ddash.core.ListCatalogueResponse
@@ -908,28 +1282,40 @@ var file_ddash_core_core_proto_goTypes = []any{
 	(*ListInstalledPluginsRequest)(nil),  // 12: ddash.core.ListInstalledPluginsRequest
 	(*ListInstalledPluginsResponse)(nil), // 13: ddash.core.ListInstalledPluginsResponse
 	(*InstalledPlugin)(nil),              // 14: ddash.core.InstalledPlugin
+	(*ListAuditLogRequest)(nil),          // 15: ddash.core.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),         // 16: ddash.core.ListAuditLogResponse
+	(*AuditChain)(nil),                   // 17: ddash.core.AuditChain
+	(*AuditEntry)(nil),                   // 18: ddash.core.AuditEntry
+	(*timestamppb.Timestamp)(nil),        // 19: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 20: google.protobuf.Duration
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
 	2,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
 	3,  // 1: ddash.core.CataloguePlugin.components:type_name -> ddash.core.ComponentStatus
 	14, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
-	12, // 3: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
-	6,  // 4: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	8,  // 5: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	10, // 6: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	0,  // 7: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
-	4,  // 8: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
-	13, // 9: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
-	7,  // 10: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	9,  // 11: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	11, // 12: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	1,  // 13: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
-	5,  // 14: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
-	9,  // [9:15] is the sub-list for method output_type
-	3,  // [3:9] is the sub-list for method input_type
-	3,  // [3:3] is the sub-list for extension type_name
-	3,  // [3:3] is the sub-list for extension extendee
-	0,  // [0:3] is the sub-list for field type_name
+	17, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
+	18, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
+	19, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	20, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
+	12, // 7: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	6,  // 8: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	8,  // 9: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	10, // 10: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	0,  // 11: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
+	4,  // 12: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
+	15, // 13: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
+	13, // 14: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	7,  // 15: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	9,  // 16: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	11, // 17: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	1,  // 18: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
+	5,  // 19: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
+	16, // 20: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
+	14, // [14:21] is the sub-list for method output_type
+	7,  // [7:14] is the sub-list for method input_type
+	7,  // [7:7] is the sub-list for extension type_name
+	7,  // [7:7] is the sub-list for extension extendee
+	0,  // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }
@@ -943,7 +1329,7 @@ func file_ddash_core_core_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -8,13 +8,15 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../options_pb";
+import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiZwoVTGlzdENhdGFsb2d1ZVJlc3BvbnNlEg8KB3JlbGVhc2UYASABKAkSLAoHcGx1Z2lucxgCIAMoCzIbLmRkYXNoLmNvcmUuQ2F0YWxvZ3VlUGx1Z2luEg8KB29ycGhhbnMYAyADKAkipQEKD0NhdGFsb2d1ZVBsdWdpbhIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEgwKBGljb24YBCABKAkSDgoGYXV0aG9yGAUgASgJEhEKCWluc3RhbGxlZBgGIAEoCBIvCgpjb21wb25lbnRzGAcgAygLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiTQoPQ29tcG9uZW50U3RhdHVzEgwKBG5hbWUYASABKAkSDQoFc3RhdGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIMCgRoZWxkGAQgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIRCg9JbnN0YWxsUmVzcG9uc2UiNwoQVW5pbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkSEwoLZGVsZXRlX2RhdGEYAiABKAgiJAoRVW5pbnN0YWxsUmVzcG9uc2USDwoHb3JwaGFucxgBIAMoCSIjCg5SZXN0YXJ0UmVxdWVzdBIRCgljb21wb25lbnQYASABKAkiEQoPUmVzdGFydFJlc3BvbnNlIh0KG0xpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdCJMChxMaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlEiwKB3BsdWdpbnMYASADKAsyGy5kZGFzaC5jb3JlLkluc3RhbGxlZFBsdWdpbiKSAQoPSW5zdGFsbGVkUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEAoIcmVxdWlyZXMYBiADKAkSDgoGc2NyaXB0GAcgASgJEg0KBXN0eWxlGAggASgJMqEECgtDb3JlU2VydmljZRJxChRMaXN0SW5zdGFsbGVkUGx1Z2lucxInLmRkYXNoLmNvcmUuTGlzdEluc3RhbGxlZFBsdWdpbnNSZXF1ZXN0GiguZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlIgaKtRgCCAISSAoHSW5zdGFsbBIaLmRkYXNoLmNvcmUuSW5zdGFsbFJlcXVlc3QaGy5kZGFzaC5jb3JlLkluc3RhbGxSZXNwb25zZSIEkrUYABJQCglVbmluc3RhbGwSHC5kZGFzaC5jb3JlLlVuaW5zdGFsbFJlcXVlc3QaHS5kZGFzaC5jb3JlLlVuaW5zdGFsbFJlc3BvbnNlIgaStRgCCAESSgoHUmVzdGFydBIaLmRkYXNoLmNvcmUuUmVzdGFydFJlcXVlc3QaGy5kZGFzaC5jb3JlLlJlc3RhcnRSZXNwb25zZSIGkrUYAggBElwKDUxpc3RDYXRhbG9ndWUSIC5kZGFzaC5jb3JlLkxpc3RDYXRhbG9ndWVSZXF1ZXN0GiEuZGRhc2guY29yZS5MaXN0Q2F0YWxvZ3VlUmVzcG9uc2UiBoq1GAIIAhJZCgxEZWxldGVPcnBoYW4SHy5kZGFzaC5jb3JlLkRlbGV0ZU9ycGhhblJlcXVlc3QaIC5kZGFzaC5jb3JlLkRlbGV0ZU9ycGhhblJlc3BvbnNlIgaStRgCCAFCNFoyZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29yZTtjb3JlcGJiBnByb3RvMw", [file_ddash_options]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiZwoVTGlzdENhdGFsb2d1ZVJlc3BvbnNlEg8KB3JlbGVhc2UYASABKAkSLAoHcGx1Z2lucxgCIAMoCzIbLmRkYXNoLmNvcmUuQ2F0YWxvZ3VlUGx1Z2luEg8KB29ycGhhbnMYAyADKAkipQEKD0NhdGFsb2d1ZVBsdWdpbhIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEgwKBGljb24YBCABKAkSDgoGYXV0aG9yGAUgASgJEhEKCWluc3RhbGxlZBgGIAEoCBIvCgpjb21wb25lbnRzGAcgAygLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiTQoPQ29tcG9uZW50U3RhdHVzEgwKBG5hbWUYASABKAkSDQoFc3RhdGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIMCgRoZWxkGAQgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIRCg9JbnN0YWxsUmVzcG9uc2UiNwoQVW5pbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkSEwoLZGVsZXRlX2RhdGEYAiABKAgiJAoRVW5pbnN0YWxsUmVzcG9uc2USDwoHb3JwaGFucxgBIAMoCSIjCg5SZXN0YXJ0UmVxdWVzdBIRCgljb21wb25lbnQYASABKAkiEQoPUmVzdGFydFJlc3BvbnNlIh0KG0xpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdCJMChxMaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlEiwKB3BsdWdpbnMYASADKAsyGy5kZGFzaC5jb3JlLkluc3RhbGxlZFBsdWdpbiKSAQoPSW5zdGFsbGVkUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEAoIcmVxdWlyZXMYBiADKAkSDgoGc2NyaXB0GAcgASgJEg0KBXN0eWxlGAggASgJInEKE0xpc3RBdWRpdExvZ1JlcXVlc3QSEgoKYWN0b3Jfa2luZBgBIAEoCRIOCgZ0YXJnZXQYAiABKAkSDwoHb3V0Y29tZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSJoChRMaXN0QXVkaXRMb2dSZXNwb25zZRImCgZjaGFpbnMYASADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0Q2hhaW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEg8KB3RhcmdldHMYAyADKAkiQQoKQXVkaXRDaGFpbhIKCgJpZBgBIAEoCRInCgdlbnRyaWVzGAIgAygLMhYuZGRhc2guY29yZS5BdWRpdEVudHJ5Iv0BCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmFjdG9yX2tpbmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSCwoDc3ViGAQgASgJEg4KBnRhcmdldBgFIAEoCRIOCgZtZXRob2QYBiABKAkSEgoKZGlzcnVwdGl2ZRgHIAEoCBIPCgdyZXF1ZXN0GAggASgJEg8KB291dGNvbWUYCSABKAkSDwoHbWVzc2FnZRgKIAEoCRIrCghkdXJhdGlvbhgLIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbjL8BAoLQ29yZVNlcnZpY2UScQoUTGlzdEluc3RhbGxlZFBsdWdpbnMSJy5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdBooLmRkYXNoLmNvcmUuTGlzdEluc3RhbGxlZFBsdWdpbnNSZXNwb25zZSIGirUYAggCEkgKB0luc3RhbGwSGi5kZGFzaC5jb3JlLkluc3RhbGxSZXF1ZXN0GhsuZGRhc2guY29yZS5JbnN0YWxsUmVzcG9uc2UiBJK1GAASUAoJVW5pbnN0YWxsEhwuZGRhc2guY29yZS5Vbmluc3RhbGxSZXF1ZXN0Gh0uZGRhc2guY29yZS5Vbmluc3RhbGxSZXNwb25zZSIGkrUYAggBEkoKB1Jlc3RhcnQSGi5kZGFzaC5jb3JlLlJlc3RhcnRSZXF1ZXN0GhsuZGRhc2guY29yZS5SZXN0YXJ0UmVzcG9uc2UiBpK1GAIIARJcCg1MaXN0Q2F0YWxvZ3VlEiAuZGRhc2guY29yZS5MaXN0Q2F0YWxvZ3VlUmVxdWVzdBohLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlc3BvbnNlIgaKtRgCCAISWQoMRGVsZXRlT3JwaGFuEh8uZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXF1ZXN0GiAuZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXNwb25zZSIGkrUYAggBElkKDExpc3RBdWRpdExvZxIfLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVxdWVzdBogLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVzcG9uc2UiBoq1GAIIA0I0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.core.ListCatalogueRequest
@@ -387,6 +389,206 @@ export const InstalledPluginSchema: GenMessage<InstalledPlugin> = /*@__PURE__*/
   messageDesc(file_ddash_core_core, 14);
 
 /**
+ * @generated from message ddash.core.ListAuditLogRequest
+ */
+export type ListAuditLogRequest = Message<"ddash.core.ListAuditLogRequest"> & {
+  /**
+   * Only chains whose root ran for this kind of actor: "operator",
+   * "component" or "core". Empty means any.
+   *
+   * @generated from field: string actor_kind = 1;
+   */
+  actorKind: string;
+
+  /**
+   * Only chains with a hop to this target: a Component's name or "core".
+   * Empty means any.
+   *
+   * @generated from field: string target = 2;
+   */
+  target: string;
+
+  /**
+   * Only chains with a hop that ended so: "ok", "failed" (a gRPC code),
+   * "interrupted" or "running". Empty means any.
+   *
+   * @generated from field: string outcome = 3;
+   */
+  outcome: string;
+
+  /**
+   * Chains per page: 50 when 0, at most 200.
+   *
+   * @generated from field: int32 page_size = 4;
+   */
+  pageSize: number;
+
+  /**
+   * The previous page's next_page_token; empty for the newest page.
+   *
+   * @generated from field: string page_token = 5;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message ddash.core.ListAuditLogRequest.
+ * Use `create(ListAuditLogRequestSchema)` to create a new message.
+ */
+export const ListAuditLogRequestSchema: GenMessage<ListAuditLogRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 15);
+
+/**
+ * @generated from message ddash.core.ListAuditLogResponse
+ */
+export type ListAuditLogResponse = Message<"ddash.core.ListAuditLogResponse"> & {
+  /**
+   * Newest root first.
+   *
+   * @generated from field: repeated ddash.core.AuditChain chains = 1;
+   */
+  chains: AuditChain[];
+
+  /**
+   * Where the next page starts; empty on the last page.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+
+  /**
+   * Every target in the Audit Log, sorted, to filter by.
+   *
+   * @generated from field: repeated string targets = 3;
+   */
+  targets: string[];
+};
+
+/**
+ * Describes the message ddash.core.ListAuditLogResponse.
+ * Use `create(ListAuditLogResponseSchema)` to create a new message.
+ */
+export const ListAuditLogResponseSchema: GenMessage<ListAuditLogResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 16);
+
+/**
+ * The hops of one Action, linked by their chain id.
+ *
+ * @generated from message ddash.core.AuditChain
+ */
+export type AuditChain = Message<"ddash.core.AuditChain"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * In the order they were admitted: the first is the root, the Action
+   * the actor started.
+   *
+   * @generated from field: repeated ddash.core.AuditEntry entries = 2;
+   */
+  entries: AuditEntry[];
+};
+
+/**
+ * Describes the message ddash.core.AuditChain.
+ * Use `create(AuditChainSchema)` to create a new message.
+ */
+export const AuditChainSchema: GenMessage<AuditChain> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 17);
+
+/**
+ * One hop in the Audit Log.
+ *
+ * @generated from message ddash.core.AuditEntry
+ */
+export type AuditEntry = Message<"ddash.core.AuditEntry"> & {
+  /**
+   * When the gate admitted it.
+   *
+   * @generated from field: google.protobuf.Timestamp time = 1;
+   */
+  time?: Timestamp | undefined;
+
+  /**
+   * "operator", "component" or "core".
+   *
+   * @generated from field: string actor_kind = 2;
+   */
+  actorKind: string;
+
+  /**
+   * The Operator's preferred_username or the Component's name.
+   *
+   * @generated from field: string username = 3;
+   */
+  username: string;
+
+  /**
+   * The Operator's OIDC subject.
+   *
+   * @generated from field: string sub = 4;
+   */
+  sub: string;
+
+  /**
+   * A Component's name, or "core".
+   *
+   * @generated from field: string target = 5;
+   */
+  target: string;
+
+  /**
+   * The bare method name, e.g. "Install".
+   *
+   * @generated from field: string method = 6;
+   */
+  method: string;
+
+  /**
+   * @generated from field: bool disruptive = 7;
+   */
+  disruptive: boolean;
+
+  /**
+   * The request as compact protojson, secrets redacted, cut at 4 KiB.
+   *
+   * @generated from field: string request = 8;
+   */
+  request: string;
+
+  /**
+   * "ok", "interrupted", a failed Action's gRPC code (e.g.
+   * "PermissionDenied"), or empty while it runs.
+   *
+   * @generated from field: string outcome = 9;
+   */
+  outcome: string;
+
+  /**
+   * A failed Action's error message.
+   *
+   * @generated from field: string message = 10;
+   */
+  message: string;
+
+  /**
+   * How long it ran; unset while it runs.
+   *
+   * @generated from field: google.protobuf.Duration duration = 11;
+   */
+  duration?: Duration | undefined;
+};
+
+/**
+ * Describes the message ddash.core.AuditEntry.
+ * Use `create(AuditEntrySchema)` to create a new message.
+ */
+export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 18);
+
+/**
  * @generated from service ddash.core.CoreService
  */
 export const CoreService: GenService<{
@@ -458,6 +660,17 @@ export const CoreService: GenService<{
     methodKind: "unary";
     input: typeof DeleteOrphanRequestSchema;
     output: typeof DeleteOrphanResponseSchema;
+  },
+  /**
+   * ListAuditLog reads the Audit Log a page at a time: chains, newest first,
+   * each with its hops.
+   *
+   * @generated from rpc ddash.core.CoreService.ListAuditLog
+   */
+  listAuditLog: {
+    methodKind: "unary";
+    input: typeof ListAuditLogRequestSchema;
+    output: typeof ListAuditLogResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ddash_core_core, 0);

@@ -6,6 +6,7 @@ import { ErrorBoundary, ErrorFrame } from "./boundary";
 import { Catalogue } from "./catalogue";
 import { icon } from "./icons";
 import { navItems, type NavItem } from "./nav";
+import { Settings } from "./settings";
 import { importBundle as defaultImport, usePlugins, type ImportBundle, type Plugins } from "./plugins";
 
 export interface AppProps {
@@ -37,7 +38,7 @@ function Shell({ fetch, importBundle }: { fetch?: Fetch; importBundle: ImportBun
         <Routes>
           <Route index element={<PageHeader title="Overview" />} />
           <Route path="plugins" element={<Catalogue />} />
-          <Route path="settings" element={<PageHeader title="Settings" />} />
+          <Route path="settings/*" element={<Settings />} />
           <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
         </Routes>
       </main>
