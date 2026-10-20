@@ -1,0 +1,17 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {"id": 0, "type": "block", "interface": ["wan"], "ipprotocol": "inet", "protocol": null, "icmptype": null, "source": "any", "source_port": null, "destination": "any", "destination_port": null, "descr": "Block everything from the internet", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000001},
+    {"id": 1, "type": "pass", "interface": ["wan"], "ipprotocol": "inet", "protocol": "udp", "icmptype": null, "source": "any", "source_port": null, "destination": "wan:ip", "destination_port": "51820", "descr": "Remote Access handshakes", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000002},
+    {"id": 2, "type": "pass", "interface": ["lan"], "ipprotocol": "inet", "protocol": null, "icmptype": null, "source": "lan", "source_port": null, "destination": "any", "destination_port": null, "descr": "Default allow LAN to any rule", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000003},
+    {"id": 3, "type": "pass", "interface": ["opt1"], "ipprotocol": "inet", "protocol": null, "icmptype": null, "source": "198.18.40.2", "source_port": null, "destination": "lan", "destination_port": null, "descr": "Phone reaches the LAN", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000004},
+    {"id": 4, "type": "pass", "interface": ["opt1"], "ipprotocol": "inet", "protocol": "tcp", "icmptype": null, "source": "opt1", "source_port": null, "destination": "198.18.1.20", "destination_port": "443", "descr": "Peers reach the reverse proxy", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000005},
+    {"id": 5, "type": "pass", "interface": ["opt1"], "ipprotocol": "inet", "protocol": "tcp/udp", "icmptype": null, "source": "opt1", "source_port": null, "destination": "DNS_SERVERS", "destination_port": "53", "descr": "Peers resolve names", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000006},
+    {"id": 6, "type": "pass", "interface": ["opt1"], "ipprotocol": "inet46", "protocol": null, "icmptype": null, "source": "any", "source_port": null, "destination": "any", "destination_port": null, "descr": "Old allow all", "disabled": true, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000007},
+    {"id": 7, "type": "block", "interface": ["opt1"], "ipprotocol": "inet", "protocol": null, "icmptype": null, "source": "any", "source_port": null, "destination": "any", "destination_port": null, "descr": "Block the rest", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000008},
+    {"id": 8, "type": "pass", "interface": ["opt1"], "ipprotocol": "inet", "protocol": "tcp", "icmptype": null, "source": "opt1", "source_port": null, "destination": "lan:ip", "destination_port": "443", "descr": "Firewall GUI (after the block: never matches)", "disabled": false, "log": false, "floating": false, "quick": false, "direction": null, "tracker": 1700000009}
+  ]
+}

@@ -6,12 +6,14 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
@@ -142,6 +144,109 @@ func TestReadsAreSharedForTheFastTier(t *testing.T) {
 
 	if got := srv.hits.Load(); got != 1 {
 		t.Errorf("%d requests to pfSense, want 1 shared by three reads and the health check", got)
+	}
+}
+
+func TestListsInterfacesWithTheirCounters(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListInterfaces(t.Context(), &pfsenseapipb.ListInterfacesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n := len(got.GetInterfaces()); n != 5 {
+		t.Fatalf("%d interfaces, want 5", n)
+	}
+	want := []*pfsenseapipb.Interface{
+		{Name: "wan", Description: "WAN", HwInterface: "igc0", Status: "up", Ipv4Address: "203.0.113.10", Ipv4Prefix: 24, Gateway: "203.0.113.1", InBytes: 918273645120, OutBytes: 81726354012, InPackets: 702381225, OutPackets: 290112874},
+		{Name: "lan", Description: "LAN", HwInterface: "igc1", Status: "up", Ipv4Address: "198.18.1.1", Ipv4Prefix: 24, InBytes: 76123498321, OutBytes: 902837465011, InPackets: 270001223, OutPackets: 689102233},
+		{Name: "opt1", Description: "REMOTEACCESS", HwInterface: "tun_wg1", Status: "up", Ipv4Address: "198.18.40.1", Ipv4Prefix: 24, InBytes: 1203948, OutBytes: 9384712, InPackets: 10233, OutPackets: 12001},
+	}
+	if diff := cmp.Diff(want, got.GetInterfaces()[:3], protocmp.Transform()); diff != "" {
+		t.Errorf("ListInterfaces (-want +got):\n%s", diff)
+	}
+}
+
+// network samples the counters every 5 s; a 2 s cache serves concurrent
+// readers without ever handing a sample stale counters.
+func TestInterfaceCountersAreCachedForTwoSeconds(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+	read := func() {
+		t.Helper()
+		if _, err := c.ListInterfaces(t.Context(), &pfsenseapipb.ListInterfacesRequest{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	read()
+	read()
+	if got := srv.hits.Load(); got != 1 {
+		t.Errorf("%d requests for two reads in a row, want 1", got)
+	}
+	time.Sleep(2100 * time.Millisecond)
+	read()
+	if got := srv.hits.Load(); got != 2 {
+		t.Errorf("%d requests after 2 s, want 2", got)
+	}
+}
+
+func TestListsWireguardTunnelsWithTheirPeers(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListWireguardTunnels(t.Context(), &pfsenseapipb.ListWireguardTunnelsRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if n := len(got.GetTunnels()); n != 2 {
+		t.Fatalf("%d tunnels, want 2 (the VPN Tunnel's included)", n)
+	}
+	want := &pfsenseapipb.WireguardTunnel{
+		Name: "tun_wg1", Description: "Remote Access", Status: "up", ListenPort: 51820, RxBytes: 1203948, TxBytes: 9384712,
+		Peers: []*pfsenseapipb.WireguardPeer{
+			{
+				PublicKey: "cGhvbmUtcGVlci1wdWJsaWMta2V5LWZpeHR1cmUtMDE=", Description: "Phone", Endpoint: "203.0.113.77:41234",
+				AllowedIps: []string{"198.18.40.2/32"}, LatestHandshake: timestamppb.New(time.Unix(1792483200, 0)), RxBytes: 1003948, TxBytes: 8384712,
+			},
+			// Never connected: wg reports endpoint "(none)" and handshake 0.
+			{PublicKey: "bGFwdG9wLXBlZXItcHVibGljLWtleS1maXh0dXJlLTI=", Description: "Laptop", AllowedIps: []string{"198.18.40.3/32"}},
+		},
+	}
+	if diff := cmp.Diff(want, got.GetTunnels()[0], protocmp.Transform()); diff != "" {
+		t.Errorf("Remote Access tunnel (-want +got):\n%s", diff)
+	}
+}
+
+func TestListsTheFirewallRulesOnOneInterfaceInOrder(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListFirewallRules(t.Context(), &pfsenseapipb.ListFirewallRulesRequest{Interface: "opt1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var descriptions []string
+	for _, r := range got.GetRules() {
+		descriptions = append(descriptions, r.GetDescription())
+	}
+	wantOrder := []string{"Phone reaches the LAN", "Peers reach the reverse proxy", "Peers resolve names", "Old allow all", "Block the rest", "Firewall GUI (after the block: never matches)"}
+	if diff := cmp.Diff(wantOrder, descriptions); diff != "" {
+		t.Fatalf("rules on opt1 (-want +got):\n%s", diff)
+	}
+	want := []*pfsenseapipb.FirewallRule{
+		{Type: "pass", Interfaces: []string{"opt1"}, IpProtocol: "inet", Source: "198.18.40.2", Destination: "lan", Description: "Phone reaches the LAN"},
+		{Type: "pass", Interfaces: []string{"opt1"}, IpProtocol: "inet", Protocol: "tcp", Source: "opt1", Destination: "198.18.1.20", DestinationPort: "443", Description: "Peers reach the reverse proxy"},
+	}
+	if diff := cmp.Diff(want, got.GetRules()[:2], protocmp.Transform()); diff != "" {
+		t.Errorf("rules (-want +got):\n%s", diff)
+	}
+	if !got.GetRules()[3].GetDisabled() {
+		t.Errorf("%q not disabled", got.GetRules()[3].GetDescription())
 	}
 }
 

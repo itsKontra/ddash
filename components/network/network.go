@@ -1,6 +1,7 @@
 // Package network is the network Component, the logic behind the Network
-// Page. For now it watches the firewall's failover gateway group and
-// derives the VPN Tunnel's tier from it.
+// Page. It watches the firewall's failover gateway group and derives the
+// VPN Tunnel's tier from it, samples WAN and LAN throughput into an
+// in-memory ring, and reads Remote Access.
 package network
 
 import (
@@ -55,6 +56,8 @@ type component struct {
 	// The Device join (devices.go).
 	bypassAlias string
 	devices     *sdk.Cache[*networkpb.ListDevicesResponse]
+
+	throughput throughput
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.NetworkConfig) error {
@@ -63,7 +66,13 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.Netw
 		return err
 	}
 	sdk.Every(ctx, PollInterval, c.poll)
+	sdk.Every(ctx, SampleInterval, func(ctx context.Context) { c.throughput.sample(ctx, c.pfsense) })
 	return nil
+}
+
+// GetThroughput answers from the ring.
+func (c *component) GetThroughput(_ context.Context, req *networkpb.GetThroughputRequest) (*networkpb.GetThroughputResponse, error) {
+	return c.throughput.get(req.GetSince()), nil
 }
 
 // Health is degraded while the gateway group can't be read or makes no

@@ -9,8 +9,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	"github.com/itsKontra/ddash/components/network"
+	"github.com/itsKontra/ddash/components/network/networkpb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -43,13 +45,18 @@ func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	return h
 }
 
-// vpnTier returns network's GetVpnTunnel answer on a lab serving scenarios.
-func vpnTier(t *testing.T, scenarios ...string) string {
-	res := bootNetwork(t, scenarios...).Call("network", "network", "GetVpnTunnel", `{}`)
+// networkCall returns network's answer to method on a lab serving scenarios.
+func networkCall(t *testing.T, method string, scenarios ...string) string {
+	res := bootNetwork(t, scenarios...).Call("network", "network", method, `{}`)
 	if res.Code != http.StatusOK {
-		t.Fatalf("GetVpnTunnel: status %d: %s", res.Code, res.Body)
+		t.Fatalf("%s: status %d: %s", method, res.Code, res.Body)
 	}
 	return res.Body.String()
+}
+
+// vpnTier returns network's GetVpnTunnel answer on a lab serving scenarios.
+func vpnTier(t *testing.T, scenarios ...string) string {
+	return networkCall(t, "GetVpnTunnel", scenarios...)
 }
 
 func TestTheBaselineFirewallHasTheTunnelViaWireGuard(t *testing.T) {
@@ -65,10 +72,7 @@ func TestTheVpnOnFallbackScenarioHasTheTunnelViaOpenVPN(t *testing.T) {
 }
 
 func TestTheBaselineFirewallHasAdoptedNewDirectAndTunnelledDevices(t *testing.T) {
-	res := bootNetwork(t).Call("network", "network", "ListDevices", `{}`)
-	if res.Code != http.StatusOK {
-		t.Fatalf("ListDevices: status %d: %s", res.Code, res.Body)
-	}
+	body := networkCall(t, "ListDevices")
 	var got struct {
 		Devices []struct {
 			Mac, Name, IP   string
@@ -77,7 +81,7 @@ func TestTheBaselineFirewallHasAdoptedNewDirectAndTunnelledDevices(t *testing.T)
 			Aliases         []struct{ Name string }
 		}
 	}
-	if err := json.Unmarshal(res.Body.Bytes(), &got); err != nil {
+	if err := json.Unmarshal([]byte(body), &got); err != nil {
 		t.Fatal(err)
 	}
 	var lines []string
@@ -97,6 +101,25 @@ func TestTheBaselineFirewallHasAdoptedNewDirectAndTunnelledDevices(t *testing.T)
 	}
 	if diff := cmp.Diff(want, lines); diff != "" {
 		t.Errorf("Devices (-want +got):\n%s", diff)
+	}
+}
+
+func TestTheBaselineFirewallHasTwoRemoteAccessPeers(t *testing.T) {
+	body := networkCall(t, "GetRemoteAccess")
+	var got networkpb.GetRemoteAccessResponse
+	if err := protojson.Unmarshal([]byte(body), &got); err != nil {
+		t.Fatal(err)
+	}
+
+	var names []string
+	for _, p := range got.GetPeers() {
+		names = append(names, p.GetName())
+	}
+	if got.GetTunnel() != "tun_wg1" || strings.Join(names, ",") != "Phone,Laptop" {
+		t.Fatalf("GetRemoteAccess = %s, want tun_wg1 with Phone and Laptop", body)
+	}
+	if first := got.GetPeers()[0].GetReaches()[0]; first.GetDestination() != "198.18.1.0/24" || first.GetLabel() != "LAN subnet" {
+		t.Errorf("Phone's first reach = %v, want the LAN subnet", first)
 	}
 }
 

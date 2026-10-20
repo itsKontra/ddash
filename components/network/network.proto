@@ -1,11 +1,13 @@
 syntax = "proto3";
 
-// network is the logic behind the Network Page. For now it watches the
-// firewall's failover gateway group and derives the VPN Tunnel's tier.
+// network is the logic behind the Network Page. It watches the firewall's
+// failover gateway group and derives the VPN Tunnel's tier, joins the
+// Devices, samples WAN and LAN throughput, and reads Remote Access.
 package ddash.network;
 
 import "ddash/config/config.proto";
 import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/network/networkpb;networkpb";
 
@@ -40,6 +42,19 @@ service NetworkService {
   // and alias members that aren't Devices never show.
   rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {
     option (ddash.getter) = {refresh: SLOW};
+  }
+  // GetThroughput returns the WAN and LAN throughput samples taken after
+  // since (all of the last hour when unset), oldest first. network samples
+  // every 5 s whether anyone is watching or not, and keeps the last 720
+  // samples in memory, so the ring is empty after a restart.
+  rpc GetThroughput(GetThroughputRequest) returns (GetThroughputResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  // GetRemoteAccess returns the Remote Access peers with their last
+  // handshake and traffic, and the hosts each can reach per the pass
+  // rules on the Remote Access interface.
+  rpc GetRemoteAccess(GetRemoteAccessRequest) returns (GetRemoteAccessResponse) {
+    option (ddash.getter) = {};
   }
 }
 
@@ -104,6 +119,74 @@ message Reservation {
 message DeviceAlias {
   string name = 1;
   string description = 2;
+}
+
+message GetThroughputRequest {
+  // Only samples taken after this; unset for the whole ring.
+  google.protobuf.Timestamp since = 1;
+}
+
+message GetThroughputResponse {
+  // Oldest first.
+  repeated ThroughputSample samples = 1;
+  // Why the last sampling failed; empty when it worked.
+  string error = 2;
+}
+
+// One sample: the average rates in bytes per second since the sample
+// before it. "In" is what the interface received: WAN in is download from
+// the internet, LAN in is upload from the home network.
+message ThroughputSample {
+  google.protobuf.Timestamp at = 1;
+  double wan_in_bytes_per_second = 2;
+  double wan_out_bytes_per_second = 3;
+  double lan_in_bytes_per_second = 4;
+  double lan_out_bytes_per_second = 5;
+}
+
+message GetRemoteAccessRequest {}
+
+message GetRemoteAccessResponse {
+  // The Remote Access tunnel: the WireGuard tunnel assigned to an
+  // interface without a gateway (the VPN Tunnel's has one), e.g. "tun_wg1".
+  string tunnel = 1;
+  // That interface's description, e.g. "REMOTEACCESS".
+  string interface = 2;
+  repeated RemoteAccessPeer peers = 3;
+  // Why there's no Remote Access tunnel; empty when there is one.
+  string error = 4;
+}
+
+message RemoteAccessPeer {
+  // The peer's description in pfSense; may be empty.
+  string name = 1;
+  string public_key = 2;
+  // Its tunnel addresses (allowed IPs), e.g. "198.18.40.2/32".
+  repeated string addresses = 3;
+  // Where it last connected from; empty when it never did.
+  string endpoint = 4;
+  // Its latest handshake; unset when it never completed one.
+  google.protobuf.Timestamp latest_handshake = 5;
+  // Bytes received from and sent to it.
+  uint64 rx_bytes = 6;
+  uint64 tx_bytes = 7;
+  // What it can reach, one entry per pass rule that applies to it.
+  repeated Reach reaches = 8;
+}
+
+// A destination a pass rule lets a peer reach.
+message Reach {
+  // The destination: an address or CIDR (interface subnets and addresses
+  // resolved), an alias name, "any" or "(self)"; "!" inverts it.
+  string destination = 1;
+  // What it is, e.g. "LAN subnet", "alias", "anywhere", "the firewall".
+  string label = 2;
+  // "tcp", "udp", "tcp/udp", "icmp", ...; "any" for any protocol.
+  string protocol = 3;
+  // A port, a range "80:443" or a port alias; empty for any.
+  string ports = 4;
+  // The rule's description.
+  string rule = 5;
 }
 
 message GetVpnTunnelRequest {}

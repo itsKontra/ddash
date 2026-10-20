@@ -4,6 +4,7 @@ import { DeviceDetail } from "./device";
 import { useNewBadge } from "./devices";
 import { devices } from "./devices-widget";
 import { Network } from "./network";
+import { throughput } from "./throughput";
 import { vpn } from "./vpn";
 
 export default definePlugin({
@@ -13,5 +14,5 @@ export default definePlugin({
     { index: true, Component: Network },
     { path: "devices/:mac", Component: DeviceDetail },
   ],
-  widgets: [vpn, devices],
+  widgets: [vpn, throughput, devices],
 });

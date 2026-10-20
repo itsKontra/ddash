@@ -246,6 +246,46 @@ export function Hero({ tone, headline, problems }: { tone: Tone; headline: React
   );
 }
 
+const sparkStroke = ["stroke-primary", "stroke-muted-foreground"];
+
+/**
+ * A small line chart filling its box's width, e.g. throughput over the
+ * last hour. Every series shares one scale from zero to the largest value;
+ * the first is drawn strong, the rest muted.
+ */
+export function Sparkline({ label, series, className }: { label: string; series: readonly (readonly number[])[]; className?: string }) {
+  const W = 100;
+  const H = 24;
+  const max = Math.max(0, ...series.flat());
+  const round = (v: number) => String(Math.round(v * 100) / 100);
+  const points = (values: readonly number[]) =>
+    values
+      .map((v, i) => {
+        const x = values.length > 1 ? (i / (values.length - 1)) * W : W;
+        const y = max > 0 ? H - (Math.max(0, v) / max) * H : H;
+        return `${round(x)},${round(y)}`;
+      })
+      .join(" ");
+  return (
+    <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={cx("h-12 w-full overflow-visible", className)}>
+      {series.map(
+        (values, i) =>
+          values.length > 0 && (
+            <polyline
+              key={i}
+              points={points(values)}
+              fill="none"
+              vectorEffect="non-scaling-stroke"
+              strokeWidth={i === 0 ? 1.5 : 1}
+              strokeLinejoin="round"
+              className={sparkStroke[Math.min(i, sparkStroke.length - 1)]}
+            />
+          ),
+      )}
+    </svg>
+  );
+}
+
 /** Where an icon of homarr-labs/dashboard-icons is served, by its name. */
 export const dashboardIcon = (name: string) => `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/${name}.svg`;
 

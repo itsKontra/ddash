@@ -14,6 +14,7 @@ import (
 	config "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -1126,11 +1127,710 @@ func (x *Alias) GetDetails() []string {
 	return nil
 }
 
+type ListInterfacesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInterfacesRequest) Reset() {
+	*x = ListInterfacesRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInterfacesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInterfacesRequest) ProtoMessage() {}
+
+func (x *ListInterfacesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInterfacesRequest.ProtoReflect.Descriptor instead.
+func (*ListInterfacesRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{19}
+}
+
+type ListInterfacesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Interfaces    []*Interface           `protobuf:"bytes,1,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListInterfacesResponse) Reset() {
+	*x = ListInterfacesResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListInterfacesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListInterfacesResponse) ProtoMessage() {}
+
+func (x *ListInterfacesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListInterfacesResponse.ProtoReflect.Descriptor instead.
+func (*ListInterfacesResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ListInterfacesResponse) GetInterfaces() []*Interface {
+	if x != nil {
+		return x.Interfaces
+	}
+	return nil
+}
+
+// An assigned interface and its counters, which count up from boot and
+// start again from zero when the interface is reset.
+type Interface struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// pfSense's interface id: "wan", "lan", "opt1", ...
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Its description, e.g. "WAN" or "REMOTEACCESS".
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// The OS device, e.g. "igc0" or "tun_wg1".
+	HwInterface string `protobuf:"bytes,3,opt,name=hw_interface,json=hwInterface,proto3" json:"hw_interface,omitempty"`
+	// "up", "down" or "no carrier".
+	Status string `protobuf:"bytes,4,opt,name=status,proto3" json:"status,omitempty"`
+	// Its IPv4 address and prefix length; empty and 0 without one.
+	Ipv4Address string `protobuf:"bytes,5,opt,name=ipv4_address,json=ipv4Address,proto3" json:"ipv4_address,omitempty"`
+	Ipv4Prefix  int32  `protobuf:"varint,6,opt,name=ipv4_prefix,json=ipv4Prefix,proto3" json:"ipv4_prefix,omitempty"`
+	// The gateway pfSense routes through on it; empty when it has none.
+	Gateway string `protobuf:"bytes,7,opt,name=gateway,proto3" json:"gateway,omitempty"`
+	// Bytes and packets in (received) and out (sent) since the counters began.
+	InBytes       uint64 `protobuf:"varint,8,opt,name=in_bytes,json=inBytes,proto3" json:"in_bytes,omitempty"`
+	OutBytes      uint64 `protobuf:"varint,9,opt,name=out_bytes,json=outBytes,proto3" json:"out_bytes,omitempty"`
+	InPackets     uint64 `protobuf:"varint,10,opt,name=in_packets,json=inPackets,proto3" json:"in_packets,omitempty"`
+	OutPackets    uint64 `protobuf:"varint,11,opt,name=out_packets,json=outPackets,proto3" json:"out_packets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Interface) Reset() {
+	*x = Interface{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Interface) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Interface) ProtoMessage() {}
+
+func (x *Interface) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Interface.ProtoReflect.Descriptor instead.
+func (*Interface) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *Interface) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Interface) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Interface) GetHwInterface() string {
+	if x != nil {
+		return x.HwInterface
+	}
+	return ""
+}
+
+func (x *Interface) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *Interface) GetIpv4Address() string {
+	if x != nil {
+		return x.Ipv4Address
+	}
+	return ""
+}
+
+func (x *Interface) GetIpv4Prefix() int32 {
+	if x != nil {
+		return x.Ipv4Prefix
+	}
+	return 0
+}
+
+func (x *Interface) GetGateway() string {
+	if x != nil {
+		return x.Gateway
+	}
+	return ""
+}
+
+func (x *Interface) GetInBytes() uint64 {
+	if x != nil {
+		return x.InBytes
+	}
+	return 0
+}
+
+func (x *Interface) GetOutBytes() uint64 {
+	if x != nil {
+		return x.OutBytes
+	}
+	return 0
+}
+
+func (x *Interface) GetInPackets() uint64 {
+	if x != nil {
+		return x.InPackets
+	}
+	return 0
+}
+
+func (x *Interface) GetOutPackets() uint64 {
+	if x != nil {
+		return x.OutPackets
+	}
+	return 0
+}
+
+type ListWireguardTunnelsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWireguardTunnelsRequest) Reset() {
+	*x = ListWireguardTunnelsRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWireguardTunnelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWireguardTunnelsRequest) ProtoMessage() {}
+
+func (x *ListWireguardTunnelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWireguardTunnelsRequest.ProtoReflect.Descriptor instead.
+func (*ListWireguardTunnelsRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{22}
+}
+
+type ListWireguardTunnelsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tunnels       []*WireguardTunnel     `protobuf:"bytes,1,rep,name=tunnels,proto3" json:"tunnels,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListWireguardTunnelsResponse) Reset() {
+	*x = ListWireguardTunnelsResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListWireguardTunnelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListWireguardTunnelsResponse) ProtoMessage() {}
+
+func (x *ListWireguardTunnelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListWireguardTunnelsResponse.ProtoReflect.Descriptor instead.
+func (*ListWireguardTunnelsResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *ListWireguardTunnelsResponse) GetTunnels() []*WireguardTunnel {
+	if x != nil {
+		return x.Tunnels
+	}
+	return nil
+}
+
+type WireguardTunnel struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The tunnel's device, e.g. "tun_wg1".
+	Name        string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// "up" or "down".
+	Status string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	// The UDP port it listens on; 0 when it doesn't.
+	ListenPort int32 `protobuf:"varint,4,opt,name=listen_port,json=listenPort,proto3" json:"listen_port,omitempty"`
+	// Bytes received and sent on the tunnel since it came up.
+	RxBytes       uint64           `protobuf:"varint,5,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes       uint64           `protobuf:"varint,6,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	Peers         []*WireguardPeer `protobuf:"bytes,7,rep,name=peers,proto3" json:"peers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireguardTunnel) Reset() {
+	*x = WireguardTunnel{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireguardTunnel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireguardTunnel) ProtoMessage() {}
+
+func (x *WireguardTunnel) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireguardTunnel.ProtoReflect.Descriptor instead.
+func (*WireguardTunnel) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *WireguardTunnel) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *WireguardTunnel) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *WireguardTunnel) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *WireguardTunnel) GetListenPort() int32 {
+	if x != nil {
+		return x.ListenPort
+	}
+	return 0
+}
+
+func (x *WireguardTunnel) GetRxBytes() uint64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *WireguardTunnel) GetTxBytes() uint64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
+func (x *WireguardTunnel) GetPeers() []*WireguardPeer {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
+}
+
+type WireguardPeer struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PublicKey string                 `protobuf:"bytes,1,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// The peer's description in the tunnel's config.
+	Description string `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	// Where it last connected from (host:port); empty when it never did.
+	Endpoint string `protobuf:"bytes,3,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	// The addresses routed to it, e.g. "198.18.40.2/32".
+	AllowedIps []string `protobuf:"bytes,4,rep,name=allowed_ips,json=allowedIps,proto3" json:"allowed_ips,omitempty"`
+	// Its latest handshake; unset when it never completed one.
+	LatestHandshake *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=latest_handshake,json=latestHandshake,proto3" json:"latest_handshake,omitempty"`
+	// Bytes received from and sent to it.
+	RxBytes       uint64 `protobuf:"varint,6,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes       uint64 `protobuf:"varint,7,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WireguardPeer) Reset() {
+	*x = WireguardPeer{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WireguardPeer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WireguardPeer) ProtoMessage() {}
+
+func (x *WireguardPeer) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WireguardPeer.ProtoReflect.Descriptor instead.
+func (*WireguardPeer) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *WireguardPeer) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *WireguardPeer) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *WireguardPeer) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *WireguardPeer) GetAllowedIps() []string {
+	if x != nil {
+		return x.AllowedIps
+	}
+	return nil
+}
+
+func (x *WireguardPeer) GetLatestHandshake() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LatestHandshake
+	}
+	return nil
+}
+
+func (x *WireguardPeer) GetRxBytes() uint64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *WireguardPeer) GetTxBytes() uint64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
+type ListFirewallRulesRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The interface id whose rules to list, e.g. "opt1"; empty lists all.
+	Interface     string `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFirewallRulesRequest) Reset() {
+	*x = ListFirewallRulesRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFirewallRulesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFirewallRulesRequest) ProtoMessage() {}
+
+func (x *ListFirewallRulesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFirewallRulesRequest.ProtoReflect.Descriptor instead.
+func (*ListFirewallRulesRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListFirewallRulesRequest) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+type ListFirewallRulesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Rules         []*FirewallRule        `protobuf:"bytes,1,rep,name=rules,proto3" json:"rules,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFirewallRulesResponse) Reset() {
+	*x = ListFirewallRulesResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFirewallRulesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFirewallRulesResponse) ProtoMessage() {}
+
+func (x *ListFirewallRulesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFirewallRulesResponse.ProtoReflect.Descriptor instead.
+func (*ListFirewallRulesResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListFirewallRulesResponse) GetRules() []*FirewallRule {
+	if x != nil {
+		return x.Rules
+	}
+	return nil
+}
+
+type FirewallRule struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// "pass", "block" or "reject".
+	Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+	// The interface ids it sits on.
+	Interfaces []string `protobuf:"bytes,2,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
+	// "inet", "inet6" or "inet46".
+	IpProtocol string `protobuf:"bytes,3,opt,name=ip_protocol,json=ipProtocol,proto3" json:"ip_protocol,omitempty"`
+	// "tcp", "udp", "tcp/udp", "icmp", ...; empty for any.
+	Protocol string `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// pfSense's address forms: "any", an address or CIDR, an alias name, an
+	// interface id for its subnet ("lan") or its address ("lan:ip"), or
+	// "(self)"; a leading "!" inverts it.
+	Source      string `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
+	Destination string `protobuf:"bytes,6,opt,name=destination,proto3" json:"destination,omitempty"`
+	// A port, a range "80:443" or a port alias; empty for any.
+	SourcePort      string `protobuf:"bytes,7,opt,name=source_port,json=sourcePort,proto3" json:"source_port,omitempty"`
+	DestinationPort string `protobuf:"bytes,8,opt,name=destination_port,json=destinationPort,proto3" json:"destination_port,omitempty"`
+	Description     string `protobuf:"bytes,9,opt,name=description,proto3" json:"description,omitempty"`
+	Disabled        bool   `protobuf:"varint,10,opt,name=disabled,proto3" json:"disabled,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *FirewallRule) Reset() {
+	*x = FirewallRule{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FirewallRule) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FirewallRule) ProtoMessage() {}
+
+func (x *FirewallRule) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FirewallRule.ProtoReflect.Descriptor instead.
+func (*FirewallRule) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *FirewallRule) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetInterfaces() []string {
+	if x != nil {
+		return x.Interfaces
+	}
+	return nil
+}
+
+func (x *FirewallRule) GetIpProtocol() string {
+	if x != nil {
+		return x.IpProtocol
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetSourcePort() string {
+	if x != nil {
+		return x.SourcePort
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetDestinationPort() string {
+	if x != nil {
+		return x.DestinationPort
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *FirewallRule) GetDisabled() bool {
+	if x != nil {
+		return x.Disabled
+	}
+	return false
+}
+
 var File_pfsense_api_pfsense_api_proto protoreflect.FileDescriptor
 
 const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1dpfsense-api/pfsense_api.proto\x12\x10ddash.pfsenseapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xf5\x01\n" +
+	"\x1dpfsense-api/pfsense_api.proto\x12\x10ddash.pfsenseapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf5\x01\n" +
 	"\x10PfsenseApiConfig\x12r\n" +
 	"\x03url\x18\x01 \x01(\tB`\x9a\xb5\x18\\\x1a\x03URL\"=The firewall's LAN address: the REST API answers on LAN only.*\x12https://198.18.1.10\x018\x01R\x03url\x12m\n" +
 	"\aapi_key\x18\x02 \x01(\tBT\x9a\xb5\x18P\x10\x01\x1a\aAPI key\"AGenerated in System > REST API > Keys for a dedicated ddash user.0\x01R\x06apiKey\"\x15\n" +
@@ -1202,14 +1902,80 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x12 \n" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1c\n" +
 	"\taddresses\x18\x04 \x03(\tR\taddresses\x12\x18\n" +
-	"\adetails\x18\x05 \x03(\tR\adetails2\x9f\x04\n" +
+	"\adetails\x18\x05 \x03(\tR\adetails\"\x17\n" +
+	"\x15ListInterfacesRequest\"U\n" +
+	"\x16ListInterfacesResponse\x12;\n" +
+	"\n" +
+	"interfaces\x18\x01 \x03(\v2\x1b.ddash.pfsenseapi.InterfaceR\n" +
+	"interfaces\"\xd2\x02\n" +
+	"\tInterface\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12!\n" +
+	"\fhw_interface\x18\x03 \x01(\tR\vhwInterface\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\x12!\n" +
+	"\fipv4_address\x18\x05 \x01(\tR\vipv4Address\x12\x1f\n" +
+	"\vipv4_prefix\x18\x06 \x01(\x05R\n" +
+	"ipv4Prefix\x12\x18\n" +
+	"\agateway\x18\a \x01(\tR\agateway\x12\x19\n" +
+	"\bin_bytes\x18\b \x01(\x04R\ainBytes\x12\x1b\n" +
+	"\tout_bytes\x18\t \x01(\x04R\boutBytes\x12\x1d\n" +
+	"\n" +
+	"in_packets\x18\n" +
+	" \x01(\x04R\tinPackets\x12\x1f\n" +
+	"\vout_packets\x18\v \x01(\x04R\n" +
+	"outPackets\"\x1d\n" +
+	"\x1bListWireguardTunnelsRequest\"[\n" +
+	"\x1cListWireguardTunnelsResponse\x12;\n" +
+	"\atunnels\x18\x01 \x03(\v2!.ddash.pfsenseapi.WireguardTunnelR\atunnels\"\xed\x01\n" +
+	"\x0fWireguardTunnel\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x1f\n" +
+	"\vlisten_port\x18\x04 \x01(\x05R\n" +
+	"listenPort\x12\x19\n" +
+	"\brx_bytes\x18\x05 \x01(\x04R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\x06 \x01(\x04R\atxBytes\x125\n" +
+	"\x05peers\x18\a \x03(\v2\x1f.ddash.pfsenseapi.WireguardPeerR\x05peers\"\x8a\x02\n" +
+	"\rWireguardPeer\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x01 \x01(\tR\tpublicKey\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12\x1a\n" +
+	"\bendpoint\x18\x03 \x01(\tR\bendpoint\x12\x1f\n" +
+	"\vallowed_ips\x18\x04 \x03(\tR\n" +
+	"allowedIps\x12E\n" +
+	"\x10latest_handshake\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0flatestHandshake\x12\x19\n" +
+	"\brx_bytes\x18\x06 \x01(\x04R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\a \x01(\x04R\atxBytes\"8\n" +
+	"\x18ListFirewallRulesRequest\x12\x1c\n" +
+	"\tinterface\x18\x01 \x01(\tR\tinterface\"Q\n" +
+	"\x19ListFirewallRulesResponse\x124\n" +
+	"\x05rules\x18\x01 \x03(\v2\x1e.ddash.pfsenseapi.FirewallRuleR\x05rules\"\xc3\x02\n" +
+	"\fFirewallRule\x12\x12\n" +
+	"\x04type\x18\x01 \x01(\tR\x04type\x12\x1e\n" +
+	"\n" +
+	"interfaces\x18\x02 \x03(\tR\n" +
+	"interfaces\x12\x1f\n" +
+	"\vip_protocol\x18\x03 \x01(\tR\n" +
+	"ipProtocol\x12\x1a\n" +
+	"\bprotocol\x18\x04 \x01(\tR\bprotocol\x12\x16\n" +
+	"\x06source\x18\x05 \x01(\tR\x06source\x12 \n" +
+	"\vdestination\x18\x06 \x01(\tR\vdestination\x12\x1f\n" +
+	"\vsource_port\x18\a \x01(\tR\n" +
+	"sourcePort\x12)\n" +
+	"\x10destination_port\x18\b \x01(\tR\x0fdestinationPort\x12 \n" +
+	"\vdescription\x18\t \x01(\tR\vdescription\x12\x1a\n" +
+	"\bdisabled\x18\n" +
+	" \x01(\bR\bdisabled2\xfd\x06\n" +
 	"\x11PfsenseApiService\x12e\n" +
 	"\fListGateways\x12%.ddash.pfsenseapi.ListGatewaysRequest\x1a&.ddash.pfsenseapi.ListGatewaysResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12t\n" +
 	"\x11ListGatewayGroups\x12*.ddash.pfsenseapi.ListGatewayGroupsRequest\x1a+.ddash.pfsenseapi.ListGatewayGroupsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12]\n" +
 	"\n" +
 	"ListLeases\x12#.ddash.pfsenseapi.ListLeasesRequest\x1a$.ddash.pfsenseapi.ListLeasesResponse\"\x04\x8a\xb5\x18\x00\x12l\n" +
 	"\x0fListDhcpServers\x12(.ddash.pfsenseapi.ListDhcpServersRequest\x1a).ddash.pfsenseapi.ListDhcpServersResponse\"\x04\x8a\xb5\x18\x00\x12`\n" +
-	"\vListAliases\x12$.ddash.pfsenseapi.ListAliasesRequest\x1a%.ddash.pfsenseapi.ListAliasesResponse\"\x04\x8a\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipbb\x06proto3"
+	"\vListAliases\x12$.ddash.pfsenseapi.ListAliasesRequest\x1a%.ddash.pfsenseapi.ListAliasesResponse\"\x04\x8a\xb5\x18\x00\x12k\n" +
+	"\x0eListInterfaces\x12'.ddash.pfsenseapi.ListInterfacesRequest\x1a(.ddash.pfsenseapi.ListInterfacesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12{\n" +
+	"\x14ListWireguardTunnels\x12-.ddash.pfsenseapi.ListWireguardTunnelsRequest\x1a..ddash.pfsenseapi.ListWireguardTunnelsResponse\"\x04\x8a\xb5\x18\x00\x12r\n" +
+	"\x11ListFirewallRules\x12*.ddash.pfsenseapi.ListFirewallRulesRequest\x1a+.ddash.pfsenseapi.ListFirewallRulesResponse\"\x04\x8a\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipbb\x06proto3"
 
 var (
 	file_pfsense_api_pfsense_api_proto_rawDescOnce sync.Once
@@ -1223,28 +1989,39 @@ func file_pfsense_api_pfsense_api_proto_rawDescGZIP() []byte {
 	return file_pfsense_api_pfsense_api_proto_rawDescData
 }
 
-var file_pfsense_api_pfsense_api_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_pfsense_api_pfsense_api_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_pfsense_api_pfsense_api_proto_goTypes = []any{
-	(*PfsenseApiConfig)(nil),          // 0: ddash.pfsenseapi.PfsenseApiConfig
-	(*ListGatewaysRequest)(nil),       // 1: ddash.pfsenseapi.ListGatewaysRequest
-	(*ListGatewaysResponse)(nil),      // 2: ddash.pfsenseapi.ListGatewaysResponse
-	(*Gateway)(nil),                   // 3: ddash.pfsenseapi.Gateway
-	(*ListGatewayGroupsRequest)(nil),  // 4: ddash.pfsenseapi.ListGatewayGroupsRequest
-	(*ListGatewayGroupsResponse)(nil), // 5: ddash.pfsenseapi.ListGatewayGroupsResponse
-	(*GatewayGroup)(nil),              // 6: ddash.pfsenseapi.GatewayGroup
-	(*GatewayGroupMember)(nil),        // 7: ddash.pfsenseapi.GatewayGroupMember
-	(*ListLeasesRequest)(nil),         // 8: ddash.pfsenseapi.ListLeasesRequest
-	(*ListLeasesResponse)(nil),        // 9: ddash.pfsenseapi.ListLeasesResponse
-	(*Lease)(nil),                     // 10: ddash.pfsenseapi.Lease
-	(*ListDhcpServersRequest)(nil),    // 11: ddash.pfsenseapi.ListDhcpServersRequest
-	(*ListDhcpServersResponse)(nil),   // 12: ddash.pfsenseapi.ListDhcpServersResponse
-	(*DhcpServer)(nil),                // 13: ddash.pfsenseapi.DhcpServer
-	(*AddressRange)(nil),              // 14: ddash.pfsenseapi.AddressRange
-	(*StaticMapping)(nil),             // 15: ddash.pfsenseapi.StaticMapping
-	(*ListAliasesRequest)(nil),        // 16: ddash.pfsenseapi.ListAliasesRequest
-	(*ListAliasesResponse)(nil),       // 17: ddash.pfsenseapi.ListAliasesResponse
-	(*Alias)(nil),                     // 18: ddash.pfsenseapi.Alias
-	(*config.Choices)(nil),            // 19: ddash.config.Choices
+	(*PfsenseApiConfig)(nil),             // 0: ddash.pfsenseapi.PfsenseApiConfig
+	(*ListGatewaysRequest)(nil),          // 1: ddash.pfsenseapi.ListGatewaysRequest
+	(*ListGatewaysResponse)(nil),         // 2: ddash.pfsenseapi.ListGatewaysResponse
+	(*Gateway)(nil),                      // 3: ddash.pfsenseapi.Gateway
+	(*ListGatewayGroupsRequest)(nil),     // 4: ddash.pfsenseapi.ListGatewayGroupsRequest
+	(*ListGatewayGroupsResponse)(nil),    // 5: ddash.pfsenseapi.ListGatewayGroupsResponse
+	(*GatewayGroup)(nil),                 // 6: ddash.pfsenseapi.GatewayGroup
+	(*GatewayGroupMember)(nil),           // 7: ddash.pfsenseapi.GatewayGroupMember
+	(*ListLeasesRequest)(nil),            // 8: ddash.pfsenseapi.ListLeasesRequest
+	(*ListLeasesResponse)(nil),           // 9: ddash.pfsenseapi.ListLeasesResponse
+	(*Lease)(nil),                        // 10: ddash.pfsenseapi.Lease
+	(*ListDhcpServersRequest)(nil),       // 11: ddash.pfsenseapi.ListDhcpServersRequest
+	(*ListDhcpServersResponse)(nil),      // 12: ddash.pfsenseapi.ListDhcpServersResponse
+	(*DhcpServer)(nil),                   // 13: ddash.pfsenseapi.DhcpServer
+	(*AddressRange)(nil),                 // 14: ddash.pfsenseapi.AddressRange
+	(*StaticMapping)(nil),                // 15: ddash.pfsenseapi.StaticMapping
+	(*ListAliasesRequest)(nil),           // 16: ddash.pfsenseapi.ListAliasesRequest
+	(*ListAliasesResponse)(nil),          // 17: ddash.pfsenseapi.ListAliasesResponse
+	(*Alias)(nil),                        // 18: ddash.pfsenseapi.Alias
+	(*ListInterfacesRequest)(nil),        // 19: ddash.pfsenseapi.ListInterfacesRequest
+	(*ListInterfacesResponse)(nil),       // 20: ddash.pfsenseapi.ListInterfacesResponse
+	(*Interface)(nil),                    // 21: ddash.pfsenseapi.Interface
+	(*ListWireguardTunnelsRequest)(nil),  // 22: ddash.pfsenseapi.ListWireguardTunnelsRequest
+	(*ListWireguardTunnelsResponse)(nil), // 23: ddash.pfsenseapi.ListWireguardTunnelsResponse
+	(*WireguardTunnel)(nil),              // 24: ddash.pfsenseapi.WireguardTunnel
+	(*WireguardPeer)(nil),                // 25: ddash.pfsenseapi.WireguardPeer
+	(*ListFirewallRulesRequest)(nil),     // 26: ddash.pfsenseapi.ListFirewallRulesRequest
+	(*ListFirewallRulesResponse)(nil),    // 27: ddash.pfsenseapi.ListFirewallRulesResponse
+	(*FirewallRule)(nil),                 // 28: ddash.pfsenseapi.FirewallRule
+	(*config.Choices)(nil),               // 29: ddash.config.Choices
+	(*timestamppb.Timestamp)(nil),        // 30: google.protobuf.Timestamp
 }
 var file_pfsense_api_pfsense_api_proto_depIdxs = []int32{
 	3,  // 0: ddash.pfsenseapi.ListGatewaysResponse.gateways:type_name -> ddash.pfsenseapi.Gateway
@@ -1255,22 +2032,33 @@ var file_pfsense_api_pfsense_api_proto_depIdxs = []int32{
 	14, // 5: ddash.pfsenseapi.DhcpServer.pools:type_name -> ddash.pfsenseapi.AddressRange
 	15, // 6: ddash.pfsenseapi.DhcpServer.static_mappings:type_name -> ddash.pfsenseapi.StaticMapping
 	18, // 7: ddash.pfsenseapi.ListAliasesResponse.aliases:type_name -> ddash.pfsenseapi.Alias
-	19, // 8: ddash.pfsenseapi.ListAliasesResponse.choices:type_name -> ddash.config.Choices
-	1,  // 9: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
-	4,  // 10: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
-	8,  // 11: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
-	11, // 12: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
-	16, // 13: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
-	2,  // 14: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
-	5,  // 15: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
-	9,  // 16: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
-	12, // 17: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
-	17, // 18: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
-	14, // [14:19] is the sub-list for method output_type
-	9,  // [9:14] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	29, // 8: ddash.pfsenseapi.ListAliasesResponse.choices:type_name -> ddash.config.Choices
+	21, // 9: ddash.pfsenseapi.ListInterfacesResponse.interfaces:type_name -> ddash.pfsenseapi.Interface
+	24, // 10: ddash.pfsenseapi.ListWireguardTunnelsResponse.tunnels:type_name -> ddash.pfsenseapi.WireguardTunnel
+	25, // 11: ddash.pfsenseapi.WireguardTunnel.peers:type_name -> ddash.pfsenseapi.WireguardPeer
+	30, // 12: ddash.pfsenseapi.WireguardPeer.latest_handshake:type_name -> google.protobuf.Timestamp
+	28, // 13: ddash.pfsenseapi.ListFirewallRulesResponse.rules:type_name -> ddash.pfsenseapi.FirewallRule
+	1,  // 14: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
+	4,  // 15: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
+	8,  // 16: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
+	11, // 17: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
+	16, // 18: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
+	19, // 19: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:input_type -> ddash.pfsenseapi.ListInterfacesRequest
+	22, // 20: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:input_type -> ddash.pfsenseapi.ListWireguardTunnelsRequest
+	26, // 21: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:input_type -> ddash.pfsenseapi.ListFirewallRulesRequest
+	2,  // 22: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
+	5,  // 23: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
+	9,  // 24: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
+	12, // 25: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
+	17, // 26: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
+	20, // 27: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:output_type -> ddash.pfsenseapi.ListInterfacesResponse
+	23, // 28: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:output_type -> ddash.pfsenseapi.ListWireguardTunnelsResponse
+	27, // 29: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:output_type -> ddash.pfsenseapi.ListFirewallRulesResponse
+	22, // [22:30] is the sub-list for method output_type
+	14, // [14:22] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
 func init() { file_pfsense_api_pfsense_api_proto_init() }
@@ -1285,7 +2073,7 @@ func file_pfsense_api_pfsense_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pfsense_api_pfsense_api_proto_rawDesc), len(file_pfsense_api_pfsense_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

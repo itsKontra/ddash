@@ -2,7 +2,7 @@
   "name": "@ddash/plugin-network",
   "private": true,
   "type": "module",
-  "description": "The network Plugin's UI: gateways and the VPN Tunnel.",
+  "description": "The network Plugin's UI: gateways, the VPN Tunnel, throughput and Remote Access.",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
