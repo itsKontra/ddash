@@ -343,7 +343,10 @@ type Snapshot struct {
 	// last good read.
 	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	// Every server block, in the order nginx loads them.
-	Servers       []*Server `protobuf:"bytes,4,rep,name=servers,proto3" json:"servers,omitempty"`
+	Servers []*Server `protobuf:"bytes,4,rep,name=servers,proto3" json:"servers,omitempty"`
+	// Every http upstream block, in the order nginx loads them, from the
+	// same read as servers.
+	Upstreams     []*Upstream `protobuf:"bytes,5,rep,name=upstreams,proto3" json:"upstreams,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -406,6 +409,68 @@ func (x *Snapshot) GetServers() []*Server {
 	return nil
 }
 
+func (x *Snapshot) GetUpstreams() []*Upstream {
+	if x != nil {
+		return x.Upstreams
+	}
+	return nil
+}
+
+// One nginx http upstream block, which a proxy_pass names by its name.
+type Upstream struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Each server's address as written, e.g. "198.18.2.20:3000" or
+	// "unix:/run/app.sock", without its parameters.
+	Servers       []string `protobuf:"bytes,2,rep,name=servers,proto3" json:"servers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Upstream) Reset() {
+	*x = Upstream{}
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Upstream) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Upstream) ProtoMessage() {}
+
+func (x *Upstream) ProtoReflect() protoreflect.Message {
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Upstream.ProtoReflect.Descriptor instead.
+func (*Upstream) Descriptor() ([]byte, []int) {
+	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *Upstream) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Upstream) GetServers() []string {
+	if x != nil {
+		return x.Servers
+	}
+	return nil
+}
+
 // One nginx server block.
 type Server struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -425,7 +490,7 @@ type Server struct {
 
 func (x *Server) Reset() {
 	*x = Server{}
-	mi := &file_nginx_config_nginx_config_proto_msgTypes[8]
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -437,7 +502,7 @@ func (x *Server) String() string {
 func (*Server) ProtoMessage() {}
 
 func (x *Server) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_config_nginx_config_proto_msgTypes[8]
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -450,7 +515,7 @@ func (x *Server) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Server.ProtoReflect.Descriptor instead.
 func (*Server) Descriptor() ([]byte, []int) {
-	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{8}
+	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Server) GetFile() string {
@@ -514,7 +579,7 @@ type Listen struct {
 
 func (x *Listen) Reset() {
 	*x = Listen{}
-	mi := &file_nginx_config_nginx_config_proto_msgTypes[9]
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +591,7 @@ func (x *Listen) String() string {
 func (*Listen) ProtoMessage() {}
 
 func (x *Listen) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_config_nginx_config_proto_msgTypes[9]
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +604,7 @@ func (x *Listen) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Listen.ProtoReflect.Descriptor instead.
 func (*Listen) Descriptor() ([]byte, []int) {
-	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{9}
+	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Listen) GetAddress() string {
@@ -575,7 +640,7 @@ type Location struct {
 
 func (x *Location) Reset() {
 	*x = Location{}
-	mi := &file_nginx_config_nginx_config_proto_msgTypes[10]
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -587,7 +652,7 @@ func (x *Location) String() string {
 func (*Location) ProtoMessage() {}
 
 func (x *Location) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_config_nginx_config_proto_msgTypes[10]
+	mi := &file_nginx_config_nginx_config_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -600,7 +665,7 @@ func (x *Location) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Location.ProtoReflect.Descriptor instead.
 func (*Location) Descriptor() ([]byte, []int) {
-	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{10}
+	return file_nginx_config_nginx_config_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Location) GetPath() string {
@@ -638,12 +703,16 @@ const file_nginx_config_nginx_config_proto_rawDesc = "" +
 	"\x04hint\x18\x01 \x01(\v2\x17.ddash.config.SetupHintR\x04hint\"\x10\n" +
 	"\x0eRefreshRequest\"J\n" +
 	"\x0fRefreshResponse\x127\n" +
-	"\bsnapshot\x18\x01 \x01(\v2\x1b.ddash.nginxconfig.SnapshotR\bsnapshot\"\xa6\x01\n" +
+	"\bsnapshot\x18\x01 \x01(\v2\x1b.ddash.nginxconfig.SnapshotR\bsnapshot\"\xe1\x01\n" +
 	"\bSnapshot\x12\x1a\n" +
 	"\brevision\x18\x01 \x01(\x03R\brevision\x123\n" +
 	"\aread_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\x12\x14\n" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x123\n" +
-	"\aservers\x18\x04 \x03(\v2\x19.ddash.nginxconfig.ServerR\aservers\"\x84\x02\n" +
+	"\aservers\x18\x04 \x03(\v2\x19.ddash.nginxconfig.ServerR\aservers\x129\n" +
+	"\tupstreams\x18\x05 \x03(\v2\x1b.ddash.nginxconfig.UpstreamR\tupstreams\"8\n" +
+	"\bUpstream\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\aservers\x18\x02 \x03(\tR\aservers\"\x84\x02\n" +
 	"\x06Server\x12\x12\n" +
 	"\x04file\x18\x01 \x01(\tR\x04file\x12\x12\n" +
 	"\x04line\x18\x02 \x01(\x03R\x04line\x12!\n" +
@@ -677,7 +746,7 @@ func file_nginx_config_nginx_config_proto_rawDescGZIP() []byte {
 	return file_nginx_config_nginx_config_proto_rawDescData
 }
 
-var file_nginx_config_nginx_config_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_nginx_config_nginx_config_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_nginx_config_nginx_config_proto_goTypes = []any{
 	(*NginxConfigConfig)(nil),     // 0: ddash.nginxconfig.NginxConfigConfig
 	(*GetSnapshotRequest)(nil),    // 1: ddash.nginxconfig.GetSnapshotRequest
@@ -687,31 +756,33 @@ var file_nginx_config_nginx_config_proto_goTypes = []any{
 	(*RefreshRequest)(nil),        // 5: ddash.nginxconfig.RefreshRequest
 	(*RefreshResponse)(nil),       // 6: ddash.nginxconfig.RefreshResponse
 	(*Snapshot)(nil),              // 7: ddash.nginxconfig.Snapshot
-	(*Server)(nil),                // 8: ddash.nginxconfig.Server
-	(*Listen)(nil),                // 9: ddash.nginxconfig.Listen
-	(*Location)(nil),              // 10: ddash.nginxconfig.Location
-	(*config.SetupHint)(nil),      // 11: ddash.config.SetupHint
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*Upstream)(nil),              // 8: ddash.nginxconfig.Upstream
+	(*Server)(nil),                // 9: ddash.nginxconfig.Server
+	(*Listen)(nil),                // 10: ddash.nginxconfig.Listen
+	(*Location)(nil),              // 11: ddash.nginxconfig.Location
+	(*config.SetupHint)(nil),      // 12: ddash.config.SetupHint
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
 }
 var file_nginx_config_nginx_config_proto_depIdxs = []int32{
 	7,  // 0: ddash.nginxconfig.GetSnapshotResponse.snapshot:type_name -> ddash.nginxconfig.Snapshot
-	11, // 1: ddash.nginxconfig.GetSetupHintResponse.hint:type_name -> ddash.config.SetupHint
+	12, // 1: ddash.nginxconfig.GetSetupHintResponse.hint:type_name -> ddash.config.SetupHint
 	7,  // 2: ddash.nginxconfig.RefreshResponse.snapshot:type_name -> ddash.nginxconfig.Snapshot
-	12, // 3: ddash.nginxconfig.Snapshot.read_at:type_name -> google.protobuf.Timestamp
-	8,  // 4: ddash.nginxconfig.Snapshot.servers:type_name -> ddash.nginxconfig.Server
-	9,  // 5: ddash.nginxconfig.Server.listens:type_name -> ddash.nginxconfig.Listen
-	10, // 6: ddash.nginxconfig.Server.locations:type_name -> ddash.nginxconfig.Location
-	1,  // 7: ddash.nginxconfig.NginxConfigService.GetSnapshot:input_type -> ddash.nginxconfig.GetSnapshotRequest
-	3,  // 8: ddash.nginxconfig.NginxConfigService.GetSetupHint:input_type -> ddash.nginxconfig.GetSetupHintRequest
-	5,  // 9: ddash.nginxconfig.NginxConfigService.Refresh:input_type -> ddash.nginxconfig.RefreshRequest
-	2,  // 10: ddash.nginxconfig.NginxConfigService.GetSnapshot:output_type -> ddash.nginxconfig.GetSnapshotResponse
-	4,  // 11: ddash.nginxconfig.NginxConfigService.GetSetupHint:output_type -> ddash.nginxconfig.GetSetupHintResponse
-	6,  // 12: ddash.nginxconfig.NginxConfigService.Refresh:output_type -> ddash.nginxconfig.RefreshResponse
-	10, // [10:13] is the sub-list for method output_type
-	7,  // [7:10] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	13, // 3: ddash.nginxconfig.Snapshot.read_at:type_name -> google.protobuf.Timestamp
+	9,  // 4: ddash.nginxconfig.Snapshot.servers:type_name -> ddash.nginxconfig.Server
+	8,  // 5: ddash.nginxconfig.Snapshot.upstreams:type_name -> ddash.nginxconfig.Upstream
+	10, // 6: ddash.nginxconfig.Server.listens:type_name -> ddash.nginxconfig.Listen
+	11, // 7: ddash.nginxconfig.Server.locations:type_name -> ddash.nginxconfig.Location
+	1,  // 8: ddash.nginxconfig.NginxConfigService.GetSnapshot:input_type -> ddash.nginxconfig.GetSnapshotRequest
+	3,  // 9: ddash.nginxconfig.NginxConfigService.GetSetupHint:input_type -> ddash.nginxconfig.GetSetupHintRequest
+	5,  // 10: ddash.nginxconfig.NginxConfigService.Refresh:input_type -> ddash.nginxconfig.RefreshRequest
+	2,  // 11: ddash.nginxconfig.NginxConfigService.GetSnapshot:output_type -> ddash.nginxconfig.GetSnapshotResponse
+	4,  // 12: ddash.nginxconfig.NginxConfigService.GetSetupHint:output_type -> ddash.nginxconfig.GetSetupHintResponse
+	6,  // 13: ddash.nginxconfig.NginxConfigService.Refresh:output_type -> ddash.nginxconfig.RefreshResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_nginx_config_nginx_config_proto_init() }
@@ -726,7 +797,7 @@ func file_nginx_config_nginx_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_nginx_config_nginx_config_proto_rawDesc), len(file_nginx_config_nginx_config_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

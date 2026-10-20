@@ -2,6 +2,7 @@ package apps_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -15,7 +16,9 @@ import (
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -99,11 +102,15 @@ func start(t *testing.T, n *nginx, opts ...sdktest.Option) started {
 // startWith runs apps against n and the checks fake f.
 func startWith(t *testing.T, n *nginx, f *checksFake, opts ...sdktest.Option) started {
 	t.Helper()
-	fakes := []sdktest.Option{
+	// Require returns the first fake of its type: opts' win.
+	all := append(slices.Clone(opts),
 		sdktest.WithClient[nginxconfigpb.NginxConfigServiceClient](n),
 		sdktest.WithClient[checkspb.ChecksServiceClient](f),
-	}
-	h := sdktest.New(t, apps.Definition(), append(fakes, opts...)...)
+		// No Workloads by default.
+		sdktest.WithClient[proxmoxapipb.ProxmoxApiServiceClient](&proxmoxFake{}),
+		sdktest.WithClient[dockerapipb.DockerApiServiceClient](&dockerFake{}),
+	)
+	h := sdktest.New(t, apps.Definition(), all...)
 	h.MustStart(&appspb.AppsConfig{})
 	return started{h, appspb.NewAppsServiceClient(h.Conn), f}
 }

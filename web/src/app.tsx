@@ -1,4 +1,4 @@
-import { CoreScope, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
+import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
 import { Badge, cx, PageHeader, StatusDot } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
@@ -43,18 +43,20 @@ function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBund
   const overview = useOverviewLayout(plugins);
   useAppearance();
   return (
-    <div className="flex min-h-screen bg-background font-sans text-foreground">
-      <Sidebar items={navItems(plugins.loaded.values())} fetch={fetch} />
-      <main className="min-w-0 flex-1 p-8">
-        <Unreachable />
-        <Routes>
-          <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
-          <Route path="plugins" element={<Catalogue />} />
-          <Route path="settings/*" element={<Settings />} />
-          <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
-        </Routes>
-      </main>
-    </div>
+    <InstalledPlugins names={plugins.installed?.map((p) => p.name)}>
+      <div className="flex min-h-screen bg-background font-sans text-foreground">
+        <Sidebar items={navItems(plugins.loaded.values())} fetch={fetch} />
+        <main className="min-w-0 flex-1 p-8">
+          <Unreachable />
+          <Routes>
+            <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
+            <Route path="plugins" element={<Catalogue />} />
+            <Route path="settings/*" element={<Settings />} />
+            <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
+          </Routes>
+        </main>
+      </div>
+    </InstalledPlugins>
   );
 }
 

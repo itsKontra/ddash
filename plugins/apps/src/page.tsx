@@ -1,11 +1,12 @@
 import { useAction } from "@ddash/plugin";
-import { AppsService, type App, type Overlay } from "@ddash/proto/apps/apps_pb";
+import { AppsService, type App, type Overlay, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, PageHeader, StatusDot, toneText } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { sections, useApps } from "./apps";
 import { checkStatus, useAppChecks } from "./checks";
 import { EditSheet } from "./edit";
+import { WorkloadLine, workloadName } from "./workload";
 
 /** The Apps Page: App cards by group, display settings, manual Apps and unmatched settings. */
 export function AppsPage() {
@@ -100,7 +101,7 @@ function Cards({
   );
 }
 
-/** An App's card: icon, name and URL opening it, its Check's status and its aliases. */
+/** An App's card: icon, name and URL opening it, its Check's status, its Workload and its aliases. */
 function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, Check>; onEdit: () => void }) {
   const status = checks && checkStatus(checks.get(app.id));
   return (
@@ -123,6 +124,7 @@ function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, 
           <span className={status.tone === "up" || status.tone === "idle" ? "text-muted-foreground" : toneText[status.tone]}>{status.label}</span>
         </p>
       )}
+      {app.workload && <WorkloadLine workload={app.workload} />}
       {app.aliases.length > 0 && <p className="truncate text-xs text-muted-foreground">Also {app.aliases.join(", ")}</p>}
     </li>
   );
@@ -130,7 +132,8 @@ function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, 
 
 /** What an overlay sets, e.g. "Documents · group Office · hidden". */
 function summary(o: Overlay) {
-  return [o.name, o.icon && `icon ${o.icon}`, o.group && `group ${o.group}`, o.hidden && "hidden"].filter(Boolean).join(" · ");
+  const workload = o.workload && `on ${workloadName({ ref: o.workload } as Workload)}`;
+  return [o.name, o.icon && `icon ${o.icon}`, o.group && `group ${o.group}`, o.hidden && "hidden", workload].filter(Boolean).join(" · ");
 }
 
 /** Settings whose Proxy Host is gone: re-attach to an App without settings, or delete. */

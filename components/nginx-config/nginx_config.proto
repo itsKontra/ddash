@@ -77,6 +77,17 @@ message Snapshot {
   string error = 3;
   // Every server block, in the order nginx loads them.
   repeated Server servers = 4;
+  // Every http upstream block, in the order nginx loads them, from the
+  // same read as servers.
+  repeated Upstream upstreams = 5;
+}
+
+// One nginx http upstream block, which a proxy_pass names by its name.
+message Upstream {
+  string name = 1;
+  // Each server's address as written, e.g. "198.18.2.20:3000" or
+  // "unix:/run/app.sock", without its parameters.
+  repeated string servers = 2;
 }
 
 // One nginx server block.

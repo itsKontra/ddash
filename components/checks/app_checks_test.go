@@ -5,11 +5,14 @@ import (
 	"testing/synctest"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -206,6 +209,45 @@ func TestANewNameKeepsTheStateAndANewURLStartsOver(t *testing.T) {
 		got = appCheck(t, c, "proxy:printer.home.example")
 		if got.GetState() != checkspb.State_STATE_PENDING || got.GetSpec().GetTarget() != "https://printer.home.example" {
 			t.Errorf("new URL: %v of %q, want pending on the new URL", got.GetState(), got.GetSpec().GetTarget())
+		}
+	})
+}
+
+func TestAnAppChecksWorkloadIsKeptAndChangesWithoutResettingIt(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := newLab()
+		l.set("printer.home.example:8080", "http 200")
+		h, c := startIn(t, l)
+		lxc := &workloadpb.WorkloadRef{Kind: workloadpb.Kind_KIND_LXC, Host: "pve1", Id: "120"}
+		onLxc := app("proxy:printer.home.example", "Printer", "http://printer.home.example:8080")
+		onLxc.Workload = lxc
+		setApps(t, c, onLxc)
+		synctest.Wait()
+		if d := cmp.Diff(lxc, appCheck(t, c, "proxy:printer.home.example").GetWorkload(), protocmp.Transform()); d != "" {
+			t.Errorf("workload (-want +got):\n%s", d)
+		}
+
+		docker := &workloadpb.WorkloadRef{Kind: workloadpb.Kind_KIND_DOCKER, Host: "media", Id: "cups"}
+		onDocker := app("proxy:printer.home.example", "Printer", "http://printer.home.example:8080")
+		onDocker.Workload = docker
+		setApps(t, c, onDocker)
+		got := appCheck(t, c, "proxy:printer.home.example")
+		if d := cmp.Diff(docker, got.GetWorkload(), protocmp.Transform()); d != "" {
+			t.Errorf("moved workload (-want +got):\n%s", d)
+		}
+		if got.GetState() != checkspb.State_STATE_UP {
+			t.Errorf("state after a Workload change: %v, want still up", got.GetState())
+		}
+
+		h.Stop()
+		_, c = startIn(t, l, sdktest.WithDB(h.DBPath))
+		if d := cmp.Diff(docker, appCheck(t, c, "proxy:printer.home.example").GetWorkload(), protocmp.Transform()); d != "" {
+			t.Errorf("workload after a restart (-want +got):\n%s", d)
+		}
+
+		setApps(t, c, printer)
+		if got := appCheck(t, c, "proxy:printer.home.example").GetWorkload(); got != nil {
+			t.Errorf("workload after apps found none: %v, want unset", got)
 		}
 	})
 }

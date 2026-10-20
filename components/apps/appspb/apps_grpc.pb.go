@@ -29,6 +29,7 @@ const (
 	AppsService_CreateApp_FullMethodName     = "/ddash.apps.AppsService/CreateApp"
 	AppsService_UpdateApp_FullMethodName     = "/ddash.apps.AppsService/UpdateApp"
 	AppsService_DeleteApp_FullMethodName     = "/ddash.apps.AppsService/DeleteApp"
+	AppsService_ListWorkloads_FullMethodName = "/ddash.apps.AppsService/ListWorkloads"
 )
 
 // AppsServiceClient is the client API for AppsService service.
@@ -52,6 +53,10 @@ type AppsServiceClient interface {
 	UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error)
 	// DeleteApp removes a manual App.
 	DeleteApp(ctx context.Context, in *DeleteAppRequest, opts ...grpc.CallOption) (*DeleteAppResponse, error)
+	// ListWorkloads returns every Workload proxmox-api and docker-api list
+	// now, to pick a Workload override from: containers by host, then
+	// Proxmox guests by VMID, templates left out.
+	ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error)
 }
 
 type appsServiceClient struct {
@@ -132,6 +137,16 @@ func (c *appsServiceClient) DeleteApp(ctx context.Context, in *DeleteAppRequest,
 	return out, nil
 }
 
+func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWorkloadsResponse)
+	err := c.cc.Invoke(ctx, AppsService_ListWorkloads_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AppsServiceServer is the server API for AppsService service.
 // All implementations must embed UnimplementedAppsServiceServer
 // for forward compatibility.
@@ -153,6 +168,10 @@ type AppsServiceServer interface {
 	UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error)
 	// DeleteApp removes a manual App.
 	DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error)
+	// ListWorkloads returns every Workload proxmox-api and docker-api list
+	// now, to pick a Workload override from: containers by host, then
+	// Proxmox guests by VMID, templates left out.
+	ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error)
 	mustEmbedUnimplementedAppsServiceServer()
 }
 
@@ -183,6 +202,9 @@ func (UnimplementedAppsServiceServer) UpdateApp(context.Context, *UpdateAppReque
 }
 func (UnimplementedAppsServiceServer) DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteApp not implemented")
+}
+func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
 }
 func (UnimplementedAppsServiceServer) mustEmbedUnimplementedAppsServiceServer() {}
 func (UnimplementedAppsServiceServer) testEmbeddedByValue()                     {}
@@ -331,6 +353,24 @@ func _AppsService_DeleteApp_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWorkloadsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).ListWorkloads(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_ListWorkloads_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).ListWorkloads(ctx, req.(*ListWorkloadsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AppsService_ServiceDesc is the grpc.ServiceDesc for AppsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -365,6 +405,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteApp",
 			Handler:    _AppsService_DeleteApp_Handler,
+		},
+		{
+			MethodName: "ListWorkloads",
+			Handler:    _AppsService_ListWorkloads_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

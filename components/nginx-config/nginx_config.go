@@ -76,6 +76,7 @@ type state struct {
 	fingerprint [sha256.Size]byte
 	readAt      time.Time
 	servers     []*nginxconfigpb.Server
+	upstreams   []*nginxconfigpb.Upstream
 	err         string
 	// down is set when the last read couldn't reach nginx or sign in;
 	// a config nginx refuses is not down.
@@ -203,7 +204,7 @@ func (c *component) read(ctx context.Context) state {
 	ctx, cancel := context.WithTimeout(ctx, readTimeout)
 	defer cancel()
 
-	var servers []*nginxconfigpb.Server
+	var conf parsed
 	stdout, stderr, exit, err := c.run(ctx)
 	down := err != nil
 	if err == nil && exit != 0 {
@@ -212,7 +213,7 @@ func (c *component) read(ctx context.Context) state {
 	if err == nil {
 		var d dump
 		if d, err = split(stdout); err == nil {
-			servers, err = d.parse()
+			conf, err = d.parse()
 		}
 	}
 
@@ -227,7 +228,7 @@ func (c *component) read(ctx context.Context) state {
 	} else {
 		fp = sha256.Sum256([]byte("config\x00" + stdout))
 		s.err, s.down = "", false
-		s.readAt, s.servers = time.Now(), servers
+		s.readAt, s.servers, s.upstreams = time.Now(), conf.servers, conf.upstreams
 	}
 	if fp != s.fingerprint {
 		s.fingerprint = fp
@@ -237,7 +238,7 @@ func (c *component) read(ctx context.Context) state {
 }
 
 func (s state) proto() *nginxconfigpb.Snapshot {
-	out := &nginxconfigpb.Snapshot{Revision: s.revision, Error: s.err, Servers: s.servers}
+	out := &nginxconfigpb.Snapshot{Revision: s.revision, Error: s.err, Servers: s.servers, Upstreams: s.upstreams}
 	if !s.readAt.IsZero() {
 		out.ReadAt = timestamppb.New(s.readAt)
 	}

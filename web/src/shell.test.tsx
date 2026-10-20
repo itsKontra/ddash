@@ -1,5 +1,5 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, definePlugin, usePlugin, type PluginDefinition } from "@ddash/plugin";
+import { createQueryClient, definePlugin, usePlugin, usePluginLink, type PluginDefinition } from "@ddash/plugin";
 import { MemoryRouter, useParams } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -109,6 +109,24 @@ it("routes a Plugin's Pages under /<plugin-name>/, inside its own scope", async 
   await boot("/docker/hosts/media", [[installed("docker", "Docker"), docker]]);
 
   expect(screen.getByText("docker host media")).toBeTruthy();
+});
+
+it("lets a Plugin link to another installed Plugin's Page, and not to one that isn't installed", async () => {
+  function Links() {
+    return (
+      <>
+        <p>{`docker: ${usePluginLink("docker", "hosts/media") ?? "none"}`}</p>
+        <p>{`proxmox: ${usePluginLink("proxmox") ?? "none"}`}</p>
+      </>
+    );
+  }
+  await boot("/apps", [
+    [installed("apps", "Apps"), definePlugin({ nav: { order: 10 }, pages: [{ index: true, Component: Links }] })],
+    [installed("docker", "Docker"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("d") }] })],
+  ]);
+
+  expect(screen.getByText("docker: /docker/hosts/media")).toBeTruthy();
+  expect(screen.getByText("proxmox: none")).toBeTruthy();
 });
 
 it("shows a bundle that fails to load as a broken Nav Entry, and its Page says so", async () => {

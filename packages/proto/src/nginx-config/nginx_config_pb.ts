@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file nginx-config/nginx_config.proto.
  */
 export const file_nginx_config_nginx_config: GenFile = /*@__PURE__*/
-  fileDesc("Ch9uZ2lueC1jb25maWcvbmdpbnhfY29uZmlnLnByb3RvEhFkZGFzaC5uZ2lueGNvbmZpZyLEAgoRTmdpbnhDb25maWdDb25maWcScwoEaG9zdBgBIAEoCUJlmrUYYSJJVGhlIGhvc3QgbmdpbnggcnVucyBvbiwgcmVhY2hlZCBvdmVyIFNTSC4gQWRkIDpwb3J0IHdoZW4gU1NIIGlzbid0IG9uIDIyLioSbmdpbnguaG9tZS5leGFtcGxlMAESHQoEdXNlchgCIAEoCUIKmrUYBgoEcm9vdEgAiAEBEn4KCGhvc3Rfa2V5GAMgASgJQmyatRhoGgxTU0ggaG9zdCBrZXkiQVRoZSBob3N0J3Mgb3duIGtleSwgYXMgYHNzaC1rZXlzY2FuIC10IGVkMjU1MTkgPGhvc3Q+YCBwcmludHMgaXQuKhNzc2gtZWQyNTUxOSBBQUFB4oCmMAE6Eqq1GA4KDEdldFNldHVwSGludEIHCgVfdXNlciIUChJHZXRTbmFwc2hvdFJlcXVlc3QiRAoTR2V0U25hcHNob3RSZXNwb25zZRItCghzbmFwc2hvdBgBIAEoCzIbLmRkYXNoLm5naW54Y29uZmlnLlNuYXBzaG90IhUKE0dldFNldHVwSGludFJlcXVlc3QiPQoUR2V0U2V0dXBIaW50UmVzcG9uc2USJQoEaGludBgBIAEoCzIXLmRkYXNoLmNvbmZpZy5TZXR1cEhpbnQiEAoOUmVmcmVzaFJlcXVlc3QiQAoPUmVmcmVzaFJlc3BvbnNlEi0KCHNuYXBzaG90GAEgASgLMhsuZGRhc2gubmdpbnhjb25maWcuU25hcHNob3QihAEKCFNuYXBzaG90EhAKCHJldmlzaW9uGAEgASgDEisKB3JlYWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBWVycm9yGAMgASgJEioKB3NlcnZlcnMYBCADKAsyGS5kZGFzaC5uZ2lueGNvbmZpZy5TZXJ2ZXIivwEKBlNlcnZlchIMCgRmaWxlGAEgASgJEgwKBGxpbmUYAiABKAMSFAoMc2VydmVyX25hbWVzGAMgAygJEioKB2xpc3RlbnMYBCADKAsyGS5kZGFzaC5uZ2lueGNvbmZpZy5MaXN0ZW4SFwoPc3NsX2NlcnRpZmljYXRlGAUgASgJEi4KCWxvY2F0aW9ucxgGIAMoCzIbLmRkYXNoLm5naW54Y29uZmlnLkxvY2F0aW9uEg4KBnJldHVybhgHIAEoCSI+CgZMaXN0ZW4SDwoHYWRkcmVzcxgBIAEoCRILCgNzc2wYAiABKAgSFgoOZGVmYXVsdF9zZXJ2ZXIYAyABKAgiLAoITG9jYXRpb24SDAoEcGF0aBgBIAEoCRISCgpwcm94eV9wYXNzGAIgASgJMrkCChJOZ2lueENvbmZpZ1NlcnZpY2USYgoLR2V0U25hcHNob3QSJS5kZGFzaC5uZ2lueGNvbmZpZy5HZXRTbmFwc2hvdFJlcXVlc3QaJi5kZGFzaC5uZ2lueGNvbmZpZy5HZXRTbmFwc2hvdFJlc3BvbnNlIgSKtRgAEmcKDEdldFNldHVwSGludBImLmRkYXNoLm5naW54Y29uZmlnLkdldFNldHVwSGludFJlcXVlc3QaJy5kZGFzaC5uZ2lueGNvbmZpZy5HZXRTZXR1cEhpbnRSZXNwb25zZSIGirUYAggDElYKB1JlZnJlc2gSIS5kZGFzaC5uZ2lueGNvbmZpZy5SZWZyZXNoUmVxdWVzdBoiLmRkYXNoLm5naW54Y29uZmlnLlJlZnJlc2hSZXNwb25zZSIEkrUYAEJQWk5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL25naW54LWNvbmZpZy9uZ2lueGNvbmZpZ3BiO25naW54Y29uZmlncGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("Ch9uZ2lueC1jb25maWcvbmdpbnhfY29uZmlnLnByb3RvEhFkZGFzaC5uZ2lueGNvbmZpZyLEAgoRTmdpbnhDb25maWdDb25maWcScwoEaG9zdBgBIAEoCUJlmrUYYSJJVGhlIGhvc3QgbmdpbnggcnVucyBvbiwgcmVhY2hlZCBvdmVyIFNTSC4gQWRkIDpwb3J0IHdoZW4gU1NIIGlzbid0IG9uIDIyLioSbmdpbnguaG9tZS5leGFtcGxlMAESHQoEdXNlchgCIAEoCUIKmrUYBgoEcm9vdEgAiAEBEn4KCGhvc3Rfa2V5GAMgASgJQmyatRhoGgxTU0ggaG9zdCBrZXkiQVRoZSBob3N0J3Mgb3duIGtleSwgYXMgYHNzaC1rZXlzY2FuIC10IGVkMjU1MTkgPGhvc3Q+YCBwcmludHMgaXQuKhNzc2gtZWQyNTUxOSBBQUFB4oCmMAE6Eqq1GA4KDEdldFNldHVwSGludEIHCgVfdXNlciIUChJHZXRTbmFwc2hvdFJlcXVlc3QiRAoTR2V0U25hcHNob3RSZXNwb25zZRItCghzbmFwc2hvdBgBIAEoCzIbLmRkYXNoLm5naW54Y29uZmlnLlNuYXBzaG90IhUKE0dldFNldHVwSGludFJlcXVlc3QiPQoUR2V0U2V0dXBIaW50UmVzcG9uc2USJQoEaGludBgBIAEoCzIXLmRkYXNoLmNvbmZpZy5TZXR1cEhpbnQiEAoOUmVmcmVzaFJlcXVlc3QiQAoPUmVmcmVzaFJlc3BvbnNlEi0KCHNuYXBzaG90GAEgASgLMhsuZGRhc2gubmdpbnhjb25maWcuU25hcHNob3QitAEKCFNuYXBzaG90EhAKCHJldmlzaW9uGAEgASgDEisKB3JlYWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBWVycm9yGAMgASgJEioKB3NlcnZlcnMYBCADKAsyGS5kZGFzaC5uZ2lueGNvbmZpZy5TZXJ2ZXISLgoJdXBzdHJlYW1zGAUgAygLMhsuZGRhc2gubmdpbnhjb25maWcuVXBzdHJlYW0iKQoIVXBzdHJlYW0SDAoEbmFtZRgBIAEoCRIPCgdzZXJ2ZXJzGAIgAygJIr8BCgZTZXJ2ZXISDAoEZmlsZRgBIAEoCRIMCgRsaW5lGAIgASgDEhQKDHNlcnZlcl9uYW1lcxgDIAMoCRIqCgdsaXN0ZW5zGAQgAygLMhkuZGRhc2gubmdpbnhjb25maWcuTGlzdGVuEhcKD3NzbF9jZXJ0aWZpY2F0ZRgFIAEoCRIuCglsb2NhdGlvbnMYBiADKAsyGy5kZGFzaC5uZ2lueGNvbmZpZy5Mb2NhdGlvbhIOCgZyZXR1cm4YByABKAkiPgoGTGlzdGVuEg8KB2FkZHJlc3MYASABKAkSCwoDc3NsGAIgASgIEhYKDmRlZmF1bHRfc2VydmVyGAMgASgIIiwKCExvY2F0aW9uEgwKBHBhdGgYASABKAkSEgoKcHJveHlfcGFzcxgCIAEoCTK5AgoSTmdpbnhDb25maWdTZXJ2aWNlEmIKC0dldFNuYXBzaG90EiUuZGRhc2gubmdpbnhjb25maWcuR2V0U25hcHNob3RSZXF1ZXN0GiYuZGRhc2gubmdpbnhjb25maWcuR2V0U25hcHNob3RSZXNwb25zZSIEirUYABJnCgxHZXRTZXR1cEhpbnQSJi5kZGFzaC5uZ2lueGNvbmZpZy5HZXRTZXR1cEhpbnRSZXF1ZXN0GicuZGRhc2gubmdpbnhjb25maWcuR2V0U2V0dXBIaW50UmVzcG9uc2UiBoq1GAIIAxJWCgdSZWZyZXNoEiEuZGRhc2gubmdpbnhjb25maWcuUmVmcmVzaFJlcXVlc3QaIi5kZGFzaC5uZ2lueGNvbmZpZy5SZWZyZXNoUmVzcG9uc2UiBJK1GABCUFpOZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZ2lueC1jb25maWcvbmdpbnhjb25maWdwYjtuZ2lueGNvbmZpZ3BiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.nginxconfig.NginxConfigConfig
@@ -179,6 +179,14 @@ export type Snapshot = Message<"ddash.nginxconfig.Snapshot"> & {
    * @generated from field: repeated ddash.nginxconfig.Server servers = 4;
    */
   servers: Server[];
+
+  /**
+   * Every http upstream block, in the order nginx loads them, from the
+   * same read as servers.
+   *
+   * @generated from field: repeated ddash.nginxconfig.Upstream upstreams = 5;
+   */
+  upstreams: Upstream[];
 };
 
 /**
@@ -187,6 +195,33 @@ export type Snapshot = Message<"ddash.nginxconfig.Snapshot"> & {
  */
 export const SnapshotSchema: GenMessage<Snapshot> = /*@__PURE__*/
   messageDesc(file_nginx_config_nginx_config, 7);
+
+/**
+ * One nginx http upstream block, which a proxy_pass names by its name.
+ *
+ * @generated from message ddash.nginxconfig.Upstream
+ */
+export type Upstream = Message<"ddash.nginxconfig.Upstream"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Each server's address as written, e.g. "198.18.2.20:3000" or
+   * "unix:/run/app.sock", without its parameters.
+   *
+   * @generated from field: repeated string servers = 2;
+   */
+  servers: string[];
+};
+
+/**
+ * Describes the message ddash.nginxconfig.Upstream.
+ * Use `create(UpstreamSchema)` to create a new message.
+ */
+export const UpstreamSchema: GenMessage<Upstream> = /*@__PURE__*/
+  messageDesc(file_nginx_config_nginx_config, 8);
 
 /**
  * One nginx server block.
@@ -241,7 +276,7 @@ export type Server = Message<"ddash.nginxconfig.Server"> & {
  * Use `create(ServerSchema)` to create a new message.
  */
 export const ServerSchema: GenMessage<Server> = /*@__PURE__*/
-  messageDesc(file_nginx_config_nginx_config, 8);
+  messageDesc(file_nginx_config_nginx_config, 9);
 
 /**
  * @generated from message ddash.nginxconfig.Listen
@@ -270,7 +305,7 @@ export type Listen = Message<"ddash.nginxconfig.Listen"> & {
  * Use `create(ListenSchema)` to create a new message.
  */
 export const ListenSchema: GenMessage<Listen> = /*@__PURE__*/
-  messageDesc(file_nginx_config_nginx_config, 9);
+  messageDesc(file_nginx_config_nginx_config, 10);
 
 /**
  * @generated from message ddash.nginxconfig.Location
@@ -296,7 +331,7 @@ export type Location = Message<"ddash.nginxconfig.Location"> & {
  * Use `create(LocationSchema)` to create a new message.
  */
 export const LocationSchema: GenMessage<Location> = /*@__PURE__*/
-  messageDesc(file_nginx_config_nginx_config, 10);
+  messageDesc(file_nginx_config_nginx_config, 11);
 
 /**
  * @generated from service ddash.nginxconfig.NginxConfigService

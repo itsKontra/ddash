@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { actions, renderScoped, settle } from "./testing";
+import { actions, list, renderScoped, settle } from "./testing";
 
 afterEach(cleanup);
 
@@ -188,4 +188,101 @@ it("says when nginx-config couldn't be read", async () => {
 
   expect(screen.getByRole("status").textContent).toMatch(/nginx-config is not configured/);
   expect(screen.getByText(/No Apps yet/)).toBeTruthy();
+});
+
+it("shows each card's Workload, linked to the Proxmox or Docker Page when that Plugin is installed", async () => {
+  renderScoped(<Page />, {}, ["apps", "proxmox"]);
+  await settle();
+
+  const workload = (name: string) => within(screen.getByRole("listitem", { name })).queryByLabelText("Workload");
+  expect(workload("Grafana")?.textContent).toBe("LXC grafana · running");
+  expect(within(workload("Grafana")!).getByRole("link").getAttribute("href")).toBe("/proxmox");
+  // docker isn't installed: plain text.
+  expect(workload("Jellyfin")?.textContent).toBe("Docker jellyfin · exited");
+  expect(within(workload("Jellyfin")!).queryByRole("link")).toBeNull();
+  expect(workload("Printer")).toBeNull();
+});
+
+it("links a container to the Docker Page", async () => {
+  renderScoped(<Page />, {}, ["apps", "docker"]);
+  await settle();
+
+  const workload = within(screen.getByRole("listitem", { name: "Jellyfin" })).getByLabelText("Workload");
+  expect(within(workload).getByRole("link", { name: "Docker jellyfin · exited" }).getAttribute("href")).toBe("/docker");
+  expect(within(within(screen.getByRole("listitem", { name: "Grafana" })).getByLabelText("Workload")).queryByRole("link")).toBeNull();
+});
+
+it("overrides a discovered App's Workload with one the sources list", async () => {
+  const calls = renderScoped(<Page />);
+  await settle();
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit Jellyfin" }));
+  await settle();
+  const dialog = screen.getByRole("dialog", { name: "Jellyfin" });
+  const select = within(dialog).getByRole("combobox", { name: "Workload" });
+  expect(within(select).getAllByRole("option").map((o) => o.textContent)).toEqual([
+    "Matched: Docker jellyfin",
+    "Docker jellyfin (media)",
+    "LXC media-stack (pve/102)",
+    "LXC grafana (pve/120)",
+    "VM home-assistant (pve/110)",
+    "External host…",
+  ]);
+  const mediaStack = within(select).getByRole("option", { name: "LXC media-stack (pve/102)" }).getAttribute("value");
+  fireEvent.change(select, { target: { value: mediaStack } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+  await settle();
+
+  expect(actions(calls)).toEqual([
+    {
+      method: "SetOverlay",
+      body: { overlay: { serverName: "jellyfin.home.example", workload: { kind: "KIND_LXC", host: "pve", id: "102" } } },
+    },
+  ]);
+});
+
+it("sets an external host as a discovered App's Workload", async () => {
+  const calls = renderScoped(<Page />);
+  await settle();
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit Printer" }));
+  await settle();
+  const dialog = screen.getByRole("dialog", { name: "Printer" });
+  expect(within(dialog).getByRole("option", { name: "Matched: none" })).toBeTruthy();
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "Workload" }), { target: { value: "external" } });
+  fireEvent.change(within(dialog).getByLabelText("External host"), { target: { value: "198.18.1.40" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+  await settle();
+
+  expect(actions(calls)).toEqual([
+    {
+      method: "SetOverlay",
+      body: { overlay: { serverName: "printer.home.example", workload: { kind: "KIND_EXTERNAL", host: "198.18.1.40" } } },
+    },
+  ]);
+});
+
+it("keeps an override no source lists on offer", async () => {
+  const lost = { ref: { kind: "KIND_LXC", host: "pve", id: "130" } };
+  const overridden = {
+    ...list,
+    apps: list.apps.map((a) =>
+      a.name === "Printer" ? { ...a, overlay: { serverName: "printer.home.example", workload: lost.ref }, workload: { ...lost, override: true } } : a,
+    ),
+  };
+  const calls = renderScoped(<Page />, { ListApps: () => Response.json(overridden) });
+  await settle();
+
+  expect(within(screen.getByRole("listitem", { name: "Printer" })).getByLabelText("Workload").textContent).toBe("LXC 130");
+  fireEvent.click(screen.getByRole("button", { name: "Edit Printer" }));
+  await settle();
+  const dialog = screen.getByRole("dialog", { name: "Printer" });
+  const select = within(dialog).getByRole("combobox", { name: "Workload" }) as HTMLSelectElement;
+  expect(select.selectedOptions[0].textContent).toBe("LXC 130 (pve/130, not listed now)");
+  fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+  await settle();
+
+  expect(actions(calls)).toEqual([
+    { method: "SetOverlay", body: { overlay: { serverName: "printer.home.example", workload: { kind: "KIND_LXC", host: "pve", id: "130" } } } },
+  ]);
 });

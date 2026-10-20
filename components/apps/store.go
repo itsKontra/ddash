@@ -5,7 +5,16 @@ import (
 	"database/sql"
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
+	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 )
+
+// kinds names each Workload kind in the DB.
+var kinds = map[workloadpb.Kind]string{
+	workloadpb.Kind_KIND_LXC:      "lxc",
+	workloadpb.Kind_KIND_VM:       "vm",
+	workloadpb.Kind_KIND_DOCKER:   "docker",
+	workloadpb.Kind_KIND_EXTERNAL: "external",
+}
 
 // store is apps' DB: overlays and manual Apps.
 type store struct {
@@ -14,7 +23,8 @@ type store struct {
 
 // overlays returns every overlay by server_name.
 func (s store) overlays(ctx context.Context) (map[string]*appspb.Overlay, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT server_name, name, icon, group_name, hidden FROM overlay`)
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT server_name, name, icon, group_name, hidden, workload_kind, workload_host, workload_id FROM overlay`)
 	if err != nil {
 		return nil, err
 	}
@@ -22,8 +32,14 @@ func (s store) overlays(ctx context.Context) (map[string]*appspb.Overlay, error)
 	out := map[string]*appspb.Overlay{}
 	for rows.Next() {
 		o := &appspb.Overlay{}
-		if err := rows.Scan(&o.ServerName, &o.Name, &o.Icon, &o.Group, &o.Hidden); err != nil {
+		var kind, host, id string
+		if err := rows.Scan(&o.ServerName, &o.Name, &o.Icon, &o.Group, &o.Hidden, &kind, &host, &id); err != nil {
 			return nil, err
+		}
+		for k, name := range kinds {
+			if name == kind {
+				o.Workload = &workloadpb.WorkloadRef{Kind: k, Host: host, Id: id}
+			}
 		}
 		out[o.GetServerName()] = o
 	}
@@ -37,11 +53,14 @@ func (s store) hasOverlay(ctx context.Context, serverName string) (bool, error) 
 }
 
 func (s store) putOverlay(ctx context.Context, o *appspb.Overlay) error {
+	w := o.GetWorkload()
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO overlay (server_name, name, icon, group_name, hidden) VALUES (?, ?, ?, ?, ?)
+		INSERT INTO overlay (server_name, name, icon, group_name, hidden, workload_kind, workload_host, workload_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (server_name) DO UPDATE SET
-			name = excluded.name, icon = excluded.icon, group_name = excluded.group_name, hidden = excluded.hidden`,
-		o.GetServerName(), o.GetName(), o.GetIcon(), o.GetGroup(), o.GetHidden())
+			name = excluded.name, icon = excluded.icon, group_name = excluded.group_name, hidden = excluded.hidden,
+			workload_kind = excluded.workload_kind, workload_host = excluded.workload_host, workload_id = excluded.workload_id`,
+		o.GetServerName(), o.GetName(), o.GetIcon(), o.GetGroup(), o.GetHidden(), kinds[w.GetKind()], w.GetHost(), w.GetId())
 	return err
 }
 
