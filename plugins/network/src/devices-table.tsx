@@ -1,6 +1,7 @@
 import type { Device } from "@ddash/proto/network/network_pb";
 import { Badge, StatusDot } from "@ddash/ui";
 import { Link } from "react-router";
+import { AdBlocking } from "./adblocking";
 import { DeviceAction } from "./adopt";
 import { detailPath, nameOf, tally, useDevices } from "./devices";
 
@@ -73,7 +74,10 @@ export function DevicesTable() {
               </span>
             </td>
             <td className={`${cell} pr-4`}>
-              <Routing device={d} />
+              <span className="inline-flex items-center gap-2">
+                <Routing device={d} />
+                <AdBlocking device={d} />
+              </span>
             </td>
           </tr>
         ))}

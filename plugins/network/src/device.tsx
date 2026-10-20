@@ -2,11 +2,13 @@ import type { Device } from "@ddash/proto/network/network_pb";
 import { PageHeader, StatusDot } from "@ddash/ui";
 import { useId, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
+import { AdBlockingToggle } from "./adblocking";
 import { DeviceAction } from "./adopt";
 import { nameOf, useDevices } from "./devices";
 import { Adoption, Routing } from "./devices-table";
+import { DeviceQueries } from "./queries";
 
-/** A Device's detail (/network/devices/:mac): Adopt or rename, the lease and reservation facts, and the other aliases holding it (read-only). */
+/** A Device's detail (/network/devices/:mac): Adopt or rename, ad-blocking, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
@@ -37,10 +39,15 @@ export function DeviceDetail() {
     <div>
       <PageHeader title={nameOf(d)} subtitle={d.name ? d.mac : undefined} actions={back} />
       <div className="flex flex-col gap-6">
-        <Summary device={d} bypassAlias={data.bypassAlias} />
+        <Summary device={d} bypassAlias={data.bypassAlias} adguardError={data.adguardError} />
         <Lease device={d} />
         <Reservation device={d} />
         <OtherAliases device={d} />
+        {d.ip && (
+          <Panel title="Queries">
+            <DeviceQueries ip={d.ip} />
+          </Panel>
+        )}
       </div>
     </div>
   );
@@ -75,7 +82,7 @@ function Facts({ rows }: { rows: [string, ReactNode][] }) {
   );
 }
 
-function Summary({ device: d, bypassAlias }: { device: Device; bypassAlias: string }) {
+function Summary({ device: d, bypassAlias, adguardError }: { device: Device; bypassAlias: string; adguardError: string }) {
   return (
     <Panel title="Device" action={<DeviceAction device={d} />}>
       <Facts
@@ -97,6 +104,7 @@ function Summary({ device: d, bypassAlias }: { device: Device; bypassAlias: stri
               <span className="text-muted-foreground">{d.direct ? `in ${bypassAlias}` : "via the VPN Tunnel"}</span>
             </span>,
           ],
+          ["Ad-blocking", <AdBlockingToggle key="ad-blocking" device={d} adguardError={adguardError} />],
         ]}
       />
     </Panel>

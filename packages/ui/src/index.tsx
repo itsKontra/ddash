@@ -397,3 +397,23 @@ export function UptimeBars({ label, bars }: { label: string; bars: readonly Upti
     </svg>
   );
 }
+
+/** An on/off switch named by its label, e.g. a Device's ad-blocking; applies on click. */
+export function Switch({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cx(
+        "relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        checked ? "bg-primary" : "bg-muted",
+      )}
+    >
+      <span className={cx("inline-block h-4 w-4 rounded-full bg-card shadow transition-transform", checked ? "translate-x-4.5" : "translate-x-0.5")} />
+    </button>
+  );
+}

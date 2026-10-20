@@ -2,16 +2,17 @@ import { useQuery } from "@ddash/plugin";
 import { PfsenseApiService, type Gateway } from "@ddash/proto/pfsense-api/pfsense_api_pb";
 import { Badge, PageHeader, StatusDot, type Tone } from "@ddash/ui";
 import type { ReactNode } from "react";
+import { AdguardStats, ProtectionBadge } from "./adguard";
 import { DevicesTable, NewCount } from "./devices-table";
 import { RemoteAccessPeers } from "./remote-access";
 import { ThroughputRates } from "./throughput";
 import { members, ms, percent, stateTone, tiers, useTunnel } from "./tunnel";
 
-/** The network Page: the VPN Tunnel's tier and every gateway's status. */
+/** The network Page: the VPN Tunnel's tier, the gateways, throughput, the Devices, Remote Access and AdGuard. */
 export function Network() {
   return (
     <div>
-      <PageHeader title="Network" subtitle="The firewall's gateways, the VPN Tunnel, throughput, the Devices and Remote Access." />
+      <PageHeader title="Network" subtitle="The firewall's gateways, the VPN Tunnel, throughput, the Devices, Remote Access and AdGuard." />
       <div className="flex flex-col gap-6">
         <VpnTunnel />
         <Gateways />
@@ -23,6 +24,9 @@ export function Network() {
         </Section>
         <Section id="network-remote-access" title="Remote Access">
           <RemoteAccessPeers />
+        </Section>
+        <Section id="network-adguard" title="AdGuard" aside={<ProtectionBadge />}>
+          <AdguardStats />
         </Section>
       </div>
     </div>
