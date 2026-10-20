@@ -267,6 +267,58 @@ func TestRestartRebootsAndIsInMaintenanceUntilUpOrFiveMinutes(t *testing.T) {
 	}
 }
 
+// A Restart's Maintenance lasts 5 min from the Restart, however long the
+// reboot task took: the call after the task keeps the end time, adding
+// only until up, and none follows once the 5 min are over.
+func TestARestartsMaintenanceEndsFiveMinutesAfterTheRestart(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := newLab()
+		c := start(t, l)
+		l.holdTasks()
+
+		done := make(chan error, 1)
+		go func() {
+			_, err := c.RestartWorkload(actionCtx(t), &proxmoxpb.RestartWorkloadRequest{Workload: lxc(102)})
+			done <- err
+		}()
+		time.Sleep(40 * time.Second)
+		l.release()
+		if err := <-done; err != nil {
+			t.Fatal(err)
+		}
+		want := []string{
+			"checks StartMaintenance KIND_LXC/pve2/102 for 5m0s",
+			"proxmox-api RebootWorkload KIND_LXC/pve2/102",
+			"checks StartMaintenance KIND_LXC/pve2/102 for 4m20s until up",
+		}
+		if diff := cmp.Diff(want, l.calls()); diff != "" {
+			t.Errorf("calls after a 40 s reboot (-want +got):\n%s", diff)
+		}
+
+		// A reboot outlasting the deadline and then the 5 min.
+		l = newLab()
+		c = start(t, l)
+		l.holdTasks()
+		if _, err := c.RestartWorkload(actionCtx(t), &proxmoxpb.RestartWorkloadRequest{Workload: lxc(102)}); status.Code(err) != codes.DeadlineExceeded {
+			t.Fatalf("Restart: %v, want DeadlineExceeded", err)
+		}
+		time.Sleep(6 * time.Minute)
+		l.release()
+		time.Sleep(proxmox.FollowInterval * 2)
+		synctest.Wait()
+		want = []string{
+			"checks StartMaintenance KIND_LXC/pve2/102 for 5m0s",
+			"proxmox-api RebootWorkload KIND_LXC/pve2/102",
+		}
+		if diff := cmp.Diff(want, l.calls()); diff != "" {
+			t.Errorf("calls after a 6 min reboot (-want +got):\n%s", diff)
+		}
+		if got := powerTasks(t, c); len(got) != 0 {
+			t.Errorf("power tasks after = %v, want none", got)
+		}
+	})
+}
+
 func TestStartStartsAndEndsTheMaintenanceOfAStop(t *testing.T) {
 	l := newLab()
 	c := start(t, l)

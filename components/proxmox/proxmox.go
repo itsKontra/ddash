@@ -257,9 +257,10 @@ func (c *component) power(ctx context.Context, w workload, action proxmoxpb.Powe
 
 // finish makes the Maintenance call that follows a power task and frees
 // the Workload: a started Workload's Maintenance ends; a stopped or
-// restarted one's lasts until its Checks are up (a restart's 5 min at
-// most). A stop or restart that failed gets the same call: the Workload
-// is likely up, so its next good beats end it.
+// restarted one's lasts until its Checks are up, a restart's at most until
+// 5 min after the Restart (none follows once those are over). A stop or
+// restart that failed gets the same call: the Workload is likely up, so
+// its next good beats end it.
 func (c *component) finish(ctx context.Context, w workload, action proxmoxpb.PowerAction, ok bool) {
 	defer c.free(w)
 	switch action {
@@ -274,8 +275,18 @@ func (c *component) finish(ctx context.Context, w workload, action proxmoxpb.Pow
 	case proxmoxpb.PowerAction_POWER_ACTION_STOP:
 		c.maintain(ctx, w, nil, true)
 	case proxmoxpb.PowerAction_POWER_ACTION_RESTART:
-		c.maintain(ctx, w, durationpb.New(RestartMaintenance), true)
+		left := (RestartMaintenance - time.Since(c.started(w))).Round(time.Second)
+		if left > 0 {
+			c.maintain(ctx, w, durationpb.New(left), true)
+		}
 	}
+}
+
+// started is when the Workload's power Action began.
+func (c *component) started(w workload) time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.inFlight[w.GetVmid()].GetStarted().AsTime()
 }
 
 // maintain puts the Workload into Maintenance for d (nil: until ended). A
