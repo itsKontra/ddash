@@ -4,7 +4,8 @@
 // subprocess test run the core against it; cmd/fakelab serves it alone.
 //
 // Docker comes first; each later system adds itself to systems (HTTP) or
-// sshSystems (SSH). A named scenario (e.g. "vpn-on-fallback") replaces the
+// sshSystems (SSH). A system whose Actions must stick is served by a
+// stateful fake over its fixtures (pfSense: pfsensefake). A named scenario (e.g. "vpn-on-fallback") replaces the
 // baseline of every system that has a sibling directory of that name.
 package fakelab
 
@@ -27,6 +28,7 @@ import (
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
@@ -39,6 +41,9 @@ type system struct {
 	fixtures string
 	// config points the Component at the system served on addr.
 	config func(addr string) proto.Message
+	// serve, when set, is a stateful fake serving the fixtures in dir in
+	// place of fixture.Scenario.
+	serve func(dir string) (http.Handler, error)
 }
 
 var systems = []system{
@@ -64,6 +69,8 @@ var systems = []system{
 			// The fixtures don't check the key.
 			return &pfsenseapipb.PfsenseApiConfig{Url: "http://" + addr, ApiKey: "fakelab"}
 		},
+		// Static mappings and their apply are kept: Adopt and rename stick.
+		serve: func(dir string) (http.Handler, error) { return pfsensefake.New(dir, pfsensefake.Options{}) },
 	},
 	{
 		component: "proxmox-api",
@@ -128,13 +135,20 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		l.config[component] = config()
 	}
 	for i, s := range systems {
+		handler := fixture.Scenario(dirs[i], nil)
+		if s.serve != nil {
+			if handler, err = s.serve(dirs[i]); err != nil {
+				l.Close()
+				return nil, err
+			}
+		}
 		ln, err := net.Listen("tcp", net.JoinHostPort(host, "0"))
 		if err != nil {
 			l.Close()
 			return nil, err
 		}
 		srv := &http.Server{
-			Handler:           fixture.Scenario(dirs[i], nil),
+			Handler:           handler,
 			ReadHeaderTimeout: 10 * time.Second,
 		}
 		go srv.Serve(ln) //nolint:errcheck // ends with Close

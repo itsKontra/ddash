@@ -14,6 +14,7 @@ import (
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
+	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/internal/fakelab"
@@ -120,6 +121,70 @@ func TestTheBaselineFirewallHasTwoRemoteAccessPeers(t *testing.T) {
 	}
 	if first := got.GetPeers()[0].GetReaches()[0]; first.GetDestination() != "198.18.1.0/24" || first.GetLabel() != "LAN subnet" {
 		t.Errorf("Phone's first reach = %v, want the LAN subnet", first)
+	}
+}
+
+// componentHops is the Audit Log's entries without the core's (the install).
+func componentHops(h *coretest.Harness) []appstate.Entry {
+	var out []appstate.Entry
+	for _, e := range h.AuditLog() {
+		if e.Target != "core" {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
+	h := bootNetwork(t)
+
+	res := h.Call("network", "network", "NextReservedAddress", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"ip":"198.18.1.23"`) {
+		t.Fatalf("NextReservedAddress: %d %s, want 198.18.1.23", res.Code, res.Body)
+	}
+	res = h.Call("network", "network", "AdoptDevice", `{"mac":"02:5e:00:00:20:01","name":"Phone","ip":"198.18.1.23"}`)
+	if res.Code != http.StatusOK {
+		t.Fatalf("AdoptDevice: status %d: %s", res.Code, res.Body)
+	}
+	res = h.Call("network", "network", "RenameDevice", `{"mac":"02:5e:00:00:20:01","name":"Anna's phone"}`)
+	if res.Code != http.StatusOK {
+		t.Fatalf("RenameDevice: status %d: %s", res.Code, res.Body)
+	}
+
+	// The lab's firewall keeps the write: the Device lists as Adopted.
+	body := h.Call("network", "network", "ListDevices", `{}`).Body.String()
+	var list networkpb.ListDevicesResponse
+	if err := protojson.Unmarshal([]byte(body), &list); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range list.GetDevices() {
+		if d.GetMac() == "02:5e:00:00:20:01" && (!d.GetAdopted() || d.GetName() != "Anna's phone" || d.GetIp() != "198.18.1.23") {
+			t.Errorf("Device after Adopt and rename = %v", d)
+		}
+	}
+
+	// Newest first: each Action is network's hop then pfsense-api's, on
+	// one chain per Action, all as the Operator.
+	var hops []string
+	chains := map[string]string{}
+	for _, e := range componentHops(h) {
+		hops = append(hops, fmt.Sprintf("%s %s %s %s", e.Target, e.Method, e.Outcome, e.Username))
+		if first, ok := chains[e.Method]; ok && first != e.Chain {
+			t.Errorf("%s on two chains", e.Method)
+		}
+		chains[e.Method] = e.Chain
+	}
+	want := []string{
+		"pfsense-api RenameStaticMapping ok test",
+		"network RenameDevice ok test",
+		"pfsense-api CreateStaticMapping ok test",
+		"network AdoptDevice ok test",
+	}
+	if diff := cmp.Diff(want, hops); diff != "" {
+		t.Errorf("Audit Log (-want +got):\n%s", diff)
+	}
+	if chains["AdoptDevice"] != chains["CreateStaticMapping"] || chains["RenameDevice"] != chains["RenameStaticMapping"] || chains["AdoptDevice"] == chains["RenameDevice"] {
+		t.Errorf("chains = %v, want Adopt's two hops on one chain and rename's on another", chains)
 	}
 }
 
