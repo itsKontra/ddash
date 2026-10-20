@@ -4,8 +4,13 @@
   "categories": { "correctness": "error" },
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/immutability": "off",
     "react/static-components": "off"
   },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": { "react/immutability": "off", "react/globals": "off" }
+    }
+  ],
   "ignorePatterns": ["packages/proto/src/**", "**/dist/**"]
 }
