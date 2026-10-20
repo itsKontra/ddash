@@ -32,6 +32,12 @@ type firewall struct {
 	gateways []*pfsenseapipb.Gateway
 	err      error
 	reads    int
+
+	// What the DHCP and alias getters answer (devices_test.go); nil
+	// servers and aliases mean the home firewall's.
+	leases  []*pfsenseapipb.Lease
+	servers []*pfsenseapipb.DhcpServer
+	aliases []*pfsenseapipb.Alias
 }
 
 func (f *firewall) ListGatewayGroups(context.Context, *pfsenseapipb.ListGatewayGroupsRequest, ...grpc.CallOption) (*pfsenseapipb.ListGatewayGroupsResponse, error) {
@@ -79,7 +85,7 @@ func down(name string) *pfsenseapipb.Gateway {
 
 func start(t *testing.T, fw *firewall) (*sdktest.Harness, networkpb.NetworkServiceClient) {
 	h := sdktest.New(t, network.Definition(), sdktest.WithClient[pfsenseapipb.PfsenseApiServiceClient](fw))
-	h.MustStart(&networkpb.NetworkConfig{})
+	h.MustStart(homeConfig())
 	return h, networkpb.NewNetworkServiceClient(h.Conn)
 }
 
