@@ -18,7 +18,67 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiggEKFUxpc3RDYXRhbG9ndWVSZXNwb25zZRIPCgdyZWxlYXNlGAEgASgJEiwKB3BsdWdpbnMYAiADKAsyGy5kZGFzaC5jb3JlLkNhdGFsb2d1ZVBsdWdpbhIPCgdvcnBoYW5zGAMgAygJEhkKEWF2YWlsYWJsZV9yZWxlYXNlGAQgASgJIr0BCg9DYXRhbG9ndWVQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIRCglpbnN0YWxsZWQYBiABKAgSLwoKY29tcG9uZW50cxgHIAMoCzIbLmRkYXNoLmNvcmUuQ29tcG9uZW50U3RhdHVzEhYKDnVwZGF0ZV9wZW5kaW5nGAggASgJInkKD0NvbXBvbmVudFN0YXR1cxIMCgRuYW1lGAEgASgJEg0KBXN0YXRlGAIgASgJEg8KB21lc3NhZ2UYAyABKAkSDAoEaGVsZBgEIAEoCBIUCgxjb25maWd1cmFibGUYBSABKAgSFAoMbmVlZHNfY29uZmlnGAYgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIlCg9JbnN0YWxsUmVzcG9uc2USEgoKY29tcG9uZW50cxgBIAMoCSI3ChBVbmluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCRITCgtkZWxldGVfZGF0YRgCIAEoCCIkChFVbmluc3RhbGxSZXNwb25zZRIPCgdvcnBoYW5zGAEgAygJIiMKDlJlc3RhcnRSZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIRCg9SZXN0YXJ0UmVzcG9uc2UiHQobTGlzdEluc3RhbGxlZFBsdWdpbnNSZXF1ZXN0IkwKHExpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2USLAoHcGx1Z2lucxgBIAMoCzIbLmRkYXNoLmNvcmUuSW5zdGFsbGVkUGx1Z2luIpIBCg9JbnN0YWxsZWRQbHVnaW4SDAoEbmFtZRgBIAEoCRINCgV0aXRsZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIMCgRpY29uGAQgASgJEg4KBmF1dGhvchgFIAEoCRIQCghyZXF1aXJlcxgGIAMoCRIOCgZzY3JpcHQYByABKAkSDQoFc3R5bGUYCCABKAkicQoTTGlzdEF1ZGl0TG9nUmVxdWVzdBISCgphY3Rvcl9raW5kGAEgASgJEg4KBnRhcmdldBgCIAEoCRIPCgdvdXRjb21lGAMgASgJEhEKCXBhZ2Vfc2l6ZRgEIAEoBRISCgpwYWdlX3Rva2VuGAUgASgJImgKFExpc3RBdWRpdExvZ1Jlc3BvbnNlEiYKBmNoYWlucxgBIAMoCzIWLmRkYXNoLmNvcmUuQXVkaXRDaGFpbhIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSDwoHdGFyZ2V0cxgDIAMoCSJBCgpBdWRpdENoYWluEgoKAmlkGAEgASgJEicKB2VudHJpZXMYAiADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0RW50cnki/QEKCkF1ZGl0RW50cnkSKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKYWN0b3Jfa2luZBgCIAEoCRIQCgh1c2VybmFtZRgDIAEoCRILCgNzdWIYBCABKAkSDgoGdGFyZ2V0GAUgASgJEg4KBm1ldGhvZBgGIAEoCRISCgpkaXNydXB0aXZlGAcgASgIEg8KB3JlcXVlc3QYCCABKAkSDwoHb3V0Y29tZRgJIAEoCRIPCgdtZXNzYWdlGAogASgJEisKCGR1cmF0aW9uGAsgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uIhIKEEdldExheW91dFJlcXVlc3QiNwoRR2V0TGF5b3V0UmVzcG9uc2USIgoGbGF5b3V0GAEgASgLMhIuZGRhc2guY29yZS5MYXlvdXQiNwoRU2F2ZUxheW91dFJlcXVlc3QSIgoGbGF5b3V0GAEgASgLMhIuZGRhc2guY29yZS5MYXlvdXQiFAoSU2F2ZUxheW91dFJlc3BvbnNlIkAKBkxheW91dBIoCgdlbnRyaWVzGAEgAygLMhcuZGRhc2guY29yZS5MYXlvdXRFbnRyeRIMCgRzZWVuGAIgAygJIisKC0xheW91dEVudHJ5Eg4KBndpZGdldBgBIAEoCRIMCgRzaXplGAIgASgJIlkKDENvcmVTZXR0aW5ncxI/CgV0aGVtZRgBIAEoDjIRLmRkYXNoLmNvcmUuVGhlbWVCGJq1GBQKC1RIRU1FX0REQVNIGgVUaGVtZUgAiAEBQggKBl90aGVtZSIYChZHZXRDb3JlU2V0dGluZ3NSZXF1ZXN0IkUKF0dldENvcmVTZXR0aW5nc1Jlc3BvbnNlEioKCHNldHRpbmdzGAEgASgLMhguZGRhc2guY29yZS5Db3JlU2V0dGluZ3MiJQoUR2V0Q29uZmlnRm9ybVJlcXVlc3QSDQoFb3duZXIYASABKAki0gEKFUdldENvbmZpZ0Zvcm1SZXNwb25zZRIlCgZmaWVsZHMYASADKAsyFS5kZGFzaC5jb3JlLkZvcm1GaWVsZBInCgZ2YWx1ZXMYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhMKC3NlY3JldHNfc2V0GAMgAygJEicKBmVycm9ycxgEIAMoCzIXLmRkYXNoLmNvcmUuQ29uZmlnRXJyb3ISKwoKc2V0dXBfaGludBgFIAEoCzIXLmRkYXNoLmNvbmZpZy5TZXR1cEhpbnQiugMKCUZvcm1GaWVsZBIMCgRuYW1lGAEgASgJEigKBGtpbmQYAiABKA4yGi5kZGFzaC5jb3JlLkZvcm1GaWVsZC5LaW5kEhAKCHJlcGVhdGVkGAMgASgIEg0KBWxhYmVsGAQgASgJEgwKBGhlbHAYBSABKAkSEwoLcGxhY2Vob2xkZXIYBiABKAkSEAoIcmVxdWlyZWQYByABKAgSDgoGc2VjcmV0GAggASgIEg8KB2RlZmF1bHQYCSABKAkSDgoGZm9ybWF0GAogASgJEhAKA21pbhgLIAEoA0gAiAEBEhAKA21heBgMIAEoA0gBiAEBEicKB29wdGlvbnMYDSADKAsyFi5kZGFzaC5jb3JlLkVudW1PcHRpb24SJgoHY29sdW1ucxgOIAMoCzIVLmRkYXNoLmNvcmUuRm9ybUZpZWxkImkKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEg8KC0tJTkRfU1RSSU5HEAESDAoIS0lORF9JTlQQAhINCglLSU5EX0JPT0wQAxINCglLSU5EX0VOVU0QBBIOCgpLSU5EX1RBQkxFEAVCBgoEX21pbkIGCgRfbWF4IioKCkVudW1PcHRpb24SDQoFdmFsdWUYASABKAkSDQoFbGFiZWwYAiABKAkiLAoLQ29uZmlnRXJyb3ISDAoEcGF0aBgBIAEoCRIPCgdtZXNzYWdlGAIgASgJIjcKDENvbmZpZ0Vycm9ycxInCgZlcnJvcnMYASADKAsyFy5kZGFzaC5jb3JlLkNvbmZpZ0Vycm9yImIKEVNhdmVDb25maWdSZXF1ZXN0Eg0KBW93bmVyGAEgASgJEicKBnZhbHVlcxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSFQoNY2xlYXJfc2VjcmV0cxgDIAMoCSJBChJTYXZlQ29uZmlnUmVzcG9uc2USKwoGc3RhdHVzGAEgASgLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiRgoKQ29uZmlnU2F2ZRINCgVvd25lchgBIAEoCRIpCgdjaGFuZ2VzGAIgAygLMhguZGRhc2guY29yZS5Db25maWdDaGFuZ2UiRwoMQ29uZmlnQ2hhbmdlEg0KBWZpZWxkGAEgASgJEgsKA29sZBgCIAEoCRILCgNuZXcYAyABKAkSDgoGY2hhbmdlGAQgASgJKjwKBVRoZW1lEhUKEVRIRU1FX1VOU1BFQ0lGSUVEEAASHAoLVEhFTUVfRERBU0gQARoLorUYBwoFZGRhc2gytggKC0NvcmVTZXJ2aWNlEnEKFExpc3RJbnN0YWxsZWRQbHVnaW5zEicuZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1JlcXVlc3QaKC5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVzcG9uc2UiBoq1GAIIAhJICgdJbnN0YWxsEhouZGRhc2guY29yZS5JbnN0YWxsUmVxdWVzdBobLmRkYXNoLmNvcmUuSW5zdGFsbFJlc3BvbnNlIgSStRgAElAKCVVuaW5zdGFsbBIcLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVxdWVzdBodLmRkYXNoLmNvcmUuVW5pbnN0YWxsUmVzcG9uc2UiBpK1GAIIARJKCgdSZXN0YXJ0EhouZGRhc2guY29yZS5SZXN0YXJ0UmVxdWVzdBobLmRkYXNoLmNvcmUuUmVzdGFydFJlc3BvbnNlIgaStRgCCAESXAoNTGlzdENhdGFsb2d1ZRIgLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlcXVlc3QaIS5kZGFzaC5jb3JlLkxpc3RDYXRhbG9ndWVSZXNwb25zZSIGirUYAggCElkKDERlbGV0ZU9ycGhhbhIfLmRkYXNoLmNvcmUuRGVsZXRlT3JwaGFuUmVxdWVzdBogLmRkYXNoLmNvcmUuRGVsZXRlT3JwaGFuUmVzcG9uc2UiBpK1GAIIARJcCg1HZXRDb25maWdGb3JtEiAuZGRhc2guY29yZS5HZXRDb25maWdGb3JtUmVxdWVzdBohLmRkYXNoLmNvcmUuR2V0Q29uZmlnRm9ybVJlc3BvbnNlIgaKtRgCCAMSUQoKU2F2ZUNvbmZpZxIdLmRkYXNoLmNvcmUuU2F2ZUNvbmZpZ1JlcXVlc3QaHi5kZGFzaC5jb3JlLlNhdmVDb25maWdSZXNwb25zZSIEkrUYABJiCg9HZXRDb3JlU2V0dGluZ3MSIi5kZGFzaC5jb3JlLkdldENvcmVTZXR0aW5nc1JlcXVlc3QaIy5kZGFzaC5jb3JlLkdldENvcmVTZXR0aW5nc1Jlc3BvbnNlIgaKtRgCCAMSWQoMTGlzdEF1ZGl0TG9nEh8uZGRhc2guY29yZS5MaXN0QXVkaXRMb2dSZXF1ZXN0GiAuZGRhc2guY29yZS5MaXN0QXVkaXRMb2dSZXNwb25zZSIGirUYAggDElAKCUdldExheW91dBIcLmRkYXNoLmNvcmUuR2V0TGF5b3V0UmVxdWVzdBodLmRkYXNoLmNvcmUuR2V0TGF5b3V0UmVzcG9uc2UiBoq1GAIIAxJRCgpTYXZlTGF5b3V0Eh0uZGRhc2guY29yZS5TYXZlTGF5b3V0UmVxdWVzdBoeLmRkYXNoLmNvcmUuU2F2ZUxheW91dFJlc3BvbnNlIgSStRgAQjRaMmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvcmU7Y29yZXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_struct, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiJQoUUnVuVGVzdEFjdGlvblJlcXVlc3QSDQoFb3duZXIYASABKAkiFwoVUnVuVGVzdEFjdGlvblJlc3BvbnNlIisKClRlc3RBY3Rpb24SDgoGbWV0aG9kGAEgASgJEg0KBWxhYmVsGAIgASgJIhYKFExpc3RDYXRhbG9ndWVSZXF1ZXN0IoIBChVMaXN0Q2F0YWxvZ3VlUmVzcG9uc2USDwoHcmVsZWFzZRgBIAEoCRIsCgdwbHVnaW5zGAIgAygLMhsuZGRhc2guY29yZS5DYXRhbG9ndWVQbHVnaW4SDwoHb3JwaGFucxgDIAMoCRIZChFhdmFpbGFibGVfcmVsZWFzZRgEIAEoCSK9AQoPQ2F0YWxvZ3VlUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEQoJaW5zdGFsbGVkGAYgASgIEi8KCmNvbXBvbmVudHMYByADKAsyGy5kZGFzaC5jb3JlLkNvbXBvbmVudFN0YXR1cxIWCg51cGRhdGVfcGVuZGluZxgIIAEoCSJ5Cg9Db21wb25lbnRTdGF0dXMSDAoEbmFtZRgBIAEoCRINCgVzdGF0ZRgCIAEoCRIPCgdtZXNzYWdlGAMgASgJEgwKBGhlbGQYBCABKAgSFAoMY29uZmlndXJhYmxlGAUgASgIEhQKDG5lZWRzX2NvbmZpZxgGIAEoCCIoChNEZWxldGVPcnBoYW5SZXF1ZXN0EhEKCWNvbXBvbmVudBgBIAEoCSIWChREZWxldGVPcnBoYW5SZXNwb25zZSIgCg5JbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkiJQoPSW5zdGFsbFJlc3BvbnNlEhIKCmNvbXBvbmVudHMYASADKAkiNwoQVW5pbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkSEwoLZGVsZXRlX2RhdGEYAiABKAgiJAoRVW5pbnN0YWxsUmVzcG9uc2USDwoHb3JwaGFucxgBIAMoCSIjCg5SZXN0YXJ0UmVxdWVzdBIRCgljb21wb25lbnQYASABKAkiEQoPUmVzdGFydFJlc3BvbnNlIh0KG0xpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdCJMChxMaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlEiwKB3BsdWdpbnMYASADKAsyGy5kZGFzaC5jb3JlLkluc3RhbGxlZFBsdWdpbiKSAQoPSW5zdGFsbGVkUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEAoIcmVxdWlyZXMYBiADKAkSDgoGc2NyaXB0GAcgASgJEg0KBXN0eWxlGAggASgJInEKE0xpc3RBdWRpdExvZ1JlcXVlc3QSEgoKYWN0b3Jfa2luZBgBIAEoCRIOCgZ0YXJnZXQYAiABKAkSDwoHb3V0Y29tZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSJoChRMaXN0QXVkaXRMb2dSZXNwb25zZRImCgZjaGFpbnMYASADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0Q2hhaW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEg8KB3RhcmdldHMYAyADKAkiQQoKQXVkaXRDaGFpbhIKCgJpZBgBIAEoCRInCgdlbnRyaWVzGAIgAygLMhYuZGRhc2guY29yZS5BdWRpdEVudHJ5Iv0BCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmFjdG9yX2tpbmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSCwoDc3ViGAQgASgJEg4KBnRhcmdldBgFIAEoCRIOCgZtZXRob2QYBiABKAkSEgoKZGlzcnVwdGl2ZRgHIAEoCBIPCgdyZXF1ZXN0GAggASgJEg8KB291dGNvbWUYCSABKAkSDwoHbWVzc2FnZRgKIAEoCRIrCghkdXJhdGlvbhgLIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbiISChBHZXRMYXlvdXRSZXF1ZXN0IjcKEUdldExheW91dFJlc3BvbnNlEiIKBmxheW91dBgBIAEoCzISLmRkYXNoLmNvcmUuTGF5b3V0IjcKEVNhdmVMYXlvdXRSZXF1ZXN0EiIKBmxheW91dBgBIAEoCzISLmRkYXNoLmNvcmUuTGF5b3V0IhQKElNhdmVMYXlvdXRSZXNwb25zZSJACgZMYXlvdXQSKAoHZW50cmllcxgBIAMoCzIXLmRkYXNoLmNvcmUuTGF5b3V0RW50cnkSDAoEc2VlbhgCIAMoCSIrCgtMYXlvdXRFbnRyeRIOCgZ3aWRnZXQYASABKAkSDAoEc2l6ZRgCIAEoCSJZCgxDb3JlU2V0dGluZ3MSPwoFdGhlbWUYASABKA4yES5kZGFzaC5jb3JlLlRoZW1lQhiatRgUCgtUSEVNRV9EREFTSBoFVGhlbWVIAIgBAUIICgZfdGhlbWUiGAoWR2V0Q29yZVNldHRpbmdzUmVxdWVzdCJFChdHZXRDb3JlU2V0dGluZ3NSZXNwb25zZRIqCghzZXR0aW5ncxgBIAEoCzIYLmRkYXNoLmNvcmUuQ29yZVNldHRpbmdzIiUKFEdldENvbmZpZ0Zvcm1SZXF1ZXN0Eg0KBW93bmVyGAEgASgJIv8BChVHZXRDb25maWdGb3JtUmVzcG9uc2USJQoGZmllbGRzGAEgAygLMhUuZGRhc2guY29yZS5Gb3JtRmllbGQSJwoGdmFsdWVzGAIgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBITCgtzZWNyZXRzX3NldBgDIAMoCRInCgZlcnJvcnMYBCADKAsyFy5kZGFzaC5jb3JlLkNvbmZpZ0Vycm9yEisKCnNldHVwX2hpbnQYBSABKAsyFy5kZGFzaC5jb25maWcuU2V0dXBIaW50EisKC3Rlc3RfYWN0aW9uGAYgASgLMhYuZGRhc2guY29yZS5UZXN0QWN0aW9uIroDCglGb3JtRmllbGQSDAoEbmFtZRgBIAEoCRIoCgRraW5kGAIgASgOMhouZGRhc2guY29yZS5Gb3JtRmllbGQuS2luZBIQCghyZXBlYXRlZBgDIAEoCBINCgVsYWJlbBgEIAEoCRIMCgRoZWxwGAUgASgJEhMKC3BsYWNlaG9sZGVyGAYgASgJEhAKCHJlcXVpcmVkGAcgASgIEg4KBnNlY3JldBgIIAEoCBIPCgdkZWZhdWx0GAkgASgJEg4KBmZvcm1hdBgKIAEoCRIQCgNtaW4YCyABKANIAIgBARIQCgNtYXgYDCABKANIAYgBARInCgdvcHRpb25zGA0gAygLMhYuZGRhc2guY29yZS5FbnVtT3B0aW9uEiYKB2NvbHVtbnMYDiADKAsyFS5kZGFzaC5jb3JlLkZvcm1GaWVsZCJpCgRLaW5kEhQKEEtJTkRfVU5TUEVDSUZJRUQQABIPCgtLSU5EX1NUUklORxABEgwKCEtJTkRfSU5UEAISDQoJS0lORF9CT09MEAMSDQoJS0lORF9FTlVNEAQSDgoKS0lORF9UQUJMRRAFQgYKBF9taW5CBgoEX21heCIqCgpFbnVtT3B0aW9uEg0KBXZhbHVlGAEgASgJEg0KBWxhYmVsGAIgASgJIiwKC0NvbmZpZ0Vycm9yEgwKBHBhdGgYASABKAkSDwoHbWVzc2FnZRgCIAEoCSI3CgxDb25maWdFcnJvcnMSJwoGZXJyb3JzGAEgAygLMhcuZGRhc2guY29yZS5Db25maWdFcnJvciJiChFTYXZlQ29uZmlnUmVxdWVzdBINCgVvd25lchgBIAEoCRInCgZ2YWx1ZXMYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0EhUKDWNsZWFyX3NlY3JldHMYAyADKAkiQQoSU2F2ZUNvbmZpZ1Jlc3BvbnNlEisKBnN0YXR1cxgBIAEoCzIbLmRkYXNoLmNvcmUuQ29tcG9uZW50U3RhdHVzIkYKCkNvbmZpZ1NhdmUSDQoFb3duZXIYASABKAkSKQoHY2hhbmdlcxgCIAMoCzIYLmRkYXNoLmNvcmUuQ29uZmlnQ2hhbmdlIkcKDENvbmZpZ0NoYW5nZRINCgVmaWVsZBgBIAEoCRILCgNvbGQYAiABKAkSCwoDbmV3GAMgASgJEg4KBmNoYW5nZRgEIAEoCSo8CgVUaGVtZRIVChFUSEVNRV9VTlNQRUNJRklFRBAAEhwKC1RIRU1FX0REQVNIEAEaC6K1GAcKBWRkYXNoMpIJCgtDb3JlU2VydmljZRJxChRMaXN0SW5zdGFsbGVkUGx1Z2lucxInLmRkYXNoLmNvcmUuTGlzdEluc3RhbGxlZFBsdWdpbnNSZXF1ZXN0GiguZGRhc2guY29yZS5MaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlIgaKtRgCCAISSAoHSW5zdGFsbBIaLmRkYXNoLmNvcmUuSW5zdGFsbFJlcXVlc3QaGy5kZGFzaC5jb3JlLkluc3RhbGxSZXNwb25zZSIEkrUYABJQCglVbmluc3RhbGwSHC5kZGFzaC5jb3JlLlVuaW5zdGFsbFJlcXVlc3QaHS5kZGFzaC5jb3JlLlVuaW5zdGFsbFJlc3BvbnNlIgaStRgCCAESSgoHUmVzdGFydBIaLmRkYXNoLmNvcmUuUmVzdGFydFJlcXVlc3QaGy5kZGFzaC5jb3JlLlJlc3RhcnRSZXNwb25zZSIGkrUYAggBElwKDUxpc3RDYXRhbG9ndWUSIC5kZGFzaC5jb3JlLkxpc3RDYXRhbG9ndWVSZXF1ZXN0GiEuZGRhc2guY29yZS5MaXN0Q2F0YWxvZ3VlUmVzcG9uc2UiBoq1GAIIAhJZCgxEZWxldGVPcnBoYW4SHy5kZGFzaC5jb3JlLkRlbGV0ZU9ycGhhblJlcXVlc3QaIC5kZGFzaC5jb3JlLkRlbGV0ZU9ycGhhblJlc3BvbnNlIgaStRgCCAESXAoNR2V0Q29uZmlnRm9ybRIgLmRkYXNoLmNvcmUuR2V0Q29uZmlnRm9ybVJlcXVlc3QaIS5kZGFzaC5jb3JlLkdldENvbmZpZ0Zvcm1SZXNwb25zZSIGirUYAggDElEKClNhdmVDb25maWcSHS5kZGFzaC5jb3JlLlNhdmVDb25maWdSZXF1ZXN0Gh4uZGRhc2guY29yZS5TYXZlQ29uZmlnUmVzcG9uc2UiBJK1GAASYgoPR2V0Q29yZVNldHRpbmdzEiIuZGRhc2guY29yZS5HZXRDb3JlU2V0dGluZ3NSZXF1ZXN0GiMuZGRhc2guY29yZS5HZXRDb3JlU2V0dGluZ3NSZXNwb25zZSIGirUYAggDElkKDExpc3RBdWRpdExvZxIfLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVxdWVzdBogLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVzcG9uc2UiBoq1GAIIAxJQCglHZXRMYXlvdXQSHC5kZGFzaC5jb3JlLkdldExheW91dFJlcXVlc3QaHS5kZGFzaC5jb3JlLkdldExheW91dFJlc3BvbnNlIgaKtRgCCAMSUQoKU2F2ZUxheW91dBIdLmRkYXNoLmNvcmUuU2F2ZUxheW91dFJlcXVlc3QaHi5kZGFzaC5jb3JlLlNhdmVMYXlvdXRSZXNwb25zZSIEkrUYABJaCg1SdW5UZXN0QWN0aW9uEiAuZGRhc2guY29yZS5SdW5UZXN0QWN0aW9uUmVxdWVzdBohLmRkYXNoLmNvcmUuUnVuVGVzdEFjdGlvblJlc3BvbnNlIgSStRgAQjRaMmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvcmU7Y29yZXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_struct, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+
+/**
+ * @generated from message ddash.core.RunTestActionRequest
+ */
+export type RunTestActionRequest = Message<"ddash.core.RunTestActionRequest"> & {
+  /**
+   * A Component's name.
+   *
+   * @generated from field: string owner = 1;
+   */
+  owner: string;
+};
+
+/**
+ * Describes the message ddash.core.RunTestActionRequest.
+ * Use `create(RunTestActionRequestSchema)` to create a new message.
+ */
+export const RunTestActionRequestSchema: GenMessage<RunTestActionRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 0);
+
+/**
+ * @generated from message ddash.core.RunTestActionResponse
+ */
+export type RunTestActionResponse = Message<"ddash.core.RunTestActionResponse"> & {
+};
+
+/**
+ * Describes the message ddash.core.RunTestActionResponse.
+ * Use `create(RunTestActionResponseSchema)` to create a new message.
+ */
+export const RunTestActionResponseSchema: GenMessage<RunTestActionResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 1);
+
+/**
+ * The config form's test button.
+ *
+ * @generated from message ddash.core.TestAction
+ */
+export type TestAction = Message<"ddash.core.TestAction"> & {
+  /**
+   * The Action it runs, e.g. "SendTest".
+   *
+   * @generated from field: string method = 1;
+   */
+  method: string;
+
+  /**
+   * The button's label: the method name in sentence case, e.g. "Send test".
+   *
+   * @generated from field: string label = 2;
+   */
+  label: string;
+};
+
+/**
+ * Describes the message ddash.core.TestAction.
+ * Use `create(TestActionSchema)` to create a new message.
+ */
+export const TestActionSchema: GenMessage<TestAction> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 2);
 
 /**
  * @generated from message ddash.core.ListCatalogueRequest
@@ -31,7 +91,7 @@ export type ListCatalogueRequest = Message<"ddash.core.ListCatalogueRequest"> & 
  * Use `create(ListCatalogueRequestSchema)` to create a new message.
  */
 export const ListCatalogueRequestSchema: GenMessage<ListCatalogueRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 0);
+  messageDesc(file_ddash_core_core, 3);
 
 /**
  * @generated from message ddash.core.ListCatalogueResponse
@@ -70,7 +130,7 @@ export type ListCatalogueResponse = Message<"ddash.core.ListCatalogueResponse"> 
  * Use `create(ListCatalogueResponseSchema)` to create a new message.
  */
 export const ListCatalogueResponseSchema: GenMessage<ListCatalogueResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 1);
+  messageDesc(file_ddash_core_core, 4);
 
 /**
  * A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
@@ -134,7 +194,7 @@ export type CataloguePlugin = Message<"ddash.core.CataloguePlugin"> & {
  * Use `create(CataloguePluginSchema)` to create a new message.
  */
 export const CataloguePluginSchema: GenMessage<CataloguePlugin> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 2);
+  messageDesc(file_ddash_core_core, 5);
 
 /**
  * A Component as the host sees it.
@@ -190,7 +250,7 @@ export type ComponentStatus = Message<"ddash.core.ComponentStatus"> & {
  * Use `create(ComponentStatusSchema)` to create a new message.
  */
 export const ComponentStatusSchema: GenMessage<ComponentStatus> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 3);
+  messageDesc(file_ddash_core_core, 6);
 
 /**
  * @generated from message ddash.core.DeleteOrphanRequest
@@ -207,7 +267,7 @@ export type DeleteOrphanRequest = Message<"ddash.core.DeleteOrphanRequest"> & {
  * Use `create(DeleteOrphanRequestSchema)` to create a new message.
  */
 export const DeleteOrphanRequestSchema: GenMessage<DeleteOrphanRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 4);
+  messageDesc(file_ddash_core_core, 7);
 
 /**
  * @generated from message ddash.core.DeleteOrphanResponse
@@ -220,7 +280,7 @@ export type DeleteOrphanResponse = Message<"ddash.core.DeleteOrphanResponse"> & 
  * Use `create(DeleteOrphanResponseSchema)` to create a new message.
  */
 export const DeleteOrphanResponseSchema: GenMessage<DeleteOrphanResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 5);
+  messageDesc(file_ddash_core_core, 8);
 
 /**
  * @generated from message ddash.core.InstallRequest
@@ -237,7 +297,7 @@ export type InstallRequest = Message<"ddash.core.InstallRequest"> & {
  * Use `create(InstallRequestSchema)` to create a new message.
  */
 export const InstallRequestSchema: GenMessage<InstallRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 6);
+  messageDesc(file_ddash_core_core, 9);
 
 /**
  * @generated from message ddash.core.InstallResponse
@@ -257,7 +317,7 @@ export type InstallResponse = Message<"ddash.core.InstallResponse"> & {
  * Use `create(InstallResponseSchema)` to create a new message.
  */
 export const InstallResponseSchema: GenMessage<InstallResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 7);
+  messageDesc(file_ddash_core_core, 10);
 
 /**
  * @generated from message ddash.core.UninstallRequest
@@ -281,7 +341,7 @@ export type UninstallRequest = Message<"ddash.core.UninstallRequest"> & {
  * Use `create(UninstallRequestSchema)` to create a new message.
  */
 export const UninstallRequestSchema: GenMessage<UninstallRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 8);
+  messageDesc(file_ddash_core_core, 11);
 
 /**
  * @generated from message ddash.core.UninstallResponse
@@ -300,7 +360,7 @@ export type UninstallResponse = Message<"ddash.core.UninstallResponse"> & {
  * Use `create(UninstallResponseSchema)` to create a new message.
  */
 export const UninstallResponseSchema: GenMessage<UninstallResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 9);
+  messageDesc(file_ddash_core_core, 12);
 
 /**
  * @generated from message ddash.core.RestartRequest
@@ -317,7 +377,7 @@ export type RestartRequest = Message<"ddash.core.RestartRequest"> & {
  * Use `create(RestartRequestSchema)` to create a new message.
  */
 export const RestartRequestSchema: GenMessage<RestartRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 10);
+  messageDesc(file_ddash_core_core, 13);
 
 /**
  * @generated from message ddash.core.RestartResponse
@@ -330,7 +390,7 @@ export type RestartResponse = Message<"ddash.core.RestartResponse"> & {
  * Use `create(RestartResponseSchema)` to create a new message.
  */
 export const RestartResponseSchema: GenMessage<RestartResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 11);
+  messageDesc(file_ddash_core_core, 14);
 
 /**
  * @generated from message ddash.core.ListInstalledPluginsRequest
@@ -343,7 +403,7 @@ export type ListInstalledPluginsRequest = Message<"ddash.core.ListInstalledPlugi
  * Use `create(ListInstalledPluginsRequestSchema)` to create a new message.
  */
 export const ListInstalledPluginsRequestSchema: GenMessage<ListInstalledPluginsRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 12);
+  messageDesc(file_ddash_core_core, 15);
 
 /**
  * @generated from message ddash.core.ListInstalledPluginsResponse
@@ -362,7 +422,7 @@ export type ListInstalledPluginsResponse = Message<"ddash.core.ListInstalledPlug
  * Use `create(ListInstalledPluginsResponseSchema)` to create a new message.
  */
 export const ListInstalledPluginsResponseSchema: GenMessage<ListInstalledPluginsResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 13);
+  messageDesc(file_ddash_core_core, 16);
 
 /**
  * An installed Plugin: its plugin.yaml and where its bundle is.
@@ -426,7 +486,7 @@ export type InstalledPlugin = Message<"ddash.core.InstalledPlugin"> & {
  * Use `create(InstalledPluginSchema)` to create a new message.
  */
 export const InstalledPluginSchema: GenMessage<InstalledPlugin> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 14);
+  messageDesc(file_ddash_core_core, 17);
 
 /**
  * @generated from message ddash.core.ListAuditLogRequest
@@ -476,7 +536,7 @@ export type ListAuditLogRequest = Message<"ddash.core.ListAuditLogRequest"> & {
  * Use `create(ListAuditLogRequestSchema)` to create a new message.
  */
 export const ListAuditLogRequestSchema: GenMessage<ListAuditLogRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 15);
+  messageDesc(file_ddash_core_core, 18);
 
 /**
  * @generated from message ddash.core.ListAuditLogResponse
@@ -509,7 +569,7 @@ export type ListAuditLogResponse = Message<"ddash.core.ListAuditLogResponse"> & 
  * Use `create(ListAuditLogResponseSchema)` to create a new message.
  */
 export const ListAuditLogResponseSchema: GenMessage<ListAuditLogResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 16);
+  messageDesc(file_ddash_core_core, 19);
 
 /**
  * The hops of one Action, linked by their chain id.
@@ -536,7 +596,7 @@ export type AuditChain = Message<"ddash.core.AuditChain"> & {
  * Use `create(AuditChainSchema)` to create a new message.
  */
 export const AuditChainSchema: GenMessage<AuditChain> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 17);
+  messageDesc(file_ddash_core_core, 20);
 
 /**
  * One hop in the Audit Log.
@@ -626,7 +686,7 @@ export type AuditEntry = Message<"ddash.core.AuditEntry"> & {
  * Use `create(AuditEntrySchema)` to create a new message.
  */
 export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 18);
+  messageDesc(file_ddash_core_core, 21);
 
 /**
  * @generated from message ddash.core.GetLayoutRequest
@@ -639,7 +699,7 @@ export type GetLayoutRequest = Message<"ddash.core.GetLayoutRequest"> & {
  * Use `create(GetLayoutRequestSchema)` to create a new message.
  */
 export const GetLayoutRequestSchema: GenMessage<GetLayoutRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 19);
+  messageDesc(file_ddash_core_core, 22);
 
 /**
  * @generated from message ddash.core.GetLayoutResponse
@@ -656,7 +716,7 @@ export type GetLayoutResponse = Message<"ddash.core.GetLayoutResponse"> & {
  * Use `create(GetLayoutResponseSchema)` to create a new message.
  */
 export const GetLayoutResponseSchema: GenMessage<GetLayoutResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 20);
+  messageDesc(file_ddash_core_core, 23);
 
 /**
  * @generated from message ddash.core.SaveLayoutRequest
@@ -673,7 +733,7 @@ export type SaveLayoutRequest = Message<"ddash.core.SaveLayoutRequest"> & {
  * Use `create(SaveLayoutRequestSchema)` to create a new message.
  */
 export const SaveLayoutRequestSchema: GenMessage<SaveLayoutRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 21);
+  messageDesc(file_ddash_core_core, 24);
 
 /**
  * @generated from message ddash.core.SaveLayoutResponse
@@ -686,7 +746,7 @@ export type SaveLayoutResponse = Message<"ddash.core.SaveLayoutResponse"> & {
  * Use `create(SaveLayoutResponseSchema)` to create a new message.
  */
 export const SaveLayoutResponseSchema: GenMessage<SaveLayoutResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 22);
+  messageDesc(file_ddash_core_core, 25);
 
 /**
  * The Overview layout, which the shell reconciles against the Widgets the
@@ -717,7 +777,7 @@ export type Layout = Message<"ddash.core.Layout"> & {
  * Use `create(LayoutSchema)` to create a new message.
  */
 export const LayoutSchema: GenMessage<Layout> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 23);
+  messageDesc(file_ddash_core_core, 26);
 
 /**
  * A placed Widget.
@@ -745,7 +805,7 @@ export type LayoutEntry = Message<"ddash.core.LayoutEntry"> & {
  * Use `create(LayoutEntrySchema)` to create a new message.
  */
 export const LayoutEntrySchema: GenMessage<LayoutEntry> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 24);
+  messageDesc(file_ddash_core_core, 27);
 
 /**
  * The core's own settings, stored as owner "core" and edited in Settings.
@@ -764,7 +824,7 @@ export type CoreSettings = Message<"ddash.core.CoreSettings"> & {
  * Use `create(CoreSettingsSchema)` to create a new message.
  */
 export const CoreSettingsSchema: GenMessage<CoreSettings> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 25);
+  messageDesc(file_ddash_core_core, 28);
 
 /**
  * @generated from message ddash.core.GetCoreSettingsRequest
@@ -777,7 +837,7 @@ export type GetCoreSettingsRequest = Message<"ddash.core.GetCoreSettingsRequest"
  * Use `create(GetCoreSettingsRequestSchema)` to create a new message.
  */
 export const GetCoreSettingsRequestSchema: GenMessage<GetCoreSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 26);
+  messageDesc(file_ddash_core_core, 29);
 
 /**
  * @generated from message ddash.core.GetCoreSettingsResponse
@@ -794,7 +854,7 @@ export type GetCoreSettingsResponse = Message<"ddash.core.GetCoreSettingsRespons
  * Use `create(GetCoreSettingsResponseSchema)` to create a new message.
  */
 export const GetCoreSettingsResponseSchema: GenMessage<GetCoreSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 27);
+  messageDesc(file_ddash_core_core, 30);
 
 /**
  * @generated from message ddash.core.GetConfigFormRequest
@@ -813,7 +873,7 @@ export type GetConfigFormRequest = Message<"ddash.core.GetConfigFormRequest"> & 
  * Use `create(GetConfigFormRequestSchema)` to create a new message.
  */
 export const GetConfigFormRequestSchema: GenMessage<GetConfigFormRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 28);
+  messageDesc(file_ddash_core_core, 31);
 
 /**
  * @generated from message ddash.core.GetConfigFormResponse
@@ -856,6 +916,14 @@ export type GetConfigFormResponse = Message<"ddash.core.GetConfigFormResponse"> 
    * @generated from field: ddash.config.SetupHint setup_hint = 5;
    */
   setupHint?: SetupHint | undefined;
+
+  /**
+   * The button that runs the Action the config message names in
+   * (ddash.config.form).test_action; unset for a Component without one.
+   *
+   * @generated from field: ddash.core.TestAction test_action = 6;
+   */
+  testAction?: TestAction | undefined;
 };
 
 /**
@@ -863,7 +931,7 @@ export type GetConfigFormResponse = Message<"ddash.core.GetConfigFormResponse"> 
  * Use `create(GetConfigFormResponseSchema)` to create a new message.
  */
 export const GetConfigFormResponseSchema: GenMessage<GetConfigFormResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 29);
+  messageDesc(file_ddash_core_core, 32);
 
 /**
  * One field of a config form.
@@ -961,7 +1029,7 @@ export type FormField = Message<"ddash.core.FormField"> & {
  * Use `create(FormFieldSchema)` to create a new message.
  */
 export const FormFieldSchema: GenMessage<FormField> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 30);
+  messageDesc(file_ddash_core_core, 33);
 
 /**
  * @generated from enum ddash.core.FormField.Kind
@@ -1006,7 +1074,7 @@ export enum FormField_Kind {
  * Describes the enum ddash.core.FormField.Kind.
  */
 export const FormField_KindSchema: GenEnum<FormField_Kind> = /*@__PURE__*/
-  enumDesc(file_ddash_core_core, 30, 0);
+  enumDesc(file_ddash_core_core, 33, 0);
 
 /**
  * @generated from message ddash.core.EnumOption
@@ -1030,7 +1098,7 @@ export type EnumOption = Message<"ddash.core.EnumOption"> & {
  * Use `create(EnumOptionSchema)` to create a new message.
  */
 export const EnumOptionSchema: GenMessage<EnumOption> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 31);
+  messageDesc(file_ddash_core_core, 34);
 
 /**
  * One config field's problem, e.g. {path: "hosts[1].url", message: "must be a URL"}.
@@ -1054,7 +1122,7 @@ export type ConfigError = Message<"ddash.core.ConfigError"> & {
  * Use `create(ConfigErrorSchema)` to create a new message.
  */
 export const ConfigErrorSchema: GenMessage<ConfigError> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 32);
+  messageDesc(file_ddash_core_core, 35);
 
 /**
  * The detail of an "invalid config" error.
@@ -1073,7 +1141,7 @@ export type ConfigErrors = Message<"ddash.core.ConfigErrors"> & {
  * Use `create(ConfigErrorsSchema)` to create a new message.
  */
 export const ConfigErrorsSchema: GenMessage<ConfigErrors> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 33);
+  messageDesc(file_ddash_core_core, 36);
 
 /**
  * @generated from message ddash.core.SaveConfigRequest
@@ -1109,7 +1177,7 @@ export type SaveConfigRequest = Message<"ddash.core.SaveConfigRequest"> & {
  * Use `create(SaveConfigRequestSchema)` to create a new message.
  */
 export const SaveConfigRequestSchema: GenMessage<SaveConfigRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 34);
+  messageDesc(file_ddash_core_core, 37);
 
 /**
  * @generated from message ddash.core.SaveConfigResponse
@@ -1128,7 +1196,7 @@ export type SaveConfigResponse = Message<"ddash.core.SaveConfigResponse"> & {
  * Use `create(SaveConfigResponseSchema)` to create a new message.
  */
 export const SaveConfigResponseSchema: GenMessage<SaveConfigResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 35);
+  messageDesc(file_ddash_core_core, 38);
 
 /**
  * What the Audit Log records for SaveConfig: the fields it changed.
@@ -1152,7 +1220,7 @@ export type ConfigSave = Message<"ddash.core.ConfigSave"> & {
  * Use `create(ConfigSaveSchema)` to create a new message.
  */
 export const ConfigSaveSchema: GenMessage<ConfigSave> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 36);
+  messageDesc(file_ddash_core_core, 39);
 
 /**
  * One changed field, its old and new value as JSON (empty when unset). A
@@ -1187,7 +1255,7 @@ export type ConfigChange = Message<"ddash.core.ConfigChange"> & {
  * Use `create(ConfigChangeSchema)` to create a new message.
  */
 export const ConfigChangeSchema: GenMessage<ConfigChange> = /*@__PURE__*/
-  messageDesc(file_ddash_core_core, 37);
+  messageDesc(file_ddash_core_core, 40);
 
 /**
  * The look of the whole UI. Light or dark is each browser's choice.
@@ -1354,6 +1422,20 @@ export const CoreService: GenService<{
     methodKind: "unary";
     input: typeof SaveLayoutRequestSchema;
     output: typeof SaveLayoutResponseSchema;
+  },
+  /**
+   * RunTestAction runs the Action a Component's config message names in
+   * (ddash.config.form).test_action, with an empty request, on its saved
+   * config, for the actor. It answers once the Action succeeded and fails
+   * with the Action's error. The Audit Log records the Component's Action
+   * itself (e.g. ntfy-api SendTest), not this call.
+   *
+   * @generated from rpc ddash.core.CoreService.RunTestAction
+   */
+  runTestAction: {
+    methodKind: "unary";
+    input: typeof RunTestActionRequestSchema;
+    output: typeof RunTestActionResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ddash_core_core, 0);

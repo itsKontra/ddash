@@ -34,6 +34,7 @@ const (
 	CoreService_ListAuditLog_FullMethodName         = "/ddash.core.CoreService/ListAuditLog"
 	CoreService_GetLayout_FullMethodName            = "/ddash.core.CoreService/GetLayout"
 	CoreService_SaveLayout_FullMethodName           = "/ddash.core.CoreService/SaveLayout"
+	CoreService_RunTestAction_FullMethodName        = "/ddash.core.CoreService/RunTestAction"
 )
 
 // CoreServiceClient is the client API for CoreService service.
@@ -83,6 +84,12 @@ type CoreServiceClient interface {
 	GetLayout(ctx context.Context, in *GetLayoutRequest, opts ...grpc.CallOption) (*GetLayoutResponse, error)
 	// SaveLayout replaces the Overview layout.
 	SaveLayout(ctx context.Context, in *SaveLayoutRequest, opts ...grpc.CallOption) (*SaveLayoutResponse, error)
+	// RunTestAction runs the Action a Component's config message names in
+	// (ddash.config.form).test_action, with an empty request, on its saved
+	// config, for the actor. It answers once the Action succeeded and fails
+	// with the Action's error. The Audit Log records the Component's Action
+	// itself (e.g. ntfy-api SendTest), not this call.
+	RunTestAction(ctx context.Context, in *RunTestActionRequest, opts ...grpc.CallOption) (*RunTestActionResponse, error)
 }
 
 type coreServiceClient struct {
@@ -213,6 +220,16 @@ func (c *coreServiceClient) SaveLayout(ctx context.Context, in *SaveLayoutReques
 	return out, nil
 }
 
+func (c *coreServiceClient) RunTestAction(ctx context.Context, in *RunTestActionRequest, opts ...grpc.CallOption) (*RunTestActionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunTestActionResponse)
+	err := c.cc.Invoke(ctx, CoreService_RunTestAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoreServiceServer is the server API for CoreService service.
 // All implementations must embed UnimplementedCoreServiceServer
 // for forward compatibility.
@@ -260,6 +277,12 @@ type CoreServiceServer interface {
 	GetLayout(context.Context, *GetLayoutRequest) (*GetLayoutResponse, error)
 	// SaveLayout replaces the Overview layout.
 	SaveLayout(context.Context, *SaveLayoutRequest) (*SaveLayoutResponse, error)
+	// RunTestAction runs the Action a Component's config message names in
+	// (ddash.config.form).test_action, with an empty request, on its saved
+	// config, for the actor. It answers once the Action succeeded and fails
+	// with the Action's error. The Audit Log records the Component's Action
+	// itself (e.g. ntfy-api SendTest), not this call.
+	RunTestAction(context.Context, *RunTestActionRequest) (*RunTestActionResponse, error)
 	mustEmbedUnimplementedCoreServiceServer()
 }
 
@@ -305,6 +328,9 @@ func (UnimplementedCoreServiceServer) GetLayout(context.Context, *GetLayoutReque
 }
 func (UnimplementedCoreServiceServer) SaveLayout(context.Context, *SaveLayoutRequest) (*SaveLayoutResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SaveLayout not implemented")
+}
+func (UnimplementedCoreServiceServer) RunTestAction(context.Context, *RunTestActionRequest) (*RunTestActionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunTestAction not implemented")
 }
 func (UnimplementedCoreServiceServer) mustEmbedUnimplementedCoreServiceServer() {}
 func (UnimplementedCoreServiceServer) testEmbeddedByValue()                     {}
@@ -543,6 +569,24 @@ func _CoreService_SaveLayout_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreService_RunTestAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunTestActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).RunTestAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_RunTestAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).RunTestAction(ctx, req.(*RunTestActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoreService_ServiceDesc is the grpc.ServiceDesc for CoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -597,6 +641,10 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SaveLayout",
 			Handler:    _CoreService_SaveLayout_Handler,
+		},
+		{
+			MethodName: "RunTestAction",
+			Handler:    _CoreService_RunTestAction_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

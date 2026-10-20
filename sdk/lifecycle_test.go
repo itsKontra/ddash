@@ -159,6 +159,33 @@ func TestASetupHintFromAnythingButAGetterAnsweringOneIsRefused(t *testing.T) {
 	})
 }
 
+func TestATestActionThatIsNoPlainActionIsRefused(t *testing.T) {
+	refused := func(t *testing.T, define func()) {
+		t.Helper()
+		defer func() {
+			if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "test_action") {
+				t.Errorf("Define recovered %v, want a panic naming test_action", r)
+			}
+		}()
+		define()
+	}
+
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.TestFromGetterConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New:      func() sdk.Component[*echopb.TestFromGetterConfig] { return &hinted[*echopb.TestFromGetterConfig]{} },
+		})
+	})
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.TestFromDisruptiveConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New:      func() sdk.Component[*echopb.TestFromDisruptiveConfig] { return &hinted[*echopb.TestFromDisruptiveConfig]{} },
+		})
+	})
+}
+
 func TestMethodsAreNotConfiguredBeforeStart(t *testing.T) {
 	h := sdktest.New(t, define(&echo{}))
 

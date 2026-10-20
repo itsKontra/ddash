@@ -466,6 +466,82 @@ func (*HintFromNoHintConfig) Descriptor() ([]byte, []int) {
 	return file_echo_echo_proto_rawDescGZIP(), []int{10}
 }
 
+// TestFromGetterConfig names a getter as its test_action, so the SDK must
+// refuse it.
+type TestFromGetterConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestFromGetterConfig) Reset() {
+	*x = TestFromGetterConfig{}
+	mi := &file_echo_echo_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestFromGetterConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestFromGetterConfig) ProtoMessage() {}
+
+func (x *TestFromGetterConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestFromGetterConfig.ProtoReflect.Descriptor instead.
+func (*TestFromGetterConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{11}
+}
+
+// TestFromDisruptiveConfig names a disruptive Action as its test_action,
+// which a button can't run without a confirm, so the SDK must refuse it.
+type TestFromDisruptiveConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestFromDisruptiveConfig) Reset() {
+	*x = TestFromDisruptiveConfig{}
+	mi := &file_echo_echo_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestFromDisruptiveConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestFromDisruptiveConfig) ProtoMessage() {}
+
+func (x *TestFromDisruptiveConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestFromDisruptiveConfig.ProtoReflect.Descriptor instead.
+func (*TestFromDisruptiveConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{12}
+}
+
 var File_echo_echo_proto protoreflect.FileDescriptor
 
 const file_echo_echo_proto_rawDesc = "" +
@@ -491,7 +567,10 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\aAddNote\"\"\n" +
 	"\x14HintFromNoHintConfig:\n" +
 	"\xaa\xb5\x18\x06\n" +
-	"\x04Echo2\xef\x01\n" +
+	"\x04Echo\"\"\n" +
+	"\x14TestFromGetterConfig:\n" +
+	"\xaa\xb5\x18\x06\x12\x04Echo\")\n" +
+	"\x18TestFromDisruptiveConfig:\r\xaa\xb5\x18\t\x12\aAddNote2\xef\x01\n" +
 	"\vEchoService\x12?\n" +
 	"\x04Echo\x12\x17.ddash.echo.EchoRequest\x1a\x18.ddash.echo.EchoResponse\"\x04\x8a\xb5\x18\x00\x12S\n" +
 	"\n" +
@@ -512,19 +591,21 @@ func file_echo_echo_proto_rawDescGZIP() []byte {
 	return file_echo_echo_proto_rawDescData
 }
 
-var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_echo_echo_proto_goTypes = []any{
-	(*EchoConfig)(nil),           // 0: ddash.echo.EchoConfig
-	(*UnmarkedRequest)(nil),      // 1: ddash.echo.UnmarkedRequest
-	(*UnmarkedResponse)(nil),     // 2: ddash.echo.UnmarkedResponse
-	(*EchoRequest)(nil),          // 3: ddash.echo.EchoRequest
-	(*EchoResponse)(nil),         // 4: ddash.echo.EchoResponse
-	(*CountNotesRequest)(nil),    // 5: ddash.echo.CountNotesRequest
-	(*CountNotesResponse)(nil),   // 6: ddash.echo.CountNotesResponse
-	(*AddNoteRequest)(nil),       // 7: ddash.echo.AddNoteRequest
-	(*AddNoteResponse)(nil),      // 8: ddash.echo.AddNoteResponse
-	(*HintFromActionConfig)(nil), // 9: ddash.echo.HintFromActionConfig
-	(*HintFromNoHintConfig)(nil), // 10: ddash.echo.HintFromNoHintConfig
+	(*EchoConfig)(nil),               // 0: ddash.echo.EchoConfig
+	(*UnmarkedRequest)(nil),          // 1: ddash.echo.UnmarkedRequest
+	(*UnmarkedResponse)(nil),         // 2: ddash.echo.UnmarkedResponse
+	(*EchoRequest)(nil),              // 3: ddash.echo.EchoRequest
+	(*EchoResponse)(nil),             // 4: ddash.echo.EchoResponse
+	(*CountNotesRequest)(nil),        // 5: ddash.echo.CountNotesRequest
+	(*CountNotesResponse)(nil),       // 6: ddash.echo.CountNotesResponse
+	(*AddNoteRequest)(nil),           // 7: ddash.echo.AddNoteRequest
+	(*AddNoteResponse)(nil),          // 8: ddash.echo.AddNoteResponse
+	(*HintFromActionConfig)(nil),     // 9: ddash.echo.HintFromActionConfig
+	(*HintFromNoHintConfig)(nil),     // 10: ddash.echo.HintFromNoHintConfig
+	(*TestFromGetterConfig)(nil),     // 11: ddash.echo.TestFromGetterConfig
+	(*TestFromDisruptiveConfig)(nil), // 12: ddash.echo.TestFromDisruptiveConfig
 }
 var file_echo_echo_proto_depIdxs = []int32{
 	3, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
@@ -553,7 +634,7 @@ func file_echo_echo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_echo_echo_proto_rawDesc), len(file_echo_echo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

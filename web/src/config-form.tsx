@@ -7,6 +7,7 @@ import {
   type ComponentStatus,
   type FormField,
   type GetConfigFormResponse,
+  type TestAction,
 } from "@ddash/proto/ddash/core/core_pb";
 import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/config_pb";
 import { Button, cx, StatusDot, type Tone } from "@ddash/ui";
@@ -37,6 +38,8 @@ export function ConfigForm({ owner }: { owner: string }) {
       {/* A save refetches the form; start over from what is stored then. */}
       <Editor key={dataUpdatedAt} owner={owner} form={data} onSaved={setStatus} />
       {status && <Health status={status} />}
+      {/* Outside the Editor: its success refetches the form, which remounts the Editor. */}
+      {data.testAction && <TestButton owner={owner} test={data.testAction} />}
     </div>
   );
 }
@@ -66,6 +69,40 @@ function SetupHint({ hint }: { hint: SetupHintMessage }) {
         </div>
       )}
     </section>
+  );
+}
+
+/** Runs the Component's test_action on its saved config, with the outcome beside it. */
+function TestButton({ owner, test }: { owner: string; test: TestAction }) {
+  const run = useAction(CoreService.method.runTestAction);
+  const [done, setDone] = useState(false);
+  const outcome = run.error ? (
+    <>
+      <StatusDot tone="down" />
+      {test.label} failed: {run.error.rawMessage}
+    </>
+  ) : done ? (
+    <>
+      <StatusDot tone="up" />
+      {test.label}: done
+    </>
+  ) : null;
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+      <Button
+        variant="outline"
+        disabled={run.pending}
+        onClick={async () => {
+          setDone(false);
+          setDone((await run.run({ owner })) !== undefined);
+        }}
+      >
+        {test.label}
+      </Button>
+      <output aria-label={`${test.label} result`} className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+        {outcome ?? "Runs on the saved config."}
+      </output>
+    </div>
   );
 }
 

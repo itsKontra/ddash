@@ -66,3 +66,15 @@ message HintFromActionConfig {
 message HintFromNoHintConfig {
   option (ddash.config.form) = {setup_from: "Echo"};
 }
+
+// TestFromGetterConfig names a getter as its test_action, so the SDK must
+// refuse it.
+message TestFromGetterConfig {
+  option (ddash.config.form) = {test_action: "Echo"};
+}
+
+// TestFromDisruptiveConfig names a disruptive Action as its test_action,
+// which a button can't run without a confirm, so the SDK must refuse it.
+message TestFromDisruptiveConfig {
+  option (ddash.config.form) = {test_action: "AddNote"};
+}

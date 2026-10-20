@@ -133,7 +133,143 @@ func (x FormField_Kind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use FormField_Kind.Descriptor instead.
 func (FormField_Kind) EnumDescriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{30, 0}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{33, 0}
+}
+
+type RunTestActionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// A Component's name.
+	Owner         string `protobuf:"bytes,1,opt,name=owner,proto3" json:"owner,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunTestActionRequest) Reset() {
+	*x = RunTestActionRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunTestActionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunTestActionRequest) ProtoMessage() {}
+
+func (x *RunTestActionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunTestActionRequest.ProtoReflect.Descriptor instead.
+func (*RunTestActionRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *RunTestActionRequest) GetOwner() string {
+	if x != nil {
+		return x.Owner
+	}
+	return ""
+}
+
+type RunTestActionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunTestActionResponse) Reset() {
+	*x = RunTestActionResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunTestActionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunTestActionResponse) ProtoMessage() {}
+
+func (x *RunTestActionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunTestActionResponse.ProtoReflect.Descriptor instead.
+func (*RunTestActionResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{1}
+}
+
+// The config form's test button.
+type TestAction struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Action it runs, e.g. "SendTest".
+	Method string `protobuf:"bytes,1,opt,name=method,proto3" json:"method,omitempty"`
+	// The button's label: the method name in sentence case, e.g. "Send test".
+	Label         string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestAction) Reset() {
+	*x = TestAction{}
+	mi := &file_ddash_core_core_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestAction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestAction) ProtoMessage() {}
+
+func (x *TestAction) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestAction.ProtoReflect.Descriptor instead.
+func (*TestAction) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TestAction) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *TestAction) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
 }
 
 type ListCatalogueRequest struct {
@@ -144,7 +280,7 @@ type ListCatalogueRequest struct {
 
 func (x *ListCatalogueRequest) Reset() {
 	*x = ListCatalogueRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[0]
+	mi := &file_ddash_core_core_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -156,7 +292,7 @@ func (x *ListCatalogueRequest) String() string {
 func (*ListCatalogueRequest) ProtoMessage() {}
 
 func (x *ListCatalogueRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[0]
+	mi := &file_ddash_core_core_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -169,7 +305,7 @@ func (x *ListCatalogueRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCatalogueRequest.ProtoReflect.Descriptor instead.
 func (*ListCatalogueRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{0}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{3}
 }
 
 type ListCatalogueResponse struct {
@@ -188,7 +324,7 @@ type ListCatalogueResponse struct {
 
 func (x *ListCatalogueResponse) Reset() {
 	*x = ListCatalogueResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[1]
+	mi := &file_ddash_core_core_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +336,7 @@ func (x *ListCatalogueResponse) String() string {
 func (*ListCatalogueResponse) ProtoMessage() {}
 
 func (x *ListCatalogueResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[1]
+	mi := &file_ddash_core_core_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +349,7 @@ func (x *ListCatalogueResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCatalogueResponse.ProtoReflect.Descriptor instead.
 func (*ListCatalogueResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{1}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListCatalogueResponse) GetRelease() string {
@@ -267,7 +403,7 @@ type CataloguePlugin struct {
 
 func (x *CataloguePlugin) Reset() {
 	*x = CataloguePlugin{}
-	mi := &file_ddash_core_core_proto_msgTypes[2]
+	mi := &file_ddash_core_core_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -279,7 +415,7 @@ func (x *CataloguePlugin) String() string {
 func (*CataloguePlugin) ProtoMessage() {}
 
 func (x *CataloguePlugin) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[2]
+	mi := &file_ddash_core_core_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +428,7 @@ func (x *CataloguePlugin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CataloguePlugin.ProtoReflect.Descriptor instead.
 func (*CataloguePlugin) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{2}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *CataloguePlugin) GetName() string {
@@ -373,7 +509,7 @@ type ComponentStatus struct {
 
 func (x *ComponentStatus) Reset() {
 	*x = ComponentStatus{}
-	mi := &file_ddash_core_core_proto_msgTypes[3]
+	mi := &file_ddash_core_core_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -385,7 +521,7 @@ func (x *ComponentStatus) String() string {
 func (*ComponentStatus) ProtoMessage() {}
 
 func (x *ComponentStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[3]
+	mi := &file_ddash_core_core_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -398,7 +534,7 @@ func (x *ComponentStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComponentStatus.ProtoReflect.Descriptor instead.
 func (*ComponentStatus) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{3}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ComponentStatus) GetName() string {
@@ -452,7 +588,7 @@ type DeleteOrphanRequest struct {
 
 func (x *DeleteOrphanRequest) Reset() {
 	*x = DeleteOrphanRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[4]
+	mi := &file_ddash_core_core_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -464,7 +600,7 @@ func (x *DeleteOrphanRequest) String() string {
 func (*DeleteOrphanRequest) ProtoMessage() {}
 
 func (x *DeleteOrphanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[4]
+	mi := &file_ddash_core_core_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -477,7 +613,7 @@ func (x *DeleteOrphanRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteOrphanRequest.ProtoReflect.Descriptor instead.
 func (*DeleteOrphanRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{4}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DeleteOrphanRequest) GetComponent() string {
@@ -495,7 +631,7 @@ type DeleteOrphanResponse struct {
 
 func (x *DeleteOrphanResponse) Reset() {
 	*x = DeleteOrphanResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[5]
+	mi := &file_ddash_core_core_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -507,7 +643,7 @@ func (x *DeleteOrphanResponse) String() string {
 func (*DeleteOrphanResponse) ProtoMessage() {}
 
 func (x *DeleteOrphanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[5]
+	mi := &file_ddash_core_core_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -520,7 +656,7 @@ func (x *DeleteOrphanResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteOrphanResponse.ProtoReflect.Descriptor instead.
 func (*DeleteOrphanResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{5}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{8}
 }
 
 type InstallRequest struct {
@@ -532,7 +668,7 @@ type InstallRequest struct {
 
 func (x *InstallRequest) Reset() {
 	*x = InstallRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[6]
+	mi := &file_ddash_core_core_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -544,7 +680,7 @@ func (x *InstallRequest) String() string {
 func (*InstallRequest) ProtoMessage() {}
 
 func (x *InstallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[6]
+	mi := &file_ddash_core_core_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +693,7 @@ func (x *InstallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallRequest.ProtoReflect.Descriptor instead.
 func (*InstallRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{6}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *InstallRequest) GetPlugin() string {
@@ -578,7 +714,7 @@ type InstallResponse struct {
 
 func (x *InstallResponse) Reset() {
 	*x = InstallResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[7]
+	mi := &file_ddash_core_core_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -590,7 +726,7 @@ func (x *InstallResponse) String() string {
 func (*InstallResponse) ProtoMessage() {}
 
 func (x *InstallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[7]
+	mi := &file_ddash_core_core_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -603,7 +739,7 @@ func (x *InstallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstallResponse.ProtoReflect.Descriptor instead.
 func (*InstallResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{7}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *InstallResponse) GetComponents() []string {
@@ -624,7 +760,7 @@ type UninstallRequest struct {
 
 func (x *UninstallRequest) Reset() {
 	*x = UninstallRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[8]
+	mi := &file_ddash_core_core_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -636,7 +772,7 @@ func (x *UninstallRequest) String() string {
 func (*UninstallRequest) ProtoMessage() {}
 
 func (x *UninstallRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[8]
+	mi := &file_ddash_core_core_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -649,7 +785,7 @@ func (x *UninstallRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallRequest.ProtoReflect.Descriptor instead.
 func (*UninstallRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{8}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *UninstallRequest) GetPlugin() string {
@@ -676,7 +812,7 @@ type UninstallResponse struct {
 
 func (x *UninstallResponse) Reset() {
 	*x = UninstallResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[9]
+	mi := &file_ddash_core_core_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -688,7 +824,7 @@ func (x *UninstallResponse) String() string {
 func (*UninstallResponse) ProtoMessage() {}
 
 func (x *UninstallResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[9]
+	mi := &file_ddash_core_core_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -701,7 +837,7 @@ func (x *UninstallResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UninstallResponse.ProtoReflect.Descriptor instead.
 func (*UninstallResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{9}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *UninstallResponse) GetOrphans() []string {
@@ -720,7 +856,7 @@ type RestartRequest struct {
 
 func (x *RestartRequest) Reset() {
 	*x = RestartRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[10]
+	mi := &file_ddash_core_core_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -732,7 +868,7 @@ func (x *RestartRequest) String() string {
 func (*RestartRequest) ProtoMessage() {}
 
 func (x *RestartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[10]
+	mi := &file_ddash_core_core_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -745,7 +881,7 @@ func (x *RestartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartRequest.ProtoReflect.Descriptor instead.
 func (*RestartRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{10}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *RestartRequest) GetComponent() string {
@@ -763,7 +899,7 @@ type RestartResponse struct {
 
 func (x *RestartResponse) Reset() {
 	*x = RestartResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[11]
+	mi := &file_ddash_core_core_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -775,7 +911,7 @@ func (x *RestartResponse) String() string {
 func (*RestartResponse) ProtoMessage() {}
 
 func (x *RestartResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[11]
+	mi := &file_ddash_core_core_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -788,7 +924,7 @@ func (x *RestartResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartResponse.ProtoReflect.Descriptor instead.
 func (*RestartResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{11}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{14}
 }
 
 type ListInstalledPluginsRequest struct {
@@ -799,7 +935,7 @@ type ListInstalledPluginsRequest struct {
 
 func (x *ListInstalledPluginsRequest) Reset() {
 	*x = ListInstalledPluginsRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[12]
+	mi := &file_ddash_core_core_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -811,7 +947,7 @@ func (x *ListInstalledPluginsRequest) String() string {
 func (*ListInstalledPluginsRequest) ProtoMessage() {}
 
 func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[12]
+	mi := &file_ddash_core_core_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -824,7 +960,7 @@ func (x *ListInstalledPluginsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstalledPluginsRequest.ProtoReflect.Descriptor instead.
 func (*ListInstalledPluginsRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{12}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{15}
 }
 
 type ListInstalledPluginsResponse struct {
@@ -837,7 +973,7 @@ type ListInstalledPluginsResponse struct {
 
 func (x *ListInstalledPluginsResponse) Reset() {
 	*x = ListInstalledPluginsResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[13]
+	mi := &file_ddash_core_core_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -849,7 +985,7 @@ func (x *ListInstalledPluginsResponse) String() string {
 func (*ListInstalledPluginsResponse) ProtoMessage() {}
 
 func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[13]
+	mi := &file_ddash_core_core_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -862,7 +998,7 @@ func (x *ListInstalledPluginsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInstalledPluginsResponse.ProtoReflect.Descriptor instead.
 func (*ListInstalledPluginsResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{13}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListInstalledPluginsResponse) GetPlugins() []*InstalledPlugin {
@@ -894,7 +1030,7 @@ type InstalledPlugin struct {
 
 func (x *InstalledPlugin) Reset() {
 	*x = InstalledPlugin{}
-	mi := &file_ddash_core_core_proto_msgTypes[14]
+	mi := &file_ddash_core_core_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -906,7 +1042,7 @@ func (x *InstalledPlugin) String() string {
 func (*InstalledPlugin) ProtoMessage() {}
 
 func (x *InstalledPlugin) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[14]
+	mi := &file_ddash_core_core_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -919,7 +1055,7 @@ func (x *InstalledPlugin) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InstalledPlugin.ProtoReflect.Descriptor instead.
 func (*InstalledPlugin) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{14}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *InstalledPlugin) GetName() string {
@@ -999,7 +1135,7 @@ type ListAuditLogRequest struct {
 
 func (x *ListAuditLogRequest) Reset() {
 	*x = ListAuditLogRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[15]
+	mi := &file_ddash_core_core_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1011,7 +1147,7 @@ func (x *ListAuditLogRequest) String() string {
 func (*ListAuditLogRequest) ProtoMessage() {}
 
 func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[15]
+	mi := &file_ddash_core_core_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1024,7 +1160,7 @@ func (x *ListAuditLogRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditLogRequest.ProtoReflect.Descriptor instead.
 func (*ListAuditLogRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{15}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListAuditLogRequest) GetActorKind() string {
@@ -1076,7 +1212,7 @@ type ListAuditLogResponse struct {
 
 func (x *ListAuditLogResponse) Reset() {
 	*x = ListAuditLogResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[16]
+	mi := &file_ddash_core_core_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1088,7 +1224,7 @@ func (x *ListAuditLogResponse) String() string {
 func (*ListAuditLogResponse) ProtoMessage() {}
 
 func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[16]
+	mi := &file_ddash_core_core_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1101,7 +1237,7 @@ func (x *ListAuditLogResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuditLogResponse.ProtoReflect.Descriptor instead.
 func (*ListAuditLogResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{16}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListAuditLogResponse) GetChains() []*AuditChain {
@@ -1138,7 +1274,7 @@ type AuditChain struct {
 
 func (x *AuditChain) Reset() {
 	*x = AuditChain{}
-	mi := &file_ddash_core_core_proto_msgTypes[17]
+	mi := &file_ddash_core_core_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1150,7 +1286,7 @@ func (x *AuditChain) String() string {
 func (*AuditChain) ProtoMessage() {}
 
 func (x *AuditChain) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[17]
+	mi := &file_ddash_core_core_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1163,7 +1299,7 @@ func (x *AuditChain) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditChain.ProtoReflect.Descriptor instead.
 func (*AuditChain) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{17}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *AuditChain) GetId() string {
@@ -1211,7 +1347,7 @@ type AuditEntry struct {
 
 func (x *AuditEntry) Reset() {
 	*x = AuditEntry{}
-	mi := &file_ddash_core_core_proto_msgTypes[18]
+	mi := &file_ddash_core_core_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1223,7 +1359,7 @@ func (x *AuditEntry) String() string {
 func (*AuditEntry) ProtoMessage() {}
 
 func (x *AuditEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[18]
+	mi := &file_ddash_core_core_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1236,7 +1372,7 @@ func (x *AuditEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditEntry.ProtoReflect.Descriptor instead.
 func (*AuditEntry) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{18}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *AuditEntry) GetTime() *timestamppb.Timestamp {
@@ -1324,7 +1460,7 @@ type GetLayoutRequest struct {
 
 func (x *GetLayoutRequest) Reset() {
 	*x = GetLayoutRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[19]
+	mi := &file_ddash_core_core_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1336,7 +1472,7 @@ func (x *GetLayoutRequest) String() string {
 func (*GetLayoutRequest) ProtoMessage() {}
 
 func (x *GetLayoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[19]
+	mi := &file_ddash_core_core_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1349,7 +1485,7 @@ func (x *GetLayoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLayoutRequest.ProtoReflect.Descriptor instead.
 func (*GetLayoutRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{19}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{22}
 }
 
 type GetLayoutResponse struct {
@@ -1361,7 +1497,7 @@ type GetLayoutResponse struct {
 
 func (x *GetLayoutResponse) Reset() {
 	*x = GetLayoutResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[20]
+	mi := &file_ddash_core_core_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1373,7 +1509,7 @@ func (x *GetLayoutResponse) String() string {
 func (*GetLayoutResponse) ProtoMessage() {}
 
 func (x *GetLayoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[20]
+	mi := &file_ddash_core_core_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1386,7 +1522,7 @@ func (x *GetLayoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLayoutResponse.ProtoReflect.Descriptor instead.
 func (*GetLayoutResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{20}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetLayoutResponse) GetLayout() *Layout {
@@ -1405,7 +1541,7 @@ type SaveLayoutRequest struct {
 
 func (x *SaveLayoutRequest) Reset() {
 	*x = SaveLayoutRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[21]
+	mi := &file_ddash_core_core_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1417,7 +1553,7 @@ func (x *SaveLayoutRequest) String() string {
 func (*SaveLayoutRequest) ProtoMessage() {}
 
 func (x *SaveLayoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[21]
+	mi := &file_ddash_core_core_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1430,7 +1566,7 @@ func (x *SaveLayoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveLayoutRequest.ProtoReflect.Descriptor instead.
 func (*SaveLayoutRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{21}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *SaveLayoutRequest) GetLayout() *Layout {
@@ -1448,7 +1584,7 @@ type SaveLayoutResponse struct {
 
 func (x *SaveLayoutResponse) Reset() {
 	*x = SaveLayoutResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[22]
+	mi := &file_ddash_core_core_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1460,7 +1596,7 @@ func (x *SaveLayoutResponse) String() string {
 func (*SaveLayoutResponse) ProtoMessage() {}
 
 func (x *SaveLayoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[22]
+	mi := &file_ddash_core_core_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1473,7 +1609,7 @@ func (x *SaveLayoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveLayoutResponse.ProtoReflect.Descriptor instead.
 func (*SaveLayoutResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{22}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{25}
 }
 
 // The Overview layout, which the shell reconciles against the Widgets the
@@ -1492,7 +1628,7 @@ type Layout struct {
 
 func (x *Layout) Reset() {
 	*x = Layout{}
-	mi := &file_ddash_core_core_proto_msgTypes[23]
+	mi := &file_ddash_core_core_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1504,7 +1640,7 @@ func (x *Layout) String() string {
 func (*Layout) ProtoMessage() {}
 
 func (x *Layout) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[23]
+	mi := &file_ddash_core_core_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1517,7 +1653,7 @@ func (x *Layout) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Layout.ProtoReflect.Descriptor instead.
 func (*Layout) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{23}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *Layout) GetEntries() []*LayoutEntry {
@@ -1547,7 +1683,7 @@ type LayoutEntry struct {
 
 func (x *LayoutEntry) Reset() {
 	*x = LayoutEntry{}
-	mi := &file_ddash_core_core_proto_msgTypes[24]
+	mi := &file_ddash_core_core_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1559,7 +1695,7 @@ func (x *LayoutEntry) String() string {
 func (*LayoutEntry) ProtoMessage() {}
 
 func (x *LayoutEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[24]
+	mi := &file_ddash_core_core_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1572,7 +1708,7 @@ func (x *LayoutEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LayoutEntry.ProtoReflect.Descriptor instead.
 func (*LayoutEntry) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{24}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *LayoutEntry) GetWidget() string {
@@ -1599,7 +1735,7 @@ type CoreSettings struct {
 
 func (x *CoreSettings) Reset() {
 	*x = CoreSettings{}
-	mi := &file_ddash_core_core_proto_msgTypes[25]
+	mi := &file_ddash_core_core_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1611,7 +1747,7 @@ func (x *CoreSettings) String() string {
 func (*CoreSettings) ProtoMessage() {}
 
 func (x *CoreSettings) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[25]
+	mi := &file_ddash_core_core_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1624,7 +1760,7 @@ func (x *CoreSettings) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoreSettings.ProtoReflect.Descriptor instead.
 func (*CoreSettings) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{25}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *CoreSettings) GetTheme() Theme {
@@ -1642,7 +1778,7 @@ type GetCoreSettingsRequest struct {
 
 func (x *GetCoreSettingsRequest) Reset() {
 	*x = GetCoreSettingsRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[26]
+	mi := &file_ddash_core_core_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1654,7 +1790,7 @@ func (x *GetCoreSettingsRequest) String() string {
 func (*GetCoreSettingsRequest) ProtoMessage() {}
 
 func (x *GetCoreSettingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[26]
+	mi := &file_ddash_core_core_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1667,7 +1803,7 @@ func (x *GetCoreSettingsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCoreSettingsRequest.ProtoReflect.Descriptor instead.
 func (*GetCoreSettingsRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{26}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{29}
 }
 
 type GetCoreSettingsResponse struct {
@@ -1679,7 +1815,7 @@ type GetCoreSettingsResponse struct {
 
 func (x *GetCoreSettingsResponse) Reset() {
 	*x = GetCoreSettingsResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[27]
+	mi := &file_ddash_core_core_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1691,7 +1827,7 @@ func (x *GetCoreSettingsResponse) String() string {
 func (*GetCoreSettingsResponse) ProtoMessage() {}
 
 func (x *GetCoreSettingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[27]
+	mi := &file_ddash_core_core_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1704,7 +1840,7 @@ func (x *GetCoreSettingsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCoreSettingsResponse.ProtoReflect.Descriptor instead.
 func (*GetCoreSettingsResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{27}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetCoreSettingsResponse) GetSettings() *CoreSettings {
@@ -1724,7 +1860,7 @@ type GetConfigFormRequest struct {
 
 func (x *GetConfigFormRequest) Reset() {
 	*x = GetConfigFormRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[28]
+	mi := &file_ddash_core_core_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1736,7 +1872,7 @@ func (x *GetConfigFormRequest) String() string {
 func (*GetConfigFormRequest) ProtoMessage() {}
 
 func (x *GetConfigFormRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[28]
+	mi := &file_ddash_core_core_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1749,7 +1885,7 @@ func (x *GetConfigFormRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigFormRequest.ProtoReflect.Descriptor instead.
 func (*GetConfigFormRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{28}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *GetConfigFormRequest) GetOwner() string {
@@ -1773,14 +1909,17 @@ type GetConfigFormResponse struct {
 	// The Component's setup hint, from the getter its config message names
 	// in (ddash.config.form).setup_from. Unset until the Component has
 	// started, and for a Component without one.
-	SetupHint     *config.SetupHint `protobuf:"bytes,5,opt,name=setup_hint,json=setupHint,proto3" json:"setup_hint,omitempty"`
+	SetupHint *config.SetupHint `protobuf:"bytes,5,opt,name=setup_hint,json=setupHint,proto3" json:"setup_hint,omitempty"`
+	// The button that runs the Action the config message names in
+	// (ddash.config.form).test_action; unset for a Component without one.
+	TestAction    *TestAction `protobuf:"bytes,6,opt,name=test_action,json=testAction,proto3" json:"test_action,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetConfigFormResponse) Reset() {
 	*x = GetConfigFormResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[29]
+	mi := &file_ddash_core_core_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1792,7 +1931,7 @@ func (x *GetConfigFormResponse) String() string {
 func (*GetConfigFormResponse) ProtoMessage() {}
 
 func (x *GetConfigFormResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[29]
+	mi := &file_ddash_core_core_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1805,7 +1944,7 @@ func (x *GetConfigFormResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetConfigFormResponse.ProtoReflect.Descriptor instead.
 func (*GetConfigFormResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{29}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *GetConfigFormResponse) GetFields() []*FormField {
@@ -1843,6 +1982,13 @@ func (x *GetConfigFormResponse) GetSetupHint() *config.SetupHint {
 	return nil
 }
 
+func (x *GetConfigFormResponse) GetTestAction() *TestAction {
+	if x != nil {
+		return x.TestAction
+	}
+	return nil
+}
+
 // One field of a config form.
 type FormField struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
@@ -1873,7 +2019,7 @@ type FormField struct {
 
 func (x *FormField) Reset() {
 	*x = FormField{}
-	mi := &file_ddash_core_core_proto_msgTypes[30]
+	mi := &file_ddash_core_core_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1885,7 +2031,7 @@ func (x *FormField) String() string {
 func (*FormField) ProtoMessage() {}
 
 func (x *FormField) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[30]
+	mi := &file_ddash_core_core_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1898,7 +2044,7 @@ func (x *FormField) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FormField.ProtoReflect.Descriptor instead.
 func (*FormField) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{30}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *FormField) GetName() string {
@@ -2010,7 +2156,7 @@ type EnumOption struct {
 
 func (x *EnumOption) Reset() {
 	*x = EnumOption{}
-	mi := &file_ddash_core_core_proto_msgTypes[31]
+	mi := &file_ddash_core_core_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2022,7 +2168,7 @@ func (x *EnumOption) String() string {
 func (*EnumOption) ProtoMessage() {}
 
 func (x *EnumOption) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[31]
+	mi := &file_ddash_core_core_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2035,7 +2181,7 @@ func (x *EnumOption) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnumOption.ProtoReflect.Descriptor instead.
 func (*EnumOption) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{31}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *EnumOption) GetValue() string {
@@ -2063,7 +2209,7 @@ type ConfigError struct {
 
 func (x *ConfigError) Reset() {
 	*x = ConfigError{}
-	mi := &file_ddash_core_core_proto_msgTypes[32]
+	mi := &file_ddash_core_core_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2075,7 +2221,7 @@ func (x *ConfigError) String() string {
 func (*ConfigError) ProtoMessage() {}
 
 func (x *ConfigError) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[32]
+	mi := &file_ddash_core_core_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2088,7 +2234,7 @@ func (x *ConfigError) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigError.ProtoReflect.Descriptor instead.
 func (*ConfigError) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{32}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *ConfigError) GetPath() string {
@@ -2115,7 +2261,7 @@ type ConfigErrors struct {
 
 func (x *ConfigErrors) Reset() {
 	*x = ConfigErrors{}
-	mi := &file_ddash_core_core_proto_msgTypes[33]
+	mi := &file_ddash_core_core_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2127,7 +2273,7 @@ func (x *ConfigErrors) String() string {
 func (*ConfigErrors) ProtoMessage() {}
 
 func (x *ConfigErrors) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[33]
+	mi := &file_ddash_core_core_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2140,7 +2286,7 @@ func (x *ConfigErrors) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigErrors.ProtoReflect.Descriptor instead.
 func (*ConfigErrors) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{33}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *ConfigErrors) GetErrors() []*ConfigError {
@@ -2167,7 +2313,7 @@ type SaveConfigRequest struct {
 
 func (x *SaveConfigRequest) Reset() {
 	*x = SaveConfigRequest{}
-	mi := &file_ddash_core_core_proto_msgTypes[34]
+	mi := &file_ddash_core_core_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2179,7 +2325,7 @@ func (x *SaveConfigRequest) String() string {
 func (*SaveConfigRequest) ProtoMessage() {}
 
 func (x *SaveConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[34]
+	mi := &file_ddash_core_core_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2192,7 +2338,7 @@ func (x *SaveConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveConfigRequest.ProtoReflect.Descriptor instead.
 func (*SaveConfigRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{34}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *SaveConfigRequest) GetOwner() string {
@@ -2226,7 +2372,7 @@ type SaveConfigResponse struct {
 
 func (x *SaveConfigResponse) Reset() {
 	*x = SaveConfigResponse{}
-	mi := &file_ddash_core_core_proto_msgTypes[35]
+	mi := &file_ddash_core_core_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2238,7 +2384,7 @@ func (x *SaveConfigResponse) String() string {
 func (*SaveConfigResponse) ProtoMessage() {}
 
 func (x *SaveConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[35]
+	mi := &file_ddash_core_core_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2251,7 +2397,7 @@ func (x *SaveConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveConfigResponse.ProtoReflect.Descriptor instead.
 func (*SaveConfigResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{35}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *SaveConfigResponse) GetStatus() *ComponentStatus {
@@ -2272,7 +2418,7 @@ type ConfigSave struct {
 
 func (x *ConfigSave) Reset() {
 	*x = ConfigSave{}
-	mi := &file_ddash_core_core_proto_msgTypes[36]
+	mi := &file_ddash_core_core_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2284,7 +2430,7 @@ func (x *ConfigSave) String() string {
 func (*ConfigSave) ProtoMessage() {}
 
 func (x *ConfigSave) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[36]
+	mi := &file_ddash_core_core_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2297,7 +2443,7 @@ func (x *ConfigSave) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigSave.ProtoReflect.Descriptor instead.
 func (*ConfigSave) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{36}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *ConfigSave) GetOwner() string {
@@ -2328,7 +2474,7 @@ type ConfigChange struct {
 
 func (x *ConfigChange) Reset() {
 	*x = ConfigChange{}
-	mi := &file_ddash_core_core_proto_msgTypes[37]
+	mi := &file_ddash_core_core_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2340,7 +2486,7 @@ func (x *ConfigChange) String() string {
 func (*ConfigChange) ProtoMessage() {}
 
 func (x *ConfigChange) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_core_core_proto_msgTypes[37]
+	mi := &file_ddash_core_core_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2353,7 +2499,7 @@ func (x *ConfigChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ConfigChange.ProtoReflect.Descriptor instead.
 func (*ConfigChange) Descriptor() ([]byte, []int) {
-	return file_ddash_core_core_proto_rawDescGZIP(), []int{37}
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ConfigChange) GetField() string {
@@ -2389,7 +2535,14 @@ var File_ddash_core_core_proto protoreflect.FileDescriptor
 const file_ddash_core_core_proto_rawDesc = "" +
 	"\n" +
 	"\x15ddash/core/core.proto\x12\n" +
-	"ddash.core\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
+	"ddash.core\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1egoogle/protobuf/duration.proto\x1a\x1fgoogle/protobuf/timestamp.proto\",\n" +
+	"\x14RunTestActionRequest\x12\x14\n" +
+	"\x05owner\x18\x01 \x01(\tR\x05owner\"\x17\n" +
+	"\x15RunTestActionResponse\":\n" +
+	"\n" +
+	"TestAction\x12\x16\n" +
+	"\x06method\x18\x01 \x01(\tR\x06method\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\"\x16\n" +
 	"\x14ListCatalogueRequest\"\xaf\x01\n" +
 	"\x15ListCatalogueResponse\x12\x18\n" +
 	"\arelease\x18\x01 \x01(\tR\arelease\x125\n" +
@@ -2497,7 +2650,7 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x17GetCoreSettingsResponse\x124\n" +
 	"\bsettings\x18\x01 \x01(\v2\x18.ddash.core.CoreSettingsR\bsettings\",\n" +
 	"\x14GetConfigFormRequest\x12\x14\n" +
-	"\x05owner\x18\x01 \x01(\tR\x05owner\"\x81\x02\n" +
+	"\x05owner\x18\x01 \x01(\tR\x05owner\"\xba\x02\n" +
 	"\x15GetConfigFormResponse\x12-\n" +
 	"\x06fields\x18\x01 \x03(\v2\x15.ddash.core.FormFieldR\x06fields\x12/\n" +
 	"\x06values\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x06values\x12\x1f\n" +
@@ -2505,7 +2658,9 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"secretsSet\x12/\n" +
 	"\x06errors\x18\x04 \x03(\v2\x17.ddash.core.ConfigErrorR\x06errors\x126\n" +
 	"\n" +
-	"setup_hint\x18\x05 \x01(\v2\x17.ddash.config.SetupHintR\tsetupHint\"\xa9\x04\n" +
+	"setup_hint\x18\x05 \x01(\v2\x17.ddash.config.SetupHintR\tsetupHint\x127\n" +
+	"\vtest_action\x18\x06 \x01(\v2\x16.ddash.core.TestActionR\n" +
+	"testAction\"\xa9\x04\n" +
 	"\tFormField\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12.\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1a.ddash.core.FormField.KindR\x04kind\x12\x1a\n" +
@@ -2559,7 +2714,7 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x05Theme\x12\x15\n" +
 	"\x11THEME_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\vTHEME_DDASH\x10\x01\x1a\v\xa2\xb5\x18\a\n" +
-	"\x05ddash2\xb6\b\n" +
+	"\x05ddash2\x92\t\n" +
 	"\vCoreService\x12q\n" +
 	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
@@ -2574,7 +2729,8 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\fListAuditLog\x12\x1f.ddash.core.ListAuditLogRequest\x1a .ddash.core.ListAuditLogResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12P\n" +
 	"\tGetLayout\x12\x1c.ddash.core.GetLayoutRequest\x1a\x1d.ddash.core.GetLayoutResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Q\n" +
 	"\n" +
-	"SaveLayout\x12\x1d.ddash.core.SaveLayoutRequest\x1a\x1e.ddash.core.SaveLayoutResponse\"\x04\x92\xb5\x18\x00B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
+	"SaveLayout\x12\x1d.ddash.core.SaveLayoutRequest\x1a\x1e.ddash.core.SaveLayoutResponse\"\x04\x92\xb5\x18\x00\x12Z\n" +
+	"\rRunTestAction\x12 .ddash.core.RunTestActionRequest\x1a!.ddash.core.RunTestActionResponse\"\x04\x92\xb5\x18\x00B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
 
 var (
 	file_ddash_core_core_proto_rawDescOnce sync.Once
@@ -2589,106 +2745,112 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 }
 
 var file_ddash_core_core_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 38)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
 var file_ddash_core_core_proto_goTypes = []any{
 	(Theme)(0),                           // 0: ddash.core.Theme
 	(FormField_Kind)(0),                  // 1: ddash.core.FormField.Kind
-	(*ListCatalogueRequest)(nil),         // 2: ddash.core.ListCatalogueRequest
-	(*ListCatalogueResponse)(nil),        // 3: ddash.core.ListCatalogueResponse
-	(*CataloguePlugin)(nil),              // 4: ddash.core.CataloguePlugin
-	(*ComponentStatus)(nil),              // 5: ddash.core.ComponentStatus
-	(*DeleteOrphanRequest)(nil),          // 6: ddash.core.DeleteOrphanRequest
-	(*DeleteOrphanResponse)(nil),         // 7: ddash.core.DeleteOrphanResponse
-	(*InstallRequest)(nil),               // 8: ddash.core.InstallRequest
-	(*InstallResponse)(nil),              // 9: ddash.core.InstallResponse
-	(*UninstallRequest)(nil),             // 10: ddash.core.UninstallRequest
-	(*UninstallResponse)(nil),            // 11: ddash.core.UninstallResponse
-	(*RestartRequest)(nil),               // 12: ddash.core.RestartRequest
-	(*RestartResponse)(nil),              // 13: ddash.core.RestartResponse
-	(*ListInstalledPluginsRequest)(nil),  // 14: ddash.core.ListInstalledPluginsRequest
-	(*ListInstalledPluginsResponse)(nil), // 15: ddash.core.ListInstalledPluginsResponse
-	(*InstalledPlugin)(nil),              // 16: ddash.core.InstalledPlugin
-	(*ListAuditLogRequest)(nil),          // 17: ddash.core.ListAuditLogRequest
-	(*ListAuditLogResponse)(nil),         // 18: ddash.core.ListAuditLogResponse
-	(*AuditChain)(nil),                   // 19: ddash.core.AuditChain
-	(*AuditEntry)(nil),                   // 20: ddash.core.AuditEntry
-	(*GetLayoutRequest)(nil),             // 21: ddash.core.GetLayoutRequest
-	(*GetLayoutResponse)(nil),            // 22: ddash.core.GetLayoutResponse
-	(*SaveLayoutRequest)(nil),            // 23: ddash.core.SaveLayoutRequest
-	(*SaveLayoutResponse)(nil),           // 24: ddash.core.SaveLayoutResponse
-	(*Layout)(nil),                       // 25: ddash.core.Layout
-	(*LayoutEntry)(nil),                  // 26: ddash.core.LayoutEntry
-	(*CoreSettings)(nil),                 // 27: ddash.core.CoreSettings
-	(*GetCoreSettingsRequest)(nil),       // 28: ddash.core.GetCoreSettingsRequest
-	(*GetCoreSettingsResponse)(nil),      // 29: ddash.core.GetCoreSettingsResponse
-	(*GetConfigFormRequest)(nil),         // 30: ddash.core.GetConfigFormRequest
-	(*GetConfigFormResponse)(nil),        // 31: ddash.core.GetConfigFormResponse
-	(*FormField)(nil),                    // 32: ddash.core.FormField
-	(*EnumOption)(nil),                   // 33: ddash.core.EnumOption
-	(*ConfigError)(nil),                  // 34: ddash.core.ConfigError
-	(*ConfigErrors)(nil),                 // 35: ddash.core.ConfigErrors
-	(*SaveConfigRequest)(nil),            // 36: ddash.core.SaveConfigRequest
-	(*SaveConfigResponse)(nil),           // 37: ddash.core.SaveConfigResponse
-	(*ConfigSave)(nil),                   // 38: ddash.core.ConfigSave
-	(*ConfigChange)(nil),                 // 39: ddash.core.ConfigChange
-	(*timestamppb.Timestamp)(nil),        // 40: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),          // 41: google.protobuf.Duration
-	(*structpb.Struct)(nil),              // 42: google.protobuf.Struct
-	(*config.SetupHint)(nil),             // 43: ddash.config.SetupHint
+	(*RunTestActionRequest)(nil),         // 2: ddash.core.RunTestActionRequest
+	(*RunTestActionResponse)(nil),        // 3: ddash.core.RunTestActionResponse
+	(*TestAction)(nil),                   // 4: ddash.core.TestAction
+	(*ListCatalogueRequest)(nil),         // 5: ddash.core.ListCatalogueRequest
+	(*ListCatalogueResponse)(nil),        // 6: ddash.core.ListCatalogueResponse
+	(*CataloguePlugin)(nil),              // 7: ddash.core.CataloguePlugin
+	(*ComponentStatus)(nil),              // 8: ddash.core.ComponentStatus
+	(*DeleteOrphanRequest)(nil),          // 9: ddash.core.DeleteOrphanRequest
+	(*DeleteOrphanResponse)(nil),         // 10: ddash.core.DeleteOrphanResponse
+	(*InstallRequest)(nil),               // 11: ddash.core.InstallRequest
+	(*InstallResponse)(nil),              // 12: ddash.core.InstallResponse
+	(*UninstallRequest)(nil),             // 13: ddash.core.UninstallRequest
+	(*UninstallResponse)(nil),            // 14: ddash.core.UninstallResponse
+	(*RestartRequest)(nil),               // 15: ddash.core.RestartRequest
+	(*RestartResponse)(nil),              // 16: ddash.core.RestartResponse
+	(*ListInstalledPluginsRequest)(nil),  // 17: ddash.core.ListInstalledPluginsRequest
+	(*ListInstalledPluginsResponse)(nil), // 18: ddash.core.ListInstalledPluginsResponse
+	(*InstalledPlugin)(nil),              // 19: ddash.core.InstalledPlugin
+	(*ListAuditLogRequest)(nil),          // 20: ddash.core.ListAuditLogRequest
+	(*ListAuditLogResponse)(nil),         // 21: ddash.core.ListAuditLogResponse
+	(*AuditChain)(nil),                   // 22: ddash.core.AuditChain
+	(*AuditEntry)(nil),                   // 23: ddash.core.AuditEntry
+	(*GetLayoutRequest)(nil),             // 24: ddash.core.GetLayoutRequest
+	(*GetLayoutResponse)(nil),            // 25: ddash.core.GetLayoutResponse
+	(*SaveLayoutRequest)(nil),            // 26: ddash.core.SaveLayoutRequest
+	(*SaveLayoutResponse)(nil),           // 27: ddash.core.SaveLayoutResponse
+	(*Layout)(nil),                       // 28: ddash.core.Layout
+	(*LayoutEntry)(nil),                  // 29: ddash.core.LayoutEntry
+	(*CoreSettings)(nil),                 // 30: ddash.core.CoreSettings
+	(*GetCoreSettingsRequest)(nil),       // 31: ddash.core.GetCoreSettingsRequest
+	(*GetCoreSettingsResponse)(nil),      // 32: ddash.core.GetCoreSettingsResponse
+	(*GetConfigFormRequest)(nil),         // 33: ddash.core.GetConfigFormRequest
+	(*GetConfigFormResponse)(nil),        // 34: ddash.core.GetConfigFormResponse
+	(*FormField)(nil),                    // 35: ddash.core.FormField
+	(*EnumOption)(nil),                   // 36: ddash.core.EnumOption
+	(*ConfigError)(nil),                  // 37: ddash.core.ConfigError
+	(*ConfigErrors)(nil),                 // 38: ddash.core.ConfigErrors
+	(*SaveConfigRequest)(nil),            // 39: ddash.core.SaveConfigRequest
+	(*SaveConfigResponse)(nil),           // 40: ddash.core.SaveConfigResponse
+	(*ConfigSave)(nil),                   // 41: ddash.core.ConfigSave
+	(*ConfigChange)(nil),                 // 42: ddash.core.ConfigChange
+	(*timestamppb.Timestamp)(nil),        // 43: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 44: google.protobuf.Duration
+	(*structpb.Struct)(nil),              // 45: google.protobuf.Struct
+	(*config.SetupHint)(nil),             // 46: ddash.config.SetupHint
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
-	4,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
-	5,  // 1: ddash.core.CataloguePlugin.components:type_name -> ddash.core.ComponentStatus
-	16, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
-	19, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
-	20, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
-	40, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
-	41, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
-	25, // 7: ddash.core.GetLayoutResponse.layout:type_name -> ddash.core.Layout
-	25, // 8: ddash.core.SaveLayoutRequest.layout:type_name -> ddash.core.Layout
-	26, // 9: ddash.core.Layout.entries:type_name -> ddash.core.LayoutEntry
+	7,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
+	8,  // 1: ddash.core.CataloguePlugin.components:type_name -> ddash.core.ComponentStatus
+	19, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
+	22, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
+	23, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
+	43, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	44, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
+	28, // 7: ddash.core.GetLayoutResponse.layout:type_name -> ddash.core.Layout
+	28, // 8: ddash.core.SaveLayoutRequest.layout:type_name -> ddash.core.Layout
+	29, // 9: ddash.core.Layout.entries:type_name -> ddash.core.LayoutEntry
 	0,  // 10: ddash.core.CoreSettings.theme:type_name -> ddash.core.Theme
-	27, // 11: ddash.core.GetCoreSettingsResponse.settings:type_name -> ddash.core.CoreSettings
-	32, // 12: ddash.core.GetConfigFormResponse.fields:type_name -> ddash.core.FormField
-	42, // 13: ddash.core.GetConfigFormResponse.values:type_name -> google.protobuf.Struct
-	34, // 14: ddash.core.GetConfigFormResponse.errors:type_name -> ddash.core.ConfigError
-	43, // 15: ddash.core.GetConfigFormResponse.setup_hint:type_name -> ddash.config.SetupHint
-	1,  // 16: ddash.core.FormField.kind:type_name -> ddash.core.FormField.Kind
-	33, // 17: ddash.core.FormField.options:type_name -> ddash.core.EnumOption
-	32, // 18: ddash.core.FormField.columns:type_name -> ddash.core.FormField
-	34, // 19: ddash.core.ConfigErrors.errors:type_name -> ddash.core.ConfigError
-	42, // 20: ddash.core.SaveConfigRequest.values:type_name -> google.protobuf.Struct
-	5,  // 21: ddash.core.SaveConfigResponse.status:type_name -> ddash.core.ComponentStatus
-	39, // 22: ddash.core.ConfigSave.changes:type_name -> ddash.core.ConfigChange
-	14, // 23: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
-	8,  // 24: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	10, // 25: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	12, // 26: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	2,  // 27: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
-	6,  // 28: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
-	30, // 29: ddash.core.CoreService.GetConfigForm:input_type -> ddash.core.GetConfigFormRequest
-	36, // 30: ddash.core.CoreService.SaveConfig:input_type -> ddash.core.SaveConfigRequest
-	28, // 31: ddash.core.CoreService.GetCoreSettings:input_type -> ddash.core.GetCoreSettingsRequest
-	17, // 32: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
-	21, // 33: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
-	23, // 34: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
-	15, // 35: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
-	9,  // 36: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	11, // 37: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	13, // 38: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	3,  // 39: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
-	7,  // 40: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
-	31, // 41: ddash.core.CoreService.GetConfigForm:output_type -> ddash.core.GetConfigFormResponse
-	37, // 42: ddash.core.CoreService.SaveConfig:output_type -> ddash.core.SaveConfigResponse
-	29, // 43: ddash.core.CoreService.GetCoreSettings:output_type -> ddash.core.GetCoreSettingsResponse
-	18, // 44: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
-	22, // 45: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
-	24, // 46: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
-	35, // [35:47] is the sub-list for method output_type
-	23, // [23:35] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	30, // 11: ddash.core.GetCoreSettingsResponse.settings:type_name -> ddash.core.CoreSettings
+	35, // 12: ddash.core.GetConfigFormResponse.fields:type_name -> ddash.core.FormField
+	45, // 13: ddash.core.GetConfigFormResponse.values:type_name -> google.protobuf.Struct
+	37, // 14: ddash.core.GetConfigFormResponse.errors:type_name -> ddash.core.ConfigError
+	46, // 15: ddash.core.GetConfigFormResponse.setup_hint:type_name -> ddash.config.SetupHint
+	4,  // 16: ddash.core.GetConfigFormResponse.test_action:type_name -> ddash.core.TestAction
+	1,  // 17: ddash.core.FormField.kind:type_name -> ddash.core.FormField.Kind
+	36, // 18: ddash.core.FormField.options:type_name -> ddash.core.EnumOption
+	35, // 19: ddash.core.FormField.columns:type_name -> ddash.core.FormField
+	37, // 20: ddash.core.ConfigErrors.errors:type_name -> ddash.core.ConfigError
+	45, // 21: ddash.core.SaveConfigRequest.values:type_name -> google.protobuf.Struct
+	8,  // 22: ddash.core.SaveConfigResponse.status:type_name -> ddash.core.ComponentStatus
+	42, // 23: ddash.core.ConfigSave.changes:type_name -> ddash.core.ConfigChange
+	17, // 24: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	11, // 25: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	13, // 26: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	15, // 27: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	5,  // 28: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
+	9,  // 29: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
+	33, // 30: ddash.core.CoreService.GetConfigForm:input_type -> ddash.core.GetConfigFormRequest
+	39, // 31: ddash.core.CoreService.SaveConfig:input_type -> ddash.core.SaveConfigRequest
+	31, // 32: ddash.core.CoreService.GetCoreSettings:input_type -> ddash.core.GetCoreSettingsRequest
+	20, // 33: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
+	24, // 34: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
+	26, // 35: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
+	2,  // 36: ddash.core.CoreService.RunTestAction:input_type -> ddash.core.RunTestActionRequest
+	18, // 37: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	12, // 38: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	14, // 39: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	16, // 40: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	6,  // 41: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
+	10, // 42: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
+	34, // 43: ddash.core.CoreService.GetConfigForm:output_type -> ddash.core.GetConfigFormResponse
+	40, // 44: ddash.core.CoreService.SaveConfig:output_type -> ddash.core.SaveConfigResponse
+	32, // 45: ddash.core.CoreService.GetCoreSettings:output_type -> ddash.core.GetCoreSettingsResponse
+	21, // 46: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
+	25, // 47: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
+	27, // 48: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
+	3,  // 49: ddash.core.CoreService.RunTestAction:output_type -> ddash.core.RunTestActionResponse
+	37, // [37:50] is the sub-list for method output_type
+	24, // [24:37] is the sub-list for method input_type
+	24, // [24:24] is the sub-list for extension type_name
+	24, // [24:24] is the sub-list for extension extendee
+	0,  // [0:24] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }
@@ -2696,15 +2858,15 @@ func file_ddash_core_core_proto_init() {
 	if File_ddash_core_core_proto != nil {
 		return
 	}
-	file_ddash_core_core_proto_msgTypes[25].OneofWrappers = []any{}
-	file_ddash_core_core_proto_msgTypes[30].OneofWrappers = []any{}
+	file_ddash_core_core_proto_msgTypes[28].OneofWrappers = []any{}
+	file_ddash_core_core_proto_msgTypes[33].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   38,
+			NumMessages:   41,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
