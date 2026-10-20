@@ -31,6 +31,7 @@ import (
 
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/auth"
+	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -177,7 +178,7 @@ func (h *Harness) Call(plugin, component, method, body string) *httptest.Respons
 }
 
 // PluginHeader names the calling Plugin on each request from its transport.
-const PluginHeader = "Ddash-Plugin"
+const PluginHeader = router.PluginHeader
 
 // ConnectRequest is a Connect unary JSON request to component's method,
 // naming no Plugin.

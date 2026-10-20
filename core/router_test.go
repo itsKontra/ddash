@@ -93,3 +93,80 @@ func TestAComponentStartsWithDefaultsForUnsetConfigFields(t *testing.T) {
 		t.Errorf("got %q with config %v, want %q with %v", got.Greeting, got.Config, "hello Ada", want)
 	}
 }
+
+func TestACallWithoutTheConnectProtocolHeaderIsRefusedAsCrossSite(t *testing.T) {
+	h := newHello(t, configured)
+	h.WaitState("greeter", runtime.OK)
+
+	for _, version := range []string{"", "2"} {
+		r := coretest.ConnectRequest("greeter", "Greet", `{"name":"Ada"}`)
+		r.Header.Set(coretest.PluginHeader, "hello")
+		r.Header.Set("Connect-Protocol-Version", version)
+
+		res := h.Do(r)
+
+		wantError(t, res, http.StatusBadRequest, "invalid_argument", `missing required header: set Connect-Protocol-Version to "1"`)
+	}
+}
+
+func TestOnlyConnectUnaryJSONIsServed(t *testing.T) {
+	h := newHello(t, configured)
+	h.WaitState("greeter", runtime.OK)
+
+	get := coretest.ConnectRequest("greeter", "Greet", "")
+	get.Method = http.MethodGet
+	get.Header.Set(coretest.PluginHeader, "hello")
+	if res := h.Do(get); res.Code != http.StatusMethodNotAllowed || res.Header().Get("Allow") != http.MethodPost {
+		t.Errorf("GET: status %d, Allow %q; want 405, POST", res.Code, res.Header().Get("Allow"))
+	}
+
+	form := coretest.ConnectRequest("greeter", "Greet", "name=Ada")
+	form.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	form.Header.Set(coretest.PluginHeader, "hello")
+	if res := h.Do(form); res.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("form POST: status %d, want 415", res.Code)
+	}
+
+	charset := coretest.ConnectRequest("greeter", "Greet", `{"name":"Ada"}`)
+	charset.Header.Set("Content-Type", "application/json; charset=utf-8")
+	charset.Header.Set(coretest.PluginHeader, "hello")
+	if res := h.Do(charset); res.Code != http.StatusOK {
+		t.Errorf("JSON with charset: status %d: %s", res.Code, res.Body)
+	}
+}
+
+func TestAPluginReachesOnlyTheComponentsItRequiresDirectly(t *testing.T) {
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{
+			greeter(sample.Hooks{}),
+			sample.Define("relay", []string{"greeter"}, sample.Hooks{}),
+		},
+		Plugins: []coretest.Plugin{
+			hello,
+			{Name: "relayer", Requires: []string{"relay"}},
+			{Name: "absent", Requires: []string{"greeter"}},
+		},
+	})
+	h.SeedConfig("greeter", configured)
+	h.SeedConfig("relay", configured)
+	h.Install("hello")
+	h.Install("relayer")
+	h.WaitState("greeter", runtime.OK)
+	h.WaitState("relay", runtime.OK)
+
+	if res := h.Call("relayer", "relay", "Greet", `{"name":"Ada"}`); res.Code != http.StatusOK {
+		t.Errorf("relayer → relay: status %d: %s", res.Code, res.Body)
+	}
+	for _, c := range []struct{ plugin, component, why string }{
+		{"relayer", "greeter", "required only through relay"},
+		{"hello", "relay", "not required"},
+		{"absent", "greeter", "the Plugin isn't installed"},
+		{"", "greeter", "no Plugin named"},
+		{"hello", "nonexistent", "no such Component"},
+	} {
+		res := h.Call(c.plugin, c.component, "Greet", `{"name":"Ada"}`)
+		if status, code, msg := connectError(t, res); status != http.StatusForbidden || code != "permission_denied" {
+			t.Errorf("%q → %s (%s): %d %s %q, want 403 permission_denied", c.plugin, c.component, c.why, status, code, msg)
+		}
+	}
+}

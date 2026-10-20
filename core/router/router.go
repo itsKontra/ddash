@@ -6,7 +6,9 @@ package router
 
 import (
 	"io"
+	"mime"
 	"net/http"
+	"slices"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -21,8 +23,15 @@ import (
 // Prefix is where the router is mounted.
 const Prefix = "/api/c/"
 
+// PluginHeader names the calling Plugin. The shell gives each Plugin its own
+// transport, which sets it on every call.
+const PluginHeader = "Ddash-Plugin"
+
 // Components is the runtime as the router sees it.
 type Components interface {
+	// PluginRequires returns the Components an installed Plugin lists
+	// directly in requires; ok is false when it isn't installed.
+	PluginRequires(plugin string) (requires []string, ok bool)
 	// Endpoint reaches a started Component, or says why it can't.
 	Endpoint(component string) (runtime.Endpoint, error)
 }
@@ -38,9 +47,22 @@ func New(components Components) *Router {
 }
 
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "Connect unary calls are POST", http.StatusMethodNotAllowed)
+		return
+	}
+	if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "application/json" {
+		http.Error(w, "Connect unary calls are application/json", http.StatusUnsupportedMediaType)
+		return
+	}
 	component, method, ok := strings.Cut(strings.TrimPrefix(r.URL.Path, Prefix), "/")
 	if !ok {
 		WriteError(w, status.Error(codes.NotFound, "want /api/c/<component>/<Method>"))
+		return
+	}
+	if err := rt.inScope(r.Header.Get(PluginHeader), component); err != nil {
+		WriteError(w, err)
 		return
 	}
 	ep, err := rt.components.Endpoint(component)
@@ -79,4 +101,21 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+}
+
+// inScope refuses a call unless plugin is installed and lists component
+// directly in its requires. Plugins are first-party, so this guards against
+// mistakes, not attacks.
+func (rt *Router) inScope(plugin, component string) error {
+	if plugin == "" {
+		return status.Errorf(codes.PermissionDenied, "no %s header names the calling Plugin", PluginHeader)
+	}
+	requires, ok := rt.components.PluginRequires(plugin)
+	if !ok {
+		return status.Errorf(codes.PermissionDenied, "plugin %s isn't installed", plugin)
+	}
+	if !slices.Contains(requires, component) {
+		return status.Errorf(codes.PermissionDenied, "plugin %s doesn't require %s", plugin, component)
+	}
+	return nil
 }

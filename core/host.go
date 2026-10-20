@@ -10,6 +10,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/config"
 	"github.com/itsKontra/ddash/core/coredb"
@@ -82,8 +85,21 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	api.Handle(router.Prefix, router.New(h.runtime))
 
 	mux := http.NewServeMux()
-	mux.Handle("/api/", guard(api))
+	mux.Handle("/api/", requireConnectHeader(guard(api)))
 	return mux
+}
+
+// requireConnectHeader refuses an /api call without Connect-Protocol-Version: 1.
+// A browser sends that header cross-site only after a CORS preflight, which
+// ddash never grants, so it stops cross-site requests.
+func requireConnectHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Connect-Protocol-Version") != "1" {
+			router.WriteError(w, status.Error(codes.InvalidArgument, `missing required header: set Connect-Protocol-Version to "1"`))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Handler is the host's one http.Handler.
