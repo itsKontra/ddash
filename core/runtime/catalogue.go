@@ -139,8 +139,18 @@ func checksum(sums []byte, file string) ([]byte, error) {
 	return nil, fmt.Errorf("%s has no checksum in %s", file, SumsFile)
 }
 
-// Check refuses a requires that doesn't resolve and a requires cycle.
+// ReservedPluginNames are the core's own top-level paths. A Plugin's Pages
+// live under /<name>/, so no Plugin may take one of these names.
+var ReservedPluginNames = []string{"api", "auth", "vendor", "plugins", "settings", "healthz"}
+
+// Check refuses a Plugin named after a core path, a requires that doesn't
+// resolve and a requires cycle.
 func (c Catalogue) Check() error {
+	for _, p := range c.Plugins {
+		if slices.Contains(ReservedPluginNames, p.Name) {
+			return fmt.Errorf("plugin name %s clashes with the core's /%s", p.Name, p.Name)
+		}
+	}
 	for _, p := range c.Plugins {
 		for _, req := range p.Requires {
 			if _, ok := c.component(req); !ok {

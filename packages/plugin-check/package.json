@@ -1,0 +1,16 @@
+{
+  "name": "@ddash/plugin-check",
+  "private": true,
+  "type": "module",
+  "description": "The CI guards for Plugins: the contract check on each built bundle and the style lint on each Plugin's sources.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ddash/vite-preset": "workspace:*"
+  },
+  "peerDependencies": {
+    "vite": "8.3.4"
+  }
+}

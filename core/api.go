@@ -9,6 +9,10 @@ import (
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/durationpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
+	"github.com/itsKontra/ddash/core/appstate"
 
 	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
@@ -32,6 +36,19 @@ func (h *Host) apiHandler() http.Handler {
 	mux := http.NewServeMux()
 	connecthttp.Mount(mux, server)
 	return http.StripPrefix(apiPrefix, mux)
+}
+
+// connectError answers err, a gRPC status error, with its code and message.
+// connect-go's codes are gRPC's. nil stays nil; any other error is Unknown.
+func connectError(err error) error {
+	if err == nil {
+		return nil
+	}
+	st, ok := status.FromError(err)
+	if !ok {
+		return err
+	}
+	return connect.NewError(connect.Code(st.Code()), st.Message())
 }
 
 func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPluginsRequest) (*corepb.ListInstalledPluginsResponse, error) {
@@ -120,12 +137,43 @@ func (a coreAPI) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanReque
 	return resp, connectError(err)
 }
 
-// connectError carries a gRPC status error's code and message to the
-// shell. Any other error is Unknown.
-func connectError(err error) error {
-	if err == nil {
-		return nil
+func (a coreAPI) ListAuditLog(ctx context.Context, req *corepb.ListAuditLogRequest) (*corepb.ListAuditLogResponse, error) {
+	page, err := a.host.gate.Chains(ctx, appstate.Query{
+		ActorKind: req.GetActorKind(),
+		Target:    req.GetTarget(),
+		Outcome:   req.GetOutcome(),
+		PageSize:  int(req.GetPageSize()),
+		PageToken: req.GetPageToken(),
+	})
+	if err != nil {
+		return nil, connectError(err)
 	}
-	s := status.Convert(err)
-	return connect.NewError(connect.Code(s.Code()), s.Message())
+	targets, err := a.host.gate.Targets(ctx)
+	if err != nil {
+		return nil, connectError(err)
+	}
+	resp := &corepb.ListAuditLogResponse{NextPageToken: page.Next, Targets: targets}
+	for _, c := range page.Chains {
+		chain := &corepb.AuditChain{Id: c.ID}
+		for _, e := range c.Entries {
+			entry := &corepb.AuditEntry{
+				Time:       timestamppb.New(e.Time),
+				ActorKind:  e.ActorKind,
+				Username:   e.Username,
+				Sub:        e.Sub,
+				Target:     e.Target,
+				Method:     e.Method,
+				Disruptive: e.Disruptive,
+				Request:    e.Request,
+				Outcome:    e.Outcome,
+				Message:    e.Message,
+			}
+			if e.Outcome != appstate.Running {
+				entry.Duration = durationpb.New(e.Duration)
+			}
+			chain.Entries = append(chain.Entries, entry)
+		}
+		resp.Chains = append(resp.Chains, chain)
+	}
+	return resp, nil
 }

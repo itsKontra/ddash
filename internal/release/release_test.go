@@ -94,6 +94,34 @@ func TestTheCatalogueFailsWhenAManifestIsntNamedAfterItsDirectory(t *testing.T) 
 	}
 }
 
+func TestTheCatalogueFailsOnAPluginNameClashingWithACorePath(t *testing.T) {
+	for _, name := range []string{"api", "auth", "vendor", "plugins", "settings", "healthz"} {
+		t.Run(name, func(t *testing.T) {
+			root := tree(t, map[string]string{
+				"plugins/" + name + "/plugin.yaml": "name: " + name + "\ntitle: Clash\nrequires: []\n",
+			})
+
+			_, err := release.Catalogue(root, "dev")
+
+			if want := "plugin name " + name + " clashes with the core's /" + name; err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("err = %v, want %q", err, want)
+			}
+		})
+	}
+}
+
+// The repo's own manifests: CI fails here when a Plugin or Component in the
+// tree breaks a catalogue rule.
+func TestTheReposCatalogueChecks(t *testing.T) {
+	cat, err := release.Catalogue("../..", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cat.Plugins) == 0 {
+		t.Error("no Plugins found in the repo")
+	}
+}
+
 // widgetsOnly is a repo with one Plugin requiring nothing, so building its
 // Release builds no binaries.
 func widgetsOnly(t *testing.T, bundle map[string]string) string {
