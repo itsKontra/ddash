@@ -15,6 +15,7 @@ import (
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
@@ -91,7 +92,7 @@ func TestANewProxyHostYieldsAnAppWithARunningCheck(t *testing.T) {
 		ups := &upstreams{}
 		ups.answer("printer.home.example:8080")
 		h := coretest.New(t, coretest.Options{
-			Components: []sdk.Definition{nginxConfigServing(n), checks.DefinitionDialing(ups.dial), apps.Definition()},
+			Components: []sdk.Definition{nginxConfigServing(n), ntfyapi.Definition(), checks.DefinitionDialing(ups.dial), apps.Definition()},
 			Plugins:    []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 		})
 		h.SeedConfig("nginx-config", &nginxconfigpb.NginxConfigConfig{Host: "198.18.0.10", HostKey: "ssh-ed25519 AAAA"})

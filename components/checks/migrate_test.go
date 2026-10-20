@@ -18,7 +18,7 @@ import (
 func olderDB(t *testing.T) string {
 	t.Helper()
 	old := fstest.MapFS{}
-	for _, name := range []string{"0001_checks.sql", "0002_check_stat.sql"} {
+	for _, name := range []string{"0001_checks.sql", "0002_check_stat.sql", "0003_notified.sql"} {
 		body, err := os.ReadFile(filepath.Join("migrations", name))
 		if err != nil {
 			t.Fatal(err)

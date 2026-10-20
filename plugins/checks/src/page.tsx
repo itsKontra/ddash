@@ -2,6 +2,7 @@ import { useAction } from "@ddash/plugin";
 import { CheckType, ChecksService, RecordType, type Check } from "@ddash/proto/checks/checks_pb";
 import { Badge, Button, PageHeader, Segmented, Sheet, StatusDot } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
+import { useParams } from "react-router";
 import { latency, shownName, stateLabel, toneOf, useChecks } from "./checks";
 import { CheckDetail } from "./detail";
 
@@ -11,7 +12,9 @@ export function ChecksPage() {
   // undefined: no form; null: adding; a Check: editing it.
   const [editing, setEditing] = useState<Check | null | undefined>(undefined);
   // The Check whose detail is open, by id, so it follows the list's refreshes.
-  const [shown, setShown] = useState<bigint>();
+  // A Notification's link (/checks/<id>) opens it.
+  const { id } = useParams();
+  const [shown, setShown] = useState<bigint | undefined>(() => (id && /^\d+$/.test(id) ? BigInt(id) : undefined));
   const detail = data?.checks.find((c) => c.id === shown);
   return (
     <div>

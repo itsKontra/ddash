@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
+import { MemoryRouter, useRoutes } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import plugin from "./index";
 import { check } from "./testing";
@@ -70,6 +71,24 @@ async function openDetail() {
   await settle();
   return screen.getByRole("dialog", { name: "nas" });
 }
+
+it("opens the detail of the Check a Notification links to (/checks/<id>)", async () => {
+  function Routes() {
+    return useRoutes(plugin.pages!);
+  }
+  render(
+    <MemoryRouter initialEntries={["/1"]}>
+      <PluginHost client={createQueryClient()}>
+        <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
+          <Routes />
+        </PluginScope>
+      </PluginHost>
+    </MemoryRouter>,
+  );
+  await settle();
+
+  expect(screen.getByRole("dialog", { name: "nas" })).toBeTruthy();
+});
 
 const tones = (bars: HTMLElement) => [...bars.querySelectorAll("[data-tone]")].map((b) => b.getAttribute("data-tone"));
 

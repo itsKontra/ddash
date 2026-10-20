@@ -52,6 +52,8 @@ const (
 	CoreServiceGetLayoutProcedure = "/ddash.core.CoreService/GetLayout"
 	// CoreServiceSaveLayoutProcedure is the procedure name of the CoreService's SaveLayout RPC.
 	CoreServiceSaveLayoutProcedure = "/ddash.core.CoreService/SaveLayout"
+	// CoreServiceRunTestActionProcedure is the procedure name of the CoreService's RunTestAction RPC.
+	CoreServiceRunTestActionProcedure = "/ddash.core.CoreService/RunTestAction"
 )
 
 var (
@@ -139,6 +141,13 @@ var (
 			Procedure:  CoreServiceSaveLayoutProcedure,
 		}
 	})
+	coreServiceRunTestActionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("RunTestAction"),
+			Procedure:  CoreServiceRunTestActionProcedure,
+		}
+	})
 )
 
 // CoreServiceClient is a client for the ddash.core.CoreService service.
@@ -186,6 +195,12 @@ type CoreServiceClient interface {
 	GetLayout(context.Context, *core.GetLayoutRequest) (*core.GetLayoutResponse, error)
 	// SaveLayout replaces the Overview layout.
 	SaveLayout(context.Context, *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error)
+	// RunTestAction runs the Action a Component's config message names in
+	// (ddash.config.form).test_action, with an empty request, on its saved
+	// config, for the actor. It answers once the Action succeeded and fails
+	// with the Action's error. The Audit Log records the Component's Action
+	// itself (e.g. ntfy-api SendTest), not this call.
+	RunTestAction(context.Context, *core.RunTestActionRequest) (*core.RunTestActionResponse, error)
 }
 
 // NewCoreServiceClient constructs a client for the ddash.core.CoreService service. Multiple service
@@ -239,6 +254,12 @@ type CoreServiceHandler interface {
 	GetLayout(context.Context, *core.GetLayoutRequest) (*core.GetLayoutResponse, error)
 	// SaveLayout replaces the Overview layout.
 	SaveLayout(context.Context, *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error)
+	// RunTestAction runs the Action a Component's config message names in
+	// (ddash.config.form).test_action, with an empty request, on its saved
+	// config, for the actor. It answers once the Action succeeded and fails
+	// with the Action's error. The Audit Log records the Component's Action
+	// itself (e.g. ntfy-api SendTest), not this call.
+	RunTestAction(context.Context, *core.RunTestActionRequest) (*core.RunTestActionResponse, error)
 }
 
 // RegisterCoreServiceHandler registers svc as the ddash.core.CoreService implementation on server.
@@ -257,6 +278,7 @@ func RegisterCoreServiceHandler(server *connect.Server, svc CoreServiceHandler) 
 		connect.Method{Spec: coreServiceListAuditLogSpec(), Handler: adapter.listAuditLog},
 		connect.Method{Spec: coreServiceGetLayoutSpec(), Handler: adapter.getLayout},
 		connect.Method{Spec: coreServiceSaveLayoutSpec(), Handler: adapter.saveLayout},
+		connect.Method{Spec: coreServiceRunTestActionSpec(), Handler: adapter.runTestAction},
 	)
 }
 
@@ -309,6 +331,10 @@ func (UnimplementedCoreServiceHandler) GetLayout(context.Context, *core.GetLayou
 
 func (UnimplementedCoreServiceHandler) SaveLayout(context.Context, *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.SaveLayout is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) RunTestAction(context.Context, *core.RunTestActionRequest) (*core.RunTestActionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.RunTestAction is not implemented")
 }
 
 type coreServiceClient struct {
@@ -406,6 +432,14 @@ func (c *coreServiceClient) GetLayout(ctx context.Context, req *core.GetLayoutRe
 func (c *coreServiceClient) SaveLayout(ctx context.Context, req *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error) {
 	var res core.SaveLayoutResponse
 	if err := c.client.CallUnary(ctx, coreServiceSaveLayoutSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) RunTestAction(ctx context.Context, req *core.RunTestActionRequest) (*core.RunTestActionResponse, error) {
+	var res core.RunTestActionResponse
+	if err := c.client.CallUnary(ctx, coreServiceRunTestActionSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -551,6 +585,18 @@ func (h coreServiceHandler) saveLayout(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.SaveLayout(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) runTestAction(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.RunTestActionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RunTestAction(ctx, &req)
 	if err != nil {
 		return err
 	}
