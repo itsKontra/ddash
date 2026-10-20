@@ -99,10 +99,16 @@ func (f *firewall) ListAliases(context.Context, *pfsenseapipb.ListAliasesRequest
 	if f.err != nil {
 		return nil, f.err
 	}
+	return proto.CloneOf(&pfsenseapipb.ListAliasesResponse{Aliases: f.aliasList()}), nil
+}
+
+// aliasList is the aliases the firewall holds, the home ones until set;
+// f.mu is held.
+func (f *firewall) aliasList() []*pfsenseapipb.Alias {
 	if f.aliases == nil {
-		return &pfsenseapipb.ListAliasesResponse{Aliases: homeAliases()}, nil
+		f.aliases = homeAliases()
 	}
-	return &pfsenseapipb.ListAliasesResponse{Aliases: f.aliases}, nil
+	return f.aliases
 }
 
 // homeConfig is network's config on the home firewall: Adopt reserves
