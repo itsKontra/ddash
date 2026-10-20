@@ -61,7 +61,8 @@ func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*
 		installed[p.Name] = p
 	}
 	running := rt.Status()
-	resp := &corepb.ListCatalogueResponse{Release: rt.Release(), Orphans: rt.Orphans()}
+	resp := &corepb.ListCatalogueResponse{Release: rt.Release(), Orphans: rt.Orphans(), AvailableRelease: a.host.availableRelease()}
+	pending := rt.PendingBundles()
 	// The installed Plugins the catalogue lacks show from the core DB: it
 	// can't be downloaded yet, or their Release dropped them.
 	plugins := cat.Plugins
@@ -79,6 +80,9 @@ func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*
 			Icon:        p.Icon,
 			Author:      p.Author,
 			Installed:   isInstalled,
+		}
+		if isInstalled {
+			cp.UpdatePending = pending[p.Name]
 		}
 		pulls := cat.Pulls(p.Name)
 		if pulls == nil {

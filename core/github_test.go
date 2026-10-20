@@ -145,6 +145,54 @@ func TestOnANewReleaseWhileGitHubIsUnreachableInstalledPluginsShowFromTheCoreDB(
 	})
 }
 
+func TestAPluginWhoseBundlesFailToDownloadShowsUpdatePending(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		gh := fakegithub.New(repo)
+		publish(t, gh, "v1.0.0", notebook())
+		publish(t, gh, "v1.1.0", notebook(addTag))
+		data := installedFromGitHub(t, gh)
+		gh.FailAsset("hello.plugin.js", true)
+
+		h := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
+		synctest.Wait()
+
+		hello := coreJSON(t, h, "ListCatalogue", `{}`)["plugins"].([]any)[0].(map[string]any)
+		if got, _ := hello["updatePending"].(string); !strings.Contains(got, "hello.plugin.js of Release v1.1.0") {
+			t.Errorf("hello's updatePending = %q, want its bundle's download named", got)
+		}
+
+		gh.FailAsset("hello.plugin.js", false)
+		time.Sleep(time.Minute)
+		synctest.Wait()
+
+		hello = coreJSON(t, h, "ListCatalogue", `{}`)["plugins"].([]any)[0].(map[string]any)
+		if got := hello["updatePending"]; got != nil {
+			t.Errorf("a minute later hello's updatePending = %v, want none", got)
+		}
+	})
+}
+
+func TestADailyCheckShowsANewerReleaseAvailableInTheCatalogue(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		gh := fakegithub.New(repo)
+		publish(t, gh, "v1.0.0", notebook())
+		publish(t, gh, "v0.9.0", notebook()) // latest, yet older
+		h := fromGitHub(t, gh, t.TempDir(), "v1.0.0", notebook())
+		synctest.Wait()
+		if got := coreJSON(t, h, "ListCatalogue", `{}`)["availableRelease"]; got != nil {
+			t.Errorf("availableRelease = %v, want none newer", got)
+		}
+
+		publish(t, gh, "v1.1.0", notebook())
+		time.Sleep(24 * time.Hour)
+		synctest.Wait()
+
+		if got := coreJSON(t, h, "ListCatalogue", `{}`)["availableRelease"]; got != "v1.1.0" {
+			t.Errorf("a day later availableRelease = %v, want v1.1.0", got)
+		}
+	})
+}
+
 func TestAFailedDownloadLeavesTheComponentUpdatePendingRetriedWithBackoff(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		gh := fakegithub.New(repo)

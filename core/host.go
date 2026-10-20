@@ -59,8 +59,13 @@ type Host struct {
 	router  *router.Router
 	handler http.Handler
 
+	log *slog.Logger
+
 	stopLoops context.CancelFunc
 	loops     sync.WaitGroup
+
+	mu     sync.Mutex
+	latest string // the newest published Release, from the daily check
 }
 
 // New opens and migrates the core DB and reads the installed set. The
@@ -103,7 +108,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
-	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell}
+	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, log: opts.Logger}
 	h.handler = h.routes(opts.Auth)
 	return h, nil
 }
@@ -247,11 +252,13 @@ func (h *Host) AuditLog() *appstate.Gate { return h.gate }
 func (h *Host) Config() *config.Store { return h.config }
 
 // Start runs the housekeeping in the background: it reconciles the
-// installed Plugins' Components and sweeps the Audit Log daily.
+// installed Plugins' Components, sweeps the Audit Log daily and checks for
+// a newer Release daily.
 func (h *Host) Start() {
 	ctx, cancel := context.WithCancel(context.Background())
 	h.stopLoops = cancel
 	h.loops.Go(func() { h.gate.SweepDaily(ctx) })
+	h.loops.Go(func() { h.checkReleaseDaily(ctx) })
 	h.runtime.Start()
 }
 

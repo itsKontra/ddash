@@ -52,6 +52,9 @@ message ListCatalogueResponse {
   repeated CataloguePlugin plugins = 2;
   // Components whose DB file is kept although nothing runs them, by name.
   repeated string orphans = 3;
+  // A newer Release than this one, found by the daily check of its
+  // release source; empty when there is none.
+  string available_release = 4;
 }
 
 // A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
@@ -67,6 +70,9 @@ message CataloguePlugin {
   // The Components installing it runs: its requires, transitively, each
   // after the ones it requires.
   repeated ComponentStatus components = 7;
+  // Why an installed Plugin's bundles of this Release are still missing,
+  // e.g. their download failed and is retrying; empty once they are there.
+  string update_pending = 8;
 }
 
 // A Component as the host sees it.

@@ -490,6 +490,20 @@ func (r *Runtime) Installed() []PluginEntry {
 	return out
 }
 
+// PendingBundles returns, by installed Plugin, why its bundles of the
+// running Release are still missing. Plugins that have them aren't listed.
+func (r *Runtime) PendingBundles() map[string]string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	out := map[string]string{}
+	for name, msg := range r.bundles {
+		if _, installed := r.installed[name]; installed && msg != "" {
+			out[name] = msg
+		}
+	}
+	return out
+}
+
 // Catalogue is the catalogue of the Release the runtime runs. It lists
 // nothing while the release source can't provide it.
 func (r *Runtime) Catalogue() Catalogue {
