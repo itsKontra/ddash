@@ -1,8 +1,11 @@
 package release_test
 
 import (
+	"debug/elf"
 	"os"
+	"os/exec"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"testing"
 
@@ -180,5 +183,99 @@ func TestALinkedReleaseShowsThePluginsRebuiltBundle(t *testing.T) {
 
 	if b, err := os.ReadFile(filepath.Join(out, "docker.plugin.js")); err != nil || string(b) != "v2" {
 		t.Errorf("docker.plugin.js: %q, %v; want the rebuilt v2", b, err)
+	}
+}
+
+// oneComponent is a module with one Component, probe, that needs nothing
+// but the standard library.
+func oneComponent(t *testing.T) string {
+	return tree(t, map[string]string{
+		"go.mod":                          "module example.com/probe\n\ngo 1.26\n",
+		"components/probe/component.yaml": "name: probe\nrequires: []\n",
+		"components/probe/cmd/main.go":    "package main\n\nfunc main() {}\n",
+	})
+}
+
+// executable opens the ELF binary at path, failing the test on anything else.
+func executable(t *testing.T, path string) *elf.File {
+	t.Helper()
+	f, err := elf.Open(path)
+	if err != nil {
+		t.Fatalf("%s: %v", path, err)
+	}
+	t.Cleanup(func() { f.Close() })
+	return f
+}
+
+// assertStatic fails unless f asks for no dynamic loader, so it runs on
+// distroless/static.
+func assertStatic(t *testing.T, f *elf.File) {
+	t.Helper()
+	for _, p := range f.Progs {
+		if p.Type == elf.PT_INTERP || p.Type == elf.PT_DYNAMIC {
+			t.Errorf("binary has %v: dynamically linked", p.Type)
+		}
+	}
+}
+
+func TestAReleaseForAPlatformHoldsStaticBinariesForIt(t *testing.T) {
+	root := oneComponent(t)
+
+	for platform, machine := range map[string]elf.Machine{"linux/amd64": elf.EM_X86_64, "linux/arm64": elf.EM_AARCH64} {
+		out := t.TempDir()
+		if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "v1.0.0", Platform: platform}); err != nil {
+			t.Fatal(err)
+		}
+
+		f := executable(t, filepath.Join(out, "probe"))
+		if f.Machine != machine {
+			t.Errorf("%s: machine %v, want %v", platform, f.Machine, machine)
+		}
+		assertStatic(t, f)
+	}
+}
+
+func TestTheCoreBinaryIsStaticAndStampedWithTheRelease(t *testing.T) {
+	if goruntime.GOOS != "linux" {
+		t.Skip("the image's core binary is a Linux one")
+	}
+	bin := filepath.Join(t.TempDir(), "ddash")
+
+	if err := release.Core(t.Context(), "../..", bin, "v9.8.7", "linux/"+goruntime.GOARCH); err != nil {
+		t.Fatal(err)
+	}
+
+	assertStatic(t, executable(t, bin))
+	out, err := exec.CommandContext(t.Context(), bin, "version").Output()
+	if err != nil || string(out) != "v9.8.7\n" {
+		t.Errorf("ddash version: %q, %v; want v9.8.7", out, err)
+	}
+}
+
+func TestTheCoreBinaryNeedsTheBuiltShell(t *testing.T) {
+	root := tree(t, map[string]string{"web/dist/.keep": ""})
+
+	err := release.Core(t.Context(), root, filepath.Join(t.TempDir(), "ddash"), "v1.0.0", "linux/amd64")
+
+	if err == nil || !strings.Contains(err.Error(), "make build") {
+		t.Errorf("err = %v, want one saying to run make build", err)
+	}
+}
+
+func TestAReleaseIsDevOrACanonicalSemverTag(t *testing.T) {
+	root := widgetsOnly(t, map[string]string{"index.js": "", "index.css": ""})
+
+	for _, rel := range []string{"dev", "v1.2.3", "v1.2.3-rc.1"} {
+		if err := release.Build(t.Context(), release.Options{Root: root, Out: t.TempDir(), Release: rel}); err != nil {
+			t.Errorf("Release %q: %v", rel, err)
+		}
+	}
+	// The core compares Releases as semver, and the image is tagged with
+	// the Release, which can't carry a "+".
+	for _, rel := range []string{"", "v1.2", "1.2.3", "v1.2.3+build.4", "latest"} {
+		err := release.Build(t.Context(), release.Options{Root: root, Out: t.TempDir(), Release: rel})
+		if err == nil || !strings.Contains(err.Error(), "vMAJOR.MINOR.PATCH") {
+			t.Errorf("Release %q: err = %v, want it refused", rel, err)
+		}
 	}
 }
