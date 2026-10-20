@@ -40,7 +40,7 @@ export function App({ client, fetch, importBundle = defaultImport, reload = () =
 }
 
 function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBundle }) {
-  const plugins = usePlugins(importBundle);
+  const plugins = usePlugins(importBundle, fetch);
   const overview = useOverviewLayout(plugins);
   useAppearance();
   return (

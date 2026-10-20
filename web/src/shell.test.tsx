@@ -32,8 +32,9 @@ afterEach(() => {
 
 // boot runs the shell at path with plugins installed, each bundle's script
 // URL importing as the given Bundle.
-async function boot(path: string, plugins: [ReturnType<typeof installed>, Bundle][]) {
+async function boot(path: string, plugins: [ReturnType<typeof installed>, Bundle][], bundleAnswer = () => new Response("")) {
   const fetch = vi.fn(async (input: RequestInfo | URL) => {
+    if (String(input).startsWith("/plugins/")) return bundleAnswer();
     coreCalls.push(String(input));
     if (String(input).endsWith("/GetOperator")) return Response.json({ operator: { name: "alice", sub: "4f1c-alice" } });
     return Response.json({ plugins: plugins.map(([p]) => p) });
@@ -208,6 +209,19 @@ it("shows a badge's text in place of a count", async () => {
   ]);
 
   expect(navLinks()).toEqual(["Overview", "Reverse proxy!", "Plugins", "Settings"]);
+});
+
+it("shows the unreachable banner when a bundle fails to load because the host fails", async () => {
+  const badGateway = () => new Response("<html>Bad Gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } });
+  await boot("/", [[installed("docker", "Docker"), new TypeError("Failed to fetch dynamically imported module")]], badGateway);
+
+  expect(screen.getByRole("status").textContent).toMatch(/^ddash unreachable/);
+});
+
+it("shows no banner for a broken bundle the host serves", async () => {
+  await boot("/", [[installed("docker", "Docker"), new SyntaxError("Unexpected token")]]);
+
+  expect(screen.queryByRole("status")).toBeNull();
 });
 
 it("answers a path no installed Plugin owns with not found", async () => {

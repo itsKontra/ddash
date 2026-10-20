@@ -10,10 +10,10 @@ export interface Reach {
 
 /**
  * Watches every call the shell and the Plugins make to the host. A network
- * error, or a 5xx that isn't a Connect error answer (a Component's
- * Unavailable is a 503 from a host that answered), makes ddash unreachable
- * until the next answer. A 401 means the session is gone: it reloads the
- * page, once, into sign-in.
+ * error or a 5xx from the host makes ddash unreachable until the next
+ * answer, except a Component's Connect error under /api/c/ (a Component's
+ * Unavailable is a 503 from a host that answered). A 401 means the session
+ * is gone: it reloads the page, once, into sign-in.
  */
 export class HostWatch {
   private state: Reach = { unreachable: false };
@@ -40,7 +40,7 @@ export class HostWatch {
         this.reloading = true;
         this.reload();
       }
-    } else if (res.status >= 500 && !res.headers.get("Content-Type")?.startsWith("application/json")) {
+    } else if (res.status >= 500 && !componentAnswer(input, res)) {
       this.update(true);
     } else {
       this.lastAnswer = new Date();
@@ -61,6 +61,13 @@ export class HostWatch {
   };
 
   readonly get = (): Reach => this.state;
+}
+
+/** A Component's Connect error, which the host's router answered. */
+function componentAnswer(input: RequestInfo | URL, res: Response): boolean {
+  const url = input instanceof Request ? input.url : String(input);
+  const path = new URL(url, "http://ddash").pathname;
+  return path.startsWith("/api/c/") && !!res.headers.get("Content-Type")?.startsWith("application/json");
 }
 
 export const ReachContext = createContext<HostWatch | null>(null);

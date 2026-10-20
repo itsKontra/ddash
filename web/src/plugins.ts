@@ -1,4 +1,4 @@
-import { useQuery, type PluginDefinition } from "@ddash/plugin";
+import { useQuery, type Fetch, type PluginDefinition } from "@ddash/plugin";
 import { CoreService, type InstalledPlugin } from "@ddash/proto/ddash/core/core_pb";
 import { useEffect, useRef, useState } from "react";
 
@@ -24,9 +24,11 @@ export interface Plugins {
 /**
  * The installed Plugins, read from the core at the FAST tier. Each new
  * bundle is imported (with its stylesheet) as soon as it's listed, all in
- * parallel, and each is imported only once.
+ * parallel, and each is imported only once. import() bypasses fetch, so a
+ * bundle that fails to load is asked for again through fetch (the shell's
+ * watched one), and a host that fails shows as unreachable.
  */
-export function usePlugins(load: ImportBundle): Plugins {
+export function usePlugins(load: ImportBundle, fetch?: Fetch): Plugins {
   const { data } = useQuery(CoreService.method.listInstalledPlugins, {});
   const started = useRef(new Set<string>());
   const [loaded, setLoaded] = useState(() => new Map<string, LoadedPlugin>());
@@ -40,10 +42,13 @@ export function usePlugins(load: ImportBundle): Plugins {
         setLoaded((prev) => new Map(prev).set(p.name, { ...p, ...result }));
       load(p.script).then(
         (mod) => settle(isDefinition(mod.default) ? { definition: mod.default } : { error: new Error("its bundle has no definePlugin default export") }),
-        (err: unknown) => settle({ error: err instanceof Error ? err : new Error(String(err)) }),
+        (err: unknown) => {
+          settle({ error: err instanceof Error ? err : new Error(String(err)) });
+          fetch?.(p.script, { method: "HEAD" }).catch(() => {});
+        },
       );
     }
-  }, [data, load]);
+  }, [data, load, fetch]);
 
   return { installed: data?.plugins, loaded };
 }

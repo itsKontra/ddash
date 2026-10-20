@@ -67,6 +67,9 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
       saves.push(stored);
       return Response.json({});
     }
+    case "GetCoreSettings":
+    case "GetOperator":
+      return Response.json({});
   }
   return Response.json({ code: "unimplemented", message: method }, { status: 501 });
 };
@@ -384,13 +387,13 @@ it("shows the unreachable banner when the network fails", async () => {
   expect(screen.getByRole("status").textContent).toMatch(/^ddash unreachable, showing data from \d\d:\d\d$/);
 });
 
-it("counts a Connect error answer, even a 503, as ddash answering", async () => {
+it("counts a 5xx from the core, even a Connect error, as ddash failing", async () => {
   plugins = [[installed("docker", "Docker"), docker()]];
-  intercept = (method) => (method === "SaveLayout" ? Response.json({ code: "unavailable", message: "busy" }, { status: 503 }) : undefined);
+  intercept = (method) => (method === "SaveLayout" ? Response.json({ code: "unavailable", message: "audit log unavailable" }, { status: 503 }) : undefined);
 
   await boot();
 
-  expect(screen.queryByRole("status")).toBeNull();
+  expect(screen.getByRole("status").textContent).toMatch(/^ddash unreachable/);
 });
 
 it("reloads the page on a 401, so the Operator signs in again", async () => {
