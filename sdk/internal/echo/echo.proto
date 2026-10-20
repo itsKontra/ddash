@@ -24,6 +24,16 @@ service EchoService {
   }
 }
 
+// UnmarkedService breaks the rule that every method is a getter or an
+// Action, so the SDK must refuse it.
+service UnmarkedService {
+  rpc Unmarked(UnmarkedRequest) returns (UnmarkedResponse);
+}
+
+message UnmarkedRequest {}
+
+message UnmarkedResponse {}
+
 message EchoRequest {
   string message = 1;
 }

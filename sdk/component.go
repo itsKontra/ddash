@@ -25,6 +25,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/proto"
 	"go.yaml.in/yaml/v3"
+
+	ddashpb "github.com/itsKontra/ddash/proto/ddash"
 )
 
 // Release is the Release the binary was built for, set at build time with
@@ -107,13 +109,41 @@ func Define[C proto.Message](s Spec[C]) Definition {
 		panic(fmt.Sprintf("sdk: %s: %v does not implement %v", m.Name, implType, serverType))
 	}
 	var zero C
-	return Definition{
+	d := Definition{
 		manifest:   m,
 		service:    s.Service,
 		migrations: s.Migrations,
 		newConfig:  func() proto.Message { return zero.ProtoReflect().New().Interface() },
 		newImpl:    func() component { return typed[C]{s.New()} },
 	}
+	if err := d.checkMethods(); err != nil {
+		panic(err.Error())
+	}
+	return d
+}
+
+// checkMethods enforces that every API method is unary and exactly one of a
+// getter or an Action, since the host derives routing, refresh, confirms
+// and the Audit Log from that.
+func (d Definition) checkMethods() error {
+	svc, err := d.serviceDescriptor()
+	if err != nil {
+		return err
+	}
+	methods := svc.Methods()
+	for i := range methods.Len() {
+		m := methods.Get(i)
+		if m.IsStreamingClient() || m.IsStreamingServer() {
+			return fmt.Errorf("sdk: %s: %s streams; Component methods are unary only", d.Name(), m.FullName())
+		}
+		opts := m.Options()
+		getter := proto.HasExtension(opts, ddashpb.E_Getter)
+		action := proto.HasExtension(opts, ddashpb.E_Action)
+		if getter == action {
+			return fmt.Errorf("sdk: %s: %s must be exactly one of a getter or an Action: option (ddash.getter) or (ddash.action)", d.Name(), m.FullName())
+		}
+	}
+	return nil
 }
 
 // Name is the Component's name from its manifest.

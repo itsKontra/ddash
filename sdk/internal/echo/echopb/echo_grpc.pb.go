@@ -197,3 +197,111 @@ var EchoService_ServiceDesc = grpc.ServiceDesc{
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "echo/echo.proto",
 }
+
+const (
+	UnmarkedService_Unmarked_FullMethodName = "/ddash.echo.UnmarkedService/Unmarked"
+)
+
+// UnmarkedServiceClient is the client API for UnmarkedService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// UnmarkedService breaks the rule that every method is a getter or an
+// Action, so the SDK must refuse it.
+type UnmarkedServiceClient interface {
+	Unmarked(ctx context.Context, in *UnmarkedRequest, opts ...grpc.CallOption) (*UnmarkedResponse, error)
+}
+
+type unmarkedServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewUnmarkedServiceClient(cc grpc.ClientConnInterface) UnmarkedServiceClient {
+	return &unmarkedServiceClient{cc}
+}
+
+func (c *unmarkedServiceClient) Unmarked(ctx context.Context, in *UnmarkedRequest, opts ...grpc.CallOption) (*UnmarkedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnmarkedResponse)
+	err := c.cc.Invoke(ctx, UnmarkedService_Unmarked_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// UnmarkedServiceServer is the server API for UnmarkedService service.
+// All implementations must embed UnimplementedUnmarkedServiceServer
+// for forward compatibility.
+//
+// UnmarkedService breaks the rule that every method is a getter or an
+// Action, so the SDK must refuse it.
+type UnmarkedServiceServer interface {
+	Unmarked(context.Context, *UnmarkedRequest) (*UnmarkedResponse, error)
+	mustEmbedUnimplementedUnmarkedServiceServer()
+}
+
+// UnimplementedUnmarkedServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedUnmarkedServiceServer struct{}
+
+func (UnimplementedUnmarkedServiceServer) Unmarked(context.Context, *UnmarkedRequest) (*UnmarkedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Unmarked not implemented")
+}
+func (UnimplementedUnmarkedServiceServer) mustEmbedUnimplementedUnmarkedServiceServer() {}
+func (UnimplementedUnmarkedServiceServer) testEmbeddedByValue()                         {}
+
+// UnsafeUnmarkedServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to UnmarkedServiceServer will
+// result in compilation errors.
+type UnsafeUnmarkedServiceServer interface {
+	mustEmbedUnimplementedUnmarkedServiceServer()
+}
+
+func RegisterUnmarkedServiceServer(s grpc.ServiceRegistrar, srv UnmarkedServiceServer) {
+	// If the following call panics, it indicates UnimplementedUnmarkedServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&UnmarkedService_ServiceDesc, srv)
+}
+
+func _UnmarkedService_Unmarked_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnmarkedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UnmarkedServiceServer).Unmarked(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UnmarkedService_Unmarked_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UnmarkedServiceServer).Unmarked(ctx, req.(*UnmarkedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// UnmarkedService_ServiceDesc is the grpc.ServiceDesc for UnmarkedService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var UnmarkedService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "ddash.echo.UnmarkedService",
+	HandlerType: (*UnmarkedServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Unmarked",
+			Handler:    _UnmarkedService_Unmarked_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "echo/echo.proto",
+}

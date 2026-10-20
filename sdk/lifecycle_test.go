@@ -3,7 +3,9 @@ package sdk_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"google.golang.org/grpc/codes"
@@ -98,6 +100,28 @@ func TestDescribeCarriesDescriptorsWithTheirImports(t *testing.T) {
 			t.Errorf("%s missing from descriptors: %v", name, err)
 		}
 	}
+}
+
+type unmarked struct {
+	echopb.UnimplementedUnmarkedServiceServer
+}
+
+func (unmarked) Start(context.Context, *sdk.Env, *echopb.EchoConfig) error { return nil }
+func (unmarked) Health(context.Context) sdk.Health                        { return sdk.Health{State: sdk.OK} }
+
+func TestAMethodThatIsNeitherGetterNorActionIsRefused(t *testing.T) {
+	defer func() {
+		r := recover()
+		if r == nil || !strings.Contains(fmt.Sprint(r), "Unmarked") {
+			t.Fatalf("Define recovered %v, want a panic naming the method", r)
+		}
+	}()
+
+	sdk.Define(sdk.Spec[*echopb.EchoConfig]{
+		Manifest: []byte(echoManifest),
+		Service:  &echopb.UnmarkedService_ServiceDesc,
+		New:      func() sdk.Component[*echopb.EchoConfig] { return unmarked{} },
+	})
 }
 
 func TestMethodsAreNotConfiguredBeforeStart(t *testing.T) {

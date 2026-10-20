@@ -69,6 +69,78 @@ func (x *EchoConfig) GetPrefix() string {
 	return ""
 }
 
+type UnmarkedRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnmarkedRequest) Reset() {
+	*x = UnmarkedRequest{}
+	mi := &file_echo_echo_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnmarkedRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnmarkedRequest) ProtoMessage() {}
+
+func (x *UnmarkedRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnmarkedRequest.ProtoReflect.Descriptor instead.
+func (*UnmarkedRequest) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{1}
+}
+
+type UnmarkedResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UnmarkedResponse) Reset() {
+	*x = UnmarkedResponse{}
+	mi := &file_echo_echo_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UnmarkedResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UnmarkedResponse) ProtoMessage() {}
+
+func (x *UnmarkedResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UnmarkedResponse.ProtoReflect.Descriptor instead.
+func (*UnmarkedResponse) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{2}
+}
+
 type EchoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
@@ -78,7 +150,7 @@ type EchoRequest struct {
 
 func (x *EchoRequest) Reset() {
 	*x = EchoRequest{}
-	mi := &file_echo_echo_proto_msgTypes[1]
+	mi := &file_echo_echo_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -90,7 +162,7 @@ func (x *EchoRequest) String() string {
 func (*EchoRequest) ProtoMessage() {}
 
 func (x *EchoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[1]
+	mi := &file_echo_echo_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -103,7 +175,7 @@ func (x *EchoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EchoRequest.ProtoReflect.Descriptor instead.
 func (*EchoRequest) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{1}
+	return file_echo_echo_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *EchoRequest) GetMessage() string {
@@ -122,7 +194,7 @@ type EchoResponse struct {
 
 func (x *EchoResponse) Reset() {
 	*x = EchoResponse{}
-	mi := &file_echo_echo_proto_msgTypes[2]
+	mi := &file_echo_echo_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -134,7 +206,7 @@ func (x *EchoResponse) String() string {
 func (*EchoResponse) ProtoMessage() {}
 
 func (x *EchoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[2]
+	mi := &file_echo_echo_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -147,7 +219,7 @@ func (x *EchoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EchoResponse.ProtoReflect.Descriptor instead.
 func (*EchoResponse) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{2}
+	return file_echo_echo_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *EchoResponse) GetMessage() string {
@@ -165,7 +237,7 @@ type CountNotesRequest struct {
 
 func (x *CountNotesRequest) Reset() {
 	*x = CountNotesRequest{}
-	mi := &file_echo_echo_proto_msgTypes[3]
+	mi := &file_echo_echo_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -177,7 +249,7 @@ func (x *CountNotesRequest) String() string {
 func (*CountNotesRequest) ProtoMessage() {}
 
 func (x *CountNotesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[3]
+	mi := &file_echo_echo_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -190,7 +262,7 @@ func (x *CountNotesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountNotesRequest.ProtoReflect.Descriptor instead.
 func (*CountNotesRequest) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{3}
+	return file_echo_echo_proto_rawDescGZIP(), []int{5}
 }
 
 type CountNotesResponse struct {
@@ -202,7 +274,7 @@ type CountNotesResponse struct {
 
 func (x *CountNotesResponse) Reset() {
 	*x = CountNotesResponse{}
-	mi := &file_echo_echo_proto_msgTypes[4]
+	mi := &file_echo_echo_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -214,7 +286,7 @@ func (x *CountNotesResponse) String() string {
 func (*CountNotesResponse) ProtoMessage() {}
 
 func (x *CountNotesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[4]
+	mi := &file_echo_echo_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -227,7 +299,7 @@ func (x *CountNotesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountNotesResponse.ProtoReflect.Descriptor instead.
 func (*CountNotesResponse) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{4}
+	return file_echo_echo_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *CountNotesResponse) GetCount() int64 {
@@ -246,7 +318,7 @@ type AddNoteRequest struct {
 
 func (x *AddNoteRequest) Reset() {
 	*x = AddNoteRequest{}
-	mi := &file_echo_echo_proto_msgTypes[5]
+	mi := &file_echo_echo_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -258,7 +330,7 @@ func (x *AddNoteRequest) String() string {
 func (*AddNoteRequest) ProtoMessage() {}
 
 func (x *AddNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[5]
+	mi := &file_echo_echo_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -271,7 +343,7 @@ func (x *AddNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNoteRequest.ProtoReflect.Descriptor instead.
 func (*AddNoteRequest) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{5}
+	return file_echo_echo_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *AddNoteRequest) GetText() string {
@@ -289,7 +361,7 @@ type AddNoteResponse struct {
 
 func (x *AddNoteResponse) Reset() {
 	*x = AddNoteResponse{}
-	mi := &file_echo_echo_proto_msgTypes[6]
+	mi := &file_echo_echo_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -301,7 +373,7 @@ func (x *AddNoteResponse) String() string {
 func (*AddNoteResponse) ProtoMessage() {}
 
 func (x *AddNoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[6]
+	mi := &file_echo_echo_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -314,7 +386,7 @@ func (x *AddNoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNoteResponse.ProtoReflect.Descriptor instead.
 func (*AddNoteResponse) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{6}
+	return file_echo_echo_proto_rawDescGZIP(), []int{8}
 }
 
 var File_echo_echo_proto protoreflect.FileDescriptor
@@ -325,7 +397,9 @@ const file_echo_echo_proto_rawDesc = "" +
 	"ddash.echo\x1a\x13ddash/options.proto\"$\n" +
 	"\n" +
 	"EchoConfig\x12\x16\n" +
-	"\x06prefix\x18\x01 \x01(\tR\x06prefix\"'\n" +
+	"\x06prefix\x18\x01 \x01(\tR\x06prefix\"\x11\n" +
+	"\x0fUnmarkedRequest\"\x12\n" +
+	"\x10UnmarkedResponse\"'\n" +
 	"\vEchoRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"(\n" +
 	"\fEchoResponse\x12\x18\n" +
@@ -340,7 +414,9 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\x04Echo\x12\x17.ddash.echo.EchoRequest\x1a\x18.ddash.echo.EchoResponse\"\x04\x8a\xb5\x18\x00\x12S\n" +
 	"\n" +
 	"CountNotes\x12\x1d.ddash.echo.CountNotesRequest\x1a\x1e.ddash.echo.CountNotesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12J\n" +
-	"\aAddNote\x12\x1a.ddash.echo.AddNoteRequest\x1a\x1b.ddash.echo.AddNoteResponse\"\x06\x92\xb5\x18\x02\b\x01B<Z:github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopbb\x06proto3"
+	"\aAddNote\x12\x1a.ddash.echo.AddNoteRequest\x1a\x1b.ddash.echo.AddNoteResponse\"\x06\x92\xb5\x18\x02\b\x012X\n" +
+	"\x0fUnmarkedService\x12E\n" +
+	"\bUnmarked\x12\x1b.ddash.echo.UnmarkedRequest\x1a\x1c.ddash.echo.UnmarkedResponseB<Z:github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopbb\x06proto3"
 
 var (
 	file_echo_echo_proto_rawDescOnce sync.Once
@@ -354,25 +430,29 @@ func file_echo_echo_proto_rawDescGZIP() []byte {
 	return file_echo_echo_proto_rawDescData
 }
 
-var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_echo_echo_proto_goTypes = []any{
 	(*EchoConfig)(nil),         // 0: ddash.echo.EchoConfig
-	(*EchoRequest)(nil),        // 1: ddash.echo.EchoRequest
-	(*EchoResponse)(nil),       // 2: ddash.echo.EchoResponse
-	(*CountNotesRequest)(nil),  // 3: ddash.echo.CountNotesRequest
-	(*CountNotesResponse)(nil), // 4: ddash.echo.CountNotesResponse
-	(*AddNoteRequest)(nil),     // 5: ddash.echo.AddNoteRequest
-	(*AddNoteResponse)(nil),    // 6: ddash.echo.AddNoteResponse
+	(*UnmarkedRequest)(nil),    // 1: ddash.echo.UnmarkedRequest
+	(*UnmarkedResponse)(nil),   // 2: ddash.echo.UnmarkedResponse
+	(*EchoRequest)(nil),        // 3: ddash.echo.EchoRequest
+	(*EchoResponse)(nil),       // 4: ddash.echo.EchoResponse
+	(*CountNotesRequest)(nil),  // 5: ddash.echo.CountNotesRequest
+	(*CountNotesResponse)(nil), // 6: ddash.echo.CountNotesResponse
+	(*AddNoteRequest)(nil),     // 7: ddash.echo.AddNoteRequest
+	(*AddNoteResponse)(nil),    // 8: ddash.echo.AddNoteResponse
 }
 var file_echo_echo_proto_depIdxs = []int32{
-	1, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
-	3, // 1: ddash.echo.EchoService.CountNotes:input_type -> ddash.echo.CountNotesRequest
-	5, // 2: ddash.echo.EchoService.AddNote:input_type -> ddash.echo.AddNoteRequest
-	2, // 3: ddash.echo.EchoService.Echo:output_type -> ddash.echo.EchoResponse
-	4, // 4: ddash.echo.EchoService.CountNotes:output_type -> ddash.echo.CountNotesResponse
-	6, // 5: ddash.echo.EchoService.AddNote:output_type -> ddash.echo.AddNoteResponse
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	3, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
+	5, // 1: ddash.echo.EchoService.CountNotes:input_type -> ddash.echo.CountNotesRequest
+	7, // 2: ddash.echo.EchoService.AddNote:input_type -> ddash.echo.AddNoteRequest
+	1, // 3: ddash.echo.UnmarkedService.Unmarked:input_type -> ddash.echo.UnmarkedRequest
+	4, // 4: ddash.echo.EchoService.Echo:output_type -> ddash.echo.EchoResponse
+	6, // 5: ddash.echo.EchoService.CountNotes:output_type -> ddash.echo.CountNotesResponse
+	8, // 6: ddash.echo.EchoService.AddNote:output_type -> ddash.echo.AddNoteResponse
+	2, // 7: ddash.echo.UnmarkedService.Unmarked:output_type -> ddash.echo.UnmarkedResponse
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -389,9 +469,9 @@ func file_echo_echo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_echo_echo_proto_rawDesc), len(file_echo_echo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   9,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_echo_echo_proto_goTypes,
 		DependencyIndexes: file_echo_echo_proto_depIdxs,
