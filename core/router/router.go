@@ -31,6 +31,9 @@ const Prefix = "/api/c/"
 // transport, which sets it on every call.
 const PluginHeader = "Ddash-Plugin"
 
+// maxRequestBytes bounds a request body; Component requests are small.
+const maxRequestBytes = 1 << 20
+
 // Components is the runtime as the router sees it.
 type Components interface {
 	// PluginRequires returns the Components an installed Plugin lists
@@ -86,7 +89,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method))
 		return
 	}
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
 	if err != nil {
 		WriteError(w, status.Errorf(codes.InvalidArgument, "read request: %v", err))
 		return
