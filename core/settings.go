@@ -63,6 +63,9 @@ func (h *Host) ConfigForm(ctx context.Context, owner string) (*corepb.GetConfigF
 		return nil, err
 	}
 	form.Errors = configErrors(errs)
+	if owner != coreOwner {
+		form.SetupHint = h.setupHint(ctx, owner, desc)
+	}
 	return form, nil
 }
 

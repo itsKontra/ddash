@@ -41,6 +41,14 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 		t.Errorf("ListContainers: status %d: %s; want baseline's jellyfin", res.Code, res.Body)
 	}
 
+	// nginx-config reads `nginx -T` from fakelab's SSH server.
+	h.Install("reverse-proxy")
+	h.WaitState("nginx-config", runtime.OK)
+	res = h.Call("reverse-proxy", "nginx-config", "GetSnapshot", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"jellyfin.home.example"`) {
+		t.Errorf("GetSnapshot: status %d: %s; want baseline's jellyfin server block", res.Code, res.Body)
+	}
+
 	// network reaches pfsense-api through the host over go-plugin's broker.
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.OK)

@@ -126,7 +126,7 @@ function Link({ to, label, icon: name, aside, end }: { to: string; label: string
 
 function NavBadge({ useBadge }: { useBadge: NonNullable<NavItem["useBadge"]> }) {
   const badge = useBadge();
-  return badge ? <Badge tone={badge.tone}>{badge.count}</Badge> : null;
+  return badge ? <Badge tone={badge.tone}>{"text" in badge ? badge.text : badge.count}</Badge> : null;
 }
 
 /** /<plugin-name>/*: the Plugin's Pages, in its scope, behind an error boundary. */

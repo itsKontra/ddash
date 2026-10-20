@@ -11,7 +11,7 @@ package corepb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
-	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	config "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	durationpb "google.golang.org/protobuf/types/known/durationpb"
@@ -1769,7 +1769,11 @@ type GetConfigFormResponse struct {
 	// The secret fields that have a stored value.
 	SecretsSet []string `protobuf:"bytes,3,rep,name=secrets_set,json=secretsSet,proto3" json:"secrets_set,omitempty"`
 	// Why the stored config doesn't start, by path. Empty when it does.
-	Errors        []*ConfigError `protobuf:"bytes,4,rep,name=errors,proto3" json:"errors,omitempty"`
+	Errors []*ConfigError `protobuf:"bytes,4,rep,name=errors,proto3" json:"errors,omitempty"`
+	// The Component's setup hint, from the getter its config message names
+	// in (ddash.config.form).setup_from. Unset until the Component has
+	// started, and for a Component without one.
+	SetupHint     *config.SetupHint `protobuf:"bytes,5,opt,name=setup_hint,json=setupHint,proto3" json:"setup_hint,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1828,6 +1832,13 @@ func (x *GetConfigFormResponse) GetSecretsSet() []string {
 func (x *GetConfigFormResponse) GetErrors() []*ConfigError {
 	if x != nil {
 		return x.Errors
+	}
+	return nil
+}
+
+func (x *GetConfigFormResponse) GetSetupHint() *config.SetupHint {
+	if x != nil {
+		return x.SetupHint
 	}
 	return nil
 }
@@ -2486,13 +2497,15 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x17GetCoreSettingsResponse\x124\n" +
 	"\bsettings\x18\x01 \x01(\v2\x18.ddash.core.CoreSettingsR\bsettings\",\n" +
 	"\x14GetConfigFormRequest\x12\x14\n" +
-	"\x05owner\x18\x01 \x01(\tR\x05owner\"\xc9\x01\n" +
+	"\x05owner\x18\x01 \x01(\tR\x05owner\"\x81\x02\n" +
 	"\x15GetConfigFormResponse\x12-\n" +
 	"\x06fields\x18\x01 \x03(\v2\x15.ddash.core.FormFieldR\x06fields\x12/\n" +
 	"\x06values\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x06values\x12\x1f\n" +
 	"\vsecrets_set\x18\x03 \x03(\tR\n" +
 	"secretsSet\x12/\n" +
-	"\x06errors\x18\x04 \x03(\v2\x17.ddash.core.ConfigErrorR\x06errors\"\xa9\x04\n" +
+	"\x06errors\x18\x04 \x03(\v2\x17.ddash.core.ConfigErrorR\x06errors\x126\n" +
+	"\n" +
+	"setup_hint\x18\x05 \x01(\v2\x17.ddash.config.SetupHintR\tsetupHint\"\xa9\x04\n" +
 	"\tFormField\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12.\n" +
 	"\x04kind\x18\x02 \x01(\x0e2\x1a.ddash.core.FormField.KindR\x04kind\x12\x1a\n" +
@@ -2621,6 +2634,7 @@ var file_ddash_core_core_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),        // 40: google.protobuf.Timestamp
 	(*durationpb.Duration)(nil),          // 41: google.protobuf.Duration
 	(*structpb.Struct)(nil),              // 42: google.protobuf.Struct
+	(*config.SetupHint)(nil),             // 43: ddash.config.SetupHint
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
 	4,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
@@ -2638,42 +2652,43 @@ var file_ddash_core_core_proto_depIdxs = []int32{
 	32, // 12: ddash.core.GetConfigFormResponse.fields:type_name -> ddash.core.FormField
 	42, // 13: ddash.core.GetConfigFormResponse.values:type_name -> google.protobuf.Struct
 	34, // 14: ddash.core.GetConfigFormResponse.errors:type_name -> ddash.core.ConfigError
-	1,  // 15: ddash.core.FormField.kind:type_name -> ddash.core.FormField.Kind
-	33, // 16: ddash.core.FormField.options:type_name -> ddash.core.EnumOption
-	32, // 17: ddash.core.FormField.columns:type_name -> ddash.core.FormField
-	34, // 18: ddash.core.ConfigErrors.errors:type_name -> ddash.core.ConfigError
-	42, // 19: ddash.core.SaveConfigRequest.values:type_name -> google.protobuf.Struct
-	5,  // 20: ddash.core.SaveConfigResponse.status:type_name -> ddash.core.ComponentStatus
-	39, // 21: ddash.core.ConfigSave.changes:type_name -> ddash.core.ConfigChange
-	14, // 22: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
-	8,  // 23: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	10, // 24: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	12, // 25: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	2,  // 26: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
-	6,  // 27: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
-	30, // 28: ddash.core.CoreService.GetConfigForm:input_type -> ddash.core.GetConfigFormRequest
-	36, // 29: ddash.core.CoreService.SaveConfig:input_type -> ddash.core.SaveConfigRequest
-	28, // 30: ddash.core.CoreService.GetCoreSettings:input_type -> ddash.core.GetCoreSettingsRequest
-	17, // 31: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
-	21, // 32: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
-	23, // 33: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
-	15, // 34: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
-	9,  // 35: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	11, // 36: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	13, // 37: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	3,  // 38: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
-	7,  // 39: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
-	31, // 40: ddash.core.CoreService.GetConfigForm:output_type -> ddash.core.GetConfigFormResponse
-	37, // 41: ddash.core.CoreService.SaveConfig:output_type -> ddash.core.SaveConfigResponse
-	29, // 42: ddash.core.CoreService.GetCoreSettings:output_type -> ddash.core.GetCoreSettingsResponse
-	18, // 43: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
-	22, // 44: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
-	24, // 45: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
-	34, // [34:46] is the sub-list for method output_type
-	22, // [22:34] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	43, // 15: ddash.core.GetConfigFormResponse.setup_hint:type_name -> ddash.config.SetupHint
+	1,  // 16: ddash.core.FormField.kind:type_name -> ddash.core.FormField.Kind
+	33, // 17: ddash.core.FormField.options:type_name -> ddash.core.EnumOption
+	32, // 18: ddash.core.FormField.columns:type_name -> ddash.core.FormField
+	34, // 19: ddash.core.ConfigErrors.errors:type_name -> ddash.core.ConfigError
+	42, // 20: ddash.core.SaveConfigRequest.values:type_name -> google.protobuf.Struct
+	5,  // 21: ddash.core.SaveConfigResponse.status:type_name -> ddash.core.ComponentStatus
+	39, // 22: ddash.core.ConfigSave.changes:type_name -> ddash.core.ConfigChange
+	14, // 23: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	8,  // 24: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	10, // 25: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	12, // 26: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	2,  // 27: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
+	6,  // 28: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
+	30, // 29: ddash.core.CoreService.GetConfigForm:input_type -> ddash.core.GetConfigFormRequest
+	36, // 30: ddash.core.CoreService.SaveConfig:input_type -> ddash.core.SaveConfigRequest
+	28, // 31: ddash.core.CoreService.GetCoreSettings:input_type -> ddash.core.GetCoreSettingsRequest
+	17, // 32: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
+	21, // 33: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
+	23, // 34: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
+	15, // 35: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	9,  // 36: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	11, // 37: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	13, // 38: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	3,  // 39: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
+	7,  // 40: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
+	31, // 41: ddash.core.CoreService.GetConfigForm:output_type -> ddash.core.GetConfigFormResponse
+	37, // 42: ddash.core.CoreService.SaveConfig:output_type -> ddash.core.SaveConfigResponse
+	29, // 43: ddash.core.CoreService.GetCoreSettings:output_type -> ddash.core.GetCoreSettingsResponse
+	18, // 44: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
+	22, // 45: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
+	24, // 46: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
+	35, // [35:47] is the sub-list for method output_type
+	23, // [23:35] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }

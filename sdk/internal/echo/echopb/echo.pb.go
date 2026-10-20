@@ -10,6 +10,7 @@ package echopb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -389,12 +390,88 @@ func (*AddNoteResponse) Descriptor() ([]byte, []int) {
 	return file_echo_echo_proto_rawDescGZIP(), []int{8}
 }
 
+// HintFromActionConfig names an Action as its setup hint's getter, so the
+// SDK must refuse it.
+type HintFromActionConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HintFromActionConfig) Reset() {
+	*x = HintFromActionConfig{}
+	mi := &file_echo_echo_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HintFromActionConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HintFromActionConfig) ProtoMessage() {}
+
+func (x *HintFromActionConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HintFromActionConfig.ProtoReflect.Descriptor instead.
+func (*HintFromActionConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{9}
+}
+
+// HintFromNoHintConfig names a getter whose response has no SetupHint, so
+// the SDK must refuse it.
+type HintFromNoHintConfig struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HintFromNoHintConfig) Reset() {
+	*x = HintFromNoHintConfig{}
+	mi := &file_echo_echo_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HintFromNoHintConfig) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HintFromNoHintConfig) ProtoMessage() {}
+
+func (x *HintFromNoHintConfig) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HintFromNoHintConfig.ProtoReflect.Descriptor instead.
+func (*HintFromNoHintConfig) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{10}
+}
+
 var File_echo_echo_proto protoreflect.FileDescriptor
 
 const file_echo_echo_proto_rawDesc = "" +
 	"\n" +
 	"\x0fecho/echo.proto\x12\n" +
-	"ddash.echo\x1a\x13ddash/options.proto\"$\n" +
+	"ddash.echo\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"$\n" +
 	"\n" +
 	"EchoConfig\x12\x16\n" +
 	"\x06prefix\x18\x01 \x01(\tR\x06prefix\"\x11\n" +
@@ -409,7 +486,12 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\x05count\x18\x01 \x01(\x03R\x05count\"$\n" +
 	"\x0eAddNoteRequest\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\"\x11\n" +
-	"\x0fAddNoteResponse2\xef\x01\n" +
+	"\x0fAddNoteResponse\"%\n" +
+	"\x14HintFromActionConfig:\r\xaa\xb5\x18\t\n" +
+	"\aAddNote\"\"\n" +
+	"\x14HintFromNoHintConfig:\n" +
+	"\xaa\xb5\x18\x06\n" +
+	"\x04Echo2\xef\x01\n" +
 	"\vEchoService\x12?\n" +
 	"\x04Echo\x12\x17.ddash.echo.EchoRequest\x1a\x18.ddash.echo.EchoResponse\"\x04\x8a\xb5\x18\x00\x12S\n" +
 	"\n" +
@@ -430,17 +512,19 @@ func file_echo_echo_proto_rawDescGZIP() []byte {
 	return file_echo_echo_proto_rawDescData
 }
 
-var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_echo_echo_proto_goTypes = []any{
-	(*EchoConfig)(nil),         // 0: ddash.echo.EchoConfig
-	(*UnmarkedRequest)(nil),    // 1: ddash.echo.UnmarkedRequest
-	(*UnmarkedResponse)(nil),   // 2: ddash.echo.UnmarkedResponse
-	(*EchoRequest)(nil),        // 3: ddash.echo.EchoRequest
-	(*EchoResponse)(nil),       // 4: ddash.echo.EchoResponse
-	(*CountNotesRequest)(nil),  // 5: ddash.echo.CountNotesRequest
-	(*CountNotesResponse)(nil), // 6: ddash.echo.CountNotesResponse
-	(*AddNoteRequest)(nil),     // 7: ddash.echo.AddNoteRequest
-	(*AddNoteResponse)(nil),    // 8: ddash.echo.AddNoteResponse
+	(*EchoConfig)(nil),           // 0: ddash.echo.EchoConfig
+	(*UnmarkedRequest)(nil),      // 1: ddash.echo.UnmarkedRequest
+	(*UnmarkedResponse)(nil),     // 2: ddash.echo.UnmarkedResponse
+	(*EchoRequest)(nil),          // 3: ddash.echo.EchoRequest
+	(*EchoResponse)(nil),         // 4: ddash.echo.EchoResponse
+	(*CountNotesRequest)(nil),    // 5: ddash.echo.CountNotesRequest
+	(*CountNotesResponse)(nil),   // 6: ddash.echo.CountNotesResponse
+	(*AddNoteRequest)(nil),       // 7: ddash.echo.AddNoteRequest
+	(*AddNoteResponse)(nil),      // 8: ddash.echo.AddNoteResponse
+	(*HintFromActionConfig)(nil), // 9: ddash.echo.HintFromActionConfig
+	(*HintFromNoHintConfig)(nil), // 10: ddash.echo.HintFromNoHintConfig
 }
 var file_echo_echo_proto_depIdxs = []int32{
 	3, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
@@ -469,7 +553,7 @@ func file_echo_echo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_echo_echo_proto_rawDesc), len(file_echo_echo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

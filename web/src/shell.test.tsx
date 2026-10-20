@@ -160,6 +160,17 @@ it("shows a Nav Entry's badge, and drops a badge that crashes without breaking t
   quiet.mockRestore();
 });
 
+it("shows a badge's text in place of a count", async () => {
+  await boot("/", [
+    [
+      installed("reverse-proxy", "Reverse proxy"),
+      definePlugin({ nav: { order: 60, useBadge: () => ({ text: "!", tone: "down" }) }, pages: [{ index: true, Component: page("r") }] }),
+    ],
+  ]);
+
+  expect(navLinks()).toEqual(["Overview", "Reverse proxy!", "Plugins", "Settings"]);
+});
+
 it("answers a path no installed Plugin owns with not found", async () => {
   await boot("/nope/x", [[installed("docker", "Docker"), definePlugin({ nav: { order: 50 } })]]);
 

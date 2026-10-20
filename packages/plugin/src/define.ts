@@ -13,11 +13,8 @@ export interface Status {
   summary: string;
 }
 
-/** A Nav Entry's live badge, e.g. "3 down". */
-export interface Badge {
-  count: number;
-  tone: Tone;
-}
+/** A Nav Entry's live badge: a count, e.g. "3" down, or a short text such as "!". */
+export type Badge = { tone: Tone } & ({ count: number } | { text: string });
 
 /** A Plugin's link in the sidebar, leading to its index Page. */
 export interface NavEntry {

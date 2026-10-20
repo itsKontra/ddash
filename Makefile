@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir
+.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image
 
 all: check
 
@@ -75,11 +75,27 @@ typecheck:
 check: lint-proto check-generated vet lint test typecheck check-plugins
 
 # Build the Release into dist/ (catalogue.json, SHA256SUMS, one binary per
-# Component, each Plugin's bundle), as Release dev unless RELEASE is set.
+# Component, each Plugin's bundle), as Release dev unless RELEASE is set,
+# for this machine unless PLATFORM (GOOS/GOARCH) is set. The release
+# workflow builds RELEASE=<tag> PLATFORM=linux/amd64.
 RELEASE ?= dev
+PLATFORM ?=
 release-dir: build
 	rm -rf dist
-	go run ./cmd/release -out dist -release $(RELEASE)
+	go run ./cmd/release -out dist -release $(RELEASE) $(if $(PLATFORM),-platform $(PLATFORM))
+
+# Build the core image $(IMAGE):$(RELEASE) (Dockerfile) from bin/image/: the
+# static linux/amd64 core binary, stamped with RELEASE, and an empty data/.
+# RELEASE must be a tag here (vMAJOR.MINOR.PATCH): the dev Release isn't on
+# GitHub. DOCKER=podman works too.
+IMAGE ?= ghcr.io/itskontra/ddash
+DOCKER ?= docker
+image: build
+	rm -rf bin/image
+	mkdir -p bin/image/data
+	go run ./cmd/release -core bin/image/ddash -release $(RELEASE) -platform linux/amd64
+	$(DOCKER) build --platform linux/amd64 $(if $(filter podman,$(DOCKER)),--format docker) \
+		-f Dockerfile -t $(IMAGE):$(RELEASE) bin/image
 
 # Run everything locally against fakelab: builds dist/, seeds Component
 # config, installs every Plugin and runs the core (dev auth) on :8080,
