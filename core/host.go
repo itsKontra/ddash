@@ -24,6 +24,7 @@ import (
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/config"
 	"github.com/itsKontra/ddash/core/coredb"
+	"github.com/itsKontra/ddash/core/overview"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
@@ -63,6 +64,7 @@ type Host struct {
 	db      *sql.DB
 	gate    *appstate.Gate
 	config  *config.Store
+	layout  *overview.Store
 	runtime *runtime.Runtime
 	release runtime.ReleaseSource
 	shell   fs.FS
@@ -127,7 +129,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
-	h := &Host{db: db, gate: gate, config: cfg, runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, log: opts.Logger}
+	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, log: opts.Logger}
 	guard := opts.Auth
 	if opts.OIDC != nil {
 		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
@@ -252,6 +254,18 @@ func (h *Host) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanRequest
 		return nil, err
 	}
 	return &corepb.DeleteOrphanResponse{}, nil
+}
+
+// SaveLayout is the core Action that replaces the Overview layout. It runs
+// for the actor in ctx.
+func (h *Host) SaveLayout(ctx context.Context, req *corepb.SaveLayoutRequest) (*corepb.SaveLayoutResponse, error) {
+	err := h.coreAction(ctx, "SaveLayout", req, func() error {
+		return h.layout.Save(ctx, req.GetLayout())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.SaveLayoutResponse{}, nil
 }
 
 // coreService is the core API, whose Actions pass the gate like any other.

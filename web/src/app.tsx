@@ -1,11 +1,13 @@
 import { CoreScope, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
 import { Badge, cx, PageHeader, StatusDot } from "@ddash/ui";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { ErrorBoundary, ErrorFrame } from "./boundary";
 import { Catalogue } from "./catalogue";
 import { icon } from "./icons";
 import { navItems, type NavItem } from "./nav";
+import { Overview, useOverviewLayout } from "./overview";
+import { HostWatch, ReachContext, unreachableText, useReach } from "./reach";
 import { Settings } from "./settings";
 import { importBundle as defaultImport, usePlugins, type ImportBundle, type Plugins } from "./plugins";
 
@@ -16,32 +18,51 @@ export interface AppProps {
   fetch?: Fetch;
   /** Replaces the dynamic import of bundles, in tests. */
   importBundle?: ImportBundle;
+  /** Replaces window.location.reload, which a 401 calls, in tests. */
+  reload?: () => void;
 }
 
 /** The shell, inside a router. */
-export function App({ client, fetch, importBundle = defaultImport }: AppProps) {
+export function App({ client, fetch, importBundle = defaultImport, reload = () => window.location.reload() }: AppProps) {
+  // Every call to the host goes through one watch, which tells whether ddash answers.
+  const [watch] = useState(() => new HostWatch(fetch ?? ((input, init) => globalThis.fetch(input, init)), reload));
   return (
-    <PluginHost client={client}>
-      <CoreScope fetch={fetch}>
-        <Shell fetch={fetch} importBundle={importBundle} />
-      </CoreScope>
-    </PluginHost>
+    <ReachContext.Provider value={watch}>
+      <PluginHost client={client}>
+        <CoreScope fetch={watch.fetch}>
+          <Shell fetch={watch.fetch} importBundle={importBundle} />
+        </CoreScope>
+      </PluginHost>
+    </ReachContext.Provider>
   );
 }
 
-function Shell({ fetch, importBundle }: { fetch?: Fetch; importBundle: ImportBundle }) {
+function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBundle }) {
   const plugins = usePlugins(importBundle);
+  const overview = useOverviewLayout(plugins);
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground">
       <Sidebar items={navItems(plugins.loaded.values())} fetch={fetch} />
       <main className="min-w-0 flex-1 p-8">
+        <Unreachable />
         <Routes>
-          <Route index element={<PageHeader title="Overview" />} />
+          <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
           <Route path="plugins" element={<Catalogue />} />
           <Route path="settings/*" element={<Settings />} />
           <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
         </Routes>
       </main>
+    </div>
+  );
+}
+
+/** The banner while ddash doesn't answer. */
+function Unreachable() {
+  const reach = useReach();
+  if (!reach.unreachable) return null;
+  return (
+    <div role="status" className="mb-6 rounded-ui border border-warn bg-card px-4 py-2 text-sm font-medium text-warn">
+      {unreachableText(reach)}
     </div>
   );
 }

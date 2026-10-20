@@ -49,6 +49,15 @@ service CoreService {
   rpc ListAuditLog(ListAuditLogRequest) returns (ListAuditLogResponse) {
     option (ddash.getter) = {refresh: NONE};
   }
+  // GetLayout returns the Overview layout: the placed Widgets in order and
+  // every Widget the shell has seen.
+  rpc GetLayout(GetLayoutRequest) returns (GetLayoutResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // SaveLayout replaces the Overview layout.
+  rpc SaveLayout(SaveLayoutRequest) returns (SaveLayoutResponse) {
+    option (ddash.action) = {};
+  }
 }
 
 message ListCatalogueRequest {}
@@ -204,4 +213,35 @@ message AuditEntry {
   string message = 10;
   // How long it ran; unset while it runs.
   google.protobuf.Duration duration = 11;
+}
+
+message GetLayoutRequest {}
+
+message GetLayoutResponse {
+  Layout layout = 1;
+}
+
+message SaveLayoutRequest {
+  Layout layout = 1;
+}
+
+message SaveLayoutResponse {}
+
+// The Overview layout, which the shell reconciles against the Widgets the
+// installed Plugins offer.
+message Layout {
+  // The placed Widgets, in grid order. Each Widget is placed at most once.
+  repeated LayoutEntry entries = 1;
+  // Every Widget the shell has seen, placed or not, keyed
+  // <plugin>.<widget-id>. A seen Widget that isn't placed was removed by the
+  // Operator, so the shell doesn't append it again.
+  repeated string seen = 2;
+}
+
+// A placed Widget.
+message LayoutEntry {
+  // <plugin>.<widget-id>, e.g. "docker.containers".
+  string widget = 1;
+  // S (1×1), M (2×1) or L (2×2).
+  string size = 2;
 }

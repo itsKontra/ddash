@@ -44,6 +44,7 @@ afterEach(cleanup);
 // with nothing, and every Action with {} or the queued refusal.
 const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   const method = String(input).split("/").pop()!;
+  if (method === "GetLayout") return Response.json({}); // the shell reads it on every page
   calls.push({ method, body: JSON.parse(new TextDecoder().decode(init?.body as Uint8Array)) });
   if (method === "ListCatalogue") return Response.json(catalogue);
   if (method === "ListInstalledPlugins") return Response.json({});

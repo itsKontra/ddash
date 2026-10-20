@@ -71,7 +71,7 @@ it("lists Overview first, then Nav Entries by order and title, then Plugins and 
 
   expect(navLinks()).toEqual(["Overview", "Applications", "Checks", "Bravo", "Docker", "Plugins", "Settings"]);
   expect(screen.getByRole("link", { name: "Docker" }).getAttribute("href")).toBe("/docker");
-  expect(coreCalls).toEqual(["/api/core/ddash.core.CoreService/ListInstalledPlugins"]);
+  expect(coreCalls).toEqual(["/api/core/ddash.core.CoreService/ListInstalledPlugins", "/api/core/ddash.core.CoreService/GetLayout"]);
 });
 
 it("imports every bundle in parallel at boot, each with its stylesheet", async () => {

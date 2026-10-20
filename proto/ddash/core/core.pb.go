@@ -1178,6 +1178,279 @@ func (x *AuditEntry) GetDuration() *durationpb.Duration {
 	return nil
 }
 
+type GetLayoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLayoutRequest) Reset() {
+	*x = GetLayoutRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLayoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLayoutRequest) ProtoMessage() {}
+
+func (x *GetLayoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLayoutRequest.ProtoReflect.Descriptor instead.
+func (*GetLayoutRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{19}
+}
+
+type GetLayoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Layout        *Layout                `protobuf:"bytes,1,opt,name=layout,proto3" json:"layout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLayoutResponse) Reset() {
+	*x = GetLayoutResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLayoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLayoutResponse) ProtoMessage() {}
+
+func (x *GetLayoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLayoutResponse.ProtoReflect.Descriptor instead.
+func (*GetLayoutResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *GetLayoutResponse) GetLayout() *Layout {
+	if x != nil {
+		return x.Layout
+	}
+	return nil
+}
+
+type SaveLayoutRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Layout        *Layout                `protobuf:"bytes,1,opt,name=layout,proto3" json:"layout,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveLayoutRequest) Reset() {
+	*x = SaveLayoutRequest{}
+	mi := &file_ddash_core_core_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveLayoutRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveLayoutRequest) ProtoMessage() {}
+
+func (x *SaveLayoutRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveLayoutRequest.ProtoReflect.Descriptor instead.
+func (*SaveLayoutRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *SaveLayoutRequest) GetLayout() *Layout {
+	if x != nil {
+		return x.Layout
+	}
+	return nil
+}
+
+type SaveLayoutResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SaveLayoutResponse) Reset() {
+	*x = SaveLayoutResponse{}
+	mi := &file_ddash_core_core_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SaveLayoutResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SaveLayoutResponse) ProtoMessage() {}
+
+func (x *SaveLayoutResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SaveLayoutResponse.ProtoReflect.Descriptor instead.
+func (*SaveLayoutResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{22}
+}
+
+// The Overview layout, which the shell reconciles against the Widgets the
+// installed Plugins offer.
+type Layout struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The placed Widgets, in grid order. Each Widget is placed at most once.
+	Entries []*LayoutEntry `protobuf:"bytes,1,rep,name=entries,proto3" json:"entries,omitempty"`
+	// Every Widget the shell has seen, placed or not, keyed
+	// <plugin>.<widget-id>. A seen Widget that isn't placed was removed by the
+	// Operator, so the shell doesn't append it again.
+	Seen          []string `protobuf:"bytes,2,rep,name=seen,proto3" json:"seen,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Layout) Reset() {
+	*x = Layout{}
+	mi := &file_ddash_core_core_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Layout) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Layout) ProtoMessage() {}
+
+func (x *Layout) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Layout.ProtoReflect.Descriptor instead.
+func (*Layout) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *Layout) GetEntries() []*LayoutEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *Layout) GetSeen() []string {
+	if x != nil {
+		return x.Seen
+	}
+	return nil
+}
+
+// A placed Widget.
+type LayoutEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// <plugin>.<widget-id>, e.g. "docker.containers".
+	Widget string `protobuf:"bytes,1,opt,name=widget,proto3" json:"widget,omitempty"`
+	// S (1×1), M (2×1) or L (2×2).
+	Size          string `protobuf:"bytes,2,opt,name=size,proto3" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LayoutEntry) Reset() {
+	*x = LayoutEntry{}
+	mi := &file_ddash_core_core_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LayoutEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LayoutEntry) ProtoMessage() {}
+
+func (x *LayoutEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_core_core_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LayoutEntry.ProtoReflect.Descriptor instead.
+func (*LayoutEntry) Descriptor() ([]byte, []int) {
+	return file_ddash_core_core_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *LayoutEntry) GetWidget() string {
+	if x != nil {
+		return x.Widget
+	}
+	return ""
+}
+
+func (x *LayoutEntry) GetSize() string {
+	if x != nil {
+		return x.Size
+	}
+	return ""
+}
+
 var File_ddash_core_core_proto protoreflect.FileDescriptor
 
 const file_ddash_core_core_proto_rawDesc = "" +
@@ -1265,7 +1538,19 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\aoutcome\x18\t \x01(\tR\aoutcome\x12\x18\n" +
 	"\amessage\x18\n" +
 	" \x01(\tR\amessage\x125\n" +
-	"\bduration\x18\v \x01(\v2\x19.google.protobuf.DurationR\bduration2\xfc\x04\n" +
+	"\bduration\x18\v \x01(\v2\x19.google.protobuf.DurationR\bduration\"\x12\n" +
+	"\x10GetLayoutRequest\"?\n" +
+	"\x11GetLayoutResponse\x12*\n" +
+	"\x06layout\x18\x01 \x01(\v2\x12.ddash.core.LayoutR\x06layout\"?\n" +
+	"\x11SaveLayoutRequest\x12*\n" +
+	"\x06layout\x18\x01 \x01(\v2\x12.ddash.core.LayoutR\x06layout\"\x14\n" +
+	"\x12SaveLayoutResponse\"O\n" +
+	"\x06Layout\x121\n" +
+	"\aentries\x18\x01 \x03(\v2\x17.ddash.core.LayoutEntryR\aentries\x12\x12\n" +
+	"\x04seen\x18\x02 \x03(\tR\x04seen\"9\n" +
+	"\vLayoutEntry\x12\x16\n" +
+	"\x06widget\x18\x01 \x01(\tR\x06widget\x12\x12\n" +
+	"\x04size\x18\x02 \x01(\tR\x04size2\xa1\x06\n" +
 	"\vCoreService\x12q\n" +
 	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +
@@ -1273,7 +1558,10 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\aRestart\x12\x1a.ddash.core.RestartRequest\x1a\x1b.ddash.core.RestartResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
 	"\rListCatalogue\x12 .ddash.core.ListCatalogueRequest\x1a!.ddash.core.ListCatalogueResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Y\n" +
 	"\fDeleteOrphan\x12\x1f.ddash.core.DeleteOrphanRequest\x1a .ddash.core.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01\x12Y\n" +
-	"\fListAuditLog\x12\x1f.ddash.core.ListAuditLogRequest\x1a .ddash.core.ListAuditLogResponse\"\x06\x8a\xb5\x18\x02\b\x03B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
+	"\fListAuditLog\x12\x1f.ddash.core.ListAuditLogRequest\x1a .ddash.core.ListAuditLogResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12P\n" +
+	"\tGetLayout\x12\x1c.ddash.core.GetLayoutRequest\x1a\x1d.ddash.core.GetLayoutResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Q\n" +
+	"\n" +
+	"SaveLayout\x12\x1d.ddash.core.SaveLayoutRequest\x1a\x1e.ddash.core.SaveLayoutResponse\"\x04\x92\xb5\x18\x00B4Z2github.com/itsKontra/ddash/proto/ddash/core;corepbb\x06proto3"
 
 var (
 	file_ddash_core_core_proto_rawDescOnce sync.Once
@@ -1287,7 +1575,7 @@ func file_ddash_core_core_proto_rawDescGZIP() []byte {
 	return file_ddash_core_core_proto_rawDescData
 }
 
-var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_ddash_core_core_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_ddash_core_core_proto_goTypes = []any{
 	(*ListCatalogueRequest)(nil),         // 0: ddash.core.ListCatalogueRequest
 	(*ListCatalogueResponse)(nil),        // 1: ddash.core.ListCatalogueResponse
@@ -1308,8 +1596,14 @@ var file_ddash_core_core_proto_goTypes = []any{
 	(*ListAuditLogResponse)(nil),         // 16: ddash.core.ListAuditLogResponse
 	(*AuditChain)(nil),                   // 17: ddash.core.AuditChain
 	(*AuditEntry)(nil),                   // 18: ddash.core.AuditEntry
-	(*timestamppb.Timestamp)(nil),        // 19: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),          // 20: google.protobuf.Duration
+	(*GetLayoutRequest)(nil),             // 19: ddash.core.GetLayoutRequest
+	(*GetLayoutResponse)(nil),            // 20: ddash.core.GetLayoutResponse
+	(*SaveLayoutRequest)(nil),            // 21: ddash.core.SaveLayoutRequest
+	(*SaveLayoutResponse)(nil),           // 22: ddash.core.SaveLayoutResponse
+	(*Layout)(nil),                       // 23: ddash.core.Layout
+	(*LayoutEntry)(nil),                  // 24: ddash.core.LayoutEntry
+	(*timestamppb.Timestamp)(nil),        // 25: google.protobuf.Timestamp
+	(*durationpb.Duration)(nil),          // 26: google.protobuf.Duration
 }
 var file_ddash_core_core_proto_depIdxs = []int32{
 	2,  // 0: ddash.core.ListCatalogueResponse.plugins:type_name -> ddash.core.CataloguePlugin
@@ -1317,27 +1611,34 @@ var file_ddash_core_core_proto_depIdxs = []int32{
 	14, // 2: ddash.core.ListInstalledPluginsResponse.plugins:type_name -> ddash.core.InstalledPlugin
 	17, // 3: ddash.core.ListAuditLogResponse.chains:type_name -> ddash.core.AuditChain
 	18, // 4: ddash.core.AuditChain.entries:type_name -> ddash.core.AuditEntry
-	19, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
-	20, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
-	12, // 7: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
-	6,  // 8: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
-	8,  // 9: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
-	10, // 10: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
-	0,  // 11: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
-	4,  // 12: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
-	15, // 13: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
-	13, // 14: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
-	7,  // 15: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
-	9,  // 16: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
-	11, // 17: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
-	1,  // 18: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
-	5,  // 19: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
-	16, // 20: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
-	14, // [14:21] is the sub-list for method output_type
-	7,  // [7:14] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	25, // 5: ddash.core.AuditEntry.time:type_name -> google.protobuf.Timestamp
+	26, // 6: ddash.core.AuditEntry.duration:type_name -> google.protobuf.Duration
+	23, // 7: ddash.core.GetLayoutResponse.layout:type_name -> ddash.core.Layout
+	23, // 8: ddash.core.SaveLayoutRequest.layout:type_name -> ddash.core.Layout
+	24, // 9: ddash.core.Layout.entries:type_name -> ddash.core.LayoutEntry
+	12, // 10: ddash.core.CoreService.ListInstalledPlugins:input_type -> ddash.core.ListInstalledPluginsRequest
+	6,  // 11: ddash.core.CoreService.Install:input_type -> ddash.core.InstallRequest
+	8,  // 12: ddash.core.CoreService.Uninstall:input_type -> ddash.core.UninstallRequest
+	10, // 13: ddash.core.CoreService.Restart:input_type -> ddash.core.RestartRequest
+	0,  // 14: ddash.core.CoreService.ListCatalogue:input_type -> ddash.core.ListCatalogueRequest
+	4,  // 15: ddash.core.CoreService.DeleteOrphan:input_type -> ddash.core.DeleteOrphanRequest
+	15, // 16: ddash.core.CoreService.ListAuditLog:input_type -> ddash.core.ListAuditLogRequest
+	19, // 17: ddash.core.CoreService.GetLayout:input_type -> ddash.core.GetLayoutRequest
+	21, // 18: ddash.core.CoreService.SaveLayout:input_type -> ddash.core.SaveLayoutRequest
+	13, // 19: ddash.core.CoreService.ListInstalledPlugins:output_type -> ddash.core.ListInstalledPluginsResponse
+	7,  // 20: ddash.core.CoreService.Install:output_type -> ddash.core.InstallResponse
+	9,  // 21: ddash.core.CoreService.Uninstall:output_type -> ddash.core.UninstallResponse
+	11, // 22: ddash.core.CoreService.Restart:output_type -> ddash.core.RestartResponse
+	1,  // 23: ddash.core.CoreService.ListCatalogue:output_type -> ddash.core.ListCatalogueResponse
+	5,  // 24: ddash.core.CoreService.DeleteOrphan:output_type -> ddash.core.DeleteOrphanResponse
+	16, // 25: ddash.core.CoreService.ListAuditLog:output_type -> ddash.core.ListAuditLogResponse
+	20, // 26: ddash.core.CoreService.GetLayout:output_type -> ddash.core.GetLayoutResponse
+	22, // 27: ddash.core.CoreService.SaveLayout:output_type -> ddash.core.SaveLayoutResponse
+	19, // [19:28] is the sub-list for method output_type
+	10, // [10:19] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ddash_core_core_proto_init() }
@@ -1351,7 +1652,7 @@ func file_ddash_core_core_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_core_core_proto_rawDesc), len(file_ddash_core_core_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   19,
+			NumMessages:   25,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

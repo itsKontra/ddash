@@ -177,3 +177,16 @@ func (a coreAPI) ListAuditLog(ctx context.Context, req *corepb.ListAuditLogReque
 	}
 	return resp, nil
 }
+
+func (a coreAPI) GetLayout(ctx context.Context, _ *corepb.GetLayoutRequest) (*corepb.GetLayoutResponse, error) {
+	layout, err := a.host.layout.Get(ctx)
+	if err != nil {
+		return nil, connectError(err)
+	}
+	return &corepb.GetLayoutResponse{Layout: layout}, nil
+}
+
+func (a coreAPI) SaveLayout(ctx context.Context, req *corepb.SaveLayoutRequest) (*corepb.SaveLayoutResponse, error) {
+	resp, err := a.host.SaveLayout(ctx, req)
+	return resp, connectError(err)
+}

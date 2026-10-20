@@ -29,6 +29,8 @@ const (
 	CoreService_ListCatalogue_FullMethodName        = "/ddash.core.CoreService/ListCatalogue"
 	CoreService_DeleteOrphan_FullMethodName         = "/ddash.core.CoreService/DeleteOrphan"
 	CoreService_ListAuditLog_FullMethodName         = "/ddash.core.CoreService/ListAuditLog"
+	CoreService_GetLayout_FullMethodName            = "/ddash.core.CoreService/GetLayout"
+	CoreService_SaveLayout_FullMethodName           = "/ddash.core.CoreService/SaveLayout"
 )
 
 // CoreServiceClient is the client API for CoreService service.
@@ -59,6 +61,11 @@ type CoreServiceClient interface {
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(ctx context.Context, in *ListAuditLogRequest, opts ...grpc.CallOption) (*ListAuditLogResponse, error)
+	// GetLayout returns the Overview layout: the placed Widgets in order and
+	// every Widget the shell has seen.
+	GetLayout(ctx context.Context, in *GetLayoutRequest, opts ...grpc.CallOption) (*GetLayoutResponse, error)
+	// SaveLayout replaces the Overview layout.
+	SaveLayout(ctx context.Context, in *SaveLayoutRequest, opts ...grpc.CallOption) (*SaveLayoutResponse, error)
 }
 
 type coreServiceClient struct {
@@ -139,6 +146,26 @@ func (c *coreServiceClient) ListAuditLog(ctx context.Context, in *ListAuditLogRe
 	return out, nil
 }
 
+func (c *coreServiceClient) GetLayout(ctx context.Context, in *GetLayoutRequest, opts ...grpc.CallOption) (*GetLayoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetLayoutResponse)
+	err := c.cc.Invoke(ctx, CoreService_GetLayout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *coreServiceClient) SaveLayout(ctx context.Context, in *SaveLayoutRequest, opts ...grpc.CallOption) (*SaveLayoutResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SaveLayoutResponse)
+	err := c.cc.Invoke(ctx, CoreService_SaveLayout_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CoreServiceServer is the server API for CoreService service.
 // All implementations must embed UnimplementedCoreServiceServer
 // for forward compatibility.
@@ -167,6 +194,11 @@ type CoreServiceServer interface {
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(context.Context, *ListAuditLogRequest) (*ListAuditLogResponse, error)
+	// GetLayout returns the Overview layout: the placed Widgets in order and
+	// every Widget the shell has seen.
+	GetLayout(context.Context, *GetLayoutRequest) (*GetLayoutResponse, error)
+	// SaveLayout replaces the Overview layout.
+	SaveLayout(context.Context, *SaveLayoutRequest) (*SaveLayoutResponse, error)
 	mustEmbedUnimplementedCoreServiceServer()
 }
 
@@ -197,6 +229,12 @@ func (UnimplementedCoreServiceServer) DeleteOrphan(context.Context, *DeleteOrpha
 }
 func (UnimplementedCoreServiceServer) ListAuditLog(context.Context, *ListAuditLogRequest) (*ListAuditLogResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAuditLog not implemented")
+}
+func (UnimplementedCoreServiceServer) GetLayout(context.Context, *GetLayoutRequest) (*GetLayoutResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetLayout not implemented")
+}
+func (UnimplementedCoreServiceServer) SaveLayout(context.Context, *SaveLayoutRequest) (*SaveLayoutResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SaveLayout not implemented")
 }
 func (UnimplementedCoreServiceServer) mustEmbedUnimplementedCoreServiceServer() {}
 func (UnimplementedCoreServiceServer) testEmbeddedByValue()                     {}
@@ -345,6 +383,42 @@ func _CoreService_ListAuditLog_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CoreService_GetLayout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetLayoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).GetLayout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_GetLayout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).GetLayout(ctx, req.(*GetLayoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CoreService_SaveLayout_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveLayoutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CoreServiceServer).SaveLayout(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CoreService_SaveLayout_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CoreServiceServer).SaveLayout(ctx, req.(*SaveLayoutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CoreService_ServiceDesc is the grpc.ServiceDesc for CoreService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -379,6 +453,14 @@ var CoreService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAuditLog",
 			Handler:    _CoreService_ListAuditLog_Handler,
+		},
+		{
+			MethodName: "GetLayout",
+			Handler:    _CoreService_GetLayout_Handler,
+		},
+		{
+			MethodName: "SaveLayout",
+			Handler:    _CoreService_SaveLayout_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1,0 +1,403 @@
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { createQueryClient, definePlugin, type PluginDefinition, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
+import { MemoryRouter } from "react-router";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { App } from "./app";
+import type { Layout } from "./layout";
+
+// An installed Plugin as ListInstalledPlugins returns it.
+const installed = (name: string, title: string) => ({
+  name,
+  title,
+  description: "",
+  icon: "puzzle",
+  author: "itsKontra",
+  requires: [`${name}-api`],
+  script: `/plugins/${name}/v1.2.3/index.js`,
+  style: `/plugins/${name}/v1.2.3/index.css`,
+});
+
+// A Widget whose body names it and whose status is fixed; its first size
+// is its default.
+const widget = (id: string, title: string, status: Status | undefined, ...sizes: WidgetSize[]): Widget => ({
+  id,
+  title,
+  sizes,
+  defaultSize: sizes[0],
+  Body: ({ size }) => <p>{`${title} body at ${size}`}</p>,
+  useStatus: () => status,
+});
+
+const up = (summary: string): Status => ({ tone: "up", summary });
+
+type Bundle = PluginDefinition | Error;
+
+// The fake core: its installed Plugins and stored layout, and the layouts
+// saved, oldest first.
+let plugins: [ReturnType<typeof installed>, Bundle][];
+let stored: Layout;
+let saves: Layout[];
+// Answers a call before the fake core does, e.g. to fail it.
+let intercept: ((method: string) => Response | Promise<Response> | undefined) | undefined;
+
+beforeEach(() => {
+  plugins = [];
+  stored = { entries: [], seen: [] };
+  saves = [];
+  intercept = undefined;
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
+
+const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
+  const method = String(input).split("/").pop()!;
+  const intercepted = intercept?.(method);
+  if (intercepted) return intercepted;
+  switch (method) {
+    case "ListInstalledPlugins":
+      return Response.json({ plugins: plugins.map(([p]) => p) });
+    case "GetLayout":
+      return Response.json({ layout: stored });
+    case "SaveLayout": {
+      const body = JSON.parse(new TextDecoder().decode(init?.body as Uint8Array));
+      stored = { entries: body.layout.entries ?? [], seen: body.layout.seen ?? [] };
+      saves.push(stored);
+      return Response.json({});
+    }
+  }
+  return Response.json({ code: "unimplemented", message: method }, { status: 501 });
+};
+
+async function boot(path = "/", reload = vi.fn()) {
+  const bundles = new Map(plugins.map(([p, b]) => [p.script, b]));
+  render(
+    <MemoryRouter initialEntries={[path]}>
+      <App
+        client={createQueryClient()}
+        fetch={vi.fn(fetchFake)}
+        reload={reload}
+        importBundle={async (url) => {
+          const b = bundles.get(url);
+          if (b instanceof Error) throw b;
+          return { default: b };
+        }}
+      />
+    </MemoryRouter>,
+  );
+  await settle();
+}
+
+const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
+
+const cards = () => within(screen.getByRole("list", { name: "Widgets" })).queryAllByRole("listitem");
+const card = (title: string) => within(screen.getByRole("list", { name: "Widgets" })).getByRole("listitem", { name: title });
+const hero = () => screen.getByRole("region", { name: "Status" });
+const problems = () =>
+  within(hero())
+    .queryAllByRole("listitem")
+    .map((li) => li.textContent);
+
+const docker = () =>
+  definePlugin({
+    nav: { order: 50 },
+    pages: [{ index: true, Component: () => <p>docker page</p> }],
+    widgets: [widget("containers", "Containers", up("12 of 12 running"), "S", "M")],
+  });
+
+it("appends an installed Plugin's Widgets at their default size, and saves the layout", async () => {
+  plugins = [
+    [installed("docker", "Docker"), docker()],
+    [installed("network", "Network"), definePlugin({ widgets: [widget("throughput", "Throughput", up("1 Gbit/s"), "M"), widget("vpn", "VPN", up("on"), "S")] })],
+  ];
+
+  await boot();
+
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Containers", "Throughput", "VPN"]);
+  expect(card("Containers").textContent).toContain("Containers body at S");
+  expect(saves).toEqual([
+    {
+      entries: [
+        { widget: "docker.containers", size: "S" },
+        { widget: "network.throughput", size: "M" },
+        { widget: "network.vpn", size: "S" },
+      ],
+      seen: ["docker.containers", "network.throughput", "network.vpn"],
+    },
+  ]);
+});
+
+it("draws each Widget in the host's frame: its title links to the Plugin's Page, next to its status", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  stored = { entries: [{ widget: "docker.containers", size: "M" }], seen: ["docker.containers"] };
+
+  await boot();
+
+  const c = card("Containers");
+  expect(within(c).getByRole("link", { name: "Containers" }).getAttribute("href")).toBe("/docker");
+  expect(within(c).getByRole("img", { name: "up: 12 of 12 running" })).toBeTruthy();
+  expect(c.textContent).toContain("Containers body at M");
+  expect(saves).toEqual([]);
+});
+
+it("forgets an uninstalled Plugin's Widgets, and keeps a removed Widget removed", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  stored = {
+    entries: [{ widget: "checks.summary", size: "S" }],
+    seen: ["checks.summary", "docker.containers"],
+  };
+
+  await boot();
+
+  expect(cards()).toEqual([]);
+  expect(saves).toEqual([{ entries: [], seen: ["docker.containers"] }]);
+});
+
+it("reconciles on every page, so an uninstall from the Catalogue forgets the Plugin's Widgets at once", async () => {
+  stored = { entries: [{ widget: "docker.containers", size: "S" }], seen: ["docker.containers"] };
+
+  await boot("/settings");
+
+  expect(saves).toEqual([{ entries: [], seen: [] }]);
+});
+
+it("the Hero lists the placed Widgets that aren't up, ignoring one that hasn't reported", async () => {
+  plugins = [
+    [
+      installed("checks", "Checks"),
+      definePlugin({
+        widgets: [
+          widget("summary", "Checks", { tone: "down", summary: "paperless down 14 min" }, "S"),
+          widget("uptime", "Uptime", undefined, "M"),
+        ],
+      }),
+    ],
+    [installed("docker", "Docker"), docker()],
+    [installed("network", "Network"), definePlugin({ widgets: [widget("vpn", "VPN", { tone: "warn", summary: "on the fallback" }, "S")] })],
+  ];
+
+  await boot();
+
+  expect(problems()).toEqual(["Checkspaperless down 14 min", "VPNon the fallback"]);
+  expect(within(hero()).getByRole("img", { name: "down" })).toBeTruthy();
+  expect(hero().textContent).toContain("2 Widgets need attention");
+});
+
+it("the Hero says everything is up when every reporting Widget is", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+
+  await boot();
+
+  expect(problems()).toEqual([]);
+  expect(within(hero()).getByRole("img", { name: "up" })).toBeTruthy();
+  expect(hero().textContent).toContain("Everything is up");
+});
+
+it("shows a Widget whose body or status crashes as an error frame, reported to the Hero at warn", async () => {
+  const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+  const crashingBody: Widget = {
+    ...widget("guests", "Guests", up("4 running"), "S"),
+    Body: () => {
+      throw new Error("body boom");
+    },
+  };
+  const crashingStatus: Widget = {
+    ...widget("nginx", "nginx", undefined, "S"),
+    useStatus: () => {
+      throw new Error("status boom");
+    },
+  };
+  plugins = [
+    [installed("proxmox", "Proxmox"), definePlugin({ widgets: [crashingBody] })],
+    [installed("reverse-proxy", "Reverse proxy"), definePlugin({ widgets: [crashingStatus] })],
+  ];
+
+  await boot();
+
+  expect(within(card("Guests")).getByRole("alert").textContent).toMatch(/Guests failed to render.*body boom/);
+  expect(within(card("nginx")).getByRole("alert").textContent).toMatch(/nginx failed to render.*status boom/);
+  expect(problems()).toEqual(["GuestsGuests failed to render", "nginxnginx failed to render"]);
+  expect(within(hero()).getByRole("img", { name: "warn" })).toBeTruthy();
+  quiet.mockRestore();
+});
+
+it("shows a placed Widget of a Plugin whose bundle failed as an error frame", async () => {
+  plugins = [[installed("docker", "Docker"), new Error("Failed to fetch dynamically imported module")]];
+  stored = { entries: [{ widget: "docker.containers", size: "M" }], seen: ["docker.containers"] };
+
+  await boot();
+
+  expect(within(cards()[0]).getByRole("alert").textContent).toMatch(/Docker failed to load/);
+  expect(problems()).toEqual(["DockerDocker failed to load"]);
+  expect(saves).toEqual([]);
+});
+
+const edit = () => fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+const done = async () => {
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  await settle();
+};
+
+const three = () =>
+  definePlugin({
+    widgets: [widget("a", "Alpha", up("a"), "S", "M", "L"), widget("b", "Bravo", up("b"), "S"), widget("c", "Charlie", up("c"), "M", "L")],
+  });
+
+it("in Edit mode the Operator resizes a Widget among its sizes, and Done saves it", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "S" },
+      { widget: "lab.b", size: "S" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+  await boot();
+  expect(screen.queryByRole("radiogroup")).toBeNull();
+
+  edit();
+  const sizes = within(card("Alpha")).getByRole("radiogroup", { name: "Size" });
+  expect(within(sizes).getAllByRole("radio").map((r) => r.textContent)).toEqual(["S", "M", "L"]);
+  expect(within(card("Bravo")).queryByRole("radiogroup")).toBeNull(); // one size: nothing to pick
+  fireEvent.click(within(sizes).getByRole("radio", { name: "L" }));
+  expect(card("Alpha").textContent).toContain("Alpha body at L");
+  expect(saves).toEqual([]);
+  await done();
+
+  expect(saves).toEqual([
+    {
+      entries: [
+        { widget: "lab.a", size: "L" },
+        { widget: "lab.b", size: "S" },
+      ],
+      seen: ["lab.a", "lab.b", "lab.c"],
+    },
+  ]);
+  expect(screen.queryByRole("radiogroup")).toBeNull();
+});
+
+it("in Edit mode the Operator removes a Widget, and it stays seen", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "S" },
+      { widget: "lab.b", size: "S" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+  await boot();
+
+  edit();
+  fireEvent.click(within(card("Alpha")).getByRole("button", { name: "Remove Alpha" }));
+  await done();
+
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Bravo"]);
+  expect(saves).toEqual([{ entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] }]);
+});
+
+it("in Edit mode the Operator adds a Widget from the drawer of installed Widgets not yet placed", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = { entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] };
+  await boot();
+
+  edit();
+  fireEvent.click(screen.getByRole("button", { name: "Add Widget" }));
+  const drawer = screen.getByRole("dialog", { name: "Add Widget" });
+  expect(
+    within(drawer)
+      .getAllByRole("button", { name: /^Add / })
+      .map((b) => b.getAttribute("aria-label")),
+  ).toEqual(["Add Alpha", "Add Charlie"]);
+  fireEvent.click(within(drawer).getByRole("button", { name: "Add Charlie" }));
+  await done();
+
+  expect(saves).toEqual([
+    {
+      entries: [
+        { widget: "lab.b", size: "S" },
+        { widget: "lab.c", size: "M" },
+      ],
+      seen: ["lab.a", "lab.b", "lab.c"],
+    },
+  ]);
+});
+
+it("in Edit mode the Operator drags a Widget to another's place", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "S" },
+      { widget: "lab.b", size: "S" },
+      { widget: "lab.c", size: "M" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+  await boot();
+  expect(card("Alpha").getAttribute("draggable")).not.toBe("true");
+
+  edit();
+  fireEvent.dragStart(card("Charlie"));
+  fireEvent.dragOver(card("Alpha"));
+  fireEvent.drop(card("Alpha"));
+  fireEvent.dragEnd(card("Charlie"));
+  await done();
+
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Charlie", "Alpha", "Bravo"]);
+  expect(saves.at(-1)?.entries.map((e) => e.widget)).toEqual(["lab.c", "lab.a", "lab.b"]);
+});
+
+const badGateway = () => new Response("<html>Bad Gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } });
+
+it("shows the unreachable banner from a 5xx until the next success, with the Hero at warn meanwhile", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 9, 20, 8, 5));
+  plugins = [[installed("docker", "Docker"), docker()]];
+  let failSaves = 1;
+  intercept = (method) => {
+    if (method !== "SaveLayout" || failSaves === 0) return undefined;
+    failSaves--;
+    vi.setSystemTime(new Date(2026, 9, 20, 8, 9));
+    return badGateway();
+  };
+
+  await boot(); // appending Containers saves, and that save fails
+
+  expect(screen.getByRole("status").textContent).toBe("ddash unreachable, showing data from 08:05");
+  expect(within(hero()).getByRole("img", { name: "warn" })).toBeTruthy();
+
+  edit();
+  fireEvent.click(within(card("Containers")).getByRole("radio", { name: "M" }));
+  await done();
+
+  expect(screen.queryByRole("status")).toBeNull();
+  expect(within(hero()).getByRole("img", { name: "up" })).toBeTruthy();
+});
+
+it("shows the unreachable banner when the network fails", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  intercept = (method) => (method === "SaveLayout" ? Promise.reject(new TypeError("Failed to fetch")) : undefined);
+
+  await boot();
+
+  expect(screen.getByRole("status").textContent).toMatch(/^ddash unreachable, showing data from \d\d:\d\d$/);
+});
+
+it("counts a Connect error answer, even a 503, as ddash answering", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  intercept = (method) => (method === "SaveLayout" ? Response.json({ code: "unavailable", message: "busy" }, { status: 503 }) : undefined);
+
+  await boot();
+
+  expect(screen.queryByRole("status")).toBeNull();
+});
+
+it("reloads the page on a 401, so the Operator signs in again", async () => {
+  const reload = vi.fn();
+  intercept = (method) => (method === "GetLayout" ? Response.json({ code: "unauthenticated", message: "sign in" }, { status: 401 }) : undefined);
+
+  await boot("/", reload);
+
+  expect(reload).toHaveBeenCalledOnce();
+});
