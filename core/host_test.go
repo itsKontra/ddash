@@ -126,6 +126,9 @@ func TestShutdownStopsComponentsInParallelWaitsTenSecondsAndClosesTheDB(t *testi
 		if healthz.Code != http.StatusServiceUnavailable {
 			t.Errorf("/healthz after shutdown: status %d, want 503: the core DB is closed", healthz.Code)
 		}
+		if got := healthz.Body.String(); got != "core DB unavailable\n" {
+			t.Errorf("/healthz after shutdown says %q, want only \"core DB unavailable\": it's public, so no DB error text", got)
+		}
 
 		time.Sleep(time.Minute) // let the stubborn loops end inside the bubble
 	})

@@ -171,18 +171,22 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	if h.keycloak != nil {
 		mux.Handle("/auth/", h.keycloak.Handler())
 	}
-	mux.Handle("/api/", requireConnectHeader(guard(api)))
+	// The session check comes first, so a signed-out call is a 401 (the
+	// shell reloads into sign-in) even without the CSRF header.
+	mux.Handle("/api/", guard(requireConnectHeader(api)))
 	mux.Handle("/", guard(ui))
 	return mux
 }
 
 // healthz reports that HTTP serves and the core DB answers. It says
-// nothing about Components.
+// nothing about Components. It's public, so a failure says no more than
+// that: the error goes to the log.
 func (h *Host) healthz(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
 	defer cancel()
 	if err := h.db.PingContext(ctx); err != nil {
-		http.Error(w, "core DB: "+err.Error(), http.StatusServiceUnavailable)
+		h.log.Warn("healthz", "err", err)
+		http.Error(w, "core DB unavailable", http.StatusServiceUnavailable)
 		return
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")

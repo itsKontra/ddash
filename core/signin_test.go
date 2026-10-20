@@ -61,6 +61,11 @@ func TestWithoutASessionAnAPICallIs401AndAPageLoadIsSentToSignIn(t *testing.T) {
 
 	wantError(t, h.Call("hello", "greeter", "Greet", `{"name":"Ada"}`), http.StatusUnauthorized, "unauthenticated", "")
 	wantError(t, h.CoreCall("ListInstalledPlugins", `{}`), http.StatusUnauthorized, "unauthenticated", "")
+	// Without a session even a call missing the CSRF header is a 401, so
+	// the shell reloads into sign-in instead of showing a 400.
+	bare := httptest.NewRequest(http.MethodPost, "/api/core/ddash.core.CoreService/ListInstalledPlugins", strings.NewReader(`{}`))
+	bare.Header.Set("Content-Type", "application/json")
+	wantError(t, h.Do(bare), http.StatusUnauthorized, "unauthenticated", "")
 	for _, path := range []string{"/", "/docker?host=a", "/plugins/hello/dev/index.js", "/vendor/dev/react.js"} {
 		res := h.Get(path)
 		if want := "/auth/login?next=" + url.QueryEscape(path); res.Code != http.StatusFound || res.Header().Get("Location") != want {
