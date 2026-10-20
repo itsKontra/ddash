@@ -1,9 +1,9 @@
 // Package adguardfake is a stateful fake of AdGuard Home's HTTP API for
-// adguard-api's Action. It keeps the persistent clients (add, update,
-// list) and answers the query log from a scenario's recorded entries,
-// filtered as AdGuard filters them; anything else is served from the
-// scenario's fixtures (fixture.Scenario). adguard-api's tests and fakelab
-// serve it.
+// adguard-api's Action and `make smoke-writes`. It keeps the persistent
+// clients (add, update, delete, list) and answers the query log from a
+// scenario's recorded entries, filtered as AdGuard filters them; anything
+// else is served from the scenario's fixtures (fixture.Scenario).
+// adguard-api's tests and fakelab serve it.
 //
 // Like AdGuard Home, an update replaces the whole client: a field the
 // request leaves out is reset to its zero value, except ignore_querylog
@@ -30,6 +30,7 @@ const (
 	clientsPath  = "/control/clients"
 	addPath      = "/control/clients/add"
 	updatePath   = "/control/clients/update"
+	deletePath   = "/control/clients/delete"
 	querylogPath = "/control/querylog"
 )
 
@@ -184,6 +185,26 @@ func (a *AdGuard) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.clients[i] = c
+	case "POST " + deletePath:
+		var req struct {
+			Name string `json:"name"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "failed to process request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.Name == "" {
+			http.Error(w, "client's name must be non-empty", http.StatusBadRequest)
+			return
+		}
+		a.mu.Lock()
+		defer a.mu.Unlock()
+		i := slices.IndexFunc(a.clients, func(c map[string]any) bool { return c["name"] == req.Name })
+		if i < 0 {
+			http.Error(w, "Client not found", http.StatusBadRequest)
+			return
+		}
+		a.clients = slices.Delete(a.clients, i, i+1)
 	case "GET " + querylogPath:
 		a.querylog(w, r)
 	default:
