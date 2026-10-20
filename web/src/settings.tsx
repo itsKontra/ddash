@@ -1,12 +1,11 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { CoreService, Theme } from "@ddash/proto/ddash/core/core_pb";
-import { cx, PageHeader } from "@ddash/ui";
+import { cx, PageHeader, Switch } from "@ddash/ui";
 import { ChevronRight, ScrollText, type LucideIcon } from "lucide-react";
 import { Link, Route, Routes } from "react-router";
 import { themeName, useScheme } from "./appearance";
 import { AuditLog } from "./audit-log";
 import { ErrorFrame } from "./boundary";
-import { Toggle } from "./config-form";
 
 /** /settings/*: the core's settings and the Pages under them. */
 export function Settings() {
@@ -74,7 +73,7 @@ function Appearance() {
         ))}
       </div>
       <label className="mt-4 flex items-center gap-3 text-sm">
-        <Toggle label="Dark" on={scheme === "dark"} onChange={(dark) => setScheme(dark ? "dark" : "light")} />
+        <Switch label="Dark" checked={scheme === "dark"} onChange={(dark) => setScheme(dark ? "dark" : "light")} />
         Dark, in this browser
       </label>
       {save.error && (

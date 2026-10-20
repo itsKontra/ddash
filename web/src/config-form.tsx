@@ -10,7 +10,7 @@ import {
   type TestAction,
 } from "@ddash/proto/ddash/core/core_pb";
 import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/config_pb";
-import { Button, cx, StatusDot, type Tone } from "@ddash/ui";
+import { Button, StatusDot, Switch, type Tone } from "@ddash/ui";
 import { X } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { ErrorFrame } from "./boundary";
@@ -234,7 +234,7 @@ function Scalar({ id, field: f, value, onChange, label }: { id?: string; field: 
   switch (f.kind) {
     case FormField_Kind.BOOL: {
       const on = value === undefined ? f.default === "true" : value === true;
-      return <Toggle id={id} label={label ?? f.label} on={on} onChange={onChange} />;
+      return <Switch id={id} label={label ?? f.label} checked={on} onChange={onChange} />;
     }
     case FormField_Kind.ENUM:
       return (
@@ -282,23 +282,6 @@ function Choices({ id, field: f, value, onChange, label }: { id?: string; field:
         </option>
       ))}
     </select>
-  );
-}
-
-/** A switch, e.g. for a bool field. */
-export function Toggle({ id, on, onChange, label }: { id?: string; on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button
-      id={id}
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={() => onChange(!on)}
-      className={cx("relative inline-flex h-5 w-9 cursor-pointer items-center rounded-full transition-colors", on ? "bg-primary" : "bg-muted")}
-    >
-      <span className={cx("inline-block h-4 w-4 rounded-full bg-card shadow transition-transform", on ? "translate-x-4.5" : "translate-x-0.5")} />
-    </button>
   );
 }
 

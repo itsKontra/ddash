@@ -399,9 +399,10 @@ export function UptimeBars({ label, bars }: { label: string; bars: readonly Upti
 }
 
 /** An on/off switch that acts at once (no confirm), e.g. a Device's Direct toggle; label names it for screen readers. */
-export function Switch({ checked, onChange, label, disabled }: { checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean }) {
+export function Switch({ id, checked, onChange, label, disabled }: { id?: string; checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean }) {
   return (
     <button
+      id={id}
       type="button"
       role="switch"
       aria-checked={checked}
