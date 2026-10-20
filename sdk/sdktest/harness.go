@@ -12,17 +12,15 @@ package sdktest
 import (
 	"context"
 	"log/slog"
-	"net"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 
 	componentpb "github.com/itsKontra/ddash/proto/ddash/component"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/inmem"
 )
 
 // Harness is one running Component.
@@ -68,21 +66,12 @@ func New(t testing.TB, def sdk.Definition, opts ...Option) *Harness {
 	}
 	inst := sdk.NewInstance(def, o)
 
-	lis := newPipeListener()
-	srv := grpc.NewServer()
-	inst.Register(srv)
-	go srv.Serve(lis)
-
-	conn, err := grpc.NewClient("passthrough:///"+def.Name(),
-		grpc.WithContextDialer(func(ctx context.Context, _ string) (net.Conn, error) { return lis.dial(ctx) }),
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	conn, stop, err := inmem.Serve(def.Name(), inst.Register)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		conn.Close()
-		srv.Stop()
+		stop()
 		inst.Stop(context.Background())
 	})
 	return &Harness{
@@ -128,48 +117,3 @@ func (h *Harness) Health() sdk.Health {
 func (h *Harness) Stop() {
 	h.inst.Stop(context.Background())
 }
-
-// pipeListener hands out net.Pipe connections. Unlike a socket or bufconn,
-// a pipe blocks only on channels, which testing/synctest understands.
-type pipeListener struct {
-	conns     chan net.Conn
-	done      chan struct{}
-	closeOnce sync.Once
-}
-
-func newPipeListener() *pipeListener {
-	return &pipeListener{conns: make(chan net.Conn), done: make(chan struct{})}
-}
-
-func (l *pipeListener) dial(ctx context.Context) (net.Conn, error) {
-	client, server := net.Pipe()
-	select {
-	case l.conns <- server:
-		return client, nil
-	case <-l.done:
-		return nil, net.ErrClosed
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-}
-
-func (l *pipeListener) Accept() (net.Conn, error) {
-	select {
-	case c := <-l.conns:
-		return c, nil
-	case <-l.done:
-		return nil, net.ErrClosed
-	}
-}
-
-func (l *pipeListener) Close() error {
-	l.closeOnce.Do(func() { close(l.done) })
-	return nil
-}
-
-func (l *pipeListener) Addr() net.Addr { return pipeAddr{} }
-
-type pipeAddr struct{}
-
-func (pipeAddr) Network() string { return "pipe" }
-func (pipeAddr) String() string  { return "pipe" }

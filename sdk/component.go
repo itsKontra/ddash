@@ -148,3 +148,10 @@ func (d Definition) checkMethods() error {
 
 // Name is the Component's name from its manifest.
 func (d Definition) Name() string { return d.manifest.Name }
+
+// Description is the Component's description from its manifest.
+func (d Definition) Description() string { return d.manifest.Description }
+
+// Requires lists the bare names of the Components this one calls, from its
+// manifest.
+func (d Definition) Requires() []string { return d.manifest.Requires }
