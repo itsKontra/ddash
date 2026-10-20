@@ -113,6 +113,14 @@ func parseDefault(fd protoreflect.FieldDescriptor, text string) (protoreflect.Va
 	return protoreflect.Value{}, fmt.Errorf("a %s field can't have a default", fd.Kind())
 }
 
+// Delete forgets owner's config, so it has the defaults alone again.
+func (s *Store) Delete(ctx context.Context, owner string) error {
+	if _, err := s.db.ExecContext(ctx, `DELETE FROM config WHERE owner = ?`, owner); err != nil {
+		return fmt.Errorf("delete %s config: %w", owner, err)
+	}
+	return nil
+}
+
 // Put stores cfg as owner's config, replacing what was there. It is how
 // config is seeded until forms save it.
 func (s *Store) Put(ctx context.Context, owner string, cfg proto.Message) error {

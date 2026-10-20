@@ -14,6 +14,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
@@ -21,6 +23,7 @@ import (
 	"github.com/itsKontra/ddash/core/coredb"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
+	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 )
 
 // Options configure a Host.
@@ -129,6 +132,59 @@ func requireConnectHeader(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Install is the core Action that installs a Plugin: it adds it to the
+// installed set and starts the Components it requires in the background.
+// It runs for the actor in ctx.
+func (h *Host) Install(ctx context.Context, req *corepb.InstallRequest) (*corepb.InstallResponse, error) {
+	err := h.coreAction(ctx, "Install", req, func() error {
+		return h.runtime.Install(ctx, req.GetPlugin())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.InstallResponse{}, nil
+}
+
+// Uninstall is the core Action that uninstalls a Plugin: it stops and
+// removes every Component no installed Plugin still requires, keeping their
+// DB files (as orphans) and config unless delete_data is set. It runs for
+// the actor in ctx.
+func (h *Host) Uninstall(ctx context.Context, req *corepb.UninstallRequest) (*corepb.UninstallResponse, error) {
+	var orphans []string
+	err := h.coreAction(ctx, "Uninstall", req, func() (err error) {
+		orphans, err = h.runtime.Uninstall(ctx, req.GetPlugin(), req.GetDeleteData())
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.UninstallResponse{Orphans: orphans}, nil
+}
+
+// coreService is the core API, whose Actions pass the gate like any other.
+var coreService = corepb.File_ddash_core_core_proto.Services().ByName("CoreService")
+
+// coreAction runs the core Action method through the gate, on a new chain,
+// for the actor in ctx, or for the core when there is none.
+func (h *Host) coreAction(ctx context.Context, method string, req proto.Message, run func() error) error {
+	actor, ok := auth.ActorFrom(ctx)
+	if !ok {
+		actor = auth.Actor{Kind: auth.Core}
+	}
+	done, err := h.gate.Admit(ctx, actor, appstate.Action{
+		Chain:   router.NewChain(),
+		Target:  "core",
+		Method:  coreService.Methods().ByName(protoreflect.Name(method)),
+		Request: req,
+	})
+	if err != nil {
+		return err
+	}
+	err = run()
+	done(err)
+	return err
 }
 
 // Handler is the host's one http.Handler.

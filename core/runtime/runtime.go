@@ -7,10 +7,14 @@ package runtime
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,6 +100,10 @@ type Runtime struct {
 	wake   chan struct{}
 	cancel context.CancelFunc
 	loops  sync.WaitGroup
+
+	// changing is held by each reconcile pass and by Uninstall, so a
+	// Component is never launched and removed at once.
+	changing sync.Mutex
 
 	mu         sync.Mutex
 	installed  map[string]bool
@@ -229,6 +237,110 @@ func (r *Runtime) Install(ctx context.Context, plugin string) error {
 	return nil
 }
 
+// Uninstall removes plugin from the installed set, then stops and removes
+// every Component no installed Plugin still requires, transitively. Their
+// DB files and config are kept unless deleteData is set. It returns the
+// orphans left afterwards, see Orphans.
+func (r *Runtime) Uninstall(ctx context.Context, plugin string, deleteData bool) (orphans []string, err error) {
+	r.changing.Lock()
+	defer r.changing.Unlock()
+	r.mu.Lock()
+	installed := r.installed[plugin]
+	r.mu.Unlock()
+	if !installed {
+		return nil, status.Errorf(codes.NotFound, "plugin %s isn't installed", plugin)
+	}
+	if _, err := r.opts.DB.ExecContext(ctx, `DELETE FROM installed_plugin WHERE name = ?`, plugin); err != nil {
+		return nil, fmt.Errorf("uninstall %s: %w", plugin, err)
+	}
+
+	r.mu.Lock()
+	delete(r.installed, plugin)
+	wanted := r.wanted()
+	var removed []string
+	var procs []Process
+	for name, c := range r.components {
+		if !wanted[name] {
+			removed = append(removed, name)
+			if c.proc != nil {
+				procs = append(procs, c.proc)
+			}
+			delete(r.components, name)
+		}
+	}
+	r.mu.Unlock()
+
+	stopCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), StopTimeout)
+	defer cancel()
+	var wg sync.WaitGroup
+	for _, p := range procs {
+		wg.Go(func() { p.Stop(stopCtx) })
+	}
+	wg.Wait()
+
+	if deleteData {
+		for _, name := range removed {
+			if err := r.deleteData(ctx, name); err != nil {
+				return nil, fmt.Errorf("uninstall %s: %w", plugin, err)
+			}
+		}
+	}
+	return r.Orphans(), nil
+}
+
+// deleteData deletes a Component's DB file and config.
+func (r *Runtime) deleteData(ctx context.Context, name string) error {
+	db := r.dbPath(name)
+	for _, f := range []string{db, db + "-wal", db + "-shm"} {
+		if err := os.Remove(f); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+	return r.opts.Config.Delete(ctx, name)
+}
+
+// Orphans returns, sorted, the Components that have a DB file although no
+// installed Plugin requires them.
+func (r *Runtime) Orphans() []string {
+	entries, err := os.ReadDir(filepath.Join(r.opts.DataDir, "db"))
+	if err != nil {
+		return nil
+	}
+	r.mu.Lock()
+	wanted := r.wanted()
+	r.mu.Unlock()
+	var orphans []string
+	for _, e := range entries {
+		name, ok := strings.CutSuffix(e.Name(), ".db")
+		if ok && !e.IsDir() && !wanted[name] {
+			orphans = append(orphans, name)
+		}
+	}
+	slices.Sort(orphans)
+	return orphans
+}
+
+// wanted returns every Component the installed Plugins require,
+// transitively. r.mu must be held.
+func (r *Runtime) wanted() map[string]bool {
+	var roots []string
+	for _, p := range r.cat.Plugins {
+		if r.installed[p.Name] {
+			roots = append(roots, p.Requires...)
+		}
+	}
+	order, _ := r.cat.startOrder(roots) // the catalogue was checked on load
+	wanted := make(map[string]bool, len(order))
+	for _, name := range order {
+		wanted[name] = true
+	}
+	return wanted
+}
+
+func (r *Runtime) dbPath(name string) string {
+	return filepath.Join(r.opts.DataDir, "db", name+".db")
+}
+
 // PluginRequires returns the Components an installed Plugin lists directly
 // in requires. ok is false when the Plugin isn't installed.
 func (r *Runtime) PluginRequires(plugin string) (requires []string, ok bool) {
@@ -317,6 +429,8 @@ func (r *Runtime) reconcileLoop(ctx context.Context) {
 // dependency order, without waiting on health. It reports whether a launch
 // failed and should be retried.
 func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
+	r.changing.Lock()
+	defer r.changing.Unlock()
 	r.mu.Lock()
 	var roots []string
 	for _, p := range r.cat.Plugins {
@@ -359,7 +473,7 @@ func (r *Runtime) reconcile(ctx context.Context) (retry bool) {
 // failed Start leaves the process running, unconfigured or down.
 func (r *Runtime) launch(ctx context.Context, name string) error {
 	r.setStatus(name, Status{State: Starting})
-	dbPath := filepath.Join(r.opts.DataDir, "db", name+".db")
+	dbPath := r.dbPath(name)
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o750); err != nil {
 		return err
 	}

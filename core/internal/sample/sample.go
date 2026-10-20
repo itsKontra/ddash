@@ -4,6 +4,7 @@ package sample
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"strings"
 
@@ -27,14 +28,20 @@ type Hooks struct {
 	Act func(ctx context.Context, env *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error)
 }
 
+// migrations give every sample a DB file of its own.
+//
+//go:embed migrations/*.sql
+var migrations embed.FS
+
 // Define returns a sample named name that requires requires.
 func Define(name string, requires []string, hooks Hooks) sdk.Definition {
 	manifest := fmt.Sprintf("name: %s\ndescription: A sample for the host's tests.\nrequires: [%s]\n",
 		name, strings.Join(requires, ", "))
 	return sdk.Define(sdk.Spec[*samplepb.SampleConfig]{
-		Manifest: []byte(manifest),
-		Service:  &samplepb.SampleService_ServiceDesc,
-		New:      func() sdk.Component[*samplepb.SampleConfig] { return &component{hooks: hooks} },
+		Manifest:   []byte(manifest),
+		Service:    &samplepb.SampleService_ServiceDesc,
+		Migrations: migrations,
+		New:        func() sdk.Component[*samplepb.SampleConfig] { return &component{hooks: hooks} },
 	})
 }
 

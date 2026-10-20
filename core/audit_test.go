@@ -280,6 +280,43 @@ func TestALargeRequestIsTruncatedAtFourKiB(t *testing.T) {
 	}
 }
 
+func TestAnActionStillRunningWhenTheHostDiesIsInterrupted(t *testing.T) {
+	opts := coretest.Options{
+		Components: []sdk.Definition{greeter(sample.Hooks{})},
+		Plugins:    []coretest.Plugin{hello},
+		DataDir:    t.TempDir(),
+	}
+	crashed := coretest.New(t, opts)
+	crashed.SeedConfig("greeter", configured)
+	crashed.Install("hello")
+	crashed.WaitState("greeter", runtime.OK)
+	ended := make(chan struct{})
+	go func() {
+		defer close(ended)
+		crashed.Call("hello", "greeter", "WaitAction", `{}`)
+	}()
+	for deadline := time.Now().Add(10 * time.Second); ; time.Sleep(5 * time.Millisecond) {
+		if entries := componentEntries(crashed); len(entries) == 1 && entries[0].Outcome == appstate.Running {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("WaitAction never showed as running: %+v", componentEntries(crashed))
+		}
+	}
+
+	// The next host starts on the data the dead one left behind.
+	next := coretest.New(t, opts)
+
+	if entries := componentEntries(next); len(entries) != 1 || entries[0].Outcome != appstate.Interrupted {
+		t.Errorf("after the restart: %+v, want WaitAction interrupted", entries)
+	}
+	crashed.Shutdown()
+	<-ended
+	if entries := componentEntries(next); len(entries) != 1 || entries[0].Outcome != appstate.Interrupted {
+		t.Errorf("once the old call ended: %+v, want it still interrupted", entries)
+	}
+}
+
 // breakAuditLog makes every insert into the Audit Log fail, as a full disk
 // would.
 func breakAuditLog(t *testing.T, h *coretest.Harness) {

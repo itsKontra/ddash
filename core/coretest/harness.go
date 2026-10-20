@@ -34,6 +34,7 @@ import (
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
+	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -65,6 +66,7 @@ type Harness struct {
 	DataDir string
 
 	t        testing.TB
+	actor    auth.Actor
 	shutdown bool
 }
 
@@ -95,7 +97,7 @@ func New(t testing.TB, opts Options) *Harness {
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := &Harness{Host: host, DataDir: opts.DataDir, t: t}
+	h := &Harness{Host: host, DataDir: opts.DataDir, t: t, actor: auth.ParseActor(opts.Actor)}
 	t.Cleanup(h.Shutdown)
 	host.Start()
 	return h
@@ -141,12 +143,31 @@ func (h *Harness) SeedConfig(owner string, cfg proto.Message) {
 	}
 }
 
-// Install installs plugin.
+// Install installs plugin, as the harness's actor, failing the test if it
+// can't.
 func (h *Harness) Install(plugin string) {
 	h.t.Helper()
-	if err := h.Host.Runtime().Install(h.t.Context(), plugin); err != nil {
+	if err := h.TryInstall(plugin); err != nil {
 		h.t.Fatalf("install %s: %v", plugin, err)
 	}
+}
+
+// TryInstall runs the core Action Install as the harness's actor.
+func (h *Harness) TryInstall(plugin string) error {
+	_, err := h.Host.Install(h.ctx(), &corepb.InstallRequest{Plugin: plugin})
+	return err
+}
+
+// Uninstall runs the core Action Uninstall as the harness's actor and
+// returns the orphans it leaves.
+func (h *Harness) Uninstall(plugin string, deleteData bool) (orphans []string, err error) {
+	resp, err := h.Host.Uninstall(h.ctx(), &corepb.UninstallRequest{Plugin: plugin, DeleteData: deleteData})
+	return resp.GetOrphans(), err
+}
+
+// ctx is the test's context, signed in as the harness's actor.
+func (h *Harness) ctx() context.Context {
+	return auth.WithActor(h.t.Context(), h.actor)
 }
 
 // AuditLog returns the Audit Log, newest first.
