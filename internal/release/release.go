@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+	"golang.org/x/mod/semver"
 
 	"github.com/itsKontra/ddash/core/runtime"
 )
@@ -45,15 +46,21 @@ type Options struct {
 	Out string
 	// Release is stamped into catalogue.json and every binary.
 	Release string
+	// Platform is the GOOS/GOARCH to build the binaries for, e.g.
+	// "linux/amd64"; empty means this machine's.
+	Platform string
 	// LinkBundles symlinks each Plugin's bundle instead of copying it, so
 	// `vite build --watch` rebuilds show through (`make dev`).
 	LinkBundles bool
 }
 
 // Build fills o.Out with the Release: catalogue.json, every Component's
-// binary (static, CGO off, for this machine's OS and architecture), every
+// binary (static, CGO off, for o.Platform), every
 // Plugin's bundle (which `make build` must have built) and SHA256SUMS.
 func Build(ctx context.Context, o Options) error {
+	if err := CheckName(o.Release); err != nil {
+		return err
+	}
 	cat, err := Catalogue(o.Root, o.Release)
 	if err != nil {
 		return err
@@ -63,7 +70,7 @@ func Build(ctx context.Context, o Options) error {
 	}
 	for _, c := range cat.Components {
 		pkg := "./" + path.Join("components", c.Name, "cmd")
-		if err := Binary(ctx, o.Root, pkg, filepath.Join(o.Out, c.Name), o.Release); err != nil {
+		if err := build(ctx, o.Root, pkg, filepath.Join(o.Out, c.Name), o.Release, o.Platform); err != nil {
 			return err
 		}
 	}
@@ -80,6 +87,29 @@ func Build(ctx context.Context, o Options) error {
 		return err
 	}
 	return Sums(o.Out)
+}
+
+// Core builds the core binary (`cmd/ddash`, the image's only binary) into
+// out for platform ("GOOS/GOARCH"; empty: this machine's), static and
+// stamped with rel. It embeds the shell, so `make build` must have built it.
+func Core(ctx context.Context, root, out, rel, platform string) error {
+	if err := CheckName(rel); err != nil {
+		return err
+	}
+	if _, err := os.Stat(filepath.Join(root, "web", "dist", "shell", "index.html")); err != nil {
+		return fmt.Errorf("the core embeds the shell, which isn't built (run `make build`): %w", err)
+	}
+	return build(ctx, root, "./cmd/ddash", out, rel, platform)
+}
+
+// CheckName refuses a Release name other than `dev` or a canonical semver
+// tag (vMAJOR.MINOR.PATCH, optionally -prerelease): the core compares
+// Releases as semver, and the image is tagged with the name.
+func CheckName(rel string) error {
+	if rel == "dev" || (semver.Canonical(rel) == rel && rel != "") {
+		return nil
+	}
+	return fmt.Errorf("the Release %q is neither dev nor a tag vMAJOR.MINOR.PATCH (optionally -prerelease)", rel)
 }
 
 // bundle puts plugin's bundle, as Vite built it into plugins/<name>/dist/,
@@ -182,6 +212,11 @@ func entryName(e any) string {
 // stamped with release. ldflags are added to the linker flags, e.g.
 // "-X main.name=imposter".
 func Binary(ctx context.Context, root, pkg, out, release string, ldflags ...string) error {
+	return build(ctx, root, pkg, out, release, "", ldflags...)
+}
+
+// build is Binary for platform ("GOOS/GOARCH"; empty: this machine's).
+func build(ctx context.Context, root, pkg, out, release, platform string, ldflags ...string) error {
 	out, err := filepath.Abs(out)
 	if err != nil {
 		return err
@@ -190,6 +225,13 @@ func Binary(ctx context.Context, root, pkg, out, release string, ldflags ...stri
 	cmd := exec.CommandContext(ctx, "go", "build", "-trimpath", "-ldflags", strings.Join(flags, " "), "-o", out, pkg)
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")
+	if platform != "" {
+		goos, goarch, ok := strings.Cut(platform, "/")
+		if !ok || goos == "" || goarch == "" {
+			return fmt.Errorf("platform %q: want GOOS/GOARCH", platform)
+		}
+		cmd.Env = append(cmd.Env, "GOOS="+goos, "GOARCH="+goarch)
+	}
 	if b, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("build %s: %w\n%s", pkg, err, b)
 	}
