@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Badge, PageHeader, StatusDot } from "./index";
+import { Badge, PageHeader, Sparkline, StatusDot } from "./index";
 
 afterEach(cleanup);
 
@@ -20,6 +20,29 @@ it("Badge shows its content", () => {
   render(<Badge tone="warn">3 new</Badge>);
 
   expect(screen.getByText("3 new")).toBeTruthy();
+});
+
+it("Sparkline draws each series on one scale across the full width, named for screen readers", () => {
+  render(
+    <Sparkline
+      label="WAN over the last hour"
+      series={[
+        [0, 5, 10],
+        [2, 2],
+      ]}
+    />,
+  );
+
+  const img = screen.getByRole("img", { name: "WAN over the last hour" });
+  const lines = img.querySelectorAll("polyline");
+  expect([...lines].map((l) => l.getAttribute("points"))).toEqual(["0,24 50,12 100,0", "0,19.2 100,19.2"]);
+});
+
+it("Sparkline draws a flat line along the bottom when everything is zero, and nothing without values", () => {
+  render(<Sparkline label="idle" series={[[0, 0], []]} />);
+
+  const lines = screen.getByRole("img", { name: "idle" }).querySelectorAll("polyline");
+  expect([...lines].map((l) => l.getAttribute("points"))).toEqual(["0,24 100,24"]);
 });
 
 it("PageHeader shows the title as the Page's heading, with subtitle and actions", () => {
