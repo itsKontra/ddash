@@ -6,7 +6,10 @@ import (
 	"strings"
 	"testing"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/itsKontra/ddash/components/network"
+	"github.com/itsKontra/ddash/components/network/networkpb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -62,11 +65,21 @@ func TestTheVpnOnFallbackScenarioHasTheTunnelViaOpenVPN(t *testing.T) {
 }
 
 func TestTheBaselineFirewallHasTwoRemoteAccessPeers(t *testing.T) {
-	got := networkCall(t, "GetRemoteAccess")
-	for _, want := range []string{`"tunnel":"tun_wg1"`, `"name":"Phone"`, `"name":"Laptop"`, `"destination":"198.18.1.0/24","label":"LAN subnet"`} {
-		if !strings.Contains(got, want) {
-			t.Errorf("GetRemoteAccess = %s, want %s in it", got, want)
-		}
+	body := networkCall(t, "GetRemoteAccess")
+	var got networkpb.GetRemoteAccessResponse
+	if err := protojson.Unmarshal([]byte(body), &got); err != nil {
+		t.Fatal(err)
+	}
+
+	var names []string
+	for _, p := range got.GetPeers() {
+		names = append(names, p.GetName())
+	}
+	if got.GetTunnel() != "tun_wg1" || strings.Join(names, ",") != "Phone,Laptop" {
+		t.Fatalf("GetRemoteAccess = %s, want tun_wg1 with Phone and Laptop", body)
+	}
+	if first := got.GetPeers()[0].GetReaches()[0]; first.GetDestination() != "198.18.1.0/24" || first.GetLabel() != "LAN subnet" {
+		t.Errorf("Phone's first reach = %v, want the LAN subnet", first)
 	}
 }
 
