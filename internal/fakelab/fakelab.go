@@ -19,6 +19,7 @@ import (
 
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -38,6 +39,14 @@ var systems = []system{
 		fixtures:  "components/docker-api/testdata/baseline",
 		config: func(addr string) proto.Message {
 			return &dockerapipb.DockerApiConfig{Hosts: []*dockerapipb.Host{{Name: "media", Url: "tcp://" + addr}}}
+		},
+	},
+	{
+		component: "ntfy-api",
+		fixtures:  "components/ntfy-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			server := "http://" + addr
+			return &ntfyapipb.NtfyApiConfig{Server: &server, Topic: "ddash-alerts"}
 		},
 	},
 }

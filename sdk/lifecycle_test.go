@@ -181,7 +181,9 @@ func TestATestActionThatIsNoPlainActionIsRefused(t *testing.T) {
 		sdk.Define(sdk.Spec[*echopb.TestFromDisruptiveConfig]{
 			Manifest: []byte(echoManifest),
 			Service:  &echopb.EchoService_ServiceDesc,
-			New:      func() sdk.Component[*echopb.TestFromDisruptiveConfig] { return &hinted[*echopb.TestFromDisruptiveConfig]{} },
+			New: func() sdk.Component[*echopb.TestFromDisruptiveConfig] {
+				return &hinted[*echopb.TestFromDisruptiveConfig]{}
+			},
 		})
 	})
 }

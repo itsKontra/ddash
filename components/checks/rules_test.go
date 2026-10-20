@@ -14,18 +14,21 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/sdk/migrate"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
 // lab fakes the network the probes dial, so time rules run in a synctest
-// bubble: each address accepts, refuses or never answers.
+// bubble: each address accepts, refuses or never answers. Notifications go
+// to its fake ntfy-api.
 type lab struct {
 	mu    sync.Mutex
 	hosts map[string]string // addr → "up", "refuse" or "hang"
+	ntfy  *fakeNtfy
 }
 
-func newLab() *lab { return &lab{hosts: map[string]string{}} }
+func newLab() *lab { return &lab{hosts: map[string]string{}, ntfy: &fakeNtfy{}} }
 
 func (l *lab) set(addr, how string) {
 	l.mu.Lock()
@@ -52,6 +55,7 @@ func (l *lab) dial(ctx context.Context, _, addr string) (net.Conn, error) {
 // startIn runs checks dialing through l. Call inside a synctest bubble.
 func startIn(t *testing.T, l *lab, opts ...sdktest.Option) (*sdktest.Harness, checkspb.ChecksServiceClient) {
 	t.Helper()
+	opts = append([]sdktest.Option{sdktest.WithClient[ntfyapipb.NtfyApiServiceClient](l.ntfy)}, opts...)
 	h := sdktest.New(t, checks.DefinitionDialing(l.dial), opts...)
 	h.MustStart(&checkspb.ChecksConfig{})
 	return h, checkspb.NewChecksServiceClient(h.Conn)

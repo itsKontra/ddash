@@ -1,3 +1,3 @@
 name: checks
-description: Probes Checks and decides when each is up or down.
-requires: []
+description: Probes Checks, decides when each is up or down, and notifies the Operator of changes.
+requires: [ntfy-api]

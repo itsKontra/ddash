@@ -1,6 +1,8 @@
 // Package checks is the checks Component: it probes Checks on fixed
 // defaults, decides when each is up or down, records every beat in
-// check_event and serves the Checks' states from memory.
+// check_event and serves the Checks' states from memory. It sends a
+// Notification through ntfy-api when a Check is confirmed down and when it
+// recovers.
 package checks
 
 import (
@@ -17,6 +19,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -57,14 +60,19 @@ type component struct {
 	dial dialFunc
 
 	// ctx is the Component's lifetime; each Check's loop runs under it.
-	ctx context.Context
-	db  *store
-	log *slog.Logger
+	ctx       context.Context
+	db        *store
+	log       *slog.Logger
+	ntfy      ntfyapipb.NtfyApiServiceClient
+	publicURL string
 
 	mu     sync.Mutex
 	checks map[int64]*check
 	// writeErr is why the last write to the DB failed; nil once one works.
 	writeErr error
+	// notified is the state each item was last notified in.
+	notified map[string]notified
+	out      outbox
 }
 
 // check is one Check in memory, the source of every read.
@@ -83,14 +91,21 @@ type check struct {
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksConfig) error {
-	c.ctx, c.log = ctx, env.Log
+	c.ctx, c.log, c.publicURL = ctx, env.Log, env.PublicURL
 	c.db = &store{env.DB}
+	c.ntfy = sdk.Require(env, ntfyapipb.NewNtfyApiServiceClient)
 	loaded, err := c.db.load(ctx)
+	if err != nil {
+		return err
+	}
+	last, err := c.db.loadNotified(ctx)
 	if err != nil {
 		return err
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	c.notified, c.out = last, outbox{queued: map[string]time.Time{}}
+	sdk.Every(ctx, DeliveryTick, c.deliver)
 	c.checks = map[int64]*check{}
 	for _, ch := range loaded {
 		c.checks[ch.id] = ch
@@ -170,11 +185,15 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 		return
 	}
 	next := ch.standing.after(r, now())
-	c.writeErr = c.db.recordBeat(ctx, id, r, next, next.state != ch.standing.state)
+	changed := next.state != ch.standing.state
+	c.writeErr = c.db.recordBeat(ctx, id, r, next, changed)
 	if c.writeErr != nil {
 		c.log.Error("record beat", "check", id, "err", c.writeErr)
 	}
 	ch.standing = next
+	if changed {
+		c.queue(checkItem(id))
+	}
 }
 
 func (c *component) ListChecks(context.Context, *checkspb.ListChecksRequest) (*checkspb.ListChecksResponse, error) {
@@ -249,6 +268,7 @@ func (c *component) DeleteCheck(ctx context.Context, req *checkspb.DeleteCheckRe
 	}
 	ch.stopProbing()
 	delete(c.checks, ch.id)
+	delete(c.notified, checkItem(ch.id))
 	return &checkspb.DeleteCheckResponse{}, nil
 }
 
