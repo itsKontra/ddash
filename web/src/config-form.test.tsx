@@ -263,3 +263,21 @@ it("opens the forms of the unconfigured Components an install adds, in turn", as
   await settle();
   expect(screen.queryByRole("dialog")).toBeNull();
 });
+
+it("keeps a form an install opened until it is closed, to show the health after saving", async () => {
+  installAnswer = { components: ["ntfy-api"] };
+  components = [{ name: "ntfy-api", state: "unconfigured", configurable: true }];
+  saveAnswer = () => {
+    components = [{ name: "ntfy-api", state: "ok", configurable: true }];
+    return Response.json({ status: { name: "ntfy-api", state: "ok", configurable: true } });
+  };
+  await boot();
+  fireEvent.click(within(screen.getByRole("listitem", { name: "Checks" })).getByRole("button", { name: "Install" }));
+  await settle();
+  await settle();
+
+  await save(screen.getByRole("dialog", { name: "ntfy-api config" }));
+  await settle();
+
+  expect(within(screen.getByRole("dialog", { name: "ntfy-api config" })).getByRole("status").textContent).toMatch(/ok/);
+});

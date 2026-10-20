@@ -38,7 +38,7 @@ export function Catalogue() {
       {configuring ? (
         <ConfigDialog owner={configuring} onClose={() => setConfiguring(undefined)} />
       ) : (
-        queue.length > 0 && <FormQueue next={queue[0]} onDone={done} />
+        queue.length > 0 && <FormQueue key={queue[0]} next={queue[0]} onDone={done} />
       )}
     </div>
   );
@@ -46,18 +46,20 @@ export function Catalogue() {
 
 /**
  * Opens the form of next, a Component an install added, once it turns out
- * unconfigured, reading the Catalogue at the LIVE tier meanwhile. One that
- * starts without config needs no form.
+ * unconfigured, reading the Catalogue at the LIVE tier meanwhile, and keeps
+ * it open until closed. One that starts without config needs no form.
  */
 function FormQueue({ next, onDone }: { next: string; onDone: (name: string) => void }) {
   const { data } = useQuery(CoreService.method.listCatalogue, {}, { refresh: Refresh.LIVE });
+  const [opened, setOpened] = useState(false);
   const st = data && statusOf(data, next);
   const waiting = !st || st.state === "" || st.state === "starting";
   const needsForm = st?.state === "unconfigured" && st.configurable;
   useEffect(() => {
-    if (data && !waiting && !needsForm) onDone(next);
-  }, [data, waiting, needsForm, next, onDone]);
-  return needsForm ? <ConfigDialog owner={next} onClose={() => onDone(next)} /> : null;
+    if (needsForm) setOpened(true);
+    else if (!opened && !waiting) onDone(next);
+  }, [needsForm, opened, waiting, next, onDone]);
+  return needsForm || opened ? <ConfigDialog owner={next} onClose={() => onDone(next)} /> : null;
 }
 
 /** A Component's status in the Catalogue, from whichever Plugin runs it. */
