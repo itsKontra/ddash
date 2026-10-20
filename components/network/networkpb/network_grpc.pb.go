@@ -4,8 +4,9 @@
 // - protoc             (unknown)
 // source: network/network.proto
 
-// network is the logic behind the Network Page. For now it watches the
-// firewall's failover gateway group and derives the VPN Tunnel's tier.
+// network is the logic behind the Network Page. It watches the firewall's
+// failover gateway group and derives the VPN Tunnel's tier, samples WAN and
+// LAN throughput, and reads Remote Access.
 
 package networkpb
 
@@ -22,7 +23,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NetworkService_GetVpnTunnel_FullMethodName = "/ddash.network.NetworkService/GetVpnTunnel"
+	NetworkService_GetVpnTunnel_FullMethodName    = "/ddash.network.NetworkService/GetVpnTunnel"
+	NetworkService_GetThroughput_FullMethodName   = "/ddash.network.NetworkService/GetThroughput"
+	NetworkService_GetRemoteAccess_FullMethodName = "/ddash.network.NetworkService/GetRemoteAccess"
 )
 
 // NetworkServiceClient is the client API for NetworkService service.
@@ -32,6 +35,15 @@ type NetworkServiceClient interface {
 	// GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
 	// the failover gateway group (every 60 s).
 	GetVpnTunnel(ctx context.Context, in *GetVpnTunnelRequest, opts ...grpc.CallOption) (*GetVpnTunnelResponse, error)
+	// GetThroughput returns the WAN and LAN throughput samples taken after
+	// since (all of the last hour when unset), oldest first. network samples
+	// every 5 s whether anyone is watching or not, and keeps the last 720
+	// samples in memory, so the ring is empty after a restart.
+	GetThroughput(ctx context.Context, in *GetThroughputRequest, opts ...grpc.CallOption) (*GetThroughputResponse, error)
+	// GetRemoteAccess returns the Remote Access peers with their last
+	// handshake and traffic, and the hosts each can reach per the pass
+	// rules on the Remote Access interface.
+	GetRemoteAccess(ctx context.Context, in *GetRemoteAccessRequest, opts ...grpc.CallOption) (*GetRemoteAccessResponse, error)
 }
 
 type networkServiceClient struct {
@@ -52,6 +64,26 @@ func (c *networkServiceClient) GetVpnTunnel(ctx context.Context, in *GetVpnTunne
 	return out, nil
 }
 
+func (c *networkServiceClient) GetThroughput(ctx context.Context, in *GetThroughputRequest, opts ...grpc.CallOption) (*GetThroughputResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetThroughputResponse)
+	err := c.cc.Invoke(ctx, NetworkService_GetThroughput_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkServiceClient) GetRemoteAccess(ctx context.Context, in *GetRemoteAccessRequest, opts ...grpc.CallOption) (*GetRemoteAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRemoteAccessResponse)
+	err := c.cc.Invoke(ctx, NetworkService_GetRemoteAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServiceServer is the server API for NetworkService service.
 // All implementations must embed UnimplementedNetworkServiceServer
 // for forward compatibility.
@@ -59,6 +91,15 @@ type NetworkServiceServer interface {
 	// GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
 	// the failover gateway group (every 60 s).
 	GetVpnTunnel(context.Context, *GetVpnTunnelRequest) (*GetVpnTunnelResponse, error)
+	// GetThroughput returns the WAN and LAN throughput samples taken after
+	// since (all of the last hour when unset), oldest first. network samples
+	// every 5 s whether anyone is watching or not, and keeps the last 720
+	// samples in memory, so the ring is empty after a restart.
+	GetThroughput(context.Context, *GetThroughputRequest) (*GetThroughputResponse, error)
+	// GetRemoteAccess returns the Remote Access peers with their last
+	// handshake and traffic, and the hosts each can reach per the pass
+	// rules on the Remote Access interface.
+	GetRemoteAccess(context.Context, *GetRemoteAccessRequest) (*GetRemoteAccessResponse, error)
 	mustEmbedUnimplementedNetworkServiceServer()
 }
 
@@ -71,6 +112,12 @@ type UnimplementedNetworkServiceServer struct{}
 
 func (UnimplementedNetworkServiceServer) GetVpnTunnel(context.Context, *GetVpnTunnelRequest) (*GetVpnTunnelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetVpnTunnel not implemented")
+}
+func (UnimplementedNetworkServiceServer) GetThroughput(context.Context, *GetThroughputRequest) (*GetThroughputResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetThroughput not implemented")
+}
+func (UnimplementedNetworkServiceServer) GetRemoteAccess(context.Context, *GetRemoteAccessRequest) (*GetRemoteAccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRemoteAccess not implemented")
 }
 func (UnimplementedNetworkServiceServer) mustEmbedUnimplementedNetworkServiceServer() {}
 func (UnimplementedNetworkServiceServer) testEmbeddedByValue()                        {}
@@ -111,6 +158,42 @@ func _NetworkService_GetVpnTunnel_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NetworkService_GetThroughput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetThroughputRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).GetThroughput(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_GetThroughput_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).GetThroughput(ctx, req.(*GetThroughputRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NetworkService_GetRemoteAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRemoteAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).GetRemoteAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_GetRemoteAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).GetRemoteAccess(ctx, req.(*GetRemoteAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NetworkService_ServiceDesc is the grpc.ServiceDesc for NetworkService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -121,6 +204,14 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVpnTunnel",
 			Handler:    _NetworkService_GetVpnTunnel_Handler,
+		},
+		{
+			MethodName: "GetThroughput",
+			Handler:    _NetworkService_GetThroughput_Handler,
+		},
+		{
+			MethodName: "GetRemoteAccess",
+			Handler:    _NetworkService_GetRemoteAccess_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

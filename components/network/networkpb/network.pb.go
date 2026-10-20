@@ -4,8 +4,9 @@
 // 	protoc        (unknown)
 // source: network/network.proto
 
-// network is the logic behind the Network Page. For now it watches the
-// firewall's failover gateway group and derives the VPN Tunnel's tier.
+// network is the logic behind the Network Page. It watches the firewall's
+// failover gateway group and derives the VPN Tunnel's tier, samples WAN and
+// LAN throughput, and reads Remote Access.
 
 package networkpb
 
@@ -13,6 +14,7 @@ import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -120,6 +122,481 @@ func (*NetworkConfig) Descriptor() ([]byte, []int) {
 	return file_network_network_proto_rawDescGZIP(), []int{0}
 }
 
+type GetThroughputRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Only samples taken after this; unset for the whole ring.
+	Since         *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=since,proto3" json:"since,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetThroughputRequest) Reset() {
+	*x = GetThroughputRequest{}
+	mi := &file_network_network_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetThroughputRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetThroughputRequest) ProtoMessage() {}
+
+func (x *GetThroughputRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetThroughputRequest.ProtoReflect.Descriptor instead.
+func (*GetThroughputRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetThroughputRequest) GetSince() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Since
+	}
+	return nil
+}
+
+type GetThroughputResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Oldest first.
+	Samples []*ThroughputSample `protobuf:"bytes,1,rep,name=samples,proto3" json:"samples,omitempty"`
+	// Why the last sampling failed; empty when it worked.
+	Error         string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetThroughputResponse) Reset() {
+	*x = GetThroughputResponse{}
+	mi := &file_network_network_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetThroughputResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetThroughputResponse) ProtoMessage() {}
+
+func (x *GetThroughputResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetThroughputResponse.ProtoReflect.Descriptor instead.
+func (*GetThroughputResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetThroughputResponse) GetSamples() []*ThroughputSample {
+	if x != nil {
+		return x.Samples
+	}
+	return nil
+}
+
+func (x *GetThroughputResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// One sample: the average rates in bytes per second since the sample
+// before it. "In" is what the interface received: WAN in is download from
+// the internet, LAN in is upload from the home network.
+type ThroughputSample struct {
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	At                   *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=at,proto3" json:"at,omitempty"`
+	WanInBytesPerSecond  float64                `protobuf:"fixed64,2,opt,name=wan_in_bytes_per_second,json=wanInBytesPerSecond,proto3" json:"wan_in_bytes_per_second,omitempty"`
+	WanOutBytesPerSecond float64                `protobuf:"fixed64,3,opt,name=wan_out_bytes_per_second,json=wanOutBytesPerSecond,proto3" json:"wan_out_bytes_per_second,omitempty"`
+	LanInBytesPerSecond  float64                `protobuf:"fixed64,4,opt,name=lan_in_bytes_per_second,json=lanInBytesPerSecond,proto3" json:"lan_in_bytes_per_second,omitempty"`
+	LanOutBytesPerSecond float64                `protobuf:"fixed64,5,opt,name=lan_out_bytes_per_second,json=lanOutBytesPerSecond,proto3" json:"lan_out_bytes_per_second,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *ThroughputSample) Reset() {
+	*x = ThroughputSample{}
+	mi := &file_network_network_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ThroughputSample) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ThroughputSample) ProtoMessage() {}
+
+func (x *ThroughputSample) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ThroughputSample.ProtoReflect.Descriptor instead.
+func (*ThroughputSample) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ThroughputSample) GetAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.At
+	}
+	return nil
+}
+
+func (x *ThroughputSample) GetWanInBytesPerSecond() float64 {
+	if x != nil {
+		return x.WanInBytesPerSecond
+	}
+	return 0
+}
+
+func (x *ThroughputSample) GetWanOutBytesPerSecond() float64 {
+	if x != nil {
+		return x.WanOutBytesPerSecond
+	}
+	return 0
+}
+
+func (x *ThroughputSample) GetLanInBytesPerSecond() float64 {
+	if x != nil {
+		return x.LanInBytesPerSecond
+	}
+	return 0
+}
+
+func (x *ThroughputSample) GetLanOutBytesPerSecond() float64 {
+	if x != nil {
+		return x.LanOutBytesPerSecond
+	}
+	return 0
+}
+
+type GetRemoteAccessRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRemoteAccessRequest) Reset() {
+	*x = GetRemoteAccessRequest{}
+	mi := &file_network_network_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRemoteAccessRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRemoteAccessRequest) ProtoMessage() {}
+
+func (x *GetRemoteAccessRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRemoteAccessRequest.ProtoReflect.Descriptor instead.
+func (*GetRemoteAccessRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{4}
+}
+
+type GetRemoteAccessResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Remote Access tunnel: the WireGuard tunnel assigned to an
+	// interface without a gateway (the VPN Tunnel's has one), e.g. "tun_wg1".
+	Tunnel string `protobuf:"bytes,1,opt,name=tunnel,proto3" json:"tunnel,omitempty"`
+	// That interface's description, e.g. "REMOTEACCESS".
+	Interface string              `protobuf:"bytes,2,opt,name=interface,proto3" json:"interface,omitempty"`
+	Peers     []*RemoteAccessPeer `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
+	// Why there's no Remote Access tunnel; empty when there is one.
+	Error         string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetRemoteAccessResponse) Reset() {
+	*x = GetRemoteAccessResponse{}
+	mi := &file_network_network_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetRemoteAccessResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRemoteAccessResponse) ProtoMessage() {}
+
+func (x *GetRemoteAccessResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRemoteAccessResponse.ProtoReflect.Descriptor instead.
+func (*GetRemoteAccessResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetRemoteAccessResponse) GetTunnel() string {
+	if x != nil {
+		return x.Tunnel
+	}
+	return ""
+}
+
+func (x *GetRemoteAccessResponse) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *GetRemoteAccessResponse) GetPeers() []*RemoteAccessPeer {
+	if x != nil {
+		return x.Peers
+	}
+	return nil
+}
+
+func (x *GetRemoteAccessResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type RemoteAccessPeer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The peer's description in pfSense; may be empty.
+	Name      string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	PublicKey string `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// Its tunnel addresses (allowed IPs), e.g. "198.18.40.2/32".
+	Addresses []string `protobuf:"bytes,3,rep,name=addresses,proto3" json:"addresses,omitempty"`
+	// Where it last connected from; empty when it never did.
+	Endpoint string `protobuf:"bytes,4,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	// Its latest handshake; unset when it never completed one.
+	LatestHandshake *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=latest_handshake,json=latestHandshake,proto3" json:"latest_handshake,omitempty"`
+	// Bytes received from and sent to it.
+	RxBytes uint64 `protobuf:"varint,6,opt,name=rx_bytes,json=rxBytes,proto3" json:"rx_bytes,omitempty"`
+	TxBytes uint64 `protobuf:"varint,7,opt,name=tx_bytes,json=txBytes,proto3" json:"tx_bytes,omitempty"`
+	// What it can reach, one entry per pass rule that applies to it.
+	Reaches       []*Reach `protobuf:"bytes,8,rep,name=reaches,proto3" json:"reaches,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoteAccessPeer) Reset() {
+	*x = RemoteAccessPeer{}
+	mi := &file_network_network_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoteAccessPeer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoteAccessPeer) ProtoMessage() {}
+
+func (x *RemoteAccessPeer) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoteAccessPeer.ProtoReflect.Descriptor instead.
+func (*RemoteAccessPeer) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *RemoteAccessPeer) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *RemoteAccessPeer) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *RemoteAccessPeer) GetAddresses() []string {
+	if x != nil {
+		return x.Addresses
+	}
+	return nil
+}
+
+func (x *RemoteAccessPeer) GetEndpoint() string {
+	if x != nil {
+		return x.Endpoint
+	}
+	return ""
+}
+
+func (x *RemoteAccessPeer) GetLatestHandshake() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LatestHandshake
+	}
+	return nil
+}
+
+func (x *RemoteAccessPeer) GetRxBytes() uint64 {
+	if x != nil {
+		return x.RxBytes
+	}
+	return 0
+}
+
+func (x *RemoteAccessPeer) GetTxBytes() uint64 {
+	if x != nil {
+		return x.TxBytes
+	}
+	return 0
+}
+
+func (x *RemoteAccessPeer) GetReaches() []*Reach {
+	if x != nil {
+		return x.Reaches
+	}
+	return nil
+}
+
+// A destination a pass rule lets a peer reach.
+type Reach struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The destination: an address or CIDR (interface subnets and addresses
+	// resolved), an alias name, "any" or "(self)"; "!" inverts it.
+	Destination string `protobuf:"bytes,1,opt,name=destination,proto3" json:"destination,omitempty"`
+	// What it is, e.g. "LAN subnet", "alias", "anywhere", "the firewall".
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// "tcp", "udp", "tcp/udp", "icmp", ...; "any" for any protocol.
+	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	// A port, a range "80:443" or a port alias; empty for any.
+	Ports string `protobuf:"bytes,4,opt,name=ports,proto3" json:"ports,omitempty"`
+	// The rule's description.
+	Rule          string `protobuf:"bytes,5,opt,name=rule,proto3" json:"rule,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Reach) Reset() {
+	*x = Reach{}
+	mi := &file_network_network_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Reach) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Reach) ProtoMessage() {}
+
+func (x *Reach) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Reach.ProtoReflect.Descriptor instead.
+func (*Reach) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Reach) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *Reach) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *Reach) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *Reach) GetPorts() string {
+	if x != nil {
+		return x.Ports
+	}
+	return ""
+}
+
+func (x *Reach) GetRule() string {
+	if x != nil {
+		return x.Rule
+	}
+	return ""
+}
+
 type GetVpnTunnelRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -128,7 +605,7 @@ type GetVpnTunnelRequest struct {
 
 func (x *GetVpnTunnelRequest) Reset() {
 	*x = GetVpnTunnelRequest{}
-	mi := &file_network_network_proto_msgTypes[1]
+	mi := &file_network_network_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -140,7 +617,7 @@ func (x *GetVpnTunnelRequest) String() string {
 func (*GetVpnTunnelRequest) ProtoMessage() {}
 
 func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[1]
+	mi := &file_network_network_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -153,7 +630,7 @@ func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelRequest.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{1}
+	return file_network_network_proto_rawDescGZIP(), []int{8}
 }
 
 type GetVpnTunnelResponse struct {
@@ -173,7 +650,7 @@ type GetVpnTunnelResponse struct {
 
 func (x *GetVpnTunnelResponse) Reset() {
 	*x = GetVpnTunnelResponse{}
-	mi := &file_network_network_proto_msgTypes[2]
+	mi := &file_network_network_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +662,7 @@ func (x *GetVpnTunnelResponse) String() string {
 func (*GetVpnTunnelResponse) ProtoMessage() {}
 
 func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[2]
+	mi := &file_network_network_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +675,7 @@ func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelResponse.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{2}
+	return file_network_network_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetVpnTunnelResponse) GetTier() Tier {
@@ -250,7 +727,7 @@ type TunnelGateway struct {
 
 func (x *TunnelGateway) Reset() {
 	*x = TunnelGateway{}
-	mi := &file_network_network_proto_msgTypes[3]
+	mi := &file_network_network_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -262,7 +739,7 @@ func (x *TunnelGateway) String() string {
 func (*TunnelGateway) ProtoMessage() {}
 
 func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[3]
+	mi := &file_network_network_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -275,7 +752,7 @@ func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TunnelGateway.ProtoReflect.Descriptor instead.
 func (*TunnelGateway) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{3}
+	return file_network_network_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *TunnelGateway) GetName() string {
@@ -331,8 +808,41 @@ var File_network_network_proto protoreflect.FileDescriptor
 
 const file_network_network_proto_rawDesc = "" +
 	"\n" +
-	"\x15network/network.proto\x12\rddash.network\x1a\x13ddash/options.proto\"\x0f\n" +
-	"\rNetworkConfig\"\x15\n" +
+	"\x15network/network.proto\x12\rddash.network\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0f\n" +
+	"\rNetworkConfig\"H\n" +
+	"\x14GetThroughputRequest\x120\n" +
+	"\x05since\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05since\"h\n" +
+	"\x15GetThroughputResponse\x129\n" +
+	"\asamples\x18\x01 \x03(\v2\x1f.ddash.network.ThroughputSampleR\asamples\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\x9a\x02\n" +
+	"\x10ThroughputSample\x12*\n" +
+	"\x02at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x124\n" +
+	"\x17wan_in_bytes_per_second\x18\x02 \x01(\x01R\x13wanInBytesPerSecond\x126\n" +
+	"\x18wan_out_bytes_per_second\x18\x03 \x01(\x01R\x14wanOutBytesPerSecond\x124\n" +
+	"\x17lan_in_bytes_per_second\x18\x04 \x01(\x01R\x13lanInBytesPerSecond\x126\n" +
+	"\x18lan_out_bytes_per_second\x18\x05 \x01(\x01R\x14lanOutBytesPerSecond\"\x18\n" +
+	"\x16GetRemoteAccessRequest\"\x9c\x01\n" +
+	"\x17GetRemoteAccessResponse\x12\x16\n" +
+	"\x06tunnel\x18\x01 \x01(\tR\x06tunnel\x12\x1c\n" +
+	"\tinterface\x18\x02 \x01(\tR\tinterface\x125\n" +
+	"\x05peers\x18\x03 \x03(\v2\x1f.ddash.network.RemoteAccessPeerR\x05peers\x12\x14\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\xac\x02\n" +
+	"\x10RemoteAccessPeer\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\tR\tpublicKey\x12\x1c\n" +
+	"\taddresses\x18\x03 \x03(\tR\taddresses\x12\x1a\n" +
+	"\bendpoint\x18\x04 \x01(\tR\bendpoint\x12E\n" +
+	"\x10latest_handshake\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\x0flatestHandshake\x12\x19\n" +
+	"\brx_bytes\x18\x06 \x01(\x04R\arxBytes\x12\x19\n" +
+	"\btx_bytes\x18\a \x01(\x04R\atxBytes\x12.\n" +
+	"\areaches\x18\b \x03(\v2\x14.ddash.network.ReachR\areaches\"\x85\x01\n" +
+	"\x05Reach\x12 \n" +
+	"\vdestination\x18\x01 \x01(\tR\vdestination\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x1a\n" +
+	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x12\x14\n" +
+	"\x05ports\x18\x04 \x01(\tR\x05ports\x12\x12\n" +
+	"\x04rule\x18\x05 \x01(\tR\x04rule\"\x15\n" +
 	"\x13GetVpnTunnelRequest\"\xa5\x01\n" +
 	"\x14GetVpnTunnelResponse\x12'\n" +
 	"\x04tier\x18\x01 \x01(\x0e2\x13.ddash.network.TierR\x04tier\x12\x14\n" +
@@ -353,9 +863,11 @@ const file_network_network_proto_rawDesc = "" +
 	"\x10TIER_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eTIER_WIREGUARD\x10\x01\x12\x10\n" +
 	"\fTIER_OPENVPN\x10\x02\x12\r\n" +
-	"\tTIER_DOWN\x10\x032q\n" +
+	"\tTIER_DOWN\x10\x032\xbd\x02\n" +
 	"\x0eNetworkService\x12_\n" +
-	"\fGetVpnTunnel\x12\".ddash.network.GetVpnTunnelRequest\x1a#.ddash.network.GetVpnTunnelResponse\"\x06\x8a\xb5\x18\x02\b\x02BCZAgithub.com/itsKontra/ddash/components/network/networkpb;networkpbb\x06proto3"
+	"\fGetVpnTunnel\x12\".ddash.network.GetVpnTunnelRequest\x1a#.ddash.network.GetVpnTunnelResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12b\n" +
+	"\rGetThroughput\x12#.ddash.network.GetThroughputRequest\x1a$.ddash.network.GetThroughputResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12f\n" +
+	"\x0fGetRemoteAccess\x12%.ddash.network.GetRemoteAccessRequest\x1a&.ddash.network.GetRemoteAccessResponse\"\x04\x8a\xb5\x18\x00BCZAgithub.com/itsKontra/ddash/components/network/networkpb;networkpbb\x06proto3"
 
 var (
 	file_network_network_proto_rawDescOnce sync.Once
@@ -370,24 +882,42 @@ func file_network_network_proto_rawDescGZIP() []byte {
 }
 
 var file_network_network_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_network_network_proto_goTypes = []any{
-	(Tier)(0),                    // 0: ddash.network.Tier
-	(*NetworkConfig)(nil),        // 1: ddash.network.NetworkConfig
-	(*GetVpnTunnelRequest)(nil),  // 2: ddash.network.GetVpnTunnelRequest
-	(*GetVpnTunnelResponse)(nil), // 3: ddash.network.GetVpnTunnelResponse
-	(*TunnelGateway)(nil),        // 4: ddash.network.TunnelGateway
+	(Tier)(0),                       // 0: ddash.network.Tier
+	(*NetworkConfig)(nil),           // 1: ddash.network.NetworkConfig
+	(*GetThroughputRequest)(nil),    // 2: ddash.network.GetThroughputRequest
+	(*GetThroughputResponse)(nil),   // 3: ddash.network.GetThroughputResponse
+	(*ThroughputSample)(nil),        // 4: ddash.network.ThroughputSample
+	(*GetRemoteAccessRequest)(nil),  // 5: ddash.network.GetRemoteAccessRequest
+	(*GetRemoteAccessResponse)(nil), // 6: ddash.network.GetRemoteAccessResponse
+	(*RemoteAccessPeer)(nil),        // 7: ddash.network.RemoteAccessPeer
+	(*Reach)(nil),                   // 8: ddash.network.Reach
+	(*GetVpnTunnelRequest)(nil),     // 9: ddash.network.GetVpnTunnelRequest
+	(*GetVpnTunnelResponse)(nil),    // 10: ddash.network.GetVpnTunnelResponse
+	(*TunnelGateway)(nil),           // 11: ddash.network.TunnelGateway
+	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
 }
 var file_network_network_proto_depIdxs = []int32{
-	0, // 0: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
-	4, // 1: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
-	2, // 2: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
-	3, // 3: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	12, // 0: ddash.network.GetThroughputRequest.since:type_name -> google.protobuf.Timestamp
+	4,  // 1: ddash.network.GetThroughputResponse.samples:type_name -> ddash.network.ThroughputSample
+	12, // 2: ddash.network.ThroughputSample.at:type_name -> google.protobuf.Timestamp
+	7,  // 3: ddash.network.GetRemoteAccessResponse.peers:type_name -> ddash.network.RemoteAccessPeer
+	12, // 4: ddash.network.RemoteAccessPeer.latest_handshake:type_name -> google.protobuf.Timestamp
+	8,  // 5: ddash.network.RemoteAccessPeer.reaches:type_name -> ddash.network.Reach
+	0,  // 6: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
+	11, // 7: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
+	9,  // 8: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
+	2,  // 9: ddash.network.NetworkService.GetThroughput:input_type -> ddash.network.GetThroughputRequest
+	5,  // 10: ddash.network.NetworkService.GetRemoteAccess:input_type -> ddash.network.GetRemoteAccessRequest
+	10, // 11: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
+	3,  // 12: ddash.network.NetworkService.GetThroughput:output_type -> ddash.network.GetThroughputResponse
+	6,  // 13: ddash.network.NetworkService.GetRemoteAccess:output_type -> ddash.network.GetRemoteAccessResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_network_network_proto_init() }
@@ -395,14 +925,14 @@ func file_network_network_proto_init() {
 	if File_network_network_proto != nil {
 		return
 	}
-	file_network_network_proto_msgTypes[3].OneofWrappers = []any{}
+	file_network_network_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_network_network_proto_rawDesc), len(file_network_network_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

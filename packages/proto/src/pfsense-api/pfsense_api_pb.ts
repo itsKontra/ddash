@@ -9,13 +9,15 @@ import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegen
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file pfsense-api/pfsense_api.proto.
  */
 export const file_pfsense_api_pfsense_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1wZnNlbnNlLWFwaS9wZnNlbnNlX2FwaS5wcm90bxIQZGRhc2gucGZzZW5zZWFwaSLoAQoQUGZzZW5zZUFwaUNvbmZpZxJtCgN1cmwYASABKAlCYJq1GFwaA1VSTCI9VGhlIGZpcmV3YWxsJ3MgTEFOIGFkZHJlc3M6IHRoZSBSRVNUIEFQSSBhbnN3ZXJzIG9uIExBTiBvbmx5LioSaHR0cHM6Ly8xOTguMTguMS4xMAE4ARJlCgdhcGlfa2V5GAIgASgJQlSatRhQEAEaB0FQSSBrZXkiQUdlbmVyYXRlZCBpbiBTeXN0ZW0gPiBSRVNUIEFQSSA+IEtleXMgZm9yIGEgZGVkaWNhdGVkIGRkYXNoIHVzZXIuMAEiFQoTTGlzdEdhdGV3YXlzUmVxdWVzdCJDChRMaXN0R2F0ZXdheXNSZXNwb25zZRIrCghnYXRld2F5cxgBIAMoCzIZLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheSLXAQoHR2F0ZXdheRIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIRCglzdWJzdGF0dXMYAyABKAkSFQoIZGVsYXlfbXMYBCABKAFIAIgBARIWCglzdGRkZXZfbXMYBSABKAFIAYgBARIZCgxsb3NzX3BlcmNlbnQYBiABKAFIAogBARISCgptb25pdG9yX2lwGAcgASgJEhEKCXNvdXJjZV9pcBgIIAEoCUILCglfZGVsYXlfbXNCDAoKX3N0ZGRldl9tc0IPCg1fbG9zc19wZXJjZW50IhoKGExpc3RHYXRld2F5R3JvdXBzUmVxdWVzdCJLChlMaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlEi4KBmdyb3VwcxgBIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwInkKDEdhdGV3YXlHcm91cBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEg8KB3RyaWdnZXIYAyABKAkSNQoHbWVtYmVycxgEIAMoCzIkLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwTWVtYmVyIjMKEkdhdGV3YXlHcm91cE1lbWJlchIPCgdnYXRld2F5GAEgASgJEgwKBHRpZXIYAiABKAUy8AEKEVBmc2Vuc2VBcGlTZXJ2aWNlEmUKDExpc3RHYXRld2F5cxIlLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVxdWVzdBomLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVzcG9uc2UiBoq1GAIIAhJ0ChFMaXN0R2F0ZXdheUdyb3VwcxIqLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlHcm91cHNSZXF1ZXN0GisuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlIgaKtRgCCAJCTVpLZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9wZnNlbnNlLWFwaS9wZnNlbnNlYXBpcGI7cGZzZW5zZWFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("Ch1wZnNlbnNlLWFwaS9wZnNlbnNlX2FwaS5wcm90bxIQZGRhc2gucGZzZW5zZWFwaSLoAQoQUGZzZW5zZUFwaUNvbmZpZxJtCgN1cmwYASABKAlCYJq1GFwaA1VSTCI9VGhlIGZpcmV3YWxsJ3MgTEFOIGFkZHJlc3M6IHRoZSBSRVNUIEFQSSBhbnN3ZXJzIG9uIExBTiBvbmx5LioSaHR0cHM6Ly8xOTguMTguMS4xMAE4ARJlCgdhcGlfa2V5GAIgASgJQlSatRhQEAEaB0FQSSBrZXkiQUdlbmVyYXRlZCBpbiBTeXN0ZW0gPiBSRVNUIEFQSSA+IEtleXMgZm9yIGEgZGVkaWNhdGVkIGRkYXNoIHVzZXIuMAEiFQoTTGlzdEdhdGV3YXlzUmVxdWVzdCJDChRMaXN0R2F0ZXdheXNSZXNwb25zZRIrCghnYXRld2F5cxgBIAMoCzIZLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheSLXAQoHR2F0ZXdheRIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIRCglzdWJzdGF0dXMYAyABKAkSFQoIZGVsYXlfbXMYBCABKAFIAIgBARIWCglzdGRkZXZfbXMYBSABKAFIAYgBARIZCgxsb3NzX3BlcmNlbnQYBiABKAFIAogBARISCgptb25pdG9yX2lwGAcgASgJEhEKCXNvdXJjZV9pcBgIIAEoCUILCglfZGVsYXlfbXNCDAoKX3N0ZGRldl9tc0IPCg1fbG9zc19wZXJjZW50IhoKGExpc3RHYXRld2F5R3JvdXBzUmVxdWVzdCJLChlMaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlEi4KBmdyb3VwcxgBIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwInkKDEdhdGV3YXlHcm91cBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEg8KB3RyaWdnZXIYAyABKAkSNQoHbWVtYmVycxgEIAMoCzIkLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwTWVtYmVyIjMKEkdhdGV3YXlHcm91cE1lbWJlchIPCgdnYXRld2F5GAEgASgJEgwKBHRpZXIYAiABKAUiFwoVTGlzdEludGVyZmFjZXNSZXF1ZXN0IkkKFkxpc3RJbnRlcmZhY2VzUmVzcG9uc2USLwoKaW50ZXJmYWNlcxgBIAMoCzIbLmRkYXNoLnBmc2Vuc2VhcGkuSW50ZXJmYWNlIt4BCglJbnRlcmZhY2USDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCRIUCgxod19pbnRlcmZhY2UYAyABKAkSDgoGc3RhdHVzGAQgASgJEhQKDGlwdjRfYWRkcmVzcxgFIAEoCRITCgtpcHY0X3ByZWZpeBgGIAEoBRIPCgdnYXRld2F5GAcgASgJEhAKCGluX2J5dGVzGAggASgEEhEKCW91dF9ieXRlcxgJIAEoBBISCgppbl9wYWNrZXRzGAogASgEEhMKC291dF9wYWNrZXRzGAsgASgEIh0KG0xpc3RXaXJlZ3VhcmRUdW5uZWxzUmVxdWVzdCJSChxMaXN0V2lyZWd1YXJkVHVubmVsc1Jlc3BvbnNlEjIKB3R1bm5lbHMYASADKAsyIS5kZGFzaC5wZnNlbnNlYXBpLldpcmVndWFyZFR1bm5lbCKtAQoPV2lyZWd1YXJkVHVubmVsEgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSDgoGc3RhdHVzGAMgASgJEhMKC2xpc3Rlbl9wb3J0GAQgASgFEhAKCHJ4X2J5dGVzGAUgASgEEhAKCHR4X2J5dGVzGAYgASgEEi4KBXBlZXJzGAcgAygLMh8uZGRhc2gucGZzZW5zZWFwaS5XaXJlZ3VhcmRQZWVyIrkBCg1XaXJlZ3VhcmRQZWVyEhIKCnB1YmxpY19rZXkYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSEAoIZW5kcG9pbnQYAyABKAkSEwoLYWxsb3dlZF9pcHMYBCADKAkSNAoQbGF0ZXN0X2hhbmRzaGFrZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcnhfYnl0ZXMYBiABKAQSEAoIdHhfYnl0ZXMYByABKAQiLQoYTGlzdEZpcmV3YWxsUnVsZXNSZXF1ZXN0EhEKCWludGVyZmFjZRgBIAEoCSJKChlMaXN0RmlyZXdhbGxSdWxlc1Jlc3BvbnNlEi0KBXJ1bGVzGAEgAygLMh4uZGRhc2gucGZzZW5zZWFwaS5GaXJld2FsbFJ1bGUi0gEKDEZpcmV3YWxsUnVsZRIMCgR0eXBlGAEgASgJEhIKCmludGVyZmFjZXMYAiADKAkSEwoLaXBfcHJvdG9jb2wYAyABKAkSEAoIcHJvdG9jb2wYBCABKAkSDgoGc291cmNlGAUgASgJEhMKC2Rlc3RpbmF0aW9uGAYgASgJEhMKC3NvdXJjZV9wb3J0GAcgASgJEhgKEGRlc3RpbmF0aW9uX3BvcnQYCCABKAkSEwoLZGVzY3JpcHRpb24YCSABKAkSEAoIZGlzYWJsZWQYCiABKAgyzgQKEVBmc2Vuc2VBcGlTZXJ2aWNlEmUKDExpc3RHYXRld2F5cxIlLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVxdWVzdBomLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVzcG9uc2UiBoq1GAIIAhJ0ChFMaXN0R2F0ZXdheUdyb3VwcxIqLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlHcm91cHNSZXF1ZXN0GisuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlIgaKtRgCCAISawoOTGlzdEludGVyZmFjZXMSJy5kZGFzaC5wZnNlbnNlYXBpLkxpc3RJbnRlcmZhY2VzUmVxdWVzdBooLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEludGVyZmFjZXNSZXNwb25zZSIGirUYAggBEnsKFExpc3RXaXJlZ3VhcmRUdW5uZWxzEi0uZGRhc2gucGZzZW5zZWFwaS5MaXN0V2lyZWd1YXJkVHVubmVsc1JlcXVlc3QaLi5kZGFzaC5wZnNlbnNlYXBpLkxpc3RXaXJlZ3VhcmRUdW5uZWxzUmVzcG9uc2UiBIq1GAAScgoRTGlzdEZpcmV3YWxsUnVsZXMSKi5kZGFzaC5wZnNlbnNlYXBpLkxpc3RGaXJld2FsbFJ1bGVzUmVxdWVzdBorLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEZpcmV3YWxsUnVsZXNSZXNwb25zZSIEirUYAEJNWktnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3Bmc2Vuc2UtYXBpL3Bmc2Vuc2VhcGlwYjtwZnNlbnNlYXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.pfsenseapi.PfsenseApiConfig
@@ -237,6 +239,374 @@ export const GatewayGroupMemberSchema: GenMessage<GatewayGroupMember> = /*@__PUR
   messageDesc(file_pfsense_api_pfsense_api, 7);
 
 /**
+ * @generated from message ddash.pfsenseapi.ListInterfacesRequest
+ */
+export type ListInterfacesRequest = Message<"ddash.pfsenseapi.ListInterfacesRequest"> & {
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListInterfacesRequest.
+ * Use `create(ListInterfacesRequestSchema)` to create a new message.
+ */
+export const ListInterfacesRequestSchema: GenMessage<ListInterfacesRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 8);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListInterfacesResponse
+ */
+export type ListInterfacesResponse = Message<"ddash.pfsenseapi.ListInterfacesResponse"> & {
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.Interface interfaces = 1;
+   */
+  interfaces: Interface[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListInterfacesResponse.
+ * Use `create(ListInterfacesResponseSchema)` to create a new message.
+ */
+export const ListInterfacesResponseSchema: GenMessage<ListInterfacesResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 9);
+
+/**
+ * An assigned interface and its counters, which count up from boot and
+ * start again from zero when the interface is reset.
+ *
+ * @generated from message ddash.pfsenseapi.Interface
+ */
+export type Interface = Message<"ddash.pfsenseapi.Interface"> & {
+  /**
+   * pfSense's interface id: "wan", "lan", "opt1", ...
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Its description, e.g. "WAN" or "REMOTEACCESS".
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * The OS device, e.g. "igc0" or "tun_wg1".
+   *
+   * @generated from field: string hw_interface = 3;
+   */
+  hwInterface: string;
+
+  /**
+   * "up", "down" or "no carrier".
+   *
+   * @generated from field: string status = 4;
+   */
+  status: string;
+
+  /**
+   * Its IPv4 address and prefix length; empty and 0 without one.
+   *
+   * @generated from field: string ipv4_address = 5;
+   */
+  ipv4Address: string;
+
+  /**
+   * @generated from field: int32 ipv4_prefix = 6;
+   */
+  ipv4Prefix: number;
+
+  /**
+   * The gateway pfSense routes through on it; empty when it has none.
+   *
+   * @generated from field: string gateway = 7;
+   */
+  gateway: string;
+
+  /**
+   * Bytes and packets in (received) and out (sent) since the counters began.
+   *
+   * @generated from field: uint64 in_bytes = 8;
+   */
+  inBytes: bigint;
+
+  /**
+   * @generated from field: uint64 out_bytes = 9;
+   */
+  outBytes: bigint;
+
+  /**
+   * @generated from field: uint64 in_packets = 10;
+   */
+  inPackets: bigint;
+
+  /**
+   * @generated from field: uint64 out_packets = 11;
+   */
+  outPackets: bigint;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.Interface.
+ * Use `create(InterfaceSchema)` to create a new message.
+ */
+export const InterfaceSchema: GenMessage<Interface> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 10);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListWireguardTunnelsRequest
+ */
+export type ListWireguardTunnelsRequest = Message<"ddash.pfsenseapi.ListWireguardTunnelsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListWireguardTunnelsRequest.
+ * Use `create(ListWireguardTunnelsRequestSchema)` to create a new message.
+ */
+export const ListWireguardTunnelsRequestSchema: GenMessage<ListWireguardTunnelsRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 11);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListWireguardTunnelsResponse
+ */
+export type ListWireguardTunnelsResponse = Message<"ddash.pfsenseapi.ListWireguardTunnelsResponse"> & {
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.WireguardTunnel tunnels = 1;
+   */
+  tunnels: WireguardTunnel[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListWireguardTunnelsResponse.
+ * Use `create(ListWireguardTunnelsResponseSchema)` to create a new message.
+ */
+export const ListWireguardTunnelsResponseSchema: GenMessage<ListWireguardTunnelsResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 12);
+
+/**
+ * @generated from message ddash.pfsenseapi.WireguardTunnel
+ */
+export type WireguardTunnel = Message<"ddash.pfsenseapi.WireguardTunnel"> & {
+  /**
+   * The tunnel's device, e.g. "tun_wg1".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * "up" or "down".
+   *
+   * @generated from field: string status = 3;
+   */
+  status: string;
+
+  /**
+   * The UDP port it listens on; 0 when it doesn't.
+   *
+   * @generated from field: int32 listen_port = 4;
+   */
+  listenPort: number;
+
+  /**
+   * Bytes received and sent on the tunnel since it came up.
+   *
+   * @generated from field: uint64 rx_bytes = 5;
+   */
+  rxBytes: bigint;
+
+  /**
+   * @generated from field: uint64 tx_bytes = 6;
+   */
+  txBytes: bigint;
+
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.WireguardPeer peers = 7;
+   */
+  peers: WireguardPeer[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.WireguardTunnel.
+ * Use `create(WireguardTunnelSchema)` to create a new message.
+ */
+export const WireguardTunnelSchema: GenMessage<WireguardTunnel> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 13);
+
+/**
+ * @generated from message ddash.pfsenseapi.WireguardPeer
+ */
+export type WireguardPeer = Message<"ddash.pfsenseapi.WireguardPeer"> & {
+  /**
+   * @generated from field: string public_key = 1;
+   */
+  publicKey: string;
+
+  /**
+   * The peer's description in the tunnel's config.
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * Where it last connected from (host:port); empty when it never did.
+   *
+   * @generated from field: string endpoint = 3;
+   */
+  endpoint: string;
+
+  /**
+   * The addresses routed to it, e.g. "198.18.40.2/32".
+   *
+   * @generated from field: repeated string allowed_ips = 4;
+   */
+  allowedIps: string[];
+
+  /**
+   * Its latest handshake; unset when it never completed one.
+   *
+   * @generated from field: google.protobuf.Timestamp latest_handshake = 5;
+   */
+  latestHandshake?: Timestamp | undefined;
+
+  /**
+   * Bytes received from and sent to it.
+   *
+   * @generated from field: uint64 rx_bytes = 6;
+   */
+  rxBytes: bigint;
+
+  /**
+   * @generated from field: uint64 tx_bytes = 7;
+   */
+  txBytes: bigint;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.WireguardPeer.
+ * Use `create(WireguardPeerSchema)` to create a new message.
+ */
+export const WireguardPeerSchema: GenMessage<WireguardPeer> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 14);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListFirewallRulesRequest
+ */
+export type ListFirewallRulesRequest = Message<"ddash.pfsenseapi.ListFirewallRulesRequest"> & {
+  /**
+   * The interface id whose rules to list, e.g. "opt1"; empty lists all.
+   *
+   * @generated from field: string interface = 1;
+   */
+  interface: string;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListFirewallRulesRequest.
+ * Use `create(ListFirewallRulesRequestSchema)` to create a new message.
+ */
+export const ListFirewallRulesRequestSchema: GenMessage<ListFirewallRulesRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 15);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListFirewallRulesResponse
+ */
+export type ListFirewallRulesResponse = Message<"ddash.pfsenseapi.ListFirewallRulesResponse"> & {
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.FirewallRule rules = 1;
+   */
+  rules: FirewallRule[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListFirewallRulesResponse.
+ * Use `create(ListFirewallRulesResponseSchema)` to create a new message.
+ */
+export const ListFirewallRulesResponseSchema: GenMessage<ListFirewallRulesResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 16);
+
+/**
+ * @generated from message ddash.pfsenseapi.FirewallRule
+ */
+export type FirewallRule = Message<"ddash.pfsenseapi.FirewallRule"> & {
+  /**
+   * "pass", "block" or "reject".
+   *
+   * @generated from field: string type = 1;
+   */
+  type: string;
+
+  /**
+   * The interface ids it sits on.
+   *
+   * @generated from field: repeated string interfaces = 2;
+   */
+  interfaces: string[];
+
+  /**
+   * "inet", "inet6" or "inet46".
+   *
+   * @generated from field: string ip_protocol = 3;
+   */
+  ipProtocol: string;
+
+  /**
+   * "tcp", "udp", "tcp/udp", "icmp", ...; empty for any.
+   *
+   * @generated from field: string protocol = 4;
+   */
+  protocol: string;
+
+  /**
+   * pfSense's address forms: "any", an address or CIDR, an alias name, an
+   * interface id for its subnet ("lan") or its address ("lan:ip"), or
+   * "(self)"; a leading "!" inverts it.
+   *
+   * @generated from field: string source = 5;
+   */
+  source: string;
+
+  /**
+   * @generated from field: string destination = 6;
+   */
+  destination: string;
+
+  /**
+   * A port, a range "80:443" or a port alias; empty for any.
+   *
+   * @generated from field: string source_port = 7;
+   */
+  sourcePort: string;
+
+  /**
+   * @generated from field: string destination_port = 8;
+   */
+  destinationPort: string;
+
+  /**
+   * @generated from field: string description = 9;
+   */
+  description: string;
+
+  /**
+   * @generated from field: bool disabled = 10;
+   */
+  disabled: boolean;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.FirewallRule.
+ * Use `create(FirewallRuleSchema)` to create a new message.
+ */
+export const FirewallRuleSchema: GenMessage<FirewallRule> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 17);
+
+/**
  * @generated from service ddash.pfsenseapi.PfsenseApiService
  */
 export const PfsenseApiService: GenService<{
@@ -261,6 +631,41 @@ export const PfsenseApiService: GenService<{
     methodKind: "unary";
     input: typeof ListGatewayGroupsRequestSchema;
     output: typeof ListGatewayGroupsResponseSchema;
+  },
+  /**
+   * ListInterfaces returns every assigned interface with its cumulative
+   * traffic counters (status/interfaces), in pfSense's order. Cached for
+   * 2 s, so network's 5 s sampling always reads fresh counters.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.ListInterfaces
+   */
+  listInterfaces: {
+    methodKind: "unary";
+    input: typeof ListInterfacesRequestSchema;
+    output: typeof ListInterfacesResponseSchema;
+  },
+  /**
+   * ListWireguardTunnels returns every WireGuard tunnel's live status with
+   * its peers (status/wireguard/tunnels; status/wireguard/peers misses
+   * peers), in pfSense's order.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels
+   */
+  listWireguardTunnels: {
+    methodKind: "unary";
+    input: typeof ListWireguardTunnelsRequestSchema;
+    output: typeof ListWireguardTunnelsResponseSchema;
+  },
+  /**
+   * ListFirewallRules returns the firewall rules on one interface
+   * (firewall/rules), in evaluation order.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.ListFirewallRules
+   */
+  listFirewallRules: {
+    methodKind: "unary";
+    input: typeof ListFirewallRulesRequestSchema;
+    output: typeof ListFirewallRulesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_pfsense_api_pfsense_api, 0);

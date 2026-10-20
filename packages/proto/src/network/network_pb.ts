@@ -2,19 +2,22 @@
 // @generated from file network/network.proto (package ddash.network, syntax proto3)
 /* eslint-disable */
 
-// network is the logic behind the Network Page. For now it watches the
-// firewall's failover gateway group and derives the VPN Tunnel's tier.
+// network is the logic behind the Network Page. It watches the firewall's
+// failover gateway group and derives the VPN Tunnel's tier, samples WAN and
+// LAN throughput, and reads Remote Access.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file network/network.proto.
  */
 export const file_network_network: GenFile = /*@__PURE__*/
-  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiDwoNTmV0d29ya0NvbmZpZyIVChNHZXRWcG5UdW5uZWxSZXF1ZXN0IocBChRHZXRWcG5UdW5uZWxSZXNwb25zZRIhCgR0aWVyGAEgASgOMhMuZGRhc2gubmV0d29yay5UaWVyEg0KBWdyb3VwGAIgASgJEi4KCGdhdGV3YXlzGAMgAygLMhwuZGRhc2gubmV0d29yay5UdW5uZWxHYXRld2F5Eg0KBWVycm9yGAQgASgJIqoBCg1UdW5uZWxHYXRld2F5EgwKBG5hbWUYASABKAkSDAoEdGllchgCIAEoBRIKCgJ1cBgDIAEoCBIOCgZzdGF0dXMYBCABKAkSEQoJc3Vic3RhdHVzGAUgASgJEhUKCGRlbGF5X21zGAYgASgBSACIAQESGQoMbG9zc19wZXJjZW50GAcgASgBSAGIAQFCCwoJX2RlbGF5X21zQg8KDV9sb3NzX3BlcmNlbnQqUQoEVGllchIUChBUSUVSX1VOU1BFQ0lGSUVEEAASEgoOVElFUl9XSVJFR1VBUkQQARIQCgxUSUVSX09QRU5WUE4QAhINCglUSUVSX0RPV04QAzJxCg5OZXR3b3JrU2VydmljZRJfCgxHZXRWcG5UdW5uZWwSIi5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlcXVlc3QaIy5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlc3BvbnNlIgaKtRgCCAJCQ1pBZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZXR3b3JrL25ldHdvcmtwYjtuZXR3b3JrcGJiBnByb3RvMw", [file_ddash_options]);
+  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiDwoNTmV0d29ya0NvbmZpZyJBChRHZXRUaHJvdWdocHV0UmVxdWVzdBIpCgVzaW5jZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWAoVR2V0VGhyb3VnaHB1dFJlc3BvbnNlEjAKB3NhbXBsZXMYASADKAsyHy5kZGFzaC5uZXR3b3JrLlRocm91Z2hwdXRTYW1wbGUSDQoFZXJyb3IYAiABKAkiwAEKEFRocm91Z2hwdXRTYW1wbGUSJgoCYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh8KF3dhbl9pbl9ieXRlc19wZXJfc2Vjb25kGAIgASgBEiAKGHdhbl9vdXRfYnl0ZXNfcGVyX3NlY29uZBgDIAEoARIfChdsYW5faW5fYnl0ZXNfcGVyX3NlY29uZBgEIAEoARIgChhsYW5fb3V0X2J5dGVzX3Blcl9zZWNvbmQYBSABKAEiGAoWR2V0UmVtb3RlQWNjZXNzUmVxdWVzdCJ7ChdHZXRSZW1vdGVBY2Nlc3NSZXNwb25zZRIOCgZ0dW5uZWwYASABKAkSEQoJaW50ZXJmYWNlGAIgASgJEi4KBXBlZXJzGAMgAygLMh8uZGRhc2gubmV0d29yay5SZW1vdGVBY2Nlc3NQZWVyEg0KBWVycm9yGAQgASgJItoBChBSZW1vdGVBY2Nlc3NQZWVyEgwKBG5hbWUYASABKAkSEgoKcHVibGljX2tleRgCIAEoCRIRCglhZGRyZXNzZXMYAyADKAkSEAoIZW5kcG9pbnQYBCABKAkSNAoQbGF0ZXN0X2hhbmRzaGFrZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcnhfYnl0ZXMYBiABKAQSEAoIdHhfYnl0ZXMYByABKAQSJQoHcmVhY2hlcxgIIAMoCzIULmRkYXNoLm5ldHdvcmsuUmVhY2giWgoFUmVhY2gSEwoLZGVzdGluYXRpb24YASABKAkSDQoFbGFiZWwYAiABKAkSEAoIcHJvdG9jb2wYAyABKAkSDQoFcG9ydHMYBCABKAkSDAoEcnVsZRgFIAEoCSIVChNHZXRWcG5UdW5uZWxSZXF1ZXN0IocBChRHZXRWcG5UdW5uZWxSZXNwb25zZRIhCgR0aWVyGAEgASgOMhMuZGRhc2gubmV0d29yay5UaWVyEg0KBWdyb3VwGAIgASgJEi4KCGdhdGV3YXlzGAMgAygLMhwuZGRhc2gubmV0d29yay5UdW5uZWxHYXRld2F5Eg0KBWVycm9yGAQgASgJIqoBCg1UdW5uZWxHYXRld2F5EgwKBG5hbWUYASABKAkSDAoEdGllchgCIAEoBRIKCgJ1cBgDIAEoCBIOCgZzdGF0dXMYBCABKAkSEQoJc3Vic3RhdHVzGAUgASgJEhUKCGRlbGF5X21zGAYgASgBSACIAQESGQoMbG9zc19wZXJjZW50GAcgASgBSAGIAQFCCwoJX2RlbGF5X21zQg8KDV9sb3NzX3BlcmNlbnQqUQoEVGllchIUChBUSUVSX1VOU1BFQ0lGSUVEEAASEgoOVElFUl9XSVJFR1VBUkQQARIQCgxUSUVSX09QRU5WUE4QAhINCglUSUVSX0RPV04QAzK9AgoOTmV0d29ya1NlcnZpY2USXwoMR2V0VnBuVHVubmVsEiIuZGRhc2gubmV0d29yay5HZXRWcG5UdW5uZWxSZXF1ZXN0GiMuZGRhc2gubmV0d29yay5HZXRWcG5UdW5uZWxSZXNwb25zZSIGirUYAggCEmIKDUdldFRocm91Z2hwdXQSIy5kZGFzaC5uZXR3b3JrLkdldFRocm91Z2hwdXRSZXF1ZXN0GiQuZGRhc2gubmV0d29yay5HZXRUaHJvdWdocHV0UmVzcG9uc2UiBoq1GAIIARJmCg9HZXRSZW1vdGVBY2Nlc3MSJS5kZGFzaC5uZXR3b3JrLkdldFJlbW90ZUFjY2Vzc1JlcXVlc3QaJi5kZGFzaC5uZXR3b3JrLkdldFJlbW90ZUFjY2Vzc1Jlc3BvbnNlIgSKtRgAQkNaQWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbmV0d29yay9uZXR3b3JrcGI7bmV0d29ya3BiYgZwcm90bzM", [file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * network takes no config yet.
@@ -32,6 +35,258 @@ export const NetworkConfigSchema: GenMessage<NetworkConfig> = /*@__PURE__*/
   messageDesc(file_network_network, 0);
 
 /**
+ * @generated from message ddash.network.GetThroughputRequest
+ */
+export type GetThroughputRequest = Message<"ddash.network.GetThroughputRequest"> & {
+  /**
+   * Only samples taken after this; unset for the whole ring.
+   *
+   * @generated from field: google.protobuf.Timestamp since = 1;
+   */
+  since?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message ddash.network.GetThroughputRequest.
+ * Use `create(GetThroughputRequestSchema)` to create a new message.
+ */
+export const GetThroughputRequestSchema: GenMessage<GetThroughputRequest> = /*@__PURE__*/
+  messageDesc(file_network_network, 1);
+
+/**
+ * @generated from message ddash.network.GetThroughputResponse
+ */
+export type GetThroughputResponse = Message<"ddash.network.GetThroughputResponse"> & {
+  /**
+   * Oldest first.
+   *
+   * @generated from field: repeated ddash.network.ThroughputSample samples = 1;
+   */
+  samples: ThroughputSample[];
+
+  /**
+   * Why the last sampling failed; empty when it worked.
+   *
+   * @generated from field: string error = 2;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message ddash.network.GetThroughputResponse.
+ * Use `create(GetThroughputResponseSchema)` to create a new message.
+ */
+export const GetThroughputResponseSchema: GenMessage<GetThroughputResponse> = /*@__PURE__*/
+  messageDesc(file_network_network, 2);
+
+/**
+ * One sample: the average rates in bytes per second since the sample
+ * before it. "In" is what the interface received: WAN in is download from
+ * the internet, LAN in is upload from the home network.
+ *
+ * @generated from message ddash.network.ThroughputSample
+ */
+export type ThroughputSample = Message<"ddash.network.ThroughputSample"> & {
+  /**
+   * @generated from field: google.protobuf.Timestamp at = 1;
+   */
+  at?: Timestamp | undefined;
+
+  /**
+   * @generated from field: double wan_in_bytes_per_second = 2;
+   */
+  wanInBytesPerSecond: number;
+
+  /**
+   * @generated from field: double wan_out_bytes_per_second = 3;
+   */
+  wanOutBytesPerSecond: number;
+
+  /**
+   * @generated from field: double lan_in_bytes_per_second = 4;
+   */
+  lanInBytesPerSecond: number;
+
+  /**
+   * @generated from field: double lan_out_bytes_per_second = 5;
+   */
+  lanOutBytesPerSecond: number;
+};
+
+/**
+ * Describes the message ddash.network.ThroughputSample.
+ * Use `create(ThroughputSampleSchema)` to create a new message.
+ */
+export const ThroughputSampleSchema: GenMessage<ThroughputSample> = /*@__PURE__*/
+  messageDesc(file_network_network, 3);
+
+/**
+ * @generated from message ddash.network.GetRemoteAccessRequest
+ */
+export type GetRemoteAccessRequest = Message<"ddash.network.GetRemoteAccessRequest"> & {
+};
+
+/**
+ * Describes the message ddash.network.GetRemoteAccessRequest.
+ * Use `create(GetRemoteAccessRequestSchema)` to create a new message.
+ */
+export const GetRemoteAccessRequestSchema: GenMessage<GetRemoteAccessRequest> = /*@__PURE__*/
+  messageDesc(file_network_network, 4);
+
+/**
+ * @generated from message ddash.network.GetRemoteAccessResponse
+ */
+export type GetRemoteAccessResponse = Message<"ddash.network.GetRemoteAccessResponse"> & {
+  /**
+   * The Remote Access tunnel: the WireGuard tunnel assigned to an
+   * interface without a gateway (the VPN Tunnel's has one), e.g. "tun_wg1".
+   *
+   * @generated from field: string tunnel = 1;
+   */
+  tunnel: string;
+
+  /**
+   * That interface's description, e.g. "REMOTEACCESS".
+   *
+   * @generated from field: string interface = 2;
+   */
+  interface: string;
+
+  /**
+   * @generated from field: repeated ddash.network.RemoteAccessPeer peers = 3;
+   */
+  peers: RemoteAccessPeer[];
+
+  /**
+   * Why there's no Remote Access tunnel; empty when there is one.
+   *
+   * @generated from field: string error = 4;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message ddash.network.GetRemoteAccessResponse.
+ * Use `create(GetRemoteAccessResponseSchema)` to create a new message.
+ */
+export const GetRemoteAccessResponseSchema: GenMessage<GetRemoteAccessResponse> = /*@__PURE__*/
+  messageDesc(file_network_network, 5);
+
+/**
+ * @generated from message ddash.network.RemoteAccessPeer
+ */
+export type RemoteAccessPeer = Message<"ddash.network.RemoteAccessPeer"> & {
+  /**
+   * The peer's description in pfSense; may be empty.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string public_key = 2;
+   */
+  publicKey: string;
+
+  /**
+   * Its tunnel addresses (allowed IPs), e.g. "198.18.40.2/32".
+   *
+   * @generated from field: repeated string addresses = 3;
+   */
+  addresses: string[];
+
+  /**
+   * Where it last connected from; empty when it never did.
+   *
+   * @generated from field: string endpoint = 4;
+   */
+  endpoint: string;
+
+  /**
+   * Its latest handshake; unset when it never completed one.
+   *
+   * @generated from field: google.protobuf.Timestamp latest_handshake = 5;
+   */
+  latestHandshake?: Timestamp | undefined;
+
+  /**
+   * Bytes received from and sent to it.
+   *
+   * @generated from field: uint64 rx_bytes = 6;
+   */
+  rxBytes: bigint;
+
+  /**
+   * @generated from field: uint64 tx_bytes = 7;
+   */
+  txBytes: bigint;
+
+  /**
+   * What it can reach, one entry per pass rule that applies to it.
+   *
+   * @generated from field: repeated ddash.network.Reach reaches = 8;
+   */
+  reaches: Reach[];
+};
+
+/**
+ * Describes the message ddash.network.RemoteAccessPeer.
+ * Use `create(RemoteAccessPeerSchema)` to create a new message.
+ */
+export const RemoteAccessPeerSchema: GenMessage<RemoteAccessPeer> = /*@__PURE__*/
+  messageDesc(file_network_network, 6);
+
+/**
+ * A destination a pass rule lets a peer reach.
+ *
+ * @generated from message ddash.network.Reach
+ */
+export type Reach = Message<"ddash.network.Reach"> & {
+  /**
+   * The destination: an address or CIDR (interface subnets and addresses
+   * resolved), an alias name, "any" or "(self)"; "!" inverts it.
+   *
+   * @generated from field: string destination = 1;
+   */
+  destination: string;
+
+  /**
+   * What it is, e.g. "LAN subnet", "alias", "anywhere", "the firewall".
+   *
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * "tcp", "udp", "tcp/udp", "icmp", ...; "any" for any protocol.
+   *
+   * @generated from field: string protocol = 3;
+   */
+  protocol: string;
+
+  /**
+   * A port, a range "80:443" or a port alias; empty for any.
+   *
+   * @generated from field: string ports = 4;
+   */
+  ports: string;
+
+  /**
+   * The rule's description.
+   *
+   * @generated from field: string rule = 5;
+   */
+  rule: string;
+};
+
+/**
+ * Describes the message ddash.network.Reach.
+ * Use `create(ReachSchema)` to create a new message.
+ */
+export const ReachSchema: GenMessage<Reach> = /*@__PURE__*/
+  messageDesc(file_network_network, 7);
+
+/**
  * @generated from message ddash.network.GetVpnTunnelRequest
  */
 export type GetVpnTunnelRequest = Message<"ddash.network.GetVpnTunnelRequest"> & {
@@ -42,7 +297,7 @@ export type GetVpnTunnelRequest = Message<"ddash.network.GetVpnTunnelRequest"> &
  * Use `create(GetVpnTunnelRequestSchema)` to create a new message.
  */
 export const GetVpnTunnelRequestSchema: GenMessage<GetVpnTunnelRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 1);
+  messageDesc(file_network_network, 8);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelResponse
@@ -83,7 +338,7 @@ export type GetVpnTunnelResponse = Message<"ddash.network.GetVpnTunnelResponse">
  * Use `create(GetVpnTunnelResponseSchema)` to create a new message.
  */
 export const GetVpnTunnelResponseSchema: GenMessage<GetVpnTunnelResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 2);
+  messageDesc(file_network_network, 9);
 
 /**
  * @generated from message ddash.network.TunnelGateway
@@ -142,7 +397,7 @@ export type TunnelGateway = Message<"ddash.network.TunnelGateway"> & {
  * Use `create(TunnelGatewaySchema)` to create a new message.
  */
 export const TunnelGatewaySchema: GenMessage<TunnelGateway> = /*@__PURE__*/
-  messageDesc(file_network_network, 3);
+  messageDesc(file_network_network, 10);
 
 /**
  * The VPN Tunnel's tier. The failover group's first tier is the WireGuard
@@ -200,6 +455,31 @@ export const NetworkService: GenService<{
     methodKind: "unary";
     input: typeof GetVpnTunnelRequestSchema;
     output: typeof GetVpnTunnelResponseSchema;
+  },
+  /**
+   * GetThroughput returns the WAN and LAN throughput samples taken after
+   * since (all of the last hour when unset), oldest first. network samples
+   * every 5 s whether anyone is watching or not, and keeps the last 720
+   * samples in memory, so the ring is empty after a restart.
+   *
+   * @generated from rpc ddash.network.NetworkService.GetThroughput
+   */
+  getThroughput: {
+    methodKind: "unary";
+    input: typeof GetThroughputRequestSchema;
+    output: typeof GetThroughputResponseSchema;
+  },
+  /**
+   * GetRemoteAccess returns the Remote Access peers with their last
+   * handshake and traffic, and the hosts each can reach per the pass
+   * rules on the Remote Access interface.
+   *
+   * @generated from rpc ddash.network.NetworkService.GetRemoteAccess
+   */
+  getRemoteAccess: {
+    methodKind: "unary";
+    input: typeof GetRemoteAccessRequestSchema;
+    output: typeof GetRemoteAccessResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_network_network, 0);

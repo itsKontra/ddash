@@ -13,11 +13,13 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/sdk"
@@ -41,9 +43,12 @@ func Definition() sdk.Definition {
 
 type component struct {
 	pfsenseapipb.UnimplementedPfsenseApiServiceServer
-	api      *api
-	gateways *sdk.Cache[*pfsenseapipb.ListGatewaysResponse]
-	groups   *sdk.Cache[*pfsenseapipb.ListGatewayGroupsResponse]
+	api        *api
+	gateways   *sdk.Cache[*pfsenseapipb.ListGatewaysResponse]
+	groups     *sdk.Cache[*pfsenseapipb.ListGatewayGroupsResponse]
+	interfaces *sdk.Cache[*pfsenseapipb.ListInterfacesResponse]
+	tunnels    *sdk.Cache[*pfsenseapipb.ListWireguardTunnelsResponse]
+	rules      *sdk.Cache[*pfsenseapipb.ListFirewallRulesResponse]
 }
 
 func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.PfsenseApiConfig) error {
@@ -56,6 +61,9 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.Pfsen
 	c.api = &api{base: strings.TrimSuffix(base.String(), "/"), key: cfg.GetApiKey(), http: &http.Client{Timeout: requestTimeout}}
 	c.gateways = sdk.Cached(sdk.TTLFast, c.fetchGateways)
 	c.groups = sdk.Cached(sdk.TTLFast, c.fetchGroups)
+	c.interfaces = sdk.Cached(countersTTL, c.fetchInterfaces)
+	c.tunnels = sdk.Cached(sdk.TTLSlow, c.fetchTunnels)
+	c.rules = sdk.Cached(sdk.TTLSlow, c.fetchRules)
 	return nil
 }
 
@@ -138,6 +146,211 @@ func (c *component) fetchGroups(ctx context.Context) (*pfsenseapipb.ListGatewayG
 		out.Groups = append(out.Groups, group)
 	}
 	return out, nil
+}
+
+// countersTTL keeps interface counters for less than network's 5 s
+// sampling interval, so every sample reads fresh counters.
+const countersTTL = 2 * time.Second
+
+func (c *component) ListInterfaces(ctx context.Context, _ *pfsenseapipb.ListInterfacesRequest) (*pfsenseapipb.ListInterfacesResponse, error) {
+	return c.interfaces.Get(ctx)
+}
+
+func (c *component) ListWireguardTunnels(ctx context.Context, _ *pfsenseapipb.ListWireguardTunnelsRequest) (*pfsenseapipb.ListWireguardTunnelsResponse, error) {
+	return c.tunnels.Get(ctx)
+}
+
+// ListFirewallRules reads every rule once per TTL and filters by interface,
+// so asking for several interfaces costs one request.
+func (c *component) ListFirewallRules(ctx context.Context, req *pfsenseapipb.ListFirewallRulesRequest) (*pfsenseapipb.ListFirewallRulesResponse, error) {
+	all, err := c.rules.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListFirewallRulesResponse{}
+	for _, r := range all.GetRules() {
+		if req.GetInterface() == "" || slices.Contains(r.GetInterfaces(), req.GetInterface()) {
+			out.Rules = append(out.Rules, r)
+		}
+	}
+	return out, nil
+}
+
+// interfaceStats is one entry of GET /api/v2/status/interfaces.
+type interfaceStats struct {
+	Name     string `json:"name"`
+	Descr    string `json:"descr"`
+	HWIf     string `json:"hwif"`
+	Status   string `json:"status"`
+	IPAddr   string `json:"ipaddr"`
+	Subnet   number `json:"subnet"`
+	Gateway  string `json:"gateway"`
+	InBytes  number `json:"inbytes"`
+	OutBytes number `json:"outbytes"`
+	InPkts   number `json:"inpkts"`
+	OutPkts  number `json:"outpkts"`
+}
+
+func (c *component) fetchInterfaces(ctx context.Context) (*pfsenseapipb.ListInterfacesResponse, error) {
+	var data []interfaceStats
+	if err := c.api.get(ctx, "/api/v2/status/interfaces", &data); err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListInterfacesResponse{}
+	for _, i := range data {
+		out.Interfaces = append(out.Interfaces, &pfsenseapipb.Interface{
+			Name:        i.Name,
+			Description: i.Descr,
+			HwInterface: i.HWIf,
+			Status:      i.Status,
+			Ipv4Address: i.IPAddr,
+			Ipv4Prefix:  int32(i.Subnet),
+			Gateway:     i.Gateway,
+			InBytes:     uint64(i.InBytes),
+			OutBytes:    uint64(i.OutBytes),
+			InPackets:   uint64(i.InPkts),
+			OutPackets:  uint64(i.OutPkts),
+		})
+	}
+	return out, nil
+}
+
+// wireguardTunnel is one entry of GET /api/v2/status/wireguard/tunnels.
+type wireguardTunnel struct {
+	Name       string `json:"name"`
+	Descr      string `json:"descr"`
+	Status     string `json:"status"`
+	ListenPort number `json:"listen_port"`
+	RX         number `json:"transfer_rx"`
+	TX         number `json:"transfer_tx"`
+	Peers      []struct {
+		PublicKey       string     `json:"public_key"`
+		Descr           string     `json:"descr"`
+		Endpoint        string     `json:"endpoint"`
+		AllowedIPs      stringList `json:"allowed_ips"`
+		LatestHandshake number     `json:"latest_handshake"`
+		RX              number     `json:"transfer_rx"`
+		TX              number     `json:"transfer_tx"`
+	} `json:"peers"`
+}
+
+func (c *component) fetchTunnels(ctx context.Context) (*pfsenseapipb.ListWireguardTunnelsResponse, error) {
+	var data []wireguardTunnel
+	if err := c.api.get(ctx, "/api/v2/status/wireguard/tunnels", &data); err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListWireguardTunnelsResponse{}
+	for _, t := range data {
+		tunnel := &pfsenseapipb.WireguardTunnel{
+			Name:        t.Name,
+			Description: t.Descr,
+			Status:      t.Status,
+			ListenPort:  int32(t.ListenPort),
+			RxBytes:     uint64(t.RX),
+			TxBytes:     uint64(t.TX),
+		}
+		for _, p := range t.Peers {
+			peer := &pfsenseapipb.WireguardPeer{
+				PublicKey:   p.PublicKey,
+				Description: p.Descr,
+				AllowedIps:  p.AllowedIPs,
+				RxBytes:     uint64(p.RX),
+				TxBytes:     uint64(p.TX),
+			}
+			// wg shows "(none)" for a peer that never connected.
+			if p.Endpoint != "(none)" {
+				peer.Endpoint = p.Endpoint
+			}
+			if p.LatestHandshake > 0 {
+				peer.LatestHandshake = timestamppb.New(time.Unix(int64(p.LatestHandshake), 0))
+			}
+			tunnel.Peers = append(tunnel.Peers, peer)
+		}
+		out.Tunnels = append(out.Tunnels, tunnel)
+	}
+	return out, nil
+}
+
+// firewallRule is one entry of GET /api/v2/firewall/rules.
+type firewallRule struct {
+	Type            string     `json:"type"`
+	Interface       stringList `json:"interface"`
+	IPProtocol      string     `json:"ipprotocol"`
+	Protocol        string     `json:"protocol"`
+	Source          string     `json:"source"`
+	SourcePort      string     `json:"source_port"`
+	Destination     string     `json:"destination"`
+	DestinationPort string     `json:"destination_port"`
+	Descr           string     `json:"descr"`
+	Disabled        bool       `json:"disabled"`
+}
+
+func (c *component) fetchRules(ctx context.Context) (*pfsenseapipb.ListFirewallRulesResponse, error) {
+	var data []firewallRule
+	if err := c.api.get(ctx, "/api/v2/firewall/rules", &data); err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListFirewallRulesResponse{}
+	for _, r := range data {
+		out.Rules = append(out.Rules, &pfsenseapipb.FirewallRule{
+			Type:            r.Type,
+			Interfaces:      r.Interface,
+			IpProtocol:      r.IPProtocol,
+			Protocol:        r.Protocol,
+			Source:          r.Source,
+			SourcePort:      r.SourcePort,
+			Destination:     r.Destination,
+			DestinationPort: r.DestinationPort,
+			Description:     r.Descr,
+			Disabled:        r.Disabled,
+		})
+	}
+	return out, nil
+}
+
+// number decodes a whole JSON number, a numeric string (pfSense sends some
+// numbers as text, e.g. a subnet "24" or a listen port "51820"), or null
+// or "" as 0.
+type number uint64
+
+func (n *number) UnmarshalJSON(b []byte) error {
+	text := strings.Trim(string(b), `"`)
+	if text == "null" || text == "" {
+		*n = 0
+		return nil
+	}
+	v, err := strconv.ParseUint(text, 10, 64)
+	if err != nil {
+		return fmt.Errorf("not a whole number: %s", b)
+	}
+	*n = number(v)
+	return nil
+}
+
+// stringList decodes a JSON list of strings, a comma-separated string or null.
+type stringList []string
+
+func (s *stringList) UnmarshalJSON(b []byte) error {
+	var v any
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	*s = nil
+	switch v := v.(type) {
+	case string:
+		for p := range strings.SplitSeq(v, ",") {
+			if p = strings.TrimSpace(p); p != "" {
+				*s = append(*s, p)
+			}
+		}
+	case []any:
+		for _, p := range v {
+			if p, ok := p.(string); ok {
+				*s = append(*s, p)
+			}
+		}
+	}
+	return nil
 }
 
 // api is the firewall's REST API v2.

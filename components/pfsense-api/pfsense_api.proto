@@ -6,6 +6,7 @@ package ddash.pfsenseapi;
 
 import "ddash/config/config.proto";
 import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipb";
 
@@ -37,6 +38,23 @@ service PfsenseApiService {
   // (routing/gateway/groups), in pfSense's order.
   rpc ListGatewayGroups(ListGatewayGroupsRequest) returns (ListGatewayGroupsResponse) {
     option (ddash.getter) = {refresh: FAST};
+  }
+  // ListInterfaces returns every assigned interface with its cumulative
+  // traffic counters (status/interfaces), in pfSense's order. Cached for
+  // 2 s, so network's 5 s sampling always reads fresh counters.
+  rpc ListInterfaces(ListInterfacesRequest) returns (ListInterfacesResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  // ListWireguardTunnels returns every WireGuard tunnel's live status with
+  // its peers (status/wireguard/tunnels; status/wireguard/peers misses
+  // peers), in pfSense's order.
+  rpc ListWireguardTunnels(ListWireguardTunnelsRequest) returns (ListWireguardTunnelsResponse) {
+    option (ddash.getter) = {};
+  }
+  // ListFirewallRules returns the firewall rules on one interface
+  // (firewall/rules), in evaluation order.
+  rpc ListFirewallRules(ListFirewallRulesRequest) returns (ListFirewallRulesResponse) {
+    option (ddash.getter) = {};
   }
 }
 
@@ -87,4 +105,98 @@ message GatewayGroupMember {
   string gateway = 1;
   // Its tier, 1 to 5; lower tiers are used first.
   int32 tier = 2;
+}
+
+message ListInterfacesRequest {}
+
+message ListInterfacesResponse {
+  repeated Interface interfaces = 1;
+}
+
+// An assigned interface and its counters, which count up from boot and
+// start again from zero when the interface is reset.
+message Interface {
+  // pfSense's interface id: "wan", "lan", "opt1", ...
+  string name = 1;
+  // Its description, e.g. "WAN" or "REMOTEACCESS".
+  string description = 2;
+  // The OS device, e.g. "igc0" or "tun_wg1".
+  string hw_interface = 3;
+  // "up", "down" or "no carrier".
+  string status = 4;
+  // Its IPv4 address and prefix length; empty and 0 without one.
+  string ipv4_address = 5;
+  int32 ipv4_prefix = 6;
+  // The gateway pfSense routes through on it; empty when it has none.
+  string gateway = 7;
+  // Bytes and packets in (received) and out (sent) since the counters began.
+  uint64 in_bytes = 8;
+  uint64 out_bytes = 9;
+  uint64 in_packets = 10;
+  uint64 out_packets = 11;
+}
+
+message ListWireguardTunnelsRequest {}
+
+message ListWireguardTunnelsResponse {
+  repeated WireguardTunnel tunnels = 1;
+}
+
+message WireguardTunnel {
+  // The tunnel's device, e.g. "tun_wg1".
+  string name = 1;
+  string description = 2;
+  // "up" or "down".
+  string status = 3;
+  // The UDP port it listens on; 0 when it doesn't.
+  int32 listen_port = 4;
+  // Bytes received and sent on the tunnel since it came up.
+  uint64 rx_bytes = 5;
+  uint64 tx_bytes = 6;
+  repeated WireguardPeer peers = 7;
+}
+
+message WireguardPeer {
+  string public_key = 1;
+  // The peer's description in the tunnel's config.
+  string description = 2;
+  // Where it last connected from (host:port); empty when it never did.
+  string endpoint = 3;
+  // The addresses routed to it, e.g. "198.18.40.2/32".
+  repeated string allowed_ips = 4;
+  // Its latest handshake; unset when it never completed one.
+  google.protobuf.Timestamp latest_handshake = 5;
+  // Bytes received from and sent to it.
+  uint64 rx_bytes = 6;
+  uint64 tx_bytes = 7;
+}
+
+message ListFirewallRulesRequest {
+  // The interface id whose rules to list, e.g. "opt1"; empty lists all.
+  string interface = 1;
+}
+
+message ListFirewallRulesResponse {
+  repeated FirewallRule rules = 1;
+}
+
+message FirewallRule {
+  // "pass", "block" or "reject".
+  string type = 1;
+  // The interface ids it sits on.
+  repeated string interfaces = 2;
+  // "inet", "inet6" or "inet46".
+  string ip_protocol = 3;
+  // "tcp", "udp", "tcp/udp", "icmp", ...; empty for any.
+  string protocol = 4;
+  // pfSense's address forms: "any", an address or CIDR, an alias name, an
+  // interface id for its subnet ("lan") or its address ("lan:ip"), or
+  // "(self)"; a leading "!" inverts it.
+  string source = 5;
+  string destination = 6;
+  // A port, a range "80:443" or a port alias; empty for any.
+  string source_port = 7;
+  string destination_port = 8;
+  string description = 9;
+  bool disabled = 10;
 }

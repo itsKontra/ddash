@@ -1,0 +1,39 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "name": "tun_wg1",
+      "status": "up",
+      "public_key": "cmVtb3RlLWFjY2Vzcy10dW5uZWwta2V5LWZpeHR1cmU=",
+      "listen_port": "51820",
+      "mtu": 1420,
+      "transfer_rx": 1203948,
+      "transfer_tx": 9384712,
+      "inpkts": 10233,
+      "outpkts": 12001,
+      "descr": "Remote Access",
+      "peers": [
+        {"tunnel_device": "tun_wg1", "public_key": "cGhvbmUtcGVlci1wdWJsaWMta2V5LWZpeHR1cmUtMDE=", "preshared_key": null, "endpoint": "203.0.113.77:41234", "allowed_ips": ["198.18.40.2/32"], "latest_handshake": 1792483200, "transfer_rx": 1003948, "transfer_tx": 8384712, "persistent_keepalive": "off", "descr": "Phone"},
+        {"tunnel_device": "tun_wg1", "public_key": "bGFwdG9wLXBlZXItcHVibGljLWtleS1maXh0dXJlLTI=", "preshared_key": null, "endpoint": "(none)", "allowed_ips": ["198.18.40.3/32"], "latest_handshake": 0, "transfer_rx": 0, "transfer_tx": 0, "persistent_keepalive": "off", "descr": "Laptop"}
+      ]
+    },
+    {
+      "name": "tun_wg2",
+      "status": "up",
+      "public_key": "dnBuLWNsaWVudC10dW5uZWwta2V5LWZpeHR1cmUtMDM=",
+      "listen_port": "51821",
+      "mtu": 1420,
+      "transfer_rx": 512938475610,
+      "transfer_tx": 40192837465,
+      "inpkts": 401928374,
+      "outpkts": 190283746,
+      "descr": "WG_VPN",
+      "peers": [
+        {"tunnel_device": "tun_wg2", "public_key": "dnBuLXByb3ZpZGVyLXBlZXIta2V5LWZpeHR1cmUtMDQ=", "preshared_key": null, "endpoint": "203.0.113.200:51820", "allowed_ips": ["0.0.0.0/0"], "latest_handshake": 1792483290, "transfer_rx": 512938475610, "transfer_tx": 40192837465, "persistent_keepalive": "25", "descr": "VPN provider"}
+      ]
+    }
+  ]
+}

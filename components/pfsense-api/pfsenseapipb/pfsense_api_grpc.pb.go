@@ -22,8 +22,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	PfsenseApiService_ListGateways_FullMethodName      = "/ddash.pfsenseapi.PfsenseApiService/ListGateways"
-	PfsenseApiService_ListGatewayGroups_FullMethodName = "/ddash.pfsenseapi.PfsenseApiService/ListGatewayGroups"
+	PfsenseApiService_ListGateways_FullMethodName         = "/ddash.pfsenseapi.PfsenseApiService/ListGateways"
+	PfsenseApiService_ListGatewayGroups_FullMethodName    = "/ddash.pfsenseapi.PfsenseApiService/ListGatewayGroups"
+	PfsenseApiService_ListInterfaces_FullMethodName       = "/ddash.pfsenseapi.PfsenseApiService/ListInterfaces"
+	PfsenseApiService_ListWireguardTunnels_FullMethodName = "/ddash.pfsenseapi.PfsenseApiService/ListWireguardTunnels"
+	PfsenseApiService_ListFirewallRules_FullMethodName    = "/ddash.pfsenseapi.PfsenseApiService/ListFirewallRules"
 )
 
 // PfsenseApiServiceClient is the client API for PfsenseApiService service.
@@ -36,6 +39,17 @@ type PfsenseApiServiceClient interface {
 	// ListGatewayGroups returns every gateway group with its members by tier
 	// (routing/gateway/groups), in pfSense's order.
 	ListGatewayGroups(ctx context.Context, in *ListGatewayGroupsRequest, opts ...grpc.CallOption) (*ListGatewayGroupsResponse, error)
+	// ListInterfaces returns every assigned interface with its cumulative
+	// traffic counters (status/interfaces), in pfSense's order. Cached for
+	// 2 s, so network's 5 s sampling always reads fresh counters.
+	ListInterfaces(ctx context.Context, in *ListInterfacesRequest, opts ...grpc.CallOption) (*ListInterfacesResponse, error)
+	// ListWireguardTunnels returns every WireGuard tunnel's live status with
+	// its peers (status/wireguard/tunnels; status/wireguard/peers misses
+	// peers), in pfSense's order.
+	ListWireguardTunnels(ctx context.Context, in *ListWireguardTunnelsRequest, opts ...grpc.CallOption) (*ListWireguardTunnelsResponse, error)
+	// ListFirewallRules returns the firewall rules on one interface
+	// (firewall/rules), in evaluation order.
+	ListFirewallRules(ctx context.Context, in *ListFirewallRulesRequest, opts ...grpc.CallOption) (*ListFirewallRulesResponse, error)
 }
 
 type pfsenseApiServiceClient struct {
@@ -66,6 +80,36 @@ func (c *pfsenseApiServiceClient) ListGatewayGroups(ctx context.Context, in *Lis
 	return out, nil
 }
 
+func (c *pfsenseApiServiceClient) ListInterfaces(ctx context.Context, in *ListInterfacesRequest, opts ...grpc.CallOption) (*ListInterfacesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListInterfacesResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListInterfaces_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) ListWireguardTunnels(ctx context.Context, in *ListWireguardTunnelsRequest, opts ...grpc.CallOption) (*ListWireguardTunnelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListWireguardTunnelsResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListWireguardTunnels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) ListFirewallRules(ctx context.Context, in *ListFirewallRulesRequest, opts ...grpc.CallOption) (*ListFirewallRulesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListFirewallRulesResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListFirewallRules_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PfsenseApiServiceServer is the server API for PfsenseApiService service.
 // All implementations must embed UnimplementedPfsenseApiServiceServer
 // for forward compatibility.
@@ -76,6 +120,17 @@ type PfsenseApiServiceServer interface {
 	// ListGatewayGroups returns every gateway group with its members by tier
 	// (routing/gateway/groups), in pfSense's order.
 	ListGatewayGroups(context.Context, *ListGatewayGroupsRequest) (*ListGatewayGroupsResponse, error)
+	// ListInterfaces returns every assigned interface with its cumulative
+	// traffic counters (status/interfaces), in pfSense's order. Cached for
+	// 2 s, so network's 5 s sampling always reads fresh counters.
+	ListInterfaces(context.Context, *ListInterfacesRequest) (*ListInterfacesResponse, error)
+	// ListWireguardTunnels returns every WireGuard tunnel's live status with
+	// its peers (status/wireguard/tunnels; status/wireguard/peers misses
+	// peers), in pfSense's order.
+	ListWireguardTunnels(context.Context, *ListWireguardTunnelsRequest) (*ListWireguardTunnelsResponse, error)
+	// ListFirewallRules returns the firewall rules on one interface
+	// (firewall/rules), in evaluation order.
+	ListFirewallRules(context.Context, *ListFirewallRulesRequest) (*ListFirewallRulesResponse, error)
 	mustEmbedUnimplementedPfsenseApiServiceServer()
 }
 
@@ -91,6 +146,15 @@ func (UnimplementedPfsenseApiServiceServer) ListGateways(context.Context, *ListG
 }
 func (UnimplementedPfsenseApiServiceServer) ListGatewayGroups(context.Context, *ListGatewayGroupsRequest) (*ListGatewayGroupsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListGatewayGroups not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListInterfaces(context.Context, *ListInterfacesRequest) (*ListInterfacesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListInterfaces not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListWireguardTunnels(context.Context, *ListWireguardTunnelsRequest) (*ListWireguardTunnelsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListWireguardTunnels not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListFirewallRules(context.Context, *ListFirewallRulesRequest) (*ListFirewallRulesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListFirewallRules not implemented")
 }
 func (UnimplementedPfsenseApiServiceServer) mustEmbedUnimplementedPfsenseApiServiceServer() {}
 func (UnimplementedPfsenseApiServiceServer) testEmbeddedByValue()                           {}
@@ -149,6 +213,60 @@ func _PfsenseApiService_ListGatewayGroups_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PfsenseApiService_ListInterfaces_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListInterfacesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListInterfaces(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListInterfaces_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListInterfaces(ctx, req.(*ListInterfacesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_ListWireguardTunnels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListWireguardTunnelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListWireguardTunnels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListWireguardTunnels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListWireguardTunnels(ctx, req.(*ListWireguardTunnelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_ListFirewallRules_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFirewallRulesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListFirewallRules(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListFirewallRules_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListFirewallRules(ctx, req.(*ListFirewallRulesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PfsenseApiService_ServiceDesc is the grpc.ServiceDesc for PfsenseApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -163,6 +281,18 @@ var PfsenseApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGatewayGroups",
 			Handler:    _PfsenseApiService_ListGatewayGroups_Handler,
+		},
+		{
+			MethodName: "ListInterfaces",
+			Handler:    _PfsenseApiService_ListInterfaces_Handler,
+		},
+		{
+			MethodName: "ListWireguardTunnels",
+			Handler:    _PfsenseApiService_ListWireguardTunnels_Handler,
+		},
+		{
+			MethodName: "ListFirewallRules",
+			Handler:    _PfsenseApiService_ListFirewallRules_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
