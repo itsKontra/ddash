@@ -1,19 +1,25 @@
 import type { DescMethodUnary } from "@bufbuild/protobuf";
-import { useAction, useQuery, type Action } from "@ddash/plugin";
-import { CoreService, type CataloguePlugin, type ComponentStatus } from "@ddash/proto/ddash/core/core_pb";
+import { Refresh, useAction, useQuery, type Action } from "@ddash/plugin";
+import { CoreService, type CataloguePlugin, type ComponentStatus, type ListCatalogueResponse } from "@ddash/proto/ddash/core/core_pb";
 import { Button, PageHeader, StatusDot, type Tone } from "@ddash/ui";
 import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ErrorFrame } from "./boundary";
+import { ConfigDialog } from "./config-form";
 import { icon } from "./icons";
 
 /**
  * The Plugins page: the Catalogue of the running Release, read at the FAST
- * tier, with Install and Uninstall, each installed Plugin's health, and the
- * orphaned DB files below.
+ * tier, with Install and Uninstall, each installed Plugin's health and its
+ * Components' config forms, and the orphaned DB files below. After an
+ * install, the forms of the Components it added that turn out unconfigured
+ * open in turn.
  */
 export function Catalogue() {
   const { data, error } = useQuery(CoreService.method.listCatalogue, {});
+  const [configuring, setConfiguring] = useState<string>();
+  const [queue, setQueue] = useState<string[]>([]);
+  const done = (name: string) => setQueue((q) => q.filter((n) => n !== name));
   return (
     <div>
       <PageHeader
@@ -24,16 +30,51 @@ export function Catalogue() {
       {data && (
         <ul aria-label="Catalogue" className="divide-y divide-border rounded-ui border border-border bg-card">
           {data.plugins.map((p) => (
-            <Entry key={p.name} plugin={p} />
+            <Entry key={p.name} plugin={p} onConfigure={setConfiguring} onInstalled={(added) => setQueue((q) => [...q, ...added])} />
           ))}
         </ul>
       )}
       {data && data.orphans.length > 0 && <Orphans orphans={data.orphans} />}
+      {configuring ? (
+        <ConfigDialog owner={configuring} onClose={() => setConfiguring(undefined)} />
+      ) : (
+        queue.length > 0 && <FormQueue next={queue[0]} onDone={done} />
+      )}
     </div>
   );
 }
 
-function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
+/**
+ * Opens the form of next, a Component an install added, once it turns out
+ * unconfigured, reading the Catalogue at the LIVE tier meanwhile. One that
+ * starts without config needs no form.
+ */
+function FormQueue({ next, onDone }: { next: string; onDone: (name: string) => void }) {
+  const { data } = useQuery(CoreService.method.listCatalogue, {}, { refresh: Refresh.LIVE });
+  const st = data && statusOf(data, next);
+  const waiting = !st || st.state === "" || st.state === "starting";
+  const needsForm = st?.state === "unconfigured" && st.configurable;
+  useEffect(() => {
+    if (data && !waiting && !needsForm) onDone(next);
+  }, [data, waiting, needsForm, next, onDone]);
+  return needsForm ? <ConfigDialog owner={next} onClose={() => onDone(next)} /> : null;
+}
+
+/** A Component's status in the Catalogue, from whichever Plugin runs it. */
+function statusOf(cat: ListCatalogueResponse, name: string): ComponentStatus | undefined {
+  const all = cat.plugins.flatMap((p) => p.components).filter((c) => c.name === name);
+  return all.find((c) => c.state) ?? all[0];
+}
+
+function Entry({
+  plugin: p,
+  onConfigure,
+  onInstalled,
+}: {
+  plugin: CataloguePlugin;
+  onConfigure: (component: string) => void;
+  onInstalled: (added: string[]) => void;
+}) {
   const install = useAction(CoreService.method.install);
   const uninstall = useAction(CoreService.method.uninstall);
   const [open, setOpen] = useState(false);
@@ -93,7 +134,14 @@ function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
               Uninstall
             </Button>
           ) : (
-            <Button size="sm" disabled={install.pending} onClick={() => install.run({ plugin: p.name })}>
+            <Button
+              size="sm"
+              disabled={install.pending}
+              onClick={async () => {
+                const res = await install.run({ plugin: p.name });
+                if (res) onInstalled(res.components);
+              }}
+            >
               Install
             </Button>
           )}
@@ -102,7 +150,7 @@ function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
       {p.installed && open && (
         <ul aria-label="Component health" className="mt-3 divide-y divide-border rounded-ui border border-border">
           {p.components.map((c) => (
-            <Health key={c.name} component={c} />
+            <Health key={c.name} component={c} onConfigure={onConfigure} />
           ))}
         </ul>
       )}
@@ -112,16 +160,24 @@ function Entry({ plugin: p }: { plugin: CataloguePlugin }) {
   );
 }
 
-/** One Component of an installed Plugin, with Restart when it's held down. */
-function Health({ component: c }: { component: ComponentStatus }) {
+/**
+ * One Component of an installed Plugin, with Configure when it takes config
+ * and Restart when it's held down.
+ */
+function Health({ component: c, onConfigure }: { component: ComponentStatus; onConfigure: (component: string) => void }) {
   const restart = useAction(CoreService.method.restart);
   return (
-    <li className="px-3 py-2 text-sm">
+    <li aria-label={c.name} className="px-3 py-2 text-sm">
       <div className="flex items-center gap-3">
         <StatusDot tone={toneOf(c.state)} label={stateOf(c)} />
         <span className="w-32 shrink-0 font-medium">{c.name}</span>
         <span className="w-24 shrink-0 text-muted-foreground">{stateOf(c)}</span>
         <span className="min-w-0 flex-1 truncate text-muted-foreground">{c.message}</span>
+        {c.configurable && (
+          <Button variant={c.state === "unconfigured" ? "default" : "outline"} size="sm" onClick={() => onConfigure(c.name)}>
+            Configure
+          </Button>
+        )}
         {c.held && (
           <Button
             variant="outline"
@@ -191,8 +247,12 @@ function Failed({ action, title }: { action: Pick<Action<DescMethodUnary>, "erro
   ) : null;
 }
 
-/** A Component's state, as the Catalogue shows it; one that doesn't run yet is starting. */
-const stateOf = (c: ComponentStatus) => c.state || "starting";
+/**
+ * A Component's state, as the Catalogue shows it: one that doesn't run yet
+ * is starting, and one unconfigured although config was saved for it (a
+ * Release added a required field) needs config.
+ */
+const stateOf = (c: ComponentStatus) => (c.needsConfig ? "needs config" : c.state || "starting");
 
 const tones: Record<string, Tone> = {
   ok: "up",
@@ -202,7 +262,7 @@ const tones: Record<string, Tone> = {
   crashed: "down",
 };
 
-const toneOf = (state: string): Tone => tones[state] ?? "idle";
+const toneOf = (state: string): Tone => tones[state] ?? (state === "needs config" ? "warn" : "idle");
 
 const rank: Record<Tone, number> = { down: 3, warn: 2, idle: 1, maint: 1, up: 0 };
 

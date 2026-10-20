@@ -2,6 +2,7 @@ import { CoreScope, PluginHost, PluginScope, type Fetch, type PluginDefinition, 
 import { Badge, cx, PageHeader, StatusDot } from "@ddash/ui";
 import type { ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
+import { useAppearance } from "./appearance";
 import { ErrorBoundary, ErrorFrame } from "./boundary";
 import { Catalogue } from "./catalogue";
 import { icon } from "./icons";
@@ -31,6 +32,7 @@ export function App({ client, fetch, importBundle = defaultImport }: AppProps) {
 
 function Shell({ fetch, importBundle }: { fetch?: Fetch; importBundle: ImportBundle }) {
   const plugins = usePlugins(importBundle);
+  useAppearance();
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground">
       <Sidebar items={navItems(plugins.loaded.values())} fetch={fetch} />

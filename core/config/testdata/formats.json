@@ -1,22 +1,27 @@
 {
-  "_comment": "What each (ddash.config.field).format accepts. The host (core/config) and the shell's form (web/src/config-rules.ts) both test against this file, so they check the same rules.",
+  "_comment": "What each (ddash.config.field).format accepts, and what it says otherwise. The host (core/config) and the shell's form (web/src/config-rules.ts) both run these cases, so they check the same rules.",
   "url": {
+    "message": "must be a URL like https://host.example",
     "ok": ["https://ntfy.sh", "tcp://198.18.2.10:2375", "http://pve.home.example:8006/api2/json", "https://[2001:db8::1]:8006"],
     "bad": ["", "ntfy.sh", "https://", "198.18.2.10:2375", "not a url", "https://exa mple.com", "/relative/path"]
   },
   "hostname": {
+    "message": "must be a hostname like pve.home.example",
     "ok": ["pve", "pve.home.example", "a-b.example", "x1.y2.example", "pve.home.example."],
     "bad": ["", "-pve.example", "pve-.example", "pve..example", "pve_1.example", "pve.home.example:8006", "a.b c", "https://pve.example"]
   },
   "ip": {
-    "ok": ["198.18.0.1", "203.0.113.255", "2001:db8::1", "::1", "::", "2001:db8:0:0:0:0:0:1", "::ffff:198.18.0.1"],
-    "bad": ["", "198.18.0", "198.18.0.256", "198.18.00.1", "198.18.0.1/24", "2001:db8::1::2", "2001:db8:::1", "fe80::1%eth0", "gggg::1", "1:2:3:4:5:6:7:8:9", "pve.home.example"]
+    "message": "must be an IP address",
+    "ok": ["198.18.0.1", "203.0.113.255", "2001:db8::1", "::1", "::", "2001:db8:0:0:0:0:0:1", "2001:db8:0:0:0:0:1::", "::ffff:198.18.0.1"],
+    "bad": ["", "198.18.0", "198.18.0.256", "198.18.00.1", "198.18.0.1/24", "2001:db8::1::2", "2001:db8:::1", "fe80::1%eth0", "gggg::1", "1:2:3:4:5:6:7:8:9", "1:2:3:4:5:6:7:8::", "2001:db8:0:0:0:0:0", "198.18.0.1::", "pve.home.example"]
   },
   "cidr": {
+    "message": "must be an address with a prefix length, like 198.18.1.0/24",
     "ok": ["198.18.1.0/24", "198.18.1.5/32", "0.0.0.0/0", "2001:db8::/32", "198.18.1.0/0"],
     "bad": ["", "198.18.1.0", "198.18.1.0/33", "198.18.1.0/-1", "198.18.1.0/24/1", "2001:db8::/129", "198.18.1.0/024", "198.18.1.0/"]
   },
   "ip_range": {
+    "message": "must be a range of addresses, low to high, like 198.18.1.100-198.18.1.199",
     "ok": ["198.18.1.100-198.18.1.199", "198.18.1.100-198.18.1.100", "2001:db8::1-2001:db8::ff"],
     "bad": ["", "198.18.1.100", "198.18.1.199-198.18.1.100", "198.18.1.100-2001:db8::1", "198.18.1.100 - 198.18.1.199", "198.18.1.100-", "198.18.1.100-198.18.1.300"]
   }

@@ -21,7 +21,10 @@ func TestFormatsAcceptWhatTheSharedCasesSay(t *testing.T) {
 	}
 	delete(cases, "_comment")
 	for format, raw := range cases {
-		var c struct{ OK, Bad []string }
+		var c struct {
+			Message string
+			OK, Bad []string
+		}
 		if err := json.Unmarshal(raw, &c); err != nil {
 			t.Fatal(err)
 		}
@@ -31,8 +34,8 @@ func TestFormatsAcceptWhatTheSharedCasesSay(t *testing.T) {
 			}
 		}
 		for _, v := range c.Bad {
-			if msg := config.CheckFormat(format, v); msg == "" {
-				t.Errorf("%s %q: ok, want refused", format, v)
+			if msg := config.CheckFormat(format, v); msg != c.Message {
+				t.Errorf("%s %q: %q, want %q", format, v, msg, c.Message)
 			}
 		}
 	}
