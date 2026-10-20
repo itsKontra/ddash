@@ -111,6 +111,10 @@ const font = "use font-sans, the Theme's font";
 const arbitraryUtility = /^-?[a-z][\w-]*-(\[.+\]|\(.+\))(\/.+)?$|\/(\[.+\]|\(.+\))$|^\[[a-z-]+:.+\]$/;
 const arbitrary = "use Tailwind's scale and the Theme tokens";
 
+// What a Tailwind class's utility starts with: a letter (a negative value
+// has a "-" first) or an arbitrary property's "[name:".
+const classLike = /^-?[a-z]|^\[[a-z-]+:/;
+
 /** The problems in one string literal: each class (or colour) in it is checked. */
 function checkString(value: string): string[] {
   if (colourFunction.test(value)) return [`${JSON.stringify(value.trim())} is a hard-coded colour; ${colour}`];
@@ -122,6 +126,7 @@ function checkString(value: string): string[] {
     const utility = token.slice(start).replace(/^!|!$/g, "");
     if (utility === "") continue;
     if (colourUtility.test(utility) || hex.test(token)) report(token, "a hard-coded colour", colour);
+    else if (!classLike.test(utility)) continue; // text, e.g. a "[::]:443" listen
     else if (arbitraryUtility.test(utility) || /[[(]/.test(token.slice(0, start))) report(token, "an arbitrary value", arbitrary);
     else if (hardCodedRadius(utility)) report(token, "a hard-coded radius", radius);
     else if (fontUtility.test(utility)) report(token, "a hard-coded font", font);

@@ -90,6 +90,13 @@ export function Row({ down }: { down: boolean }) {
     ]);
   });
 
+  it("passes brackets in text that is no class, such as an IPv6 listen", () => {
+    const dir = plugin({
+      "row.tsx": `export const listens = ["[::]:443", "[::1]:8080 ssl", "[2001:db8::1]:80"];\nexport const note = "Error: [object Object]";\n`,
+    });
+    expect(lintStyle(dir)).toEqual([]);
+  });
+
   it("fails a design-system import other than @ddash/ui", () => {
     const dir = plugin({
       "row.tsx": `import * as Dialog from "@radix-ui/react-dialog";
