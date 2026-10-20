@@ -6,6 +6,8 @@ modules:
   - path: components
   # Protos used only by the SDK's own tests.
   - path: sdk/internal
+  # Protos used only by the host's own tests.
+  - path: core/internal
 lint:
   use:
     - STANDARD

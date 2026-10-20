@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+// sample is a Component the host's own tests run. It is not shipped.
+package ddash.sample;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/core/internal/sample/samplepb;samplepb";
+
+message SampleConfig {
+  // Start refuses an empty target, so a sample without config is unconfigured.
+  string target = 1;
+  optional string greeting = 2 [(ddash.config.field) = {default: "hello"}];
+  optional int64 times = 3 [(ddash.config.field) = {default: "1"}];
+  optional bool loud = 4 [(ddash.config.field) = {default: "true"}];
+  optional Tone tone = 5 [(ddash.config.field) = {default: "TONE_WARM"}];
+}
+
+enum Tone {
+  TONE_UNSPECIFIED = 0;
+  TONE_WARM = 1;
+  TONE_COLD = 2;
+}
+
+service SampleService {
+  // Greet answers with the config the sample started with. An empty name
+  // is INVALID_ARGUMENT.
+  rpc Greet(GreetRequest) returns (GreetResponse) {
+    option (ddash.getter) = {};
+  }
+  // Wait blocks until the call ends.
+  rpc Wait(WaitRequest) returns (WaitResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // WaitAction blocks until the call ends.
+  rpc WaitAction(WaitActionRequest) returns (WaitActionResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message GreetRequest {
+  string name = 1;
+  int32 count = 2;
+}
+
+message GreetResponse {
+  string greeting = 1;
+  SampleConfig config = 2;
+}
+
+message WaitRequest {}
+
+message WaitResponse {}
+
+message WaitActionRequest {}
+
+message WaitActionResponse {}

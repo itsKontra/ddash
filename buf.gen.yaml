@@ -14,3 +14,4 @@ plugins:
     opt: target=ts
     exclude_types:
       - ddash.echo
+      - ddash.sample
