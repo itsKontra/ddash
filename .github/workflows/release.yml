@@ -34,6 +34,10 @@ jobs:
           node-version: 24
       - name: Install the pnpm workspace
         run: make install
+      # checks' ICMP probe uses unprivileged ping sockets, which the kernel
+      # allows only to the groups in this range (Docker sets it in containers).
+      - name: Allow unprivileged ICMP
+        run: sudo sysctl -w net.ipv4.ping_group_range="0 2147483647"
       # The same checks as every PR, on the tagged commit.
       - name: Checks
         run: make check
