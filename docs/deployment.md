@@ -127,6 +127,9 @@ them once:
       alias).
 - [ ] Proxmox: a tiny, stopped LXC named **`ddash-smoke`**, controllable by the
       ddash token (not Protected).
+- [ ] A free LAN address (no lease, no static mapping, no AdGuard client),
+      outside the DHCP pools, as `SMOKE_UNUSED_IP` in the dev machine's
+      `smoke.env`.
 
 ## Updating
 

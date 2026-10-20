@@ -11,6 +11,9 @@
 // healthy. Recording puts a fixture.Recorder between an HTTP Component and
 // its system and captures `nginx -T` with nginx-config's key afterwards;
 // every file goes through the Scrubber, and a file it refuses fails the run.
+//
+// RunWrites (`make smoke-writes`, opt-in) runs the real Actions instead, as
+// reversible round trips on the smoke targets only; see writes.go.
 package smoke
 
 import (
@@ -27,6 +30,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -107,19 +111,9 @@ func runSystem(ctx context.Context, s system, opts Options) []error {
 		fmt.Fprintf(opts.Log, "FAIL %s\n", err)
 		return err
 	}
-	text, ok := opts.Env[EnvVar(name)]
-	if !ok || strings.TrimSpace(text) == "" {
-		return []error{fail("is not configured: set %s in smoke.env", EnvVar(name))}
-	}
-	cfg := s.config()
-	if err := protojson.Unmarshal([]byte(text), cfg); err != nil {
-		return []error{fail("config %s: %v", EnvVar(name), err)}
-	}
-	if err := config.ApplyDefaults(cfg); err != nil {
-		return []error{fail("config: %v", err)}
-	}
-	if fe := config.Validate(cfg.ProtoReflect()); len(fe) > 0 {
-		return []error{fail("config %s: %v", EnvVar(name), fe.Err())}
+	cfg, err := configOf(s, opts.Env)
+	if err != nil {
+		return []error{fail("%v", err)}
 	}
 
 	var errs []error
@@ -160,24 +154,12 @@ func runSystem(ctx context.Context, s system, opts Options) []error {
 // its health, then stops it.
 func exercise(ctx context.Context, s system, cfg proto.Message, dbPath string, log io.Writer, fail func(string, ...any) error) []error {
 	name := s.def.Name()
-	inst := sdk.NewInstance(s.def, sdk.InstanceOptions{
-		DBPath: dbPath,
-		Logger: slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
-	})
-	defer inst.Stop(context.Background())
-	conn, stop, err := inmem.Serve(name, inst.Register)
+	conn, stop, err := launch(ctx, s.def, cfg, dbPath, log)
 	if err != nil {
-		return []error{fail("serve: %v", err)}
+		return []error{fail("%v", err)}
 	}
 	defer stop()
-	b, err := proto.Marshal(cfg)
-	if err != nil {
-		return []error{fail("config: %v", err)}
-	}
 	lifecycle := componentpb.NewLifecycleServiceClient(conn)
-	if _, err := lifecycle.Start(ctx, &componentpb.StartRequest{Config: b}); err != nil {
-		return []error{fail("Start: %v", err)}
-	}
 
 	svc, err := service(s.service)
 	if err != nil {
@@ -227,6 +209,55 @@ func exercise(ctx context.Context, s system, cfg proto.Message, dbPath string, l
 		fmt.Fprintf(log, "ok %s health\n", name)
 	}
 	return errs
+}
+
+// configOf reads s's config from env (protojson under EnvVar), with its
+// defaults applied, and checks it as the host would before a Start.
+func configOf(s system, env map[string]string) (proto.Message, error) {
+	name := EnvVar(s.def.Name())
+	text, ok := env[name]
+	if !ok || strings.TrimSpace(text) == "" {
+		return nil, fmt.Errorf("is not configured: set %s in smoke.env", name)
+	}
+	cfg := s.config()
+	if err := protojson.Unmarshal([]byte(text), cfg); err != nil {
+		return nil, fmt.Errorf("config %s: %w", name, err)
+	}
+	if err := config.ApplyDefaults(cfg); err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+	if fe := config.Validate(cfg.ProtoReflect()); len(fe) > 0 {
+		return nil, fmt.Errorf("config %s: %w", name, fe.Err())
+	}
+	return cfg, nil
+}
+
+// launch runs def in-process with its DB at dbPath and starts it with cfg.
+// stop stops it.
+func launch(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath string, log io.Writer) (conn *grpc.ClientConn, stop func(), err error) {
+	name := def.Name()
+	inst := sdk.NewInstance(def, sdk.InstanceOptions{
+		DBPath: dbPath,
+		Logger: slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
+	})
+	conn, stopServe, err := inmem.Serve(name, inst.Register)
+	if err != nil {
+		inst.Stop(context.Background())
+		return nil, nil, fmt.Errorf("serve: %w", err)
+	}
+	stop = func() {
+		stopServe()
+		inst.Stop(context.Background())
+	}
+	b, err := proto.Marshal(cfg)
+	if err == nil {
+		_, err = componentpb.NewLifecycleServiceClient(conn).Start(ctx, &componentpb.StartRequest{Config: b})
+	}
+	if err != nil {
+		stop()
+		return nil, nil, fmt.Errorf("lifecycle Start: %w", err)
+	}
+	return conn, stop, nil
 }
 
 // recordingProxy serves a fixture.Recorder to s's real system on a free
