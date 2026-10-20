@@ -81,6 +81,203 @@ func (x *PfsenseApiConfig) GetApiKey() string {
 	return ""
 }
 
+type CreateStaticMappingRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The DHCP server's interface, the MAC, the address and a description;
+	// the hostname is optional.
+	Mapping       *StaticMapping `protobuf:"bytes,1,opt,name=mapping,proto3" json:"mapping,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateStaticMappingRequest) Reset() {
+	*x = CreateStaticMappingRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateStaticMappingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateStaticMappingRequest) ProtoMessage() {}
+
+func (x *CreateStaticMappingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateStaticMappingRequest.ProtoReflect.Descriptor instead.
+func (*CreateStaticMappingRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *CreateStaticMappingRequest) GetMapping() *StaticMapping {
+	if x != nil {
+		return x.Mapping
+	}
+	return nil
+}
+
+type CreateStaticMappingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mapping       *StaticMapping         `protobuf:"bytes,1,opt,name=mapping,proto3" json:"mapping,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateStaticMappingResponse) Reset() {
+	*x = CreateStaticMappingResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateStaticMappingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateStaticMappingResponse) ProtoMessage() {}
+
+func (x *CreateStaticMappingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateStaticMappingResponse.ProtoReflect.Descriptor instead.
+func (*CreateStaticMappingResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CreateStaticMappingResponse) GetMapping() *StaticMapping {
+	if x != nil {
+		return x.Mapping
+	}
+	return nil
+}
+
+type RenameStaticMappingRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The DHCP server's interface, e.g. "lan".
+	Interface string `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	// The MAC whose static mapping to rename.
+	Mac string `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
+	// The new description.
+	Description   string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameStaticMappingRequest) Reset() {
+	*x = RenameStaticMappingRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameStaticMappingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameStaticMappingRequest) ProtoMessage() {}
+
+func (x *RenameStaticMappingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameStaticMappingRequest.ProtoReflect.Descriptor instead.
+func (*RenameStaticMappingRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *RenameStaticMappingRequest) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *RenameStaticMappingRequest) GetMac() string {
+	if x != nil {
+		return x.Mac
+	}
+	return ""
+}
+
+func (x *RenameStaticMappingRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type RenameStaticMappingResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mapping       *StaticMapping         `protobuf:"bytes,1,opt,name=mapping,proto3" json:"mapping,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RenameStaticMappingResponse) Reset() {
+	*x = RenameStaticMappingResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RenameStaticMappingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RenameStaticMappingResponse) ProtoMessage() {}
+
+func (x *RenameStaticMappingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RenameStaticMappingResponse.ProtoReflect.Descriptor instead.
+func (*RenameStaticMappingResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *RenameStaticMappingResponse) GetMapping() *StaticMapping {
+	if x != nil {
+		return x.Mapping
+	}
+	return nil
+}
+
 type ListGatewaysRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -89,7 +286,7 @@ type ListGatewaysRequest struct {
 
 func (x *ListGatewaysRequest) Reset() {
 	*x = ListGatewaysRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[1]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -101,7 +298,7 @@ func (x *ListGatewaysRequest) String() string {
 func (*ListGatewaysRequest) ProtoMessage() {}
 
 func (x *ListGatewaysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[1]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,7 +311,7 @@ func (x *ListGatewaysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGatewaysRequest.ProtoReflect.Descriptor instead.
 func (*ListGatewaysRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{1}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{5}
 }
 
 type ListGatewaysResponse struct {
@@ -126,7 +323,7 @@ type ListGatewaysResponse struct {
 
 func (x *ListGatewaysResponse) Reset() {
 	*x = ListGatewaysResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[2]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -138,7 +335,7 @@ func (x *ListGatewaysResponse) String() string {
 func (*ListGatewaysResponse) ProtoMessage() {}
 
 func (x *ListGatewaysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[2]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -151,7 +348,7 @@ func (x *ListGatewaysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGatewaysResponse.ProtoReflect.Descriptor instead.
 func (*ListGatewaysResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{2}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ListGatewaysResponse) GetGateways() []*Gateway {
@@ -185,7 +382,7 @@ type Gateway struct {
 
 func (x *Gateway) Reset() {
 	*x = Gateway{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[3]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -197,7 +394,7 @@ func (x *Gateway) String() string {
 func (*Gateway) ProtoMessage() {}
 
 func (x *Gateway) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[3]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -210,7 +407,7 @@ func (x *Gateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Gateway.ProtoReflect.Descriptor instead.
 func (*Gateway) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{3}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *Gateway) GetName() string {
@@ -277,7 +474,7 @@ type ListGatewayGroupsRequest struct {
 
 func (x *ListGatewayGroupsRequest) Reset() {
 	*x = ListGatewayGroupsRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[4]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -289,7 +486,7 @@ func (x *ListGatewayGroupsRequest) String() string {
 func (*ListGatewayGroupsRequest) ProtoMessage() {}
 
 func (x *ListGatewayGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[4]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -302,7 +499,7 @@ func (x *ListGatewayGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGatewayGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListGatewayGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{4}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{8}
 }
 
 type ListGatewayGroupsResponse struct {
@@ -314,7 +511,7 @@ type ListGatewayGroupsResponse struct {
 
 func (x *ListGatewayGroupsResponse) Reset() {
 	*x = ListGatewayGroupsResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[5]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -326,7 +523,7 @@ func (x *ListGatewayGroupsResponse) String() string {
 func (*ListGatewayGroupsResponse) ProtoMessage() {}
 
 func (x *ListGatewayGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[5]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -339,7 +536,7 @@ func (x *ListGatewayGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListGatewayGroupsResponse.ProtoReflect.Descriptor instead.
 func (*ListGatewayGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{5}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListGatewayGroupsResponse) GetGroups() []*GatewayGroup {
@@ -365,7 +562,7 @@ type GatewayGroup struct {
 
 func (x *GatewayGroup) Reset() {
 	*x = GatewayGroup{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[6]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -377,7 +574,7 @@ func (x *GatewayGroup) String() string {
 func (*GatewayGroup) ProtoMessage() {}
 
 func (x *GatewayGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[6]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -390,7 +587,7 @@ func (x *GatewayGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GatewayGroup.ProtoReflect.Descriptor instead.
 func (*GatewayGroup) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{6}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *GatewayGroup) GetName() string {
@@ -433,7 +630,7 @@ type GatewayGroupMember struct {
 
 func (x *GatewayGroupMember) Reset() {
 	*x = GatewayGroupMember{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[7]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -445,7 +642,7 @@ func (x *GatewayGroupMember) String() string {
 func (*GatewayGroupMember) ProtoMessage() {}
 
 func (x *GatewayGroupMember) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[7]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -458,7 +655,7 @@ func (x *GatewayGroupMember) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GatewayGroupMember.ProtoReflect.Descriptor instead.
 func (*GatewayGroupMember) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{7}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GatewayGroupMember) GetGateway() string {
@@ -483,7 +680,7 @@ type ListLeasesRequest struct {
 
 func (x *ListLeasesRequest) Reset() {
 	*x = ListLeasesRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[8]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -495,7 +692,7 @@ func (x *ListLeasesRequest) String() string {
 func (*ListLeasesRequest) ProtoMessage() {}
 
 func (x *ListLeasesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[8]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -508,7 +705,7 @@ func (x *ListLeasesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLeasesRequest.ProtoReflect.Descriptor instead.
 func (*ListLeasesRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{8}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{12}
 }
 
 type ListLeasesResponse struct {
@@ -520,7 +717,7 @@ type ListLeasesResponse struct {
 
 func (x *ListLeasesResponse) Reset() {
 	*x = ListLeasesResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[9]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +729,7 @@ func (x *ListLeasesResponse) String() string {
 func (*ListLeasesResponse) ProtoMessage() {}
 
 func (x *ListLeasesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[9]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +742,7 @@ func (x *ListLeasesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListLeasesResponse.ProtoReflect.Descriptor instead.
 func (*ListLeasesResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{9}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ListLeasesResponse) GetLeases() []*Lease {
@@ -581,7 +778,7 @@ type Lease struct {
 
 func (x *Lease) Reset() {
 	*x = Lease{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[10]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -593,7 +790,7 @@ func (x *Lease) String() string {
 func (*Lease) ProtoMessage() {}
 
 func (x *Lease) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[10]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -606,7 +803,7 @@ func (x *Lease) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Lease.ProtoReflect.Descriptor instead.
 func (*Lease) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{10}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Lease) GetIp() string {
@@ -680,7 +877,7 @@ type ListDhcpServersRequest struct {
 
 func (x *ListDhcpServersRequest) Reset() {
 	*x = ListDhcpServersRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[11]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -692,7 +889,7 @@ func (x *ListDhcpServersRequest) String() string {
 func (*ListDhcpServersRequest) ProtoMessage() {}
 
 func (x *ListDhcpServersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[11]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -705,7 +902,7 @@ func (x *ListDhcpServersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDhcpServersRequest.ProtoReflect.Descriptor instead.
 func (*ListDhcpServersRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{11}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{15}
 }
 
 type ListDhcpServersResponse struct {
@@ -717,7 +914,7 @@ type ListDhcpServersResponse struct {
 
 func (x *ListDhcpServersResponse) Reset() {
 	*x = ListDhcpServersResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[12]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -729,7 +926,7 @@ func (x *ListDhcpServersResponse) String() string {
 func (*ListDhcpServersResponse) ProtoMessage() {}
 
 func (x *ListDhcpServersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[12]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -742,7 +939,7 @@ func (x *ListDhcpServersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDhcpServersResponse.ProtoReflect.Descriptor instead.
 func (*ListDhcpServersResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{12}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ListDhcpServersResponse) GetServers() []*DhcpServer {
@@ -768,7 +965,7 @@ type DhcpServer struct {
 
 func (x *DhcpServer) Reset() {
 	*x = DhcpServer{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[13]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -780,7 +977,7 @@ func (x *DhcpServer) String() string {
 func (*DhcpServer) ProtoMessage() {}
 
 func (x *DhcpServer) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[13]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -793,7 +990,7 @@ func (x *DhcpServer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DhcpServer.ProtoReflect.Descriptor instead.
 func (*DhcpServer) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{13}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *DhcpServer) GetInterface() string {
@@ -835,7 +1032,7 @@ type AddressRange struct {
 
 func (x *AddressRange) Reset() {
 	*x = AddressRange{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[14]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -847,7 +1044,7 @@ func (x *AddressRange) String() string {
 func (*AddressRange) ProtoMessage() {}
 
 func (x *AddressRange) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[14]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -860,7 +1057,7 @@ func (x *AddressRange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddressRange.ProtoReflect.Descriptor instead.
 func (*AddressRange) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{14}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AddressRange) GetFrom() string {
@@ -893,7 +1090,7 @@ type StaticMapping struct {
 
 func (x *StaticMapping) Reset() {
 	*x = StaticMapping{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[15]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -905,7 +1102,7 @@ func (x *StaticMapping) String() string {
 func (*StaticMapping) ProtoMessage() {}
 
 func (x *StaticMapping) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[15]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -918,7 +1115,7 @@ func (x *StaticMapping) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StaticMapping.ProtoReflect.Descriptor instead.
 func (*StaticMapping) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{15}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *StaticMapping) GetInterface() string {
@@ -964,7 +1161,7 @@ type ListAliasesRequest struct {
 
 func (x *ListAliasesRequest) Reset() {
 	*x = ListAliasesRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[16]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -976,7 +1173,7 @@ func (x *ListAliasesRequest) String() string {
 func (*ListAliasesRequest) ProtoMessage() {}
 
 func (x *ListAliasesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[16]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -989,7 +1186,7 @@ func (x *ListAliasesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAliasesRequest.ProtoReflect.Descriptor instead.
 func (*ListAliasesRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{16}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{20}
 }
 
 type ListAliasesResponse struct {
@@ -1004,7 +1201,7 @@ type ListAliasesResponse struct {
 
 func (x *ListAliasesResponse) Reset() {
 	*x = ListAliasesResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[17]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1016,7 +1213,7 @@ func (x *ListAliasesResponse) String() string {
 func (*ListAliasesResponse) ProtoMessage() {}
 
 func (x *ListAliasesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[17]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1029,7 +1226,7 @@ func (x *ListAliasesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAliasesResponse.ProtoReflect.Descriptor instead.
 func (*ListAliasesResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{17}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ListAliasesResponse) GetAliases() []*Alias {
@@ -1064,7 +1261,7 @@ type Alias struct {
 
 func (x *Alias) Reset() {
 	*x = Alias{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[18]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1076,7 +1273,7 @@ func (x *Alias) String() string {
 func (*Alias) ProtoMessage() {}
 
 func (x *Alias) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[18]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1089,7 +1286,7 @@ func (x *Alias) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Alias.ProtoReflect.Descriptor instead.
 func (*Alias) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{18}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Alias) GetName() string {
@@ -1135,7 +1332,7 @@ type ListInterfacesRequest struct {
 
 func (x *ListInterfacesRequest) Reset() {
 	*x = ListInterfacesRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[19]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1147,7 +1344,7 @@ func (x *ListInterfacesRequest) String() string {
 func (*ListInterfacesRequest) ProtoMessage() {}
 
 func (x *ListInterfacesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[19]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1160,7 +1357,7 @@ func (x *ListInterfacesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInterfacesRequest.ProtoReflect.Descriptor instead.
 func (*ListInterfacesRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{19}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{23}
 }
 
 type ListInterfacesResponse struct {
@@ -1172,7 +1369,7 @@ type ListInterfacesResponse struct {
 
 func (x *ListInterfacesResponse) Reset() {
 	*x = ListInterfacesResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[20]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1184,7 +1381,7 @@ func (x *ListInterfacesResponse) String() string {
 func (*ListInterfacesResponse) ProtoMessage() {}
 
 func (x *ListInterfacesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[20]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1197,7 +1394,7 @@ func (x *ListInterfacesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListInterfacesResponse.ProtoReflect.Descriptor instead.
 func (*ListInterfacesResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{20}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ListInterfacesResponse) GetInterfaces() []*Interface {
@@ -1235,7 +1432,7 @@ type Interface struct {
 
 func (x *Interface) Reset() {
 	*x = Interface{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[21]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1247,7 +1444,7 @@ func (x *Interface) String() string {
 func (*Interface) ProtoMessage() {}
 
 func (x *Interface) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[21]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1260,7 +1457,7 @@ func (x *Interface) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Interface.ProtoReflect.Descriptor instead.
 func (*Interface) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{21}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Interface) GetName() string {
@@ -1348,7 +1545,7 @@ type ListWireguardTunnelsRequest struct {
 
 func (x *ListWireguardTunnelsRequest) Reset() {
 	*x = ListWireguardTunnelsRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[22]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1360,7 +1557,7 @@ func (x *ListWireguardTunnelsRequest) String() string {
 func (*ListWireguardTunnelsRequest) ProtoMessage() {}
 
 func (x *ListWireguardTunnelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[22]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1373,7 +1570,7 @@ func (x *ListWireguardTunnelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWireguardTunnelsRequest.ProtoReflect.Descriptor instead.
 func (*ListWireguardTunnelsRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{22}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{26}
 }
 
 type ListWireguardTunnelsResponse struct {
@@ -1385,7 +1582,7 @@ type ListWireguardTunnelsResponse struct {
 
 func (x *ListWireguardTunnelsResponse) Reset() {
 	*x = ListWireguardTunnelsResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[23]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1397,7 +1594,7 @@ func (x *ListWireguardTunnelsResponse) String() string {
 func (*ListWireguardTunnelsResponse) ProtoMessage() {}
 
 func (x *ListWireguardTunnelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[23]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1410,7 +1607,7 @@ func (x *ListWireguardTunnelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWireguardTunnelsResponse.ProtoReflect.Descriptor instead.
 func (*ListWireguardTunnelsResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{23}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ListWireguardTunnelsResponse) GetTunnels() []*WireguardTunnel {
@@ -1439,7 +1636,7 @@ type WireguardTunnel struct {
 
 func (x *WireguardTunnel) Reset() {
 	*x = WireguardTunnel{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[24]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1451,7 +1648,7 @@ func (x *WireguardTunnel) String() string {
 func (*WireguardTunnel) ProtoMessage() {}
 
 func (x *WireguardTunnel) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[24]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1464,7 +1661,7 @@ func (x *WireguardTunnel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WireguardTunnel.ProtoReflect.Descriptor instead.
 func (*WireguardTunnel) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{24}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *WireguardTunnel) GetName() string {
@@ -1536,7 +1733,7 @@ type WireguardPeer struct {
 
 func (x *WireguardPeer) Reset() {
 	*x = WireguardPeer{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[25]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1548,7 +1745,7 @@ func (x *WireguardPeer) String() string {
 func (*WireguardPeer) ProtoMessage() {}
 
 func (x *WireguardPeer) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[25]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1561,7 +1758,7 @@ func (x *WireguardPeer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WireguardPeer.ProtoReflect.Descriptor instead.
 func (*WireguardPeer) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{25}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *WireguardPeer) GetPublicKey() string {
@@ -1623,7 +1820,7 @@ type ListFirewallRulesRequest struct {
 
 func (x *ListFirewallRulesRequest) Reset() {
 	*x = ListFirewallRulesRequest{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[26]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1635,7 +1832,7 @@ func (x *ListFirewallRulesRequest) String() string {
 func (*ListFirewallRulesRequest) ProtoMessage() {}
 
 func (x *ListFirewallRulesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[26]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1648,7 +1845,7 @@ func (x *ListFirewallRulesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFirewallRulesRequest.ProtoReflect.Descriptor instead.
 func (*ListFirewallRulesRequest) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{26}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListFirewallRulesRequest) GetInterface() string {
@@ -1667,7 +1864,7 @@ type ListFirewallRulesResponse struct {
 
 func (x *ListFirewallRulesResponse) Reset() {
 	*x = ListFirewallRulesResponse{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[27]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1679,7 +1876,7 @@ func (x *ListFirewallRulesResponse) String() string {
 func (*ListFirewallRulesResponse) ProtoMessage() {}
 
 func (x *ListFirewallRulesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[27]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1692,7 +1889,7 @@ func (x *ListFirewallRulesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListFirewallRulesResponse.ProtoReflect.Descriptor instead.
 func (*ListFirewallRulesResponse) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{27}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListFirewallRulesResponse) GetRules() []*FirewallRule {
@@ -1728,7 +1925,7 @@ type FirewallRule struct {
 
 func (x *FirewallRule) Reset() {
 	*x = FirewallRule{}
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[28]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1740,7 +1937,7 @@ func (x *FirewallRule) String() string {
 func (*FirewallRule) ProtoMessage() {}
 
 func (x *FirewallRule) ProtoReflect() protoreflect.Message {
-	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[28]
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1753,7 +1950,7 @@ func (x *FirewallRule) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FirewallRule.ProtoReflect.Descriptor instead.
 func (*FirewallRule) Descriptor() ([]byte, []int) {
-	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{28}
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *FirewallRule) GetType() string {
@@ -1833,7 +2030,17 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\x1dpfsense-api/pfsense_api.proto\x12\x10ddash.pfsenseapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xf5\x01\n" +
 	"\x10PfsenseApiConfig\x12r\n" +
 	"\x03url\x18\x01 \x01(\tB`\x9a\xb5\x18\\\x1a\x03URL\"=The firewall's LAN address: the REST API answers on LAN only.*\x12https://198.18.1.10\x018\x01R\x03url\x12m\n" +
-	"\aapi_key\x18\x02 \x01(\tBT\x9a\xb5\x18P\x10\x01\x1a\aAPI key\"AGenerated in System > REST API > Keys for a dedicated ddash user.0\x01R\x06apiKey\"\x15\n" +
+	"\aapi_key\x18\x02 \x01(\tBT\x9a\xb5\x18P\x10\x01\x1a\aAPI key\"AGenerated in System > REST API > Keys for a dedicated ddash user.0\x01R\x06apiKey\"W\n" +
+	"\x1aCreateStaticMappingRequest\x129\n" +
+	"\amapping\x18\x01 \x01(\v2\x1f.ddash.pfsenseapi.StaticMappingR\amapping\"X\n" +
+	"\x1bCreateStaticMappingResponse\x129\n" +
+	"\amapping\x18\x01 \x01(\v2\x1f.ddash.pfsenseapi.StaticMappingR\amapping\"n\n" +
+	"\x1aRenameStaticMappingRequest\x12\x1c\n" +
+	"\tinterface\x18\x01 \x01(\tR\tinterface\x12\x10\n" +
+	"\x03mac\x18\x02 \x01(\tR\x03mac\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"X\n" +
+	"\x1bRenameStaticMappingResponse\x129\n" +
+	"\amapping\x18\x01 \x01(\v2\x1f.ddash.pfsenseapi.StaticMappingR\amapping\"\x15\n" +
 	"\x13ListGatewaysRequest\"M\n" +
 	"\x14ListGatewaysResponse\x125\n" +
 	"\bgateways\x18\x01 \x03(\v2\x19.ddash.pfsenseapi.GatewayR\bgateways\"\xa5\x02\n" +
@@ -1965,7 +2172,7 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\x10destination_port\x18\b \x01(\tR\x0fdestinationPort\x12 \n" +
 	"\vdescription\x18\t \x01(\tR\vdescription\x12\x1a\n" +
 	"\bdisabled\x18\n" +
-	" \x01(\bR\bdisabled2\xfd\x06\n" +
+	" \x01(\bR\bdisabled2\xf1\b\n" +
 	"\x11PfsenseApiService\x12e\n" +
 	"\fListGateways\x12%.ddash.pfsenseapi.ListGatewaysRequest\x1a&.ddash.pfsenseapi.ListGatewaysResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12t\n" +
 	"\x11ListGatewayGroups\x12*.ddash.pfsenseapi.ListGatewayGroupsRequest\x1a+.ddash.pfsenseapi.ListGatewayGroupsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12]\n" +
@@ -1975,7 +2182,9 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\vListAliases\x12$.ddash.pfsenseapi.ListAliasesRequest\x1a%.ddash.pfsenseapi.ListAliasesResponse\"\x04\x8a\xb5\x18\x00\x12k\n" +
 	"\x0eListInterfaces\x12'.ddash.pfsenseapi.ListInterfacesRequest\x1a(.ddash.pfsenseapi.ListInterfacesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12{\n" +
 	"\x14ListWireguardTunnels\x12-.ddash.pfsenseapi.ListWireguardTunnelsRequest\x1a..ddash.pfsenseapi.ListWireguardTunnelsResponse\"\x04\x8a\xb5\x18\x00\x12r\n" +
-	"\x11ListFirewallRules\x12*.ddash.pfsenseapi.ListFirewallRulesRequest\x1a+.ddash.pfsenseapi.ListFirewallRulesResponse\"\x04\x8a\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipbb\x06proto3"
+	"\x11ListFirewallRules\x12*.ddash.pfsenseapi.ListFirewallRulesRequest\x1a+.ddash.pfsenseapi.ListFirewallRulesResponse\"\x04\x8a\xb5\x18\x00\x12x\n" +
+	"\x13CreateStaticMapping\x12,.ddash.pfsenseapi.CreateStaticMappingRequest\x1a-.ddash.pfsenseapi.CreateStaticMappingResponse\"\x04\x92\xb5\x18\x00\x12x\n" +
+	"\x13RenameStaticMapping\x12,.ddash.pfsenseapi.RenameStaticMappingRequest\x1a-.ddash.pfsenseapi.RenameStaticMappingResponse\"\x04\x92\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipbb\x06proto3"
 
 var (
 	file_pfsense_api_pfsense_api_proto_rawDescOnce sync.Once
@@ -1989,76 +2198,87 @@ func file_pfsense_api_pfsense_api_proto_rawDescGZIP() []byte {
 	return file_pfsense_api_pfsense_api_proto_rawDescData
 }
 
-var file_pfsense_api_pfsense_api_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_pfsense_api_pfsense_api_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
 var file_pfsense_api_pfsense_api_proto_goTypes = []any{
 	(*PfsenseApiConfig)(nil),             // 0: ddash.pfsenseapi.PfsenseApiConfig
-	(*ListGatewaysRequest)(nil),          // 1: ddash.pfsenseapi.ListGatewaysRequest
-	(*ListGatewaysResponse)(nil),         // 2: ddash.pfsenseapi.ListGatewaysResponse
-	(*Gateway)(nil),                      // 3: ddash.pfsenseapi.Gateway
-	(*ListGatewayGroupsRequest)(nil),     // 4: ddash.pfsenseapi.ListGatewayGroupsRequest
-	(*ListGatewayGroupsResponse)(nil),    // 5: ddash.pfsenseapi.ListGatewayGroupsResponse
-	(*GatewayGroup)(nil),                 // 6: ddash.pfsenseapi.GatewayGroup
-	(*GatewayGroupMember)(nil),           // 7: ddash.pfsenseapi.GatewayGroupMember
-	(*ListLeasesRequest)(nil),            // 8: ddash.pfsenseapi.ListLeasesRequest
-	(*ListLeasesResponse)(nil),           // 9: ddash.pfsenseapi.ListLeasesResponse
-	(*Lease)(nil),                        // 10: ddash.pfsenseapi.Lease
-	(*ListDhcpServersRequest)(nil),       // 11: ddash.pfsenseapi.ListDhcpServersRequest
-	(*ListDhcpServersResponse)(nil),      // 12: ddash.pfsenseapi.ListDhcpServersResponse
-	(*DhcpServer)(nil),                   // 13: ddash.pfsenseapi.DhcpServer
-	(*AddressRange)(nil),                 // 14: ddash.pfsenseapi.AddressRange
-	(*StaticMapping)(nil),                // 15: ddash.pfsenseapi.StaticMapping
-	(*ListAliasesRequest)(nil),           // 16: ddash.pfsenseapi.ListAliasesRequest
-	(*ListAliasesResponse)(nil),          // 17: ddash.pfsenseapi.ListAliasesResponse
-	(*Alias)(nil),                        // 18: ddash.pfsenseapi.Alias
-	(*ListInterfacesRequest)(nil),        // 19: ddash.pfsenseapi.ListInterfacesRequest
-	(*ListInterfacesResponse)(nil),       // 20: ddash.pfsenseapi.ListInterfacesResponse
-	(*Interface)(nil),                    // 21: ddash.pfsenseapi.Interface
-	(*ListWireguardTunnelsRequest)(nil),  // 22: ddash.pfsenseapi.ListWireguardTunnelsRequest
-	(*ListWireguardTunnelsResponse)(nil), // 23: ddash.pfsenseapi.ListWireguardTunnelsResponse
-	(*WireguardTunnel)(nil),              // 24: ddash.pfsenseapi.WireguardTunnel
-	(*WireguardPeer)(nil),                // 25: ddash.pfsenseapi.WireguardPeer
-	(*ListFirewallRulesRequest)(nil),     // 26: ddash.pfsenseapi.ListFirewallRulesRequest
-	(*ListFirewallRulesResponse)(nil),    // 27: ddash.pfsenseapi.ListFirewallRulesResponse
-	(*FirewallRule)(nil),                 // 28: ddash.pfsenseapi.FirewallRule
-	(*config.Choices)(nil),               // 29: ddash.config.Choices
-	(*timestamppb.Timestamp)(nil),        // 30: google.protobuf.Timestamp
+	(*CreateStaticMappingRequest)(nil),   // 1: ddash.pfsenseapi.CreateStaticMappingRequest
+	(*CreateStaticMappingResponse)(nil),  // 2: ddash.pfsenseapi.CreateStaticMappingResponse
+	(*RenameStaticMappingRequest)(nil),   // 3: ddash.pfsenseapi.RenameStaticMappingRequest
+	(*RenameStaticMappingResponse)(nil),  // 4: ddash.pfsenseapi.RenameStaticMappingResponse
+	(*ListGatewaysRequest)(nil),          // 5: ddash.pfsenseapi.ListGatewaysRequest
+	(*ListGatewaysResponse)(nil),         // 6: ddash.pfsenseapi.ListGatewaysResponse
+	(*Gateway)(nil),                      // 7: ddash.pfsenseapi.Gateway
+	(*ListGatewayGroupsRequest)(nil),     // 8: ddash.pfsenseapi.ListGatewayGroupsRequest
+	(*ListGatewayGroupsResponse)(nil),    // 9: ddash.pfsenseapi.ListGatewayGroupsResponse
+	(*GatewayGroup)(nil),                 // 10: ddash.pfsenseapi.GatewayGroup
+	(*GatewayGroupMember)(nil),           // 11: ddash.pfsenseapi.GatewayGroupMember
+	(*ListLeasesRequest)(nil),            // 12: ddash.pfsenseapi.ListLeasesRequest
+	(*ListLeasesResponse)(nil),           // 13: ddash.pfsenseapi.ListLeasesResponse
+	(*Lease)(nil),                        // 14: ddash.pfsenseapi.Lease
+	(*ListDhcpServersRequest)(nil),       // 15: ddash.pfsenseapi.ListDhcpServersRequest
+	(*ListDhcpServersResponse)(nil),      // 16: ddash.pfsenseapi.ListDhcpServersResponse
+	(*DhcpServer)(nil),                   // 17: ddash.pfsenseapi.DhcpServer
+	(*AddressRange)(nil),                 // 18: ddash.pfsenseapi.AddressRange
+	(*StaticMapping)(nil),                // 19: ddash.pfsenseapi.StaticMapping
+	(*ListAliasesRequest)(nil),           // 20: ddash.pfsenseapi.ListAliasesRequest
+	(*ListAliasesResponse)(nil),          // 21: ddash.pfsenseapi.ListAliasesResponse
+	(*Alias)(nil),                        // 22: ddash.pfsenseapi.Alias
+	(*ListInterfacesRequest)(nil),        // 23: ddash.pfsenseapi.ListInterfacesRequest
+	(*ListInterfacesResponse)(nil),       // 24: ddash.pfsenseapi.ListInterfacesResponse
+	(*Interface)(nil),                    // 25: ddash.pfsenseapi.Interface
+	(*ListWireguardTunnelsRequest)(nil),  // 26: ddash.pfsenseapi.ListWireguardTunnelsRequest
+	(*ListWireguardTunnelsResponse)(nil), // 27: ddash.pfsenseapi.ListWireguardTunnelsResponse
+	(*WireguardTunnel)(nil),              // 28: ddash.pfsenseapi.WireguardTunnel
+	(*WireguardPeer)(nil),                // 29: ddash.pfsenseapi.WireguardPeer
+	(*ListFirewallRulesRequest)(nil),     // 30: ddash.pfsenseapi.ListFirewallRulesRequest
+	(*ListFirewallRulesResponse)(nil),    // 31: ddash.pfsenseapi.ListFirewallRulesResponse
+	(*FirewallRule)(nil),                 // 32: ddash.pfsenseapi.FirewallRule
+	(*config.Choices)(nil),               // 33: ddash.config.Choices
+	(*timestamppb.Timestamp)(nil),        // 34: google.protobuf.Timestamp
 }
 var file_pfsense_api_pfsense_api_proto_depIdxs = []int32{
-	3,  // 0: ddash.pfsenseapi.ListGatewaysResponse.gateways:type_name -> ddash.pfsenseapi.Gateway
-	6,  // 1: ddash.pfsenseapi.ListGatewayGroupsResponse.groups:type_name -> ddash.pfsenseapi.GatewayGroup
-	7,  // 2: ddash.pfsenseapi.GatewayGroup.members:type_name -> ddash.pfsenseapi.GatewayGroupMember
-	10, // 3: ddash.pfsenseapi.ListLeasesResponse.leases:type_name -> ddash.pfsenseapi.Lease
-	13, // 4: ddash.pfsenseapi.ListDhcpServersResponse.servers:type_name -> ddash.pfsenseapi.DhcpServer
-	14, // 5: ddash.pfsenseapi.DhcpServer.pools:type_name -> ddash.pfsenseapi.AddressRange
-	15, // 6: ddash.pfsenseapi.DhcpServer.static_mappings:type_name -> ddash.pfsenseapi.StaticMapping
-	18, // 7: ddash.pfsenseapi.ListAliasesResponse.aliases:type_name -> ddash.pfsenseapi.Alias
-	29, // 8: ddash.pfsenseapi.ListAliasesResponse.choices:type_name -> ddash.config.Choices
-	21, // 9: ddash.pfsenseapi.ListInterfacesResponse.interfaces:type_name -> ddash.pfsenseapi.Interface
-	24, // 10: ddash.pfsenseapi.ListWireguardTunnelsResponse.tunnels:type_name -> ddash.pfsenseapi.WireguardTunnel
-	25, // 11: ddash.pfsenseapi.WireguardTunnel.peers:type_name -> ddash.pfsenseapi.WireguardPeer
-	30, // 12: ddash.pfsenseapi.WireguardPeer.latest_handshake:type_name -> google.protobuf.Timestamp
-	28, // 13: ddash.pfsenseapi.ListFirewallRulesResponse.rules:type_name -> ddash.pfsenseapi.FirewallRule
-	1,  // 14: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
-	4,  // 15: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
-	8,  // 16: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
-	11, // 17: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
-	16, // 18: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
-	19, // 19: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:input_type -> ddash.pfsenseapi.ListInterfacesRequest
-	22, // 20: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:input_type -> ddash.pfsenseapi.ListWireguardTunnelsRequest
-	26, // 21: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:input_type -> ddash.pfsenseapi.ListFirewallRulesRequest
-	2,  // 22: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
-	5,  // 23: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
-	9,  // 24: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
-	12, // 25: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
-	17, // 26: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
-	20, // 27: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:output_type -> ddash.pfsenseapi.ListInterfacesResponse
-	23, // 28: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:output_type -> ddash.pfsenseapi.ListWireguardTunnelsResponse
-	27, // 29: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:output_type -> ddash.pfsenseapi.ListFirewallRulesResponse
-	22, // [22:30] is the sub-list for method output_type
-	14, // [14:22] is the sub-list for method input_type
-	14, // [14:14] is the sub-list for extension type_name
-	14, // [14:14] is the sub-list for extension extendee
-	0,  // [0:14] is the sub-list for field type_name
+	19, // 0: ddash.pfsenseapi.CreateStaticMappingRequest.mapping:type_name -> ddash.pfsenseapi.StaticMapping
+	19, // 1: ddash.pfsenseapi.CreateStaticMappingResponse.mapping:type_name -> ddash.pfsenseapi.StaticMapping
+	19, // 2: ddash.pfsenseapi.RenameStaticMappingResponse.mapping:type_name -> ddash.pfsenseapi.StaticMapping
+	7,  // 3: ddash.pfsenseapi.ListGatewaysResponse.gateways:type_name -> ddash.pfsenseapi.Gateway
+	10, // 4: ddash.pfsenseapi.ListGatewayGroupsResponse.groups:type_name -> ddash.pfsenseapi.GatewayGroup
+	11, // 5: ddash.pfsenseapi.GatewayGroup.members:type_name -> ddash.pfsenseapi.GatewayGroupMember
+	14, // 6: ddash.pfsenseapi.ListLeasesResponse.leases:type_name -> ddash.pfsenseapi.Lease
+	17, // 7: ddash.pfsenseapi.ListDhcpServersResponse.servers:type_name -> ddash.pfsenseapi.DhcpServer
+	18, // 8: ddash.pfsenseapi.DhcpServer.pools:type_name -> ddash.pfsenseapi.AddressRange
+	19, // 9: ddash.pfsenseapi.DhcpServer.static_mappings:type_name -> ddash.pfsenseapi.StaticMapping
+	22, // 10: ddash.pfsenseapi.ListAliasesResponse.aliases:type_name -> ddash.pfsenseapi.Alias
+	33, // 11: ddash.pfsenseapi.ListAliasesResponse.choices:type_name -> ddash.config.Choices
+	25, // 12: ddash.pfsenseapi.ListInterfacesResponse.interfaces:type_name -> ddash.pfsenseapi.Interface
+	28, // 13: ddash.pfsenseapi.ListWireguardTunnelsResponse.tunnels:type_name -> ddash.pfsenseapi.WireguardTunnel
+	29, // 14: ddash.pfsenseapi.WireguardTunnel.peers:type_name -> ddash.pfsenseapi.WireguardPeer
+	34, // 15: ddash.pfsenseapi.WireguardPeer.latest_handshake:type_name -> google.protobuf.Timestamp
+	32, // 16: ddash.pfsenseapi.ListFirewallRulesResponse.rules:type_name -> ddash.pfsenseapi.FirewallRule
+	5,  // 17: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
+	8,  // 18: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
+	12, // 19: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
+	15, // 20: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
+	20, // 21: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
+	23, // 22: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:input_type -> ddash.pfsenseapi.ListInterfacesRequest
+	26, // 23: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:input_type -> ddash.pfsenseapi.ListWireguardTunnelsRequest
+	30, // 24: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:input_type -> ddash.pfsenseapi.ListFirewallRulesRequest
+	1,  // 25: ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping:input_type -> ddash.pfsenseapi.CreateStaticMappingRequest
+	3,  // 26: ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping:input_type -> ddash.pfsenseapi.RenameStaticMappingRequest
+	6,  // 27: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
+	9,  // 28: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
+	13, // 29: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
+	16, // 30: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
+	21, // 31: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
+	24, // 32: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:output_type -> ddash.pfsenseapi.ListInterfacesResponse
+	27, // 33: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:output_type -> ddash.pfsenseapi.ListWireguardTunnelsResponse
+	31, // 34: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:output_type -> ddash.pfsenseapi.ListFirewallRulesResponse
+	2,  // 35: ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping:output_type -> ddash.pfsenseapi.CreateStaticMappingResponse
+	4,  // 36: ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping:output_type -> ddash.pfsenseapi.RenameStaticMappingResponse
+	27, // [27:37] is the sub-list for method output_type
+	17, // [17:27] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_pfsense_api_pfsense_api_proto_init() }
@@ -2066,14 +2286,14 @@ func file_pfsense_api_pfsense_api_proto_init() {
 	if File_pfsense_api_pfsense_api_proto != nil {
 		return
 	}
-	file_pfsense_api_pfsense_api_proto_msgTypes[3].OneofWrappers = []any{}
+	file_pfsense_api_pfsense_api_proto_msgTypes[7].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pfsense_api_pfsense_api_proto_rawDesc), len(file_pfsense_api_pfsense_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   33,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

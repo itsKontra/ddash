@@ -4,6 +4,7 @@
 package pfsenseapi
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	_ "embed"
@@ -38,7 +39,7 @@ func Definition() sdk.Definition {
 	return sdk.Define(sdk.Spec[*pfsenseapipb.PfsenseApiConfig]{
 		Manifest: manifest,
 		Service:  &pfsenseapipb.PfsenseApiService_ServiceDesc,
-		New:      func() sdk.Component[*pfsenseapipb.PfsenseApiConfig] { return &component{} },
+		New:      func() sdk.Component[*pfsenseapipb.PfsenseApiConfig] { return &component{queue: make(chan struct{}, 1)} },
 	})
 }
 
@@ -53,6 +54,9 @@ type component struct {
 	interfaces *sdk.Cache[*pfsenseapipb.ListInterfacesResponse]
 	tunnels    *sdk.Cache[*pfsenseapipb.ListWireguardTunnelsResponse]
 	rules      *sdk.Cache[*pfsenseapipb.ListFirewallRulesResponse]
+
+	// queue holds the one write running (writes.go): writes wait in it.
+	queue chan struct{}
 }
 
 func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.PfsenseApiConfig) error {
@@ -214,17 +218,40 @@ type dhcpServer struct {
 		RangeFrom *string `json:"range_from"`
 		RangeTo   *string `json:"range_to"`
 	} `json:"pool"`
-	Staticmap []struct {
-		MAC      *string `json:"mac"`
-		IPAddr   *string `json:"ipaddr"`
-		Hostname *string `json:"hostname"`
-		Descr    *string `json:"descr"`
-	} `json:"staticmap"`
+	Staticmap []staticMapping `json:"staticmap"`
+}
+
+// staticMapping is one entry of a DHCP server's staticmap, and what
+// services/dhcp_server/static_mapping answers a write with.
+type staticMapping struct {
+	MAC      *string `json:"mac"`
+	IPAddr   *string `json:"ipaddr"`
+	Hostname *string `json:"hostname"`
+	Descr    *string `json:"descr"`
+}
+
+func (m staticMapping) proto(iface string) *pfsenseapipb.StaticMapping {
+	return &pfsenseapipb.StaticMapping{
+		Interface:   iface,
+		Mac:         strings.ToLower(str(m.MAC)),
+		Ip:          str(m.IPAddr),
+		Hostname:    str(m.Hostname),
+		Description: str(m.Descr),
+	}
+}
+
+// readServers reads the DHCP servers uncached; a write's lookup uses it.
+func (c *component) readServers(ctx context.Context) ([]dhcpServer, error) {
+	var data []dhcpServer
+	if err := c.api.get(ctx, "/api/v2/services/dhcp_servers", &data); err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func (c *component) fetchServers(ctx context.Context) (*pfsenseapipb.ListDhcpServersResponse, error) {
-	var data []dhcpServer
-	if err := c.api.get(ctx, "/api/v2/services/dhcp_servers", &data); err != nil {
+	data, err := c.readServers(ctx)
+	if err != nil {
 		return nil, err
 	}
 	out := &pfsenseapipb.ListDhcpServersResponse{}
@@ -240,13 +267,7 @@ func (c *component) fetchServers(ctx context.Context) (*pfsenseapipb.ListDhcpSer
 			addPool(p.RangeFrom, p.RangeTo)
 		}
 		for _, m := range s.Staticmap {
-			server.StaticMappings = append(server.StaticMappings, &pfsenseapipb.StaticMapping{
-				Interface:   s.ID,
-				Mac:         strings.ToLower(str(m.MAC)),
-				Ip:          str(m.IPAddr),
-				Hostname:    str(m.Hostname),
-				Description: str(m.Descr),
-			})
+			server.StaticMappings = append(server.StaticMappings, m.proto(s.ID))
 		}
 		out.Servers = append(out.Servers, server)
 	}
@@ -520,27 +541,55 @@ type envelope struct {
 // get reads path and decodes the envelope's data into out. Any failure is
 // Unavailable, naming what the firewall said.
 func (a *api) get(ctx context.Context, path string, out any) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, a.base+path, nil)
+	return a.send(ctx, http.MethodGet, path, nil, out)
+}
+
+// send sends body (JSON, nil for none) to path with method and decodes the
+// answer's data into out. A write pfSense refuses as invalid (400) is
+// FailedPrecondition and one on an object it lacks (404) NotFound, both
+// with pfSense's message; any other failure is Unavailable.
+func (a *api) send(ctx context.Context, method, path string, body, out any) error {
+	var reqBody io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return err
+		}
+		reqBody = bytes.NewReader(b)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, a.base+path, reqBody)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("X-API-Key", a.key)
 	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 	resp, err := a.http.Do(req)
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "pfSense unreachable: %v", err)
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	if err != nil {
 		return status.Errorf(codes.Unavailable, "pfSense: reading %s: %v", path, err)
 	}
 	var env envelope
-	if err := json.Unmarshal(body, &env); err != nil {
+	if err := json.Unmarshal(raw, &env); err != nil {
 		return status.Errorf(codes.Unavailable, "pfSense answered %s with %d and no REST API JSON", path, resp.StatusCode)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return status.Errorf(codes.Unavailable, "pfSense answered %s with %d %s: %s", path, resp.StatusCode, env.ResponseID, env.Message)
+		code := codes.Unavailable
+		if method != http.MethodGet {
+			switch resp.StatusCode {
+			case http.StatusBadRequest:
+				code = codes.FailedPrecondition
+			case http.StatusNotFound:
+				code = codes.NotFound
+			}
+		}
+		return status.Errorf(code, "pfSense answered %s %s with %d %s: %s", method, path, resp.StatusCode, env.ResponseID, env.Message)
 	}
 	if err := json.Unmarshal(env.Data, out); err != nil {
 		return status.Errorf(codes.Unavailable, "pfSense: %s: %v", path, fmt.Errorf("decode data: %w", err))
