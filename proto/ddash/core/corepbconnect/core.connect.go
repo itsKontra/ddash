@@ -41,6 +41,10 @@ const (
 	CoreServiceDeleteOrphanProcedure = "/ddash.core.CoreService/DeleteOrphan"
 	// CoreServiceListAuditLogProcedure is the procedure name of the CoreService's ListAuditLog RPC.
 	CoreServiceListAuditLogProcedure = "/ddash.core.CoreService/ListAuditLog"
+	// CoreServiceGetLayoutProcedure is the procedure name of the CoreService's GetLayout RPC.
+	CoreServiceGetLayoutProcedure = "/ddash.core.CoreService/GetLayout"
+	// CoreServiceSaveLayoutProcedure is the procedure name of the CoreService's SaveLayout RPC.
+	CoreServiceSaveLayoutProcedure = "/ddash.core.CoreService/SaveLayout"
 )
 
 var (
@@ -93,6 +97,20 @@ var (
 			Procedure:  CoreServiceListAuditLogProcedure,
 		}
 	})
+	coreServiceGetLayoutSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("GetLayout"),
+			Procedure:  CoreServiceGetLayoutProcedure,
+		}
+	})
+	coreServiceSaveLayoutSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("SaveLayout"),
+			Procedure:  CoreServiceSaveLayoutProcedure,
+		}
+	})
 )
 
 // CoreServiceClient is a client for the ddash.core.CoreService service.
@@ -121,6 +139,11 @@ type CoreServiceClient interface {
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error)
+	// GetLayout returns the Overview layout: the placed Widgets in order and
+	// every Widget the shell has seen.
+	GetLayout(context.Context, *core.GetLayoutRequest) (*core.GetLayoutResponse, error)
+	// SaveLayout replaces the Overview layout.
+	SaveLayout(context.Context, *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error)
 }
 
 // NewCoreServiceClient constructs a client for the ddash.core.CoreService service. Multiple service
@@ -155,6 +178,11 @@ type CoreServiceHandler interface {
 	// ListAuditLog reads the Audit Log a page at a time: chains, newest first,
 	// each with its hops.
 	ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error)
+	// GetLayout returns the Overview layout: the placed Widgets in order and
+	// every Widget the shell has seen.
+	GetLayout(context.Context, *core.GetLayoutRequest) (*core.GetLayoutResponse, error)
+	// SaveLayout replaces the Overview layout.
+	SaveLayout(context.Context, *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error)
 }
 
 // RegisterCoreServiceHandler registers svc as the ddash.core.CoreService implementation on server.
@@ -168,6 +196,8 @@ func RegisterCoreServiceHandler(server *connect.Server, svc CoreServiceHandler) 
 		connect.Method{Spec: coreServiceListCatalogueSpec(), Handler: adapter.listCatalogue},
 		connect.Method{Spec: coreServiceDeleteOrphanSpec(), Handler: adapter.deleteOrphan},
 		connect.Method{Spec: coreServiceListAuditLogSpec(), Handler: adapter.listAuditLog},
+		connect.Method{Spec: coreServiceGetLayoutSpec(), Handler: adapter.getLayout},
+		connect.Method{Spec: coreServiceSaveLayoutSpec(), Handler: adapter.saveLayout},
 	)
 }
 
@@ -200,6 +230,14 @@ func (UnimplementedCoreServiceHandler) DeleteOrphan(context.Context, *core.Delet
 
 func (UnimplementedCoreServiceHandler) ListAuditLog(context.Context, *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.ListAuditLog is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) GetLayout(context.Context, *core.GetLayoutRequest) (*core.GetLayoutResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.GetLayout is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) SaveLayout(context.Context, *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.SaveLayout is not implemented")
 }
 
 type coreServiceClient struct {
@@ -257,6 +295,22 @@ func (c *coreServiceClient) DeleteOrphan(ctx context.Context, req *core.DeleteOr
 func (c *coreServiceClient) ListAuditLog(ctx context.Context, req *core.ListAuditLogRequest) (*core.ListAuditLogResponse, error) {
 	var res core.ListAuditLogResponse
 	if err := c.client.CallUnary(ctx, coreServiceListAuditLogSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) GetLayout(ctx context.Context, req *core.GetLayoutRequest) (*core.GetLayoutResponse, error) {
+	var res core.GetLayoutResponse
+	if err := c.client.CallUnary(ctx, coreServiceGetLayoutSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) SaveLayout(ctx context.Context, req *core.SaveLayoutRequest) (*core.SaveLayoutResponse, error) {
+	var res core.SaveLayoutResponse
+	if err := c.client.CallUnary(ctx, coreServiceSaveLayoutSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -342,6 +396,30 @@ func (h coreServiceHandler) listAuditLog(ctx context.Context, _ connect.Spec, st
 		return err
 	}
 	res, err := h.svc.ListAuditLog(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) getLayout(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.GetLayoutRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetLayout(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) saveLayout(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.SaveLayoutRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SaveLayout(ctx, &req)
 	if err != nil {
 		return err
 	}

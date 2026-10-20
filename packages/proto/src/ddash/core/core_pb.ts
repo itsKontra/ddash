@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/core/core.proto.
  */
 export const file_ddash_core_core: GenFile = /*@__PURE__*/
-  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiZwoVTGlzdENhdGFsb2d1ZVJlc3BvbnNlEg8KB3JlbGVhc2UYASABKAkSLAoHcGx1Z2lucxgCIAMoCzIbLmRkYXNoLmNvcmUuQ2F0YWxvZ3VlUGx1Z2luEg8KB29ycGhhbnMYAyADKAkipQEKD0NhdGFsb2d1ZVBsdWdpbhIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEgwKBGljb24YBCABKAkSDgoGYXV0aG9yGAUgASgJEhEKCWluc3RhbGxlZBgGIAEoCBIvCgpjb21wb25lbnRzGAcgAygLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiTQoPQ29tcG9uZW50U3RhdHVzEgwKBG5hbWUYASABKAkSDQoFc3RhdGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIMCgRoZWxkGAQgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIRCg9JbnN0YWxsUmVzcG9uc2UiNwoQVW5pbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkSEwoLZGVsZXRlX2RhdGEYAiABKAgiJAoRVW5pbnN0YWxsUmVzcG9uc2USDwoHb3JwaGFucxgBIAMoCSIjCg5SZXN0YXJ0UmVxdWVzdBIRCgljb21wb25lbnQYASABKAkiEQoPUmVzdGFydFJlc3BvbnNlIh0KG0xpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdCJMChxMaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlEiwKB3BsdWdpbnMYASADKAsyGy5kZGFzaC5jb3JlLkluc3RhbGxlZFBsdWdpbiKSAQoPSW5zdGFsbGVkUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEAoIcmVxdWlyZXMYBiADKAkSDgoGc2NyaXB0GAcgASgJEg0KBXN0eWxlGAggASgJInEKE0xpc3RBdWRpdExvZ1JlcXVlc3QSEgoKYWN0b3Jfa2luZBgBIAEoCRIOCgZ0YXJnZXQYAiABKAkSDwoHb3V0Y29tZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSJoChRMaXN0QXVkaXRMb2dSZXNwb25zZRImCgZjaGFpbnMYASADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0Q2hhaW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEg8KB3RhcmdldHMYAyADKAkiQQoKQXVkaXRDaGFpbhIKCgJpZBgBIAEoCRInCgdlbnRyaWVzGAIgAygLMhYuZGRhc2guY29yZS5BdWRpdEVudHJ5Iv0BCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmFjdG9yX2tpbmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSCwoDc3ViGAQgASgJEg4KBnRhcmdldBgFIAEoCRIOCgZtZXRob2QYBiABKAkSEgoKZGlzcnVwdGl2ZRgHIAEoCBIPCgdyZXF1ZXN0GAggASgJEg8KB291dGNvbWUYCSABKAkSDwoHbWVzc2FnZRgKIAEoCRIrCghkdXJhdGlvbhgLIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbjL8BAoLQ29yZVNlcnZpY2UScQoUTGlzdEluc3RhbGxlZFBsdWdpbnMSJy5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdBooLmRkYXNoLmNvcmUuTGlzdEluc3RhbGxlZFBsdWdpbnNSZXNwb25zZSIGirUYAggCEkgKB0luc3RhbGwSGi5kZGFzaC5jb3JlLkluc3RhbGxSZXF1ZXN0GhsuZGRhc2guY29yZS5JbnN0YWxsUmVzcG9uc2UiBJK1GAASUAoJVW5pbnN0YWxsEhwuZGRhc2guY29yZS5Vbmluc3RhbGxSZXF1ZXN0Gh0uZGRhc2guY29yZS5Vbmluc3RhbGxSZXNwb25zZSIGkrUYAggBEkoKB1Jlc3RhcnQSGi5kZGFzaC5jb3JlLlJlc3RhcnRSZXF1ZXN0GhsuZGRhc2guY29yZS5SZXN0YXJ0UmVzcG9uc2UiBpK1GAIIARJcCg1MaXN0Q2F0YWxvZ3VlEiAuZGRhc2guY29yZS5MaXN0Q2F0YWxvZ3VlUmVxdWVzdBohLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlc3BvbnNlIgaKtRgCCAISWQoMRGVsZXRlT3JwaGFuEh8uZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXF1ZXN0GiAuZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXNwb25zZSIGkrUYAggBElkKDExpc3RBdWRpdExvZxIfLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVxdWVzdBogLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVzcG9uc2UiBoq1GAIIA0I0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChVkZGFzaC9jb3JlL2NvcmUucHJvdG8SCmRkYXNoLmNvcmUiFgoUTGlzdENhdGFsb2d1ZVJlcXVlc3QiZwoVTGlzdENhdGFsb2d1ZVJlc3BvbnNlEg8KB3JlbGVhc2UYASABKAkSLAoHcGx1Z2lucxgCIAMoCzIbLmRkYXNoLmNvcmUuQ2F0YWxvZ3VlUGx1Z2luEg8KB29ycGhhbnMYAyADKAkipQEKD0NhdGFsb2d1ZVBsdWdpbhIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJEgwKBGljb24YBCABKAkSDgoGYXV0aG9yGAUgASgJEhEKCWluc3RhbGxlZBgGIAEoCBIvCgpjb21wb25lbnRzGAcgAygLMhsuZGRhc2guY29yZS5Db21wb25lbnRTdGF0dXMiTQoPQ29tcG9uZW50U3RhdHVzEgwKBG5hbWUYASABKAkSDQoFc3RhdGUYAiABKAkSDwoHbWVzc2FnZRgDIAEoCRIMCgRoZWxkGAQgASgIIigKE0RlbGV0ZU9ycGhhblJlcXVlc3QSEQoJY29tcG9uZW50GAEgASgJIhYKFERlbGV0ZU9ycGhhblJlc3BvbnNlIiAKDkluc3RhbGxSZXF1ZXN0Eg4KBnBsdWdpbhgBIAEoCSIRCg9JbnN0YWxsUmVzcG9uc2UiNwoQVW5pbnN0YWxsUmVxdWVzdBIOCgZwbHVnaW4YASABKAkSEwoLZGVsZXRlX2RhdGEYAiABKAgiJAoRVW5pbnN0YWxsUmVzcG9uc2USDwoHb3JwaGFucxgBIAMoCSIjCg5SZXN0YXJ0UmVxdWVzdBIRCgljb21wb25lbnQYASABKAkiEQoPUmVzdGFydFJlc3BvbnNlIh0KG0xpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdCJMChxMaXN0SW5zdGFsbGVkUGx1Z2luc1Jlc3BvbnNlEiwKB3BsdWdpbnMYASADKAsyGy5kZGFzaC5jb3JlLkluc3RhbGxlZFBsdWdpbiKSAQoPSW5zdGFsbGVkUGx1Z2luEgwKBG5hbWUYASABKAkSDQoFdGl0bGUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkSDAoEaWNvbhgEIAEoCRIOCgZhdXRob3IYBSABKAkSEAoIcmVxdWlyZXMYBiADKAkSDgoGc2NyaXB0GAcgASgJEg0KBXN0eWxlGAggASgJInEKE0xpc3RBdWRpdExvZ1JlcXVlc3QSEgoKYWN0b3Jfa2luZBgBIAEoCRIOCgZ0YXJnZXQYAiABKAkSDwoHb3V0Y29tZRgDIAEoCRIRCglwYWdlX3NpemUYBCABKAUSEgoKcGFnZV90b2tlbhgFIAEoCSJoChRMaXN0QXVkaXRMb2dSZXNwb25zZRImCgZjaGFpbnMYASADKAsyFi5kZGFzaC5jb3JlLkF1ZGl0Q2hhaW4SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEg8KB3RhcmdldHMYAyADKAkiQQoKQXVkaXRDaGFpbhIKCgJpZBgBIAEoCRInCgdlbnRyaWVzGAIgAygLMhYuZGRhc2guY29yZS5BdWRpdEVudHJ5Iv0BCgpBdWRpdEVudHJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmFjdG9yX2tpbmQYAiABKAkSEAoIdXNlcm5hbWUYAyABKAkSCwoDc3ViGAQgASgJEg4KBnRhcmdldBgFIAEoCRIOCgZtZXRob2QYBiABKAkSEgoKZGlzcnVwdGl2ZRgHIAEoCBIPCgdyZXF1ZXN0GAggASgJEg8KB291dGNvbWUYCSABKAkSDwoHbWVzc2FnZRgKIAEoCRIrCghkdXJhdGlvbhgLIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbiISChBHZXRMYXlvdXRSZXF1ZXN0IjcKEUdldExheW91dFJlc3BvbnNlEiIKBmxheW91dBgBIAEoCzISLmRkYXNoLmNvcmUuTGF5b3V0IjcKEVNhdmVMYXlvdXRSZXF1ZXN0EiIKBmxheW91dBgBIAEoCzISLmRkYXNoLmNvcmUuTGF5b3V0IhQKElNhdmVMYXlvdXRSZXNwb25zZSJACgZMYXlvdXQSKAoHZW50cmllcxgBIAMoCzIXLmRkYXNoLmNvcmUuTGF5b3V0RW50cnkSDAoEc2VlbhgCIAMoCSIrCgtMYXlvdXRFbnRyeRIOCgZ3aWRnZXQYASABKAkSDAoEc2l6ZRgCIAEoCTKhBgoLQ29yZVNlcnZpY2UScQoUTGlzdEluc3RhbGxlZFBsdWdpbnMSJy5kZGFzaC5jb3JlLkxpc3RJbnN0YWxsZWRQbHVnaW5zUmVxdWVzdBooLmRkYXNoLmNvcmUuTGlzdEluc3RhbGxlZFBsdWdpbnNSZXNwb25zZSIGirUYAggCEkgKB0luc3RhbGwSGi5kZGFzaC5jb3JlLkluc3RhbGxSZXF1ZXN0GhsuZGRhc2guY29yZS5JbnN0YWxsUmVzcG9uc2UiBJK1GAASUAoJVW5pbnN0YWxsEhwuZGRhc2guY29yZS5Vbmluc3RhbGxSZXF1ZXN0Gh0uZGRhc2guY29yZS5Vbmluc3RhbGxSZXNwb25zZSIGkrUYAggBEkoKB1Jlc3RhcnQSGi5kZGFzaC5jb3JlLlJlc3RhcnRSZXF1ZXN0GhsuZGRhc2guY29yZS5SZXN0YXJ0UmVzcG9uc2UiBpK1GAIIARJcCg1MaXN0Q2F0YWxvZ3VlEiAuZGRhc2guY29yZS5MaXN0Q2F0YWxvZ3VlUmVxdWVzdBohLmRkYXNoLmNvcmUuTGlzdENhdGFsb2d1ZVJlc3BvbnNlIgaKtRgCCAISWQoMRGVsZXRlT3JwaGFuEh8uZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXF1ZXN0GiAuZGRhc2guY29yZS5EZWxldGVPcnBoYW5SZXNwb25zZSIGkrUYAggBElkKDExpc3RBdWRpdExvZxIfLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVxdWVzdBogLmRkYXNoLmNvcmUuTGlzdEF1ZGl0TG9nUmVzcG9uc2UiBoq1GAIIAxJQCglHZXRMYXlvdXQSHC5kZGFzaC5jb3JlLkdldExheW91dFJlcXVlc3QaHS5kZGFzaC5jb3JlLkdldExheW91dFJlc3BvbnNlIgaKtRgCCAMSUQoKU2F2ZUxheW91dBIdLmRkYXNoLmNvcmUuU2F2ZUxheW91dFJlcXVlc3QaHi5kZGFzaC5jb3JlLlNhdmVMYXlvdXRSZXNwb25zZSIEkrUYAEI0WjJnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaC9jb3JlO2NvcmVwYmIGcHJvdG8z", [file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.core.ListCatalogueRequest
@@ -589,6 +589,125 @@ export const AuditEntrySchema: GenMessage<AuditEntry> = /*@__PURE__*/
   messageDesc(file_ddash_core_core, 18);
 
 /**
+ * @generated from message ddash.core.GetLayoutRequest
+ */
+export type GetLayoutRequest = Message<"ddash.core.GetLayoutRequest"> & {
+};
+
+/**
+ * Describes the message ddash.core.GetLayoutRequest.
+ * Use `create(GetLayoutRequestSchema)` to create a new message.
+ */
+export const GetLayoutRequestSchema: GenMessage<GetLayoutRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 19);
+
+/**
+ * @generated from message ddash.core.GetLayoutResponse
+ */
+export type GetLayoutResponse = Message<"ddash.core.GetLayoutResponse"> & {
+  /**
+   * @generated from field: ddash.core.Layout layout = 1;
+   */
+  layout?: Layout | undefined;
+};
+
+/**
+ * Describes the message ddash.core.GetLayoutResponse.
+ * Use `create(GetLayoutResponseSchema)` to create a new message.
+ */
+export const GetLayoutResponseSchema: GenMessage<GetLayoutResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 20);
+
+/**
+ * @generated from message ddash.core.SaveLayoutRequest
+ */
+export type SaveLayoutRequest = Message<"ddash.core.SaveLayoutRequest"> & {
+  /**
+   * @generated from field: ddash.core.Layout layout = 1;
+   */
+  layout?: Layout | undefined;
+};
+
+/**
+ * Describes the message ddash.core.SaveLayoutRequest.
+ * Use `create(SaveLayoutRequestSchema)` to create a new message.
+ */
+export const SaveLayoutRequestSchema: GenMessage<SaveLayoutRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 21);
+
+/**
+ * @generated from message ddash.core.SaveLayoutResponse
+ */
+export type SaveLayoutResponse = Message<"ddash.core.SaveLayoutResponse"> & {
+};
+
+/**
+ * Describes the message ddash.core.SaveLayoutResponse.
+ * Use `create(SaveLayoutResponseSchema)` to create a new message.
+ */
+export const SaveLayoutResponseSchema: GenMessage<SaveLayoutResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 22);
+
+/**
+ * The Overview layout, which the shell reconciles against the Widgets the
+ * installed Plugins offer.
+ *
+ * @generated from message ddash.core.Layout
+ */
+export type Layout = Message<"ddash.core.Layout"> & {
+  /**
+   * The placed Widgets, in grid order. Each Widget is placed at most once.
+   *
+   * @generated from field: repeated ddash.core.LayoutEntry entries = 1;
+   */
+  entries: LayoutEntry[];
+
+  /**
+   * Every Widget the shell has seen, placed or not, keyed
+   * <plugin>.<widget-id>. A seen Widget that isn't placed was removed by the
+   * Operator, so the shell doesn't append it again.
+   *
+   * @generated from field: repeated string seen = 2;
+   */
+  seen: string[];
+};
+
+/**
+ * Describes the message ddash.core.Layout.
+ * Use `create(LayoutSchema)` to create a new message.
+ */
+export const LayoutSchema: GenMessage<Layout> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 23);
+
+/**
+ * A placed Widget.
+ *
+ * @generated from message ddash.core.LayoutEntry
+ */
+export type LayoutEntry = Message<"ddash.core.LayoutEntry"> & {
+  /**
+   * <plugin>.<widget-id>, e.g. "docker.containers".
+   *
+   * @generated from field: string widget = 1;
+   */
+  widget: string;
+
+  /**
+   * S (1×1), M (2×1) or L (2×2).
+   *
+   * @generated from field: string size = 2;
+   */
+  size: string;
+};
+
+/**
+ * Describes the message ddash.core.LayoutEntry.
+ * Use `create(LayoutEntrySchema)` to create a new message.
+ */
+export const LayoutEntrySchema: GenMessage<LayoutEntry> = /*@__PURE__*/
+  messageDesc(file_ddash_core_core, 24);
+
+/**
  * @generated from service ddash.core.CoreService
  */
 export const CoreService: GenService<{
@@ -671,6 +790,27 @@ export const CoreService: GenService<{
     methodKind: "unary";
     input: typeof ListAuditLogRequestSchema;
     output: typeof ListAuditLogResponseSchema;
+  },
+  /**
+   * GetLayout returns the Overview layout: the placed Widgets in order and
+   * every Widget the shell has seen.
+   *
+   * @generated from rpc ddash.core.CoreService.GetLayout
+   */
+  getLayout: {
+    methodKind: "unary";
+    input: typeof GetLayoutRequestSchema;
+    output: typeof GetLayoutResponseSchema;
+  },
+  /**
+   * SaveLayout replaces the Overview layout.
+   *
+   * @generated from rpc ddash.core.CoreService.SaveLayout
+   */
+  saveLayout: {
+    methodKind: "unary";
+    input: typeof SaveLayoutRequestSchema;
+    output: typeof SaveLayoutResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ddash_core_core, 0);
