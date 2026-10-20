@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+// proxmox is the logic behind the Proxmox Page's power Actions: it starts,
+// stops and restarts Workloads that aren't Protected, one power Action per
+// Workload at a time, and puts a Workload it stops or restarts into
+// Maintenance so ddash's own Actions don't page the Operator.
+package ddash.proxmox;
+
+import "ddash/options.proto";
+import "ddash/workload/workload.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/proxmox/proxmoxpb;proxmoxpb";
+
+// proxmox has no config.
+message ProxmoxConfig {}
+
+service ProxmoxService {
+  // StartWorkload starts a stopped LXC or VM and ends its Maintenance.
+  rpc StartWorkload(StartWorkloadRequest) returns (StartWorkloadResponse) {
+    option (ddash.action) = {};
+  }
+  // StopWorkload shuts an LXC or VM down cleanly, stopping it hard after
+  // proxmox.ShutdownTimeout. It stays in Maintenance until ddash starts
+  // it again or all its Checks are up.
+  rpc StopWorkload(StopWorkloadRequest) returns (StopWorkloadResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // RestartWorkload reboots an LXC or VM. It stays in Maintenance until its
+  // Checks are up or 5 min have passed.
+  rpc RestartWorkload(RestartWorkloadRequest) returns (RestartWorkloadResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListPowerTasks returns the power Actions running now, one per Workload
+  // at most, from memory.
+  rpc ListPowerTasks(ListPowerTasksRequest) returns (ListPowerTasksResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+}
+
+// Every power Action names its Workload by kind (LXC or VM) and VMID; the
+// node is read from proxmox-api, as the Workload may have moved.
+message StartWorkloadRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message StartWorkloadResponse {}
+
+message StopWorkloadRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message StopWorkloadResponse {}
+
+message RestartWorkloadRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message RestartWorkloadResponse {}
+
+message ListPowerTasksRequest {}
+
+message ListPowerTasksResponse {
+  // By VMID.
+  repeated PowerTask tasks = 1;
+}
+
+// PowerTask is a power Action in flight: its buttons stay disabled, and
+// proxmox refuses another on the Workload, until Proxmox's task ended
+// (even after the Action itself returned DeadlineExceeded).
+message PowerTask {
+  ddash.workload.WorkloadRef workload = 1;
+  PowerAction action = 2;
+  google.protobuf.Timestamp started = 3;
+}
+
+enum PowerAction {
+  POWER_ACTION_UNSPECIFIED = 0;
+  POWER_ACTION_START = 1;
+  POWER_ACTION_STOP = 2;
+  POWER_ACTION_RESTART = 3;
+}

@@ -14,6 +14,12 @@
 // it lacks comes from the sibling baseline directory. Recorded bodies use
 // only the scrubbed ranges 198.18.N.0/24, 203.0.113.0/24, 2001:db8::/32 and
 // the domain home.example.
+//
+// Record mode (Recorder, Record) is the other direction: a reverse proxy to
+// the real system writing each response's body, never its headers, into a
+// scenario in this layout after a Scrub (internal/scrub) rewrote it.
+// WriteCommand does the same for a command an SSH fake answers. `make
+// record` (internal/smoke) uses both.
 package fixture
 
 import (

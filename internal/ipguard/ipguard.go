@@ -85,7 +85,7 @@ func check(path, rel string) ([]Finding, error) {
 				break
 			}
 			addr := line[at+m[2] : at+m[3]]
-			if ip, err := netip.ParseAddr(addr); err == nil && !ok(ip) {
+			if ip, err := netip.ParseAddr(addr); err == nil && !Allowed(ip) {
 				findings = append(findings, Finding{File: rel, Line: n, Addr: addr})
 			}
 			at += m[3]
@@ -94,7 +94,12 @@ func check(path, rel string) ([]Finding, error) {
 	return findings, lines.Err()
 }
 
-func ok(ip netip.Addr) bool {
+// Allowed reports whether a fixture may hold the IPv4 address ip: one of the
+// scrubbed ranges, loopback or a netmask.
+func Allowed(ip netip.Addr) bool {
+	if !ip.Is4() {
+		return false
+	}
 	for _, p := range allowed {
 		if p.Contains(ip) {
 			return true

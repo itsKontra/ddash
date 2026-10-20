@@ -9,13 +9,15 @@ import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobu
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
+import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_duration, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file proxmox-api/proxmox_api.proto.
  */
 export const file_proxmox_api_proxmox_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1wcm94bW94LWFwaS9wcm94bW94X2FwaS5wcm90bxIQZGRhc2gucHJveG1veGFwaSL8AgoQUHJveG1veEFwaUNvbmZpZxJ4CgN1cmwYASABKAlCa5q1GGcaA1VSTCJDVGhlIFByb3htb3ggQVBJIGJ5IGFkZHJlc3MsIHNvIGl0IHdvcmtzIHdoaWxlIEROUyBvciBuZ2lueCBpcyBkb3duLioXaHR0cHM6Ly8xOTguMTguMS4yOjgwMDYwATgBEoYBCg90bHNfc2VydmVyX25hbWUYAiABKAlCbZq1GGkaD1RMUyBzZXJ2ZXIgbmFtZSJCVGhlIG5hbWUgb24gdGhlIG5vZGUncyBjZXJ0aWZpY2F0ZSwgd2hlbiB0aGUgVVJMIHVzZXMgaXRzIGFkZHJlc3MuKhBwdmUuaG9tZS5leGFtcGxlOAISNwoIdG9rZW5faWQYAyABKAlCJZq1GCEaCFRva2VuIElEKhNkZGFzaEBwdmUhZGFzaGJvYXJkMAESLAoMdG9rZW5fc2VjcmV0GAQgASgJQhaatRgSEAEaDFRva2VuIHNlY3JldDABIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkYKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRItCgl3b3JrbG9hZHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLldvcmtsb2FkIpEDCghXb3JrbG9hZBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBHZtaWQYAiABKA0SDAoEbm9kZRgDIAEoCRIMCgRuYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIQCgh0ZW1wbGF0ZRgGIAEoCBIMCgR0YWdzGAcgAygJEgsKA2NwdRgIIAEoARIPCgdtYXhfY3B1GAkgASgNEgsKA21lbRgKIAEoBBIPCgdtYXhfbWVtGAsgASgEEgwKBGRpc2sYDCABKAQSEAoIbWF4X2Rpc2sYDSABKAQSDgoGbmV0X2luGA4gASgEEg8KB25ldF9vdXQYDyABKAQSFgoOdXB0aW1lX3NlY29uZHMYECABKAQSIwoEbmljcxgRIAMoCzIVLmRkYXNoLnByb3htb3hhcGkuTmljEjIKCWFkZHJlc3NlcxgSIAEoDjIfLmRkYXNoLnByb3htb3hhcGkuQWRkcmVzc1NvdXJjZRIXCg9hZGRyZXNzZXNfZXJyb3IYEyABKAkiLQoDTmljEgwKBG5hbWUYASABKAkSCwoDbWFjGAIgASgJEgsKA2lwcxgDIAMoCSIYChZMaXN0UGVybWlzc2lvbnNSZXF1ZXN0IlMKF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEjgKCXdvcmtsb2FkcxgBIAMoCzIlLmRkYXNoLnByb3htb3hhcGkuV29ya2xvYWRQZXJtaXNzaW9ucyI3ChNXb3JrbG9hZFBlcm1pc3Npb25zEgwKBHZtaWQYASABKA0SEgoKcHJpdmlsZWdlcxgCIAMoCSo3CgRLaW5kEhQKEEtJTkRfVU5TUEVDSUZJRUQQABIMCghLSU5EX0xYQxABEgsKB0tJTkRfVk0QAipjCg1BZGRyZXNzU291cmNlEh4KGkFERFJFU1NfU09VUkNFX1VOU1BFQ0lGSUVEEAASFwoTQUREUkVTU19TT1VSQ0VfTElWRRABEhkKFUFERFJFU1NfU09VUkNFX0NPTkZJRxACMu0BChFQcm94bW94QXBpU2VydmljZRJoCg1MaXN0V29ya2xvYWRzEiYuZGRhc2gucHJveG1veGFwaS5MaXN0V29ya2xvYWRzUmVxdWVzdBonLmRkYXNoLnByb3htb3hhcGkuTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlIgaKtRgCCAISbgoPTGlzdFBlcm1pc3Npb25zEiguZGRhc2gucHJveG1veGFwaS5MaXN0UGVybWlzc2lvbnNSZXF1ZXN0GikuZGRhc2gucHJveG1veGFwaS5MaXN0UGVybWlzc2lvbnNSZXNwb25zZSIGirUYAggCQk1aS2dpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvcHJveG1veC1hcGkvcHJveG1veGFwaXBiO3Byb3htb3hhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("Ch1wcm94bW94LWFwaS9wcm94bW94X2FwaS5wcm90bxIQZGRhc2gucHJveG1veGFwaSL8AgoQUHJveG1veEFwaUNvbmZpZxJ4CgN1cmwYASABKAlCa5q1GGcaA1VSTCJDVGhlIFByb3htb3ggQVBJIGJ5IGFkZHJlc3MsIHNvIGl0IHdvcmtzIHdoaWxlIEROUyBvciBuZ2lueCBpcyBkb3duLioXaHR0cHM6Ly8xOTguMTguMS4yOjgwMDYwATgBEoYBCg90bHNfc2VydmVyX25hbWUYAiABKAlCbZq1GGkaD1RMUyBzZXJ2ZXIgbmFtZSJCVGhlIG5hbWUgb24gdGhlIG5vZGUncyBjZXJ0aWZpY2F0ZSwgd2hlbiB0aGUgVVJMIHVzZXMgaXRzIGFkZHJlc3MuKhBwdmUuaG9tZS5leGFtcGxlOAISNwoIdG9rZW5faWQYAyABKAlCJZq1GCEaCFRva2VuIElEKhNkZGFzaEBwdmUhZGFzaGJvYXJkMAESLAoMdG9rZW5fc2VjcmV0GAQgASgJQhaatRgSEAEaDFRva2VuIHNlY3JldDABIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkYKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRItCgl3b3JrbG9hZHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLldvcmtsb2FkIpEDCghXb3JrbG9hZBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBHZtaWQYAiABKA0SDAoEbm9kZRgDIAEoCRIMCgRuYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIQCgh0ZW1wbGF0ZRgGIAEoCBIMCgR0YWdzGAcgAygJEgsKA2NwdRgIIAEoARIPCgdtYXhfY3B1GAkgASgNEgsKA21lbRgKIAEoBBIPCgdtYXhfbWVtGAsgASgEEgwKBGRpc2sYDCABKAQSEAoIbWF4X2Rpc2sYDSABKAQSDgoGbmV0X2luGA4gASgEEg8KB25ldF9vdXQYDyABKAQSFgoOdXB0aW1lX3NlY29uZHMYECABKAQSIwoEbmljcxgRIAMoCzIVLmRkYXNoLnByb3htb3hhcGkuTmljEjIKCWFkZHJlc3NlcxgSIAEoDjIfLmRkYXNoLnByb3htb3hhcGkuQWRkcmVzc1NvdXJjZRIXCg9hZGRyZXNzZXNfZXJyb3IYEyABKAkiLQoDTmljEgwKBG5hbWUYASABKAkSCwoDbWFjGAIgASgJEgsKA2lwcxgDIAMoCSIYChZMaXN0UGVybWlzc2lvbnNSZXF1ZXN0IlMKF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEjgKCXdvcmtsb2FkcxgBIAMoCzIlLmRkYXNoLnByb3htb3hhcGkuV29ya2xvYWRQZXJtaXNzaW9ucyI3ChNXb3JrbG9hZFBlcm1pc3Npb25zEgwKBHZtaWQYASABKA0SEgoKcHJpdmlsZWdlcxgCIAMoCSJKCgZUYXJnZXQSJAoEa2luZBgBIAEoDjIWLmRkYXNoLnByb3htb3hhcGkuS2luZBIMCgRub2RlGAIgASgJEgwKBHZtaWQYAyABKA0iQgoUU3RhcnRXb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldCIlChVTdGFydFdvcmtsb2FkUmVzcG9uc2USDAoEdXBpZBgBIAEoCSKFAQoXU2h1dGRvd25Xb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIqCgd0aW1lb3V0GAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhIKCmZvcmNlX3N0b3AYAyABKAgiKAoYU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlEgwKBHVwaWQYASABKAkiQwoVUmVib290V29ya2xvYWRSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQiJgoWUmVib290V29ya2xvYWRSZXNwb25zZRIMCgR1cGlkGAEgASgJIjQKFkxpc3RBY3RpdmVUYXNrc1JlcXVlc3QSDAoEbm9kZRgBIAEoCRIMCgR2bWlkGAIgASgNIkAKF0xpc3RBY3RpdmVUYXNrc1Jlc3BvbnNlEiUKBXRhc2tzGAEgAygLMhYuZGRhc2gucHJveG1veGFwaS5UYXNrIk8KBFRhc2sSDAoEdXBpZBgBIAEoCRIMCgR0eXBlGAIgASgJEisKB3N0YXJ0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKjcKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEgwKCEtJTkRfTFhDEAESCwoHS0lORF9WTRACKmMKDUFkZHJlc3NTb3VyY2USHgoaQUREUkVTU19TT1VSQ0VfVU5TUEVDSUZJRUQQABIXChNBRERSRVNTX1NPVVJDRV9MSVZFEAESGQoVQUREUkVTU19TT1VSQ0VfQ09ORklHEAIypQUKEVByb3htb3hBcGlTZXJ2aWNlEmgKDUxpc3RXb3JrbG9hZHMSJi5kZGFzaC5wcm94bW94YXBpLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GicuZGRhc2gucHJveG1veGFwaS5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBoq1GAIIAhJuCg9MaXN0UGVybWlzc2lvbnMSKC5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaKS5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIgaKtRgCCAISZgoNU3RhcnRXb3JrbG9hZBImLmRkYXNoLnByb3htb3hhcGkuU3RhcnRXb3JrbG9hZFJlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLlN0YXJ0V29ya2xvYWRSZXNwb25zZSIEkrUYABJxChBTaHV0ZG93bldvcmtsb2FkEikuZGRhc2gucHJveG1veGFwaS5TaHV0ZG93bldvcmtsb2FkUmVxdWVzdBoqLmRkYXNoLnByb3htb3hhcGkuU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlIgaStRgCCAESawoOUmVib290V29ya2xvYWQSJy5kZGFzaC5wcm94bW94YXBpLlJlYm9vdFdvcmtsb2FkUmVxdWVzdBooLmRkYXNoLnByb3htb3hhcGkuUmVib290V29ya2xvYWRSZXNwb25zZSIGkrUYAggBEm4KD0xpc3RBY3RpdmVUYXNrcxIoLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVxdWVzdBopLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVzcG9uc2UiBoq1GAIIA0JNWktnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3Byb3htb3gtYXBpL3Byb3htb3hhcGlwYjtwcm94bW94YXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.proxmoxapi.ProxmoxApiConfig
@@ -299,6 +301,226 @@ export const WorkloadPermissionsSchema: GenMessage<WorkloadPermissions> = /*@__P
   messageDesc(file_proxmox_api_proxmox_api, 7);
 
 /**
+ * Target names the Workload a power Action acts on.
+ *
+ * @generated from message ddash.proxmoxapi.Target
+ */
+export type Target = Message<"ddash.proxmoxapi.Target"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Kind kind = 1;
+   */
+  kind: Kind;
+
+  /**
+   * The node it is on now.
+   *
+   * @generated from field: string node = 2;
+   */
+  node: string;
+
+  /**
+   * @generated from field: uint32 vmid = 3;
+   */
+  vmid: number;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.Target.
+ * Use `create(TargetSchema)` to create a new message.
+ */
+export const TargetSchema: GenMessage<Target> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 8);
+
+/**
+ * @generated from message ddash.proxmoxapi.StartWorkloadRequest
+ */
+export type StartWorkloadRequest = Message<"ddash.proxmoxapi.StartWorkloadRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.StartWorkloadRequest.
+ * Use `create(StartWorkloadRequestSchema)` to create a new message.
+ */
+export const StartWorkloadRequestSchema: GenMessage<StartWorkloadRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 9);
+
+/**
+ * @generated from message ddash.proxmoxapi.StartWorkloadResponse
+ */
+export type StartWorkloadResponse = Message<"ddash.proxmoxapi.StartWorkloadResponse"> & {
+  /**
+   * The task Proxmox ran, e.g. "UPID:pve:0001A2B3:...:vzstart:103:ddash@pve!dashboard:".
+   *
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.StartWorkloadResponse.
+ * Use `create(StartWorkloadResponseSchema)` to create a new message.
+ */
+export const StartWorkloadResponseSchema: GenMessage<StartWorkloadResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 10);
+
+/**
+ * @generated from message ddash.proxmoxapi.ShutdownWorkloadRequest
+ */
+export type ShutdownWorkloadRequest = Message<"ddash.proxmoxapi.ShutdownWorkloadRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+
+  /**
+   * How long Proxmox waits for the clean shutdown, in whole seconds; unset
+   * is Proxmox's default (60 s for an LXC, 180 s for a VM).
+   *
+   * @generated from field: google.protobuf.Duration timeout = 2;
+   */
+  timeout?: Duration | undefined;
+
+  /**
+   * Stop it hard once timeout has passed.
+   *
+   * @generated from field: bool force_stop = 3;
+   */
+  forceStop: boolean;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ShutdownWorkloadRequest.
+ * Use `create(ShutdownWorkloadRequestSchema)` to create a new message.
+ */
+export const ShutdownWorkloadRequestSchema: GenMessage<ShutdownWorkloadRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 11);
+
+/**
+ * @generated from message ddash.proxmoxapi.ShutdownWorkloadResponse
+ */
+export type ShutdownWorkloadResponse = Message<"ddash.proxmoxapi.ShutdownWorkloadResponse"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ShutdownWorkloadResponse.
+ * Use `create(ShutdownWorkloadResponseSchema)` to create a new message.
+ */
+export const ShutdownWorkloadResponseSchema: GenMessage<ShutdownWorkloadResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 12);
+
+/**
+ * @generated from message ddash.proxmoxapi.RebootWorkloadRequest
+ */
+export type RebootWorkloadRequest = Message<"ddash.proxmoxapi.RebootWorkloadRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.RebootWorkloadRequest.
+ * Use `create(RebootWorkloadRequestSchema)` to create a new message.
+ */
+export const RebootWorkloadRequestSchema: GenMessage<RebootWorkloadRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 13);
+
+/**
+ * @generated from message ddash.proxmoxapi.RebootWorkloadResponse
+ */
+export type RebootWorkloadResponse = Message<"ddash.proxmoxapi.RebootWorkloadResponse"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.RebootWorkloadResponse.
+ * Use `create(RebootWorkloadResponseSchema)` to create a new message.
+ */
+export const RebootWorkloadResponseSchema: GenMessage<RebootWorkloadResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 14);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListActiveTasksRequest
+ */
+export type ListActiveTasksRequest = Message<"ddash.proxmoxapi.ListActiveTasksRequest"> & {
+  /**
+   * The node and Workload whose running tasks to list.
+   *
+   * @generated from field: string node = 1;
+   */
+  node: string;
+
+  /**
+   * @generated from field: uint32 vmid = 2;
+   */
+  vmid: number;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListActiveTasksRequest.
+ * Use `create(ListActiveTasksRequestSchema)` to create a new message.
+ */
+export const ListActiveTasksRequestSchema: GenMessage<ListActiveTasksRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 15);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListActiveTasksResponse
+ */
+export type ListActiveTasksResponse = Message<"ddash.proxmoxapi.ListActiveTasksResponse"> & {
+  /**
+   * @generated from field: repeated ddash.proxmoxapi.Task tasks = 1;
+   */
+  tasks: Task[];
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListActiveTasksResponse.
+ * Use `create(ListActiveTasksResponseSchema)` to create a new message.
+ */
+export const ListActiveTasksResponseSchema: GenMessage<ListActiveTasksResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 16);
+
+/**
+ * @generated from message ddash.proxmoxapi.Task
+ */
+export type Task = Message<"ddash.proxmoxapi.Task"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+
+  /**
+   * Proxmox's task type, e.g. "vzstart", "qmshutdown".
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started = 3;
+   */
+  started?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.Task.
+ * Use `create(TaskSchema)` to create a new message.
+ */
+export const TaskSchema: GenMessage<Task> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 17);
+
+/**
  * @generated from enum ddash.proxmoxapi.Kind
  */
 export enum Kind {
@@ -378,6 +600,53 @@ export const ProxmoxApiService: GenService<{
     methodKind: "unary";
     input: typeof ListPermissionsRequestSchema;
     output: typeof ListPermissionsResponseSchema;
+  },
+  /**
+   * StartWorkload starts a Workload (status/start) and returns once
+   * Proxmox's task ended with exitstatus OK. A task still running when the
+   * call's deadline passes carries on in Proxmox: the call returns
+   * DeadlineExceeded and ListActiveTasks lists the task until it ends.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.StartWorkload
+   */
+  startWorkload: {
+    methodKind: "unary";
+    input: typeof StartWorkloadRequestSchema;
+    output: typeof StartWorkloadResponseSchema;
+  },
+  /**
+   * ShutdownWorkload shuts a Workload down cleanly (status/shutdown), and
+   * stops it hard after timeout when force_stop is set. It returns like
+   * StartWorkload.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload
+   */
+  shutdownWorkload: {
+    methodKind: "unary";
+    input: typeof ShutdownWorkloadRequestSchema;
+    output: typeof ShutdownWorkloadResponseSchema;
+  },
+  /**
+   * RebootWorkload shuts a Workload down and starts it again
+   * (status/reboot). It returns like StartWorkload.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.RebootWorkload
+   */
+  rebootWorkload: {
+    methodKind: "unary";
+    input: typeof RebootWorkloadRequestSchema;
+    output: typeof RebootWorkloadResponseSchema;
+  },
+  /**
+   * ListActiveTasks returns the tasks ddash's token started on a Workload
+   * that are still running, never cached.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks
+   */
+  listActiveTasks: {
+    methodKind: "unary";
+    input: typeof ListActiveTasksRequestSchema;
+    output: typeof ListActiveTasksResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_proxmox_api_proxmox_api, 0);

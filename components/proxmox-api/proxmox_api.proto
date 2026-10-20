@@ -6,6 +6,8 @@ package ddash.proxmoxapi;
 
 import "ddash/config/config.proto";
 import "ddash/options.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb;proxmoxapipb";
 
@@ -49,6 +51,29 @@ service ProxmoxApiService {
   // ListWorkloads lists, from /access/permissions.
   rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
     option (ddash.getter) = {refresh: FAST};
+  }
+  // StartWorkload starts a Workload (status/start) and returns once
+  // Proxmox's task ended with exitstatus OK. A task still running when the
+  // call's deadline passes carries on in Proxmox: the call returns
+  // DeadlineExceeded and ListActiveTasks lists the task until it ends.
+  rpc StartWorkload(StartWorkloadRequest) returns (StartWorkloadResponse) {
+    option (ddash.action) = {};
+  }
+  // ShutdownWorkload shuts a Workload down cleanly (status/shutdown), and
+  // stops it hard after timeout when force_stop is set. It returns like
+  // StartWorkload.
+  rpc ShutdownWorkload(ShutdownWorkloadRequest) returns (ShutdownWorkloadResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // RebootWorkload shuts a Workload down and starts it again
+  // (status/reboot). It returns like StartWorkload.
+  rpc RebootWorkload(RebootWorkloadRequest) returns (RebootWorkloadResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListActiveTasks returns the tasks ddash's token started on a Workload
+  // that are still running, never cached.
+  rpc ListActiveTasks(ListActiveTasksRequest) returns (ListActiveTasksResponse) {
+    option (ddash.getter) = {refresh: NONE};
   }
 }
 
@@ -121,4 +146,59 @@ message WorkloadPermissions {
   uint32 vmid = 1;
   // Sorted privilege names, e.g. "VM.Audit", "VM.PowerMgmt".
   repeated string privileges = 2;
+}
+
+// Target names the Workload a power Action acts on.
+message Target {
+  Kind kind = 1;
+  // The node it is on now.
+  string node = 2;
+  uint32 vmid = 3;
+}
+
+message StartWorkloadRequest {
+  Target workload = 1;
+}
+
+message StartWorkloadResponse {
+  // The task Proxmox ran, e.g. "UPID:pve:0001A2B3:...:vzstart:103:ddash@pve!dashboard:".
+  string upid = 1;
+}
+
+message ShutdownWorkloadRequest {
+  Target workload = 1;
+  // How long Proxmox waits for the clean shutdown, in whole seconds; unset
+  // is Proxmox's default (60 s for an LXC, 180 s for a VM).
+  google.protobuf.Duration timeout = 2;
+  // Stop it hard once timeout has passed.
+  bool force_stop = 3;
+}
+
+message ShutdownWorkloadResponse {
+  string upid = 1;
+}
+
+message RebootWorkloadRequest {
+  Target workload = 1;
+}
+
+message RebootWorkloadResponse {
+  string upid = 1;
+}
+
+message ListActiveTasksRequest {
+  // The node and Workload whose running tasks to list.
+  string node = 1;
+  uint32 vmid = 2;
+}
+
+message ListActiveTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message Task {
+  string upid = 1;
+  // Proxmox's task type, e.g. "vzstart", "qmshutdown".
+  string type = 2;
+  google.protobuf.Timestamp started = 3;
 }

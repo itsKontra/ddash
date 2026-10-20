@@ -1,16 +1,18 @@
 import { useQuery } from "@ddash/plugin";
 import { AddressSource, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { Badge, PageHeader, StatusDot, type Tone } from "@ddash/ui";
+import { Link } from "react-router";
 import { bytes, cpu, kindLabel, uptime } from "./format";
+import { PowerMenu } from "./power";
 
 /** How each of Proxmox's statuses reads at a glance. */
-const tones: Record<string, Tone> = {
+export const tones: Record<string, Tone> = {
   running: "up",
   paused: "warn",
   stopped: "idle",
 };
 
-/** The proxmox Page: every LXC and VM with its status, resources and IPs. */
+/** The proxmox Page: every LXC and VM with its status, resources and IPs, and a menu of its power Actions. */
 export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   return (
@@ -49,8 +51,11 @@ export function Workloads() {
                 <th scope="col" className="px-2 py-2 font-medium">
                   Uptime
                 </th>
-                <th scope="col" className="px-2 py-2 pr-4 font-medium">
+                <th scope="col" className="px-2 py-2 font-medium">
                   IPs
+                </th>
+                <th scope="col" className="px-2 py-2 pr-4 text-right font-medium">
+                  <span className="sr-only">Power</span>
                 </th>
               </tr>
             </thead>
@@ -76,7 +81,9 @@ function Row({ workload: w }: { workload: Workload }) {
       <td className="px-2 py-2 text-muted-foreground tabular-nums">{w.vmid}</td>
       <th scope="row" className="px-2 py-2 text-left font-medium">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span>{w.name}</span>
+          <Link to={`workloads/${w.vmid}`} className="hover:underline">
+            {w.name}
+          </Link>
           {w.template && <Badge>template</Badge>}
           {w.tags.map((t) => (
             <Badge key={t}>{t}</Badge>
@@ -89,15 +96,18 @@ function Row({ workload: w }: { workload: Workload }) {
       <td className="px-2 py-2 text-muted-foreground tabular-nums">{w.disk ? `${bytes(w.disk)} / ${bytes(w.maxDisk)}` : bytes(w.maxDisk)}</td>
       <td className="px-2 py-2 text-muted-foreground tabular-nums">{running ? `${bytes(w.netIn)} in · ${bytes(w.netOut)} out` : "–"}</td>
       <td className="px-2 py-2 text-muted-foreground tabular-nums">{running ? uptime(w.uptimeSeconds) : "–"}</td>
-      <td className="px-2 py-2 pr-4">
+      <td className="px-2 py-2">
         <Addresses workload={w} />
+      </td>
+      <td className="px-2 py-2 pr-4 text-right">
+        <PowerMenu workload={w} />
       </td>
     </tr>
   );
 }
 
 /** Its IPs, or each NIC's MAC when it has none; marked when from the config. */
-function Addresses({ workload: w }: { workload: Workload }) {
+export function Addresses({ workload: w }: { workload: Workload }) {
   if (w.addressesError) return <span className="text-warn">{w.addressesError}</span>;
   const shown = w.nics.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
   if (!shown.length) return <span className="text-muted-foreground">–</span>;

@@ -211,13 +211,13 @@ it("says when nginx-config couldn't be read", async () => {
   expect(screen.getByText(/No Apps yet/)).toBeTruthy();
 });
 
-it("shows each card's Workload, linked to the Proxmox or Docker Page when that Plugin is installed", async () => {
+it("shows each card's Workload, linked to its Proxmox detail or the Docker Page when that Plugin is installed", async () => {
   renderScoped(<Page />, {}, ["apps", "proxmox"]);
   await settle();
 
   const workload = (name: string) => within(screen.getByRole("listitem", { name })).queryByLabelText("Workload");
   expect(workload("Grafana")?.textContent).toBe("LXC grafana · running");
-  expect(within(workload("Grafana")!).getByRole("link").getAttribute("href")).toBe("/proxmox");
+  expect(within(workload("Grafana")!).getByRole("link").getAttribute("href")).toBe("/proxmox/workloads/120");
   // docker isn't installed: plain text.
   expect(workload("Jellyfin")?.textContent).toBe("Docker jellyfin · exited");
   expect(within(workload("Jellyfin")!).queryByRole("link")).toBeNull();
