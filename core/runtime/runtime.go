@@ -58,6 +58,8 @@ const (
 type Status struct {
 	State   State
 	Message string
+	// Held: the Component crashed too often and stays down until Restart.
+	Held bool
 }
 
 const (
@@ -334,6 +336,26 @@ func (r *Runtime) Orphans() []string {
 	return orphans
 }
 
+// DeleteOrphan deletes an orphan's DB file and config. It refuses a
+// Component an installed Plugin requires, and one without a DB file.
+func (r *Runtime) DeleteOrphan(ctx context.Context, name string) error {
+	r.changing.Lock()
+	defer r.changing.Unlock()
+	if !slices.Contains(r.Orphans(), name) {
+		r.mu.Lock()
+		wanted := r.wanted()[name]
+		r.mu.Unlock()
+		if wanted {
+			return status.Errorf(codes.FailedPrecondition, "%s isn't an orphan: an installed Plugin requires it", name)
+		}
+		return status.Errorf(codes.NotFound, "%s has no DB file", name)
+	}
+	if err := r.deleteData(ctx, name); err != nil {
+		return fmt.Errorf("delete orphan %s: %w", name, err)
+	}
+	return nil
+}
+
 // wanted returns every Component the installed Plugins require,
 // transitively. r.mu must be held.
 func (r *Runtime) wanted() map[string]bool {
@@ -382,6 +404,9 @@ func (r *Runtime) Installed() []PluginEntry {
 	return out
 }
 
+// Catalogue is the catalogue of the Release the runtime runs.
+func (r *Runtime) Catalogue() Catalogue { return r.cat }
+
 // Release is the Release the runtime runs.
 func (r *Runtime) Release() string { return r.cat.Release }
 
@@ -397,7 +422,9 @@ func (r *Runtime) Status() map[string]Status {
 	defer r.mu.Unlock()
 	out := make(map[string]Status, len(r.components))
 	for name, c := range r.components {
-		out[name] = c.status
+		st := c.status
+		st.Held = c.held
+		out[name] = st
 	}
 	return out
 }

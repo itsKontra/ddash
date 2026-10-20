@@ -1,5 +1,5 @@
 // A Component API for tests: package ddash.fake (Component "fake"), one
-// getter per refresh tier and one Action, each taking Ping and answering
+// getter per refresh tier, one Action (Poke) and one disruptive Action (Zap), each taking Ping and answering
 // Pong.
 import { create, createFileRegistry, setExtension, type DescMethodUnary } from "@bufbuild/protobuf";
 import {
@@ -24,9 +24,9 @@ function getterOptions(refresh: Getter_Refresh): MethodOptions {
   return o;
 }
 
-function actionOptions(): MethodOptions {
+function actionOptions(disruptive = false): MethodOptions {
   const o = create(MethodOptionsSchema);
-  setExtension(o, action, create(ActionSchema, { disruptive: false }));
+  setExtension(o, action, create(ActionSchema, { disruptive }));
   return o;
 }
 
@@ -61,6 +61,7 @@ const file = create(FileDescriptorProtoSchema, {
         method("Slow", getterOptions(Getter_Refresh.SLOW)),
         method("None", getterOptions(Getter_Refresh.NONE)),
         method("Poke", actionOptions()),
+        method("Zap", actionOptions(true)),
       ],
     },
   ],
@@ -74,5 +75,5 @@ const unary = (name: string) => service.method[name] as DescMethodUnary;
 /** Shaped like generated code's service: FakeService.method.fast. */
 export const FakeService = {
   service,
-  method: { live: unary("live"), fast: unary("fast"), slow: unary("slow"), none: unary("none"), poke: unary("poke") },
+  method: { live: unary("live"), fast: unary("fast"), slow: unary("slow"), none: unary("none"), poke: unary("poke"), zap: unary("zap") },
 };

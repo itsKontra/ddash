@@ -32,7 +32,60 @@ service CoreService {
   rpc Restart(RestartRequest) returns (RestartResponse) {
     option (ddash.action) = {disruptive: true};
   }
+  // ListCatalogue returns every Plugin in the running Release, whether it
+  // is installed, and the state of each Component it pulls in, plus the
+  // orphaned DB files.
+  rpc ListCatalogue(ListCatalogueRequest) returns (ListCatalogueResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // DeleteOrphan deletes an orphaned Component's DB file and config.
+  rpc DeleteOrphan(DeleteOrphanRequest) returns (DeleteOrphanResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
 }
+
+message ListCatalogueRequest {}
+
+message ListCatalogueResponse {
+  string release = 1;
+  // By name.
+  repeated CataloguePlugin plugins = 2;
+  // Components whose DB file is kept although nothing runs them, by name.
+  repeated string orphans = 3;
+}
+
+// A Plugin in the Catalogue: its plugin.yaml and what it pulls in.
+message CataloguePlugin {
+  string name = 1;
+  string title = 2;
+  string description = 3;
+  // A lucide icon name, e.g. "container".
+  string icon = 4;
+  // The author's GitHub handle.
+  string author = 5;
+  bool installed = 6;
+  // The Components installing it runs: its requires, transitively, each
+  // after the ones it requires.
+  repeated ComponentStatus components = 7;
+}
+
+// A Component as the host sees it.
+message ComponentStatus {
+  string name = 1;
+  // The host's state: starting, ok, degraded, down, unconfigured, stopped
+  // or crashed. Empty when the Component doesn't run.
+  string state = 2;
+  // A one-line explanation of the state.
+  string message = 3;
+  // The Component crashed too often and stays down until restarted.
+  bool held = 4;
+}
+
+message DeleteOrphanRequest {
+  string component = 1;
+}
+
+message DeleteOrphanResponse {}
 
 message InstallRequest {
   string plugin = 1;

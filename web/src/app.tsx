@@ -3,6 +3,7 @@ import { Badge, cx, PageHeader, StatusDot } from "@ddash/ui";
 import type { ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { ErrorBoundary, ErrorFrame } from "./boundary";
+import { Catalogue } from "./catalogue";
 import { icon } from "./icons";
 import { navItems, type NavItem } from "./nav";
 import { importBundle as defaultImport, usePlugins, type ImportBundle, type Plugins } from "./plugins";
@@ -35,7 +36,7 @@ function Shell({ fetch, importBundle }: { fetch?: Fetch; importBundle: ImportBun
       <main className="min-w-0 flex-1 p-8">
         <Routes>
           <Route index element={<PageHeader title="Overview" />} />
-          <Route path="plugins" element={<Installed plugins={plugins} />} />
+          <Route path="plugins" element={<Catalogue />} />
           <Route path="settings" element={<PageHeader title="Settings" />} />
           <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
         </Routes>
@@ -129,22 +130,5 @@ function Pages({ pages }: { pages: NonNullable<PluginDefinition["pages"]> }) {
 
 function NotFound() {
   return <PageHeader title="Not found" subtitle="No installed Plugin has a Page here." />;
-}
-
-/** The installed Plugins, until the Catalogue replaces this Page. */
-function Installed({ plugins }: { plugins: Plugins }) {
-  return (
-    <div>
-      <PageHeader title="Plugins" subtitle="Installed Plugins." />
-      <ul className="divide-y divide-border rounded-ui border border-border bg-card">
-        {plugins.installed?.map((p) => (
-          <li key={p.name} className="px-4 py-3">
-            <div className="font-medium">{p.title}</div>
-            <div className="text-sm text-muted-foreground">{p.description}</div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }
 

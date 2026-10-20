@@ -198,6 +198,18 @@ func (h *Host) Restart(ctx context.Context, req *corepb.RestartRequest) (*corepb
 	return &corepb.RestartResponse{}, nil
 }
 
+// DeleteOrphan is the core Action that deletes an orphaned Component's DB
+// file and config. It runs for the actor in ctx.
+func (h *Host) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanRequest) (*corepb.DeleteOrphanResponse, error) {
+	err := h.coreAction(ctx, "DeleteOrphan", req, func() error {
+		return h.runtime.DeleteOrphan(ctx, req.GetComponent())
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &corepb.DeleteOrphanResponse{}, nil
+}
+
 // coreService is the core API, whose Actions pass the gate like any other.
 var coreService = corepb.File_ddash_core_core_proto.Services().ByName("CoreService")
 

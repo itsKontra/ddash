@@ -2,12 +2,57 @@ import type { DescService } from "@bufbuild/protobuf";
 import { createClient, type Client } from "@connectrpc/connect";
 import { TransportProvider, useTransport } from "@connectrpc/connect-query";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { ConfirmDialog, type ConfirmAnswer, type ConfirmRequest } from "@ddash/ui";
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { coreTransport, pluginTransport, type Fetch, type PluginRef } from "./transport";
 
-/** The shell wraps its whole tree in PluginHost, with its one QueryClient. */
+/**
+ * The shell wraps its whole tree in PluginHost, with its one QueryClient.
+ * It draws the standard confirm dialog for every disruptive Action.
+ */
 export function PluginHost({ client, children }: { client: QueryClient; children: ReactNode }) {
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  const [asking, setAsking] = useState<Question | null>(null);
+  const current = useRef<Question | null>(null);
+  const ask = useCallback(
+    (request: ConfirmRequest) =>
+      new Promise<ConfirmAnswer>((resolve) => {
+        current.current?.answer(null); // one question at a time: a newer one cancels it
+        current.current = { request, answer: resolve };
+        setAsking(current.current);
+      }),
+    [],
+  );
+  return (
+    <QueryClientProvider client={client}>
+      <ConfirmContext.Provider value={ask}>
+        {children}
+        {asking && (
+          <ConfirmDialog
+            request={asking.request}
+            onAnswer={(a) => {
+              asking.answer(a);
+              current.current = null;
+              setAsking(null);
+            }}
+          />
+        )}
+      </ConfirmContext.Provider>
+    </QueryClientProvider>
+  );
+}
+
+type Question = { request: ConfirmRequest; answer: (a: ConfirmAnswer) => void };
+
+/** Asks the Operator to confirm, through PluginHost's dialog. */
+export type Ask = (request: ConfirmRequest) => Promise<ConfirmAnswer>;
+
+const ConfirmContext = createContext<Ask | null>(null);
+
+/** PluginHost's confirm dialog. */
+export function useConfirm(): Ask {
+  const ask = useContext(ConfirmContext);
+  if (!ask) throw new Error("useConfirm: not inside PluginHost");
+  return ask;
 }
 
 const PluginContext = createContext<PluginRef | null>(null);

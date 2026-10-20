@@ -153,3 +153,15 @@ func (c Catalogue) startOrder(roots []string) ([]string, error) {
 	}
 	return order, nil
 }
+
+// Pulls returns the Components installing plugin runs: its requires,
+// transitively, each after the ones it requires. It is nil for a Plugin
+// the Release lacks.
+func (c Catalogue) Pulls(plugin string) []string {
+	p, ok := c.plugin(plugin)
+	if !ok {
+		return nil
+	}
+	order, _ := c.startOrder(p.Requires) // the catalogue was checked on load
+	return order
+}

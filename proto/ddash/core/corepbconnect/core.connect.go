@@ -35,6 +35,10 @@ const (
 	CoreServiceUninstallProcedure = "/ddash.core.CoreService/Uninstall"
 	// CoreServiceRestartProcedure is the procedure name of the CoreService's Restart RPC.
 	CoreServiceRestartProcedure = "/ddash.core.CoreService/Restart"
+	// CoreServiceListCatalogueProcedure is the procedure name of the CoreService's ListCatalogue RPC.
+	CoreServiceListCatalogueProcedure = "/ddash.core.CoreService/ListCatalogue"
+	// CoreServiceDeleteOrphanProcedure is the procedure name of the CoreService's DeleteOrphan RPC.
+	CoreServiceDeleteOrphanProcedure = "/ddash.core.CoreService/DeleteOrphan"
 )
 
 var (
@@ -66,6 +70,20 @@ var (
 			Procedure:  CoreServiceRestartProcedure,
 		}
 	})
+	coreServiceListCatalogueSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("ListCatalogue"),
+			Procedure:  CoreServiceListCatalogueProcedure,
+		}
+	})
+	coreServiceDeleteOrphanSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     core.File_ddash_core_core_proto.Services().ByName("CoreService").Methods().ByName("DeleteOrphan"),
+			Procedure:  CoreServiceDeleteOrphanProcedure,
+		}
+	})
 )
 
 // CoreServiceClient is a client for the ddash.core.CoreService service.
@@ -85,6 +103,12 @@ type CoreServiceClient interface {
 	// a Component that crashed about 5 times in 10 minutes stays down until
 	// restarted. It never restarts the Components that require it.
 	Restart(context.Context, *core.RestartRequest) (*core.RestartResponse, error)
+	// ListCatalogue returns every Plugin in the running Release, whether it
+	// is installed, and the state of each Component it pulls in, plus the
+	// orphaned DB files.
+	ListCatalogue(context.Context, *core.ListCatalogueRequest) (*core.ListCatalogueResponse, error)
+	// DeleteOrphan deletes an orphaned Component's DB file and config.
+	DeleteOrphan(context.Context, *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error)
 }
 
 // NewCoreServiceClient constructs a client for the ddash.core.CoreService service. Multiple service
@@ -110,6 +134,12 @@ type CoreServiceHandler interface {
 	// a Component that crashed about 5 times in 10 minutes stays down until
 	// restarted. It never restarts the Components that require it.
 	Restart(context.Context, *core.RestartRequest) (*core.RestartResponse, error)
+	// ListCatalogue returns every Plugin in the running Release, whether it
+	// is installed, and the state of each Component it pulls in, plus the
+	// orphaned DB files.
+	ListCatalogue(context.Context, *core.ListCatalogueRequest) (*core.ListCatalogueResponse, error)
+	// DeleteOrphan deletes an orphaned Component's DB file and config.
+	DeleteOrphan(context.Context, *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error)
 }
 
 // RegisterCoreServiceHandler registers svc as the ddash.core.CoreService implementation on server.
@@ -120,6 +150,8 @@ func RegisterCoreServiceHandler(server *connect.Server, svc CoreServiceHandler) 
 		connect.Method{Spec: coreServiceInstallSpec(), Handler: adapter.install},
 		connect.Method{Spec: coreServiceUninstallSpec(), Handler: adapter.uninstall},
 		connect.Method{Spec: coreServiceRestartSpec(), Handler: adapter.restart},
+		connect.Method{Spec: coreServiceListCatalogueSpec(), Handler: adapter.listCatalogue},
+		connect.Method{Spec: coreServiceDeleteOrphanSpec(), Handler: adapter.deleteOrphan},
 	)
 }
 
@@ -140,6 +172,14 @@ func (UnimplementedCoreServiceHandler) Uninstall(context.Context, *core.Uninstal
 
 func (UnimplementedCoreServiceHandler) Restart(context.Context, *core.RestartRequest) (*core.RestartResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.Restart is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) ListCatalogue(context.Context, *core.ListCatalogueRequest) (*core.ListCatalogueResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.ListCatalogue is not implemented")
+}
+
+func (UnimplementedCoreServiceHandler) DeleteOrphan(context.Context, *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "ddash.core.CoreService.DeleteOrphan is not implemented")
 }
 
 type coreServiceClient struct {
@@ -173,6 +213,22 @@ func (c *coreServiceClient) Uninstall(ctx context.Context, req *core.UninstallRe
 func (c *coreServiceClient) Restart(ctx context.Context, req *core.RestartRequest) (*core.RestartResponse, error) {
 	var res core.RestartResponse
 	if err := c.client.CallUnary(ctx, coreServiceRestartSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) ListCatalogue(ctx context.Context, req *core.ListCatalogueRequest) (*core.ListCatalogueResponse, error) {
+	var res core.ListCatalogueResponse
+	if err := c.client.CallUnary(ctx, coreServiceListCatalogueSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *coreServiceClient) DeleteOrphan(ctx context.Context, req *core.DeleteOrphanRequest) (*core.DeleteOrphanResponse, error) {
+	var res core.DeleteOrphanResponse
+	if err := c.client.CallUnary(ctx, coreServiceDeleteOrphanSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -222,6 +278,30 @@ func (h coreServiceHandler) restart(ctx context.Context, _ connect.Spec, stream 
 		return err
 	}
 	res, err := h.svc.Restart(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) listCatalogue(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.ListCatalogueRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListCatalogue(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h coreServiceHandler) deleteOrphan(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req core.DeleteOrphanRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteOrphan(ctx, &req)
 	if err != nil {
 		return err
 	}
