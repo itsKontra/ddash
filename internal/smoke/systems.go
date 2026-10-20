@@ -172,6 +172,16 @@ var systems = []system{
 		def:     proxmoxapi.Definition(),
 		service: proxmoxapipb.ProxmoxApiService_ServiceDesc.ServiceName,
 		config:  func() proto.Message { return &proxmoxapipb.ProxmoxApiConfig{} },
+		requests: map[string]func(map[string]proto.Message) (proto.Message, error){
+			// The first Workload's running tasks.
+			"ListActiveTasks": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListActiveTasksRequest{Node: ws[0].GetNode(), Vmid: ws[0].GetVmid()}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no Workload to read the tasks of")
+			},
+		},
 		checks: map[string]func(proto.Message) error{
 			"ListWorkloads":   atLeastOne("Workload", func(m proto.Message) int { return len(m.(*proxmoxapipb.ListWorkloadsResponse).GetWorkloads()) }),
 			"ListPermissions": atLeastOne("Workload's permissions", func(m proto.Message) int { return len(m.(*proxmoxapipb.ListPermissionsResponse).GetWorkloads()) }),
