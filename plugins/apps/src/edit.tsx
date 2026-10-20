@@ -1,7 +1,9 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App } from "@ddash/proto/apps/apps_pb";
 import { Button, iconName, Sheet } from "@ddash/ui";
+import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { external, refKey, refOf, useWorkloads, workloadName, WorkloadOptions } from "./workload";
 
 const inputClass = "h-9 w-full rounded-ui border border-border bg-card px-3 text-sm placeholder:text-muted-foreground";
 
@@ -64,7 +66,29 @@ function Failed({ error }: { error?: { rawMessage: string } }) {
   );
 }
 
-/** Edits a discovered App's overlay: display name, icon, group, hidden. */
+/** Picks a discovered App's Workload override, or leaves it to the match. */
+function WorkloadField({ app, value, onChange, host, onHost }: { app: App; value: string; onChange: (v: string) => void; host: string; onHost: (v: string) => void }) {
+  const { workloads, error } = useWorkloads();
+  const w = app.workload;
+  const matchLabel = w?.override ? "Match from the upstream" : `Matched: ${w ? workloadName(w) : "none"}`;
+  const help = error
+    ? `Workloads can't be listed now (${error.rawMessage}); the match and the current override stay on offer.`
+    : "The match is the container publishing the upstream's port on a Docker host, else the Proxmox guest at its address.";
+  return (
+    <>
+      <Field label="Workload" help={help}>
+        {(id) => (
+          <select id={id} className={inputClass} value={value} onChange={(e) => onChange(e.target.value)}>
+            <WorkloadOptions matchLabel={matchLabel} current={app.overlay?.workload} listed={workloads ?? []} />
+          </select>
+        )}
+      </Field>
+      {value === external && <Text label="External host" value={host} onChange={onHost} placeholder="198.18.1.50" />}
+    </>
+  );
+}
+
+/** Edits a discovered App's overlay: display name, icon, group, hidden, Workload. */
 function OverlayForm({ app, groups, onDone }: { app: App; groups: readonly string[]; onDone: () => void }) {
   const set = useAction(AppsService.method.setOverlay);
   const reset = useAction(AppsService.method.deleteOverlay);
@@ -73,14 +97,17 @@ function OverlayForm({ app, groups, onDone }: { app: App; groups: readonly strin
   const [icon, setIcon] = useState(o?.icon ?? "");
   const [group, setGroup] = useState(o?.group ?? "");
   const [hidden, setHidden] = useState(o?.hidden ?? false);
+  const [workload, setWorkload] = useState(o?.workload?.kind === Kind.EXTERNAL ? external : refKey(o?.workload));
+  const [host, setHost] = useState(o?.workload?.kind === Kind.EXTERNAL ? o.workload.host : "");
   const listId = useId();
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    if (await set.run({ overlay: { serverName: app.serverName, name, icon, group, hidden } })) onDone();
+    const ref = workload === external ? { kind: Kind.EXTERNAL, host, id: "" } : refOf(workload);
+    if (await set.run({ overlay: { serverName: app.serverName, name, icon, group, hidden, workload: ref } })) onDone();
   };
   const drop = async () => {
-    const confirm = { text: `Reset ${app.name} to its defaults? Its display name, icon, group and hidden setting are dropped.`, action: "Reset" };
+    const confirm = { text: `Reset ${app.name} to its defaults? Its display name, icon, group, hidden setting and Workload are dropped.`, action: "Reset" };
     if (await reset.run({ serverName: app.serverName }, { confirm })) onDone();
   };
 
@@ -98,6 +125,7 @@ function OverlayForm({ app, groups, onDone }: { app: App; groups: readonly strin
         <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
         Hidden
       </label>
+      <WorkloadField app={app} value={workload} onChange={setWorkload} host={host} onHost={setHost} />
       <Failed error={set.error ?? reset.error} />
       <div className="flex gap-2">
         <Button type="submit" disabled={set.pending}>
