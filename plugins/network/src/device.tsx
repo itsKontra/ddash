@@ -4,9 +4,10 @@ import { useId, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import { DeviceAction } from "./adopt";
 import { nameOf, useDevices } from "./devices";
-import { Adoption, Routing } from "./devices-table";
+import { Adoption } from "./devices-table";
+import { DirectToggle } from "./direct";
 
-/** A Device's detail (/network/devices/:mac): Adopt or rename, the lease and reservation facts, and the other aliases holding it (read-only). */
+/** A Device's detail (/network/devices/:mac): Adopt or rename, the Direct toggle, the lease and reservation facts, and the other aliases holding it (read-only). */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
@@ -90,13 +91,7 @@ function Summary({ device: d, bypassAlias }: { device: Device; bypassAlias: stri
             </span>,
           ],
           ["Address", <Adoption key="adoption" device={d} />],
-          [
-            "Routing",
-            <span key="routing" className="inline-flex items-center gap-2">
-              <Routing device={d} />
-              <span className="text-muted-foreground">{d.direct ? `in ${bypassAlias}` : "via the VPN Tunnel"}</span>
-            </span>,
-          ],
+          ["Routing", <DirectToggle key="routing" device={d} bypassAlias={bypassAlias} />],
         ]}
       />
     </Panel>

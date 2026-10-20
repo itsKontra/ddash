@@ -30,6 +30,7 @@ const (
 	NetworkService_NextReservedAddress_FullMethodName = "/ddash.network.NetworkService/NextReservedAddress"
 	NetworkService_AdoptDevice_FullMethodName         = "/ddash.network.NetworkService/AdoptDevice"
 	NetworkService_RenameDevice_FullMethodName        = "/ddash.network.NetworkService/RenameDevice"
+	NetworkService_SetDirect_FullMethodName           = "/ddash.network.NetworkService/SetDirect"
 )
 
 // NetworkServiceClient is the client API for NetworkService service.
@@ -64,6 +65,13 @@ type NetworkServiceClient interface {
 	// description. Its address and reservation stay as they are; changing or
 	// removing them is done in pfSense.
 	RenameDevice(ctx context.Context, in *RenameDeviceRequest, opts ...grpc.CallOption) (*RenameDeviceResponse, error)
+	// SetDirect makes a Device Direct (its address added to the bypass
+	// alias) or Tunnelled (its address removed from it), applied at once. A
+	// New Device is Adopted first, under its name (else its MAC) at the
+	// lowest free reserved address. Only the Device's own address is ever
+	// written: a Device Direct through another member (a network, range or
+	// nested alias) stays so, and turning it Tunnelled is refused.
+	SetDirect(ctx context.Context, in *SetDirectRequest, opts ...grpc.CallOption) (*SetDirectResponse, error)
 }
 
 type networkServiceClient struct {
@@ -144,6 +152,16 @@ func (c *networkServiceClient) RenameDevice(ctx context.Context, in *RenameDevic
 	return out, nil
 }
 
+func (c *networkServiceClient) SetDirect(ctx context.Context, in *SetDirectRequest, opts ...grpc.CallOption) (*SetDirectResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetDirectResponse)
+	err := c.cc.Invoke(ctx, NetworkService_SetDirect_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServiceServer is the server API for NetworkService service.
 // All implementations must embed UnimplementedNetworkServiceServer
 // for forward compatibility.
@@ -176,6 +194,13 @@ type NetworkServiceServer interface {
 	// description. Its address and reservation stay as they are; changing or
 	// removing them is done in pfSense.
 	RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error)
+	// SetDirect makes a Device Direct (its address added to the bypass
+	// alias) or Tunnelled (its address removed from it), applied at once. A
+	// New Device is Adopted first, under its name (else its MAC) at the
+	// lowest free reserved address. Only the Device's own address is ever
+	// written: a Device Direct through another member (a network, range or
+	// nested alias) stays so, and turning it Tunnelled is refused.
+	SetDirect(context.Context, *SetDirectRequest) (*SetDirectResponse, error)
 	mustEmbedUnimplementedNetworkServiceServer()
 }
 
@@ -206,6 +231,9 @@ func (UnimplementedNetworkServiceServer) AdoptDevice(context.Context, *AdoptDevi
 }
 func (UnimplementedNetworkServiceServer) RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RenameDevice not implemented")
+}
+func (UnimplementedNetworkServiceServer) SetDirect(context.Context, *SetDirectRequest) (*SetDirectResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetDirect not implemented")
 }
 func (UnimplementedNetworkServiceServer) mustEmbedUnimplementedNetworkServiceServer() {}
 func (UnimplementedNetworkServiceServer) testEmbeddedByValue()                        {}
@@ -354,6 +382,24 @@ func _NetworkService_RenameDevice_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NetworkService_SetDirect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDirectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).SetDirect(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_SetDirect_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).SetDirect(ctx, req.(*SetDirectRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NetworkService_ServiceDesc is the grpc.ServiceDesc for NetworkService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -388,6 +434,10 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RenameDevice",
 			Handler:    _NetworkService_RenameDevice_Handler,
+		},
+		{
+			MethodName: "SetDirect",
+			Handler:    _NetworkService_SetDirect_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

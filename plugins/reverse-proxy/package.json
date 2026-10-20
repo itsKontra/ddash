@@ -2,7 +2,7 @@
   "name": "@ddash/plugin-reverse-proxy",
   "private": true,
   "type": "module",
-  "description": "The reverse-proxy Plugin's UI: nginx config health.",
+  "description": "The reverse-proxy Plugin's UI: nginx config health and the Proxy Host list with its warnings.",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",

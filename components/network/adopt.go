@@ -35,11 +35,21 @@ func (c *component) AdoptDevice(ctx context.Context, req *networkpb.AdoptDeviceR
 	if name == "" {
 		return nil, status.Error(codes.InvalidArgument, "give the Device a name")
 	}
+	d, err := c.adopt(ctx, strings.ToLower(req.GetMac()), name, req.GetIp())
+	if err != nil {
+		return nil, err
+	}
+	return &networkpb.AdoptDeviceResponse{Device: d}, nil
+}
+
+// adopt reserves ip ("" = the lowest free) for the New Device mac under
+// name, and returns the Device as it is after.
+func (c *component) adopt(ctx context.Context, mac, name, asked string) (*networkpb.Device, error) {
 	holders, err := c.holders(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ip, err := c.adoptAddress(req.GetIp(), holders)
+	ip, err := c.adoptAddress(asked, holders)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +57,6 @@ func (c *component) AdoptDevice(ctx context.Context, req *networkpb.AdoptDeviceR
 	if err != nil {
 		return nil, err
 	}
-	mac := strings.ToLower(req.GetMac())
 	d := find(all.GetDevices(), mac)
 	switch {
 	case d == nil:
@@ -69,11 +78,7 @@ func (c *component) AdoptDevice(ctx context.Context, req *networkpb.AdoptDeviceR
 	if _, err := c.pfsense.CreateStaticMapping(ctx, &pfsenseapipb.CreateStaticMappingRequest{Mapping: mapping}); err != nil {
 		return nil, err
 	}
-	d, err = c.reread(ctx, mac)
-	if err != nil {
-		return nil, err
-	}
-	return &networkpb.AdoptDeviceResponse{Device: d}, nil
+	return c.reread(ctx, mac)
 }
 
 func (c *component) RenameDevice(ctx context.Context, req *networkpb.RenameDeviceRequest) (*networkpb.RenameDeviceResponse, error) {

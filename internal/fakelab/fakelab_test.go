@@ -14,6 +14,7 @@ import (
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -26,6 +27,12 @@ var repoRoot = filepath.Join("..", "..")
 // bootNetwork boots the core with network and pfsense-api in-process
 // against a lab serving scenarios, both configured as `make dev` does.
 func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
+	h, _ := bootNetworkLab(t, scenarios...)
+	return h
+}
+
+// bootNetworkLab is bootNetwork, also returning the lab.
+func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fakelab.Lab) {
 	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
 		t.Fatal(err)
@@ -43,7 +50,7 @@ func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.OK)
 	h.WaitState("network", runtime.OK)
-	return h
+	return h, lab
 }
 
 // networkCall returns network's answer to method on a lab serving scenarios.
@@ -185,6 +192,64 @@ func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
 	}
 	if chains["AdoptDevice"] != chains["CreateStaticMapping"] || chains["RenameDevice"] != chains["RenameStaticMapping"] || chains["AdoptDevice"] == chains["RenameDevice"] {
 		t.Errorf("chains = %v, want Adopt's two hops on one chain and rename's on another", chains)
+	}
+}
+
+func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t *testing.T) {
+	h, lab := bootNetworkLab(t)
+
+	// The Device page's toggle on the New Device with no hostname.
+	res := h.Call("network", "network", "SetDirect", `{"mac":"02:5e:00:00:20:02","direct":true}`)
+	if res.Code != http.StatusOK {
+		t.Fatalf("SetDirect: status %d: %s", res.Code, res.Body)
+	}
+	var got networkpb.SetDirectResponse
+	if err := protojson.Unmarshal(res.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	if d := got.GetDevice(); !d.GetAdopted() || !d.GetDirect() || d.GetIp() != "198.18.1.23" {
+		t.Errorf("Device after Direct on = %v, want Adopted at 198.18.1.23 and Direct", d)
+	}
+
+	// The lab's firewall ends with the Device's address in the bypass
+	// alias, after the members that are no Devices, all applied.
+	fw := lab.Handler("pfsense-api").(*pfsensefake.Firewall)
+	var bypass pfsensefake.Alias
+	for _, a := range fw.Aliases() {
+		if a.Name == "VPN_BYPASS" {
+			bypass = a
+		}
+	}
+	want := pfsensefake.Alias{
+		Name:      "VPN_BYPASS",
+		Addresses: []string{"198.18.1.21", "198.18.1.150", "198.18.2.10", "198.18.1.23"},
+		Details:   []string{"Work laptop", "Phone", "Media server", "02:5e:00:00:20:02"},
+	}
+	if diff := cmp.Diff(want, bypass); diff != "" {
+		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
+	}
+	if fw.FirewallPending() || fw.Pending() {
+		t.Error("changes still pending on the firewall, want applied")
+	}
+
+	// One chain, newest first: pfsense-api's alias and Adopt hops, then
+	// network's root, all as the Operator.
+	var hops []string
+	chains := map[string]bool{}
+	for _, e := range componentHops(h) {
+		hops = append(hops, fmt.Sprintf("%s %s %s %s", e.Target, e.Method, e.Outcome, e.Username))
+		chains[e.Chain] = true
+	}
+	wantHops := []string{
+		"pfsense-api AddAliasAddress ok test",
+		"pfsense-api CreateStaticMapping ok test",
+		"network SetDirect ok test",
+	}
+	if diff := cmp.Diff(wantHops, hops); diff != "" {
+		t.Errorf("Audit Log (-want +got):\n%s", diff)
+	}
+	if len(chains) != 1 {
+		t.Errorf("%d chains, want 1", len(chains))
 	}
 }
 

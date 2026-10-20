@@ -119,8 +119,14 @@ type Lab struct {
 	ssh     []*fixture.SSH
 	config  map[string]proto.Message
 	// Addrs maps each Component to the address of the system it talks to.
-	Addrs map[string]string
+	Addrs    map[string]string
+	handlers map[string]http.Handler
 }
+
+// Handler is what serves the HTTP system component talks to, e.g. a
+// *pfsensefake.Firewall for "pfsense-api", so a test can read a stateful
+// fake's end state; nil for a component with none.
+func (l *Lab) Handler(component string) http.Handler { return l.handlers[component] }
 
 // Start serves every system's baseline from the repo at root, each on a
 // free port of host (e.g. "127.0.0.1"). Each scenario named replaces the
@@ -131,7 +137,7 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 	if err != nil {
 		return nil, err
 	}
-	l := &Lab{config: map[string]proto.Message{}, Addrs: map[string]string{}}
+	l := &Lab{config: map[string]proto.Message{}, Addrs: map[string]string{}, handlers: map[string]http.Handler{}}
 	for component, config := range logicConfigs {
 		l.config[component] = config()
 	}
@@ -154,6 +160,7 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		}
 		go srv.Serve(ln) //nolint:errcheck // ends with Close
 		l.servers = append(l.servers, srv)
+		l.handlers[s.component] = handler
 		addr := ln.Addr().String()
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
