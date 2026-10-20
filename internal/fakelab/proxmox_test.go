@@ -23,9 +23,9 @@ import (
 
 // bootProxmoxLab boots the core with the proxmox Plugin's Components
 // (proxmox, proxmox-api, and checks with its ntfy-api) in-process against
-// the lab, configured as `make dev` does.
-func bootProxmoxLab(t *testing.T) (*coretest.Harness, *fakelab.Lab) {
-	lab, err := fakelab.Start(repoRoot, "127.0.0.1")
+// a lab serving scenarios, configured as `make dev` does.
+func bootProxmoxLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fakelab.Lab) {
+	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,14 +65,14 @@ func hopsIn(h *coretest.Harness) ([]string, int) {
 func TestStopShutsTheWorkloadDownInMaintenanceInOneAuditChain(t *testing.T) {
 	h, lab := bootProxmoxLab(t)
 
-	res := h.Call("proxmox", "proxmox", "StopWorkload", `{"workload":{"kind":"KIND_LXC","host":"pve","id":"102"}}`)
+	res := h.Call("proxmox", "proxmox", "StopWorkload", `{"workload":{"kind":"KIND_LXC","host":"pve","id":"212"}}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("StopWorkload: status %d: %s", res.Code, res.Body)
 	}
 
 	pve := lab.Handler("proxmox-api").(*proxmoxfake.Proxmox)
-	if got := pve.Status(102); got != "stopped" {
-		t.Errorf("102 is %s, want stopped", got)
+	if got := pve.Status(212); got != "stopped" {
+		t.Errorf("212 is %s, want stopped", got)
 	}
 	var shutdowns []string
 	for _, r := range pve.Log() {
@@ -80,18 +80,18 @@ func TestStopShutsTheWorkloadDownInMaintenanceInOneAuditChain(t *testing.T) {
 			shutdowns = append(shutdowns, r)
 		}
 	}
-	if diff := cmp.Diff([]string{"POST /api2/json/nodes/pve/lxc/102/status/shutdown forceStop=1 timeout=45"}, shutdowns); diff != "" {
+	if diff := cmp.Diff([]string{"POST /api2/json/nodes/pve/lxc/212/status/shutdown forceStop=1 timeout=45"}, shutdowns); diff != "" {
 		t.Errorf("power requests (-want +got):\n%s", diff)
 	}
 
-	// 102 stays in Maintenance until ddash starts it or its Checks are up.
+	// 212 stays in Maintenance until ddash starts it or its Checks are up.
 	res = h.Call("checks", "checks", "ListMaintenance", `{}`)
 	var maint checkspb.ListMaintenanceResponse
 	if err := protojson.Unmarshal(res.Body.Bytes(), &maint); err != nil {
 		t.Fatal(err)
 	}
-	if m := maint.GetMaintenance(); len(m) != 1 || m[0].GetScope().GetWorkload().GetId() != "102" || !m[0].GetUntilUp() || m[0].GetEnds() != nil {
-		t.Errorf("Maintenance = %v, want LXC 102's, until up or ended", m)
+	if m := maint.GetMaintenance(); len(m) != 1 || m[0].GetScope().GetWorkload().GetId() != "212" || !m[0].GetUntilUp() || m[0].GetEnds() != nil {
+		t.Errorf("Maintenance = %v, want LXC 212's, until up or ended", m)
 	}
 
 	hops, chains := hopsIn(h)
@@ -110,17 +110,18 @@ func TestStopShutsTheWorkloadDownInMaintenanceInOneAuditChain(t *testing.T) {
 }
 
 func TestAProtectedWorkloadIsRefusedAndKeepsRunning(t *testing.T) {
-	h, lab := bootProxmoxLab(t)
+	// The real token holds VM.PowerMgmt everywhere; in the protected
+	// scenario nginx (210) has only VM.Audit and VM.GuestAgent.Audit.
+	h, lab := bootProxmoxLab(t, "protected")
 
-	// The baseline's nginx (101) has only VM.Audit and VM.GuestAgent.Audit.
-	res := h.Call("proxmox", "proxmox", "RestartWorkload", `{"workload":{"kind":"KIND_LXC","host":"pve","id":"101"}}`)
+	res := h.Call("proxmox", "proxmox", "RestartWorkload", `{"workload":{"kind":"KIND_LXC","host":"pve","id":"210"}}`)
 	if res.Code != http.StatusForbidden || !strings.Contains(res.Body.String(), "protected in Proxmox") {
-		t.Errorf("RestartWorkload 101: status %d: %s; want 403 protected in Proxmox", res.Code, res.Body)
+		t.Errorf("RestartWorkload 210: status %d: %s; want 403 protected in Proxmox", res.Code, res.Body)
 	}
 
 	pve := lab.Handler("proxmox-api").(*proxmoxfake.Proxmox)
-	if got := pve.Status(101); got != "running" {
-		t.Errorf("101 is %s, want running", got)
+	if got := pve.Status(210); got != "running" {
+		t.Errorf("210 is %s, want running", got)
 	}
 	for _, r := range pve.Log() {
 		if strings.HasPrefix(r, "POST ") {

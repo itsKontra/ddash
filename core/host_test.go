@@ -55,11 +55,11 @@ func TestInstallingDockerServesDockerApiContainersToTheUI(t *testing.T) {
 	if err := json.Unmarshal(res.Body.Bytes(), &got); err != nil {
 		t.Fatalf("body %s: %v", res.Body, err)
 	}
-	if len(got.Hosts) != 1 || got.Hosts[0].Host != "media" || len(got.Hosts[0].Containers) != 3 {
-		t.Fatalf("got %s, want media's 3 containers", res.Body)
+	if len(got.Hosts) != 1 || got.Hosts[0].Host != "media" || len(got.Hosts[0].Containers) != 6 {
+		t.Fatalf("got %s, want media's 6 containers", res.Body)
 	}
-	if c := got.Hosts[0].Containers[0]; c.Name != "jellyfin" || c.State != "running" {
-		t.Errorf("first container = %+v, want jellyfin running", c)
+	if c := got.Hosts[0].Containers[0]; c.Name != "socket-proxy" || c.State != "running" {
+		t.Errorf("first container = %+v, want socket-proxy running", c)
 	}
 }
 

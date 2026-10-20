@@ -43,10 +43,18 @@ func TestAFieldsChoicesComeFromTheGetterItsChoicesFromNames(t *testing.T) {
 
 	field := formField(t, coreJSON(t, h, "GetConfigForm", `{"owner":"network"}`), "bypass_alias")
 
+	// The address aliases, in pfSense's order, labelled with their
+	// description when they have one.
 	want := []any{
-		map[string]any{"value": "VPN_BYPASS", "label": "VPN_BYPASS — Leaves through the WAN, not the VPN"},
-		map[string]any{"value": "KILL_SWITCH", "label": "KILL_SWITCH — Never leaves through the WAN"},
-		map[string]any{"value": "SERVERS", "label": "SERVERS"},
+		map[string]any{"value": "DNS_SERVERS", "label": "DNS_SERVERS"},
+		map[string]any{"value": "FRITZBOX_IP6", "label": "FRITZBOX_IP6"},
+		map[string]any{"value": "DNS_SERVER", "label": "DNS_SERVER"},
+		map[string]any{"value": "RFC1918", "label": "RFC1918 — RFC1918"},
+		map[string]any{"value": "VPN_BYPASS", "label": "VPN_BYPASS"},
+		map[string]any{"value": "WAN_SUBNETWORK", "label": "WAN_SUBNETWORK"},
+		map[string]any{"value": "VictronAllow", "label": "VictronAllow"},
+		map[string]any{"value": "KILL_SWITCH", "label": "KILL_SWITCH"},
+		map[string]any{"value": "DDASH_SMOKE", "label": "DDASH_SMOKE — TEST"},
 	}
 	if diff := cmp.Diff(want, field["choices"]); diff != "" {
 		t.Errorf("bypass_alias choices (-want +got):\n%s", diff)

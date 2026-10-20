@@ -431,7 +431,7 @@ func TestDockerApisHostsAreATableFormThatSavesIntoAListOfContainers(t *testing.T
 	if state := got["status"].(map[string]any)["state"]; state != "ok" {
 		t.Errorf("SaveConfig = %v, want docker-api ok", got)
 	}
-	if res := h.Call("docker", "docker-api", "ListContainers", `{}`); !strings.Contains(res.Body.String(), "jellyfin") {
+	if res := h.Call("docker", "docker-api", "ListContainers", `{}`); !strings.Contains(res.Body.String(), "portainer-portainer-1") {
 		t.Errorf("ListContainers: %d %s, want media's containers", res.Code, res.Body)
 	}
 }

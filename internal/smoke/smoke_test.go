@@ -129,7 +129,7 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 	s, err := scrub.New(scrub.Config{
 		Key:      []byte("test key"),
 		Subnets:  []scrub.Subnet{{Prefix: mustPrefix(t, "198.18.1.0/24"), N: 7}},
-		Literals: []scrub.Literal{{Real: "galaxy-s24", Replacement: "phone-1"}},
+		Literals: []scrub.Literal{{Real: "site196.example", Replacement: "news.example"}},
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -163,7 +163,7 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 	if err := json.Unmarshal(querylog, &ql); err != nil || len(ql.Data) == 0 || len(ql.Data) > scrub.QueryLogEntries {
 		t.Errorf("query log has %d entries (%v)", len(ql.Data), err)
 	}
-	if strings.Contains(string(querylog), "galaxy-s24") || !strings.Contains(string(querylog), "phone-1") {
+	if strings.Contains(string(querylog), "site196.example") || !strings.Contains(string(querylog), "news.example") {
 		t.Errorf("a scrub.map literal survived in the query log")
 	}
 
@@ -176,14 +176,14 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 func TestRecordRefusesAFileThatStillHoldsALiteral(t *testing.T) {
 	root := t.TempDir()
 	// The replacement holds its literal, so every file holding it is refused.
-	s, err := scrub.New(scrub.Config{Key: []byte("k"), Literals: []scrub.Literal{{Real: "galaxy-s24", Replacement: "galaxy-s24 phone"}}})
+	s, err := scrub.New(scrub.Config{Key: []byte("k"), Literals: []scrub.Literal{{Real: "site196.example", Replacement: "www.site196.example"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	_, err = run(t, envFor(t, lab(t, repoRoot)), &smoke.Record{Root: root, Scenario: "baseline", Scrubber: s})
 
-	if err == nil || !strings.Contains(err.Error(), "control/querylog.json") || !strings.Contains(err.Error(), "galaxy-s24") {
+	if err == nil || !strings.Contains(err.Error(), "control/querylog.json") || !strings.Contains(err.Error(), "site196.example") {
 		t.Errorf("err = %v, want the query log refused", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "components/adguard-api/testdata/baseline/control/querylog.json")); err == nil {

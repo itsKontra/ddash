@@ -23,7 +23,9 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if err := release.Build(t.Context(), release.Options{Root: repoRoot, Out: dist, Release: "dev"}); err != nil {
 		t.Fatal(err)
 	}
-	lab, err := fakelab.Start(repoRoot, "127.0.0.1")
+	// published-on-lan: docker-host publishes homepage on its LAN address,
+	// so an App can link to a container though the lab listens on loopback.
+	lab, err := fakelab.Start(repoRoot, "127.0.0.1", "published-on-lan")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,16 +39,16 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	h.WaitState("docker-api", runtime.OK)
 
 	res := h.Call("docker", "docker-api", "ListContainers", `{}`)
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"jellyfin"`) {
-		t.Errorf("ListContainers: status %d: %s; want baseline's jellyfin", res.Code, res.Body)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"portainer-portainer-1"`) {
+		t.Errorf("ListContainers: status %d: %s; want baseline's portainer-portainer-1", res.Code, res.Body)
 	}
 
 	// nginx-config reads `nginx -T` from fakelab's SSH server.
 	h.Install("reverse-proxy")
 	h.WaitState("nginx-config", runtime.OK)
 	res = h.Call("reverse-proxy", "nginx-config", "GetSnapshot", `{}`)
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"jellyfin.home.example"`) {
-		t.Errorf("GetSnapshot: status %d: %s; want baseline's jellyfin server block", res.Code, res.Body)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"grafana.home.example"`) {
+		t.Errorf("GetSnapshot: status %d: %s; want baseline's grafana server block", res.Code, res.Body)
 	}
 
 	// network reaches pfsense-api through the host over go-plugin's broker.
@@ -75,12 +77,12 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	h.Install("apps")
 	h.WaitState("apps", runtime.OK)
 	res = h.Call("apps", "apps", "ListApps", `{}`)
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"url":"https://jellyfin.home.example"`) {
-		t.Errorf("ListApps: status %d: %s; want baseline's jellyfin App", res.Code, res.Body)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"url":"https://home.home.example"`) {
+		t.Errorf("ListApps: status %d: %s; want baseline's home.home.example App", res.Code, res.Body)
 	}
 	// apps links it to its container through proxmox-api and docker-api.
 	if !strings.Contains(res.Body.String(), `"KIND_DOCKER"`) {
-		t.Errorf("ListApps: %s; want jellyfin linked to its container", res.Body)
+		t.Errorf("ListApps: %s; want home.home.example linked to its container", res.Body)
 	}
 
 	// The reverse-proxy Page joins Proxy Hosts with apps' Apps and their Checks.

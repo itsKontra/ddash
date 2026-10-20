@@ -26,11 +26,12 @@ import (
 const unused = "198.18.1.60"
 
 // writesLab is the baseline lab plus the smoke targets: pfSense's empty
-// DDASH_SMOKE alias (Proxmox's baseline already has the stopped
-// ddash-smoke LXC 103, and LXC 101 and VM 110 are Protected).
+// DDASH_SMOKE alias, and Proxmox's VM 100 and LXC 210 Protected (the
+// protected scenario; the baseline already has the stopped ddash-smoke
+// LXC 211).
 func writesLab(t *testing.T) (*fakelab.Lab, map[string]string) {
 	t.Helper()
-	l := lab(t, repoRoot, "smoke-writes")
+	l := lab(t, repoRoot, "smoke-writes", "protected")
 	env := envFor(t, l)
 	env[smoke.UnusedAddressVar] = unused
 	return l, env
@@ -60,7 +61,7 @@ func stateOf(l *fakelab.Lab) labState {
 		Aliases: fw.Aliases(), Mappings: fw.StaticMappings("lan"),
 		DHCPPending: fw.Pending(), FWPending: fw.FirewallPending(),
 		Clients: ag.Clients(),
-		Smoke:   px.Status(103), Protected: px.Status(101), OtherV: px.Status(110),
+		Smoke:   px.Status(211), Protected: px.Status(100), OtherV: px.Status(210),
 	}
 }
 
@@ -106,7 +107,7 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 		"ok pfsense-api static mapping round trip",
 		"ok adguard-api SetClientFiltering round trip",
 		"ok proxmox-api ddash-smoke start and shutdown",
-		"ok proxmox-api Protected refusal (LXC 101 nginx)",
+		"ok proxmox-api Protected refusal (VM 100 pfSense)",
 	} {
 		if !strings.Contains(log, want+"\n") {
 			t.Errorf("log lacks %q:\n%s", want, log)
@@ -145,9 +146,9 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 		t.Errorf("%d client updates, want 2 (off, then on)", n)
 	}
 	if diff := cmp.Diff([]string{
-		"lxc/103/status/start",
-		"lxc/103/status/shutdown timeout=60",
-		"lxc/101/status/start",
+		"lxc/211/status/start",
+		"lxc/211/status/shutdown timeout=60",
+		"qemu/100/status/start",
 	}, powerRequests(px)); diff != "" {
 		t.Errorf("power requests (-want +got):\n%s", diff)
 	}
@@ -205,7 +206,7 @@ func TestWritesCleanUpWhenAStepFails(t *testing.T) {
 	px := l.Handler("proxmox-api").(*proxmoxfake.Proxmox)
 	pointAt(t, env, "proxmox-api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// The graceful shutdown's task fails; a forced one would not.
-		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/103/status/shutdown") {
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/211/status/shutdown") {
 			b, _ := io.ReadAll(r.Body)
 			var params map[string]any
 			_ = json.Unmarshal(b, &params)
@@ -229,13 +230,13 @@ func TestWritesCleanUpWhenAStepFails(t *testing.T) {
 			t.Errorf("err = %v, want %q failing", err, want)
 		}
 	}
-	if !strings.Contains(log, "ok proxmox-api Protected refusal (LXC 101 nginx)\n") {
+	if !strings.Contains(log, "ok proxmox-api Protected refusal (VM 100 pfSense)\n") {
 		t.Errorf("the Protected check didn't run after the failures:\n%s", log)
 	}
 	if diff := cmp.Diff(before, stateOf(l)); diff != "" {
 		t.Errorf("cleanup left the lab changed (-before +after):\n%s\n%s", diff, log)
 	}
-	if got := powerRequests(px.Log()); !slices.Contains(got, "lxc/103/status/shutdown forceStop=1 timeout=30") {
+	if got := powerRequests(px.Log()); !slices.Contains(got, "lxc/211/status/shutdown forceStop=1 timeout=30") {
 		t.Errorf("cleanup didn't force ddash-smoke down: %v", got)
 	}
 }
@@ -265,15 +266,15 @@ func TestWritesRemoveWhatAnInterruptedRunLeftFirst(t *testing.T) {
 func TestWritesRefuseAnAddressInUseAndWriteNothing(t *testing.T) {
 	t.Parallel()
 	l, env := writesLab(t)
-	// The TV's: a static mapping, a lease and an AdGuard client.
-	env[smoke.UnusedAddressVar] = "198.18.1.20"
+	// operator-pc's: a static mapping, a lease and an AdGuard client.
+	env[smoke.UnusedAddressVar] = "198.18.1.12"
 	before := stateOf(l)
 
 	_, err := runWrites(t, env)
 
 	for _, want := range []string{
-		"pfsense-api static mapping round trip: 198.18.1.20 is in use",
-		"adguard-api SetClientFiltering round trip: 198.18.1.20 is in use",
+		"pfsense-api static mapping round trip: 198.18.1.12 is in use",
+		"adguard-api SetClientFiltering round trip: 198.18.1.12 is in use",
 	} {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("err = %v, want %q", err, want)
@@ -304,20 +305,20 @@ func TestWritesLeaveARunningDdashSmokeAlone(t *testing.T) {
 	t.Parallel()
 	l, env := writesLab(t)
 	px := l.Handler("proxmox-api").(*proxmoxfake.Proxmox)
-	start := httptest.NewRequest(http.MethodPost, "/api2/json/nodes/pve/lxc/103/status/start", nil)
+	start := httptest.NewRequest(http.MethodPost, "/api2/json/nodes/pve/lxc/211/status/start", nil)
 	px.ServeHTTP(httptest.NewRecorder(), start)
 	px.FinishTasks()
 
 	_, err := runWrites(t, env)
 
-	if err == nil || !strings.Contains(err.Error(), "proxmox-api ddash-smoke start and shutdown: LXC 103 ddash-smoke is running") {
+	if err == nil || !strings.Contains(err.Error(), "proxmox-api ddash-smoke start and shutdown: LXC 211 ddash-smoke is running") {
 		t.Errorf("err = %v, want ddash-smoke refused while running", err)
 	}
-	if got := powerRequests(px.Log()); !slices.Equal(got, []string{"lxc/103/status/start", "lxc/101/status/start"}) {
+	if got := powerRequests(px.Log()); !slices.Equal(got, []string{"lxc/211/status/start", "qemu/100/status/start"}) {
 		t.Errorf("power requests = %v, want only the setup's and the Protected check's", got)
 	}
-	if px.Status(103) != "running" {
-		t.Errorf("ddash-smoke is %s, want left running", px.Status(103))
+	if px.Status(211) != "running" {
+		t.Errorf("ddash-smoke is %s, want left running", px.Status(211))
 	}
 }
 
@@ -326,8 +327,8 @@ func TestWritesFailWhenTheTokenIsNotRefusedOnAProtectedWorkload(t *testing.T) {
 	l, env := writesLab(t)
 	// Proxmox let the start through to the Workload, which is running already.
 	pointAt(t, env, "proxmox-api", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/lxc/101/status/start") {
-			http.Error(w, "CT 101 already running", http.StatusInternalServerError)
+		if r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/qemu/100/status/start") {
+			http.Error(w, "VM 100 already running", http.StatusInternalServerError)
 			return
 		}
 		l.Handler("proxmox-api").ServeHTTP(w, r)
@@ -335,7 +336,7 @@ func TestWritesFailWhenTheTokenIsNotRefusedOnAProtectedWorkload(t *testing.T) {
 
 	_, err := runWrites(t, env)
 
-	if err == nil || !strings.Contains(err.Error(), "proxmox-api Protected refusal: the token wasn't refused on LXC 101 nginx") {
+	if err == nil || !strings.Contains(err.Error(), "proxmox-api Protected refusal: the token wasn't refused on VM 100 pfSense") {
 		t.Errorf("err = %v, want the missing refusal", err)
 	}
 }

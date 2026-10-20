@@ -43,7 +43,7 @@ func TestTheConfigFormShowsTheSetupHintOnceTheComponentStarted(t *testing.T) {
 	if err := srv.Authorize(block); err != nil {
 		t.Fatal(err)
 	}
-	if res := h.Call("reverse-proxy", "nginx-config", "Refresh", `{}`); !strings.Contains(res.Body.String(), "jellyfin.home.example") {
+	if res := h.Call("reverse-proxy", "nginx-config", "Refresh", `{}`); !strings.Contains(res.Body.String(), "grafana.home.example") {
 		t.Errorf("Refresh after pasting the line: %d %s, want the config", res.Code, res.Body)
 	}
 }

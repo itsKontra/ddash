@@ -143,12 +143,24 @@ func TestTheBaselineFirewallHasAdoptedNewDirectAndTunnelledDevices(t *testing.T)
 		}
 		lines = append(lines, line)
 	}
+	// Adopted (static mappings) and New (dynamic leases) Devices, Direct
+	// through VPN_BYPASS or tunnelled, online or not, with the other
+	// aliases holding their address.
 	want := []string{
-		`198.18.1.20 02:5e:00:00:10:01 "Living room TV" adopted=true direct=false online=true KILL_SWITCH`,
-		`198.18.1.21 02:5e:00:00:10:02 "Work laptop" adopted=true direct=true online=true`,
-		`198.18.1.22 02:5e:00:00:10:03 "printer" adopted=true direct=false online=false KILL_SWITCH`,
-		`198.18.1.150 02:5e:00:00:20:01 "galaxy-s24" adopted=false direct=true online=true`,
-		`198.18.1.151 02:5e:00:00:20:02 "" adopted=false direct=false online=false`,
+		`198.18.1.2 02:5e:92:9d:f0:a6 "w0" adopted=true direct=false online=true`,
+		`198.18.1.3 02:56:74:bd:32:5b "Access Point (OpenWrt)" adopted=true direct=false online=true`,
+		`198.18.1.4 02:eb:2f:cc:08:07 "lwip" adopted=true direct=false online=true VictronAllow`,
+		`198.18.1.5 02:08:c2:85:3d:a1 "Amazon Alexa" adopted=true direct=false online=true`,
+		`198.18.1.6 02:4a:a6:ab:ab:d4 "AndroidTV" adopted=true direct=true online=true`,
+		`198.18.1.7 02:ff:c4:52:c5:c3 "einstein" adopted=true direct=false online=true VictronAllow`,
+		`198.18.1.10 02:1c:d5:5e:3d:e5 "LexmarkCX317dn" adopted=true direct=true online=true`,
+		`198.18.1.11 02:b9:d2:5c:b9:9f "s22-von-operator" adopted=true direct=false online=true`,
+		`198.18.1.12 02:75:79:44:12:e3 "operator-pc" adopted=true direct=true online=true`,
+		`198.18.1.22 02:aa:97:4f:49:e7 "" adopted=false direct=false online=true`,
+		`198.18.1.25 02:2f:c2:65:95:10 "" adopted=false direct=false online=false`,
+		`198.18.1.26 02:2d:14:a9:09:b6 "a25-von-member" adopted=false direct=false online=true`,
+		`198.18.1.101 02:61:c0:a3:8a:16 "homeassistant" adopted=true direct=false online=true`,
+		`198.18.1.102 02:e6:29:fa:fc:39 "laptop-2" adopted=true direct=true online=false`,
 	}
 	if diff := cmp.Diff(want, lines); diff != "" {
 		t.Errorf("Devices (-want +got):\n%s", diff)
@@ -189,14 +201,14 @@ func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
 	h := bootNetwork(t)
 
 	res := h.Call("network", "network", "NextReservedAddress", `{}`)
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"ip":"198.18.1.23"`) {
-		t.Fatalf("NextReservedAddress: %d %s, want 198.18.1.23", res.Code, res.Body)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"ip":"198.18.1.150"`) {
+		t.Fatalf("NextReservedAddress: %d %s, want 198.18.1.150", res.Code, res.Body)
 	}
-	res = h.Call("network", "network", "AdoptDevice", `{"mac":"02:5e:00:00:20:01","name":"Phone","ip":"198.18.1.23"}`)
+	res = h.Call("network", "network", "AdoptDevice", `{"mac":"02:2d:14:a9:09:b6","name":"Phone","ip":"198.18.1.150"}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("AdoptDevice: status %d: %s", res.Code, res.Body)
 	}
-	res = h.Call("network", "network", "RenameDevice", `{"mac":"02:5e:00:00:20:01","name":"Anna's phone"}`)
+	res = h.Call("network", "network", "RenameDevice", `{"mac":"02:2d:14:a9:09:b6","name":"Member's phone"}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("RenameDevice: status %d: %s", res.Code, res.Body)
 	}
@@ -208,7 +220,7 @@ func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, d := range list.GetDevices() {
-		if d.GetMac() == "02:5e:00:00:20:01" && (!d.GetAdopted() || d.GetName() != "Anna's phone" || d.GetIp() != "198.18.1.23") {
+		if d.GetMac() == "02:2d:14:a9:09:b6" && (!d.GetAdopted() || d.GetName() != "Member's phone" || d.GetIp() != "198.18.1.150") {
 			t.Errorf("Device after Adopt and rename = %v", d)
 		}
 	}
@@ -242,7 +254,7 @@ func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t
 	h, lab := bootNetworkLab(t)
 
 	// The Device page's toggle on the New Device with no hostname.
-	res := h.Call("network", "network", "SetDirect", `{"mac":"02:5e:00:00:20:02","direct":true}`)
+	res := h.Call("network", "network", "SetDirect", `{"mac":"02:2f:c2:65:95:10","direct":true}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("SetDirect: status %d: %s", res.Code, res.Body)
 	}
@@ -250,8 +262,8 @@ func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t
 	if err := protojson.Unmarshal(res.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if d := got.GetDevice(); !d.GetAdopted() || !d.GetDirect() || d.GetIp() != "198.18.1.23" {
-		t.Errorf("Device after Direct on = %v, want Adopted at 198.18.1.23 and Direct", d)
+	if d := got.GetDevice(); !d.GetAdopted() || !d.GetDirect() || d.GetIp() != "198.18.1.150" {
+		t.Errorf("Device after Direct on = %v, want Adopted at 198.18.1.150 and Direct", d)
 	}
 
 	// The lab's firewall ends with the Device's address in the bypass
@@ -265,8 +277,8 @@ func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t
 	}
 	want := pfsensefake.Alias{
 		Name:      "VPN_BYPASS",
-		Addresses: []string{"198.18.1.21", "198.18.1.150", "198.18.2.10", "198.18.1.23"},
-		Details:   []string{"Work laptop", "Phone", "Media server", "02:5e:00:00:20:02"},
+		Addresses: []string{"198.18.1.208", "198.18.1.1", "198.18.1.6", "198.18.1.10", "198.18.1.102", "198.18.1.16", "198.18.1.12", "198.18.1.122", "198.18.1.54", "198.18.1.150"},
+		Details:   []string{"Cloudflare Tunnel", "pfSense", "AndroidTV", "Drucker", "ArbeitsLaptop", "ArchLinux", "operator PC", "devSetup", "member Handy", "02:2f:c2:65:95:10"},
 	}
 	if diff := cmp.Diff(want, bypass); diff != "" {
 		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
@@ -299,7 +311,7 @@ func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t
 func TestAdBlockingOffOnANewDeviceIsOneChainEndingWithItsAdGuardClient(t *testing.T) {
 	h, lab := bootNetworkLab(t)
 
-	res := h.Call("network", "network", "SetAdBlocking", `{"mac":"02:5e:00:00:20:01","enabled":false}`)
+	res := h.Call("network", "network", "SetAdBlocking", `{"mac":"02:2d:14:a9:09:b6","enabled":false}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("SetAdBlocking: status %d: %s", res.Code, res.Body)
 	}
@@ -307,19 +319,19 @@ func TestAdBlockingOffOnANewDeviceIsOneChainEndingWithItsAdGuardClient(t *testin
 	if err := protojson.Unmarshal(res.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if d := got.GetDevice(); !d.GetAdopted() || d.GetIp() != "198.18.1.23" || !d.GetAdBlockingOff() {
-		t.Errorf("Device after the toggle = %v, want Adopted at 198.18.1.23 with ad-blocking off", d)
+	if d := got.GetDevice(); !d.GetAdopted() || d.GetIp() != "198.18.1.150" || !d.GetAdBlockingOff() {
+		t.Errorf("Device after the toggle = %v, want Adopted at 198.18.1.150 with ad-blocking off", d)
 	}
 
 	// The lab's AdGuard ends with a client for the address the Device
 	// moves to, with its own settings and no filtering.
 	ag := lab.Handler("adguard-api").(*adguardfake.AdGuard)
-	client := ag.PersistentClient("galaxy-s24")
-	if client == nil || !cmp.Equal(client["ids"], []any{"198.18.1.23"}) || client["use_global_settings"] != false || client["filtering_enabled"] != false {
-		t.Errorf("AdGuard's client for the phone = %v, want ids [198.18.1.23], own settings, no filtering", client)
+	client := ag.PersistentClient("a25-von-member")
+	if client == nil || !cmp.Equal(client["ids"], []any{"198.18.1.150"}) || client["use_global_settings"] != false || client["filtering_enabled"] != false {
+		t.Errorf("AdGuard's client for the phone = %v, want ids [198.18.1.150], own settings, no filtering", client)
 	}
-	if n := len(ag.Clients()); n != 3 {
-		t.Errorf("%d AdGuard clients, want the 2 it had and the phone's", n)
+	if n := len(ag.Clients()); n != 7 {
+		t.Errorf("%d AdGuard clients, want the 6 it had and the phone's", n)
 	}
 
 	// One chain, newest first, all as the Operator.
