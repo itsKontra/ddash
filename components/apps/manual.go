@@ -27,6 +27,7 @@ func (c *component) CreateApp(ctx context.Context, req *appspb.CreateAppRequest)
 	if err := c.store.insertManual(ctx, a); err != nil {
 		return nil, err
 	}
+	c.syncChecks(ctx)
 	return &appspb.CreateAppResponse{App: a}, nil
 }
 
@@ -43,6 +44,7 @@ func (c *component) UpdateApp(ctx context.Context, req *appspb.UpdateAppRequest)
 	} else if !ok {
 		return nil, notManual(a.GetId())
 	}
+	c.syncChecks(ctx)
 	return &appspb.UpdateAppResponse{App: a}, nil
 }
 
@@ -54,6 +56,7 @@ func (c *component) DeleteApp(ctx context.Context, req *appspb.DeleteAppRequest)
 	} else if !ok {
 		return nil, notManual(req.GetId())
 	}
+	c.syncChecks(ctx)
 	return &appspb.DeleteAppResponse{}, nil
 }
 

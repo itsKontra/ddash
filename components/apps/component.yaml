@@ -1,3 +1,3 @@
 name: apps
-description: Apps discovered from nginx's Proxy Hosts, plus manual ones, with the Operator's display settings.
-requires: [nginx-config]
+description: Apps discovered from nginx's Proxy Hosts, plus manual ones, with the Operator's display settings and an HTTP(S) Check each.
+requires: [nginx-config, checks]

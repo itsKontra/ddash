@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/itsKontra/ddash/components/apps"
+	"github.com/itsKontra/ddash/components/checks"
 	nginxconfig "github.com/itsKontra/ddash/components/nginx-config"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	"github.com/itsKontra/ddash/core/coretest"
@@ -20,8 +21,9 @@ import (
 func TestAppsFromTheProxyHostsThroughTheHost(t *testing.T) {
 	srv := fixture.SSHServer(t, "../nginx-config/testdata/baseline", fixture.SSHOptions{AnyKey: true})
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{nginxconfig.Definition(), apps.Definition()},
-		Plugins:    []coretest.Plugin{{Name: "apps", Requires: []string{"apps"}}},
+		// The Apps' Checks dial nowhere: every upstream refuses.
+		Components: []sdk.Definition{nginxconfig.Definition(), checks.DefinitionDialing((&upstreams{}).dial), apps.Definition()},
+		Plugins:    []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 	})
 	h.SeedConfig("nginx-config", &nginxconfigpb.NginxConfigConfig{Host: srv.Addr(), HostKey: srv.HostKey()})
 	h.Install("apps")

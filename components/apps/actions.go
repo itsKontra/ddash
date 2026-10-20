@@ -54,6 +54,7 @@ func (c *component) SetOverlay(ctx context.Context, req *appspb.SetOverlayReques
 	if err != nil {
 		return nil, err
 	}
+	c.syncChecks(ctx)
 	return &appspb.SetOverlayResponse{}, nil
 }
 
@@ -81,6 +82,7 @@ func (c *component) AttachOverlay(ctx context.Context, req *appspb.AttachOverlay
 	if err := c.store.moveOverlay(ctx, from, to); err != nil {
 		return nil, err
 	}
+	c.syncChecks(ctx)
 	return &appspb.AttachOverlayResponse{}, nil
 }
 
@@ -97,6 +99,7 @@ func (c *component) DeleteOverlay(ctx context.Context, req *appspb.DeleteOverlay
 	if err := c.store.deleteOverlay(ctx, req.GetServerName()); err != nil {
 		return nil, err
 	}
+	c.syncChecks(ctx)
 	return &appspb.DeleteOverlayResponse{}, nil
 }
 

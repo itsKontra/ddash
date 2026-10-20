@@ -3,4 +3,4 @@ title: Apps
 description: Every nginx Proxy Host as an App, plus manual ones, as cards by group.
 icon: layout-grid
 author: itsKontra
-requires: [apps]
+requires: [apps, checks]
