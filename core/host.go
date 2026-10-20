@@ -327,10 +327,20 @@ func (h *Host) Start() {
 // Shutdown stops every Component in parallel, waiting at most
 // runtime.StopTimeout, then closes the core DB. Stop serving HTTP first.
 func (h *Host) Shutdown(ctx context.Context) error {
+	h.StopComponents(ctx)
+	return h.Close()
+}
+
+// StopComponents ends the housekeeping and stops every Component in
+// parallel, waiting at most runtime.StopTimeout. The core DB stays open,
+// for HTTP requests still finishing.
+func (h *Host) StopComponents(ctx context.Context) {
 	if h.stopLoops != nil {
 		h.stopLoops()
 	}
 	h.loops.Wait()
 	h.runtime.Stop(ctx)
-	return h.db.Close()
 }
+
+// Close closes the core DB, after StopComponents and once HTTP is done.
+func (h *Host) Close() error { return h.db.Close() }

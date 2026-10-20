@@ -44,7 +44,8 @@ import (
 const defaultListen = ":8080"
 
 // httpShutdownTimeout bounds how long in-flight requests may finish after
-// SIGTERM. With runtime.StopTimeout it fits compose's 20 s grace period.
+// SIGTERM, side by side with the Components' runtime.StopTimeout; even
+// one after the other they fit compose's 20 s grace period.
 const httpShutdownTimeout = 5 * time.Second
 
 func main() {
@@ -111,18 +112,38 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 	case <-ctx.Done():
 	case err = <-served:
 	}
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), httpShutdownTimeout)
-	defer cancel()
-	if srv.Shutdown(shutdownCtx) != nil {
-		srv.Close()
-	}
-	if shutdownErr := host.Shutdown(context.Background()); err == nil {
-		err = shutdownErr
+	if closeErr := drain(srv, host); err == nil {
+		err = closeErr
 	}
 	if errors.Is(err, http.ErrServerClosed) {
 		err = nil
 	}
 	return err
+}
+
+// stoppable is the host as shutdown sees it.
+type stoppable interface {
+	StopComponents(ctx context.Context)
+	Close() error
+}
+
+// drain shuts down in the spec's order: stop accepting HTTP and, at the
+// same time, stop every Component in parallel (runtime.StopTimeout, then
+// kill); in-flight requests get httpShutdownTimeout from the start; the
+// core DB closes last.
+func drain(srv *http.Server, host stoppable) error {
+	httpDone := make(chan struct{})
+	go func() {
+		defer close(httpDone)
+		ctx, cancel := context.WithTimeout(context.Background(), httpShutdownTimeout)
+		defer cancel()
+		if srv.Shutdown(ctx) != nil {
+			srv.Close()
+		}
+	}()
+	host.StopComponents(context.Background())
+	<-httpDone
+	return host.Close()
 }
 
 // signInConfig reads the Keycloak client from the environment, naming
