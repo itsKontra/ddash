@@ -1,11 +1,16 @@
 // dev is `make dev`: it runs the whole system locally against fakelab.
 //
 //  1. It builds every Component into dist/ in the Release layout, as
-//     Release dev (internal/release).
+//     Release dev (internal/release), linking each Plugin's bundle from
+//     plugins/<name>/dist/ (`make dev` runs `make build` first).
 //  2. It starts fakelab and seeds every Component's config to point at it.
 //  3. It installs every Plugin in the Release.
 //  4. It runs the core, built with -tags dev and signed in as operator:dev,
 //     with DDASH_RELEASE_DIR=dist, until interrupted.
+//  5. It rebuilds every Plugin's bundle on change (`vite build --watch`;
+//     reload the page to see it, there is no HMR) and serves the shell from
+//     the Vite dev server, which proxies /api, /plugins and /vendor to the
+//     core: open http://127.0.0.1:5173.
 //
 // Run it from the repo root:
 //
@@ -14,6 +19,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -54,7 +60,7 @@ func run(ctx context.Context, listen, data, dist string) error {
 	if err := os.RemoveAll(dist); err != nil {
 		return err
 	}
-	if err := release.Build(ctx, release.Options{Root: ".", Out: dist, Release: "dev"}); err != nil {
+	if err := release.Build(ctx, release.Options{Root: ".", Out: dist, Release: "dev", LinkBundles: true}); err != nil {
 		return err
 	}
 
@@ -77,7 +83,22 @@ func run(ctx context.Context, listen, data, dist string) error {
 		return fmt.Errorf("build the core: %w", err)
 	}
 
-	slog.Info("running the core", "url", "http://"+listen)
+	pnpm, err := pnpmCommand()
+	if err != nil {
+		return err
+	}
+	watch, err := background(ctx, append(pnpm, "-r", "--parallel", "--filter", "./plugins/*", "dev")...)
+	if err != nil {
+		return err
+	}
+	defer watch()
+	vite, err := background(ctx, append(pnpm, "--filter", "@ddash/shell", "dev", "--host", "127.0.0.1", "--strictPort")...)
+	if err != nil {
+		return err
+	}
+	defer vite()
+
+	slog.Info("running the core", "core", "http://"+listen, "open", "http://127.0.0.1:5173")
 	// The core gets the same SIGINT from the terminal and shuts down on it;
 	// wait for that instead of killing it.
 	srv := exec.Command(bin)
@@ -97,6 +118,48 @@ func run(ctx context.Context, listen, data, dist string) error {
 		srv.Process.Signal(syscall.SIGTERM) //nolint:errcheck // it may have exited
 	}()
 	return srv.Wait()
+}
+
+// pnpmCommand is how to run the repo's pinned pnpm: npx with the version
+// package.json's packageManager names.
+func pnpmCommand() ([]string, error) {
+	b, err := os.ReadFile("package.json")
+	if err != nil {
+		return nil, err
+	}
+	var pkg struct {
+		PackageManager string `json:"packageManager"`
+	}
+	if err := json.Unmarshal(b, &pkg); err != nil || pkg.PackageManager == "" {
+		return nil, fmt.Errorf("package.json names no packageManager: %v", err)
+	}
+	return []string{"npx", "-y", pkg.PackageManager}, nil
+}
+
+// background runs args in its own process group until ctx ends or the
+// returned stop is called, which ends the whole group (pnpm's Vite children
+// too) and waits for it.
+func background(ctx context.Context, args ...string) (stop func(), err error) {
+	cmd := exec.Command(args[0], args[1:]...)
+	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	done := make(chan struct{})
+	go func() {
+		_ = cmd.Wait() // it ends with the group
+		close(done)
+	}()
+	kill := func() { _ = syscall.Kill(-cmd.Process.Pid, syscall.SIGTERM) }
+	go func() {
+		select {
+		case <-ctx.Done():
+			kill()
+		case <-done:
+		}
+	}()
+	return func() { kill(); <-done }, nil
 }
 
 // seed points every Component's config at the lab and installs every Plugin

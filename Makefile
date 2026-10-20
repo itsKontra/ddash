@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto lint test vet typecheck check dev release-dir
+.PHONY: all install generate check-generated lint-proto lint build test test-go test-web vet typecheck check dev release-dir
 
 all: check
 
@@ -13,7 +13,7 @@ generate:
 	go tool buf generate
 
 # Fail when committed generated code differs from what `make generate` produces.
-GENERATED := '*.pb.go' packages/proto/src
+GENERATED := '*.pb.go' '*.connect.go' packages/proto/src
 
 check-generated: generate
 	@drift="$$(git status --porcelain -- $(GENERATED))"; \
@@ -33,12 +33,25 @@ GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v
 lint:
 	$(GOLANGCI_LINT) run ./...
 
+# Build the web with Vite: the shell and vendor ESM into web/dist/shell
+# (embedded by package web, so build before building the core) and each
+# Plugin's bundle into plugins/<name>/dist/ (copied into the Release).
+build:
+	$(PNPM) -r build
+
+test: test-go test-web
+
 # Dev-build code (-tags dev) is tested too; release builds never contain it.
 # go test ./... includes the subprocess test (it builds the Release and
-# runs it against fakelab) and the fixture IP guard (internal/ipguard).
-test:
+# runs it against fakelab), the fixture IP guard (internal/ipguard) and the
+# embedded shell, so it needs the web built.
+test-go: build
 	go test ./...
 	go test -tags dev ./core/auth/...
+
+# vitest in every workspace package.
+test-web:
+	$(PNPM) -r test
 
 vet:
 	go vet ./...
@@ -49,13 +62,15 @@ typecheck:
 check: lint-proto check-generated vet lint test typecheck
 
 # Build the Release into dist/ (catalogue.json, SHA256SUMS, one binary per
-# Component), as Release dev unless RELEASE is set.
+# Component, each Plugin's bundle), as Release dev unless RELEASE is set.
 RELEASE ?= dev
-release-dir:
+release-dir: build
 	rm -rf dist
 	go run ./cmd/release -out dist -release $(RELEASE)
 
 # Run everything locally against fakelab: builds dist/, seeds Component
-# config, installs every Plugin and runs the core (dev auth) on :8080.
-dev:
+# config, installs every Plugin and runs the core (dev auth) on :8080,
+# Plugins rebuilding with `vite build --watch` and the shell on the Vite
+# dev server (http://127.0.0.1:5173), which proxies the core.
+dev: build
 	go run ./cmd/dev

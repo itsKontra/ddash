@@ -21,6 +21,10 @@ jobs:
           node-version: 24
       - name: Install the pnpm workspace
         run: make install
+      # The shell and vendor ESM (embedded by package web) and the Plugin
+      # bundles (in the Release); go test needs them.
+      - name: Vite build
+        run: make build
       - name: buf lint
         run: make lint-proto
       - name: Codegen drift
@@ -33,6 +37,8 @@ jobs:
       # and boots the core with the real launcher against fakelab, and the
       # fixture IP guard (internal/ipguard).
       - name: go test
-        run: make test
+        run: make test-go
+      - name: vitest
+        run: make test-web
       - name: Typecheck
         run: make typecheck
