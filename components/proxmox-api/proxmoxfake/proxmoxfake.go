@@ -11,8 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -91,11 +89,7 @@ func New(dir string, opts Options) (*Proxmox, error) {
 // seed decodes the data of path's fixture in dir, else in its sibling
 // baseline, into v.
 func seed(dir, path string, v any) error {
-	file := filepath.Join(dir, filepath.FromSlash(path)+".json")
-	if _, err := os.Stat(file); err != nil {
-		file = filepath.Join(filepath.Dir(dir), "baseline", filepath.FromSlash(path)+".json")
-	}
-	b, err := os.ReadFile(file)
+	b, err := fixture.Read(dir, path)
 	if err != nil {
 		return fmt.Errorf("proxmoxfake: %w", err)
 	}
@@ -103,10 +97,10 @@ func seed(dir, path string, v any) error {
 		Data json.RawMessage `json:"data"`
 	}
 	if err := json.Unmarshal(b, &env); err != nil {
-		return fmt.Errorf("proxmoxfake: %s: %w", file, err)
+		return fmt.Errorf("proxmoxfake: %s: %w", path, err)
 	}
 	if err := json.Unmarshal(env.Data, v); err != nil {
-		return fmt.Errorf("proxmoxfake: %s: %w", file, err)
+		return fmt.Errorf("proxmoxfake: %s: %w", path, err)
 	}
 	return nil
 }

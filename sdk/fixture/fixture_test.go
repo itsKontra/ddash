@@ -32,6 +32,18 @@ func TestServesOneFilePerResponse(t *testing.T) {
 	}
 }
 
+// Read seeds a stateful fake: a GET's body from the scenario, else from
+// its sibling baseline.
+func TestReadGivesAScenariosGetBodyElseBaselines(t *testing.T) {
+	hosts, err := fixture.Read("testdata/broken", "/api/v1/hosts")
+	if err != nil || !strings.Contains(string(hosts), "media") {
+		t.Errorf("Read hosts = %s, %v; want baseline's", hosts, err)
+	}
+	if _, err := fixture.Read("testdata/broken", "api/v1/missing"); err == nil {
+		t.Error("Read of a path without a file: no error")
+	}
+}
+
 func TestAScenarioOverridesBaselineAndInheritsTheRest(t *testing.T) {
 	srv := fixture.Server(t, "testdata/broken")
 

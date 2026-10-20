@@ -74,10 +74,7 @@ func (s *Fake) Hits(request string) int {
 // request without a file gets 404. miss, when not nil, hears of every
 // request that got no file, and why.
 func Scenario(dir string, miss func(request string, err error)) http.Handler {
-	dirs := []string{dir}
-	if baseline := filepath.Join(filepath.Dir(dir), "baseline"); filepath.Clean(dir) != baseline {
-		dirs = append(dirs, baseline)
-	}
+	dirs := scenarioDirs(dir)
 	if miss == nil {
 		miss = func(string, error) {}
 	}
@@ -102,6 +99,18 @@ func Scenario(dir string, miss func(request string, err error)) http.Handler {
 		miss(request, fmt.Errorf("no file for %s in %v", request, dirs))
 		http.NotFound(w, r)
 	})
+}
+
+// Read returns the body a GET of urlPath answers with in the scenario in
+// dir, else in its sibling baseline: what a stateful fake seeds its state
+// from.
+func Read(dir, urlPath string) ([]byte, error) {
+	for _, d := range scenarioDirs(dir) {
+		if file, code, ok := find(d, http.MethodGet, "/"+strings.TrimPrefix(urlPath, "/")); ok && code == http.StatusOK {
+			return os.ReadFile(file)
+		}
+	}
+	return nil, fmt.Errorf("fixture: no file for GET %s in %v", urlPath, scenarioDirs(dir))
 }
 
 var statusSuffix = regexp.MustCompile(`^\.(\d{3})\.json$`)

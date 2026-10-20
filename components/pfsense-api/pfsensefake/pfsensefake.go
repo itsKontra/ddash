@@ -17,8 +17,6 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
-	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -91,11 +89,7 @@ func New(dir string, opts Options) (*Firewall, error) {
 // seed reads the data of path's fixture in dir, else in its sibling
 // baseline.
 func seed(dir, path string) ([]map[string]any, error) {
-	file := filepath.Join(dir, filepath.FromSlash(path)+".json")
-	if _, err := os.Stat(file); err != nil {
-		file = filepath.Join(filepath.Dir(dir), "baseline", filepath.FromSlash(path)+".json")
-	}
-	b, err := os.ReadFile(file)
+	b, err := fixture.Read(dir, path)
 	if err != nil {
 		return nil, fmt.Errorf("pfsensefake: %w", err)
 	}
@@ -103,7 +97,7 @@ func seed(dir, path string) ([]map[string]any, error) {
 		Data []map[string]any `json:"data"`
 	}
 	if err := json.Unmarshal(b, &env); err != nil {
-		return nil, fmt.Errorf("pfsensefake: %s: %w", file, err)
+		return nil, fmt.Errorf("pfsensefake: %s: %w", path, err)
 	}
 	return env.Data, nil
 }

@@ -15,8 +15,6 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
-	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -83,16 +81,12 @@ func New(dir string, opts Options) (*AdGuard, error) {
 
 // load decodes the scenario's file for path, else baseline's.
 func load(dir, path string, out any) error {
-	file := filepath.Join(dir, filepath.FromSlash(path)+".json")
-	if _, err := os.Stat(file); err != nil {
-		file = filepath.Join(filepath.Dir(dir), "baseline", filepath.FromSlash(path)+".json")
-	}
-	b, err := os.ReadFile(file)
+	b, err := fixture.Read(dir, path)
 	if err != nil {
 		return fmt.Errorf("adguardfake: %w", err)
 	}
 	if err := json.Unmarshal(b, out); err != nil {
-		return fmt.Errorf("adguardfake: %s: %w", file, err)
+		return fmt.Errorf("adguardfake: %s: %w", path, err)
 	}
 	return nil
 }
