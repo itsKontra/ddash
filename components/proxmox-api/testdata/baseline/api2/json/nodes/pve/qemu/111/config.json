@@ -1,0 +1,5 @@
+{
+  "data": {"name": "win-test", "cores": 2, "memory": "8192", "ostype": "win11", "boot": "order=scsi0", "scsi0": "local-lvm:vm-111-disk-0,size=64G", "digest": "REDACTED",
+    "net0": "virtio=02:5E:1A:00:01:11,bridge=vmbr0,firewall=1",
+    "ipconfig0": "ip=198.18.1.111/24,gw=198.18.1.1"}
+}

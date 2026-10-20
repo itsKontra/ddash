@@ -124,7 +124,33 @@ func Define[C proto.Message](s Spec[C]) Definition {
 	if err := d.checkSetupHint(zero.ProtoReflect().Descriptor()); err != nil {
 		panic(err.Error())
 	}
+	if err := d.checkTestAction(zero.ProtoReflect().Descriptor()); err != nil {
+		panic(err.Error())
+	}
 	return d
+}
+
+// checkTestAction enforces that a config message's test_action names a
+// non-disruptive Action of the Component's API, so the config form's
+// button can run it without a confirm.
+func (d Definition) checkTestAction(cfg protoreflect.MessageDescriptor) error {
+	form, _ := proto.GetExtension(cfg.Options(), configpb.E_Form).(*configpb.Form)
+	name := form.GetTestAction()
+	if name == "" {
+		return nil
+	}
+	svc, err := d.serviceDescriptor()
+	if err != nil {
+		return err
+	}
+	m := svc.Methods().ByName(protoreflect.Name(name))
+	if m == nil || !proto.HasExtension(m.Options(), ddashpb.E_Action) {
+		return fmt.Errorf("sdk: %s: %s's test_action %q is not an Action of %s", d.Name(), cfg.FullName(), name, svc.FullName())
+	}
+	if a, _ := proto.GetExtension(m.Options(), ddashpb.E_Action).(*ddashpb.Action); a.GetDisruptive() {
+		return fmt.Errorf("sdk: %s: %s's test_action %s is disruptive", d.Name(), cfg.FullName(), name)
+	}
+	return nil
 }
 
 // checkSetupHint enforces that a config message's setup_from names a

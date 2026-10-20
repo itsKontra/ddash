@@ -107,15 +107,58 @@ func (s *store) setFlag(ctx context.Context, id int64, flag string, on bool) err
 	return err
 }
 
-// delete removes a Check and its beats.
+// delete removes a Check, its beats and its last-notified state.
 func (s *store) delete(ctx context.Context, id int64) error {
-	_, err := s.db.ExecContext(ctx, `DELETE FROM checks WHERE id = ?`, id)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	if _, err := tx.ExecContext(ctx, `DELETE FROM checks WHERE id = ?`, id); err != nil {
+		return err
+	}
+	if _, err := tx.ExecContext(ctx, `DELETE FROM notified WHERE item = ?`, checkItem(id)); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
+// loadNotified reads the last-notified state of every item.
+func (s *store) loadNotified(ctx context.Context) (map[string]notified, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT item, state, since, reason FROM notified`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := map[string]notified{}
+	for rows.Next() {
+		var (
+			item, state string
+			since       int64
+			n           notified
+		)
+		if err := rows.Scan(&item, &state, &since, &n.reason); err != nil {
+			return nil, err
+		}
+		n.state, n.since = key(states, state), time.UnixMilli(since)
+		out[item] = n
+	}
+	return out, rows.Err()
+}
+
+// setNotified stores the state item was last notified in.
+func (s *store) setNotified(ctx context.Context, item string, n notified) error {
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO notified (item, state, since, reason) VALUES (?, ?, ?, ?)
+		ON CONFLICT (item) DO UPDATE SET state = excluded.state, since = excluded.since, reason = excluded.reason`,
+		item, states[n.state], ms(n.since), n.reason)
 	return err
 }
 
-// recordBeat adds a beat to check_event and stores the standing after it,
-// together.
-func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing, changed bool) error {
+// recordBeat adds a beat to check_event and its minute, hour and day
+// buckets in check_stat (as maint when in Maintenance), and stores the
+// standing after it, together.
+func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing, changed, maint bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -129,6 +172,9 @@ func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing,
 		INSERT INTO check_event (check_id, at, up, state, changed, latency_ms, reason)
 		VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		id, ms(st.lastBeat), r.up, states[st.state], changed, latency, r.reason); err != nil {
+		return err
+	}
+	if err := addToBuckets(ctx, tx, id, st.lastBeat, r, maint); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `

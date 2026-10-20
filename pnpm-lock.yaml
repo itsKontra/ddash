@@ -124,6 +124,25 @@ importers:
         specifier: 8.3.4
         version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)
 
+  plugins/apps:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
   plugins/checks:
     dependencies:
       '@bufbuild/protobuf':
@@ -138,6 +157,9 @@ importers:
       '@ddash/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      react-router:
+        specifier: 8.5.0
+        version: 8.5.0(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
       '@ddash/vite-preset':
         specifier: workspace:*
@@ -163,6 +185,25 @@ importers:
         version: link:../../packages/vite-preset
 
   plugins/network:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
+  plugins/proxmox:
     dependencies:
       '@bufbuild/protobuf':
         specifier: 2.16.0

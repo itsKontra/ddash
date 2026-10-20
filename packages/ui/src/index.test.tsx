@@ -1,6 +1,6 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Badge, PageHeader, Sparkline, StatusDot } from "./index";
+import { Badge, PageHeader, Sparkline, StatusDot, UptimeBars } from "./index";
 
 afterEach(cleanup);
 
@@ -51,4 +51,17 @@ it("PageHeader shows the title as the Page's heading, with subtitle and actions"
   expect(screen.getByRole("heading", { level: 1, name: "Docker" })).toBeTruthy();
   expect(screen.getByText("Containers per host")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
+});
+
+it("UptimeBars draws one bar per bucket in its tone, oldest first, named by its label", () => {
+  render(
+    <UptimeBars
+      label="Uptime, last 24 h"
+      bars={[{ tone: "up", title: "08:00 · 100 %" }, { tone: "down" }, { tone: "maint" }, { tone: "idle", title: "no beats" }]}
+    />,
+  );
+
+  const bars = screen.getByRole("img", { name: "Uptime, last 24 h" });
+  expect([...bars.querySelectorAll("[data-tone]")].map((b) => b.getAttribute("data-tone"))).toEqual(["up", "down", "maint", "idle"]);
+  expect(screen.getByText("08:00 · 100 %")).toBeTruthy();
 });

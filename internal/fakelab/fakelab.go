@@ -24,7 +24,9 @@ import (
 
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -47,11 +49,27 @@ var systems = []system{
 		},
 	},
 	{
+		component: "ntfy-api",
+		fixtures:  "components/ntfy-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			server := "http://" + addr
+			return &ntfyapipb.NtfyApiConfig{Server: &server, Topic: "ddash-alerts"}
+		},
+	},
+	{
 		component: "pfsense-api",
 		fixtures:  "components/pfsense-api/testdata/baseline",
 		config: func(addr string) proto.Message {
 			// The fixtures don't check the key.
 			return &pfsenseapipb.PfsenseApiConfig{Url: "http://" + addr, ApiKey: "fakelab"}
+		},
+	},
+	{
+		component: "proxmox-api",
+		fixtures:  "components/proxmox-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			// Plain http: the lab has no certificate a Component trusts.
+			return &proxmoxapipb.ProxmoxApiConfig{Url: "http://" + addr, TokenId: "ddash@pve!fakelab", TokenSecret: "fakelab"}
 		},
 	},
 }

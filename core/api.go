@@ -216,6 +216,11 @@ func (a coreAPI) SaveConfig(ctx context.Context, req *corepb.SaveConfigRequest) 
 	return resp, connectError(err)
 }
 
+func (a coreAPI) RunTestAction(ctx context.Context, req *corepb.RunTestActionRequest) (*corepb.RunTestActionResponse, error) {
+	resp, err := a.host.RunTestAction(ctx, req)
+	return resp, connectError(err)
+}
+
 func (a coreAPI) GetCoreSettings(ctx context.Context, _ *corepb.GetCoreSettingsRequest) (*corepb.GetCoreSettingsResponse, error) {
 	settings, err := a.host.CoreSettings(ctx)
 	if err != nil {

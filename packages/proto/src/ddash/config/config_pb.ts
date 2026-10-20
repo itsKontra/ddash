@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/config/config.proto.
  */
 export const file_ddash_config_config: GenFile = /*@__PURE__*/
-  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciGgoERm9ybRISCgpzZXR1cF9mcm9tGAEgASgJIigKCVNldHVwSGludBIMCgR0ZXh0GAEgASgJEg0KBWJsb2NrGAIgASgJIsgCCgVGaWVsZBIPCgdkZWZhdWx0GAEgASgJEg4KBnNlY3JldBgCIAEoCBINCgVsYWJlbBgDIAEoCRIMCgRoZWxwGAQgASgJEhMKC3BsYWNlaG9sZGVyGAUgASgJEhAKCHJlcXVpcmVkGAYgASgIEioKBmZvcm1hdBgHIAEoDjIaLmRkYXNoLmNvbmZpZy5GaWVsZC5Gb3JtYXQSEAoDbWluGAggASgDSACIAQESEAoDbWF4GAkgASgDSAGIAQEiegoGRm9ybWF0EhYKEkZPUk1BVF9VTlNQRUNJRklFRBAAEg4KCkZPUk1BVF9VUkwQARITCg9GT1JNQVRfSE9TVE5BTUUQAhINCglGT1JNQVRfSVAQAxIPCgtGT1JNQVRfQ0lEUhAEEhMKD0ZPUk1BVF9JUF9SQU5HRRAFQgYKBF9taW5CBgoEX21heCIaCglFbnVtVmFsdWUSDQoFbGFiZWwYASABKAk6SgoFZmllbGQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNOGAyABKAsyEy5kZGFzaC5jb25maWcuRmllbGRSBWZpZWxkOlIKBXZhbHVlEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY1IYDIAEoCzIXLmRkYXNoLmNvbmZpZy5FbnVtVmFsdWVSBXZhbHVlOkkKBGZvcm0SHy5nb29nbGUucHJvdG9idWYuTWVzc2FnZU9wdGlvbnMY1YYDIAEoCzISLmRkYXNoLmNvbmZpZy5Gb3JtUgRmb3JtQjhaNmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbmZpZztjb25maWdwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
+  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciLwoERm9ybRISCgpzZXR1cF9mcm9tGAEgASgJEhMKC3Rlc3RfYWN0aW9uGAIgASgJIigKCVNldHVwSGludBIMCgR0ZXh0GAEgASgJEg0KBWJsb2NrGAIgASgJIsgCCgVGaWVsZBIPCgdkZWZhdWx0GAEgASgJEg4KBnNlY3JldBgCIAEoCBINCgVsYWJlbBgDIAEoCRIMCgRoZWxwGAQgASgJEhMKC3BsYWNlaG9sZGVyGAUgASgJEhAKCHJlcXVpcmVkGAYgASgIEioKBmZvcm1hdBgHIAEoDjIaLmRkYXNoLmNvbmZpZy5GaWVsZC5Gb3JtYXQSEAoDbWluGAggASgDSACIAQESEAoDbWF4GAkgASgDSAGIAQEiegoGRm9ybWF0EhYKEkZPUk1BVF9VTlNQRUNJRklFRBAAEg4KCkZPUk1BVF9VUkwQARITCg9GT1JNQVRfSE9TVE5BTUUQAhINCglGT1JNQVRfSVAQAxIPCgtGT1JNQVRfQ0lEUhAEEhMKD0ZPUk1BVF9JUF9SQU5HRRAFQgYKBF9taW5CBgoEX21heCIaCglFbnVtVmFsdWUSDQoFbGFiZWwYASABKAk6SgoFZmllbGQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNOGAyABKAsyEy5kZGFzaC5jb25maWcuRmllbGRSBWZpZWxkOlIKBXZhbHVlEiEuZ29vZ2xlLnByb3RvYnVmLkVudW1WYWx1ZU9wdGlvbnMY1IYDIAEoCzIXLmRkYXNoLmNvbmZpZy5FbnVtVmFsdWVSBXZhbHVlOkkKBGZvcm0SHy5nb29nbGUucHJvdG9idWYuTWVzc2FnZU9wdGlvbnMY1YYDIAEoCzISLmRkYXNoLmNvbmZpZy5Gb3JtUgRmb3JtQjhaNmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbmZpZztjb25maWdwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
 
 /**
  * Options on a Component's config message as a whole.
@@ -39,6 +39,16 @@ export type Form = Message<"ddash.config.Form"> & {
    * @generated from field: string setup_from = 1;
    */
   setupFrom: string;
+
+  /**
+   * The name of a non-disruptive Action of the same Component that takes
+   * an empty request, e.g. "SendTest". The config form shows a button
+   * labelled with the name in sentence case ("Send test") that runs it on
+   * the saved config and shows the result inline.
+   *
+   * @generated from field: string test_action = 2;
+   */
+  testAction: string;
 };
 
 /**
@@ -247,6 +257,7 @@ export const value: GenExtension<EnumValueOptions, EnumValue> = /*@__PURE__*/
 
 /**
  * Used on a config message as option (ddash.config.form) = {setup_from: "GetSetupHint"};
+ * or {test_action: "SendTest"}.
  *
  * @generated from extension: ddash.config.Form form = 50005;
  */

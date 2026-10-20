@@ -6,6 +6,7 @@ syntax = "proto3";
 package ddash.checks;
 
 import "ddash/options.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/checks/checkspb;checkspb";
@@ -41,6 +42,17 @@ service ChecksService {
   // nothing; enabled again, it resumes from its last state.
   rpc SetDisabled(SetDisabledRequest) returns (SetDisabledResponse) {
     option (ddash.action) = {};
+  }
+  // GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
+  // window's buckets and state changes for its UptimeBars.
+  rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListBeats returns the beats a Check keeps: every beat of about the last
+  // 24 h and its state changes of the last 365 d (a daily sweep drops the
+  // rest), oldest first.
+  rpc ListBeats(ListBeatsRequest) returns (ListBeatsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
   }
 }
 
@@ -163,4 +175,92 @@ message SetDisabledRequest {
 
 message SetDisabledResponse {
   Check check = 1;
+}
+
+// A span of history, read at its own bucket size.
+enum Window {
+  // 24 h.
+  WINDOW_UNSPECIFIED = 0;
+  // The last 24 h, in minute buckets.
+  WINDOW_24H = 1;
+  // The last 30 d, in hour buckets.
+  WINDOW_30D = 2;
+  // The last 365 d, in (UTC) day buckets.
+  WINDOW_365D = 3;
+}
+
+// Latency over a span's up beats, in ms.
+message Latency {
+  double avg_ms = 1;
+  double min_ms = 2;
+  double max_ms = 3;
+}
+
+// A Check's uptime over one window: beat-weighted up / (up + down), where
+// a failed beat counts as down even while the Check is pending, and beats
+// in Maintenance count as neither.
+message Uptime {
+  Window window = 1;
+  // From 0 to 1; unset when the window holds no counted beat.
+  optional double ratio = 2;
+  int64 up = 3;
+  int64 down = 4;
+  // Beats in Maintenance, left out of the ratio.
+  int64 maintenance = 5;
+  // Unset when the window holds no counted up beat.
+  Latency latency = 6;
+}
+
+// One bucket of a window: its beats' counts and their latency.
+message Bucket {
+  google.protobuf.Timestamp start = 1;
+  int64 up = 2;
+  int64 down = 3;
+  int64 maintenance = 4;
+  // Unset when the bucket holds no counted up beat.
+  Latency latency = 5;
+}
+
+// One probe of a Check.
+message Beat {
+  google.protobuf.Timestamp at = 1;
+  bool up = 2;
+  // The Check's state after the beat.
+  State state = 3;
+  // Whether the beat changed the state.
+  bool changed = 4;
+  // Set when up.
+  double latency_ms = 5;
+  // Why it failed; empty when up.
+  string reason = 6;
+}
+
+message GetHistoryRequest {
+  int64 id = 1;
+  // Whose buckets and state changes to return; 24 h when unspecified.
+  Window window = 2;
+}
+
+message GetHistoryResponse {
+  // Uptime over 24 h, 30 d and 365 d, in that order.
+  repeated Uptime uptime = 1;
+  // The window the rest is for.
+  Window window = 2;
+  // The window's bucket size: a minute, an hour or a day.
+  google.protobuf.Duration bucket = 3;
+  // The start of the window's first bucket; its last one holds now.
+  google.protobuf.Timestamp from = 4;
+  // The buckets holding beats, oldest first. A bucket without beats (ddash
+  // down, the Check disabled or not there yet) is left out.
+  repeated Bucket buckets = 5;
+  // The window's state changes, newest first.
+  repeated Beat changes = 6;
+}
+
+message ListBeatsRequest {
+  int64 id = 1;
+}
+
+message ListBeatsResponse {
+  repeated Beat beats = 1;
 }

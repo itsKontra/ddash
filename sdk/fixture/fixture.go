@@ -7,7 +7,9 @@
 //	GET  /api/v2/status/gateways  →  api/v2/status/gateways.json        (200)
 //	GET  /api/v2/status/gateways  →  api/v2/status/gateways.503.json    (503)
 //	POST /api/v2/firewall/apply   →  api/v2/firewall/apply.post.json    (200)
+//	POST /                        →  index.post.json                    (200)
 //
+// A path ending in / is its directory's index file.
 // A scenario other than baseline holds only the files that differ: any file
 // it lacks comes from the sibling baseline directory. Recorded bodies use
 // only the scrubbed ranges 198.18.N.0/24, 203.0.113.0/24, 2001:db8::/32 and
@@ -100,6 +102,9 @@ var statusSuffix = regexp.MustCompile(`^\.(\d{3})\.json$`)
 
 // find looks in dir for the file answering method urlPath, and its status.
 func find(dir, method, urlPath string) (file string, code int, ok bool) {
+	if strings.HasSuffix(urlPath, "/") {
+		urlPath += "index"
+	}
 	base := filepath.Join(dir, filepath.FromSlash(strings.TrimPrefix(urlPath, "/")))
 	if method != http.MethodGet {
 		base += "." + strings.ToLower(method)

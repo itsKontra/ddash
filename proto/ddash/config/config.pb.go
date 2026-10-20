@@ -103,7 +103,12 @@ type Form struct {
 	// SetupHint field. Once the Component has started, its config form shows
 	// the hint the getter returns, e.g. the authorized_keys line that grants
 	// the Component access.
-	SetupFrom     string `protobuf:"bytes,1,opt,name=setup_from,json=setupFrom,proto3" json:"setup_from,omitempty"`
+	SetupFrom string `protobuf:"bytes,1,opt,name=setup_from,json=setupFrom,proto3" json:"setup_from,omitempty"`
+	// The name of a non-disruptive Action of the same Component that takes
+	// an empty request, e.g. "SendTest". The config form shows a button
+	// labelled with the name in sentence case ("Send test") that runs it on
+	// the saved config and shows the result inline.
+	TestAction    string `protobuf:"bytes,2,opt,name=test_action,json=testAction,proto3" json:"test_action,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -141,6 +146,13 @@ func (*Form) Descriptor() ([]byte, []int) {
 func (x *Form) GetSetupFrom() string {
 	if x != nil {
 		return x.SetupFrom
+	}
+	return ""
+}
+
+func (x *Form) GetTestAction() string {
+	if x != nil {
+		return x.TestAction
 	}
 	return ""
 }
@@ -415,6 +427,7 @@ var (
 // Extension fields to descriptorpb.MessageOptions.
 var (
 	// Used on a config message as option (ddash.config.form) = {setup_from: "GetSetupHint"};
+	// or {test_action: "SendTest"}.
 	//
 	// optional ddash.config.Form form = 50005;
 	E_Form = &file_ddash_config_config_proto_extTypes[2]
@@ -424,10 +437,12 @@ var File_ddash_config_config_proto protoreflect.FileDescriptor
 
 const file_ddash_config_config_proto_rawDesc = "" +
 	"\n" +
-	"\x19ddash/config/config.proto\x12\fddash.config\x1a google/protobuf/descriptor.proto\"%\n" +
+	"\x19ddash/config/config.proto\x12\fddash.config\x1a google/protobuf/descriptor.proto\"F\n" +
 	"\x04Form\x12\x1d\n" +
 	"\n" +
-	"setup_from\x18\x01 \x01(\tR\tsetupFrom\"5\n" +
+	"setup_from\x18\x01 \x01(\tR\tsetupFrom\x12\x1f\n" +
+	"\vtest_action\x18\x02 \x01(\tR\n" +
+	"testAction\"5\n" +
 	"\tSetupHint\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\x12\x14\n" +
 	"\x05block\x18\x02 \x01(\tR\x05block\"\x8f\x03\n" +
