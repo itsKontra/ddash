@@ -7,6 +7,7 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -14,14 +15,26 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file network/network.proto.
  */
 export const file_network_network: GenFile = /*@__PURE__*/
-  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiDwoNTmV0d29ya0NvbmZpZyIVChNHZXRWcG5UdW5uZWxSZXF1ZXN0IocBChRHZXRWcG5UdW5uZWxSZXNwb25zZRIhCgR0aWVyGAEgASgOMhMuZGRhc2gubmV0d29yay5UaWVyEg0KBWdyb3VwGAIgASgJEi4KCGdhdGV3YXlzGAMgAygLMhwuZGRhc2gubmV0d29yay5UdW5uZWxHYXRld2F5Eg0KBWVycm9yGAQgASgJIqoBCg1UdW5uZWxHYXRld2F5EgwKBG5hbWUYASABKAkSDAoEdGllchgCIAEoBRIKCgJ1cBgDIAEoCBIOCgZzdGF0dXMYBCABKAkSEQoJc3Vic3RhdHVzGAUgASgJEhUKCGRlbGF5X21zGAYgASgBSACIAQESGQoMbG9zc19wZXJjZW50GAcgASgBSAGIAQFCCwoJX2RlbGF5X21zQg8KDV9sb3NzX3BlcmNlbnQqUQoEVGllchIUChBUSUVSX1VOU1BFQ0lGSUVEEAASEgoOVElFUl9XSVJFR1VBUkQQARIQCgxUSUVSX09QRU5WUE4QAhINCglUSUVSX0RPV04QAzJxCg5OZXR3b3JrU2VydmljZRJfCgxHZXRWcG5UdW5uZWwSIi5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlcXVlc3QaIy5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlc3BvbnNlIgaKtRgCCAJCQ1pBZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZXR3b3JrL25ldHdvcmtwYjtuZXR3b3JrcGJiBnByb3RvMw", [file_ddash_options]);
+  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsiwgIKDU5ldHdvcmtDb25maWcSiwEKDGJ5cGFzc19hbGlhcxgBIAEoCUJ1mrUYcRoMQnlwYXNzIGFsaWFzIkZUaGUgZmlyZXdhbGwgYWxpYXMgd2hvc2UgbWVtYmVycyBza2lwIHRoZSBWUE4gVHVubmVsIChEaXJlY3QgRGV2aWNlcykuMAFSF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEqIBCg5yZXNlcnZlZF9yYW5nZRgCIAEoCUKJAZq1GIQBGg5SZXNlcnZlZCByYW5nZSJVV2hlcmUgQWRvcHQgcGlja3MgYSBOZXcgRGV2aWNlJ3MgcmVzZXJ2ZWQgYWRkcmVzcy4gSXQgbXVzdCBsaWUgb3V0c2lkZSB0aGUgREhDUCBwb29sLioXMTk4LjE4LjEuMjAtMTk4LjE4LjEuNDkwATgFIhQKEkxpc3REZXZpY2VzUmVxdWVzdCJTChNMaXN0RGV2aWNlc1Jlc3BvbnNlEiYKB2RldmljZXMYASADKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZRIUCgxieXBhc3NfYWxpYXMYAiABKAki6QEKBkRldmljZRILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJpcBgDIAEoCRIOCgZvbmxpbmUYBCABKAgSDwoHYWRvcHRlZBgFIAEoCBIOCgZkaXJlY3QYBiABKAgSKQoFbGVhc2UYByABKAsyGi5kZGFzaC5uZXR3b3JrLkRldmljZUxlYXNlEi8KC3Jlc2VydmF0aW9uGAggASgLMhouZGRhc2gubmV0d29yay5SZXNlcnZhdGlvbhIrCgdhbGlhc2VzGAkgAygLMhouZGRhc2gubmV0d29yay5EZXZpY2VBbGlhcyKDAQoLRGV2aWNlTGVhc2USCgoCaXAYASABKAkSEAoIaG9zdG5hbWUYAiABKAkSEQoJaW50ZXJmYWNlGAMgASgJEg4KBnN0YXJ0cxgEIAEoCRIMCgRlbmRzGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIVCg1vbmxpbmVfc3RhdHVzGAcgASgJIlMKC1Jlc2VydmF0aW9uEhEKCWludGVyZmFjZRgBIAEoCRIKCgJpcBgCIAEoCRIQCghob3N0bmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCSIwCgtEZXZpY2VBbGlhcxIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJIhUKE0dldFZwblR1bm5lbFJlcXVlc3QihwEKFEdldFZwblR1bm5lbFJlc3BvbnNlEiEKBHRpZXIYASABKA4yEy5kZGFzaC5uZXR3b3JrLlRpZXISDQoFZ3JvdXAYAiABKAkSLgoIZ2F0ZXdheXMYAyADKAsyHC5kZGFzaC5uZXR3b3JrLlR1bm5lbEdhdGV3YXkSDQoFZXJyb3IYBCABKAkiqgEKDVR1bm5lbEdhdGV3YXkSDAoEbmFtZRgBIAEoCRIMCgR0aWVyGAIgASgFEgoKAnVwGAMgASgIEg4KBnN0YXR1cxgEIAEoCRIRCglzdWJzdGF0dXMYBSABKAkSFQoIZGVsYXlfbXMYBiABKAFIAIgBARIZCgxsb3NzX3BlcmNlbnQYByABKAFIAYgBAUILCglfZGVsYXlfbXNCDwoNX2xvc3NfcGVyY2VudCpRCgRUaWVyEhQKEFRJRVJfVU5TUEVDSUZJRUQQABISCg5USUVSX1dJUkVHVUFSRBABEhAKDFRJRVJfT1BFTlZQThACEg0KCVRJRVJfRE9XThADMs0BCg5OZXR3b3JrU2VydmljZRJfCgxHZXRWcG5UdW5uZWwSIi5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlcXVlc3QaIy5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlc3BvbnNlIgaKtRgCCAISWgoLTGlzdERldmljZXMSIS5kZGFzaC5uZXR3b3JrLkxpc3REZXZpY2VzUmVxdWVzdBoiLmRkYXNoLm5ldHdvcmsuTGlzdERldmljZXNSZXNwb25zZSIEirUYAEJDWkFnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL25ldHdvcmsvbmV0d29ya3BiO25ldHdvcmtwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options]);
 
 /**
- * network takes no config yet.
- *
  * @generated from message ddash.network.NetworkConfig
  */
 export type NetworkConfig = Message<"ddash.network.NetworkConfig"> & {
+  /**
+   * The firewall alias whose members leave through the WAN: the Direct
+   * Devices. network changes only this alias, and only its Devices.
+   *
+   * @generated from field: string bypass_alias = 1;
+   */
+  bypassAlias: string;
+
+  /**
+   * The addresses Adopt reserves from, outside the DHCP pool.
+   *
+   * @generated from field: string reserved_range = 2;
+   */
+  reservedRange: string;
 };
 
 /**
@@ -30,6 +43,238 @@ export type NetworkConfig = Message<"ddash.network.NetworkConfig"> & {
  */
 export const NetworkConfigSchema: GenMessage<NetworkConfig> = /*@__PURE__*/
   messageDesc(file_network_network, 0);
+
+/**
+ * @generated from message ddash.network.ListDevicesRequest
+ */
+export type ListDevicesRequest = Message<"ddash.network.ListDevicesRequest"> & {
+};
+
+/**
+ * Describes the message ddash.network.ListDevicesRequest.
+ * Use `create(ListDevicesRequestSchema)` to create a new message.
+ */
+export const ListDevicesRequestSchema: GenMessage<ListDevicesRequest> = /*@__PURE__*/
+  messageDesc(file_network_network, 1);
+
+/**
+ * @generated from message ddash.network.ListDevicesResponse
+ */
+export type ListDevicesResponse = Message<"ddash.network.ListDevicesResponse"> & {
+  /**
+   * By address, lowest first.
+   *
+   * @generated from field: repeated ddash.network.Device devices = 1;
+   */
+  devices: Device[];
+
+  /**
+   * The configured bypass alias's name.
+   *
+   * @generated from field: string bypass_alias = 2;
+   */
+  bypassAlias: string;
+};
+
+/**
+ * Describes the message ddash.network.ListDevicesResponse.
+ * Use `create(ListDevicesResponseSchema)` to create a new message.
+ */
+export const ListDevicesResponseSchema: GenMessage<ListDevicesResponse> = /*@__PURE__*/
+  messageDesc(file_network_network, 2);
+
+/**
+ * A piece of hardware the firewall hands addresses to, keyed by MAC.
+ *
+ * @generated from message ddash.network.Device
+ */
+export type Device = Message<"ddash.network.Device"> & {
+  /**
+   * The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+   *
+   * @generated from field: string mac = 1;
+   */
+  mac: string;
+
+  /**
+   * The static mapping's description, else its hostname, else the
+   * hostname the Device sent; empty when there is none.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * The reserved address of an Adopted Device, else the leased one.
+   *
+   * @generated from field: string ip = 3;
+   */
+  ip: string;
+
+  /**
+   * Whether the firewall sees it on the network now (ARP).
+   *
+   * @generated from field: bool online = 4;
+   */
+  online: boolean;
+
+  /**
+   * Adopted: it has a static mapping. A New Device holds only a dynamic
+   * lease.
+   *
+   * @generated from field: bool adopted = 5;
+   */
+  adopted: boolean;
+
+  /**
+   * Direct: its address is in the bypass alias, so it skips the VPN
+   * Tunnel. Tunnelled otherwise.
+   *
+   * @generated from field: bool direct = 6;
+   */
+  direct: boolean;
+
+  /**
+   * The lease it holds; a dynamic one over the static entry. Unset when
+   * there is none.
+   *
+   * @generated from field: ddash.network.DeviceLease lease = 7;
+   */
+  lease?: DeviceLease | undefined;
+
+  /**
+   * Its static mapping; unset for a New Device.
+   *
+   * @generated from field: ddash.network.Reservation reservation = 8;
+   */
+  reservation?: Reservation | undefined;
+
+  /**
+   * The other aliases containing its address, in the firewall's order;
+   * network leaves them alone.
+   *
+   * @generated from field: repeated ddash.network.DeviceAlias aliases = 9;
+   */
+  aliases: DeviceAlias[];
+};
+
+/**
+ * Describes the message ddash.network.Device.
+ * Use `create(DeviceSchema)` to create a new message.
+ */
+export const DeviceSchema: GenMessage<Device> = /*@__PURE__*/
+  messageDesc(file_network_network, 3);
+
+/**
+ * @generated from message ddash.network.DeviceLease
+ */
+export type DeviceLease = Message<"ddash.network.DeviceLease"> & {
+  /**
+   * @generated from field: string ip = 1;
+   */
+  ip: string;
+
+  /**
+   * @generated from field: string hostname = 2;
+   */
+  hostname: string;
+
+  /**
+   * e.g. "lan"; empty when Kea doesn't say.
+   *
+   * @generated from field: string interface = 3;
+   */
+  interface: string;
+
+  /**
+   * As pfSense writes them, the firewall's time; empty for a static entry.
+   *
+   * @generated from field: string starts = 4;
+   */
+  starts: string;
+
+  /**
+   * @generated from field: string ends = 5;
+   */
+  ends: string;
+
+  /**
+   * "active", "expired" or "static".
+   *
+   * @generated from field: string status = 6;
+   */
+  status: string;
+
+  /**
+   * e.g. "active/online" or "idle/offline".
+   *
+   * @generated from field: string online_status = 7;
+   */
+  onlineStatus: string;
+};
+
+/**
+ * Describes the message ddash.network.DeviceLease.
+ * Use `create(DeviceLeaseSchema)` to create a new message.
+ */
+export const DeviceLeaseSchema: GenMessage<DeviceLease> = /*@__PURE__*/
+  messageDesc(file_network_network, 4);
+
+/**
+ * A Device's static mapping.
+ *
+ * @generated from message ddash.network.Reservation
+ */
+export type Reservation = Message<"ddash.network.Reservation"> & {
+  /**
+   * @generated from field: string interface = 1;
+   */
+  interface: string;
+
+  /**
+   * @generated from field: string ip = 2;
+   */
+  ip: string;
+
+  /**
+   * @generated from field: string hostname = 3;
+   */
+  hostname: string;
+
+  /**
+   * @generated from field: string description = 4;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ddash.network.Reservation.
+ * Use `create(ReservationSchema)` to create a new message.
+ */
+export const ReservationSchema: GenMessage<Reservation> = /*@__PURE__*/
+  messageDesc(file_network_network, 5);
+
+/**
+ * @generated from message ddash.network.DeviceAlias
+ */
+export type DeviceAlias = Message<"ddash.network.DeviceAlias"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ddash.network.DeviceAlias.
+ * Use `create(DeviceAliasSchema)` to create a new message.
+ */
+export const DeviceAliasSchema: GenMessage<DeviceAlias> = /*@__PURE__*/
+  messageDesc(file_network_network, 6);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelRequest
@@ -42,7 +287,7 @@ export type GetVpnTunnelRequest = Message<"ddash.network.GetVpnTunnelRequest"> &
  * Use `create(GetVpnTunnelRequestSchema)` to create a new message.
  */
 export const GetVpnTunnelRequestSchema: GenMessage<GetVpnTunnelRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 1);
+  messageDesc(file_network_network, 7);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelResponse
@@ -83,7 +328,7 @@ export type GetVpnTunnelResponse = Message<"ddash.network.GetVpnTunnelResponse">
  * Use `create(GetVpnTunnelResponseSchema)` to create a new message.
  */
 export const GetVpnTunnelResponseSchema: GenMessage<GetVpnTunnelResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 2);
+  messageDesc(file_network_network, 8);
 
 /**
  * @generated from message ddash.network.TunnelGateway
@@ -142,7 +387,7 @@ export type TunnelGateway = Message<"ddash.network.TunnelGateway"> & {
  * Use `create(TunnelGatewaySchema)` to create a new message.
  */
 export const TunnelGatewaySchema: GenMessage<TunnelGateway> = /*@__PURE__*/
-  messageDesc(file_network_network, 3);
+  messageDesc(file_network_network, 9);
 
 /**
  * The VPN Tunnel's tier. The failover group's first tier is the WireGuard
@@ -200,6 +445,19 @@ export const NetworkService: GenService<{
     methodKind: "unary";
     input: typeof GetVpnTunnelRequestSchema;
     output: typeof GetVpnTunnelResponseSchema;
+  },
+  /**
+   * ListDevices returns every Device: the firewall's DHCP leases and static
+   * mappings joined by MAC, with each one's membership of the bypass alias
+   * and of the other aliases. Servers with fixed addresses aren't Devices,
+   * and alias members that aren't Devices never show.
+   *
+   * @generated from rpc ddash.network.NetworkService.ListDevices
+   */
+  listDevices: {
+    methodKind: "unary";
+    input: typeof ListDevicesRequestSchema;
+    output: typeof ListDevicesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_network_network, 0);

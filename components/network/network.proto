@@ -4,12 +4,29 @@ syntax = "proto3";
 // firewall's failover gateway group and derives the VPN Tunnel's tier.
 package ddash.network;
 
+import "ddash/config/config.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/network/networkpb;networkpb";
 
-// network takes no config yet.
-message NetworkConfig {}
+message NetworkConfig {
+  // The firewall alias whose members leave through the WAN: the Direct
+  // Devices. network changes only this alias, and only its Devices.
+  string bypass_alias = 1 [(ddash.config.field) = {
+    label: "Bypass alias"
+    help: "The firewall alias whose members skip the VPN Tunnel (Direct Devices)."
+    required: true
+    choices_from: "pfsense-api.ListAliases"
+  }];
+  // The addresses Adopt reserves from, outside the DHCP pool.
+  string reserved_range = 2 [(ddash.config.field) = {
+    label: "Reserved range"
+    help: "Where Adopt picks a New Device's reserved address. It must lie outside the DHCP pool."
+    required: true
+    format: FORMAT_IP_RANGE
+    placeholder: "198.18.1.20-198.18.1.49"
+  }];
+}
 
 service NetworkService {
   // GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
@@ -17,6 +34,76 @@ service NetworkService {
   rpc GetVpnTunnel(GetVpnTunnelRequest) returns (GetVpnTunnelResponse) {
     option (ddash.getter) = {refresh: FAST};
   }
+  // ListDevices returns every Device: the firewall's DHCP leases and static
+  // mappings joined by MAC, with each one's membership of the bypass alias
+  // and of the other aliases. Servers with fixed addresses aren't Devices,
+  // and alias members that aren't Devices never show.
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+}
+
+message ListDevicesRequest {}
+
+message ListDevicesResponse {
+  // By address, lowest first.
+  repeated Device devices = 1;
+  // The configured bypass alias's name.
+  string bypass_alias = 2;
+}
+
+// A piece of hardware the firewall hands addresses to, keyed by MAC.
+message Device {
+  // The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+  string mac = 1;
+  // The static mapping's description, else its hostname, else the
+  // hostname the Device sent; empty when there is none.
+  string name = 2;
+  // The reserved address of an Adopted Device, else the leased one.
+  string ip = 3;
+  // Whether the firewall sees it on the network now (ARP).
+  bool online = 4;
+  // Adopted: it has a static mapping. A New Device holds only a dynamic
+  // lease.
+  bool adopted = 5;
+  // Direct: its address is in the bypass alias, so it skips the VPN
+  // Tunnel. Tunnelled otherwise.
+  bool direct = 6;
+  // The lease it holds; a dynamic one over the static entry. Unset when
+  // there is none.
+  DeviceLease lease = 7;
+  // Its static mapping; unset for a New Device.
+  Reservation reservation = 8;
+  // The other aliases containing its address, in the firewall's order;
+  // network leaves them alone.
+  repeated DeviceAlias aliases = 9;
+}
+
+message DeviceLease {
+  string ip = 1;
+  string hostname = 2;
+  // e.g. "lan"; empty when Kea doesn't say.
+  string interface = 3;
+  // As pfSense writes them, the firewall's time; empty for a static entry.
+  string starts = 4;
+  string ends = 5;
+  // "active", "expired" or "static".
+  string status = 6;
+  // e.g. "active/online" or "idle/offline".
+  string online_status = 7;
+}
+
+// A Device's static mapping.
+message Reservation {
+  string interface = 1;
+  string ip = 2;
+  string hostname = 3;
+  string description = 4;
+}
+
+message DeviceAlias {
+  string name = 1;
+  string description = 2;
 }
 
 message GetVpnTunnelRequest {}

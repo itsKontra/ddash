@@ -15,6 +15,7 @@ import (
 
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	configpb "github.com/itsKontra/ddash/proto/ddash/config"
 	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/fixture"
 	"github.com/itsKontra/ddash/sdk/sdktest"
@@ -141,6 +142,85 @@ func TestReadsAreSharedForTheFastTier(t *testing.T) {
 
 	if got := srv.hits.Load(); got != 1 {
 		t.Errorf("%d requests to pfSense, want 1 shared by three reads and the health check", got)
+	}
+}
+
+func TestListsKeasLeasesWithStaticEntriesAndLowerCaseMACs(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListLeases(t.Context(), &pfsenseapipb.ListLeasesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := &pfsenseapipb.ListLeasesResponse{Leases: []*pfsenseapipb.Lease{
+		{Ip: "198.18.1.20", Mac: "02:5e:00:00:10:01", Hostname: "living-room-tv", Interface: "lan", ActiveStatus: "static", OnlineStatus: "active/online", Description: "Living room TV"},
+		{Ip: "198.18.1.21", Mac: "02:5e:00:00:10:02", Hostname: "work-laptop", Interface: "lan", ActiveStatus: "static", OnlineStatus: "active/online", Description: "Work laptop"},
+		{Ip: "198.18.1.22", Mac: "02:5e:00:00:10:03", Hostname: "printer", Interface: "lan", ActiveStatus: "static", OnlineStatus: "idle/offline"},
+		{Ip: "198.18.1.150", Mac: "02:5e:00:00:20:01", Hostname: "galaxy-s24", Starts: "2026/10/20 08:02:11", Ends: "2026/10/20 10:02:11", ActiveStatus: "active", OnlineStatus: "active/online"},
+		{Ip: "198.18.1.151", Mac: "02:5e:00:00:20:02", Starts: "2026/10/19 21:40:55", Ends: "2026/10/19 23:40:55", ActiveStatus: "expired", OnlineStatus: "idle/offline"},
+	}}
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("ListLeases (-want +got):\n%s", diff)
+	}
+}
+
+func TestListsDHCPServersWithTheirPoolsAndStaticMappings(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListDhcpServers(t.Context(), &pfsenseapipb.ListDhcpServersRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := &pfsenseapipb.ListDhcpServersResponse{Servers: []*pfsenseapipb.DhcpServer{
+		{
+			Interface: "lan",
+			Enabled:   true,
+			Pools: []*pfsenseapipb.AddressRange{
+				{From: "198.18.1.100", To: "198.18.1.199"},
+				{From: "198.18.1.230", To: "198.18.1.239"},
+			},
+			StaticMappings: []*pfsenseapipb.StaticMapping{
+				{Interface: "lan", Mac: "02:5e:00:00:10:01", Ip: "198.18.1.20", Hostname: "living-room-tv", Description: "Living room TV"},
+				{Interface: "lan", Mac: "02:5e:00:00:10:02", Ip: "198.18.1.21", Hostname: "work-laptop", Description: "Work laptop"},
+				{Interface: "lan", Mac: "02:5e:00:00:10:03", Ip: "198.18.1.22", Hostname: "printer"},
+			},
+		},
+		{Interface: "opt1"},
+	}}
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("ListDhcpServers (-want +got):\n%s", diff)
+	}
+}
+
+func TestListsAliasesAndOffersTheAddressAliasesAsChoices(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListAliases(t.Context(), &pfsenseapipb.ListAliasesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := &pfsenseapipb.ListAliasesResponse{
+		Aliases: []*pfsenseapipb.Alias{
+			{Name: "VPN_BYPASS", Type: "host", Description: "Leaves through the WAN, not the VPN", Addresses: []string{"198.18.1.21", "198.18.1.150", "198.18.2.10"}, Details: []string{"Work laptop", "Phone", "Media server"}},
+			{Name: "KILL_SWITCH", Type: "host", Description: "Never leaves through the WAN", Addresses: []string{"198.18.1.20", "198.18.1.22"}, Details: []string{"TV", "Printer"}},
+			{Name: "SERVERS", Type: "network", Addresses: []string{"198.18.2.0/28"}, Details: []string{"Server rack"}},
+			{Name: "WEB_PORTS", Type: "port", Description: "HTTP and HTTPS", Addresses: []string{"80", "443"}, Details: []string{"", ""}},
+		},
+		// A port alias can't hold a Device.
+		Choices: &configpb.Choices{Choices: []*configpb.Choice{
+			{Value: "VPN_BYPASS", Label: "VPN_BYPASS — Leaves through the WAN, not the VPN"},
+			{Value: "KILL_SWITCH", Label: "KILL_SWITCH — Never leaves through the WAN"},
+			{Value: "SERVERS", Label: "SERVERS"},
+		}},
+	}
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("ListAliases (-want +got):\n%s", diff)
 	}
 }
 

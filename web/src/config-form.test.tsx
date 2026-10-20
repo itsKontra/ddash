@@ -315,6 +315,53 @@ it("shows no setup hint for a Component without one", async () => {
   expect(within(form).queryByRole("region", { name: "Setup" })).toBeNull();
 });
 
+// A form whose bypass_alias takes its choices from a getter (choices_from).
+const aliasForm = (field: Record<string, unknown>, values: Record<string, unknown> = {}) =>
+  ({ fields: [{ name: "bypass_alias", kind: "KIND_STRING", label: "Bypass alias", required: true, ...field }], values }) as unknown as ReturnType<typeof dockerForm>;
+
+it("offers a field's choices to pick from, and saves the one picked", async () => {
+  forms["docker-api"] = aliasForm({
+    choices: [
+      { value: "VPN_BYPASS", label: "VPN_BYPASS — Leaves through the WAN" },
+      { value: "KILL_SWITCH", label: "KILL_SWITCH" },
+    ],
+  });
+  await boot();
+  const form = await configure("docker-api");
+
+  const pick = within(form).getByLabelText("Bypass alias") as HTMLSelectElement;
+  expect(pick.tagName).toBe("SELECT");
+  expect([...pick.options].map((o) => o.textContent)).toEqual(["—", "VPN_BYPASS — Leaves through the WAN", "KILL_SWITCH"]);
+  fireEvent.change(pick, { target: { value: "VPN_BYPASS" } });
+  await save(form);
+
+  expect(saves).toEqual([{ owner: "docker-api", values: { bypass_alias: "VPN_BYPASS" } }]);
+});
+
+it("keeps a stored value that is no longer among the choices", async () => {
+  forms["docker-api"] = aliasForm({ choices: [{ value: "KILL_SWITCH", label: "KILL_SWITCH" }] }, { bypass_alias: "GONE" });
+  await boot();
+  const form = await configure("docker-api");
+
+  const pick = within(form).getByLabelText("Bypass alias") as HTMLSelectElement;
+  expect(pick.value).toBe("GONE");
+  expect([...pick.options].map((o) => o.textContent)).toContain("GONE (not on offer)");
+});
+
+it("falls back to free text with the note when the choices can't be read", async () => {
+  forms["docker-api"] = aliasForm({ choicesNote: "pfsense-api can't offer choices (not configured); type the value." });
+  await boot();
+  const form = await configure("docker-api");
+
+  const typed = within(form).getByLabelText("Bypass alias") as HTMLInputElement;
+  expect(typed.tagName).toBe("INPUT");
+  expect(within(form).getByText("pfsense-api can't offer choices (not configured); type the value.")).toBeTruthy();
+  fireEvent.change(typed, { target: { value: "VPN_BYPASS" } });
+  await save(form);
+
+  expect(saves).toEqual([{ owner: "docker-api", values: { bypass_alias: "VPN_BYPASS" } }]);
+});
+
 it("runs a Component's test Action from its button and shows the result inline", async () => {
   forms["ntfy-api"] = { ...ntfyForm(), testAction: { method: "SendTest", label: "Send test" } } as ReturnType<typeof ntfyForm>;
   await boot();

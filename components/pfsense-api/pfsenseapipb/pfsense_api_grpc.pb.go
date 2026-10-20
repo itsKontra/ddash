@@ -24,6 +24,9 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	PfsenseApiService_ListGateways_FullMethodName      = "/ddash.pfsenseapi.PfsenseApiService/ListGateways"
 	PfsenseApiService_ListGatewayGroups_FullMethodName = "/ddash.pfsenseapi.PfsenseApiService/ListGatewayGroups"
+	PfsenseApiService_ListLeases_FullMethodName        = "/ddash.pfsenseapi.PfsenseApiService/ListLeases"
+	PfsenseApiService_ListDhcpServers_FullMethodName   = "/ddash.pfsenseapi.PfsenseApiService/ListDhcpServers"
+	PfsenseApiService_ListAliases_FullMethodName       = "/ddash.pfsenseapi.PfsenseApiService/ListAliases"
 )
 
 // PfsenseApiServiceClient is the client API for PfsenseApiService service.
@@ -36,6 +39,17 @@ type PfsenseApiServiceClient interface {
 	// ListGatewayGroups returns every gateway group with its members by tier
 	// (routing/gateway/groups), in pfSense's order.
 	ListGatewayGroups(ctx context.Context, in *ListGatewayGroupsRequest, opts ...grpc.CallOption) (*ListGatewayGroupsResponse, error)
+	// ListLeases returns the DHCP leases Kea holds (status/dhcp_server/leases),
+	// in pfSense's order. pfSense lists each static mapping among them as a
+	// "static" entry.
+	ListLeases(ctx context.Context, in *ListLeasesRequest, opts ...grpc.CallOption) (*ListLeasesResponse, error)
+	// ListDhcpServers returns each interface's DHCP server with its address
+	// pools and static mappings (services/dhcp_servers), in pfSense's order.
+	ListDhcpServers(ctx context.Context, in *ListDhcpServersRequest, opts ...grpc.CallOption) (*ListDhcpServersResponse, error)
+	// ListAliases returns every firewall alias with its members
+	// (firewall/aliases), in pfSense's order. Its choices are the address
+	// aliases, for a config field naming one (choices_from).
+	ListAliases(ctx context.Context, in *ListAliasesRequest, opts ...grpc.CallOption) (*ListAliasesResponse, error)
 }
 
 type pfsenseApiServiceClient struct {
@@ -66,6 +80,36 @@ func (c *pfsenseApiServiceClient) ListGatewayGroups(ctx context.Context, in *Lis
 	return out, nil
 }
 
+func (c *pfsenseApiServiceClient) ListLeases(ctx context.Context, in *ListLeasesRequest, opts ...grpc.CallOption) (*ListLeasesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListLeasesResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListLeases_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) ListDhcpServers(ctx context.Context, in *ListDhcpServersRequest, opts ...grpc.CallOption) (*ListDhcpServersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDhcpServersResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListDhcpServers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) ListAliases(ctx context.Context, in *ListAliasesRequest, opts ...grpc.CallOption) (*ListAliasesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAliasesResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListAliases_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PfsenseApiServiceServer is the server API for PfsenseApiService service.
 // All implementations must embed UnimplementedPfsenseApiServiceServer
 // for forward compatibility.
@@ -76,6 +120,17 @@ type PfsenseApiServiceServer interface {
 	// ListGatewayGroups returns every gateway group with its members by tier
 	// (routing/gateway/groups), in pfSense's order.
 	ListGatewayGroups(context.Context, *ListGatewayGroupsRequest) (*ListGatewayGroupsResponse, error)
+	// ListLeases returns the DHCP leases Kea holds (status/dhcp_server/leases),
+	// in pfSense's order. pfSense lists each static mapping among them as a
+	// "static" entry.
+	ListLeases(context.Context, *ListLeasesRequest) (*ListLeasesResponse, error)
+	// ListDhcpServers returns each interface's DHCP server with its address
+	// pools and static mappings (services/dhcp_servers), in pfSense's order.
+	ListDhcpServers(context.Context, *ListDhcpServersRequest) (*ListDhcpServersResponse, error)
+	// ListAliases returns every firewall alias with its members
+	// (firewall/aliases), in pfSense's order. Its choices are the address
+	// aliases, for a config field naming one (choices_from).
+	ListAliases(context.Context, *ListAliasesRequest) (*ListAliasesResponse, error)
 	mustEmbedUnimplementedPfsenseApiServiceServer()
 }
 
@@ -91,6 +146,15 @@ func (UnimplementedPfsenseApiServiceServer) ListGateways(context.Context, *ListG
 }
 func (UnimplementedPfsenseApiServiceServer) ListGatewayGroups(context.Context, *ListGatewayGroupsRequest) (*ListGatewayGroupsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListGatewayGroups not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListLeases(context.Context, *ListLeasesRequest) (*ListLeasesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListLeases not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListDhcpServers(context.Context, *ListDhcpServersRequest) (*ListDhcpServersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDhcpServers not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListAliases(context.Context, *ListAliasesRequest) (*ListAliasesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAliases not implemented")
 }
 func (UnimplementedPfsenseApiServiceServer) mustEmbedUnimplementedPfsenseApiServiceServer() {}
 func (UnimplementedPfsenseApiServiceServer) testEmbeddedByValue()                           {}
@@ -149,6 +213,60 @@ func _PfsenseApiService_ListGatewayGroups_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PfsenseApiService_ListLeases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListLeasesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListLeases(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListLeases_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListLeases(ctx, req.(*ListLeasesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_ListDhcpServers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDhcpServersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListDhcpServers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListDhcpServers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListDhcpServers(ctx, req.(*ListDhcpServersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_ListAliases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAliasesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListAliases(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListAliases_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListAliases(ctx, req.(*ListAliasesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PfsenseApiService_ServiceDesc is the grpc.ServiceDesc for PfsenseApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -163,6 +281,18 @@ var PfsenseApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGatewayGroups",
 			Handler:    _PfsenseApiService_ListGatewayGroups_Handler,
+		},
+		{
+			MethodName: "ListLeases",
+			Handler:    _PfsenseApiService_ListLeases_Handler,
+		},
+		{
+			MethodName: "ListDhcpServers",
+			Handler:    _PfsenseApiService_ListDhcpServers_Handler,
+		},
+		{
+			MethodName: "ListAliases",
+			Handler:    _PfsenseApiService_ListAliases_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

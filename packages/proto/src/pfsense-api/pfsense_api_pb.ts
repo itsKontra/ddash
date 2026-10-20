@@ -7,6 +7,7 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Choices } from "../ddash/config/config_pb";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
@@ -15,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file pfsense-api/pfsense_api.proto.
  */
 export const file_pfsense_api_pfsense_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1wZnNlbnNlLWFwaS9wZnNlbnNlX2FwaS5wcm90bxIQZGRhc2gucGZzZW5zZWFwaSLoAQoQUGZzZW5zZUFwaUNvbmZpZxJtCgN1cmwYASABKAlCYJq1GFwaA1VSTCI9VGhlIGZpcmV3YWxsJ3MgTEFOIGFkZHJlc3M6IHRoZSBSRVNUIEFQSSBhbnN3ZXJzIG9uIExBTiBvbmx5LioSaHR0cHM6Ly8xOTguMTguMS4xMAE4ARJlCgdhcGlfa2V5GAIgASgJQlSatRhQEAEaB0FQSSBrZXkiQUdlbmVyYXRlZCBpbiBTeXN0ZW0gPiBSRVNUIEFQSSA+IEtleXMgZm9yIGEgZGVkaWNhdGVkIGRkYXNoIHVzZXIuMAEiFQoTTGlzdEdhdGV3YXlzUmVxdWVzdCJDChRMaXN0R2F0ZXdheXNSZXNwb25zZRIrCghnYXRld2F5cxgBIAMoCzIZLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheSLXAQoHR2F0ZXdheRIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIRCglzdWJzdGF0dXMYAyABKAkSFQoIZGVsYXlfbXMYBCABKAFIAIgBARIWCglzdGRkZXZfbXMYBSABKAFIAYgBARIZCgxsb3NzX3BlcmNlbnQYBiABKAFIAogBARISCgptb25pdG9yX2lwGAcgASgJEhEKCXNvdXJjZV9pcBgIIAEoCUILCglfZGVsYXlfbXNCDAoKX3N0ZGRldl9tc0IPCg1fbG9zc19wZXJjZW50IhoKGExpc3RHYXRld2F5R3JvdXBzUmVxdWVzdCJLChlMaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlEi4KBmdyb3VwcxgBIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwInkKDEdhdGV3YXlHcm91cBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEg8KB3RyaWdnZXIYAyABKAkSNQoHbWVtYmVycxgEIAMoCzIkLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwTWVtYmVyIjMKEkdhdGV3YXlHcm91cE1lbWJlchIPCgdnYXRld2F5GAEgASgJEgwKBHRpZXIYAiABKAUy8AEKEVBmc2Vuc2VBcGlTZXJ2aWNlEmUKDExpc3RHYXRld2F5cxIlLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVxdWVzdBomLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlzUmVzcG9uc2UiBoq1GAIIAhJ0ChFMaXN0R2F0ZXdheUdyb3VwcxIqLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEdhdGV3YXlHcm91cHNSZXF1ZXN0GisuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlIgaKtRgCCAJCTVpLZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9wZnNlbnNlLWFwaS9wZnNlbnNlYXBpcGI7cGZzZW5zZWFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("Ch1wZnNlbnNlLWFwaS9wZnNlbnNlX2FwaS5wcm90bxIQZGRhc2gucGZzZW5zZWFwaSLoAQoQUGZzZW5zZUFwaUNvbmZpZxJtCgN1cmwYASABKAlCYJq1GFwaA1VSTCI9VGhlIGZpcmV3YWxsJ3MgTEFOIGFkZHJlc3M6IHRoZSBSRVNUIEFQSSBhbnN3ZXJzIG9uIExBTiBvbmx5LioSaHR0cHM6Ly8xOTguMTguMS4xMAE4ARJlCgdhcGlfa2V5GAIgASgJQlSatRhQEAEaB0FQSSBrZXkiQUdlbmVyYXRlZCBpbiBTeXN0ZW0gPiBSRVNUIEFQSSA+IEtleXMgZm9yIGEgZGVkaWNhdGVkIGRkYXNoIHVzZXIuMAEiFQoTTGlzdEdhdGV3YXlzUmVxdWVzdCJDChRMaXN0R2F0ZXdheXNSZXNwb25zZRIrCghnYXRld2F5cxgBIAMoCzIZLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheSLXAQoHR2F0ZXdheRIMCgRuYW1lGAEgASgJEg4KBnN0YXR1cxgCIAEoCRIRCglzdWJzdGF0dXMYAyABKAkSFQoIZGVsYXlfbXMYBCABKAFIAIgBARIWCglzdGRkZXZfbXMYBSABKAFIAYgBARIZCgxsb3NzX3BlcmNlbnQYBiABKAFIAogBARISCgptb25pdG9yX2lwGAcgASgJEhEKCXNvdXJjZV9pcBgIIAEoCUILCglfZGVsYXlfbXNCDAoKX3N0ZGRldl9tc0IPCg1fbG9zc19wZXJjZW50IhoKGExpc3RHYXRld2F5R3JvdXBzUmVxdWVzdCJLChlMaXN0R2F0ZXdheUdyb3Vwc1Jlc3BvbnNlEi4KBmdyb3VwcxgBIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwInkKDEdhdGV3YXlHcm91cBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEg8KB3RyaWdnZXIYAyABKAkSNQoHbWVtYmVycxgEIAMoCzIkLmRkYXNoLnBmc2Vuc2VhcGkuR2F0ZXdheUdyb3VwTWVtYmVyIjMKEkdhdGV3YXlHcm91cE1lbWJlchIPCgdnYXRld2F5GAEgASgJEgwKBHRpZXIYAiABKAUiEwoRTGlzdExlYXNlc1JlcXVlc3QiPQoSTGlzdExlYXNlc1Jlc3BvbnNlEicKBmxlYXNlcxgBIAMoCzIXLmRkYXNoLnBmc2Vuc2VhcGkuTGVhc2UipgEKBUxlYXNlEgoKAmlwGAEgASgJEgsKA21hYxgCIAEoCRIQCghob3N0bmFtZRgDIAEoCRIRCglpbnRlcmZhY2UYBCABKAkSDgoGc3RhcnRzGAUgASgJEgwKBGVuZHMYBiABKAkSFQoNYWN0aXZlX3N0YXR1cxgHIAEoCRIVCg1vbmxpbmVfc3RhdHVzGAggASgJEhMKC2Rlc2NyaXB0aW9uGAkgASgJIhgKFkxpc3REaGNwU2VydmVyc1JlcXVlc3QiSAoXTGlzdERoY3BTZXJ2ZXJzUmVzcG9uc2USLQoHc2VydmVycxgBIAMoCzIcLmRkYXNoLnBmc2Vuc2VhcGkuRGhjcFNlcnZlciKZAQoKRGhjcFNlcnZlchIRCglpbnRlcmZhY2UYASABKAkSDwoHZW5hYmxlZBgCIAEoCBItCgVwb29scxgDIAMoCzIeLmRkYXNoLnBmc2Vuc2VhcGkuQWRkcmVzc1JhbmdlEjgKD3N0YXRpY19tYXBwaW5ncxgEIAMoCzIfLmRkYXNoLnBmc2Vuc2VhcGkuU3RhdGljTWFwcGluZyIoCgxBZGRyZXNzUmFuZ2USDAoEZnJvbRgBIAEoCRIKCgJ0bxgCIAEoCSJiCg1TdGF0aWNNYXBwaW5nEhEKCWludGVyZmFjZRgBIAEoCRILCgNtYWMYAiABKAkSCgoCaXAYAyABKAkSEAoIaG9zdG5hbWUYBCABKAkSEwoLZGVzY3JpcHRpb24YBSABKAkiFAoSTGlzdEFsaWFzZXNSZXF1ZXN0ImcKE0xpc3RBbGlhc2VzUmVzcG9uc2USKAoHYWxpYXNlcxgBIAMoCzIXLmRkYXNoLnBmc2Vuc2VhcGkuQWxpYXMSJgoHY2hvaWNlcxgCIAEoCzIVLmRkYXNoLmNvbmZpZy5DaG9pY2VzIlwKBUFsaWFzEgwKBG5hbWUYASABKAkSDAoEdHlwZRgCIAEoCRITCgtkZXNjcmlwdGlvbhgDIAEoCRIRCglhZGRyZXNzZXMYBCADKAkSDwoHZGV0YWlscxgFIAMoCTKfBAoRUGZzZW5zZUFwaVNlcnZpY2USZQoMTGlzdEdhdGV3YXlzEiUuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheXNSZXF1ZXN0GiYuZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheXNSZXNwb25zZSIGirUYAggCEnQKEUxpc3RHYXRld2F5R3JvdXBzEiouZGRhc2gucGZzZW5zZWFwaS5MaXN0R2F0ZXdheUdyb3Vwc1JlcXVlc3QaKy5kZGFzaC5wZnNlbnNlYXBpLkxpc3RHYXRld2F5R3JvdXBzUmVzcG9uc2UiBoq1GAIIAhJdCgpMaXN0TGVhc2VzEiMuZGRhc2gucGZzZW5zZWFwaS5MaXN0TGVhc2VzUmVxdWVzdBokLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdExlYXNlc1Jlc3BvbnNlIgSKtRgAEmwKD0xpc3REaGNwU2VydmVycxIoLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdERoY3BTZXJ2ZXJzUmVxdWVzdBopLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdERoY3BTZXJ2ZXJzUmVzcG9uc2UiBIq1GAASYAoLTGlzdEFsaWFzZXMSJC5kZGFzaC5wZnNlbnNlYXBpLkxpc3RBbGlhc2VzUmVxdWVzdBolLmRkYXNoLnBmc2Vuc2VhcGkuTGlzdEFsaWFzZXNSZXNwb25zZSIEirUYAEJNWktnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3Bmc2Vuc2UtYXBpL3Bmc2Vuc2VhcGlwYjtwZnNlbnNlYXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options]);
 
 /**
  * @generated from message ddash.pfsenseapi.PfsenseApiConfig
@@ -237,6 +238,330 @@ export const GatewayGroupMemberSchema: GenMessage<GatewayGroupMember> = /*@__PUR
   messageDesc(file_pfsense_api_pfsense_api, 7);
 
 /**
+ * @generated from message ddash.pfsenseapi.ListLeasesRequest
+ */
+export type ListLeasesRequest = Message<"ddash.pfsenseapi.ListLeasesRequest"> & {
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListLeasesRequest.
+ * Use `create(ListLeasesRequestSchema)` to create a new message.
+ */
+export const ListLeasesRequestSchema: GenMessage<ListLeasesRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 8);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListLeasesResponse
+ */
+export type ListLeasesResponse = Message<"ddash.pfsenseapi.ListLeasesResponse"> & {
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.Lease leases = 1;
+   */
+  leases: Lease[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListLeasesResponse.
+ * Use `create(ListLeasesResponseSchema)` to create a new message.
+ */
+export const ListLeasesResponseSchema: GenMessage<ListLeasesResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 9);
+
+/**
+ * One DHCP lease as pfSense reports it.
+ *
+ * @generated from message ddash.pfsenseapi.Lease
+ */
+export type Lease = Message<"ddash.pfsenseapi.Lease"> & {
+  /**
+   * @generated from field: string ip = 1;
+   */
+  ip: string;
+
+  /**
+   * The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+   *
+   * @generated from field: string mac = 2;
+   */
+  mac: string;
+
+  /**
+   * The hostname the client sent; empty when it sent none.
+   *
+   * @generated from field: string hostname = 3;
+   */
+  hostname: string;
+
+  /**
+   * The interface it was handed out on, e.g. "lan"; empty when Kea
+   * doesn't say (its dynamic leases).
+   *
+   * @generated from field: string interface = 4;
+   */
+  interface: string;
+
+  /**
+   * When the lease started and ends, as pfSense writes them
+   * ("2026/10/20 09:14:03", the firewall's time); empty for a static entry.
+   *
+   * @generated from field: string starts = 5;
+   */
+  starts: string;
+
+  /**
+   * @generated from field: string ends = 6;
+   */
+  ends: string;
+
+  /**
+   * "active", "expired", or "static" for a static mapping.
+   *
+   * @generated from field: string active_status = 7;
+   */
+  activeStatus: string;
+
+  /**
+   * Whether the address answers ARP: "active/online", "idle/offline", ...
+   *
+   * @generated from field: string online_status = 8;
+   */
+  onlineStatus: string;
+
+  /**
+   * @generated from field: string description = 9;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.Lease.
+ * Use `create(LeaseSchema)` to create a new message.
+ */
+export const LeaseSchema: GenMessage<Lease> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 10);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListDhcpServersRequest
+ */
+export type ListDhcpServersRequest = Message<"ddash.pfsenseapi.ListDhcpServersRequest"> & {
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListDhcpServersRequest.
+ * Use `create(ListDhcpServersRequestSchema)` to create a new message.
+ */
+export const ListDhcpServersRequestSchema: GenMessage<ListDhcpServersRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 11);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListDhcpServersResponse
+ */
+export type ListDhcpServersResponse = Message<"ddash.pfsenseapi.ListDhcpServersResponse"> & {
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.DhcpServer servers = 1;
+   */
+  servers: DhcpServer[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListDhcpServersResponse.
+ * Use `create(ListDhcpServersResponseSchema)` to create a new message.
+ */
+export const ListDhcpServersResponseSchema: GenMessage<ListDhcpServersResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 12);
+
+/**
+ * One interface's DHCP server.
+ *
+ * @generated from message ddash.pfsenseapi.DhcpServer
+ */
+export type DhcpServer = Message<"ddash.pfsenseapi.DhcpServer"> & {
+  /**
+   * The interface, e.g. "lan".
+   *
+   * @generated from field: string interface = 1;
+   */
+  interface: string;
+
+  /**
+   * @generated from field: bool enabled = 2;
+   */
+  enabled: boolean;
+
+  /**
+   * The address pools it hands dynamic leases from, the main range first.
+   *
+   * @generated from field: repeated ddash.pfsenseapi.AddressRange pools = 3;
+   */
+  pools: AddressRange[];
+
+  /**
+   * Its reserved addresses.
+   *
+   * @generated from field: repeated ddash.pfsenseapi.StaticMapping static_mappings = 4;
+   */
+  staticMappings: StaticMapping[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.DhcpServer.
+ * Use `create(DhcpServerSchema)` to create a new message.
+ */
+export const DhcpServerSchema: GenMessage<DhcpServer> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 13);
+
+/**
+ * Two addresses, low to high, both included.
+ *
+ * @generated from message ddash.pfsenseapi.AddressRange
+ */
+export type AddressRange = Message<"ddash.pfsenseapi.AddressRange"> & {
+  /**
+   * @generated from field: string from = 1;
+   */
+  from: string;
+
+  /**
+   * @generated from field: string to = 2;
+   */
+  to: string;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.AddressRange.
+ * Use `create(AddressRangeSchema)` to create a new message.
+ */
+export const AddressRangeSchema: GenMessage<AddressRange> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 14);
+
+/**
+ * A static mapping: an address reserved for one MAC.
+ *
+ * @generated from message ddash.pfsenseapi.StaticMapping
+ */
+export type StaticMapping = Message<"ddash.pfsenseapi.StaticMapping"> & {
+  /**
+   * The DHCP server's interface, e.g. "lan".
+   *
+   * @generated from field: string interface = 1;
+   */
+  interface: string;
+
+  /**
+   * The MAC address in lower case.
+   *
+   * @generated from field: string mac = 2;
+   */
+  mac: string;
+
+  /**
+   * @generated from field: string ip = 3;
+   */
+  ip: string;
+
+  /**
+   * @generated from field: string hostname = 4;
+   */
+  hostname: string;
+
+  /**
+   * @generated from field: string description = 5;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.StaticMapping.
+ * Use `create(StaticMappingSchema)` to create a new message.
+ */
+export const StaticMappingSchema: GenMessage<StaticMapping> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 15);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListAliasesRequest
+ */
+export type ListAliasesRequest = Message<"ddash.pfsenseapi.ListAliasesRequest"> & {
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListAliasesRequest.
+ * Use `create(ListAliasesRequestSchema)` to create a new message.
+ */
+export const ListAliasesRequestSchema: GenMessage<ListAliasesRequest> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 16);
+
+/**
+ * @generated from message ddash.pfsenseapi.ListAliasesResponse
+ */
+export type ListAliasesResponse = Message<"ddash.pfsenseapi.ListAliasesResponse"> & {
+  /**
+   * @generated from field: repeated ddash.pfsenseapi.Alias aliases = 1;
+   */
+  aliases: Alias[];
+
+  /**
+   * The address (host and network) aliases by name, for a config field
+   * naming one.
+   *
+   * @generated from field: ddash.config.Choices choices = 2;
+   */
+  choices?: Choices | undefined;
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.ListAliasesResponse.
+ * Use `create(ListAliasesResponseSchema)` to create a new message.
+ */
+export const ListAliasesResponseSchema: GenMessage<ListAliasesResponse> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 17);
+
+/**
+ * A firewall alias.
+ *
+ * @generated from message ddash.pfsenseapi.Alias
+ */
+export type Alias = Message<"ddash.pfsenseapi.Alias"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * "host", "network" or "port".
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
+
+  /**
+   * Its members: addresses, networks, ranges, hostnames or other aliases'
+   * names (ports for a port alias).
+   *
+   * @generated from field: repeated string addresses = 4;
+   */
+  addresses: string[];
+
+  /**
+   * Each member's description, by position.
+   *
+   * @generated from field: repeated string details = 5;
+   */
+  details: string[];
+};
+
+/**
+ * Describes the message ddash.pfsenseapi.Alias.
+ * Use `create(AliasSchema)` to create a new message.
+ */
+export const AliasSchema: GenMessage<Alias> = /*@__PURE__*/
+  messageDesc(file_pfsense_api_pfsense_api, 18);
+
+/**
  * @generated from service ddash.pfsenseapi.PfsenseApiService
  */
 export const PfsenseApiService: GenService<{
@@ -261,6 +586,41 @@ export const PfsenseApiService: GenService<{
     methodKind: "unary";
     input: typeof ListGatewayGroupsRequestSchema;
     output: typeof ListGatewayGroupsResponseSchema;
+  },
+  /**
+   * ListLeases returns the DHCP leases Kea holds (status/dhcp_server/leases),
+   * in pfSense's order. pfSense lists each static mapping among them as a
+   * "static" entry.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.ListLeases
+   */
+  listLeases: {
+    methodKind: "unary";
+    input: typeof ListLeasesRequestSchema;
+    output: typeof ListLeasesResponseSchema;
+  },
+  /**
+   * ListDhcpServers returns each interface's DHCP server with its address
+   * pools and static mappings (services/dhcp_servers), in pfSense's order.
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.ListDhcpServers
+   */
+  listDhcpServers: {
+    methodKind: "unary";
+    input: typeof ListDhcpServersRequestSchema;
+    output: typeof ListDhcpServersResponseSchema;
+  },
+  /**
+   * ListAliases returns every firewall alias with its members
+   * (firewall/aliases), in pfSense's order. Its choices are the address
+   * aliases, for a config field naming one (choices_from).
+   *
+   * @generated from rpc ddash.pfsenseapi.PfsenseApiService.ListAliases
+   */
+  listAliases: {
+    methodKind: "unary";
+    input: typeof ListAliasesRequestSchema;
+    output: typeof ListAliasesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_pfsense_api_pfsense_api, 0);

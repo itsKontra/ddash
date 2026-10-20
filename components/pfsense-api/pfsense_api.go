@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	configpb "github.com/itsKontra/ddash/proto/ddash/config"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -44,6 +45,9 @@ type component struct {
 	api      *api
 	gateways *sdk.Cache[*pfsenseapipb.ListGatewaysResponse]
 	groups   *sdk.Cache[*pfsenseapipb.ListGatewayGroupsResponse]
+	leases   *sdk.Cache[*pfsenseapipb.ListLeasesResponse]
+	servers  *sdk.Cache[*pfsenseapipb.ListDhcpServersResponse]
+	aliases  *sdk.Cache[*pfsenseapipb.ListAliasesResponse]
 }
 
 func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.PfsenseApiConfig) error {
@@ -56,6 +60,9 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.Pfsen
 	c.api = &api{base: strings.TrimSuffix(base.String(), "/"), key: cfg.GetApiKey(), http: &http.Client{Timeout: requestTimeout}}
 	c.gateways = sdk.Cached(sdk.TTLFast, c.fetchGateways)
 	c.groups = sdk.Cached(sdk.TTLFast, c.fetchGroups)
+	c.leases = sdk.Cached(sdk.TTLSlow, c.fetchLeases)
+	c.servers = sdk.Cached(sdk.TTLSlow, c.fetchServers)
+	c.aliases = sdk.Cached(sdk.TTLSlow, c.fetchAliases)
 	return nil
 }
 
@@ -138,6 +145,147 @@ func (c *component) fetchGroups(ctx context.Context) (*pfsenseapipb.ListGatewayG
 		out.Groups = append(out.Groups, group)
 	}
 	return out, nil
+}
+
+func (c *component) ListLeases(ctx context.Context, _ *pfsenseapipb.ListLeasesRequest) (*pfsenseapipb.ListLeasesResponse, error) {
+	return c.leases.Get(ctx)
+}
+
+func (c *component) ListDhcpServers(ctx context.Context, _ *pfsenseapipb.ListDhcpServersRequest) (*pfsenseapipb.ListDhcpServersResponse, error) {
+	return c.servers.Get(ctx)
+}
+
+func (c *component) ListAliases(ctx context.Context, _ *pfsenseapipb.ListAliasesRequest) (*pfsenseapipb.ListAliasesResponse, error) {
+	return c.aliases.Get(ctx)
+}
+
+// lease is one entry of GET /api/v2/status/dhcp_server/leases. Kea leaves
+// most fields null on a dynamic lease.
+type lease struct {
+	IP           *string `json:"ip"`
+	MAC          *string `json:"mac"`
+	Hostname     *string `json:"hostname"`
+	If           *string `json:"if"`
+	Starts       *string `json:"starts"`
+	Ends         *string `json:"ends"`
+	ActiveStatus *string `json:"active_status"`
+	OnlineStatus *string `json:"online_status"`
+	Descr        *string `json:"descr"`
+}
+
+func (c *component) fetchLeases(ctx context.Context) (*pfsenseapipb.ListLeasesResponse, error) {
+	var data []lease
+	if err := c.api.get(ctx, "/api/v2/status/dhcp_server/leases", &data); err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListLeasesResponse{}
+	for _, l := range data {
+		out.Leases = append(out.Leases, &pfsenseapipb.Lease{
+			Ip:           str(l.IP),
+			Mac:          strings.ToLower(str(l.MAC)),
+			Hostname:     str(l.Hostname),
+			Interface:    str(l.If),
+			Starts:       str(l.Starts),
+			Ends:         str(l.Ends),
+			ActiveStatus: str(l.ActiveStatus),
+			OnlineStatus: str(l.OnlineStatus),
+			Description:  str(l.Descr),
+		})
+	}
+	return out, nil
+}
+
+// dhcpServer is one entry of GET /api/v2/services/dhcp_servers; its id is
+// the interface.
+type dhcpServer struct {
+	ID        string  `json:"id"`
+	Enable    bool    `json:"enable"`
+	RangeFrom *string `json:"range_from"`
+	RangeTo   *string `json:"range_to"`
+	Pool      []struct {
+		RangeFrom *string `json:"range_from"`
+		RangeTo   *string `json:"range_to"`
+	} `json:"pool"`
+	Staticmap []struct {
+		MAC      *string `json:"mac"`
+		IPAddr   *string `json:"ipaddr"`
+		Hostname *string `json:"hostname"`
+		Descr    *string `json:"descr"`
+	} `json:"staticmap"`
+}
+
+func (c *component) fetchServers(ctx context.Context) (*pfsenseapipb.ListDhcpServersResponse, error) {
+	var data []dhcpServer
+	if err := c.api.get(ctx, "/api/v2/services/dhcp_servers", &data); err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListDhcpServersResponse{}
+	for _, s := range data {
+		server := &pfsenseapipb.DhcpServer{Interface: s.ID, Enabled: s.Enable}
+		addPool := func(from, to *string) {
+			if str(from) != "" && str(to) != "" {
+				server.Pools = append(server.Pools, &pfsenseapipb.AddressRange{From: str(from), To: str(to)})
+			}
+		}
+		addPool(s.RangeFrom, s.RangeTo)
+		for _, p := range s.Pool {
+			addPool(p.RangeFrom, p.RangeTo)
+		}
+		for _, m := range s.Staticmap {
+			server.StaticMappings = append(server.StaticMappings, &pfsenseapipb.StaticMapping{
+				Interface:   s.ID,
+				Mac:         strings.ToLower(str(m.MAC)),
+				Ip:          str(m.IPAddr),
+				Hostname:    str(m.Hostname),
+				Description: str(m.Descr),
+			})
+		}
+		out.Servers = append(out.Servers, server)
+	}
+	return out, nil
+}
+
+// alias is one entry of GET /api/v2/firewall/aliases.
+type alias struct {
+	Name    string   `json:"name"`
+	Type    string   `json:"type"`
+	Descr   *string  `json:"descr"`
+	Address []string `json:"address"`
+	Detail  []string `json:"detail"`
+}
+
+func (c *component) fetchAliases(ctx context.Context) (*pfsenseapipb.ListAliasesResponse, error) {
+	var data []alias
+	if err := c.api.get(ctx, "/api/v2/firewall/aliases", &data); err != nil {
+		return nil, err
+	}
+	out := &pfsenseapipb.ListAliasesResponse{Choices: &configpb.Choices{}}
+	for _, a := range data {
+		out.Aliases = append(out.Aliases, &pfsenseapipb.Alias{
+			Name:        a.Name,
+			Type:        a.Type,
+			Description: str(a.Descr),
+			Addresses:   a.Address,
+			Details:     a.Detail,
+		})
+		if a.Type == "port" {
+			continue
+		}
+		label := a.Name
+		if d := str(a.Descr); d != "" {
+			label += " — " + d
+		}
+		out.Choices.Choices = append(out.Choices.Choices, &configpb.Choice{Value: a.Name, Label: label})
+	}
+	return out, nil
+}
+
+// str is a JSON string pfSense may send as null.
+func str(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 // api is the firewall's REST API v2.

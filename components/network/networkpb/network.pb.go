@@ -11,6 +11,7 @@ package networkpb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -83,9 +84,13 @@ func (Tier) EnumDescriptor() ([]byte, []int) {
 	return file_network_network_proto_rawDescGZIP(), []int{0}
 }
 
-// network takes no config yet.
 type NetworkConfig struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The firewall alias whose members leave through the WAN: the Direct
+	// Devices. network changes only this alias, and only its Devices.
+	BypassAlias string `protobuf:"bytes,1,opt,name=bypass_alias,json=bypassAlias,proto3" json:"bypass_alias,omitempty"`
+	// The addresses Adopt reserves from, outside the DHCP pool.
+	ReservedRange string `protobuf:"bytes,2,opt,name=reserved_range,json=reservedRange,proto3" json:"reserved_range,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -120,6 +125,450 @@ func (*NetworkConfig) Descriptor() ([]byte, []int) {
 	return file_network_network_proto_rawDescGZIP(), []int{0}
 }
 
+func (x *NetworkConfig) GetBypassAlias() string {
+	if x != nil {
+		return x.BypassAlias
+	}
+	return ""
+}
+
+func (x *NetworkConfig) GetReservedRange() string {
+	if x != nil {
+		return x.ReservedRange
+	}
+	return ""
+}
+
+type ListDevicesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDevicesRequest) Reset() {
+	*x = ListDevicesRequest{}
+	mi := &file_network_network_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDevicesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDevicesRequest) ProtoMessage() {}
+
+func (x *ListDevicesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDevicesRequest.ProtoReflect.Descriptor instead.
+func (*ListDevicesRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{1}
+}
+
+type ListDevicesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// By address, lowest first.
+	Devices []*Device `protobuf:"bytes,1,rep,name=devices,proto3" json:"devices,omitempty"`
+	// The configured bypass alias's name.
+	BypassAlias   string `protobuf:"bytes,2,opt,name=bypass_alias,json=bypassAlias,proto3" json:"bypass_alias,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDevicesResponse) Reset() {
+	*x = ListDevicesResponse{}
+	mi := &file_network_network_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDevicesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDevicesResponse) ProtoMessage() {}
+
+func (x *ListDevicesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDevicesResponse.ProtoReflect.Descriptor instead.
+func (*ListDevicesResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ListDevicesResponse) GetDevices() []*Device {
+	if x != nil {
+		return x.Devices
+	}
+	return nil
+}
+
+func (x *ListDevicesResponse) GetBypassAlias() string {
+	if x != nil {
+		return x.BypassAlias
+	}
+	return ""
+}
+
+// A piece of hardware the firewall hands addresses to, keyed by MAC.
+type Device struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+	Mac string `protobuf:"bytes,1,opt,name=mac,proto3" json:"mac,omitempty"`
+	// The static mapping's description, else its hostname, else the
+	// hostname the Device sent; empty when there is none.
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// The reserved address of an Adopted Device, else the leased one.
+	Ip string `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
+	// Whether the firewall sees it on the network now (ARP).
+	Online bool `protobuf:"varint,4,opt,name=online,proto3" json:"online,omitempty"`
+	// Adopted: it has a static mapping. A New Device holds only a dynamic
+	// lease.
+	Adopted bool `protobuf:"varint,5,opt,name=adopted,proto3" json:"adopted,omitempty"`
+	// Direct: its address is in the bypass alias, so it skips the VPN
+	// Tunnel. Tunnelled otherwise.
+	Direct bool `protobuf:"varint,6,opt,name=direct,proto3" json:"direct,omitempty"`
+	// The lease it holds; a dynamic one over the static entry. Unset when
+	// there is none.
+	Lease *DeviceLease `protobuf:"bytes,7,opt,name=lease,proto3" json:"lease,omitempty"`
+	// Its static mapping; unset for a New Device.
+	Reservation *Reservation `protobuf:"bytes,8,opt,name=reservation,proto3" json:"reservation,omitempty"`
+	// The other aliases containing its address, in the firewall's order;
+	// network leaves them alone.
+	Aliases       []*DeviceAlias `protobuf:"bytes,9,rep,name=aliases,proto3" json:"aliases,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Device) Reset() {
+	*x = Device{}
+	mi := &file_network_network_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Device) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Device) ProtoMessage() {}
+
+func (x *Device) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Device.ProtoReflect.Descriptor instead.
+func (*Device) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Device) GetMac() string {
+	if x != nil {
+		return x.Mac
+	}
+	return ""
+}
+
+func (x *Device) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Device) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *Device) GetOnline() bool {
+	if x != nil {
+		return x.Online
+	}
+	return false
+}
+
+func (x *Device) GetAdopted() bool {
+	if x != nil {
+		return x.Adopted
+	}
+	return false
+}
+
+func (x *Device) GetDirect() bool {
+	if x != nil {
+		return x.Direct
+	}
+	return false
+}
+
+func (x *Device) GetLease() *DeviceLease {
+	if x != nil {
+		return x.Lease
+	}
+	return nil
+}
+
+func (x *Device) GetReservation() *Reservation {
+	if x != nil {
+		return x.Reservation
+	}
+	return nil
+}
+
+func (x *Device) GetAliases() []*DeviceAlias {
+	if x != nil {
+		return x.Aliases
+	}
+	return nil
+}
+
+type DeviceLease struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Ip       string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	Hostname string                 `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	// e.g. "lan"; empty when Kea doesn't say.
+	Interface string `protobuf:"bytes,3,opt,name=interface,proto3" json:"interface,omitempty"`
+	// As pfSense writes them, the firewall's time; empty for a static entry.
+	Starts string `protobuf:"bytes,4,opt,name=starts,proto3" json:"starts,omitempty"`
+	Ends   string `protobuf:"bytes,5,opt,name=ends,proto3" json:"ends,omitempty"`
+	// "active", "expired" or "static".
+	Status string `protobuf:"bytes,6,opt,name=status,proto3" json:"status,omitempty"`
+	// e.g. "active/online" or "idle/offline".
+	OnlineStatus  string `protobuf:"bytes,7,opt,name=online_status,json=onlineStatus,proto3" json:"online_status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeviceLease) Reset() {
+	*x = DeviceLease{}
+	mi := &file_network_network_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeviceLease) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeviceLease) ProtoMessage() {}
+
+func (x *DeviceLease) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeviceLease.ProtoReflect.Descriptor instead.
+func (*DeviceLease) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *DeviceLease) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *DeviceLease) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *DeviceLease) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *DeviceLease) GetStarts() string {
+	if x != nil {
+		return x.Starts
+	}
+	return ""
+}
+
+func (x *DeviceLease) GetEnds() string {
+	if x != nil {
+		return x.Ends
+	}
+	return ""
+}
+
+func (x *DeviceLease) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *DeviceLease) GetOnlineStatus() string {
+	if x != nil {
+		return x.OnlineStatus
+	}
+	return ""
+}
+
+// A Device's static mapping.
+type Reservation struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Interface     string                 `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	Ip            string                 `protobuf:"bytes,2,opt,name=ip,proto3" json:"ip,omitempty"`
+	Hostname      string                 `protobuf:"bytes,3,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Description   string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Reservation) Reset() {
+	*x = Reservation{}
+	mi := &file_network_network_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Reservation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Reservation) ProtoMessage() {}
+
+func (x *Reservation) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Reservation.ProtoReflect.Descriptor instead.
+func (*Reservation) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *Reservation) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *Reservation) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *Reservation) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *Reservation) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type DeviceAlias struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeviceAlias) Reset() {
+	*x = DeviceAlias{}
+	mi := &file_network_network_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeviceAlias) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeviceAlias) ProtoMessage() {}
+
+func (x *DeviceAlias) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeviceAlias.ProtoReflect.Descriptor instead.
+func (*DeviceAlias) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *DeviceAlias) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *DeviceAlias) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
 type GetVpnTunnelRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -128,7 +577,7 @@ type GetVpnTunnelRequest struct {
 
 func (x *GetVpnTunnelRequest) Reset() {
 	*x = GetVpnTunnelRequest{}
-	mi := &file_network_network_proto_msgTypes[1]
+	mi := &file_network_network_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -140,7 +589,7 @@ func (x *GetVpnTunnelRequest) String() string {
 func (*GetVpnTunnelRequest) ProtoMessage() {}
 
 func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[1]
+	mi := &file_network_network_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -153,7 +602,7 @@ func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelRequest.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{1}
+	return file_network_network_proto_rawDescGZIP(), []int{7}
 }
 
 type GetVpnTunnelResponse struct {
@@ -173,7 +622,7 @@ type GetVpnTunnelResponse struct {
 
 func (x *GetVpnTunnelResponse) Reset() {
 	*x = GetVpnTunnelResponse{}
-	mi := &file_network_network_proto_msgTypes[2]
+	mi := &file_network_network_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +634,7 @@ func (x *GetVpnTunnelResponse) String() string {
 func (*GetVpnTunnelResponse) ProtoMessage() {}
 
 func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[2]
+	mi := &file_network_network_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +647,7 @@ func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelResponse.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{2}
+	return file_network_network_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetVpnTunnelResponse) GetTier() Tier {
@@ -250,7 +699,7 @@ type TunnelGateway struct {
 
 func (x *TunnelGateway) Reset() {
 	*x = TunnelGateway{}
-	mi := &file_network_network_proto_msgTypes[3]
+	mi := &file_network_network_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -262,7 +711,7 @@ func (x *TunnelGateway) String() string {
 func (*TunnelGateway) ProtoMessage() {}
 
 func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[3]
+	mi := &file_network_network_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -275,7 +724,7 @@ func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TunnelGateway.ProtoReflect.Descriptor instead.
 func (*TunnelGateway) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{3}
+	return file_network_network_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *TunnelGateway) GetName() string {
@@ -331,8 +780,40 @@ var File_network_network_proto protoreflect.FileDescriptor
 
 const file_network_network_proto_rawDesc = "" +
 	"\n" +
-	"\x15network/network.proto\x12\rddash.network\x1a\x13ddash/options.proto\"\x0f\n" +
-	"\rNetworkConfig\"\x15\n" +
+	"\x15network/network.proto\x12\rddash.network\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xde\x02\n" +
+	"\rNetworkConfig\x12\x98\x01\n" +
+	"\fbypass_alias\x18\x01 \x01(\tBu\x9a\xb5\x18q\x1a\fBypass alias\"FThe firewall alias whose members skip the VPN Tunnel (Direct Devices).0\x01R\x17pfsense-api.ListAliasesR\vbypassAlias\x12\xb1\x01\n" +
+	"\x0ereserved_range\x18\x02 \x01(\tB\x89\x01\x9a\xb5\x18\x84\x01\x1a\x0eReserved range\"UWhere Adopt picks a New Device's reserved address. It must lie outside the DHCP pool.*\x17198.18.1.20-198.18.1.490\x018\x05R\rreservedRange\"\x14\n" +
+	"\x12ListDevicesRequest\"i\n" +
+	"\x13ListDevicesResponse\x12/\n" +
+	"\adevices\x18\x01 \x03(\v2\x15.ddash.network.DeviceR\adevices\x12!\n" +
+	"\fbypass_alias\x18\x02 \x01(\tR\vbypassAlias\"\xae\x02\n" +
+	"\x06Device\x12\x10\n" +
+	"\x03mac\x18\x01 \x01(\tR\x03mac\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x0e\n" +
+	"\x02ip\x18\x03 \x01(\tR\x02ip\x12\x16\n" +
+	"\x06online\x18\x04 \x01(\bR\x06online\x12\x18\n" +
+	"\aadopted\x18\x05 \x01(\bR\aadopted\x12\x16\n" +
+	"\x06direct\x18\x06 \x01(\bR\x06direct\x120\n" +
+	"\x05lease\x18\a \x01(\v2\x1a.ddash.network.DeviceLeaseR\x05lease\x12<\n" +
+	"\vreservation\x18\b \x01(\v2\x1a.ddash.network.ReservationR\vreservation\x124\n" +
+	"\aaliases\x18\t \x03(\v2\x1a.ddash.network.DeviceAliasR\aaliases\"\xc0\x01\n" +
+	"\vDeviceLease\x12\x0e\n" +
+	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x1a\n" +
+	"\bhostname\x18\x02 \x01(\tR\bhostname\x12\x1c\n" +
+	"\tinterface\x18\x03 \x01(\tR\tinterface\x12\x16\n" +
+	"\x06starts\x18\x04 \x01(\tR\x06starts\x12\x12\n" +
+	"\x04ends\x18\x05 \x01(\tR\x04ends\x12\x16\n" +
+	"\x06status\x18\x06 \x01(\tR\x06status\x12#\n" +
+	"\ronline_status\x18\a \x01(\tR\fonlineStatus\"y\n" +
+	"\vReservation\x12\x1c\n" +
+	"\tinterface\x18\x01 \x01(\tR\tinterface\x12\x0e\n" +
+	"\x02ip\x18\x02 \x01(\tR\x02ip\x12\x1a\n" +
+	"\bhostname\x18\x03 \x01(\tR\bhostname\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\"C\n" +
+	"\vDeviceAlias\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\"\x15\n" +
 	"\x13GetVpnTunnelRequest\"\xa5\x01\n" +
 	"\x14GetVpnTunnelResponse\x12'\n" +
 	"\x04tier\x18\x01 \x01(\x0e2\x13.ddash.network.TierR\x04tier\x12\x14\n" +
@@ -353,9 +834,10 @@ const file_network_network_proto_rawDesc = "" +
 	"\x10TIER_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eTIER_WIREGUARD\x10\x01\x12\x10\n" +
 	"\fTIER_OPENVPN\x10\x02\x12\r\n" +
-	"\tTIER_DOWN\x10\x032q\n" +
+	"\tTIER_DOWN\x10\x032\xcd\x01\n" +
 	"\x0eNetworkService\x12_\n" +
-	"\fGetVpnTunnel\x12\".ddash.network.GetVpnTunnelRequest\x1a#.ddash.network.GetVpnTunnelResponse\"\x06\x8a\xb5\x18\x02\b\x02BCZAgithub.com/itsKontra/ddash/components/network/networkpb;networkpbb\x06proto3"
+	"\fGetVpnTunnel\x12\".ddash.network.GetVpnTunnelRequest\x1a#.ddash.network.GetVpnTunnelResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Z\n" +
+	"\vListDevices\x12!.ddash.network.ListDevicesRequest\x1a\".ddash.network.ListDevicesResponse\"\x04\x8a\xb5\x18\x00BCZAgithub.com/itsKontra/ddash/components/network/networkpb;networkpbb\x06proto3"
 
 var (
 	file_network_network_proto_rawDescOnce sync.Once
@@ -370,24 +852,36 @@ func file_network_network_proto_rawDescGZIP() []byte {
 }
 
 var file_network_network_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_network_network_proto_goTypes = []any{
 	(Tier)(0),                    // 0: ddash.network.Tier
 	(*NetworkConfig)(nil),        // 1: ddash.network.NetworkConfig
-	(*GetVpnTunnelRequest)(nil),  // 2: ddash.network.GetVpnTunnelRequest
-	(*GetVpnTunnelResponse)(nil), // 3: ddash.network.GetVpnTunnelResponse
-	(*TunnelGateway)(nil),        // 4: ddash.network.TunnelGateway
+	(*ListDevicesRequest)(nil),   // 2: ddash.network.ListDevicesRequest
+	(*ListDevicesResponse)(nil),  // 3: ddash.network.ListDevicesResponse
+	(*Device)(nil),               // 4: ddash.network.Device
+	(*DeviceLease)(nil),          // 5: ddash.network.DeviceLease
+	(*Reservation)(nil),          // 6: ddash.network.Reservation
+	(*DeviceAlias)(nil),          // 7: ddash.network.DeviceAlias
+	(*GetVpnTunnelRequest)(nil),  // 8: ddash.network.GetVpnTunnelRequest
+	(*GetVpnTunnelResponse)(nil), // 9: ddash.network.GetVpnTunnelResponse
+	(*TunnelGateway)(nil),        // 10: ddash.network.TunnelGateway
 }
 var file_network_network_proto_depIdxs = []int32{
-	0, // 0: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
-	4, // 1: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
-	2, // 2: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
-	3, // 3: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4,  // 0: ddash.network.ListDevicesResponse.devices:type_name -> ddash.network.Device
+	5,  // 1: ddash.network.Device.lease:type_name -> ddash.network.DeviceLease
+	6,  // 2: ddash.network.Device.reservation:type_name -> ddash.network.Reservation
+	7,  // 3: ddash.network.Device.aliases:type_name -> ddash.network.DeviceAlias
+	0,  // 4: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
+	10, // 5: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
+	8,  // 6: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
+	2,  // 7: ddash.network.NetworkService.ListDevices:input_type -> ddash.network.ListDevicesRequest
+	9,  // 8: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
+	3,  // 9: ddash.network.NetworkService.ListDevices:output_type -> ddash.network.ListDevicesResponse
+	8,  // [8:10] is the sub-list for method output_type
+	6,  // [6:8] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_network_network_proto_init() }
@@ -395,14 +889,14 @@ func file_network_network_proto_init() {
 	if File_network_network_proto != nil {
 		return
 	}
-	file_network_network_proto_msgTypes[3].OneofWrappers = []any{}
+	file_network_network_proto_msgTypes[9].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_network_network_proto_rawDesc), len(file_network_network_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

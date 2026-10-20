@@ -23,6 +23,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
+	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
@@ -74,6 +75,15 @@ var systems = []system{
 	},
 }
 
+// logicConfigs is the config of Components that reach no system
+// themselves but must name what the lab's fixtures hold (an alias, a
+// range), by Component.
+var logicConfigs = map[string]func() proto.Message{
+	"network": func() proto.Message {
+		return &networkpb.NetworkConfig{BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.20-198.18.1.49"}
+	},
+}
+
 // sshSystem is one faked host reached over SSH, answering commands from
 // fixtures (fixture.SSH). It lets any client key in, so no setup hint
 // needs pasting in `make dev`.
@@ -114,6 +124,9 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		return nil, err
 	}
 	l := &Lab{config: map[string]proto.Message{}, Addrs: map[string]string{}}
+	for component, config := range logicConfigs {
+		l.config[component] = config()
+	}
 	for i, s := range systems {
 		ln, err := net.Listen("tcp", net.JoinHostPort(host, "0"))
 		if err != nil {

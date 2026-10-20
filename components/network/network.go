@@ -51,10 +51,17 @@ type component struct {
 
 	mu     sync.Mutex
 	tunnel *networkpb.GetVpnTunnelResponse
+
+	// The Device join (devices.go).
+	bypassAlias string
+	devices     *sdk.Cache[*networkpb.ListDevicesResponse]
 }
 
-func (c *component) Start(ctx context.Context, env *sdk.Env, _ *networkpb.NetworkConfig) error {
+func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.NetworkConfig) error {
 	c.pfsense = sdk.Require(env, pfsenseapipb.NewPfsenseApiServiceClient)
+	if err := c.startDevices(ctx, env, cfg); err != nil {
+		return err
+	}
 	sdk.Every(ctx, PollInterval, c.poll)
 	return nil
 }

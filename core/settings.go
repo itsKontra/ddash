@@ -66,6 +66,7 @@ func (h *Host) ConfigForm(ctx context.Context, owner string) (*corepb.GetConfigF
 	if owner != coreOwner {
 		form.SetupHint = h.setupHint(ctx, owner, desc)
 		form.TestAction = testAction(desc)
+		h.fillChoices(ctx, desc, form.GetFields())
 	}
 	return form, nil
 }

@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	NetworkService_GetVpnTunnel_FullMethodName = "/ddash.network.NetworkService/GetVpnTunnel"
+	NetworkService_ListDevices_FullMethodName  = "/ddash.network.NetworkService/ListDevices"
 )
 
 // NetworkServiceClient is the client API for NetworkService service.
@@ -32,6 +33,11 @@ type NetworkServiceClient interface {
 	// GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
 	// the failover gateway group (every 60 s).
 	GetVpnTunnel(ctx context.Context, in *GetVpnTunnelRequest, opts ...grpc.CallOption) (*GetVpnTunnelResponse, error)
+	// ListDevices returns every Device: the firewall's DHCP leases and static
+	// mappings joined by MAC, with each one's membership of the bypass alias
+	// and of the other aliases. Servers with fixed addresses aren't Devices,
+	// and alias members that aren't Devices never show.
+	ListDevices(ctx context.Context, in *ListDevicesRequest, opts ...grpc.CallOption) (*ListDevicesResponse, error)
 }
 
 type networkServiceClient struct {
@@ -52,6 +58,16 @@ func (c *networkServiceClient) GetVpnTunnel(ctx context.Context, in *GetVpnTunne
 	return out, nil
 }
 
+func (c *networkServiceClient) ListDevices(ctx context.Context, in *ListDevicesRequest, opts ...grpc.CallOption) (*ListDevicesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDevicesResponse)
+	err := c.cc.Invoke(ctx, NetworkService_ListDevices_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServiceServer is the server API for NetworkService service.
 // All implementations must embed UnimplementedNetworkServiceServer
 // for forward compatibility.
@@ -59,6 +75,11 @@ type NetworkServiceServer interface {
 	// GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
 	// the failover gateway group (every 60 s).
 	GetVpnTunnel(context.Context, *GetVpnTunnelRequest) (*GetVpnTunnelResponse, error)
+	// ListDevices returns every Device: the firewall's DHCP leases and static
+	// mappings joined by MAC, with each one's membership of the bypass alias
+	// and of the other aliases. Servers with fixed addresses aren't Devices,
+	// and alias members that aren't Devices never show.
+	ListDevices(context.Context, *ListDevicesRequest) (*ListDevicesResponse, error)
 	mustEmbedUnimplementedNetworkServiceServer()
 }
 
@@ -71,6 +92,9 @@ type UnimplementedNetworkServiceServer struct{}
 
 func (UnimplementedNetworkServiceServer) GetVpnTunnel(context.Context, *GetVpnTunnelRequest) (*GetVpnTunnelResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetVpnTunnel not implemented")
+}
+func (UnimplementedNetworkServiceServer) ListDevices(context.Context, *ListDevicesRequest) (*ListDevicesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDevices not implemented")
 }
 func (UnimplementedNetworkServiceServer) mustEmbedUnimplementedNetworkServiceServer() {}
 func (UnimplementedNetworkServiceServer) testEmbeddedByValue()                        {}
@@ -111,6 +135,24 @@ func _NetworkService_GetVpnTunnel_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NetworkService_ListDevices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDevicesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).ListDevices(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_ListDevices_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).ListDevices(ctx, req.(*ListDevicesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NetworkService_ServiceDesc is the grpc.ServiceDesc for NetworkService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -121,6 +163,10 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVpnTunnel",
 			Handler:    _NetworkService_GetVpnTunnel_Handler,
+		},
+		{
+			MethodName: "ListDevices",
+			Handler:    _NetworkService_ListDevices_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

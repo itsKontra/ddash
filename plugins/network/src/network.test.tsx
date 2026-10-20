@@ -1,5 +1,6 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
+import { MemoryRouter } from "react-router";
 import { afterEach, expect, it, vi } from "vitest";
 import plugin from "./index";
 
@@ -31,13 +32,15 @@ async function showPage(answers: Record<string, () => Response>) {
     const path = new URL(String(input), "http://ddash.test").pathname;
     paths.push(path);
     const method = path.split("/").pop()!;
-    return answers[method]();
+    return (answers[method] ?? (() => Response.json({})))();
   });
   const Page = plugin.pages![0].Component!;
   render(
     <PluginHost client={createQueryClient()}>
       <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-        <Page />
+        <MemoryRouter>
+          <Page />
+        </MemoryRouter>
       </PluginScope>
     </PluginHost>,
   );

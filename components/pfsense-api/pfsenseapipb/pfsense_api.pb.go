@@ -11,7 +11,7 @@ package pfsenseapipb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
-	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	config "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -474,6 +474,658 @@ func (x *GatewayGroupMember) GetTier() int32 {
 	return 0
 }
 
+type ListLeasesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLeasesRequest) Reset() {
+	*x = ListLeasesRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLeasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLeasesRequest) ProtoMessage() {}
+
+func (x *ListLeasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLeasesRequest.ProtoReflect.Descriptor instead.
+func (*ListLeasesRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{8}
+}
+
+type ListLeasesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Leases        []*Lease               `protobuf:"bytes,1,rep,name=leases,proto3" json:"leases,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLeasesResponse) Reset() {
+	*x = ListLeasesResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLeasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLeasesResponse) ProtoMessage() {}
+
+func (x *ListLeasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLeasesResponse.ProtoReflect.Descriptor instead.
+func (*ListLeasesResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListLeasesResponse) GetLeases() []*Lease {
+	if x != nil {
+		return x.Leases
+	}
+	return nil
+}
+
+// One DHCP lease as pfSense reports it.
+type Lease struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Ip    string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
+	// The MAC address in lower case, e.g. "02:5e:00:00:10:01".
+	Mac string `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
+	// The hostname the client sent; empty when it sent none.
+	Hostname string `protobuf:"bytes,3,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	// The interface it was handed out on, e.g. "lan"; empty when Kea
+	// doesn't say (its dynamic leases).
+	Interface string `protobuf:"bytes,4,opt,name=interface,proto3" json:"interface,omitempty"`
+	// When the lease started and ends, as pfSense writes them
+	// ("2026/10/20 09:14:03", the firewall's time); empty for a static entry.
+	Starts string `protobuf:"bytes,5,opt,name=starts,proto3" json:"starts,omitempty"`
+	Ends   string `protobuf:"bytes,6,opt,name=ends,proto3" json:"ends,omitempty"`
+	// "active", "expired", or "static" for a static mapping.
+	ActiveStatus string `protobuf:"bytes,7,opt,name=active_status,json=activeStatus,proto3" json:"active_status,omitempty"`
+	// Whether the address answers ARP: "active/online", "idle/offline", ...
+	OnlineStatus  string `protobuf:"bytes,8,opt,name=online_status,json=onlineStatus,proto3" json:"online_status,omitempty"`
+	Description   string `protobuf:"bytes,9,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Lease) Reset() {
+	*x = Lease{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Lease) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Lease) ProtoMessage() {}
+
+func (x *Lease) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Lease.ProtoReflect.Descriptor instead.
+func (*Lease) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *Lease) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *Lease) GetMac() string {
+	if x != nil {
+		return x.Mac
+	}
+	return ""
+}
+
+func (x *Lease) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *Lease) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *Lease) GetStarts() string {
+	if x != nil {
+		return x.Starts
+	}
+	return ""
+}
+
+func (x *Lease) GetEnds() string {
+	if x != nil {
+		return x.Ends
+	}
+	return ""
+}
+
+func (x *Lease) GetActiveStatus() string {
+	if x != nil {
+		return x.ActiveStatus
+	}
+	return ""
+}
+
+func (x *Lease) GetOnlineStatus() string {
+	if x != nil {
+		return x.OnlineStatus
+	}
+	return ""
+}
+
+func (x *Lease) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type ListDhcpServersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDhcpServersRequest) Reset() {
+	*x = ListDhcpServersRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDhcpServersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDhcpServersRequest) ProtoMessage() {}
+
+func (x *ListDhcpServersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDhcpServersRequest.ProtoReflect.Descriptor instead.
+func (*ListDhcpServersRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{11}
+}
+
+type ListDhcpServersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Servers       []*DhcpServer          `protobuf:"bytes,1,rep,name=servers,proto3" json:"servers,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListDhcpServersResponse) Reset() {
+	*x = ListDhcpServersResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListDhcpServersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListDhcpServersResponse) ProtoMessage() {}
+
+func (x *ListDhcpServersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListDhcpServersResponse.ProtoReflect.Descriptor instead.
+func (*ListDhcpServersResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListDhcpServersResponse) GetServers() []*DhcpServer {
+	if x != nil {
+		return x.Servers
+	}
+	return nil
+}
+
+// One interface's DHCP server.
+type DhcpServer struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The interface, e.g. "lan".
+	Interface string `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	Enabled   bool   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	// The address pools it hands dynamic leases from, the main range first.
+	Pools []*AddressRange `protobuf:"bytes,3,rep,name=pools,proto3" json:"pools,omitempty"`
+	// Its reserved addresses.
+	StaticMappings []*StaticMapping `protobuf:"bytes,4,rep,name=static_mappings,json=staticMappings,proto3" json:"static_mappings,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *DhcpServer) Reset() {
+	*x = DhcpServer{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DhcpServer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DhcpServer) ProtoMessage() {}
+
+func (x *DhcpServer) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DhcpServer.ProtoReflect.Descriptor instead.
+func (*DhcpServer) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *DhcpServer) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *DhcpServer) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *DhcpServer) GetPools() []*AddressRange {
+	if x != nil {
+		return x.Pools
+	}
+	return nil
+}
+
+func (x *DhcpServer) GetStaticMappings() []*StaticMapping {
+	if x != nil {
+		return x.StaticMappings
+	}
+	return nil
+}
+
+// Two addresses, low to high, both included.
+type AddressRange struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	From          string                 `protobuf:"bytes,1,opt,name=from,proto3" json:"from,omitempty"`
+	To            string                 `protobuf:"bytes,2,opt,name=to,proto3" json:"to,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddressRange) Reset() {
+	*x = AddressRange{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddressRange) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddressRange) ProtoMessage() {}
+
+func (x *AddressRange) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddressRange.ProtoReflect.Descriptor instead.
+func (*AddressRange) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *AddressRange) GetFrom() string {
+	if x != nil {
+		return x.From
+	}
+	return ""
+}
+
+func (x *AddressRange) GetTo() string {
+	if x != nil {
+		return x.To
+	}
+	return ""
+}
+
+// A static mapping: an address reserved for one MAC.
+type StaticMapping struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The DHCP server's interface, e.g. "lan".
+	Interface string `protobuf:"bytes,1,opt,name=interface,proto3" json:"interface,omitempty"`
+	// The MAC address in lower case.
+	Mac           string `protobuf:"bytes,2,opt,name=mac,proto3" json:"mac,omitempty"`
+	Ip            string `protobuf:"bytes,3,opt,name=ip,proto3" json:"ip,omitempty"`
+	Hostname      string `protobuf:"bytes,4,opt,name=hostname,proto3" json:"hostname,omitempty"`
+	Description   string `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StaticMapping) Reset() {
+	*x = StaticMapping{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StaticMapping) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StaticMapping) ProtoMessage() {}
+
+func (x *StaticMapping) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StaticMapping.ProtoReflect.Descriptor instead.
+func (*StaticMapping) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *StaticMapping) GetInterface() string {
+	if x != nil {
+		return x.Interface
+	}
+	return ""
+}
+
+func (x *StaticMapping) GetMac() string {
+	if x != nil {
+		return x.Mac
+	}
+	return ""
+}
+
+func (x *StaticMapping) GetIp() string {
+	if x != nil {
+		return x.Ip
+	}
+	return ""
+}
+
+func (x *StaticMapping) GetHostname() string {
+	if x != nil {
+		return x.Hostname
+	}
+	return ""
+}
+
+func (x *StaticMapping) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type ListAliasesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAliasesRequest) Reset() {
+	*x = ListAliasesRequest{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAliasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAliasesRequest) ProtoMessage() {}
+
+func (x *ListAliasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAliasesRequest.ProtoReflect.Descriptor instead.
+func (*ListAliasesRequest) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{16}
+}
+
+type ListAliasesResponse struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Aliases []*Alias               `protobuf:"bytes,1,rep,name=aliases,proto3" json:"aliases,omitempty"`
+	// The address (host and network) aliases by name, for a config field
+	// naming one.
+	Choices       *config.Choices `protobuf:"bytes,2,opt,name=choices,proto3" json:"choices,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAliasesResponse) Reset() {
+	*x = ListAliasesResponse{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAliasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAliasesResponse) ProtoMessage() {}
+
+func (x *ListAliasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAliasesResponse.ProtoReflect.Descriptor instead.
+func (*ListAliasesResponse) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ListAliasesResponse) GetAliases() []*Alias {
+	if x != nil {
+		return x.Aliases
+	}
+	return nil
+}
+
+func (x *ListAliasesResponse) GetChoices() *config.Choices {
+	if x != nil {
+		return x.Choices
+	}
+	return nil
+}
+
+// A firewall alias.
+type Alias struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// "host", "network" or "port".
+	Type        string `protobuf:"bytes,2,opt,name=type,proto3" json:"type,omitempty"`
+	Description string `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	// Its members: addresses, networks, ranges, hostnames or other aliases'
+	// names (ports for a port alias).
+	Addresses []string `protobuf:"bytes,4,rep,name=addresses,proto3" json:"addresses,omitempty"`
+	// Each member's description, by position.
+	Details       []string `protobuf:"bytes,5,rep,name=details,proto3" json:"details,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Alias) Reset() {
+	*x = Alias{}
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Alias) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Alias) ProtoMessage() {}
+
+func (x *Alias) ProtoReflect() protoreflect.Message {
+	mi := &file_pfsense_api_pfsense_api_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Alias.ProtoReflect.Descriptor instead.
+func (*Alias) Descriptor() ([]byte, []int) {
+	return file_pfsense_api_pfsense_api_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *Alias) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Alias) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *Alias) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Alias) GetAddresses() []string {
+	if x != nil {
+		return x.Addresses
+	}
+	return nil
+}
+
+func (x *Alias) GetDetails() []string {
+	if x != nil {
+		return x.Details
+	}
+	return nil
+}
+
 var File_pfsense_api_pfsense_api_proto protoreflect.FileDescriptor
 
 const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
@@ -509,10 +1161,55 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\amembers\x18\x04 \x03(\v2$.ddash.pfsenseapi.GatewayGroupMemberR\amembers\"B\n" +
 	"\x12GatewayGroupMember\x12\x18\n" +
 	"\agateway\x18\x01 \x01(\tR\agateway\x12\x12\n" +
-	"\x04tier\x18\x02 \x01(\x05R\x04tier2\xf0\x01\n" +
+	"\x04tier\x18\x02 \x01(\x05R\x04tier\"\x13\n" +
+	"\x11ListLeasesRequest\"E\n" +
+	"\x12ListLeasesResponse\x12/\n" +
+	"\x06leases\x18\x01 \x03(\v2\x17.ddash.pfsenseapi.LeaseR\x06leases\"\xfb\x01\n" +
+	"\x05Lease\x12\x0e\n" +
+	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x10\n" +
+	"\x03mac\x18\x02 \x01(\tR\x03mac\x12\x1a\n" +
+	"\bhostname\x18\x03 \x01(\tR\bhostname\x12\x1c\n" +
+	"\tinterface\x18\x04 \x01(\tR\tinterface\x12\x16\n" +
+	"\x06starts\x18\x05 \x01(\tR\x06starts\x12\x12\n" +
+	"\x04ends\x18\x06 \x01(\tR\x04ends\x12#\n" +
+	"\ractive_status\x18\a \x01(\tR\factiveStatus\x12#\n" +
+	"\ronline_status\x18\b \x01(\tR\fonlineStatus\x12 \n" +
+	"\vdescription\x18\t \x01(\tR\vdescription\"\x18\n" +
+	"\x16ListDhcpServersRequest\"Q\n" +
+	"\x17ListDhcpServersResponse\x126\n" +
+	"\aservers\x18\x01 \x03(\v2\x1c.ddash.pfsenseapi.DhcpServerR\aservers\"\xc4\x01\n" +
+	"\n" +
+	"DhcpServer\x12\x1c\n" +
+	"\tinterface\x18\x01 \x01(\tR\tinterface\x12\x18\n" +
+	"\aenabled\x18\x02 \x01(\bR\aenabled\x124\n" +
+	"\x05pools\x18\x03 \x03(\v2\x1e.ddash.pfsenseapi.AddressRangeR\x05pools\x12H\n" +
+	"\x0fstatic_mappings\x18\x04 \x03(\v2\x1f.ddash.pfsenseapi.StaticMappingR\x0estaticMappings\"2\n" +
+	"\fAddressRange\x12\x12\n" +
+	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
+	"\x02to\x18\x02 \x01(\tR\x02to\"\x8d\x01\n" +
+	"\rStaticMapping\x12\x1c\n" +
+	"\tinterface\x18\x01 \x01(\tR\tinterface\x12\x10\n" +
+	"\x03mac\x18\x02 \x01(\tR\x03mac\x12\x0e\n" +
+	"\x02ip\x18\x03 \x01(\tR\x02ip\x12\x1a\n" +
+	"\bhostname\x18\x04 \x01(\tR\bhostname\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"\x14\n" +
+	"\x12ListAliasesRequest\"y\n" +
+	"\x13ListAliasesResponse\x121\n" +
+	"\aaliases\x18\x01 \x03(\v2\x17.ddash.pfsenseapi.AliasR\aaliases\x12/\n" +
+	"\achoices\x18\x02 \x01(\v2\x15.ddash.config.ChoicesR\achoices\"\x89\x01\n" +
+	"\x05Alias\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04type\x18\x02 \x01(\tR\x04type\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1c\n" +
+	"\taddresses\x18\x04 \x03(\tR\taddresses\x12\x18\n" +
+	"\adetails\x18\x05 \x03(\tR\adetails2\x9f\x04\n" +
 	"\x11PfsenseApiService\x12e\n" +
 	"\fListGateways\x12%.ddash.pfsenseapi.ListGatewaysRequest\x1a&.ddash.pfsenseapi.ListGatewaysResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12t\n" +
-	"\x11ListGatewayGroups\x12*.ddash.pfsenseapi.ListGatewayGroupsRequest\x1a+.ddash.pfsenseapi.ListGatewayGroupsResponse\"\x06\x8a\xb5\x18\x02\b\x02BMZKgithub.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipbb\x06proto3"
+	"\x11ListGatewayGroups\x12*.ddash.pfsenseapi.ListGatewayGroupsRequest\x1a+.ddash.pfsenseapi.ListGatewayGroupsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12]\n" +
+	"\n" +
+	"ListLeases\x12#.ddash.pfsenseapi.ListLeasesRequest\x1a$.ddash.pfsenseapi.ListLeasesResponse\"\x04\x8a\xb5\x18\x00\x12l\n" +
+	"\x0fListDhcpServers\x12(.ddash.pfsenseapi.ListDhcpServersRequest\x1a).ddash.pfsenseapi.ListDhcpServersResponse\"\x04\x8a\xb5\x18\x00\x12`\n" +
+	"\vListAliases\x12$.ddash.pfsenseapi.ListAliasesRequest\x1a%.ddash.pfsenseapi.ListAliasesResponse\"\x04\x8a\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb;pfsenseapipbb\x06proto3"
 
 var (
 	file_pfsense_api_pfsense_api_proto_rawDescOnce sync.Once
@@ -526,7 +1223,7 @@ func file_pfsense_api_pfsense_api_proto_rawDescGZIP() []byte {
 	return file_pfsense_api_pfsense_api_proto_rawDescData
 }
 
-var file_pfsense_api_pfsense_api_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_pfsense_api_pfsense_api_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_pfsense_api_pfsense_api_proto_goTypes = []any{
 	(*PfsenseApiConfig)(nil),          // 0: ddash.pfsenseapi.PfsenseApiConfig
 	(*ListGatewaysRequest)(nil),       // 1: ddash.pfsenseapi.ListGatewaysRequest
@@ -536,20 +1233,44 @@ var file_pfsense_api_pfsense_api_proto_goTypes = []any{
 	(*ListGatewayGroupsResponse)(nil), // 5: ddash.pfsenseapi.ListGatewayGroupsResponse
 	(*GatewayGroup)(nil),              // 6: ddash.pfsenseapi.GatewayGroup
 	(*GatewayGroupMember)(nil),        // 7: ddash.pfsenseapi.GatewayGroupMember
+	(*ListLeasesRequest)(nil),         // 8: ddash.pfsenseapi.ListLeasesRequest
+	(*ListLeasesResponse)(nil),        // 9: ddash.pfsenseapi.ListLeasesResponse
+	(*Lease)(nil),                     // 10: ddash.pfsenseapi.Lease
+	(*ListDhcpServersRequest)(nil),    // 11: ddash.pfsenseapi.ListDhcpServersRequest
+	(*ListDhcpServersResponse)(nil),   // 12: ddash.pfsenseapi.ListDhcpServersResponse
+	(*DhcpServer)(nil),                // 13: ddash.pfsenseapi.DhcpServer
+	(*AddressRange)(nil),              // 14: ddash.pfsenseapi.AddressRange
+	(*StaticMapping)(nil),             // 15: ddash.pfsenseapi.StaticMapping
+	(*ListAliasesRequest)(nil),        // 16: ddash.pfsenseapi.ListAliasesRequest
+	(*ListAliasesResponse)(nil),       // 17: ddash.pfsenseapi.ListAliasesResponse
+	(*Alias)(nil),                     // 18: ddash.pfsenseapi.Alias
+	(*config.Choices)(nil),            // 19: ddash.config.Choices
 }
 var file_pfsense_api_pfsense_api_proto_depIdxs = []int32{
-	3, // 0: ddash.pfsenseapi.ListGatewaysResponse.gateways:type_name -> ddash.pfsenseapi.Gateway
-	6, // 1: ddash.pfsenseapi.ListGatewayGroupsResponse.groups:type_name -> ddash.pfsenseapi.GatewayGroup
-	7, // 2: ddash.pfsenseapi.GatewayGroup.members:type_name -> ddash.pfsenseapi.GatewayGroupMember
-	1, // 3: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
-	4, // 4: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
-	2, // 5: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
-	5, // 6: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
-	5, // [5:7] is the sub-list for method output_type
-	3, // [3:5] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	3,  // 0: ddash.pfsenseapi.ListGatewaysResponse.gateways:type_name -> ddash.pfsenseapi.Gateway
+	6,  // 1: ddash.pfsenseapi.ListGatewayGroupsResponse.groups:type_name -> ddash.pfsenseapi.GatewayGroup
+	7,  // 2: ddash.pfsenseapi.GatewayGroup.members:type_name -> ddash.pfsenseapi.GatewayGroupMember
+	10, // 3: ddash.pfsenseapi.ListLeasesResponse.leases:type_name -> ddash.pfsenseapi.Lease
+	13, // 4: ddash.pfsenseapi.ListDhcpServersResponse.servers:type_name -> ddash.pfsenseapi.DhcpServer
+	14, // 5: ddash.pfsenseapi.DhcpServer.pools:type_name -> ddash.pfsenseapi.AddressRange
+	15, // 6: ddash.pfsenseapi.DhcpServer.static_mappings:type_name -> ddash.pfsenseapi.StaticMapping
+	18, // 7: ddash.pfsenseapi.ListAliasesResponse.aliases:type_name -> ddash.pfsenseapi.Alias
+	19, // 8: ddash.pfsenseapi.ListAliasesResponse.choices:type_name -> ddash.config.Choices
+	1,  // 9: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
+	4,  // 10: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
+	8,  // 11: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
+	11, // 12: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
+	16, // 13: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
+	2,  // 14: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
+	5,  // 15: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
+	9,  // 16: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
+	12, // 17: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
+	17, // 18: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
+	14, // [14:19] is the sub-list for method output_type
+	9,  // [9:14] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_pfsense_api_pfsense_api_proto_init() }
@@ -564,7 +1285,7 @@ func file_pfsense_api_pfsense_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_pfsense_api_pfsense_api_proto_rawDesc), len(file_pfsense_api_pfsense_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

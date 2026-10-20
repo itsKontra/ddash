@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"io/fs"
 	"reflect"
+	"slices"
+	"strings"
 
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/grpc"
@@ -127,7 +129,36 @@ func Define[C proto.Message](s Spec[C]) Definition {
 	if err := d.checkTestAction(zero.ProtoReflect().Descriptor()); err != nil {
 		panic(err.Error())
 	}
+	if err := d.checkChoices(zero.ProtoReflect().Descriptor()); err != nil {
+		panic(err.Error())
+	}
 	return d
+}
+
+// checkChoices enforces that a config field's choices_from is on a
+// top-level string and names "<component>.<Getter>" of a required
+// Component. Whether that getter answers Choices only the host can tell.
+func (d Definition) checkChoices(cfg protoreflect.MessageDescriptor) error {
+	fields := cfg.Fields()
+	for i := range fields.Len() {
+		f := fields.Get(i)
+		opts, _ := proto.GetExtension(f.Options(), configpb.E_Field).(*configpb.Field)
+		from := opts.GetChoicesFrom()
+		if from == "" {
+			continue
+		}
+		if f.Kind() != protoreflect.StringKind || f.IsList() {
+			return fmt.Errorf("sdk: %s: %s has choices_from but isn't a string", d.Name(), f.FullName())
+		}
+		component, getter, ok := strings.Cut(from, ".")
+		if !ok || component == "" || getter == "" {
+			return fmt.Errorf("sdk: %s: %s's choices_from %q isn't \"<component>.<Getter>\"", d.Name(), f.FullName(), from)
+		}
+		if !slices.Contains(d.manifest.Requires, component) {
+			return fmt.Errorf("sdk: %s: %s's choices_from %q names %s, which %s doesn't require", d.Name(), f.FullName(), from, component, d.Name())
+		}
+	}
+	return nil
 }
 
 // checkTestAction enforces that a config message's test_action names a
