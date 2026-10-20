@@ -1,0 +1,23 @@
+/*
+ * The Theme tokens as Tailwind utilities (bg-card, text-up, rounded-ui,
+ * font-sans, ...). Inline, so every utility reads the CSS variable the
+ * Theme sets, and switching Theme or dark mode needs no rebuild.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: var(--font);
+  --radius-ui: var(--radius);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-warn: var(--warn);
+  --color-maint: var(--maint);
+}
