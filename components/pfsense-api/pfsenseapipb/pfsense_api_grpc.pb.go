@@ -32,6 +32,8 @@ const (
 	PfsenseApiService_ListFirewallRules_FullMethodName    = "/ddash.pfsenseapi.PfsenseApiService/ListFirewallRules"
 	PfsenseApiService_CreateStaticMapping_FullMethodName  = "/ddash.pfsenseapi.PfsenseApiService/CreateStaticMapping"
 	PfsenseApiService_RenameStaticMapping_FullMethodName  = "/ddash.pfsenseapi.PfsenseApiService/RenameStaticMapping"
+	PfsenseApiService_AddAliasAddress_FullMethodName      = "/ddash.pfsenseapi.PfsenseApiService/AddAliasAddress"
+	PfsenseApiService_RemoveAliasAddress_FullMethodName   = "/ddash.pfsenseapi.PfsenseApiService/RemoveAliasAddress"
 )
 
 // PfsenseApiServiceClient is the client API for PfsenseApiService service.
@@ -74,6 +76,14 @@ type PfsenseApiServiceClient interface {
 	// RenameStaticMapping changes the description of the MAC's static mapping
 	// on an interface's DHCP server and applies it. The address stays.
 	RenameStaticMapping(ctx context.Context, in *RenameStaticMappingRequest, opts ...grpc.CallOption) (*RenameStaticMappingResponse, error)
+	// AddAliasAddress appends an address with its description to an alias
+	// (firewall/alias) and applies it, which reloads the filter. An address
+	// the alias already holds is left as it is, and nothing is written.
+	AddAliasAddress(ctx context.Context, in *AddAliasAddressRequest, opts ...grpc.CallOption) (*AddAliasAddressResponse, error)
+	// RemoveAliasAddress removes an address, with its description, from an
+	// alias and applies it. Every other member stays as it is. An address
+	// the alias doesn't hold is no change, and nothing is written.
+	RemoveAliasAddress(ctx context.Context, in *RemoveAliasAddressRequest, opts ...grpc.CallOption) (*RemoveAliasAddressResponse, error)
 }
 
 type pfsenseApiServiceClient struct {
@@ -184,6 +194,26 @@ func (c *pfsenseApiServiceClient) RenameStaticMapping(ctx context.Context, in *R
 	return out, nil
 }
 
+func (c *pfsenseApiServiceClient) AddAliasAddress(ctx context.Context, in *AddAliasAddressRequest, opts ...grpc.CallOption) (*AddAliasAddressResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddAliasAddressResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_AddAliasAddress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) RemoveAliasAddress(ctx context.Context, in *RemoveAliasAddressRequest, opts ...grpc.CallOption) (*RemoveAliasAddressResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveAliasAddressResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_RemoveAliasAddress_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PfsenseApiServiceServer is the server API for PfsenseApiService service.
 // All implementations must embed UnimplementedPfsenseApiServiceServer
 // for forward compatibility.
@@ -224,6 +254,14 @@ type PfsenseApiServiceServer interface {
 	// RenameStaticMapping changes the description of the MAC's static mapping
 	// on an interface's DHCP server and applies it. The address stays.
 	RenameStaticMapping(context.Context, *RenameStaticMappingRequest) (*RenameStaticMappingResponse, error)
+	// AddAliasAddress appends an address with its description to an alias
+	// (firewall/alias) and applies it, which reloads the filter. An address
+	// the alias already holds is left as it is, and nothing is written.
+	AddAliasAddress(context.Context, *AddAliasAddressRequest) (*AddAliasAddressResponse, error)
+	// RemoveAliasAddress removes an address, with its description, from an
+	// alias and applies it. Every other member stays as it is. An address
+	// the alias doesn't hold is no change, and nothing is written.
+	RemoveAliasAddress(context.Context, *RemoveAliasAddressRequest) (*RemoveAliasAddressResponse, error)
 	mustEmbedUnimplementedPfsenseApiServiceServer()
 }
 
@@ -263,6 +301,12 @@ func (UnimplementedPfsenseApiServiceServer) CreateStaticMapping(context.Context,
 }
 func (UnimplementedPfsenseApiServiceServer) RenameStaticMapping(context.Context, *RenameStaticMappingRequest) (*RenameStaticMappingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RenameStaticMapping not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) AddAliasAddress(context.Context, *AddAliasAddressRequest) (*AddAliasAddressResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddAliasAddress not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) RemoveAliasAddress(context.Context, *RemoveAliasAddressRequest) (*RemoveAliasAddressResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveAliasAddress not implemented")
 }
 func (UnimplementedPfsenseApiServiceServer) mustEmbedUnimplementedPfsenseApiServiceServer() {}
 func (UnimplementedPfsenseApiServiceServer) testEmbeddedByValue()                           {}
@@ -465,6 +509,42 @@ func _PfsenseApiService_RenameStaticMapping_Handler(srv interface{}, ctx context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PfsenseApiService_AddAliasAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAliasAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).AddAliasAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_AddAliasAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).AddAliasAddress(ctx, req.(*AddAliasAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_RemoveAliasAddress_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAliasAddressRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).RemoveAliasAddress(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_RemoveAliasAddress_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).RemoveAliasAddress(ctx, req.(*RemoveAliasAddressRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PfsenseApiService_ServiceDesc is the grpc.ServiceDesc for PfsenseApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -511,6 +591,14 @@ var PfsenseApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RenameStaticMapping",
 			Handler:    _PfsenseApiService_RenameStaticMapping_Handler,
+		},
+		{
+			MethodName: "AddAliasAddress",
+			Handler:    _PfsenseApiService_AddAliasAddress_Handler,
+		},
+		{
+			MethodName: "RemoveAliasAddress",
+			Handler:    _PfsenseApiService_RemoveAliasAddress_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

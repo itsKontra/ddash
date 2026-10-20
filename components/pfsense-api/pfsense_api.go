@@ -283,20 +283,24 @@ type alias struct {
 	Detail  []string `json:"detail"`
 }
 
+func (a *alias) proto() *pfsenseapipb.Alias {
+	return &pfsenseapipb.Alias{
+		Name:        a.Name,
+		Type:        a.Type,
+		Description: str(a.Descr),
+		Addresses:   a.Address,
+		Details:     a.Detail,
+	}
+}
+
 func (c *component) fetchAliases(ctx context.Context) (*pfsenseapipb.ListAliasesResponse, error) {
-	var data []alias
-	if err := c.api.get(ctx, "/api/v2/firewall/aliases", &data); err != nil {
+	data, err := c.readAliases(ctx)
+	if err != nil {
 		return nil, err
 	}
 	out := &pfsenseapipb.ListAliasesResponse{Choices: &configpb.Choices{}}
 	for _, a := range data {
-		out.Aliases = append(out.Aliases, &pfsenseapipb.Alias{
-			Name:        a.Name,
-			Type:        a.Type,
-			Description: str(a.Descr),
-			Addresses:   a.Address,
-			Details:     a.Detail,
-		})
+		out.Aliases = append(out.Aliases, a.proto())
 		if a.Type == "port" {
 			continue
 		}

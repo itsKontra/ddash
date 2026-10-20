@@ -32,6 +32,7 @@ func (c *component) write(ctx context.Context, fn func() error) error {
 	defer func() { <-c.queue }()
 	defer c.servers.Invalidate()
 	defer c.leases.Invalidate()
+	defer c.aliases.Invalidate()
 	return fn()
 }
 
