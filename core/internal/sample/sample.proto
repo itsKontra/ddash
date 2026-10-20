@@ -8,18 +8,43 @@ import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/core/internal/sample/samplepb;samplepb";
 
+// SampleConfig has a field of every kind a config form supports.
 message SampleConfig {
-  // Start refuses an empty target, so a sample without config is unconfigured.
-  string target = 1;
+  // A sample without config is unconfigured. Start refuses "nowhere",
+  // which the host's rules can't know.
+  string target = 1 [(ddash.config.field) = {
+    label: "Target"
+    help: "Whom to greet."
+    placeholder: "world"
+    required: true
+  }];
   optional string greeting = 2 [(ddash.config.field) = {default: "hello"}];
-  optional int64 times = 3 [(ddash.config.field) = {default: "1"}];
+  optional int64 times = 3 [(ddash.config.field) = {
+    default: "1"
+    min: 1
+    max: 10
+  }];
   optional bool loud = 4 [(ddash.config.field) = {default: "true"}];
   optional Tone tone = 5 [(ddash.config.field) = {default: "TONE_WARM"}];
+  string token = 6 [(ddash.config.field) = {secret: true}];
+  string server = 7 [(ddash.config.field) = {format: FORMAT_URL}];
+  repeated string tags = 8;
+  repeated Peer peers = 9;
+}
+
+message Peer {
+  string name = 1 [(ddash.config.field) = {required: true}];
+  string address = 2 [(ddash.config.field) = {format: FORMAT_IP}];
+  optional int64 port = 3 [(ddash.config.field) = {
+    default: "22"
+    min: 1
+    max: 65535
+  }];
 }
 
 enum Tone {
   TONE_UNSPECIFIED = 0;
-  TONE_WARM = 1;
+  TONE_WARM = 1 [(ddash.config.value) = {label: "Warm and kind"}];
   TONE_COLD = 2;
 }
 

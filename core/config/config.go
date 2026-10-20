@@ -29,19 +29,46 @@ func New(db *sql.DB) *Store { return &Store{db: db} }
 // unset field that has a default (option (ddash.config.field).default) set
 // to it. An owner with nothing stored gets the defaults alone.
 func (s *Store) Load(ctx context.Context, owner string, desc protoreflect.MessageDescriptor) (proto.Message, error) {
-	var value []byte
-	err := s.db.QueryRowContext(ctx, `SELECT value FROM config WHERE owner = ?`, owner).Scan(&value)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+	msg, err := s.stored(ctx, owner, desc)
+	if err != nil {
+		return nil, err
+	}
+	if err := applyDefaults(msg); err != nil {
 		return nil, fmt.Errorf("load %s config: %w", owner, err)
+	}
+	return msg.Interface(), nil
+}
+
+// stored returns owner's stored config as a message of type desc, without
+// defaults: only what differs from them.
+func (s *Store) stored(ctx context.Context, owner string, desc protoreflect.MessageDescriptor) (protoreflect.Message, error) {
+	value, _, err := s.row(ctx, owner)
+	if err != nil {
+		return nil, err
 	}
 	msg := dynamicpb.NewMessage(desc)
 	if err := proto.Unmarshal(value, msg); err != nil {
 		return nil, fmt.Errorf("load %s config: %w", owner, err)
 	}
-	if err := applyDefaults(msg); err != nil {
-		return nil, fmt.Errorf("load %s config: %w", owner, err)
-	}
 	return msg, nil
+}
+
+// row reads owner's stored config; ok is false when there is none.
+func (s *Store) row(ctx context.Context, owner string) (value []byte, ok bool, err error) {
+	err = s.db.QueryRowContext(ctx, `SELECT value FROM config WHERE owner = ?`, owner).Scan(&value)
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		return nil, false, nil
+	case err != nil:
+		return nil, false, fmt.Errorf("load %s config: %w", owner, err)
+	}
+	return value, true, nil
+}
+
+// Saved reports whether config was ever saved for owner.
+func (s *Store) Saved(ctx context.Context, owner string) (bool, error) {
+	_, ok, err := s.row(ctx, owner)
+	return ok, err
 }
 
 // applyDefaults sets m's unset fields to their defaults, and those of the

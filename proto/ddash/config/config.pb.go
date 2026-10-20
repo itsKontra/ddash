@@ -4,8 +4,15 @@
 // 	protoc        (unknown)
 // source: ddash/config/config.proto
 
-// Options on the fields of a Component's config message. The host reads them
-// from the Component's descriptors to load, render and validate its config.
+// Options on the fields of a Component's config message (and the core's
+// CoreSettings). The host reads them from the Component's descriptors to
+// load, render and validate its config.
+//
+// A config message holds, at the top level: string, int64, bool and enum
+// fields, `repeated` lists of those, and `repeated` messages of those one
+// level deep (a table). A secret is a top-level string. Nothing else is
+// supported in v1 (float, bytes, map, oneof, deeper nesting, well-known
+// types).
 
 package configpb
 
@@ -25,16 +32,96 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Field_Format int32
+
+const (
+	// Any text.
+	Field_FORMAT_UNSPECIFIED Field_Format = 0
+	// An absolute URL with a scheme and a host, e.g. "tcp://198.18.2.10:2375".
+	Field_FORMAT_URL Field_Format = 1
+	// A DNS name, e.g. "pve.home.example".
+	Field_FORMAT_HOSTNAME Field_Format = 2
+	// An IPv4 or IPv6 address.
+	Field_FORMAT_IP Field_Format = 3
+	// An address with a prefix length, e.g. "198.18.1.0/24".
+	Field_FORMAT_CIDR Field_Format = 4
+	// Two addresses of one family, low to high, e.g. "198.18.1.100-198.18.1.199".
+	Field_FORMAT_IP_RANGE Field_Format = 5
+)
+
+// Enum value maps for Field_Format.
+var (
+	Field_Format_name = map[int32]string{
+		0: "FORMAT_UNSPECIFIED",
+		1: "FORMAT_URL",
+		2: "FORMAT_HOSTNAME",
+		3: "FORMAT_IP",
+		4: "FORMAT_CIDR",
+		5: "FORMAT_IP_RANGE",
+	}
+	Field_Format_value = map[string]int32{
+		"FORMAT_UNSPECIFIED": 0,
+		"FORMAT_URL":         1,
+		"FORMAT_HOSTNAME":    2,
+		"FORMAT_IP":          3,
+		"FORMAT_CIDR":        4,
+		"FORMAT_IP_RANGE":    5,
+	}
+)
+
+func (x Field_Format) Enum() *Field_Format {
+	p := new(Field_Format)
+	*p = x
+	return p
+}
+
+func (x Field_Format) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Field_Format) Descriptor() protoreflect.EnumDescriptor {
+	return file_ddash_config_config_proto_enumTypes[0].Descriptor()
+}
+
+func (Field_Format) Type() protoreflect.EnumType {
+	return &file_ddash_config_config_proto_enumTypes[0]
+}
+
+func (x Field_Format) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Field_Format.Descriptor instead.
+func (Field_Format) EnumDescriptor() ([]byte, []int) {
+	return file_ddash_config_config_proto_rawDescGZIP(), []int{0, 0}
+}
+
 type Field struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The value an unset field takes, written as text: a string as is, an
 	// integer in decimal, a bool as "true" or "false", an enum by value name.
 	// Only a proto3 `optional` scalar can have a default, since unset must
-	// differ from the zero value.
+	// differ from the zero value. The form shows it as the placeholder.
 	Default string `protobuf:"bytes,1,opt,name=default,proto3" json:"default,omitempty"`
-	// A secret is write-only once saved. The Audit Log redacts a secret field
-	// on any message it records, config or not.
-	Secret        bool `protobuf:"varint,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	// A secret is write-only once saved: the form shows it as set or unset,
+	// with Replace and Clear. Only a top-level string can be one. The Audit
+	// Log redacts a secret field on any message it records, config or not.
+	Secret bool `protobuf:"varint,2,opt,name=secret,proto3" json:"secret,omitempty"`
+	// The field's label in the form. Default: the field name in sentence
+	// case ("public_url" is "Public url").
+	Label string `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	// One line of help under the field.
+	Help string `protobuf:"bytes,4,opt,name=help,proto3" json:"help,omitempty"`
+	// The empty input's placeholder when the field has no default.
+	Placeholder string `protobuf:"bytes,5,opt,name=placeholder,proto3" json:"placeholder,omitempty"`
+	// The field must be set: a non-empty string or list, a set int64, an
+	// enum other than its zero value. A field with a default always is.
+	Required bool `protobuf:"varint,6,opt,name=required,proto3" json:"required,omitempty"`
+	// What a string (or each string of a list) must look like.
+	Format Field_Format `protobuf:"varint,7,opt,name=format,proto3,enum=ddash.config.Field_Format" json:"format,omitempty"`
+	// The least and greatest an int64 (or each int64 of a list) may be.
+	Min           *int64 `protobuf:"varint,8,opt,name=min,proto3,oneof" json:"min,omitempty"`
+	Max           *int64 `protobuf:"varint,9,opt,name=max,proto3,oneof" json:"max,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -83,6 +170,101 @@ func (x *Field) GetSecret() bool {
 	return false
 }
 
+func (x *Field) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *Field) GetHelp() string {
+	if x != nil {
+		return x.Help
+	}
+	return ""
+}
+
+func (x *Field) GetPlaceholder() string {
+	if x != nil {
+		return x.Placeholder
+	}
+	return ""
+}
+
+func (x *Field) GetRequired() bool {
+	if x != nil {
+		return x.Required
+	}
+	return false
+}
+
+func (x *Field) GetFormat() Field_Format {
+	if x != nil {
+		return x.Format
+	}
+	return Field_FORMAT_UNSPECIFIED
+}
+
+func (x *Field) GetMin() int64 {
+	if x != nil && x.Min != nil {
+		return *x.Min
+	}
+	return 0
+}
+
+func (x *Field) GetMax() int64 {
+	if x != nil && x.Max != nil {
+		return *x.Max
+	}
+	return 0
+}
+
+type EnumValue struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The value's label in the form. Default: the value name without the
+	// enum's prefix, in sentence case ("TONE_WARM" is "Warm").
+	Label         string `protobuf:"bytes,1,opt,name=label,proto3" json:"label,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnumValue) Reset() {
+	*x = EnumValue{}
+	mi := &file_ddash_config_config_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnumValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnumValue) ProtoMessage() {}
+
+func (x *EnumValue) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_config_config_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnumValue.ProtoReflect.Descriptor instead.
+func (*EnumValue) Descriptor() ([]byte, []int) {
+	return file_ddash_config_config_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *EnumValue) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
 var file_ddash_config_config_proto_extTypes = []protoimpl.ExtensionInfo{
 	{
 		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
@@ -92,25 +274,61 @@ var file_ddash_config_config_proto_extTypes = []protoimpl.ExtensionInfo{
 		Tag:           "bytes,50003,opt,name=field",
 		Filename:      "ddash/config/config.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.EnumValueOptions)(nil),
+		ExtensionType: (*EnumValue)(nil),
+		Field:         50004,
+		Name:          "ddash.config.value",
+		Tag:           "bytes,50004,opt,name=value",
+		Filename:      "ddash/config/config.proto",
+	},
 }
 
 // Extension fields to descriptorpb.FieldOptions.
 var (
-	// Used as [(ddash.config.field) = {default: "https://ntfy.sh"}].
+	// Used as [(ddash.config.field) = {label: "Server", default: "https://ntfy.sh", format: FORMAT_URL}].
 	//
 	// optional ddash.config.Field field = 50003;
 	E_Field = &file_ddash_config_config_proto_extTypes[0]
+)
+
+// Extension fields to descriptorpb.EnumValueOptions.
+var (
+	// Used as [(ddash.config.value) = {label: "Warm"}].
+	//
+	// optional ddash.config.EnumValue value = 50004;
+	E_Value = &file_ddash_config_config_proto_extTypes[1]
 )
 
 var File_ddash_config_config_proto protoreflect.FileDescriptor
 
 const file_ddash_config_config_proto_rawDesc = "" +
 	"\n" +
-	"\x19ddash/config/config.proto\x12\fddash.config\x1a google/protobuf/descriptor.proto\"9\n" +
+	"\x19ddash/config/config.proto\x12\fddash.config\x1a google/protobuf/descriptor.proto\"\x8f\x03\n" +
 	"\x05Field\x12\x18\n" +
 	"\adefault\x18\x01 \x01(\tR\adefault\x12\x16\n" +
-	"\x06secret\x18\x02 \x01(\bR\x06secret:J\n" +
-	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18ӆ\x03 \x01(\v2\x13.ddash.config.FieldR\x05fieldB8Z6github.com/itsKontra/ddash/proto/ddash/config;configpbb\x06proto3"
+	"\x06secret\x18\x02 \x01(\bR\x06secret\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12\x12\n" +
+	"\x04help\x18\x04 \x01(\tR\x04help\x12 \n" +
+	"\vplaceholder\x18\x05 \x01(\tR\vplaceholder\x12\x1a\n" +
+	"\brequired\x18\x06 \x01(\bR\brequired\x122\n" +
+	"\x06format\x18\a \x01(\x0e2\x1a.ddash.config.Field.FormatR\x06format\x12\x15\n" +
+	"\x03min\x18\b \x01(\x03H\x00R\x03min\x88\x01\x01\x12\x15\n" +
+	"\x03max\x18\t \x01(\x03H\x01R\x03max\x88\x01\x01\"z\n" +
+	"\x06Format\x12\x16\n" +
+	"\x12FORMAT_UNSPECIFIED\x10\x00\x12\x0e\n" +
+	"\n" +
+	"FORMAT_URL\x10\x01\x12\x13\n" +
+	"\x0fFORMAT_HOSTNAME\x10\x02\x12\r\n" +
+	"\tFORMAT_IP\x10\x03\x12\x0f\n" +
+	"\vFORMAT_CIDR\x10\x04\x12\x13\n" +
+	"\x0fFORMAT_IP_RANGE\x10\x05B\x06\n" +
+	"\x04_minB\x06\n" +
+	"\x04_max\"!\n" +
+	"\tEnumValue\x12\x14\n" +
+	"\x05label\x18\x01 \x01(\tR\x05label:J\n" +
+	"\x05field\x12\x1d.google.protobuf.FieldOptions\x18ӆ\x03 \x01(\v2\x13.ddash.config.FieldR\x05field:R\n" +
+	"\x05value\x12!.google.protobuf.EnumValueOptions\x18Ԇ\x03 \x01(\v2\x17.ddash.config.EnumValueR\x05valueB8Z6github.com/itsKontra/ddash/proto/ddash/config;configpbb\x06proto3"
 
 var (
 	file_ddash_config_config_proto_rawDescOnce sync.Once
@@ -124,19 +342,26 @@ func file_ddash_config_config_proto_rawDescGZIP() []byte {
 	return file_ddash_config_config_proto_rawDescData
 }
 
-var file_ddash_config_config_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ddash_config_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_ddash_config_config_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
 var file_ddash_config_config_proto_goTypes = []any{
-	(*Field)(nil),                     // 0: ddash.config.Field
-	(*descriptorpb.FieldOptions)(nil), // 1: google.protobuf.FieldOptions
+	(Field_Format)(0),                     // 0: ddash.config.Field.Format
+	(*Field)(nil),                         // 1: ddash.config.Field
+	(*EnumValue)(nil),                     // 2: ddash.config.EnumValue
+	(*descriptorpb.FieldOptions)(nil),     // 3: google.protobuf.FieldOptions
+	(*descriptorpb.EnumValueOptions)(nil), // 4: google.protobuf.EnumValueOptions
 }
 var file_ddash_config_config_proto_depIdxs = []int32{
-	1, // 0: ddash.config.field:extendee -> google.protobuf.FieldOptions
-	0, // 1: ddash.config.field:type_name -> ddash.config.Field
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	1, // [1:2] is the sub-list for extension type_name
-	0, // [0:1] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	0, // 0: ddash.config.Field.format:type_name -> ddash.config.Field.Format
+	3, // 1: ddash.config.field:extendee -> google.protobuf.FieldOptions
+	4, // 2: ddash.config.value:extendee -> google.protobuf.EnumValueOptions
+	1, // 3: ddash.config.field:type_name -> ddash.config.Field
+	2, // 4: ddash.config.value:type_name -> ddash.config.EnumValue
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	3, // [3:5] is the sub-list for extension type_name
+	1, // [1:3] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_ddash_config_config_proto_init() }
@@ -144,18 +369,20 @@ func file_ddash_config_config_proto_init() {
 	if File_ddash_config_config_proto != nil {
 		return
 	}
+	file_ddash_config_config_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_config_config_proto_rawDesc), len(file_ddash_config_config_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   1,
-			NumExtensions: 1,
+			NumEnums:      1,
+			NumMessages:   2,
+			NumExtensions: 2,
 			NumServices:   0,
 		},
 		GoTypes:           file_ddash_config_config_proto_goTypes,
 		DependencyIndexes: file_ddash_config_config_proto_depIdxs,
+		EnumInfos:         file_ddash_config_config_proto_enumTypes,
 		MessageInfos:      file_ddash_config_config_proto_msgTypes,
 		ExtensionInfos:    file_ddash_config_config_proto_extTypes,
 	}.Build()

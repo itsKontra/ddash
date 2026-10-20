@@ -92,12 +92,12 @@ func TestTheCatalogueListsEveryPluginWithTheComponentsItPullsIn(t *testing.T) {
 		"plugins": []any{
 			map[string]any{
 				"name": "hello", "title": "hello", "installed": true,
-				"components": []any{map[string]any{"name": "greeter", "state": "ok"}},
+				"components": []any{map[string]any{"name": "greeter", "state": "ok", "configurable": true}},
 			},
 			map[string]any{
 				"name": "relayer", "title": "Relayer", "description": "Relays greetings.", "icon": "waypoints", "author": "itsKontra",
 				// greeter already runs for hello; relay doesn't run.
-				"components": []any{map[string]any{"name": "greeter", "state": "ok"}, map[string]any{"name": "relay"}},
+				"components": []any{map[string]any{"name": "greeter", "state": "ok", "configurable": true}, map[string]any{"name": "relay"}},
 			},
 		},
 	}

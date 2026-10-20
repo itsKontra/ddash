@@ -2,12 +2,19 @@
 // @generated from file ddash/config/config.proto (package ddash.config, syntax proto3)
 /* eslint-disable */
 
-// Options on the fields of a Component's config message. The host reads them
-// from the Component's descriptors to load, render and validate its config.
+// Options on the fields of a Component's config message (and the core's
+// CoreSettings). The host reads them from the Component's descriptors to
+// load, render and validate its config.
+//
+// A config message holds, at the top level: string, int64, bool and enum
+// fields, `repeated` lists of those, and `repeated` messages of those one
+// level deep (a table). A secret is a top-level string. Nothing else is
+// supported in v1 (float, bytes, map, oneof, deeper nesting, well-known
+// types).
 
-import type { GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { extDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { FieldOptions } from "@bufbuild/protobuf/wkt";
+import type { GenEnum, GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, extDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { EnumValueOptions, FieldOptions } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_descriptor } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -15,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/config/config.proto.
  */
 export const file_ddash_config_config: GenFile = /*@__PURE__*/
-  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciKAoFRmllbGQSDwoHZGVmYXVsdBgBIAEoCRIOCgZzZWNyZXQYAiABKAg6SgoFZmllbGQSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNOGAyABKAsyEy5kZGFzaC5jb25maWcuRmllbGRSBWZpZWxkQjhaNmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbmZpZztjb25maWdwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
+  fileDesc("ChlkZGFzaC9jb25maWcvY29uZmlnLnByb3RvEgxkZGFzaC5jb25maWciyAIKBUZpZWxkEg8KB2RlZmF1bHQYASABKAkSDgoGc2VjcmV0GAIgASgIEg0KBWxhYmVsGAMgASgJEgwKBGhlbHAYBCABKAkSEwoLcGxhY2Vob2xkZXIYBSABKAkSEAoIcmVxdWlyZWQYBiABKAgSKgoGZm9ybWF0GAcgASgOMhouZGRhc2guY29uZmlnLkZpZWxkLkZvcm1hdBIQCgNtaW4YCCABKANIAIgBARIQCgNtYXgYCSABKANIAYgBASJ6CgZGb3JtYXQSFgoSRk9STUFUX1VOU1BFQ0lGSUVEEAASDgoKRk9STUFUX1VSTBABEhMKD0ZPUk1BVF9IT1NUTkFNRRACEg0KCUZPUk1BVF9JUBADEg8KC0ZPUk1BVF9DSURSEAQSEwoPRk9STUFUX0lQX1JBTkdFEAVCBgoEX21pbkIGCgRfbWF4IhoKCUVudW1WYWx1ZRINCgVsYWJlbBgBIAEoCTpKCgVmaWVsZBIdLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE9wdGlvbnMY04YDIAEoCzITLmRkYXNoLmNvbmZpZy5GaWVsZFIFZmllbGQ6UgoFdmFsdWUSIS5nb29nbGUucHJvdG9idWYuRW51bVZhbHVlT3B0aW9ucxjUhgMgASgLMhcuZGRhc2guY29uZmlnLkVudW1WYWx1ZVIFdmFsdWVCOFo2Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29uZmlnO2NvbmZpZ3BiYgZwcm90bzM", [file_google_protobuf_descriptor]);
 
 /**
  * @generated from message ddash.config.Field
@@ -25,19 +32,69 @@ export type Field = Message<"ddash.config.Field"> & {
    * The value an unset field takes, written as text: a string as is, an
    * integer in decimal, a bool as "true" or "false", an enum by value name.
    * Only a proto3 `optional` scalar can have a default, since unset must
-   * differ from the zero value.
+   * differ from the zero value. The form shows it as the placeholder.
    *
    * @generated from field: string default = 1;
    */
   default: string;
 
   /**
-   * A secret is write-only once saved. The Audit Log redacts a secret field
-   * on any message it records, config or not.
+   * A secret is write-only once saved: the form shows it as set or unset,
+   * with Replace and Clear. Only a top-level string can be one. The Audit
+   * Log redacts a secret field on any message it records, config or not.
    *
    * @generated from field: bool secret = 2;
    */
   secret: boolean;
+
+  /**
+   * The field's label in the form. Default: the field name in sentence
+   * case ("public_url" is "Public url").
+   *
+   * @generated from field: string label = 3;
+   */
+  label: string;
+
+  /**
+   * One line of help under the field.
+   *
+   * @generated from field: string help = 4;
+   */
+  help: string;
+
+  /**
+   * The empty input's placeholder when the field has no default.
+   *
+   * @generated from field: string placeholder = 5;
+   */
+  placeholder: string;
+
+  /**
+   * The field must be set: a non-empty string or list, a set int64, an
+   * enum other than its zero value. A field with a default always is.
+   *
+   * @generated from field: bool required = 6;
+   */
+  required: boolean;
+
+  /**
+   * What a string (or each string of a list) must look like.
+   *
+   * @generated from field: ddash.config.Field.Format format = 7;
+   */
+  format: Field_Format;
+
+  /**
+   * The least and greatest an int64 (or each int64 of a list) may be.
+   *
+   * @generated from field: optional int64 min = 8;
+   */
+  min?: bigint | undefined;
+
+  /**
+   * @generated from field: optional int64 max = 9;
+   */
+  max?: bigint | undefined;
 };
 
 /**
@@ -48,10 +105,91 @@ export const FieldSchema: GenMessage<Field> = /*@__PURE__*/
   messageDesc(file_ddash_config_config, 0);
 
 /**
- * Used as [(ddash.config.field) = {default: "https://ntfy.sh"}].
+ * @generated from enum ddash.config.Field.Format
+ */
+export enum Field_Format {
+  /**
+   * Any text.
+   *
+   * @generated from enum value: FORMAT_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * An absolute URL with a scheme and a host, e.g. "tcp://198.18.2.10:2375".
+   *
+   * @generated from enum value: FORMAT_URL = 1;
+   */
+  URL = 1,
+
+  /**
+   * A DNS name, e.g. "pve.home.example".
+   *
+   * @generated from enum value: FORMAT_HOSTNAME = 2;
+   */
+  HOSTNAME = 2,
+
+  /**
+   * An IPv4 or IPv6 address.
+   *
+   * @generated from enum value: FORMAT_IP = 3;
+   */
+  IP = 3,
+
+  /**
+   * An address with a prefix length, e.g. "198.18.1.0/24".
+   *
+   * @generated from enum value: FORMAT_CIDR = 4;
+   */
+  CIDR = 4,
+
+  /**
+   * Two addresses of one family, low to high, e.g. "198.18.1.100-198.18.1.199".
+   *
+   * @generated from enum value: FORMAT_IP_RANGE = 5;
+   */
+  IP_RANGE = 5,
+}
+
+/**
+ * Describes the enum ddash.config.Field.Format.
+ */
+export const Field_FormatSchema: GenEnum<Field_Format> = /*@__PURE__*/
+  enumDesc(file_ddash_config_config, 0, 0);
+
+/**
+ * @generated from message ddash.config.EnumValue
+ */
+export type EnumValue = Message<"ddash.config.EnumValue"> & {
+  /**
+   * The value's label in the form. Default: the value name without the
+   * enum's prefix, in sentence case ("TONE_WARM" is "Warm").
+   *
+   * @generated from field: string label = 1;
+   */
+  label: string;
+};
+
+/**
+ * Describes the message ddash.config.EnumValue.
+ * Use `create(EnumValueSchema)` to create a new message.
+ */
+export const EnumValueSchema: GenMessage<EnumValue> = /*@__PURE__*/
+  messageDesc(file_ddash_config_config, 1);
+
+/**
+ * Used as [(ddash.config.field) = {label: "Server", default: "https://ntfy.sh", format: FORMAT_URL}].
  *
  * @generated from extension: ddash.config.Field field = 50003;
  */
 export const field: GenExtension<FieldOptions, Field> = /*@__PURE__*/
   extDesc(file_ddash_config_config, 0);
+
+/**
+ * Used as [(ddash.config.value) = {label: "Warm"}].
+ *
+ * @generated from extension: ddash.config.EnumValue value = 50004;
+ */
+export const value: GenExtension<EnumValueOptions, EnumValue> = /*@__PURE__*/
+  extDesc(file_ddash_config_config, 1);
 

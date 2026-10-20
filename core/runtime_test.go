@@ -145,7 +145,7 @@ func TestHealthIsPolledRightAfterStartAndEveryThirtySeconds(t *testing.T) {
 
 		mu.Lock()
 		defer mu.Unlock()
-		want := runtime.Status{State: runtime.Degraded, Message: "media unreachable"}
+		want := runtime.Status{State: runtime.Degraded, Message: "media unreachable", Configurable: true}
 		if got := h.Status("greeter"); polls != 2 || got != want {
 			t.Errorf("30 s later: %d polls, %v; want 2, %v", polls, got, want)
 		}

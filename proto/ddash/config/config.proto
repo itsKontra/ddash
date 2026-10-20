@@ -1,7 +1,14 @@
 syntax = "proto3";
 
-// Options on the fields of a Component's config message. The host reads them
-// from the Component's descriptors to load, render and validate its config.
+// Options on the fields of a Component's config message (and the core's
+// CoreSettings). The host reads them from the Component's descriptors to
+// load, render and validate its config.
+//
+// A config message holds, at the top level: string, int64, bool and enum
+// fields, `repeated` lists of those, and `repeated` messages of those one
+// level deep (a table). A secret is a top-level string. Nothing else is
+// supported in v1 (float, bytes, map, oneof, deeper nesting, well-known
+// types).
 package ddash.config;
 
 import "google/protobuf/descriptor.proto";
@@ -9,17 +16,59 @@ import "google/protobuf/descriptor.proto";
 option go_package = "github.com/itsKontra/ddash/proto/ddash/config;configpb";
 
 extend google.protobuf.FieldOptions {
-  // Used as [(ddash.config.field) = {default: "https://ntfy.sh"}].
+  // Used as [(ddash.config.field) = {label: "Server", default: "https://ntfy.sh", format: FORMAT_URL}].
   Field field = 50003;
+}
+
+extend google.protobuf.EnumValueOptions {
+  // Used as [(ddash.config.value) = {label: "Warm"}].
+  EnumValue value = 50004;
 }
 
 message Field {
   // The value an unset field takes, written as text: a string as is, an
   // integer in decimal, a bool as "true" or "false", an enum by value name.
   // Only a proto3 `optional` scalar can have a default, since unset must
-  // differ from the zero value.
+  // differ from the zero value. The form shows it as the placeholder.
   string default = 1;
-  // A secret is write-only once saved. The Audit Log redacts a secret field
-  // on any message it records, config or not.
+  // A secret is write-only once saved: the form shows it as set or unset,
+  // with Replace and Clear. Only a top-level string can be one. The Audit
+  // Log redacts a secret field on any message it records, config or not.
   bool secret = 2;
+  // The field's label in the form. Default: the field name in sentence
+  // case ("public_url" is "Public url").
+  string label = 3;
+  // One line of help under the field.
+  string help = 4;
+  // The empty input's placeholder when the field has no default.
+  string placeholder = 5;
+  // The field must be set: a non-empty string or list, a set int64, an
+  // enum other than its zero value. A field with a default always is.
+  bool required = 6;
+  // What a string (or each string of a list) must look like.
+  Format format = 7;
+  // The least and greatest an int64 (or each int64 of a list) may be.
+  optional int64 min = 8;
+  optional int64 max = 9;
+
+  enum Format {
+    // Any text.
+    FORMAT_UNSPECIFIED = 0;
+    // An absolute URL with a scheme and a host, e.g. "tcp://198.18.2.10:2375".
+    FORMAT_URL = 1;
+    // A DNS name, e.g. "pve.home.example".
+    FORMAT_HOSTNAME = 2;
+    // An IPv4 or IPv6 address.
+    FORMAT_IP = 3;
+    // An address with a prefix length, e.g. "198.18.1.0/24".
+    FORMAT_CIDR = 4;
+    // Two addresses of one family, low to high, e.g. "198.18.1.100-198.18.1.199".
+    FORMAT_IP_RANGE = 5;
+  }
+}
+
+message EnumValue {
+  // The value's label in the form. Default: the value name without the
+  // enum's prefix, in sentence case ("TONE_WARM" is "Warm").
+  string label = 1;
 }

@@ -8,11 +8,13 @@ import (
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"connectrpc.com/connect/v2/connectproto"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/durationpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/core/appstate"
+	"github.com/itsKontra/ddash/sdk"
 
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/proto/ddash/core/corepbconnect"
@@ -38,7 +40,9 @@ func (h *Host) apiHandler() http.Handler {
 }
 
 // connectError answers err, a gRPC status error, with its code and message.
-// connect-go's codes are gRPC's. nil stays nil; any other error is Unknown.
+// connect-go's codes are gRPC's. An "invalid config" error carries its
+// per-field errors as a ConfigErrors detail. nil stays nil; any other error
+// is Unknown.
 func connectError(err error) error {
 	if err == nil {
 		return nil
@@ -47,7 +51,13 @@ func connectError(err error) error {
 	if !ok {
 		return err
 	}
-	return connect.NewError(connect.Code(st.Code()), st.Message())
+	cerr := connect.NewError(connect.Code(st.Code()), st.Message())
+	if errs := sdk.FieldErrorsOf(err); errs != nil {
+		if d, derr := connectproto.NewErrorDetail(&corepb.ConfigErrors{Errors: configErrors(errs)}); derr == nil {
+			cerr = cerr.WithDetail(d)
+		}
+	}
+	return cerr
 }
 
 func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPluginsRequest) (*corepb.ListInstalledPluginsResponse, error) {
@@ -69,7 +79,7 @@ func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPlug
 	return resp, nil
 }
 
-func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*corepb.ListCatalogueResponse, error) {
+func (a coreAPI) ListCatalogue(ctx context.Context, _ *corepb.ListCatalogueRequest) (*corepb.ListCatalogueResponse, error) {
 	rt := a.host.runtime
 	cat := rt.Catalogue()
 	installed := map[string]bool{}
@@ -78,6 +88,7 @@ func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*
 	}
 	running := rt.Status()
 	resp := &corepb.ListCatalogueResponse{Release: cat.Release, Orphans: rt.Orphans()}
+	statuses := map[string]*corepb.ComponentStatus{}
 	for _, p := range cat.Plugins {
 		cp := &corepb.CataloguePlugin{
 			Name:        p.Name,
@@ -88,10 +99,15 @@ func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*
 			Installed:   installed[p.Name],
 		}
 		for _, name := range cat.Pulls(p.Name) {
-			st := running[name]
-			cp.Components = append(cp.Components, &corepb.ComponentStatus{
-				Name: name, State: string(st.State), Message: st.Message, Held: st.Held,
-			})
+			cs, ok := statuses[name]
+			if !ok {
+				var err error
+				if cs, err = a.host.componentStatus(ctx, name, running[name]); err != nil {
+					return nil, connectError(err)
+				}
+				statuses[name] = cs
+			}
+			cp.Components = append(cp.Components, cs)
 		}
 		resp.Plugins = append(resp.Plugins, cp)
 	}
@@ -158,4 +174,14 @@ func (a coreAPI) ListAuditLog(ctx context.Context, req *corepb.ListAuditLogReque
 		resp.Chains = append(resp.Chains, chain)
 	}
 	return resp, nil
+}
+
+func (a coreAPI) GetConfigForm(ctx context.Context, req *corepb.GetConfigFormRequest) (*corepb.GetConfigFormResponse, error) {
+	resp, err := a.host.ConfigForm(ctx, req.GetOwner())
+	return resp, connectError(err)
+}
+
+func (a coreAPI) SaveConfig(ctx context.Context, req *corepb.SaveConfigRequest) (*corepb.SaveConfigResponse, error) {
+	resp, err := a.host.SaveConfig(ctx, req)
+	return resp, connectError(err)
 }
