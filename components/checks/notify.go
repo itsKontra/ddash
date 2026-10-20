@@ -249,8 +249,8 @@ func (c *component) wanted(item string) (pending, want) {
 		p.kind, p.as = sayFlapping, notified{state: markFlapping, since: at}
 		p.n.Title, p.n.Priority, p.n.Tags = sub.name+" flapping", 4, []string{"warning"}
 		p.n.Message = fmt.Sprintf("Down %d times within %s. Next Notification once it has been up or down for %s.",
-			FlapDowns, downtime(FlapWindow), downtime(FlapHold))
-		p.line = joinLine(p.n.Title, fmt.Sprintf("down %d times within %s", FlapDowns, downtime(FlapWindow)))
+			FlapDowns, howLong(FlapWindow), howLong(FlapHold))
+		p.line = joinLine(p.n.Title, fmt.Sprintf("down %d times within %s", FlapDowns, howLong(FlapWindow)))
 		return p, send
 	}
 
@@ -277,9 +277,9 @@ func (c *component) wanted(item string) (pending, want) {
 	p.n.Title, p.n.Priority, p.n.Tags = sub.name+" up again", 3, []string{"green_circle"}
 	var detail string
 	if last.state == markFlapping {
-		detail = "up for " + downtime(at.Sub(sub.since)) + " after Flapping"
+		detail = "up for " + howLong(at.Sub(sub.since)) + " after Flapping"
 	} else {
-		detail = "down for " + downtime(sub.since.Sub(last.since))
+		detail = "down for " + howLong(sub.since.Sub(last.since))
 		if last.reason != "" {
 			detail += " (" + last.reason + ")"
 		}
@@ -453,9 +453,9 @@ func (c *component) link(path string) string {
 	return strings.TrimSuffix(c.publicURL, "/") + path
 }
 
-// downtime says how long d is, to the minute once it is one: "45 s",
+// howLong says how long d is, to the minute once it is one: "45 s",
 // "12 min", "2 h 5 min", "3 d 4 h".
-func downtime(d time.Duration) string {
+func howLong(d time.Duration) string {
 	switch {
 	case d < time.Minute:
 		return fmt.Sprintf("%d s", int(d/time.Second))

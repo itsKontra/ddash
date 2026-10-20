@@ -124,7 +124,7 @@ export function AdguardStats() {
       <div className="flex flex-wrap gap-6">
         <Top label="Most blocked domains" entries={stats.topBlockedDomains} />
         <Top label="Most queried domains" entries={stats.topQueriedDomains} />
-        <Top label="Most active clients" entries={stats.topClients} />
+        <Top label="Most active addresses" entries={stats.topClients} />
       </div>
       {status?.version && <p className="text-xs text-muted-foreground">AdGuard Home {status.version}</p>}
     </div>
