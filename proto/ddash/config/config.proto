@@ -25,6 +25,28 @@ extend google.protobuf.EnumValueOptions {
   EnumValue value = 50004;
 }
 
+extend google.protobuf.MessageOptions {
+  // Used on a config message as option (ddash.config.form) = {setup_from: "GetSetupHint"};
+  Form form = 50005;
+}
+
+// Options on a Component's config message as a whole.
+message Form {
+  // The name of a getter of the same Component whose response has a
+  // SetupHint field. Once the Component has started, its config form shows
+  // the hint the getter returns, e.g. the authorized_keys line that grants
+  // the Component access.
+  string setup_from = 1;
+}
+
+// What the Operator does outside ddash to finish a Component's setup.
+message SetupHint {
+  // A sentence or two, e.g. "Add this line to root's authorized_keys on nginx.home.example."
+  string text = 1;
+  // The text to copy, shown verbatim with a Copy button; empty for none.
+  string block = 2;
+}
+
 message Field {
   // The value an unset field takes, written as text: a string as is, an
   // integer in decimal, a bool as "true" or "false", an enum by value name.

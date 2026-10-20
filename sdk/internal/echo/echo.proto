@@ -3,6 +3,7 @@ syntax = "proto3";
 // echo is a tiny Component the SDK's own tests run. It is not shipped.
 package ddash.echo;
 
+import "ddash/config/config.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopb";
@@ -53,3 +54,15 @@ message AddNoteRequest {
 }
 
 message AddNoteResponse {}
+
+// HintFromActionConfig names an Action as its setup hint's getter, so the
+// SDK must refuse it.
+message HintFromActionConfig {
+  option (ddash.config.form) = {setup_from: "AddNote"};
+}
+
+// HintFromNoHintConfig names a getter whose response has no SetupHint, so
+// the SDK must refuse it.
+message HintFromNoHintConfig {
+  option (ddash.config.form) = {setup_from: "Echo"};
+}

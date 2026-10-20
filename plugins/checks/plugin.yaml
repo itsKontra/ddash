@@ -1,0 +1,6 @@
+name: checks
+title: Checks
+description: TCP, ICMP and DNS Checks against any address, with their state and latency.
+icon: activity
+author: itsKontra
+requires: [checks]

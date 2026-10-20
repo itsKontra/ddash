@@ -10,6 +10,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protodesc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
@@ -121,6 +122,40 @@ func TestAMethodThatIsNeitherGetterNorActionIsRefused(t *testing.T) {
 		Manifest: []byte(echoManifest),
 		Service:  &echopb.UnmarkedService_ServiceDesc,
 		New:      func() sdk.Component[*echopb.EchoConfig] { return unmarked{} },
+	})
+}
+
+type hinted[C proto.Message] struct {
+	echopb.UnimplementedEchoServiceServer
+}
+
+func (hinted[C]) Start(context.Context, *sdk.Env, C) error { return nil }
+func (hinted[C]) Health(context.Context) sdk.Health        { return sdk.Health{State: sdk.OK} }
+
+func TestASetupHintFromAnythingButAGetterAnsweringOneIsRefused(t *testing.T) {
+	refused := func(t *testing.T, define func()) {
+		t.Helper()
+		defer func() {
+			if r := recover(); r == nil || !strings.Contains(fmt.Sprint(r), "setup_from") {
+				t.Errorf("Define recovered %v, want a panic naming setup_from", r)
+			}
+		}()
+		define()
+	}
+
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.HintFromActionConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New:      func() sdk.Component[*echopb.HintFromActionConfig] { return &hinted[*echopb.HintFromActionConfig]{} },
+		})
+	})
+	refused(t, func() {
+		sdk.Define(sdk.Spec[*echopb.HintFromNoHintConfig]{
+			Manifest: []byte(echoManifest),
+			Service:  &echopb.EchoService_ServiceDesc,
+			New:      func() sdk.Component[*echopb.HintFromNoHintConfig] { return &hinted[*echopb.HintFromNoHintConfig]{} },
+		})
 	})
 }
 

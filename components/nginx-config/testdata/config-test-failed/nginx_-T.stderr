@@ -1,0 +1,2 @@
+nginx: [emerg] unknown directive "proxy_pas" in /etc/nginx/conf.d/jellyfin.conf:11
+nginx: configuration file /etc/nginx/nginx.conf test failed

@@ -312,6 +312,10 @@ message GetConfigFormResponse {
   repeated string secrets_set = 3;
   // Why the stored config doesn't start, by path. Empty when it does.
   repeated ConfigError errors = 4;
+  // The Component's setup hint, from the getter its config message names
+  // in (ddash.config.form).setup_from. Unset until the Component has
+  // started, and for a Component without one.
+  ddash.config.SetupHint setup_hint = 5;
 }
 
 // One field of a config form.

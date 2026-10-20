@@ -14,7 +14,10 @@
 //
 // Run it from the repo root:
 //
-//	go run ./cmd/dev [-listen 127.0.0.1:8080] [-data .dev/data]
+//	go run ./cmd/dev [-listen 127.0.0.1:8080] [-data .dev/data] [-scenario vpn-on-fallback]
+//
+// -scenario has fakelab serve named fixture scenarios in place of baseline
+// (`make dev DEV_ARGS=-scenario=vpn-on-fallback`).
 package main
 
 import (
@@ -41,17 +44,18 @@ func main() {
 	listen := flag.String("listen", "127.0.0.1:8080", "the address the core serves HTTP on")
 	data := flag.String("data", ".dev/data", "the core's data dir; it is kept between runs")
 	dist := flag.String("dist", "dist", "the Release dir to build")
+	scenario := flag.String("scenario", "", "comma-separated fakelab scenarios to serve in place of baseline, e.g. vpn-on-fallback")
 	flag.Parse()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if err := run(ctx, *listen, *data, *dist); err != nil && !errors.Is(err, context.Canceled) {
+	if err := run(ctx, *listen, *data, *dist, fakelab.Scenarios(*scenario)); err != nil && !errors.Is(err, context.Canceled) {
 		fmt.Fprintln(os.Stderr, "dev:", err)
 		os.Exit(1)
 	}
 }
 
-func run(ctx context.Context, listen, data, dist string) error {
+func run(ctx context.Context, listen, data, dist string, scenarios []string) error {
 	dist, err := filepath.Abs(dist)
 	if err != nil {
 		return err
@@ -64,7 +68,7 @@ func run(ctx context.Context, listen, data, dist string) error {
 		return err
 	}
 
-	lab, err := fakelab.Start(".", "127.0.0.1")
+	lab, err := fakelab.Start(".", "127.0.0.1", scenarios...)
 	if err != nil {
 		return err
 	}

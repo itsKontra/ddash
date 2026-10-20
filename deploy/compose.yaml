@@ -1,0 +1,32 @@
+# The reference compose file for ddash: one service on the ddash LXC.
+# Copy it and ddash.env.example (as ddash.env) to /opt/ddash, replace every
+# <placeholder>, then `docker compose up -d`. docs/deployment.md has the
+# whole launch checklist.
+services:
+  ddash:
+    # Pinned to a Release; bump it by hand, then
+    # `docker compose pull && docker compose up -d`. ddash never updates itself.
+    image: ghcr.io/itskontra/ddash:<release>
+    restart: unless-stopped
+    # distroless/static's nonroot user. Component subprocesses run as it too.
+    user: "65532:65532"
+    # Only the LXC's own address, on the default bridge (not host networking:
+    # that doesn't allow sysctls). The firewall lets only nginx reach it.
+    ports: ["<ddash-ip>:8080:8080"]
+    # Unprivileged ICMP for ping Checks; Docker doesn't set it in an
+    # unprivileged LXC.
+    sysctls: ["net.ipv4.ping_group_range=0 2147483647"]
+    # Bootstrap config only. Component credentials are entered in the UI.
+    env_file: ddash.env
+    # The core DB, every Component's DB and snapshots, and the downloaded
+    # Release. Owned by 65532:65532. No Docker socket, ever.
+    volumes: ["/opt/ddash/data:/data"]
+    # GET /healthz: HTTP serves and the core DB answers.
+    healthcheck:
+      test: ["CMD", "/ddash", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    # SIGTERM drains HTTP (5 s), then stops every Component (10 s).
+    stop_grace_period: 20s
