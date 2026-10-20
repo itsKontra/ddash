@@ -1,8 +1,8 @@
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, within } from "@testing-library/react";
 import type { Status, WidgetSize } from "@ddash/plugin";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { renderScoped, settle } from "./testing";
+import { allUp, checks, renderScoped, settle } from "./testing";
 
 afterEach(cleanup);
 
@@ -19,11 +19,64 @@ it("is the apps Widget, M or L, L by default", () => {
   expect(widget.defaultSize).toBe("L");
 });
 
-it("counts the visible Apps", async () => {
+it("is up with the visible Apps' count when all their Checks are up", async () => {
+  renderScoped(<Probe />, { ListChecks: () => Response.json(allUp) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "up", summary: "4 of 4 Apps up" });
+});
+
+it("is down, naming the Apps whose Check is down, the worst of their Checks", async () => {
   renderScoped(<Probe />);
   await settle();
 
-  expect(seen).toEqual({ tone: "up", summary: "4 Apps" });
+  expect(seen).toEqual({ tone: "down", summary: "1 down: Jellyfin" });
+});
+
+it("warns about pending Checks and certificates expiring within 14 days", async () => {
+  const noneDown = { checks: checks.checks.filter((c) => !("appId" in c) || c.appId !== "proxy:jellyfin.home.example") };
+  renderScoped(<Probe />, { ListChecks: () => Response.json(noneDown) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "warn", summary: "pfSense: pending: timeout; Printer: up, certificate expires in 5 days" });
+});
+
+it("reports Maintenance when that is the worst", async () => {
+  const maint = { checks: allUp.checks.map((c) => (c.appId === "proxy:grafana.home.example" ? { ...c, maintenance: true } : c)) };
+  renderScoped(<Probe />, { ListChecks: () => Response.json(maint) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "maint", summary: "1 in Maintenance" });
+});
+
+it("leaves out hidden Apps and Apps without a Check yet", async () => {
+  const onlyGrafana = { checks: allUp.checks.filter((c) => c.appId === "proxy:grafana.home.example") };
+  renderScoped(<Probe />, { ListChecks: () => Response.json(onlyGrafana) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "up", summary: "1 of 4 Apps up" });
+});
+
+it("is idle while no App has a Check yet", async () => {
+  renderScoped(<Probe />, { ListChecks: () => Response.json({}) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "idle", summary: "4 Apps, no Checks yet" });
+});
+
+it("warns while checks is unavailable", async () => {
+  renderScoped(<Probe />, { ListChecks: () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "warn", summary: "checks unavailable: checks is down" });
+});
+
+it("shows each App's Check status on its icon", async () => {
+  renderScoped(<widget.Body size="L" />);
+  await settle();
+
+  const jellyfin = screen.getAllByRole("link").find((l) => l.textContent === "Jellyfin")!;
+  expect(within(jellyfin).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
 });
 
 it("is idle without Apps", async () => {

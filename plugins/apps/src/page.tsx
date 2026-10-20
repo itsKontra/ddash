@@ -1,13 +1,16 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App, type Overlay } from "@ddash/proto/apps/apps_pb";
-import { AppIcon, Button, PageHeader } from "@ddash/ui";
+import type { Check } from "@ddash/proto/checks/checks_pb";
+import { AppIcon, Button, PageHeader, StatusDot, toneText } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { sections, useApps } from "./apps";
+import { checkStatus, useAppChecks } from "./checks";
 import { EditSheet } from "./edit";
 
 /** The Apps Page: App cards by group, display settings, manual Apps and unmatched settings. */
 export function AppsPage() {
   const { list, error } = useApps();
+  const { byApp, error: checksError } = useAppChecks();
   // The App being edited, "new" while adding one.
   const [editing, setEditing] = useState<App | "new">();
   const apps = list?.apps ?? [];
@@ -31,16 +34,19 @@ export function AppsPage() {
           Couldn't read the Proxy Hosts from nginx-config: {list.discoveryError}. Showing those of the last read.
         </p>
       )}
+      {list && apps.length > 0 && checksError && (
+        <p className="mb-4 text-sm text-muted-foreground">Check status unavailable: {checksError.rawMessage}</p>
+      )}
       {list && apps.length === 0 && <p className="text-sm text-muted-foreground">No Apps yet. Proxy Hosts show here once nginx-config reads them.</p>}
       <div className="flex flex-col gap-6">
         {sections(apps).map((s) => (
           <Section key={s.title} title={s.title}>
-            <Cards apps={s.apps} label={s.title} onEdit={setEditing} />
+            <Cards apps={s.apps} label={s.title} checks={byApp} onEdit={setEditing} />
           </Section>
         ))}
         {hidden.length > 0 && (
           <Section title="Hidden">
-            <Cards apps={hidden} label="Hidden" onEdit={setEditing} />
+            <Cards apps={hidden} label="Hidden" checks={byApp} onEdit={setEditing} />
           </Section>
         )}
         {list && list.unmatched.length > 0 && (
@@ -73,18 +79,30 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Cards({ apps, label, onEdit }: { apps: readonly App[]; label: string; onEdit: (a: App) => void }) {
+function Cards({
+  apps,
+  label,
+  checks,
+  onEdit,
+}: {
+  apps: readonly App[];
+  label: string;
+  /** Each App's Check by App id; undefined while checks hasn't answered. */
+  checks?: ReadonlyMap<string, Check>;
+  onEdit: (a: App) => void;
+}) {
   return (
     <ul aria-label={label} className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {apps.map((a) => (
-        <Card key={a.id} app={a} onEdit={() => onEdit(a)} />
+        <Card key={a.id} app={a} checks={checks} onEdit={() => onEdit(a)} />
       ))}
     </ul>
   );
 }
 
-/** An App's card: icon, name and URL opening it, and its aliases. */
-function Card({ app, onEdit }: { app: App; onEdit: () => void }) {
+/** An App's card: icon, name and URL opening it, its Check's status and its aliases. */
+function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, Check>; onEdit: () => void }) {
+  const status = checks && checkStatus(checks.get(app.id));
   return (
     <li aria-label={app.name} className="flex flex-col gap-2 rounded-ui border border-border bg-card p-3">
       <div className="flex items-center gap-2">
@@ -99,6 +117,12 @@ function Card({ app, onEdit }: { app: App; onEdit: () => void }) {
           Edit
         </Button>
       </div>
+      {status && (
+        <p role="status" className="flex items-center gap-1.5 text-xs">
+          <StatusDot tone={status.tone} label={status.label} />
+          <span className={status.tone === "up" || status.tone === "idle" ? "text-muted-foreground" : toneText[status.tone]}>{status.label}</span>
+        </p>
+      )}
       {app.aliases.length > 0 && <p className="truncate text-xs text-muted-foreground">Also {app.aliases.join(", ")}</p>}
     </li>
   );
