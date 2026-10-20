@@ -146,6 +146,26 @@ func TestReverseProxyRequiresNginxConfigAppsAndChecks(t *testing.T) {
 	t.Error("no reverse-proxy Plugin in the repo")
 }
 
+// The Proxmox Page reads proxmox-api's Workloads unchanged and runs its
+// power Actions through the proxmox logic Component.
+func TestProxmoxRequiresItsLogicComponentAndProxmoxAPI(t *testing.T) {
+	cat, err := release.Catalogue("../..", "dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range cat.Plugins {
+		if p.Name != "proxmox" {
+			continue
+		}
+		got := slices.Sorted(slices.Values(p.Requires))
+		if want := []string{"proxmox", "proxmox-api"}; !slices.Equal(got, want) {
+			t.Errorf("proxmox requires %v, want %v", p.Requires, want)
+		}
+		return
+	}
+	t.Error("no proxmox Plugin in the repo")
+}
+
 // widgetsOnly is a repo with one Plugin requiring nothing, so building its
 // Release builds no binaries.
 func widgetsOnly(t *testing.T, bundle map[string]string) string {

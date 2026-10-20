@@ -65,6 +65,11 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"nginx"`) {
 		t.Errorf("ListWorkloads: status %d: %s; want baseline's nginx", res.Code, res.Body)
 	}
+	// The proxmox logic Component, behind the power Actions.
+	h.WaitState("proxmox", runtime.OK)
+	if res := h.Call("proxmox", "proxmox", "ListPowerTasks", `{}`); res.Code != http.StatusOK {
+		t.Errorf("ListPowerTasks: status %d: %s", res.Code, res.Body)
+	}
 
 	// apps reads nginx-config's snapshot through the host (GRPCBroker).
 	h.Install("apps")
