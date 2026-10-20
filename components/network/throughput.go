@@ -79,7 +79,11 @@ func readCounters(ctx context.Context, pfsense pfsenseapipb.PfsenseApiServiceCli
 	if err != nil {
 		return nil, fmt.Errorf("can't read the interface counters: %s", status.Convert(err).Message())
 	}
+	// The counters' own read time: pfsense-api may answer from its cache.
 	at := time.Now()
+	if r := resp.GetReadAt(); r != nil {
+		at = r.AsTime()
+	}
 	byName := map[string]*pfsenseapipb.Interface{}
 	for _, i := range resp.GetInterfaces() {
 		byName[i.GetName()] = i

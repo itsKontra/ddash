@@ -184,15 +184,22 @@ func TestListsInterfacesWithTheirCounters(t *testing.T) {
 func TestInterfaceCountersAreCachedForTwoSeconds(t *testing.T) {
 	srv := firewall(t, "baseline")
 	_, c := start(t, srv.URL)
-	read := func() {
+	read := func() time.Time {
 		t.Helper()
-		if _, err := c.ListInterfaces(t.Context(), &pfsenseapipb.ListInterfacesRequest{}); err != nil {
+		resp, err := c.ListInterfaces(t.Context(), &pfsenseapipb.ListInterfacesRequest{})
+		if err != nil {
 			t.Fatal(err)
 		}
+		if resp.GetReadAt() == nil {
+			t.Fatal("no read_at")
+		}
+		return resp.GetReadAt().AsTime()
 	}
 
-	read()
-	read()
+	first := read()
+	if second := read(); !second.Equal(first) {
+		t.Errorf("read_at %v from the cache, want the first read's %v", second, first)
+	}
 	if got := srv.hits.Load(); got != 1 {
 		t.Errorf("%d requests for two reads in a row, want 1", got)
 	}

@@ -31,6 +31,11 @@ type traffic struct {
 	mu    sync.Mutex
 	from  time.Time
 	start uint64
+	// lags are how old the counters of successive reads are, in turn (as
+	// pfsense-api's cache can serve them); readAt the last read's time.
+	lags   []time.Duration
+	reads  int
+	readAt time.Time
 }
 
 func newTraffic() *traffic { return &traffic{from: time.Now(), start: 900_000_000_000} }
@@ -45,13 +50,25 @@ func (tr *traffic) reset() {
 func (tr *traffic) interfaces() []*pfsenseapipb.Interface {
 	tr.mu.Lock()
 	defer tr.mu.Unlock()
-	secs := time.Since(tr.from).Seconds()
+	tr.readAt = time.Now()
+	if len(tr.lags) > 0 {
+		tr.readAt = tr.readAt.Add(-tr.lags[tr.reads%len(tr.lags)])
+	}
+	tr.reads++
+	secs := tr.readAt.Sub(tr.from).Seconds()
 	at := func(rate float64) uint64 { return tr.start + uint64(rate*secs) }
 	return []*pfsenseapipb.Interface{
 		{Name: "wan", Description: "WAN", InBytes: at(wanIn), OutBytes: at(wanOut)},
 		{Name: "lan", Description: "LAN", InBytes: at(lanIn), OutBytes: at(lanOut)},
 		{Name: "opt1", Description: "REMOTEACCESS", InBytes: at(1000), OutBytes: at(9000)},
 	}
+}
+
+// at is when the counters of the last read were taken.
+func (tr *traffic) at() time.Time {
+	tr.mu.Lock()
+	defer tr.mu.Unlock()
+	return tr.readAt
 }
 
 func throughput(t *testing.T, c networkpb.NetworkServiceClient, since *timestamppb.Timestamp) *networkpb.GetThroughputResponse {
@@ -108,6 +125,25 @@ func TestThroughputIsSampledEveryFiveSecondsWithNobodyWatching(t *testing.T) {
 		}
 		if got.GetError() != "" {
 			t.Errorf("error = %q, want none", got.GetError())
+		}
+	})
+}
+
+// pfsense-api may answer from its 2 s cache: a rate divides by the time
+// between the reads of the counters, not between the samples.
+func TestRatesUseWhenTheCountersWereRead(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		tr := newTraffic()
+		tr.lags = []time.Duration{0, 2 * time.Second, time.Second}
+		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces, readAt: tr.at})
+
+		time.Sleep(time.Minute)
+		synctest.Wait()
+
+		for _, s := range throughput(t, c, nil).GetSamples() {
+			if !steady(s) {
+				t.Errorf("sample %v, want WAN in %d out %d, LAN in %d out %d B/s", s, wanIn, wanOut, lanIn, lanOut)
+			}
 		}
 	})
 }

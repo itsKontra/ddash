@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/network"
@@ -44,6 +45,8 @@ type firewall struct {
 	// interfaces answers ListInterfaces, called on every read; nil means
 	// the homelab's (remote_access_test.go).
 	interfaces func() []*pfsenseapipb.Interface
+	// readAt, when set, is the counters' read time ListInterfaces reports.
+	readAt func() time.Time
 	tunnels    []*pfsenseapipb.WireguardTunnel
 	rules      []*pfsenseapipb.FirewallRule
 
@@ -79,7 +82,11 @@ func (f *firewall) ListInterfaces(context.Context, *pfsenseapipb.ListInterfacesR
 	if f.interfaces == nil {
 		return &pfsenseapipb.ListInterfacesResponse{Interfaces: homelab()}, nil
 	}
-	return &pfsenseapipb.ListInterfacesResponse{Interfaces: f.interfaces()}, nil
+	resp := &pfsenseapipb.ListInterfacesResponse{Interfaces: f.interfaces()}
+	if f.readAt != nil {
+		resp.ReadAt = timestamppb.New(f.readAt())
+	}
+	return resp, nil
 }
 
 func (f *firewall) ListWireguardTunnels(context.Context, *pfsenseapipb.ListWireguardTunnelsRequest, ...grpc.CallOption) (*pfsenseapipb.ListWireguardTunnelsResponse, error) {

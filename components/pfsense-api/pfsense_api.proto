@@ -295,6 +295,9 @@ message ListInterfacesRequest {}
 
 message ListInterfacesResponse {
   repeated Interface interfaces = 1;
+  // When pfSense was read: an answer from the cache keeps its read time,
+  // so a rate computed from two answers divides by the real interval.
+  google.protobuf.Timestamp read_at = 2;
 }
 
 // An assigned interface and its counters, which count up from boot and

@@ -369,7 +369,7 @@ func (c *component) fetchInterfaces(ctx context.Context) (*pfsenseapipb.ListInte
 	if err := c.api.get(ctx, "/api/v2/status/interfaces", &data); err != nil {
 		return nil, err
 	}
-	out := &pfsenseapipb.ListInterfacesResponse{}
+	out := &pfsenseapipb.ListInterfacesResponse{ReadAt: timestamppb.Now()}
 	for _, i := range data {
 		out.Interfaces = append(out.Interfaces, &pfsenseapipb.Interface{
 			Name:        i.Name,

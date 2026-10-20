@@ -1568,8 +1568,11 @@ func (*ListInterfacesRequest) Descriptor() ([]byte, []int) {
 }
 
 type ListInterfacesResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Interfaces    []*Interface           `protobuf:"bytes,1,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	Interfaces []*Interface           `protobuf:"bytes,1,rep,name=interfaces,proto3" json:"interfaces,omitempty"`
+	// When pfSense was read: an answer from the cache keeps its read time,
+	// so a rate computed from two answers divides by the real interval.
+	ReadAt        *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=read_at,json=readAt,proto3" json:"read_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1607,6 +1610,13 @@ func (*ListInterfacesResponse) Descriptor() ([]byte, []int) {
 func (x *ListInterfacesResponse) GetInterfaces() []*Interface {
 	if x != nil {
 		return x.Interfaces
+	}
+	return nil
+}
+
+func (x *ListInterfacesResponse) GetReadAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.ReadAt
 	}
 	return nil
 }
@@ -2328,11 +2338,12 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\vdescription\x18\x03 \x01(\tR\vdescription\x12\x1c\n" +
 	"\taddresses\x18\x04 \x03(\tR\taddresses\x12\x18\n" +
 	"\adetails\x18\x05 \x03(\tR\adetails\"\x17\n" +
-	"\x15ListInterfacesRequest\"U\n" +
+	"\x15ListInterfacesRequest\"\x8a\x01\n" +
 	"\x16ListInterfacesResponse\x12;\n" +
 	"\n" +
 	"interfaces\x18\x01 \x03(\v2\x1b.ddash.pfsenseapi.InterfaceR\n" +
-	"interfaces\"\xd2\x02\n" +
+	"interfaces\x123\n" +
+	"\aread_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\"\xd2\x02\n" +
 	"\tInterface\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12!\n" +
@@ -2477,39 +2488,40 @@ var file_pfsense_api_pfsense_api_proto_depIdxs = []int32{
 	26, // 12: ddash.pfsenseapi.ListAliasesResponse.aliases:type_name -> ddash.pfsenseapi.Alias
 	37, // 13: ddash.pfsenseapi.ListAliasesResponse.choices:type_name -> ddash.config.Choices
 	29, // 14: ddash.pfsenseapi.ListInterfacesResponse.interfaces:type_name -> ddash.pfsenseapi.Interface
-	32, // 15: ddash.pfsenseapi.ListWireguardTunnelsResponse.tunnels:type_name -> ddash.pfsenseapi.WireguardTunnel
-	33, // 16: ddash.pfsenseapi.WireguardTunnel.peers:type_name -> ddash.pfsenseapi.WireguardPeer
-	38, // 17: ddash.pfsenseapi.WireguardPeer.latest_handshake:type_name -> google.protobuf.Timestamp
-	36, // 18: ddash.pfsenseapi.ListFirewallRulesResponse.rules:type_name -> ddash.pfsenseapi.FirewallRule
-	9,  // 19: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
-	12, // 20: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
-	16, // 21: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
-	19, // 22: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
-	24, // 23: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
-	27, // 24: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:input_type -> ddash.pfsenseapi.ListInterfacesRequest
-	30, // 25: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:input_type -> ddash.pfsenseapi.ListWireguardTunnelsRequest
-	34, // 26: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:input_type -> ddash.pfsenseapi.ListFirewallRulesRequest
-	1,  // 27: ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping:input_type -> ddash.pfsenseapi.CreateStaticMappingRequest
-	3,  // 28: ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping:input_type -> ddash.pfsenseapi.RenameStaticMappingRequest
-	5,  // 29: ddash.pfsenseapi.PfsenseApiService.AddAliasAddress:input_type -> ddash.pfsenseapi.AddAliasAddressRequest
-	7,  // 30: ddash.pfsenseapi.PfsenseApiService.RemoveAliasAddress:input_type -> ddash.pfsenseapi.RemoveAliasAddressRequest
-	10, // 31: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
-	13, // 32: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
-	17, // 33: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
-	20, // 34: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
-	25, // 35: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
-	28, // 36: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:output_type -> ddash.pfsenseapi.ListInterfacesResponse
-	31, // 37: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:output_type -> ddash.pfsenseapi.ListWireguardTunnelsResponse
-	35, // 38: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:output_type -> ddash.pfsenseapi.ListFirewallRulesResponse
-	2,  // 39: ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping:output_type -> ddash.pfsenseapi.CreateStaticMappingResponse
-	4,  // 40: ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping:output_type -> ddash.pfsenseapi.RenameStaticMappingResponse
-	6,  // 41: ddash.pfsenseapi.PfsenseApiService.AddAliasAddress:output_type -> ddash.pfsenseapi.AddAliasAddressResponse
-	8,  // 42: ddash.pfsenseapi.PfsenseApiService.RemoveAliasAddress:output_type -> ddash.pfsenseapi.RemoveAliasAddressResponse
-	31, // [31:43] is the sub-list for method output_type
-	19, // [19:31] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	38, // 15: ddash.pfsenseapi.ListInterfacesResponse.read_at:type_name -> google.protobuf.Timestamp
+	32, // 16: ddash.pfsenseapi.ListWireguardTunnelsResponse.tunnels:type_name -> ddash.pfsenseapi.WireguardTunnel
+	33, // 17: ddash.pfsenseapi.WireguardTunnel.peers:type_name -> ddash.pfsenseapi.WireguardPeer
+	38, // 18: ddash.pfsenseapi.WireguardPeer.latest_handshake:type_name -> google.protobuf.Timestamp
+	36, // 19: ddash.pfsenseapi.ListFirewallRulesResponse.rules:type_name -> ddash.pfsenseapi.FirewallRule
+	9,  // 20: ddash.pfsenseapi.PfsenseApiService.ListGateways:input_type -> ddash.pfsenseapi.ListGatewaysRequest
+	12, // 21: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:input_type -> ddash.pfsenseapi.ListGatewayGroupsRequest
+	16, // 22: ddash.pfsenseapi.PfsenseApiService.ListLeases:input_type -> ddash.pfsenseapi.ListLeasesRequest
+	19, // 23: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:input_type -> ddash.pfsenseapi.ListDhcpServersRequest
+	24, // 24: ddash.pfsenseapi.PfsenseApiService.ListAliases:input_type -> ddash.pfsenseapi.ListAliasesRequest
+	27, // 25: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:input_type -> ddash.pfsenseapi.ListInterfacesRequest
+	30, // 26: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:input_type -> ddash.pfsenseapi.ListWireguardTunnelsRequest
+	34, // 27: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:input_type -> ddash.pfsenseapi.ListFirewallRulesRequest
+	1,  // 28: ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping:input_type -> ddash.pfsenseapi.CreateStaticMappingRequest
+	3,  // 29: ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping:input_type -> ddash.pfsenseapi.RenameStaticMappingRequest
+	5,  // 30: ddash.pfsenseapi.PfsenseApiService.AddAliasAddress:input_type -> ddash.pfsenseapi.AddAliasAddressRequest
+	7,  // 31: ddash.pfsenseapi.PfsenseApiService.RemoveAliasAddress:input_type -> ddash.pfsenseapi.RemoveAliasAddressRequest
+	10, // 32: ddash.pfsenseapi.PfsenseApiService.ListGateways:output_type -> ddash.pfsenseapi.ListGatewaysResponse
+	13, // 33: ddash.pfsenseapi.PfsenseApiService.ListGatewayGroups:output_type -> ddash.pfsenseapi.ListGatewayGroupsResponse
+	17, // 34: ddash.pfsenseapi.PfsenseApiService.ListLeases:output_type -> ddash.pfsenseapi.ListLeasesResponse
+	20, // 35: ddash.pfsenseapi.PfsenseApiService.ListDhcpServers:output_type -> ddash.pfsenseapi.ListDhcpServersResponse
+	25, // 36: ddash.pfsenseapi.PfsenseApiService.ListAliases:output_type -> ddash.pfsenseapi.ListAliasesResponse
+	28, // 37: ddash.pfsenseapi.PfsenseApiService.ListInterfaces:output_type -> ddash.pfsenseapi.ListInterfacesResponse
+	31, // 38: ddash.pfsenseapi.PfsenseApiService.ListWireguardTunnels:output_type -> ddash.pfsenseapi.ListWireguardTunnelsResponse
+	35, // 39: ddash.pfsenseapi.PfsenseApiService.ListFirewallRules:output_type -> ddash.pfsenseapi.ListFirewallRulesResponse
+	2,  // 40: ddash.pfsenseapi.PfsenseApiService.CreateStaticMapping:output_type -> ddash.pfsenseapi.CreateStaticMappingResponse
+	4,  // 41: ddash.pfsenseapi.PfsenseApiService.RenameStaticMapping:output_type -> ddash.pfsenseapi.RenameStaticMappingResponse
+	6,  // 42: ddash.pfsenseapi.PfsenseApiService.AddAliasAddress:output_type -> ddash.pfsenseapi.AddAliasAddressResponse
+	8,  // 43: ddash.pfsenseapi.PfsenseApiService.RemoveAliasAddress:output_type -> ddash.pfsenseapi.RemoveAliasAddressResponse
+	32, // [32:44] is the sub-list for method output_type
+	20, // [20:32] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_pfsense_api_pfsense_api_proto_init() }
