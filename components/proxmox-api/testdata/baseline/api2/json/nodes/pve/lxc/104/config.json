@@ -1,0 +1,4 @@
+{
+  "data": {"arch": "amd64", "cores": 1, "hostname": "dhcp-box", "memory": 512, "ostype": "alpine", "rootfs": "local-lvm:vm-104-disk-0,size=4G", "unprivileged": 1, "digest": "REDACTED",
+    "net0": "name=eth0,bridge=vmbr0,hwaddr=02:5E:1A:00:01:04,ip=dhcp,ip6=auto,type=veth"}
+}

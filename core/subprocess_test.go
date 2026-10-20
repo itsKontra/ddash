@@ -49,6 +49,23 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 		t.Errorf("GetSnapshot: status %d: %s; want baseline's jellyfin server block", res.Code, res.Body)
 	}
 
+	// network reaches pfsense-api through the host over go-plugin's broker.
+	h.Install("network")
+	h.WaitState("pfsense-api", runtime.OK)
+	h.WaitState("network", runtime.OK)
+
+	res = h.Call("network", "network", "GetVpnTunnel", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"tier":"TIER_WIREGUARD"`) {
+		t.Errorf("GetVpnTunnel: status %d: %s; want baseline's via WireGuard", res.Code, res.Body)
+	}
+
+	h.Install("proxmox")
+	h.WaitState("proxmox-api", runtime.OK)
+	res = h.Call("proxmox", "proxmox-api", "ListWorkloads", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"name":"nginx"`) {
+		t.Errorf("ListWorkloads: status %d: %s; want baseline's nginx", res.Code, res.Body)
+	}
+
 	// apps reads nginx-config's snapshot through the host (GRPCBroker).
 	h.Install("apps")
 	h.WaitState("apps", runtime.OK)

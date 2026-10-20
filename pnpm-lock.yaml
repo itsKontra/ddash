@@ -143,7 +143,64 @@ importers:
         specifier: workspace:*
         version: link:../../packages/vite-preset
 
+  plugins/checks:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
   plugins/docker:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
+  plugins/network:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
+  plugins/proxmox:
     dependencies:
       '@bufbuild/protobuf':
         specifier: 2.16.0

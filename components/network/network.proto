@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+// network is the logic behind the Network Page. For now it watches the
+// firewall's failover gateway group and derives the VPN Tunnel's tier.
+package ddash.network;
+
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/network/networkpb;networkpb";
+
+// network takes no config yet.
+message NetworkConfig {}
+
+service NetworkService {
+  // GetVpnTunnel returns the VPN Tunnel's tier as of network's last read of
+  // the failover gateway group (every 60 s).
+  rpc GetVpnTunnel(GetVpnTunnelRequest) returns (GetVpnTunnelResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+}
+
+message GetVpnTunnelRequest {}
+
+message GetVpnTunnelResponse {
+  // Which tier carries the VPN Tunnel; unspecified until the first read,
+  // and while the last read failed.
+  Tier tier = 1;
+  // The failover gateway group's name.
+  string group = 2;
+  // The group's members, lowest tier first.
+  repeated TunnelGateway gateways = 3;
+  // Why the last read failed; empty when it worked.
+  string error = 4;
+}
+
+// The VPN Tunnel's tier. The failover group's first tier is the WireGuard
+// tunnel and any later one the OpenVPN fallback.
+enum Tier {
+  // Not known: not read yet, or the last read failed.
+  TIER_UNSPECIFIED = 0;
+  // Via WireGuard: a first-tier gateway passes traffic.
+  TIER_WIREGUARD = 1;
+  // Via the OpenVPN fallback: only a later tier's gateway passes traffic.
+  TIER_OPENVPN = 2;
+  // Down: no member of the group passes traffic.
+  TIER_DOWN = 3;
+}
+
+message TunnelGateway {
+  // The gateway's name in pfSense.
+  string name = 1;
+  // Its tier in the group, 1 to 5.
+  int32 tier = 2;
+  // Whether it passes traffic: up, and not excluded by the group's trigger.
+  bool up = 3;
+  // pfSense's status and substatus, e.g. "online" and "highloss".
+  string status = 4;
+  string substatus = 5;
+  // Round-trip latency in milliseconds; unset when not measured.
+  optional double delay_ms = 6;
+  // Packet loss in percent; unset when not measured.
+  optional double loss_percent = 7;
+}

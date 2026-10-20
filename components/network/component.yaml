@@ -1,0 +1,3 @@
+name: network
+description: The VPN Tunnel's active tier, derived from the firewall's failover gateway group.
+requires: [pfsense-api]
