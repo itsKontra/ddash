@@ -141,3 +141,137 @@ export function ConfirmDialog({ request, onAnswer }: { request: ConfirmRequest; 
     </div>
   );
 }
+
+/** A number with a label under it, e.g. "12" over "running". */
+export function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: Tone }) {
+  return (
+    <div>
+      <div className={cx("text-2xl leading-tight font-semibold tabular-nums", tone && toneText[tone])}>{value}</div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+/** Picks one of a few options, e.g. a Widget's size: a radio group drawn as joined buttons. */
+export function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly T[];
+  onChange: (value: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="inline-flex rounded-ui border border-border bg-muted p-0.5">
+      {options.map((o) => (
+        <button
+          key={o}
+          type="button"
+          role="radio"
+          aria-checked={o === value}
+          onClick={() => onChange(o)}
+          className={cx(
+            "cursor-pointer rounded-ui px-2 py-0.5 text-xs font-medium",
+            o === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+          )}
+        >
+          {o}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The frame every Widget renders in, owned by the host: the title (a link
+ * to the Plugin's Page, when it has one), the status dot and the edit
+ * controls. The Plugin draws only the body.
+ */
+export function WidgetCard({
+  title,
+  status,
+  actions,
+  className,
+  children,
+}: {
+  title: ReactNode;
+  /** The Widget's last report; no dot until it first reports. */
+  status?: { tone: Tone; summary: string };
+  actions?: ReactNode;
+  className?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-sm", className)}>
+      <header className="flex items-center gap-2 px-4 pt-3 pb-2">
+        {status && <StatusDot tone={status.tone} label={`${status.tone}: ${status.summary}`} />}
+        <h2 className="truncate text-sm font-semibold">{title}</h2>
+        {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+      </header>
+      <div className="min-h-0 flex-1 px-4 pb-4">{children}</div>
+    </section>
+  );
+}
+
+/** One line of the Hero: something that isn't up. */
+export interface HeroProblem {
+  title: string;
+  tone: Tone;
+  summary: string;
+}
+
+/** The answer to "is everything up?" at the top of the Overview. */
+export function Hero({ tone, headline, problems }: { tone: Tone; headline: ReactNode; problems: readonly HeroProblem[] }) {
+  return (
+    <section aria-label="Status" className="rounded-ui border border-border bg-card p-5">
+      <div className="flex items-center gap-3">
+        <StatusDot tone={tone} pulse={tone !== "up" && tone !== "idle"} />
+        <div className="text-xl font-semibold">{headline}</div>
+      </div>
+      {problems.length > 0 && (
+        <ul className="mt-3 flex flex-col gap-1.5">
+          {problems.map((p) => (
+            <li key={p.title} className="flex items-center gap-2 text-sm">
+              <StatusDot tone={p.tone} label={`${p.title} is ${p.tone}`} />
+              <span className="font-medium">{p.title}</span>
+              <span className="text-muted-foreground">{p.summary}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/** A drawer from the right, e.g. the Overview's Add Widget picker. Escape or a click outside closes it. */
+export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const id = useId();
+  return (
+    <div
+      className="fixed inset-0 z-40 flex justify-end bg-foreground/40"
+      onClick={onClose}
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={id}
+        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-background p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center">
+          <h2 id={id} className="text-lg font-semibold">
+            {title}
+          </h2>
+          <Button variant="ghost" size="sm" className="ml-auto" autoFocus onClick={onClose}>
+            Close
+          </Button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
