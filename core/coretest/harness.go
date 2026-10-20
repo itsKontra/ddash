@@ -34,6 +34,7 @@ import (
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
+	"github.com/itsKontra/ddash/core/auth/oidctest"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
@@ -73,6 +74,11 @@ type Options struct {
 	// Shell is the shell's built assets the host serves (web.Shell()).
 	// Default: none.
 	Shell fs.FS
+	// Keycloak, when set, makes the host sign in with this issuer instead
+	// of signing every request in as Actor: requests then need SignIn first.
+	Keycloak *oidctest.Issuer
+	// TrustedProxy is the host's trusted reverse proxy (core.Options).
+	TrustedProxy string
 }
 
 // Harness is one running core.
@@ -84,6 +90,9 @@ type Harness struct {
 	t        testing.TB
 	actor    auth.Actor
 	shutdown bool
+	keycloak *oidctest.Issuer
+	// cookies is the browser's cookie jar, by name.
+	cookies map[string]*http.Cookie
 }
 
 // PublicURL is the public URL the harnessed host runs at.
@@ -112,19 +121,29 @@ func New(t testing.TB, opts Options) *Harness {
 			opts.Launcher = runtime.InProcess(logger, opts.Components...)
 		}
 	}
-	host, err := core.New(t.Context(), core.Options{
-		DataDir:   opts.DataDir,
-		Release:   rel,
-		Launcher:  opts.Launcher,
-		Auth:      auth.As(opts.Actor),
-		Shell:     opts.Shell,
-		PublicURL: PublicURL,
-		Logger:    logger,
-	})
+	hostOpts := core.Options{
+		DataDir:      opts.DataDir,
+		Release:      rel,
+		Launcher:     opts.Launcher,
+		Shell:        opts.Shell,
+		PublicURL:    PublicURL,
+		TrustedProxy: opts.TrustedProxy,
+		Logger:       logger,
+	}
+	if opts.Keycloak != nil {
+		oidc := opts.Keycloak.Config()
+		hostOpts.OIDC = &oidc
+	} else {
+		hostOpts.Auth = auth.As(opts.Actor)
+	}
+	host, err := core.New(t.Context(), hostOpts)
 	if err != nil {
 		t.Fatal(err)
 	}
-	h := &Harness{Host: host, DataDir: opts.DataDir, t: t, actor: auth.ParseActor(opts.Actor)}
+	h := &Harness{
+		Host: host, DataDir: opts.DataDir, t: t, actor: auth.ParseActor(opts.Actor),
+		keycloak: opts.Keycloak, cookies: map[string]*http.Cookie{},
+	}
 	t.Cleanup(h.Shutdown)
 	host.Start()
 	return h
@@ -276,9 +295,54 @@ func (h *Harness) Get(path string) *httptest.ResponseRecorder {
 	return h.Do(httptest.NewRequest(http.MethodGet, path, nil))
 }
 
-// Do serves r with the host's handler.
+// Do serves r with the host's handler. Like a browser, it sends the
+// cookies the host set earlier (unless r carries its own) and keeps the
+// ones this response sets.
 func (h *Harness) Do(r *http.Request) *httptest.ResponseRecorder {
+	if len(r.Cookies()) == 0 {
+		for _, c := range h.cookies {
+			r.AddCookie(c)
+		}
+	}
 	w := httptest.NewRecorder()
 	h.Host.Handler().ServeHTTP(w, r)
+	for _, c := range w.Result().Cookies() {
+		if c.MaxAge < 0 {
+			delete(h.cookies, c.Name)
+		} else {
+			h.cookies[c.Name] = c
+		}
+	}
 	return w
+}
+
+// Cookie returns the browser's cookie name, or nil.
+func (h *Harness) Cookie(name string) *http.Cookie { return h.cookies[name] }
+
+// ClearCookies empties the browser's cookie jar.
+func (h *Harness) ClearCookies() { clear(h.cookies) }
+
+// TrySignIn goes through sign-in as a browser would: /auth/login, the
+// Keycloak issuer's login page as its User, then the callback. It returns
+// the callback's response.
+func (h *Harness) TrySignIn() *httptest.ResponseRecorder {
+	h.t.Helper()
+	if h.keycloak == nil {
+		h.t.Fatal("SignIn needs Options.Keycloak")
+	}
+	login := h.Get(auth.LoginPath)
+	if login.Code != http.StatusFound {
+		h.t.Fatalf("%s: status %d, want a redirect to Keycloak: %s", auth.LoginPath, login.Code, login.Body)
+	}
+	return h.Get(h.keycloak.Authorize(login.Header().Get("Location")))
+}
+
+// SignIn signs the Keycloak issuer's User in, failing the test unless that
+// gives the browser a session.
+func (h *Harness) SignIn() {
+	h.t.Helper()
+	res := h.TrySignIn()
+	if res.Code != http.StatusOK || h.Cookie(auth.SessionCookie) == nil {
+		h.t.Fatalf("sign-in: status %d, session cookie %v: %s", res.Code, h.Cookie(auth.SessionCookie), res.Body)
+	}
 }
