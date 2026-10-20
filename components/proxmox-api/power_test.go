@@ -13,8 +13,8 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
-	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
 	pb "github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
 )
 
 // node serves the stateful Proxmox fake on the baseline, polled for tasks

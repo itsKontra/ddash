@@ -292,9 +292,18 @@ func TestAProtectedWorkloadIsRefusedWithoutAPowerCall(t *testing.T) {
 	c := start(t, l)
 
 	for name, call := range map[string]func() error{
-		"Start":   func() error { _, err := c.StartWorkload(actionCtx(t), &proxmoxpb.StartWorkloadRequest{Workload: lxc(101)}); return err },
-		"Stop":    func() error { _, err := c.StopWorkload(actionCtx(t), &proxmoxpb.StopWorkloadRequest{Workload: lxc(101)}); return err },
-		"Restart": func() error { _, err := c.RestartWorkload(actionCtx(t), &proxmoxpb.RestartWorkloadRequest{Workload: lxc(101)}); return err },
+		"Start": func() error {
+			_, err := c.StartWorkload(actionCtx(t), &proxmoxpb.StartWorkloadRequest{Workload: lxc(101)})
+			return err
+		},
+		"Stop": func() error {
+			_, err := c.StopWorkload(actionCtx(t), &proxmoxpb.StopWorkloadRequest{Workload: lxc(101)})
+			return err
+		},
+		"Restart": func() error {
+			_, err := c.RestartWorkload(actionCtx(t), &proxmoxpb.RestartWorkloadRequest{Workload: lxc(101)})
+			return err
+		},
 	} {
 		err := call()
 		if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != "LXC 101 nginx is protected in Proxmox: ddash doesn't hold VM.PowerMgmt on it" {
