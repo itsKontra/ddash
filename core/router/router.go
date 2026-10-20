@@ -70,7 +70,14 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, err)
 		return
 	}
-	md := ep.Service.Methods().ByName(protoreflect.Name(method))
+	// Stock connect-web clients with base URL /api/c/<component> ask for
+	// <package.Service>/<Method>.
+	var md protoreflect.MethodDescriptor
+	if svc, name, long := strings.Cut(method, "/"); !long {
+		md = ep.Service.Methods().ByName(protoreflect.Name(method))
+	} else if svc == string(ep.Service.FullName()) {
+		md = ep.Service.Methods().ByName(protoreflect.Name(name))
+	}
 	if md == nil {
 		WriteError(w, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method))
 		return
@@ -89,7 +96,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	resp := dynamicpb.NewMessage(md.Output())
-	fullMethod := "/" + string(ep.Service.FullName()) + "/" + method
+	fullMethod := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
 	if err := ep.Conn.Invoke(r.Context(), fullMethod, req, resp); err != nil {
 		WriteError(w, err)
 		return

@@ -135,6 +135,38 @@ func TestOnlyConnectUnaryJSONIsServed(t *testing.T) {
 	}
 }
 
+func TestCallsAreTranscodedFromTheComponentsDescriptors(t *testing.T) {
+	h := newHello(t, configured)
+	h.WaitState("greeter", runtime.OK)
+
+	for _, c := range []struct {
+		why, method, body string
+		status            int
+		code, message     string
+	}{
+		{"unknown fields are ignored", "Greet", `{"name":"Ada","mood":"sunny"}`, http.StatusOK, "", ""},
+		{"stock connect-web clients name the service", "ddash.sample.SampleService/Greet", `{"name":"Ada"}`, http.StatusOK, "", ""},
+		{"malformed JSON", "Greet", `{"name":`, http.StatusBadRequest, "invalid_argument", ""},
+		{"a field of the wrong type", "Greet", `{"name":"Ada","count":"many"}`, http.StatusBadRequest, "invalid_argument", ""},
+		{"the Component's own error", "Greet", `{}`, http.StatusBadRequest, "invalid_argument", "name is required"},
+		{"an empty body is an empty request", "Greet", ``, http.StatusBadRequest, "invalid_argument", "name is required"},
+		{"no such method", "Shout", `{}`, http.StatusNotImplemented, "unimplemented", ""},
+		{"another service", "ddash.sample.OtherService/Greet", `{}`, http.StatusNotImplemented, "unimplemented", ""},
+	} {
+		res := h.Call("hello", "greeter", c.method, c.body)
+		if c.status == http.StatusOK {
+			if res.Code != http.StatusOK {
+				t.Errorf("%s: status %d: %s", c.why, res.Code, res.Body)
+			}
+			continue
+		}
+		status, code, msg := connectError(t, res)
+		if status != c.status || code != c.code || (c.message != "" && msg != c.message) {
+			t.Errorf("%s: %d %s %q, want %d %s %q", c.why, status, code, msg, c.status, c.code, c.message)
+		}
+	}
+}
+
 func TestAPluginReachesOnlyTheComponentsItRequiresDirectly(t *testing.T) {
 	h := coretest.New(t, coretest.Options{
 		Components: []sdk.Definition{
