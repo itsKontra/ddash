@@ -26,8 +26,10 @@ check-generated: generate
 lint-proto:
 	go tool buf lint
 
+# Dev-build code (-tags dev) is tested too; release builds never contain it.
 test:
 	go test ./...
+	go test -tags dev ./core/auth/...
 
 vet:
 	go vet ./...
