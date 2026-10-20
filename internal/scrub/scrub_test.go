@@ -143,6 +143,44 @@ func literals(t *testing.T, text string) []scrub.Literal {
 	return l
 }
 
+// A WireGuard public key isn't secret but identifies a tunnel or a peer: it
+// becomes another key of the same shape, the same one wherever it appears.
+func TestPublicKeysBecomeOtherKeysByKeyedHash(t *testing.T) {
+	s := scrubber(t, scrub.Config{})
+	const real = "qTbOWAnBREKC/xc+AORrPhIavAAAAAAAAAAAAAAAAAA="
+	body := `{"public_key": "` + real + `", "peers": [{"publickey": "` + real + `", "pubkey": "other"}], "public_key_set": true, "public": ""}`
+
+	_, got := fixture(t, s, "a.json", body)
+	_, otherKey := fixture(t, scrubber(t, scrub.Config{Key: []byte("other")}), "a.json", body)
+
+	var v struct {
+		PublicKey string `json:"public_key"`
+		Peers     []struct {
+			PublicKey string `json:"publickey"`
+			Pubkey    string `json:"pubkey"`
+		} `json:"peers"`
+		PublicKeySet bool `json:"public_key_set"`
+	}
+	if err := json.Unmarshal([]byte(got), &v); err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(got, real) || len(v.PublicKey) != len(real) || !strings.HasSuffix(v.PublicKey, "=") {
+		t.Errorf("public_key = %s, want another 44-character base64 key", v.PublicKey)
+	}
+	if v.Peers[0].PublicKey != v.PublicKey {
+		t.Errorf("the same key became %s and %s", v.PublicKey, v.Peers[0].PublicKey)
+	}
+	if p := v.Peers[0].Pubkey; p == "other" || p == v.PublicKey {
+		t.Errorf("pubkey = %s, want its own replacement", p)
+	}
+	if !v.PublicKeySet {
+		t.Error("public_key_set lost its value")
+	}
+	if strings.Contains(otherKey, v.PublicKey) {
+		t.Error("another SCRUB_KEY gave the same replacement")
+	}
+}
+
 func TestTheDomainBecomesHomeExample(t *testing.T) {
 	s := scrubber(t, scrub.Config{Domains: []string{"realm.test"}})
 
@@ -182,7 +220,7 @@ func TestSecretLikeFieldsBecomeRedacted(t *testing.T) {
 	s := scrubber(t, scrub.Config{})
 
 	_, got := fixture(t, s, "a.json", `{"api_key": "k1", "Password": "p1", "privateKey": "pk", "token": "", "token_set": true,
-"peers": [{"presharedkey": "psk1", "publickey": "pub1"}], "client_secrets": ["s1", "s2"], "name": "n1",
+"peers": [{"presharedkey": "psk1"}], "client_secrets": ["s1", "s2"], "name": "n1",
 "Env": ["API_TOKEN=t1", "TZ=UTC"]}`)
 
 	want := `{
@@ -193,8 +231,7 @@ func TestSecretLikeFieldsBecomeRedacted(t *testing.T) {
   "token_set": true,
   "peers": [
     {
-      "presharedkey": "REDACTED",
-      "publickey": "pub1"
+      "presharedkey": "REDACTED"
     }
   ],
   "client_secrets": [

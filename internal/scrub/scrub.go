@@ -5,7 +5,8 @@
 //   - each real subnet becomes its own 198.18.N.0/24, keeping host octets;
 //   - any other IPv4 address becomes one in 203.0.113.0/24, and IPv6 one in
 //     2001:db8::/32 (by keyed hash, so re-recording is stable);
-//   - a MAC becomes 02:… by keyed hash;
+//   - a MAC becomes 02:… by keyed hash, and a public key (WireGuard's)
+//     another key of the same shape;
 //   - the homelab's domain becomes home.example, and each literal from the
 //     gitignored scrub.map its replacement;
 //   - the values of secret-like fields become REDACTED;
@@ -174,7 +175,7 @@ func (s *Scrubber) Fixture(file string, body []byte) (string, []byte, error) {
 	name := s.text(file)
 	var out []byte
 	if v, ok := decodeJSON(body); ok {
-		out = encodeJSON(walkStrings(s.adguard(file, redact(v)), s.text))
+		out = encodeJSON(walkStrings(s.adguard(file, s.publicKeys(redact(v))), s.text))
 	} else {
 		out = []byte(s.text(string(body)))
 	}

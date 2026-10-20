@@ -1,6 +1,7 @@
 package scrub
 
 import (
+	"encoding/base64"
 	"regexp"
 	"strings"
 )
@@ -62,6 +63,33 @@ func redactValue(v any) any {
 		return v
 	case object:
 		return redact(v)
+	}
+	return v
+}
+
+func publicKey(key string) bool {
+	k := strings.ToLower(strings.NewReplacer("_", "", "-", "", ".", "").Replace(key))
+	return k == "publickey" || k == "pubkey"
+}
+
+// publicKeys replaces the value of every public key field, which isn't
+// secret but identifies a WireGuard tunnel or peer, with a 32-byte key by
+// keyed hash: the same key becomes the same replacement wherever it appears.
+func (s *Scrubber) publicKeys(v any) any {
+	switch v := v.(type) {
+	case object:
+		for i := range v {
+			if k, ok := v[i].value.(string); ok && k != "" && publicKey(v[i].key) {
+				v[i].value = base64.StdEncoding.EncodeToString(s.hash([]byte("public key"), []byte(k)))
+			} else {
+				v[i].value = s.publicKeys(v[i].value)
+			}
+		}
+		return v
+	case []any:
+		for i := range v {
+			v[i] = s.publicKeys(v[i])
+		}
 	}
 	return v
 }
