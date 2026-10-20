@@ -43,7 +43,9 @@ func TestServeAnswersHealthzUntilStoppedThenStopsAcceptingHTTP(t *testing.T) {
 	ctx, sigterm := context.WithCancel(t.Context())
 	addrs := make(chan string, 1)
 	done := make(chan error, 1)
-	go func() { done <- serve(ctx, func(k string) string { return env[k] }, func(addr string) { addrs <- addr }) }()
+	go func() {
+		done <- serve(ctx, func(k string) string { return env[k] }, func(addr string) { addrs <- addr })
+	}()
 	url := "http://" + <-addrs
 
 	if err := healthcheck(t.Context(), url); err != nil {

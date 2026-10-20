@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto test vet typecheck check
+.PHONY: all install generate check-generated lint-proto test vet typecheck check dev release-dir
 
 all: check
 
@@ -38,3 +38,15 @@ typecheck:
 	$(PNPM) typecheck
 
 check: lint-proto check-generated vet test typecheck
+
+# Build the Release into dist/ (catalogue.json, SHA256SUMS, one binary per
+# Component), as Release dev unless RELEASE is set.
+RELEASE ?= dev
+release-dir:
+	rm -rf dist
+	go run ./cmd/release -out dist -release $(RELEASE)
+
+# Run everything locally against fakelab: builds dist/, seeds Component
+# config, installs every Plugin and runs the core (dev auth) on :8080.
+dev:
+	go run ./cmd/dev

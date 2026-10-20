@@ -5,7 +5,8 @@
 //
 //	DDASH_LISTEN       address to serve HTTP on (default :8080)
 //	DDASH_DATA_DIR     the data dir (default /data)
-//	DDASH_RELEASE_DIR  a local Release dir holding catalogue.json (required for now)
+//	DDASH_RELEASE_DIR  a local Release dir: catalogue.json, SHA256SUMS and the
+//	                   Component binaries (required for now)
 //	DDASH_PUBLIC_URL   where the Operator reaches ddash
 //	DDASH_DEV_AUTH     1 signs every request in as operator:dev (dev builds only)
 package main
@@ -22,7 +23,6 @@ import (
 	"syscall"
 	"time"
 
-	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -59,10 +59,9 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 		return errors.New("DDASH_RELEASE_DIR is required: GitHub releases aren't supported yet")
 	}
 	host, err := core.New(ctx, core.Options{
-		DataDir: env(getenv, "DDASH_DATA_DIR", "/data"),
-		Release: runtime.Dir(releaseDir),
-		// Until the subprocess launcher lands, Components run in-process.
-		Launcher:  runtime.InProcess(logger, dockerapi.Definition()),
+		DataDir:   env(getenv, "DDASH_DATA_DIR", "/data"),
+		Release:   runtime.Dir(releaseDir),
+		Launcher:  runtime.Subprocess(releaseDir, os.Stderr),
 		Auth:      auth.FromEnv(getenv),
 		PublicURL: getenv("DDASH_PUBLIC_URL"),
 		Logger:    logger,

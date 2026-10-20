@@ -2,9 +2,9 @@ package core_test
 
 import (
 	"encoding/json"
+	"maps"
 	"net/http"
 	"net/http/httptest"
-	"maps"
 	"testing"
 	"testing/synctest"
 	"time"

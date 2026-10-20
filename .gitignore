@@ -6,6 +6,7 @@
 # build output
 /bin/
 /dist/
+/.dev/
 node_modules/
 
 # local homelab name mapping
