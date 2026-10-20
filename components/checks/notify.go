@@ -307,7 +307,8 @@ type subject struct {
 }
 
 // subject resolves item to what it notifies of, unless it is silenced:
-// gone, in Maintenance, or a muted Check. Call with c.mu held.
+// gone, in Maintenance, or a Check that is muted or not probed (disabled,
+// its App hidden or its Proxy Host gone). Call with c.mu held.
 func (c *component) subject(item string) (subject, bool) {
 	if c.inMaintenance(item, now()) {
 		return subject{}, false
@@ -316,7 +317,7 @@ func (c *component) subject(item string) (subject, bool) {
 	switch prefix {
 	case "check":
 		ch := c.itemCheck(item)
-		if ch == nil || ch.muted {
+		if ch == nil || ch.muted || !ch.probed() {
 			return subject{}, false
 		}
 		st := ch.standing
@@ -396,7 +397,7 @@ func certItem(id int64) string { return "cert:" + strconv.FormatInt(id, 10) }
 // c.mu held.
 func (c *component) certWanted(item string) (pending, want) {
 	ch := c.itemCheck(item)
-	if ch == nil || ch.muted || c.inMaintenance(item, now()) {
+	if ch == nil || ch.muted || !ch.probed() || c.inMaintenance(item, now()) {
 		return pending{}, nothing
 	}
 	exp, left := ch.standing.certExpires, time.Until(ch.standing.certExpires)

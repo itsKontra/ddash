@@ -288,6 +288,47 @@ func TestAnUnsentNotificationIsDroppedAfterAnHour(t *testing.T) {
 	})
 }
 
+// A hidden App never notifies, nor does a disabled Check or one whose
+// Proxy Host is gone: a down queued before is dropped, not sent.
+func TestAHiddenDisabledOrGoneChecksQueuedNotificationIsDropped(t *testing.T) {
+	for name, silence := range map[string]func(t *testing.T, c checkspb.ChecksServiceClient, a *checkspb.AppCheck, id int64){
+		"hidden": func(t *testing.T, c checkspb.ChecksServiceClient, a *checkspb.AppCheck, _ int64) {
+			setApps(t, c, hidden(a))
+		},
+		"disabled": func(t *testing.T, c checkspb.ChecksServiceClient, _ *checkspb.AppCheck, id int64) {
+			if _, err := c.SetDisabled(t.Context(), &checkspb.SetDisabledRequest{Id: id, Disabled: true}); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"gone": func(t *testing.T, c checkspb.ChecksServiceClient, _ *checkspb.AppCheck, _ int64) {
+			setApps(t, c)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				l := newLab()
+				l.set("printer.home.example:8080", "http 200")
+				_, c := startIn(t, l)
+				a := app("proxy:printer.home.example", "Printer", "http://printer.home.example:8080")
+				setApps(t, c, a)
+				synctest.Wait()
+				id := appCheck(t, c, a.GetAppId()).GetId()
+				l.ntfy.setDown(true)
+				l.set("printer.home.example:8080", "refuse")
+				untilState(t, c, id, checkspb.State_STATE_DOWN)
+
+				silence(t, c, a, id)
+				l.ntfy.setDown(false)
+				after(checks.RetryMax + checks.GroupWindow + tick11())
+
+				if got := l.ntfy.notifications(); len(got) != 0 {
+					t.Errorf("sent %v for a %s App Check, want nothing", titles(got), name)
+				}
+			})
+		})
+	}
+}
+
 func TestADeletedChecksQueuedNotificationIsDropped(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
