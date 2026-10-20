@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc"
@@ -51,6 +52,9 @@ type Host struct {
 	runtime *runtime.Runtime
 	router  *router.Router
 	handler http.Handler
+
+	stopLoops context.CancelFunc
+	loops     sync.WaitGroup
 }
 
 // New opens and migrates the core DB and reads the installed set. The
@@ -199,12 +203,22 @@ func (h *Host) AuditLog() *appstate.Gate { return h.gate }
 // Config holds every owner's config.
 func (h *Host) Config() *config.Store { return h.config }
 
-// Start reconciles the installed Plugins' Components in the background.
-func (h *Host) Start() { h.runtime.Start() }
+// Start runs the housekeeping in the background: it reconciles the
+// installed Plugins' Components and sweeps the Audit Log daily.
+func (h *Host) Start() {
+	ctx, cancel := context.WithCancel(context.Background())
+	h.stopLoops = cancel
+	h.loops.Go(func() { h.gate.SweepDaily(ctx) })
+	h.runtime.Start()
+}
 
 // Shutdown stops every Component in parallel, waiting at most
 // runtime.StopTimeout, then closes the core DB. Stop serving HTTP first.
 func (h *Host) Shutdown(ctx context.Context) error {
+	if h.stopLoops != nil {
+		h.stopLoops()
+	}
+	h.loops.Wait()
 	h.runtime.Stop(ctx)
 	return h.db.Close()
 }

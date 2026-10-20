@@ -181,6 +181,25 @@ func redact(m protoreflect.Message) {
 	})
 }
 
+// Retention is how long the Audit Log keeps an entry.
+const Retention = 365 * 24 * time.Hour
+
+// SweepDaily deletes the entries older than Retention at once and then
+// every day, until ctx ends. It is one of the core's housekeeping loops.
+func (g *Gate) SweepDaily(ctx context.Context) {
+	ticker := time.NewTicker(24 * time.Hour)
+	defer ticker.Stop()
+	for {
+		cutoff := time.Now().Add(-Retention).UTC().Format(timeFormat)
+		g.db.ExecContext(ctx, `DELETE FROM audit_entry WHERE time < ?`, cutoff)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
 // Entry is one hop in the Audit Log.
 type Entry struct {
 	ID   int64
