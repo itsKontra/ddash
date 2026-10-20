@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto test vet typecheck check dev release-dir
+.PHONY: all install generate check-generated lint-proto lint test vet typecheck check dev release-dir
 
 all: check
 
@@ -26,7 +26,16 @@ check-generated: generate
 lint-proto:
 	go tool buf lint
 
+# golangci-lint is pinned here rather than as a go.mod tool, so its many
+# dependencies stay out of the module. Config: .golangci.yml.
+GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+
+lint:
+	$(GOLANGCI_LINT) run ./...
+
 # Dev-build code (-tags dev) is tested too; release builds never contain it.
+# go test ./... includes the subprocess test (it builds the Release and
+# runs it against fakelab) and the fixture IP guard (internal/ipguard).
 test:
 	go test ./...
 	go test -tags dev ./core/auth/...
@@ -37,7 +46,7 @@ vet:
 typecheck:
 	$(PNPM) typecheck
 
-check: lint-proto check-generated vet test typecheck
+check: lint-proto check-generated vet lint test typecheck
 
 # Build the Release into dist/ (catalogue.json, SHA256SUMS, one binary per
 # Component), as Release dev unless RELEASE is set.

@@ -95,7 +95,7 @@ func (g *Gate) Admit(ctx context.Context, actor auth.Actor, a Action) (done func
 		}
 		// Completing an entry the next host already marked interrupted
 		// would rewrite history, so only a running entry is completed.
-		g.db.ExecContext(context.WithoutCancel(ctx), `
+		_, _ = g.db.ExecContext(context.WithoutCancel(ctx), `
 			UPDATE audit_entry SET outcome = ?, message = ?, duration_ms = ?
 			WHERE id = ? AND outcome IS NULL`,
 			outcome, message, time.Since(start).Milliseconds(), id)
@@ -191,7 +191,7 @@ func (g *Gate) SweepDaily(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		cutoff := time.Now().Add(-Retention).UTC().Format(timeFormat)
-		g.db.ExecContext(ctx, `DELETE FROM audit_entry WHERE time < ?`, cutoff)
+		_, _ = g.db.ExecContext(ctx, `DELETE FROM audit_entry WHERE time < ?`, cutoff) // retried tomorrow
 		select {
 		case <-ctx.Done():
 			return

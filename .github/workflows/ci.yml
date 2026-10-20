@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install the pnpm workspace
+        run: make install
+      - name: buf lint
+        run: make lint-proto
+      - name: Codegen drift
+        run: make check-generated
+      - name: go vet
+        run: make vet
+      - name: golangci-lint
+        run: make lint
+      # go test ./... includes the subprocess test, which builds the Release
+      # and boots the core with the real launcher against fakelab, and the
+      # fixture IP guard (internal/ipguard).
+      - name: go test
+        run: make test
+      - name: Typecheck
+        run: make typecheck

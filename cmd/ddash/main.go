@@ -71,7 +71,7 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 	}
 	ln, err := net.Listen("tcp", env(getenv, "DDASH_LISTEN", defaultListen))
 	if err != nil {
-		host.Shutdown(context.Background())
+		_ = host.Shutdown(context.Background()) // the listen error matters more
 		return err
 	}
 	srv := &http.Server{Handler: host.Handler(), ReadHeaderTimeout: 10 * time.Second}
