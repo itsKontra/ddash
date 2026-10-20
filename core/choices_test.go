@@ -7,7 +7,9 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
+	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/network"
+	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/core/coretest"
@@ -33,7 +35,7 @@ func formField(t *testing.T, form map[string]any, name string) map[string]any {
 
 func TestAFieldsChoicesComeFromTheGetterItsChoicesFromNames(t *testing.T) {
 	srv := fixture.Server(t, "../components/pfsense-api/testdata/baseline")
-	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), ntfyapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
 	h.SeedConfig("pfsense-api", &pfsenseapipb.PfsenseApiConfig{Url: srv.URL, ApiKey: "key"})
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.OK)
@@ -58,7 +60,7 @@ func TestAFieldsChoicesComeFromTheGetterItsChoicesFromNames(t *testing.T) {
 }
 
 func TestAFieldWhoseChoicesCantBeReadIsFreeTextWithANote(t *testing.T) {
-	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), ntfyapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.Unconfigured)
 	h.WaitState("network", runtime.Unconfigured)

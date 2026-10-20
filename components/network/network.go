@@ -1,6 +1,7 @@
 // Package network is the network Component, the logic behind the Network
 // Page. It watches the firewall's failover gateway group and derives the
-// VPN Tunnel's tier from it, samples WAN and LAN throughput into an
+// VPN Tunnel's tier from it (reporting the VPN Tunnel item to checks, so
+// both tiers down is notified), samples WAN and LAN throughput into an
 // in-memory ring, reads Remote Access, and turns a Device's ad-blocking off
 // or on through AdGuard.
 package network
@@ -10,6 +11,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/netip"
 	"slices"
 	"strings"
@@ -21,6 +23,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/sdk"
@@ -49,10 +52,16 @@ type component struct {
 	networkpb.UnimplementedNetworkServiceServer
 	pfsense pfsenseapipb.PfsenseApiServiceClient
 	adguard adguardapipb.AdguardApiServiceClient
+	checks  checkspb.ChecksServiceClient
+	log     *slog.Logger
 
 	// ready is closed once the first read finished.
 	ready     chan struct{}
 	readyOnce sync.Once
+
+	// reported is the VPN Tunnel item as checks last accepted it
+	// (vpn_item.go); only poll touches it.
+	reported *checkspb.ReportStateRequest
 
 	mu     sync.Mutex
 	tunnel *networkpb.GetVpnTunnelResponse
@@ -70,6 +79,8 @@ type component struct {
 func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.NetworkConfig) error {
 	c.pfsense = sdk.Require(env, pfsenseapipb.NewPfsenseApiServiceClient)
 	c.adguard = sdk.Require(env, adguardapipb.NewAdguardApiServiceClient)
+	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
+	c.log = env.Log
 	if err := c.startDevices(ctx, env, cfg); err != nil {
 		return err
 	}
@@ -109,7 +120,8 @@ func (c *component) GetVpnTunnel(ctx context.Context, _ *networkpb.GetVpnTunnelR
 	return proto.CloneOf(c.tunnel), nil
 }
 
-// poll reads the gateway group and the gateways and derives the tier.
+// poll reads the gateway group and the gateways, derives the tier and
+// reports the VPN Tunnel item to checks.
 func (c *component) poll(ctx context.Context) {
 	// Even a read that panics (sdk.Every reports it) must not leave the
 	// getter waiting.
@@ -123,6 +135,8 @@ func (c *component) poll(ctx context.Context) {
 	c.mu.Lock()
 	c.tunnel = tunnel
 	c.mu.Unlock()
+	c.readyOnce.Do(func() { close(c.ready) })
+	c.report(ctx, tunnel)
 }
 
 func (c *component) read(ctx context.Context) (*networkpb.GetVpnTunnelResponse, error) {

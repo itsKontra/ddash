@@ -7,17 +7,21 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
 
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
+	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/core/appstate"
+	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/internal/fakelab"
@@ -26,9 +30,9 @@ import (
 
 var repoRoot = filepath.Join("..", "..")
 
-// bootNetwork boots the core with network, pfsense-api and adguard-api
-// in-process against a lab serving scenarios, configured as `make dev`
-// does.
+// bootNetwork boots the core with network, pfsense-api, adguard-api and
+// checks (with its ntfy-api) in-process against a lab serving scenarios,
+// configured as `make dev` does, once network reported the VPN Tunnel item.
 func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	h, _ := bootNetworkLab(t, scenarios...)
 	return h
@@ -42,11 +46,11 @@ func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fake
 	}
 	t.Cleanup(lab.Close)
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition()},
+		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), ntfyapi.Definition()},
 		Plugins:    []coretest.Plugin{{Name: "network", Requires: []string{"network", "pfsense-api", "adguard-api"}}},
 	})
 	for component, cfg := range lab.Config() {
-		if component == "pfsense-api" || component == "network" || component == "adguard-api" {
+		if component == "pfsense-api" || component == "network" || component == "adguard-api" || component == "ntfy-api" {
 			h.SeedConfig(component, cfg)
 		}
 	}
@@ -54,7 +58,26 @@ func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fake
 	h.WaitState("pfsense-api", runtime.OK)
 	h.WaitState("adguard-api", runtime.OK)
 	h.WaitState("network", runtime.OK)
+	vpnReport(t, h)
 	return h, lab
+}
+
+// vpnReport waits for network's report of the VPN Tunnel item to checks,
+// the one after its Start, and returns its request.
+func vpnReport(t *testing.T, h *coretest.Harness) string {
+	t.Helper()
+	deadline := time.Now().Add(10 * time.Second)
+	for {
+		for _, e := range h.AuditLog() {
+			if e.Target == "checks" && e.Method == "ReportState" && e.Username == "network" && strings.Contains(e.Request, `"vpn-tunnel"`) {
+				return e.Request
+			}
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("network never reported the VPN Tunnel item to checks")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
 }
 
 // networkCall returns network's answer to method on a lab serving scenarios.
@@ -80,6 +103,22 @@ func TestTheBaselineFirewallHasTheTunnelViaWireGuard(t *testing.T) {
 func TestTheVpnOnFallbackScenarioHasTheTunnelViaOpenVPN(t *testing.T) {
 	if got := vpnTier(t, "vpn-on-fallback"); !strings.Contains(got, `"tier":"TIER_OPENVPN"`) {
 		t.Errorf("GetVpnTunnel = %s, want via the OpenVPN fallback", got)
+	}
+}
+
+// network reports the VPN Tunnel item to checks through the host: up on
+// the fallback (failover is no Notification), down with both tiers down.
+func TestNetworkReportsTheVPNTunnelItemToChecksThroughTheHost(t *testing.T) {
+	for scenario, want := range map[string]string{
+		"vpn-on-fallback": `"state":"STATE_UP"`,
+		"vpn-down":        `"state":"STATE_DOWN"`,
+	} {
+		t.Run(scenario, func(t *testing.T) {
+			h, _ := bootNetworkLab(t, scenario)
+			if got := vpnReport(t, h); !strings.Contains(got, want) {
+				t.Errorf("ReportState request = %s, want %s", got, want)
+			}
+		})
 	}
 }
 
@@ -139,7 +178,7 @@ func TestTheBaselineFirewallHasTwoRemoteAccessPeers(t *testing.T) {
 func componentHops(h *coretest.Harness) []appstate.Entry {
 	var out []appstate.Entry
 	for _, e := range h.AuditLog() {
-		if e.Target != "core" {
+		if e.Target != "core" && e.ActorKind != auth.Component {
 			out = append(out, e)
 		}
 	}
