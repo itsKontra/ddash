@@ -29,8 +29,8 @@ export function navItems(plugins: Iterable<LoadedPlugin>): NavItem[] {
       entries.push({ plugin: p, order: nav.order, label: nav.label ?? p.title, icon: nav.icon ?? p.icon, useBadge: nav.useBadge });
     }
   }
-  const byLabel = (a: NavItem, b: NavItem) => a.label.localeCompare(b.label);
-  entries.sort((a, b) => a.order - b.order || byLabel(a, b));
-  broken.sort(byLabel);
+  const byTitle = (a: NavItem, b: NavItem) => a.plugin.title.localeCompare(b.plugin.title);
+  entries.sort((a, b) => a.order - b.order || byTitle(a, b));
+  broken.sort(byTitle);
   return [...entries, ...broken];
 }

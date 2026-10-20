@@ -79,6 +79,15 @@ it("lists Overview first, then Nav Entries by order and title, then Plugins and 
   ]);
 });
 
+it("breaks an order tie by the Plugins' titles, not their Nav Entry labels", async () => {
+  await boot("/", [
+    [installed("bravo", "Bravo"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("b") }] })],
+    [installed("alpha", "Alpha"), definePlugin({ nav: { order: 50, label: "Zulu" }, pages: [{ index: true, Component: page("a") }] })],
+  ]);
+
+  expect(navLinks()).toEqual(["Overview", "Zulu", "Bravo", "Plugins", "Settings"]);
+});
+
 it("imports every bundle in parallel at boot, each with its stylesheet", async () => {
   const never = new Promise<PluginDefinition>(() => {});
   await boot("/", [
