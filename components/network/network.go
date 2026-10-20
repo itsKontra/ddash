@@ -1,7 +1,8 @@
 // Package network is the network Component, the logic behind the Network
 // Page. It watches the firewall's failover gateway group and derives the
 // VPN Tunnel's tier from it, samples WAN and LAN throughput into an
-// in-memory ring, and reads Remote Access.
+// in-memory ring, reads Remote Access, and turns a Device's ad-blocking off
+// or on through AdGuard.
 package network
 
 import (
@@ -19,6 +20,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
+	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/sdk"
@@ -46,6 +48,7 @@ func Definition() sdk.Definition {
 type component struct {
 	networkpb.UnimplementedNetworkServiceServer
 	pfsense pfsenseapipb.PfsenseApiServiceClient
+	adguard adguardapipb.AdguardApiServiceClient
 
 	// ready is closed once the first read finished.
 	ready     chan struct{}
@@ -66,6 +69,7 @@ type component struct {
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.NetworkConfig) error {
 	c.pfsense = sdk.Require(env, pfsenseapipb.NewPfsenseApiServiceClient)
+	c.adguard = sdk.Require(env, adguardapipb.NewAdguardApiServiceClient)
 	if err := c.startDevices(ctx, env, cfg); err != nil {
 		return err
 	}

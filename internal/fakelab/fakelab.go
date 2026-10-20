@@ -5,9 +5,9 @@
 //
 // Docker comes first; each later system adds itself to systems (HTTP) or
 // sshSystems (SSH). A system whose Actions must stick is served by a
-// stateful fake over its fixtures (pfSense: pfsensefake). A named scenario
-// (e.g. "vpn-on-fallback") replaces the baseline of every system that has
-// a sibling directory of that name.
+// stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
+// adguardfake). A named scenario (e.g. "vpn-on-fallback") replaces the
+// baseline of every system that has a sibling directory of that name.
 package fakelab
 
 import (
@@ -24,6 +24,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
@@ -72,6 +74,16 @@ var systems = []system{
 		},
 		// Static mappings and their apply are kept: Adopt and rename stick.
 		serve: func(dir string) (http.Handler, error) { return pfsensefake.New(dir, pfsensefake.Options{}) },
+	},
+	{
+		component: "adguard-api",
+		fixtures:  "components/adguard-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			// The fake checks no credentials.
+			return &adguardapipb.AdguardApiConfig{Url: "http://" + addr, Username: "fakelab", Password: "fakelab"}
+		},
+		// Persistent clients are kept: per-Device ad-blocking sticks.
+		serve: func(dir string) (http.Handler, error) { return adguardfake.New(dir, adguardfake.Options{}) },
 	},
 	{
 		component: "proxmox-api",

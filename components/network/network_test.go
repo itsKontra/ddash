@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
+	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
@@ -137,7 +138,14 @@ func down(name string) *pfsenseapipb.Gateway {
 }
 
 func start(t *testing.T, fw *firewall) (*sdktest.Harness, networkpb.NetworkServiceClient) {
-	h := sdktest.New(t, network.Definition(), sdktest.WithClient[pfsenseapipb.PfsenseApiServiceClient](fw))
+	return startWithAdGuard(t, fw, &adguard{})
+}
+
+// startWithAdGuard starts network on fw and ag (adblocking_test.go).
+func startWithAdGuard(t *testing.T, fw *firewall, ag *adguard) (*sdktest.Harness, networkpb.NetworkServiceClient) {
+	h := sdktest.New(t, network.Definition(),
+		sdktest.WithClient[pfsenseapipb.PfsenseApiServiceClient](fw),
+		sdktest.WithClient[adguardapipb.AdguardApiServiceClient](ag))
 	h.MustStart(homeConfig())
 	return h, networkpb.NewNetworkServiceClient(h.Conn)
 }

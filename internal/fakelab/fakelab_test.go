@@ -10,7 +10,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 
+	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
+	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
@@ -23,8 +26,9 @@ import (
 
 var repoRoot = filepath.Join("..", "..")
 
-// bootNetwork boots the core with network and pfsense-api in-process
-// against a lab serving scenarios, both configured as `make dev` does.
+// bootNetwork boots the core with network, pfsense-api and adguard-api
+// in-process against a lab serving scenarios, configured as `make dev`
+// does.
 func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
@@ -32,16 +36,17 @@ func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	}
 	t.Cleanup(lab.Close)
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition()},
-		Plugins:    []coretest.Plugin{{Name: "network", Requires: []string{"network", "pfsense-api"}}},
+		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition()},
+		Plugins:    []coretest.Plugin{{Name: "network", Requires: []string{"network", "pfsense-api", "adguard-api"}}},
 	})
 	for component, cfg := range lab.Config() {
-		if component == "pfsense-api" || component == "network" {
+		if component == "pfsense-api" || component == "network" || component == "adguard-api" {
 			h.SeedConfig(component, cfg)
 		}
 	}
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.OK)
+	h.WaitState("adguard-api", runtime.OK)
 	h.WaitState("network", runtime.OK)
 	return h
 }
@@ -185,6 +190,53 @@ func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
 	}
 	if chains["AdoptDevice"] != chains["CreateStaticMapping"] || chains["RenameDevice"] != chains["RenameStaticMapping"] || chains["AdoptDevice"] == chains["RenameDevice"] {
 		t.Errorf("chains = %v, want Adopt's two hops on one chain and rename's on another", chains)
+	}
+}
+
+func TestAdBlockingOffOnANewDeviceIsOneChainOfItsAdoptAndAdGuardHops(t *testing.T) {
+	h := bootNetwork(t)
+
+	res := h.Call("network", "network", "SetAdBlocking", `{"mac":"02:5e:00:00:20:01","enabled":false}`)
+	if res.Code != http.StatusOK {
+		t.Fatalf("SetAdBlocking: status %d: %s", res.Code, res.Body)
+	}
+
+	// The lab keeps both writes: the phone is Adopted at the lowest free
+	// reserved address, and AdGuard has a client for it that doesn't filter.
+	var list networkpb.ListDevicesResponse
+	if err := protojson.Unmarshal(h.Call("network", "network", "ListDevices", `{}`).Body.Bytes(), &list); err != nil {
+		t.Fatal(err)
+	}
+	for _, d := range list.GetDevices() {
+		if d.GetMac() == "02:5e:00:00:20:01" && (!d.GetAdopted() || d.GetIp() != "198.18.1.23" || !d.GetAdBlockingOff()) {
+			t.Errorf("Device after the toggle = %v, want Adopted at .23 with ad-blocking off", d)
+		}
+	}
+	var clients adguardapipb.ListClientsResponse
+	if err := protojson.Unmarshal(h.Call("network", "adguard-api", "ListClients", `{}`).Body.Bytes(), &clients); err != nil {
+		t.Fatal(err)
+	}
+	want := &adguardapipb.Client{Name: "galaxy-s24", Ids: []string{"198.18.1.23"}}
+	if got := clients.GetClients(); len(got) != 3 || !proto.Equal(got[2], want) {
+		t.Errorf("AdGuard's clients = %v, want the TV's, the servers' and %v", got, want)
+	}
+
+	// Newest first, all on the toggle's chain, as the Operator.
+	entries := componentHops(h)
+	var hops []string
+	for _, e := range entries {
+		hops = append(hops, fmt.Sprintf("%s %s %s %s", e.Target, e.Method, e.Outcome, e.Username))
+		if e.Chain != entries[0].Chain {
+			t.Errorf("%s on another chain", e.Method)
+		}
+	}
+	wantHops := []string{
+		"adguard-api SetClientFiltering ok test",
+		"pfsense-api CreateStaticMapping ok test",
+		"network SetAdBlocking ok test",
+	}
+	if diff := cmp.Diff(wantHops, hops); diff != "" {
+		t.Errorf("Audit Log (-want +got):\n%s", diff)
 	}
 }
 

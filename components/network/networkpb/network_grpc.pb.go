@@ -30,6 +30,7 @@ const (
 	NetworkService_NextReservedAddress_FullMethodName = "/ddash.network.NetworkService/NextReservedAddress"
 	NetworkService_AdoptDevice_FullMethodName         = "/ddash.network.NetworkService/AdoptDevice"
 	NetworkService_RenameDevice_FullMethodName        = "/ddash.network.NetworkService/RenameDevice"
+	NetworkService_SetAdBlocking_FullMethodName       = "/ddash.network.NetworkService/SetAdBlocking"
 )
 
 // NetworkServiceClient is the client API for NetworkService service.
@@ -64,6 +65,12 @@ type NetworkServiceClient interface {
 	// description. Its address and reservation stay as they are; changing or
 	// removing them is done in pfSense.
 	RenameDevice(ctx context.Context, in *RenameDeviceRequest, opts ...grpc.CallOption) (*RenameDeviceResponse, error)
+	// SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
+	// its address's persistent client in AdGuard (created the first time it
+	// is turned off). It works on Adopted Devices, whose address stays put: a
+	// New Device is Adopted first, at the lowest free reserved address. It
+	// has no timer: off stays off until turned on.
+	SetAdBlocking(ctx context.Context, in *SetAdBlockingRequest, opts ...grpc.CallOption) (*SetAdBlockingResponse, error)
 }
 
 type networkServiceClient struct {
@@ -144,6 +151,16 @@ func (c *networkServiceClient) RenameDevice(ctx context.Context, in *RenameDevic
 	return out, nil
 }
 
+func (c *networkServiceClient) SetAdBlocking(ctx context.Context, in *SetAdBlockingRequest, opts ...grpc.CallOption) (*SetAdBlockingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetAdBlockingResponse)
+	err := c.cc.Invoke(ctx, NetworkService_SetAdBlocking_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NetworkServiceServer is the server API for NetworkService service.
 // All implementations must embed UnimplementedNetworkServiceServer
 // for forward compatibility.
@@ -176,6 +193,12 @@ type NetworkServiceServer interface {
 	// description. Its address and reservation stay as they are; changing or
 	// removing them is done in pfSense.
 	RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error)
+	// SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
+	// its address's persistent client in AdGuard (created the first time it
+	// is turned off). It works on Adopted Devices, whose address stays put: a
+	// New Device is Adopted first, at the lowest free reserved address. It
+	// has no timer: off stays off until turned on.
+	SetAdBlocking(context.Context, *SetAdBlockingRequest) (*SetAdBlockingResponse, error)
 	mustEmbedUnimplementedNetworkServiceServer()
 }
 
@@ -206,6 +229,9 @@ func (UnimplementedNetworkServiceServer) AdoptDevice(context.Context, *AdoptDevi
 }
 func (UnimplementedNetworkServiceServer) RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RenameDevice not implemented")
+}
+func (UnimplementedNetworkServiceServer) SetAdBlocking(context.Context, *SetAdBlockingRequest) (*SetAdBlockingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetAdBlocking not implemented")
 }
 func (UnimplementedNetworkServiceServer) mustEmbedUnimplementedNetworkServiceServer() {}
 func (UnimplementedNetworkServiceServer) testEmbeddedByValue()                        {}
@@ -354,6 +380,24 @@ func _NetworkService_RenameDevice_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NetworkService_SetAdBlocking_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetAdBlockingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).SetAdBlocking(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_SetAdBlocking_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).SetAdBlocking(ctx, req.(*SetAdBlockingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NetworkService_ServiceDesc is the grpc.ServiceDesc for NetworkService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -388,6 +432,10 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RenameDevice",
 			Handler:    _NetworkService_RenameDevice_Handler,
+		},
+		{
+			MethodName: "SetAdBlocking",
+			Handler:    _NetworkService_SetAdBlocking_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

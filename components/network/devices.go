@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/sdk"
@@ -115,10 +116,17 @@ func (c *component) readDevices(ctx context.Context) (*networkpb.ListDevicesResp
 	if msg := checkAlias(aliases.GetAliases(), c.bypassAlias); msg != "" {
 		return nil, status.Errorf(codes.FailedPrecondition, "bypass alias: %s; pick another in network's config", msg)
 	}
-	return &networkpb.ListDevicesResponse{
+	out := &networkpb.ListDevicesResponse{
 		Devices:     join(leases.GetLeases(), servers.GetServers(), aliases.GetAliases(), c.bypassAlias),
 		BypassAlias: c.bypassAlias,
-	}, nil
+	}
+	// The Devices list without AdGuard: only their ad-blocking is unknown.
+	if clients, err := c.adguard.ListClients(ctx, &adguardapipb.ListClientsRequest{}); err != nil {
+		out.AdguardError = "can't read AdGuard's clients: " + status.Convert(err).Message()
+	} else {
+		joinAdGuard(out.GetDevices(), clients.GetClients())
+	}
+	return out, nil
 }
 
 // join makes a Device of every MAC the firewall's DHCP knows: a static

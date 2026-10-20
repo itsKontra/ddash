@@ -73,6 +73,25 @@ service NetworkService {
   rpc RenameDevice(RenameDeviceRequest) returns (RenameDeviceResponse) {
     option (ddash.action) = {};
   }
+  // SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
+  // its address's persistent client in AdGuard (created the first time it
+  // is turned off). It works on Adopted Devices, whose address stays put: a
+  // New Device is Adopted first, at the lowest free reserved address. It
+  // has no timer: off stays off until turned on.
+  rpc SetAdBlocking(SetAdBlockingRequest) returns (SetAdBlockingResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message SetAdBlockingRequest {
+  // The Device's MAC.
+  string mac = 1;
+  // Ad-blocking on (true) or off.
+  bool enabled = 2;
+}
+
+message SetAdBlockingResponse {
+  Device device = 1;
 }
 
 message NextReservedAddressRequest {}
@@ -116,6 +135,9 @@ message ListDevicesResponse {
   repeated Device devices = 1;
   // The configured bypass alias's name.
   string bypass_alias = 2;
+  // Why AdGuard's clients couldn't be read, so no Device shows ad-blocking
+  // off; empty when they could.
+  string adguard_error = 3;
 }
 
 // A piece of hardware the firewall hands addresses to, keyed by MAC.
@@ -143,6 +165,9 @@ message Device {
   // The other aliases containing its address, in the firewall's order;
   // network leaves them alone.
   repeated DeviceAlias aliases = 9;
+  // Ad-blocking off: AdGuard has a persistent client for its address that
+  // doesn't filter. Off only by the Operator's toggle; on by default.
+  bool ad_blocking_off = 10;
 }
 
 message DeviceLease {
