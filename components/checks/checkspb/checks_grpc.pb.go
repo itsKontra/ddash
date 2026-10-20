@@ -29,6 +29,8 @@ const (
 	ChecksService_DeleteCheck_FullMethodName = "/ddash.checks.ChecksService/DeleteCheck"
 	ChecksService_SetMuted_FullMethodName    = "/ddash.checks.ChecksService/SetMuted"
 	ChecksService_SetDisabled_FullMethodName = "/ddash.checks.ChecksService/SetDisabled"
+	ChecksService_GetHistory_FullMethodName  = "/ddash.checks.ChecksService/GetHistory"
+	ChecksService_ListBeats_FullMethodName   = "/ddash.checks.ChecksService/ListBeats"
 )
 
 // ChecksServiceClient is the client API for ChecksService service.
@@ -51,6 +53,13 @@ type ChecksServiceClient interface {
 	// SetDisabled stops or resumes probing a Check. A disabled Check records
 	// nothing; enabled again, it resumes from its last state.
 	SetDisabled(ctx context.Context, in *SetDisabledRequest, opts ...grpc.CallOption) (*SetDisabledResponse, error)
+	// GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
+	// window's buckets and state changes for its UptimeBars.
+	GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error)
+	// ListBeats returns the beats a Check keeps: every beat of about the last
+	// 24 h and its state changes of the last 365 d (a daily sweep drops the
+	// rest), oldest first.
+	ListBeats(ctx context.Context, in *ListBeatsRequest, opts ...grpc.CallOption) (*ListBeatsResponse, error)
 }
 
 type checksServiceClient struct {
@@ -121,6 +130,26 @@ func (c *checksServiceClient) SetDisabled(ctx context.Context, in *SetDisabledRe
 	return out, nil
 }
 
+func (c *checksServiceClient) GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetHistoryResponse)
+	err := c.cc.Invoke(ctx, ChecksService_GetHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *checksServiceClient) ListBeats(ctx context.Context, in *ListBeatsRequest, opts ...grpc.CallOption) (*ListBeatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBeatsResponse)
+	err := c.cc.Invoke(ctx, ChecksService_ListBeats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChecksServiceServer is the server API for ChecksService service.
 // All implementations must embed UnimplementedChecksServiceServer
 // for forward compatibility.
@@ -141,6 +170,13 @@ type ChecksServiceServer interface {
 	// SetDisabled stops or resumes probing a Check. A disabled Check records
 	// nothing; enabled again, it resumes from its last state.
 	SetDisabled(context.Context, *SetDisabledRequest) (*SetDisabledResponse, error)
+	// GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
+	// window's buckets and state changes for its UptimeBars.
+	GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error)
+	// ListBeats returns the beats a Check keeps: every beat of about the last
+	// 24 h and its state changes of the last 365 d (a daily sweep drops the
+	// rest), oldest first.
+	ListBeats(context.Context, *ListBeatsRequest) (*ListBeatsResponse, error)
 	mustEmbedUnimplementedChecksServiceServer()
 }
 
@@ -168,6 +204,12 @@ func (UnimplementedChecksServiceServer) SetMuted(context.Context, *SetMutedReque
 }
 func (UnimplementedChecksServiceServer) SetDisabled(context.Context, *SetDisabledRequest) (*SetDisabledResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetDisabled not implemented")
+}
+func (UnimplementedChecksServiceServer) GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetHistory not implemented")
+}
+func (UnimplementedChecksServiceServer) ListBeats(context.Context, *ListBeatsRequest) (*ListBeatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBeats not implemented")
 }
 func (UnimplementedChecksServiceServer) mustEmbedUnimplementedChecksServiceServer() {}
 func (UnimplementedChecksServiceServer) testEmbeddedByValue()                       {}
@@ -298,6 +340,42 @@ func _ChecksService_SetDisabled_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChecksService_GetHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHistoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).GetHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_GetHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).GetHistory(ctx, req.(*GetHistoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChecksService_ListBeats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBeatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).ListBeats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_ListBeats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).ListBeats(ctx, req.(*ListBeatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChecksService_ServiceDesc is the grpc.ServiceDesc for ChecksService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -328,6 +406,14 @@ var ChecksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetDisabled",
 			Handler:    _ChecksService_SetDisabled_Handler,
+		},
+		{
+			MethodName: "GetHistory",
+			Handler:    _ChecksService_GetHistory_Handler,
+		},
+		{
+			MethodName: "ListBeats",
+			Handler:    _ChecksService_ListBeats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

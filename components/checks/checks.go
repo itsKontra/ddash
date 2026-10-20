@@ -102,6 +102,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	if err != nil {
 		return err
 	}
+	sdk.Every(ctx, SweepInterval, c.sweep)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.notified, c.out = last, outbox{queued: map[string]time.Time{}}
@@ -186,7 +187,8 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 	}
 	next := ch.standing.after(r, now())
 	changed := next.state != ch.standing.state
-	c.writeErr = c.db.recordBeat(ctx, id, r, next, changed)
+	// Maintenance (#49) will record its beats as maint.
+	c.writeErr = c.db.recordBeat(ctx, id, r, next, changed, false)
 	if c.writeErr != nil {
 		c.log.Error("record beat", "check", id, "err", c.writeErr)
 	}

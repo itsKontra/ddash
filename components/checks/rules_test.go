@@ -3,6 +3,7 @@ package checks_test
 import (
 	"context"
 	"net"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -15,16 +16,15 @@ import (
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
-	"github.com/itsKontra/ddash/sdk/migrate"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
 // lab fakes the network the probes dial, so time rules run in a synctest
-// bubble: each address accepts, refuses or never answers. Notifications go
-// to its fake ntfy-api.
+// bubble: each address accepts, refuses or never answers. "up 20ms"
+// accepts after 20 ms. Notifications go to its fake ntfy-api.
 type lab struct {
 	mu    sync.Mutex
-	hosts map[string]string // addr → "up", "refuse" or "hang"
+	hosts map[string]string // addr → "up", "up <duration>", "refuse" or "hang"
 	ntfy  *fakeNtfy
 }
 
@@ -40,6 +40,10 @@ func (l *lab) dial(ctx context.Context, _, addr string) (net.Conn, error) {
 	l.mu.Lock()
 	how := l.hosts[addr]
 	l.mu.Unlock()
+	how, wait, _ := strings.Cut(how, " ")
+	if d, err := time.ParseDuration(wait); err == nil {
+		time.Sleep(d)
+	}
 	switch how {
 	case "up":
 		client, server := net.Pipe()
@@ -71,36 +75,28 @@ func after(d time.Duration) {
 	synctest.Wait()
 }
 
-// beat is one row of check_event.
+// beat is one recorded beat.
 type beat struct {
 	at    time.Time
 	up    bool
 	state string
 }
 
-// beats reads Check id's check_event rows, oldest first. (#45 brings a
-// history getter to read them through instead.)
-func beats(t *testing.T, h *sdktest.Harness, id int64) []beat {
+// beats reads Check id's kept beats through ListBeats, oldest first. A
+// deleted Check has none.
+func beats(t *testing.T, c checkspb.ChecksServiceClient, id int64) []beat {
 	t.Helper()
-	db, err := migrate.Open(h.DBPath)
-	if err != nil {
-		t.Fatal(err)
+	resp, err := c.ListBeats(t.Context(), &checkspb.ListBeatsRequest{Id: id})
+	if status.Code(err) == codes.NotFound {
+		return nil
 	}
-	defer db.Close()
-	rows, err := db.Query(`SELECT at, up, state FROM check_event WHERE check_id = ? ORDER BY at`, id)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("ListBeats: %v", err)
 	}
-	defer rows.Close()
 	var out []beat
-	for rows.Next() {
-		var b beat
-		var at int64
-		if err := rows.Scan(&at, &b.up, &b.state); err != nil {
-			t.Fatal(err)
-		}
-		b.at = time.UnixMilli(at)
-		out = append(out, b)
+	for _, b := range resp.GetBeats() {
+		state := strings.ToLower(strings.TrimPrefix(b.GetState().String(), "STATE_"))
+		out = append(out, beat{at: b.GetAt().AsTime(), up: b.GetUp(), state: state})
 	}
 	return out
 }
@@ -117,7 +113,7 @@ func TestACheckIsPendingThenDownAfterThreeFailuresAndUpAgainOnOneSuccess(t *test
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
 		l.set("nas:22", "up")
-		h, c := startIn(t, l)
+		_, c := startIn(t, l)
 		id := create(t, c, tcp("nas:22")).GetId()
 		synctest.Wait()
 		if got := find(t, c, id).GetState(); got != checkspb.State_STATE_UP {
@@ -152,7 +148,7 @@ func TestACheckIsPendingThenDownAfterThreeFailuresAndUpAgainOnOneSuccess(t *test
 		}
 
 		want := []string{"up", "pending", "pending", "down", "down", "up"}
-		if got := states(beats(t, h, id)); !equal(got, want) {
+		if got := states(beats(t, c, id)); !equal(got, want) {
 			t.Errorf("check_event states %v, want %v", got, want)
 		}
 	})
@@ -194,12 +190,12 @@ func TestBeatsComeEveryMinute(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
 		l.set("nas:22", "up")
-		h, c := startIn(t, l)
+		_, c := startIn(t, l)
 		id := create(t, c, tcp("nas:22")).GetId()
 
 		after(10*time.Minute + time.Second)
 
-		bs := beats(t, h, id)
+		bs := beats(t, c, id)
 		if len(bs) < 10 || len(bs) > 11 {
 			t.Fatalf("%d beats in 10 min, want one a minute (plus jitter)", len(bs))
 		}
@@ -247,13 +243,13 @@ func TestARestartResumesFromTheLastStateLeavingAGap(t *testing.T) {
 		if a, b := find(t, c, nas).GetState(), find(t, c, nvr).GetState(); a != checkspb.State_STATE_DOWN || b != checkspb.State_STATE_PENDING {
 			t.Fatalf("before the restart: nas %v, nvr %v; want down and pending", a, b)
 		}
-		lastBefore := beats(t, h, nas)
+		lastBefore := beats(t, c, nas)
 		downSince := find(t, c, nas).GetSince().AsTime()
 
 		h.Stop()
 		after(30 * time.Minute)
 		restarted := time.Now()
-		h2, c2 := startIn(t, l, sdktest.WithDB(h.DBPath))
+		_, c2 := startIn(t, l, sdktest.WithDB(h.DBPath))
 
 		if ch := find(t, c2, nas); ch.GetState() != checkspb.State_STATE_DOWN || !ch.GetSince().AsTime().Equal(downSince) {
 			t.Errorf("nas after the restart: %v since %v, want still down since %v", ch.GetState(), ch.GetSince().AsTime(), downSince)
@@ -264,7 +260,7 @@ func TestARestartResumesFromTheLastStateLeavingAGap(t *testing.T) {
 			t.Errorf("nvr after a 3rd failure across the restart: %v with %d failures, want down with 3", ch.GetState(), ch.GetFailures())
 		}
 
-		all := beats(t, h2, nas)
+		all := beats(t, c2, nas)
 		next := all[len(lastBefore)]
 		if !next.at.Equal(restarted.Truncate(time.Millisecond)) {
 			t.Errorf("first beat after the restart at %v, want at once (%v)", next.at, restarted)
@@ -286,10 +282,10 @@ func TestARestartWithinTheIntervalWaitsForTheNextDueBeat(t *testing.T) {
 
 		h.Stop()
 		after(20 * time.Second)
-		h2, _ := startIn(t, l, sdktest.WithDB(h.DBPath))
+		_, c2 := startIn(t, l, sdktest.WithDB(h.DBPath))
 		after(time.Minute)
 
-		bs := beats(t, h2, id)
+		bs := beats(t, c2, id)
 		if len(bs) != 2 || !bs[1].at.Equal(first.Add(checks.Interval)) {
 			t.Errorf("beats at %v, want the second 60 s after the first (%v)", bs, first.Add(checks.Interval))
 		}
@@ -300,7 +296,7 @@ func TestADisabledCheckIsNotProbedAndResumesWhenEnabled(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
 		l.set("nas:22", "up")
-		h, c := startIn(t, l)
+		_, c := startIn(t, l)
 		id := create(t, c, tcp("nas:22")).GetId()
 		synctest.Wait()
 
@@ -309,7 +305,7 @@ func TestADisabledCheckIsNotProbedAndResumesWhenEnabled(t *testing.T) {
 			t.Fatalf("SetDisabled = %v, %v", res, err)
 		}
 		after(10 * time.Minute)
-		if n := len(beats(t, h, id)); n != 1 {
+		if n := len(beats(t, c, id)); n != 1 {
 			t.Errorf("%d beats, want none while disabled", n-1)
 		}
 
@@ -317,8 +313,8 @@ func TestADisabledCheckIsNotProbedAndResumesWhenEnabled(t *testing.T) {
 			t.Fatal(err)
 		}
 		synctest.Wait()
-		if ch := find(t, c, id); ch.GetDisabled() || ch.GetState() != checkspb.State_STATE_UP || len(beats(t, h, id)) != 2 {
-			t.Errorf("enabled again: disabled %v, %v, %d beats; want probed at once and up", ch.GetDisabled(), ch.GetState(), len(beats(t, h, id)))
+		if ch := find(t, c, id); ch.GetDisabled() || ch.GetState() != checkspb.State_STATE_UP || len(beats(t, c, id)) != 2 {
+			t.Errorf("enabled again: disabled %v, %v, %d beats; want probed at once and up", ch.GetDisabled(), ch.GetState(), len(beats(t, c, id)))
 		}
 	})
 }
@@ -352,7 +348,7 @@ func TestDeletingACheckStopsItAndDropsItsHistory(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
 		l.set("nas:22", "up")
-		h, c := startIn(t, l)
+		_, c := startIn(t, l)
 		id := create(t, c, tcp("nas:22")).GetId()
 		synctest.Wait()
 
@@ -364,7 +360,7 @@ func TestDeletingACheckStopsItAndDropsItsHistory(t *testing.T) {
 		if n := len(list(t, c)); n != 0 {
 			t.Errorf("%d Checks listed, want none", n)
 		}
-		if n := len(beats(t, h, id)); n != 0 {
+		if n := len(beats(t, c, id)); n != 0 {
 			t.Errorf("%d beats kept, want none", n)
 		}
 		_, err := c.DeleteCheck(t.Context(), &checkspb.DeleteCheckRequest{Id: id})
