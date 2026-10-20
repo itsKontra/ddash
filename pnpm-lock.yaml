@@ -124,6 +124,25 @@ importers:
         specifier: 8.3.4
         version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)
 
+  plugins/checks:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
   plugins/docker:
     dependencies:
       '@bufbuild/protobuf':

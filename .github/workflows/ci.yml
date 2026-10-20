@@ -39,6 +39,10 @@ jobs:
       # Imports each built Plugin bundle and checks what definePlugin returns.
       - name: Plugin contract check
         run: make check-plugins
+      # checks' ICMP probe uses unprivileged ping sockets, which the kernel
+      # allows only to the groups in this range (Docker sets it in containers).
+      - name: Allow unprivileged ICMP
+        run: sudo sysctl -w net.ipv4.ping_group_range="0 2147483647"
       # go test ./... includes the subprocess test, which builds the Release
       # and boots the core with the real launcher against fakelab, and the
       # fixture IP guard (internal/ipguard).
