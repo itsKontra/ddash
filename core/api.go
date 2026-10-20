@@ -3,9 +3,12 @@ package core
 import (
 	"context"
 	"net/http"
+	"slices"
+	"strings"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connecthttp"
+	"google.golang.org/grpc/status"
 
 	corepb "github.com/itsKontra/ddash/proto/ddash/core"
 	"github.com/itsKontra/ddash/proto/ddash/core/corepbconnect"
@@ -47,4 +50,64 @@ func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPlug
 		})
 	}
 	return resp, nil
+}
+
+func (a coreAPI) ListCatalogue(context.Context, *corepb.ListCatalogueRequest) (*corepb.ListCatalogueResponse, error) {
+	rt := a.host.runtime
+	cat := rt.Catalogue()
+	installed := map[string]bool{}
+	for _, p := range rt.Installed() {
+		installed[p.Name] = true
+	}
+	running := rt.Status()
+	resp := &corepb.ListCatalogueResponse{Release: cat.Release, Orphans: rt.Orphans()}
+	for _, p := range cat.Plugins {
+		cp := &corepb.CataloguePlugin{
+			Name:        p.Name,
+			Title:       p.Title,
+			Description: p.Description,
+			Icon:        p.Icon,
+			Author:      p.Author,
+			Installed:   installed[p.Name],
+		}
+		for _, name := range cat.Pulls(p.Name) {
+			st := running[name]
+			cp.Components = append(cp.Components, &corepb.ComponentStatus{
+				Name: name, State: string(st.State), Message: st.Message, Held: st.Held,
+			})
+		}
+		resp.Plugins = append(resp.Plugins, cp)
+	}
+	slices.SortFunc(resp.Plugins, func(a, b *corepb.CataloguePlugin) int { return strings.Compare(a.Name, b.Name) })
+	return resp, nil
+}
+
+func (a coreAPI) Install(ctx context.Context, req *corepb.InstallRequest) (*corepb.InstallResponse, error) {
+	resp, err := a.host.Install(ctx, req)
+	return resp, connectError(err)
+}
+
+func (a coreAPI) Uninstall(ctx context.Context, req *corepb.UninstallRequest) (*corepb.UninstallResponse, error) {
+	resp, err := a.host.Uninstall(ctx, req)
+	return resp, connectError(err)
+}
+
+func (a coreAPI) Restart(ctx context.Context, req *corepb.RestartRequest) (*corepb.RestartResponse, error) {
+	resp, err := a.host.Restart(ctx, req)
+	return resp, connectError(err)
+}
+
+func (a coreAPI) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanRequest) (*corepb.DeleteOrphanResponse, error) {
+	resp, err := a.host.DeleteOrphan(ctx, req)
+	return resp, connectError(err)
+}
+
+// connectError carries a gRPC status error's code and message to the
+// shell. Any other error is Unknown.
+func connectError(err error) error {
+	if err == nil {
+		return nil
+	}
+	s := status.Convert(err)
+	return connect.NewError(connect.Code(s.Code()), s.Message())
 }

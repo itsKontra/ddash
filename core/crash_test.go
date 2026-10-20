@@ -83,6 +83,43 @@ func crashHarness(t *testing.T, plugin coretest.Plugin, defs ...sdk.Definition) 
 	return h, l
 }
 
+func TestTheCatalogueOffersRestartForAComponentHeldDownAndTheCoreAPIRestartsIt(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		h, l := crashHarness(t, hello, greeter(sample.Hooks{}))
+		synctest.Wait()
+		greeterIn := func() map[string]any {
+			plugins := coreJSON(t, h, "ListCatalogue", `{}`)["plugins"].([]any)
+			return plugins[0].(map[string]any)["components"].([]any)[0].(map[string]any)
+		}
+
+		l.crash("greeter")
+		synctest.Wait()
+		if got := greeterIn(); got["state"] != "crashed" || got["held"] != nil {
+			t.Errorf("after one crash, the Catalogue shows greeter %v, want crashed, not held", got)
+		}
+		for range 4 { // 5 crashes in all
+			time.Sleep(30 * time.Second)
+			synctest.Wait()
+			l.crash("greeter")
+		}
+		synctest.Wait()
+		if got := greeterIn(); got["state"] != "crashed" || got["held"] != true {
+			t.Fatalf("after 5 crashes, the Catalogue shows greeter %v, want crashed and held", got)
+		}
+
+		coreJSON(t, h, "Restart", `{"component":"greeter"}`)
+		synctest.Wait()
+
+		if got := greeterIn(); got["state"] != "ok" || got["held"] != nil {
+			t.Errorf("after Restart, the Catalogue shows greeter %v, want ok", got)
+		}
+		entries := coreEntries(h)
+		if last := entries[len(entries)-1]; last.Method != "Restart" || !last.Disruptive || last.Username != "test" {
+			t.Errorf("last core entry = %+v, want operator test's disruptive Restart", last)
+		}
+	})
+}
+
 func TestACrashedComponentRestartsWithExponentialBackoff(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		h, l := crashHarness(t, hello, greeter(sample.Hooks{}))
