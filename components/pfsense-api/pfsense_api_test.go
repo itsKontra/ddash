@@ -179,6 +179,28 @@ func TestListsInterfacesWithTheirCounters(t *testing.T) {
 	}
 }
 
+// pfSense gives an OpenVPN client interface's subnet as a netmask, not a
+// prefix length.
+func TestReadsAnInterfaceSubnetGivenAsANetmask(t *testing.T) {
+	srv := firewall(t, "baseline")
+	_, c := start(t, srv.URL)
+
+	got, err := c.ListInterfaces(t.Context(), &pfsenseapipb.ListInterfacesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, i := range got.GetInterfaces() {
+		if i.GetName() == "opt2" {
+			if i.GetIpv4Prefix() != 24 {
+				t.Errorf("opt2's prefix is %d, want 24 from 255.255.255.0", i.GetIpv4Prefix())
+			}
+			return
+		}
+	}
+	t.Fatal("no opt2")
+}
+
 // network samples the counters every 5 s; a 2 s cache serves concurrent
 // readers without ever handing a sample stale counters.
 func TestInterfaceCountersAreCachedForTwoSeconds(t *testing.T) {

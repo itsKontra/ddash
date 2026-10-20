@@ -11,7 +11,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"slices"
 	"strconv"
@@ -356,7 +358,7 @@ type interfaceStats struct {
 	HWIf     string `json:"hwif"`
 	Status   string `json:"status"`
 	IPAddr   string `json:"ipaddr"`
-	Subnet   number `json:"subnet"`
+	Subnet   prefix `json:"subnet"`
 	Gateway  string `json:"gateway"`
 	InBytes  number `json:"inbytes"`
 	OutBytes number `json:"outbytes"`
@@ -497,6 +499,31 @@ func (n *number) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("not a whole number: %s", b)
 	}
 	*n = number(v)
+	return nil
+}
+
+// prefix decodes an IPv4 prefix length given as a number ("24") or, as
+// pfSense gives it for OpenVPN client interfaces, a netmask
+// ("255.255.255.0").
+type prefix uint8
+
+func (p *prefix) UnmarshalJSON(b []byte) error {
+	if mask, err := netip.ParseAddr(strings.Trim(string(b), `"`)); err == nil && mask.Is4() {
+		ones, bits := net.IPMask(mask.AsSlice()).Size()
+		if bits == 0 {
+			return fmt.Errorf("not a netmask: %s", b)
+		}
+		*p = prefix(ones)
+		return nil
+	}
+	var n number
+	if err := n.UnmarshalJSON(b); err != nil {
+		return err
+	}
+	if n > 32 {
+		return fmt.Errorf("not an IPv4 prefix length: %s", b)
+	}
+	*p = prefix(n)
 	return nil
 }
 
