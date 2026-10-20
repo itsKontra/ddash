@@ -4,10 +4,13 @@
 package appstate
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
+	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -17,6 +20,7 @@ import (
 
 	"github.com/itsKontra/ddash/core/auth"
 	ddashpb "github.com/itsKontra/ddash/proto/ddash"
+	configpb "github.com/itsKontra/ddash/proto/ddash/config"
 )
 
 // The outcomes of an entry besides a failed Action's gRPC code, e.g.
@@ -108,16 +112,73 @@ func disruptive(md protoreflect.MethodDescriptor) bool {
 	return a.GetDisruptive()
 }
 
-// record writes req as the Audit Log keeps it.
+// MaxRequest is how much of a request the Audit Log keeps. A longer one is
+// cut there and ends in TruncatedMarker.
+const MaxRequest = 4 << 10
+
+// TruncatedMarker ends a request cut at MaxRequest.
+const TruncatedMarker = "…(truncated)"
+
+// Redacted replaces the value of every secret string field.
+const Redacted = "REDACTED"
+
+// record writes req as the Audit Log keeps it: compact protojson, secrets
+// redacted, cut at MaxRequest.
 func record(req proto.Message) string {
 	if req == nil {
 		return "{}"
 	}
+	req = proto.Clone(req)
+	redact(req.ProtoReflect())
 	b, err := protojson.Marshal(req)
 	if err != nil {
 		return fmt.Sprintf("(unrecordable: %v)", err)
 	}
-	return string(b)
+	// protojson varies its whitespace on purpose; the log shouldn't.
+	var compact bytes.Buffer
+	if json.Compact(&compact, b) == nil {
+		b = compact.Bytes()
+	}
+	if len(b) <= MaxRequest {
+		return string(b)
+	}
+	cut := MaxRequest
+	for cut > 0 && !utf8.RuneStart(b[cut]) {
+		cut--
+	}
+	return string(b[:cut]) + TruncatedMarker
+}
+
+// redact blanks every field of m, and of the messages it holds, that has
+// the secret option: a string becomes Redacted, anything else is cleared.
+func redact(m protoreflect.Message) {
+	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		if opts, ok := proto.GetExtension(fd.Options(), configpb.E_Field).(*configpb.Field); ok && opts.GetSecret() {
+			if fd.Kind() == protoreflect.StringKind && !fd.IsList() && !fd.IsMap() {
+				m.Set(fd, protoreflect.ValueOfString(Redacted))
+			} else {
+				m.Clear(fd)
+			}
+			return true
+		}
+		switch {
+		case fd.IsMap():
+			if fd.MapValue().Message() != nil {
+				v.Map().Range(func(_ protoreflect.MapKey, mv protoreflect.Value) bool {
+					redact(mv.Message())
+					return true
+				})
+			}
+		case fd.Message() == nil:
+		case fd.IsList():
+			for i := range v.List().Len() {
+				redact(v.List().Get(i).Message())
+			}
+		default:
+			redact(v.Message())
+		}
+		return true
+	})
 }
 
 // Entry is one hop in the Audit Log.

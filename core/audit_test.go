@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -15,6 +18,7 @@ import (
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
 	"github.com/itsKontra/ddash/core/internal/sample/samplepb"
+	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/migrate"
@@ -147,6 +151,132 @@ func TestEachHopOfAnActionIsRecordedUnderOneChain(t *testing.T) {
 	}
 	if entries[0].Chain == "" || entries[0].Chain != entries[1].Chain {
 		t.Errorf("chains %q and %q, want one shared chain id", entries[0].Chain, entries[1].Chain)
+	}
+}
+
+func TestAComponentCantCallOutsideItsRequires(t *testing.T) {
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{greeter(sample.Hooks{}), sample.Define("loner", nil, relayTo("sneaky"))},
+		Plugins:    []coretest.Plugin{hello, {Name: "lonely", Requires: []string{"loner"}}},
+	})
+	h.SeedConfig("greeter", configured)
+	h.SeedConfig("loner", configured)
+	h.Install("hello")
+	h.Install("lonely")
+	h.WaitState("greeter", runtime.OK)
+	h.WaitState("loner", runtime.OK)
+
+	res := h.Call("lonely", "loner", "Act", `{}`)
+
+	wantError(t, res, http.StatusForbidden, "permission_denied", "loner doesn't require a Component serving ddash.sample.SampleService")
+	entries := componentEntries(h)
+	if len(entries) != 1 || entries[0].Target != "loner" || entries[0].Outcome != "PermissionDenied" {
+		t.Errorf("entries = %+v, want only loner's refused Act", entries)
+	}
+}
+
+func TestWorkAComponentStartsItselfRunsForTheComponent(t *testing.T) {
+	answered := make(chan string, 1)
+	onItsOwn := sample.Hooks{Start: func(ctx context.Context, env *sdk.Env, _ *samplepb.SampleConfig) error {
+		sdk.Every(ctx, time.Hour, func(ctx context.Context) {
+			resp, err := sdk.Require(env, samplepb.NewSampleServiceClient).Act(ctx, &samplepb.ActRequest{Note: "on its own"})
+			if err != nil {
+				answered <- err.Error()
+				return
+			}
+			answered <- resp.GetActor()
+		})
+		return nil
+	}}
+	h := newRelay(t, onItsOwn, sample.Hooks{})
+
+	select {
+	case actor := <-answered:
+		if actor != "component:relay" {
+			t.Errorf("greeter ran Act for %q, want component:relay", actor)
+		}
+	case <-time.After(10 * time.Second):
+		t.Fatal("relay's own work never called greeter")
+	}
+	entries := componentEntries(h)
+	if len(entries) != 1 {
+		t.Fatalf("entries = %+v, want greeter's Act", entries)
+	}
+	if e := entries[0]; e.ActorKind != "component" || e.Username != "relay" || e.Target != "greeter" || e.Chain == "" {
+		t.Errorf("entry = %+v, want component relay's greeter Act on a chain", e)
+	}
+}
+
+func TestACallBetweenComponentsGetsTheHostsDeadline(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		waitOnGreeter := sample.Hooks{Act: func(ctx context.Context, env *sdk.Env, _ *samplepb.ActRequest) (*samplepb.ActResponse, error) {
+			_, err := sdk.Require(env, samplepb.NewSampleServiceClient).Wait(ctx, &samplepb.WaitRequest{})
+			return &samplepb.ActResponse{Actor: status.Code(err).String()}, nil
+		}}
+		h := newRelay(t, waitOnGreeter, sample.Hooks{})
+		start := time.Now()
+
+		res := h.Call("relayer", "relay", "Act", `{}`)
+
+		var got struct{ Actor string }
+		json.Unmarshal(res.Body.Bytes(), &got)
+		if took := time.Since(start); got.Actor != "DeadlineExceeded" || took != router.GetterDeadline {
+			t.Errorf("greeter's Wait ended with %q after %v, want DeadlineExceeded after %v", got.Actor, took, router.GetterDeadline)
+		}
+	})
+}
+
+func TestSecretsAreRedactedOnEveryHopButReachTheComponent(t *testing.T) {
+	forward := sample.Hooks{Act: func(ctx context.Context, env *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error) {
+		return sdk.Require(env, samplepb.NewSampleServiceClient).Act(ctx, req)
+	}}
+	received := make(chan *samplepb.ActRequest, 1)
+	capture := sample.Hooks{Act: func(_ context.Context, _ *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error) {
+		received <- req
+		return &samplepb.ActResponse{}, nil
+	}}
+	h := newRelay(t, forward, capture)
+
+	res := h.Call("relayer", "relay", "Act",
+		`{"note":"hi","password":"hunter2","credentials":{"user":"ada","token":"t0k"},"more":[{"user":"bob","token":"x"}]}`)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", res.Code, res.Body)
+	}
+	if got := <-received; got.GetPassword() != "hunter2" || got.GetCredentials().GetToken() != "t0k" {
+		t.Errorf("greeter received %v, want the secrets unchanged", got)
+	}
+	entries := componentEntries(h)
+	if len(entries) != 2 {
+		t.Fatalf("entries = %+v, want 2 hops", entries)
+	}
+	want := `{"note":"hi","password":"REDACTED","credentials":{"user":"ada","token":"REDACTED"},"more":[{"user":"bob","token":"REDACTED"}]}`
+	for _, e := range entries {
+		var got, wantJSON any
+		json.Unmarshal([]byte(e.Request), &got)
+		json.Unmarshal([]byte(want), &wantJSON)
+		if !reflect.DeepEqual(got, wantJSON) {
+			t.Errorf("%s recorded %s, want %s", e.Target, e.Request, want)
+		}
+	}
+}
+
+func TestALargeRequestIsTruncatedAtFourKiB(t *testing.T) {
+	h := newHello(t, configured)
+	h.WaitState("greeter", runtime.OK)
+	note := strings.Repeat("a", 5000)
+
+	if res := h.Call("hello", "greeter", "Act", `{"note":"`+note+`"}`); res.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", res.Code, res.Body)
+	}
+
+	entries := componentEntries(h)
+	if len(entries) != 1 {
+		t.Fatalf("entries = %+v, want 1", entries)
+	}
+	full := `{"note":"` + note + `"}`
+	if got := entries[0].Request; got != full[:4096]+appstate.TruncatedMarker {
+		t.Errorf("recorded %d bytes ending %q, want the first 4096 bytes and the marker", len(got), got[max(0, len(got)-40):])
 	}
 }
 
