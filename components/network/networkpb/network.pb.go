@@ -1480,9 +1480,11 @@ func (x *RemoteAccessPeer) GetReaches() []*Reach {
 type Reach struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The destination: an address or CIDR (interface subnets and addresses
-	// resolved), an alias name, "any" or "(self)"; "!" inverts it.
+	// resolved), an alias's members joined by ", " (an alias pfSense doesn't
+	// list: its name), "any" or "(self)"; "!" inverts it.
 	Destination string `protobuf:"bytes,1,opt,name=destination,proto3" json:"destination,omitempty"`
-	// What it is, e.g. "LAN subnet", "alias", "anywhere", "the firewall".
+	// What it is, e.g. "LAN subnet", "SERVERS alias", "alias" (unknown),
+	// "anywhere", "the firewall".
 	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
 	// "tcp", "udp", "tcp/udp", "icmp", ...; "any" for any protocol.
 	Protocol string `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`

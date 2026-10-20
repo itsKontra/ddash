@@ -726,14 +726,16 @@ export const RemoteAccessPeerSchema: GenMessage<RemoteAccessPeer> = /*@__PURE__*
 export type Reach = Message<"ddash.network.Reach"> & {
   /**
    * The destination: an address or CIDR (interface subnets and addresses
-   * resolved), an alias name, "any" or "(self)"; "!" inverts it.
+   * resolved), an alias's members joined by ", " (an alias pfSense doesn't
+   * list: its name), "any" or "(self)"; "!" inverts it.
    *
    * @generated from field: string destination = 1;
    */
   destination: string;
 
   /**
-   * What it is, e.g. "LAN subnet", "alias", "anywhere", "the firewall".
+   * What it is, e.g. "LAN subnet", "SERVERS alias", "alias" (unknown),
+   * "anywhere", "the firewall".
    *
    * @generated from field: string label = 2;
    */

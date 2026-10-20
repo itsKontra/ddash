@@ -32,7 +32,14 @@ func (c *component) GetRemoteAccess(ctx context.Context, _ *networkpb.GetRemoteA
 	if err != nil {
 		return nil, unavailable("can't read the firewall rules", err)
 	}
-	nets := interfaceNets(ifaces.GetInterfaces())
+	aliases, err := c.pfsense.ListAliases(ctx, &pfsenseapipb.ListAliasesRequest{})
+	if err != nil {
+		return nil, unavailable("can't read the aliases", err)
+	}
+	nets := ruleNets{ifaces: interfaceNets(ifaces.GetInterfaces()), aliases: map[string]*pfsenseapipb.Alias{}}
+	for _, a := range aliases.GetAliases() {
+		nets.aliases[a.GetName()] = a
+	}
 	out := &networkpb.GetRemoteAccessResponse{Tunnel: tunnel.GetName(), Interface: iface.GetDescription()}
 	for _, p := range tunnel.GetPeers() {
 		out.Peers = append(out.Peers, &networkpb.RemoteAccessPeer{
@@ -67,6 +74,21 @@ func remoteAccessTunnel(tunnels []*pfsenseapipb.WireguardTunnel, ifaces []*pfsen
 	return nil, nil
 }
 
+// ruleNets is what a rule's source or destination may name: interfaces by
+// id and aliases by name.
+type ruleNets struct {
+	ifaces  map[string]ifaceNet
+	aliases map[string]*pfsenseapipb.Alias
+}
+
+// alias is the non-port alias named name, or nil.
+func (n ruleNets) alias(name string) *pfsenseapipb.Alias {
+	if a := n.aliases[name]; a != nil && a.GetType() != "port" {
+		return a
+	}
+	return nil
+}
+
 // ifaceNet is an interface's address and subnet, by interface id.
 type ifaceNet struct {
 	description string
@@ -92,9 +114,8 @@ func interfaceNets(ifaces []*pfsenseapipb.Interface) map[string]ifaceNet {
 // reaches walks the interface's rules in order, as pfSense evaluates them,
 // and lists what each pass rule whose source covers the peer lets it
 // reach. A block or reject rule for any traffic to anywhere ends the walk;
-// narrower block rules are left out. A source that is an alias isn't
-// resolved, so it never covers a peer.
-func reaches(peer *pfsenseapipb.WireguardPeer, rules []*pfsenseapipb.FirewallRule, nets map[string]ifaceNet) []*networkpb.Reach {
+// narrower block rules are left out.
+func reaches(peer *pfsenseapipb.WireguardPeer, rules []*pfsenseapipb.FirewallRule, nets ruleNets) []*networkpb.Reach {
 	var prefixes []netip.Prefix
 	for _, a := range peer.GetAllowedIps() {
 		if p, err := netip.ParsePrefix(a); err == nil && p.Addr().Is4() {
@@ -123,22 +144,34 @@ func reaches(peer *pfsenseapipb.WireguardPeer, rules []*pfsenseapipb.FirewallRul
 }
 
 // covers reports whether a rule's source matches every address of the
-// peer. Only a source ddash can resolve covers it.
-func covers(source string, peer []netip.Prefix, nets map[string]ifaceNet) bool {
+// peer. Only a source ddash can resolve covers it: an alias holds a peer
+// address range when it holds both its ends.
+func covers(source string, peer []netip.Prefix, nets ruleNets) bool {
 	inverted := strings.HasPrefix(source, "!")
 	source = strings.TrimPrefix(source, "!")
 	if source == "any" {
 		return !inverted
 	}
+	if nets.alias(source) != nil {
+		if len(peer) == 0 {
+			return false
+		}
+		in := true
+		for _, p := range peer {
+			first, last := p.Masked().Addr(), lastAddr(p)
+			in = in && contains(nets.aliases, source, first, map[string]bool{}) && contains(nets.aliases, source, last, map[string]bool{})
+		}
+		return in != inverted
+	}
 	var within netip.Prefix
-	if n, ok := nets[source]; ok {
+	if n, ok := nets.ifaces[source]; ok {
 		within = n.subnet
 	} else if p, err := netip.ParsePrefix(source); err == nil {
 		within = p.Masked()
 	} else if a, err := netip.ParseAddr(source); err == nil {
 		within = netip.PrefixFrom(a, a.BitLen())
 	} else {
-		return false // an alias, an interface address or (self)
+		return false // an unknown alias, an interface address or (self)
 	}
 	if !within.IsValid() || len(peer) == 0 {
 		return false
@@ -151,8 +184,9 @@ func covers(source string, peer []netip.Prefix, nets map[string]ifaceNet) bool {
 }
 
 // describe resolves a rule's destination to addresses where it names an
-// interface, and says what it is.
-func describe(dest string, nets map[string]ifaceNet) (string, string) {
+// interface or an alias (its members, as pfSense lists them), and says what
+// it is.
+func describe(dest string, nets ruleNets) (string, string) {
 	if rest, ok := strings.CutPrefix(dest, "!"); ok {
 		d, label := describe(rest, nets)
 		if label != "" {
@@ -167,12 +201,15 @@ func describe(dest string, nets map[string]ifaceNet) (string, string) {
 		return dest, "the firewall"
 	}
 	if name, ok := strings.CutSuffix(dest, ":ip"); ok {
-		if n, ok := nets[name]; ok && n.addr.IsValid() {
+		if n, ok := nets.ifaces[name]; ok && n.addr.IsValid() {
 			return n.addr.String(), n.description + " address"
 		}
 	}
-	if n, ok := nets[dest]; ok && n.subnet.IsValid() {
+	if n, ok := nets.ifaces[dest]; ok && n.subnet.IsValid() {
 		return n.subnet.String(), n.description + " subnet"
+	}
+	if a := nets.alias(dest); a != nil {
+		return strings.Join(a.GetAddresses(), ", "), dest + " alias"
 	}
 	if _, err := netip.ParsePrefix(dest); err == nil {
 		return dest, ""
@@ -181,4 +218,14 @@ func describe(dest string, nets map[string]ifaceNet) (string, string) {
 		return dest, ""
 	}
 	return dest, "alias"
+}
+
+// lastAddr is the last address in p.
+func lastAddr(p netip.Prefix) netip.Addr {
+	b := p.Masked().Addr().AsSlice()
+	for i := p.Bits(); i < len(b)*8; i++ {
+		b[i/8] |= 1 << (7 - i%8)
+	}
+	a, _ := netip.AddrFromSlice(b)
+	return a
 }

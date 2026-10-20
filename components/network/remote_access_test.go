@@ -129,6 +129,35 @@ func TestAPeerReachesWhatAnAnySourceRulePassesWithItsDestinationNamed(t *testing
 	}
 }
 
+// Aliases resolve through pfsense-api's ListAliases: as a source one covers
+// a peer whose addresses it holds, and as a destination it shows its
+// members. An alias pfSense doesn't list stays a name.
+func TestAliasesInRemoteAccessRulesAreResolved(t *testing.T) {
+	aliases := append(homeAliases(),
+		&pfsenseapipb.Alias{Name: "REMOTE_PEERS", Type: "host", Addresses: []string{"198.18.40.2", "198.18.40.3"}},
+		&pfsenseapipb.Alias{Name: "PEER_NET", Type: "network", Addresses: []string{"PEER_RANGE"}},
+		&pfsenseapipb.Alias{Name: "PEER_RANGE", Type: "host", Addresses: []string{"198.18.40.2-198.18.40.9"}},
+	)
+	fw := &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: homelab, tunnels: wireguard(), aliases: aliases, rules: []*pfsenseapipb.FirewallRule{
+		rule("pass", "REMOTE_PEERS", "SERVERS", "tcp", "22", "Peers reach the servers"),
+		rule("pass", "PHONES", "any", "", "", "Phones go anywhere"),
+		rule("pass", "PEER_NET", "KILL_SWITCH", "", "", "Nested alias"),
+		rule("pass", "!REMOTE_PEERS", "any", "", "", "Not the peers"),
+		rule("pass", "opt1", "DNS_SERVERS", "tcp/udp", "53", "Peers resolve names"),
+	}}
+
+	got := remoteAccess(t, fw).GetPeers()[0].GetReaches()
+
+	want := []*networkpb.Reach{
+		{Destination: "198.18.2.0/28", Label: "SERVERS alias", Protocol: "tcp", Ports: "22", Rule: "Peers reach the servers"},
+		{Destination: "198.18.1.20, 198.18.1.22", Label: "KILL_SWITCH alias", Protocol: "any", Rule: "Nested alias"},
+		{Destination: "DNS_SERVERS", Label: "alias", Protocol: "tcp/udp", Ports: "53", Rule: "Peers resolve names"},
+	}
+	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+		t.Errorf("Phone's reaches (-want +got):\n%s", diff)
+	}
+}
+
 func TestWithoutAWireguardTunnelOnAGatewaylessInterfaceThereIsNoRemoteAccess(t *testing.T) {
 	onlyVPN := wireguard()[:1]
 	fw := &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: homelab, tunnels: onlyVPN}

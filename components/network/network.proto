@@ -274,9 +274,11 @@ message RemoteAccessPeer {
 // A destination a pass rule lets a peer reach.
 message Reach {
   // The destination: an address or CIDR (interface subnets and addresses
-  // resolved), an alias name, "any" or "(self)"; "!" inverts it.
+  // resolved), an alias's members joined by ", " (an alias pfSense doesn't
+  // list: its name), "any" or "(self)"; "!" inverts it.
   string destination = 1;
-  // What it is, e.g. "LAN subnet", "alias", "anywhere", "the firewall".
+  // What it is, e.g. "LAN subnet", "SERVERS alias", "alias" (unknown),
+  // "anywhere", "the firewall".
   string label = 2;
   // "tcp", "udp", "tcp/udp", "icmp", ...; "any" for any protocol.
   string protocol = 3;
