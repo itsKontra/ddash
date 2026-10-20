@@ -60,28 +60,39 @@ func newCA(t *testing.T) *testCA {
 // 127.0.0.1 valid until notAfter, and returns its URL.
 func (ca *testCA) serve(t *testing.T, notAfter time.Time) string {
 	t.Helper()
+	cert := ca.issue("127.0.0.1", notAfter)
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	srv.TLS = &tls.Config{Certificates: []tls.Certificate{cert}}
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	return srv.URL
+}
+
+// issue is a certificate for host (a name or an IP address) valid until
+// notAfter.
+func (ca *testCA) issue(host string, notAfter time.Time) tls.Certificate {
 	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
 	tmpl := &x509.Certificate{
 		SerialNumber: big.NewInt(time.Now().UnixNano()),
-		Subject:      pkix.Name{CommonName: "127.0.0.1"},
-		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1)},
+		Subject:      pkix.Name{CommonName: host},
 		NotBefore:    time.Now().Add(-24 * time.Hour),
 		NotAfter:     notAfter,
 		KeyUsage:     x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 	}
+	if ip := net.ParseIP(host); ip != nil {
+		tmpl.IPAddresses = []net.IP{ip}
+	} else {
+		tmpl.DNSNames = []string{host}
+	}
 	der, err := x509.CreateCertificate(rand.Reader, tmpl, ca.cert, &key.PublicKey, ca.key)
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
-	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
-	srv.TLS = &tls.Config{Certificates: []tls.Certificate{{Certificate: [][]byte{der}, PrivateKey: key}}}
-	srv.StartTLS()
-	t.Cleanup(srv.Close)
-	return srv.URL
+	return tls.Certificate{Certificate: [][]byte{der}, PrivateKey: key}
 }
 
 // answering runs a plain HTTP server answering status.

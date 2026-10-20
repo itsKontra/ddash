@@ -167,6 +167,7 @@ func (c *component) proto(ch *check) *checkspb.Check {
 	p := ch.proto()
 	in, ends := c.maintained(ch, now())
 	p.Maintenance = in
+	p.Flapping = c.flapping(checkItem(ch.id), ch.standing.since, now())
 	if in && !ends.IsZero() {
 		p.MaintenanceEnds = timestamppb.New(ends)
 	}
@@ -236,10 +237,12 @@ func (c *component) ListMaintenance(context.Context, *checkspb.ListMaintenanceRe
 	return resp, nil
 }
 
-// endMaintenance ends the Maintenance keyed key, if any. Call with c.mu
-// held.
+// endMaintenance ends the Maintenance keyed key, if any, and queues what
+// it covered that now differs from what was last notified: it goes out
+// through grouping like any change. Call with c.mu held.
 func (c *component) endMaintenance(ctx context.Context, key string) error {
-	if _, ok := c.maint[key]; !ok {
+	m, ok := c.maint[key]
+	if !ok {
 		return nil
 	}
 	if err := c.db.deleteMaintenance(ctx, key); err != nil {
@@ -247,6 +250,17 @@ func (c *component) endMaintenance(ctx context.Context, key string) error {
 	}
 	delete(c.maint, key)
 	c.rewake()
+	for _, ch := range c.checks {
+		if m.scope.covers(ch) {
+			c.requeue(checkItem(ch.id))
+			c.requeue(certItem(ch.id))
+		}
+	}
+	if m.scope.everything {
+		for item := range c.reported {
+			c.requeue(item)
+		}
+	}
 	return nil
 }
 

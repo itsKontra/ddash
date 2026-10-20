@@ -39,6 +39,7 @@ const (
 	ChecksService_StartMaintenance_FullMethodName = "/ddash.checks.ChecksService/StartMaintenance"
 	ChecksService_EndMaintenance_FullMethodName   = "/ddash.checks.ChecksService/EndMaintenance"
 	ChecksService_ListMaintenance_FullMethodName  = "/ddash.checks.ChecksService/ListMaintenance"
+	ChecksService_ReportState_FullMethodName      = "/ddash.checks.ChecksService/ReportState"
 )
 
 // ChecksServiceClient is the client API for ChecksService service.
@@ -84,6 +85,11 @@ type ChecksServiceClient interface {
 	EndMaintenance(ctx context.Context, in *EndMaintenanceRequest, opts ...grpc.CallOption) (*EndMaintenanceResponse, error)
 	// ListMaintenance returns every Maintenance in force, from memory.
 	ListMaintenance(ctx context.Context, in *ListMaintenanceRequest, opts ...grpc.CallOption) (*ListMaintenanceResponse, error)
+	// ReportState reports the state of an item that isn't a Check (the nginx
+	// config, the VPN Tunnel), so it is notified like one: grouped, Flapping
+	// and silent in Maintenance on everything. It can't be muted. The caller
+	// sends it only when the state changed, plus once after its own Start.
+	ReportState(ctx context.Context, in *ReportStateRequest, opts ...grpc.CallOption) (*ReportStateResponse, error)
 }
 
 type checksServiceClient struct {
@@ -214,6 +220,16 @@ func (c *checksServiceClient) ListMaintenance(ctx context.Context, in *ListMaint
 	return out, nil
 }
 
+func (c *checksServiceClient) ReportState(ctx context.Context, in *ReportStateRequest, opts ...grpc.CallOption) (*ReportStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReportStateResponse)
+	err := c.cc.Invoke(ctx, ChecksService_ReportState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChecksServiceServer is the server API for ChecksService service.
 // All implementations must embed UnimplementedChecksServiceServer
 // for forward compatibility.
@@ -257,6 +273,11 @@ type ChecksServiceServer interface {
 	EndMaintenance(context.Context, *EndMaintenanceRequest) (*EndMaintenanceResponse, error)
 	// ListMaintenance returns every Maintenance in force, from memory.
 	ListMaintenance(context.Context, *ListMaintenanceRequest) (*ListMaintenanceResponse, error)
+	// ReportState reports the state of an item that isn't a Check (the nginx
+	// config, the VPN Tunnel), so it is notified like one: grouped, Flapping
+	// and silent in Maintenance on everything. It can't be muted. The caller
+	// sends it only when the state changed, plus once after its own Start.
+	ReportState(context.Context, *ReportStateRequest) (*ReportStateResponse, error)
 	mustEmbedUnimplementedChecksServiceServer()
 }
 
@@ -302,6 +323,9 @@ func (UnimplementedChecksServiceServer) EndMaintenance(context.Context, *EndMain
 }
 func (UnimplementedChecksServiceServer) ListMaintenance(context.Context, *ListMaintenanceRequest) (*ListMaintenanceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMaintenance not implemented")
+}
+func (UnimplementedChecksServiceServer) ReportState(context.Context, *ReportStateRequest) (*ReportStateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReportState not implemented")
 }
 func (UnimplementedChecksServiceServer) mustEmbedUnimplementedChecksServiceServer() {}
 func (UnimplementedChecksServiceServer) testEmbeddedByValue()                       {}
@@ -540,6 +564,24 @@ func _ChecksService_ListMaintenance_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChecksService_ReportState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReportStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).ReportState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_ReportState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).ReportState(ctx, req.(*ReportStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChecksService_ServiceDesc is the grpc.ServiceDesc for ChecksService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -594,6 +636,10 @@ var ChecksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMaintenance",
 			Handler:    _ChecksService_ListMaintenance_Handler,
+		},
+		{
+			MethodName: "ReportState",
+			Handler:    _ChecksService_ReportState_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

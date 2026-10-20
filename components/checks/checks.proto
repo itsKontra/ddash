@@ -83,6 +83,14 @@ service ChecksService {
   rpc ListMaintenance(ListMaintenanceRequest) returns (ListMaintenanceResponse) {
     option (ddash.getter) = {refresh: FAST};
   }
+
+  // ReportState reports the state of an item that isn't a Check (the nginx
+  // config, the VPN Tunnel), so it is notified like one: grouped, Flapping
+  // and silent in Maintenance on everything. It can't be muted. The caller
+  // sends it only when the state changed, plus once after its own Start.
+  rpc ReportState(ReportStateRequest) returns (ReportStateResponse) {
+    option (ddash.action) = {};
+  }
 }
 
 enum CheckType {
@@ -174,6 +182,10 @@ message Check {
   // In Maintenance: when the last Maintenance covering it ends; unset
   // while one lasts until ended.
   google.protobuf.Timestamp maintenance_ends = 16;
+  // Flapping: down for the 3rd time within 1 h, and not yet in one state
+  // for 30 min since. Its Notifications are held meanwhile; its state,
+  // uptime and history are unchanged.
+  bool flapping = 17;
 }
 
 message ListChecksRequest {}
@@ -387,3 +399,20 @@ message ListMaintenanceResponse {
   // Everything first, then Workloads, then single Checks.
   repeated Maintenance maintenance = 1;
 }
+
+message ReportStateRequest {
+  // The caller's identity for the item, e.g. "nginx-config"; one state per
+  // item.
+  string item = 1;
+  // What Notifications call it, e.g. "nginx config".
+  string name = 2;
+  // STATE_UP or STATE_DOWN.
+  State state = 3;
+  // Why it is down, e.g. nginx's error; empty when up.
+  string reason = 4;
+  // Where a Notification's Click leads, a path of ddash's UI such as
+  // "/reverse-proxy"; empty for none.
+  string path = 5;
+}
+
+message ReportStateResponse {}
