@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -85,5 +86,71 @@ func TestTheIconsNeedNoSignIn(t *testing.T) {
 
 	if diff := cmp.Diff(plusNodes, got["plus"]); diff != "" {
 		t.Errorf("plus (-want +got):\n%s", diff)
+	}
+}
+
+// iconSearch decodes a GET /api/icons/search response.
+func iconSearch(t *testing.T, h *coretest.Harness, q string) []string {
+	t.Helper()
+	res := h.Get("/api/icons/search?q=" + q)
+	if res.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", res.Code, res.Body)
+	}
+	var got []string
+	if err := json.Unmarshal(res.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	return got
+}
+
+func TestIconSearchRanksTheExactNameThenNamePrefixesThenOtherNamesThenTags(t *testing.T) {
+	got := iconSearch(t, shelf(t), "House")
+
+	// lucide 1.59.0's names holding "house", ranked.
+	want := []string{
+		"house",
+		"house-cog", "house-heart", "house-plug", "house-plus", "house-wifi", "houses",
+		"birdhouse", "lighthouse", "map-pin-house", "shield-house", "warehouse",
+	}
+	if len(got) < len(want) {
+		t.Fatalf("got %v, want at least %v", got, want)
+	}
+	if diff := cmp.Diff(want, got[:len(want)]); diff != "" {
+		t.Errorf("names first (-want +got):\n%s", diff)
+	}
+	// Icons with a tag word starting with house come after (not tower-control, tagged lighthouse).
+	tagged := got[len(want):]
+	for _, n := range []string{"blinds", "lamp", "mop"} {
+		if !slices.Contains(tagged, n) {
+			t.Errorf("tagged %q missing from %v", n, tagged)
+		}
+	}
+}
+
+func TestIconSearchFindsIconsByTagAlone(t *testing.T) {
+	got := iconSearch(t, shelf(t), "home")
+
+	for _, n := range []string{"house", "school", "dock"} {
+		if !slices.Contains(got, n) {
+			t.Errorf("%q missing from %v", n, got)
+		}
+	}
+}
+
+func TestIconSearchWithNoMatchOrNoQueryIsEmpty(t *testing.T) {
+	h := shelf(t)
+
+	for _, q := range []string{"zzqx", "", "%20"} {
+		if got := iconSearch(t, h, q); got == nil || len(got) != 0 {
+			t.Errorf("q %q: got %#v, want []", q, got)
+		}
+	}
+}
+
+func TestIconSearchNeedsNoSignIn(t *testing.T) {
+	h := coretest.New(t, coretest.Options{Keycloak: oidctest.New(t), Release: "v1.2.3"})
+
+	if got := iconSearch(t, h, "database"); len(got) == 0 || got[0] != "database" {
+		t.Errorf("got %v, want database first", got)
 	}
 }

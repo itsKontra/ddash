@@ -110,6 +110,22 @@ func (h *Host) icons(w http.ResponseWriter, r *http.Request) {
 	w.Write(b)
 }
 
+// iconSearchPath searches the lucide icons: GET iconSearchPath?q=.
+const iconSearchPath = iconsPath + "/search"
+
+// iconSearch serves GET /api/icons/search: the names of the icons q
+// matches by name or tag, best first (icons.Search).
+func (h *Host) iconSearch(w http.ResponseWriter, r *http.Request) {
+	b, err := json.Marshal(icons.Search(r.URL.Query().Get("q")))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", cacheNone)
+	w.Write(b)
+}
+
 // versioned is the Cache-Control of a path versioned by rel.
 func versioned(rel string) string {
 	if rel == devRelease {
