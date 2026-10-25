@@ -197,27 +197,46 @@ it("edits and deletes a manual App", async () => {
   ]);
 });
 
-it("re-attaches unmatched settings to an App without any", async () => {
+/** An unmatched setting's row in the Unmatched settings table, by its server name. */
+const unmatched = (serverName: string) =>
+  within(within(screen.getByRole("region", { name: "Unmatched settings" })).getByRole("table")).getByRole("rowheader", { name: serverName }).closest("tr")!;
+
+/** Picks item from the ⋯ Menu of the unmatched setting serverName. */
+function chooseUnmatched(serverName: string, item: string) {
+  fireEvent.click(within(unmatched(serverName)).getByRole("button", { name: `Actions for ${serverName}` }));
+  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+}
+
+it("tables the unmatched settings, each with what it sets", async () => {
+  renderScoped(<Page />);
+  await settle();
+
+  expect(unmatched("paperless.home.example").textContent).toContain("Documents · group Office");
+});
+
+it("re-attaches unmatched settings to an App without any, from the row's menu", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
-  const row = screen.getByRole("listitem", { name: "paperless.home.example" });
-  expect(row.textContent).toContain("Documents");
-  const target = within(row).getByRole("combobox", { name: "Re-attach to" });
+  chooseUnmatched("paperless.home.example", "Re-attach…");
+  const dialog = screen.getByRole("dialog", { name: "Re-attach paperless.home.example" });
+  const target = within(dialog).getByRole("combobox", { name: "Re-attach to" });
   // Only Apps without settings of their own.
   expect(within(target).getAllByRole("option").map((o) => o.getAttribute("value"))).toEqual(["", "jellyfin.home.example", "printer.home.example"]);
+  expect((within(dialog).getByRole("button", { name: "Re-attach" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(target, { target: { value: "jellyfin.home.example" } });
-  fireEvent.click(within(row).getByRole("button", { name: "Re-attach" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Re-attach" }));
   await settle();
 
   expect(actions(calls)).toEqual([{ method: "AttachOverlay", body: { serverName: "paperless.home.example", to: "jellyfin.home.example" } }]);
+  expect(screen.queryByRole("dialog", { name: "Re-attach paperless.home.example" })).toBeNull();
 });
 
-it("deletes unmatched settings after a confirm", async () => {
+it("deletes unmatched settings from the row's menu after a confirm", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
-  fireEvent.click(within(screen.getByRole("listitem", { name: "paperless.home.example" })).getByRole("button", { name: "Delete" }));
+  chooseUnmatched("paperless.home.example", "Delete");
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
   await settle();
 
