@@ -5,7 +5,7 @@ import plugin from "./index";
 
 export const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
 
-export type Answers = Record<string, () => Response>;
+export type Answers = Record<string, () => Response | Promise<Response>>;
 
 /**
  * Renders children in the reverse-proxy Plugin's scope (requires

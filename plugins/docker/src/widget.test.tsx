@@ -57,14 +57,33 @@ it("reports up with the running count while every container is fine", async () =
 it("shows the counts at S, and each host's at M", async () => {
   await show(Response.json(healthy));
   const s = screen.getByRole("region", { name: "widget" });
-  expect(within(s).getByText("running").previousSibling?.textContent).toBe("2");
-  expect(within(s).getByText("containers").previousSibling?.textContent).toBe("3");
+  expect(within(s).getByRole("group", { name: "running" }).textContent).toBe("running2");
+  expect(within(s).getByRole("group", { name: "containers" }).textContent).toBe("containers3");
+  expect(within(s).queryByRole("group", { name: "need attention" })).toBeNull();
+  expect(within(s).queryByRole("definition")).toBeNull();
   cleanup();
 
-  await show(Response.json(healthy), "M");
+  await show(Response.json({ hosts: [...healthy.hosts, { host: "nas", error: "connection refused" }] }), "M");
   const m = screen.getByRole("region", { name: "widget" });
-  expect(within(m).getByRole("row", { name: /media/ }).textContent).toMatch(/media.*1\/2 running/);
-  expect(within(m).getByRole("row", { name: /tools/ }).textContent).toMatch(/tools.*1\/1 running/);
+  const facts = within(m)
+    .getAllByRole("term")
+    .map((t) => `${t.textContent}: ${t.nextElementSibling?.textContent}`);
+  expect(facts).toEqual(["media: 1/2 running", "tools: 1/1 running", "nas: unreadable"]);
+});
+
+it("counts the containers that need attention", async () => {
+  await show(Response.json({ hosts: [{ host: "media", containers: [container("sonarr", "restarting", "Restarting (1) 5 seconds ago")] }] }));
+
+  const s = screen.getByRole("region", { name: "widget" });
+  expect(within(s).getByRole("group", { name: "need attention" }).textContent).toBe("need attention1");
+});
+
+it("draws its tiles as skeletons until docker-api first answers", async () => {
+  await show(() => new Promise<Response>(() => {}) as unknown as Response);
+
+  const s = screen.getByRole("region", { name: "widget" });
+  expect(within(s).getByRole("group", { name: "running" })).toBeTruthy();
+  expect(within(s).getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
 });
 
 it("reports warn when a container is unhealthy or restarting", async () => {

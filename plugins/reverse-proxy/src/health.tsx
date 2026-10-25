@@ -1,6 +1,6 @@
 import { useAction } from "@ddash/plugin";
 import { NginxConfigService } from "@ddash/proto/nginx-config/nginx_config_pb";
-import { Button, PageHeader, StatusDot } from "@ddash/ui";
+import { Button, CodeBlock, Notice, PageTitle, Panel, Skeleton, StatusList } from "@ddash/ui";
 import { ProxyHosts } from "./hosts";
 import { ReadTime, useSnapshot } from "./snapshot";
 
@@ -8,8 +8,8 @@ import { ReadTime, useSnapshot } from "./snapshot";
 export function ReverseProxy() {
   const refresh = useAction(NginxConfigService.method.refresh);
   return (
-    <div className="flex flex-col gap-4">
-      <PageHeader
+    <>
+      <PageTitle
         title="Reverse proxy"
         subtitle="nginx's config, as ddash last read it."
         actions={
@@ -18,32 +18,31 @@ export function ReverseProxy() {
           </Button>
         }
       />
-      {refresh.error && <p className="text-sm text-down-text">Refresh failed: {refresh.error.rawMessage}</p>}
-      <ConfigHealth />
-      <ProxyHosts />
-    </div>
+      <div className="flex flex-col gap-4">
+        {refresh.error && <Notice tone="down">Refresh failed: {refresh.error.rawMessage}</Notice>}
+        <ConfigHealth />
+        <ProxyHosts />
+      </div>
+    </>
   );
 }
 
 function ConfigHealth() {
   const { snapshot, error } = useSnapshot();
   return (
-    <section aria-labelledby="config-health" className="rounded-ui border border-border bg-card p-4">
-      <h2 id="config-health" className="mb-3 font-semibold">
-        Config health
-      </h2>
+    <Panel title="Config health">
       {!snapshot ? (
-        error && <p className="text-sm text-muted-foreground">nginx-config unavailable: {error.rawMessage}</p>
+        error ? (
+          <Notice tone="down">nginx-config unavailable: {error.rawMessage}</Notice>
+        ) : (
+          <Skeleton />
+        )
       ) : snapshot.error ? (
-        <div className="flex flex-col gap-3 text-sm">
-          <p className="flex items-center gap-2">
-            <StatusDot tone="down" />
-            <span className="font-medium">nginx's config doesn't load</span>
-          </p>
-          <pre role="alert" className="overflow-x-auto rounded-ui border border-border bg-muted p-3 text-xs whitespace-pre-wrap text-down-text">
-            {snapshot.error}
-          </pre>
-          <p className="text-muted-foreground">
+        <div className="flex flex-col gap-3">
+          <Notice tone="down" title="nginx's config doesn't load">
+            <CodeBlock label="nginx's error">{snapshot.error}</CodeBlock>
+          </Notice>
+          <p className="text-sm text-muted-foreground">
             {snapshot.readAt ? (
               <>
                 Last good read <ReadTime at={snapshot.readAt} />
@@ -54,16 +53,10 @@ function ConfigHealth() {
           </p>
         </div>
       ) : (
-        <p className="flex items-center gap-2 text-sm">
-          <StatusDot tone="up" />
-          <span className="font-medium">Config loads</span>
-          {snapshot.readAt && (
-            <span className="text-muted-foreground">
-              · read <ReadTime at={snapshot.readAt} />
-            </span>
-          )}
-        </p>
+        <StatusList
+          items={[{ tone: "up", title: "Config loads", meta: snapshot.readAt && <>Read <ReadTime at={snapshot.readAt} /></> }]}
+        />
       )}
-    </section>
+    </Panel>
   );
 }
