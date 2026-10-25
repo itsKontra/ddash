@@ -233,6 +233,12 @@ it("draws a Nav Entry's badge on its tone's tint, in its tone's text for the nav
   expect(badge).toContain(["text", "nav", "down"].join("-"));
 });
 
+it("shows a skeleton on a Plugin's Page while its bundle loads", async () => {
+  await boot("/checks", [[installed("checks", "Checks"), new Promise<PluginDefinition>(() => {})]]);
+
+  expect(within(screen.getByRole("main")).getByRole("status", { name: "Loading" })).toBeTruthy();
+});
+
 it("shows a badge's text in place of a count", async () => {
   await boot("/", [
     [

@@ -1,5 +1,5 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { cx, ErrorFrame, Notice, PageTitle, StatusDot, type Tone } from "@ddash/ui";
+import { cx, ErrorFrame, Notice, PageTitle, Skeleton, StatusDot, type Tone } from "@ddash/ui";
 import { useState } from "react";
 import { Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
@@ -115,7 +115,7 @@ function PluginPage({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }) {
   const plugin = plugins.loaded.get(name);
   if (!plugin) {
     const listed = plugins.installed?.some((p) => p.name === name);
-    return listed || !plugins.installed ? <p className="text-sm text-muted-foreground">Loading…</p> : <NotFound />;
+    return listed || !plugins.installed ? <Skeleton height="xl" /> : <NotFound />;
   }
   if (plugin.error) return <ErrorFrame title={`${plugin.title} failed to load`} error={plugin.error} />;
   return (
