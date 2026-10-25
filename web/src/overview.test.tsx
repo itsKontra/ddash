@@ -344,6 +344,73 @@ const three = () =>
     widgets: [widget("a", "Alpha", up("a"), "S", "M", "L"), widget("b", "Bravo", up("b"), "S"), widget("c", "Charlie", up("c"), "M", "L")],
   });
 
+const editBar = () => screen.getByRole("toolbar", { name: "Edit the Overview" });
+
+it("Edit swaps the head's actions for the edit bar, whose line says whether anything changed", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = { entries: [{ widget: "lab.a", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] };
+  await boot();
+  expect(screen.queryByRole("toolbar")).toBeNull();
+
+  edit();
+  expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  expect(within(editBar()).getByText("Editing the Overview")).toBeTruthy();
+  expect(within(editBar()).getByText(/No changes yet/)).toBeTruthy();
+  expect(within(editBar()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Add Widget", "Cancel", "Done"]);
+
+  fireEvent.click(within(card("Alpha")).getByRole("radio", { name: "M" }));
+  expect(within(editBar()).getByText(/Unsaved changes/)).toBeTruthy();
+});
+
+it("on phones the edit bar wraps: its title on one line, its buttons on a full-width line below", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  await boot();
+
+  edit();
+  const bar = editBar();
+  expect(bar.className.split(" ")).toContain("flex-wrap");
+  const buttons = within(bar).getByRole("button", { name: "Cancel" }).parentElement!;
+  expect(buttons.className.split(" ")).toEqual(expect.arrayContaining(["w-full", "sm:w-auto"]));
+});
+
+it("Cancel drops the draft and leaves Edit mode without saving", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "S" },
+      { widget: "lab.b", size: "S" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+  await boot();
+
+  edit();
+  fireEvent.click(within(card("Alpha")).getByRole("radio", { name: "L" }));
+  fireEvent.click(within(card("Bravo")).getByRole("button", { name: "Remove Bravo" }));
+  fireEvent.click(within(editBar()).getByRole("button", { name: "Cancel" }));
+  await settle();
+
+  expect(saves).toEqual([]);
+  expect(screen.queryByRole("toolbar")).toBeNull();
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Alpha", "Bravo"]);
+  expect(card("Alpha").textContent).toContain("Alpha body at S");
+  expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+});
+
+it("in Edit mode a card keeps its live body but makes it inert, under a size tab", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = { entries: [{ widget: "lab.a", size: "M" }], seen: ["lab.a", "lab.b", "lab.c"] };
+  await boot();
+  expect(card("Alpha").querySelector("[inert]")).toBeNull();
+
+  edit();
+  const body = within(card("Alpha")).getByText("Alpha body at M");
+  expect(body.closest("[inert]")).toBeTruthy();
+  expect(within(card("Alpha")).getByText("M", { selector: "[data-size-tab]" })).toBeTruthy();
+  // The title isn't a link while editing, so a click can't leave the draft.
+  expect(within(card("Alpha")).queryByRole("link")).toBeNull();
+});
+
 it("in Edit mode the Operator resizes a Widget among its sizes, and Done saves it", async () => {
   plugins = [[installed("lab", "Lab"), three()]];
   stored = {
@@ -396,20 +463,44 @@ it("in Edit mode the Operator removes a Widget, and it stays seen", async () => 
   expect(saves).toEqual([{ entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] }]);
 });
 
-it("in Edit mode the Operator adds a Widget from the drawer of installed Widgets not yet placed", async () => {
-  plugins = [[installed("lab", "Lab"), three()]];
-  stored = { entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] };
+const addWidget = () => {
+  fireEvent.click(within(editBar()).getByRole("button", { name: "Add Widget" }));
+  return screen.getByRole("dialog", { name: "Add Widget" });
+};
+const groups = (sheet: HTMLElement) =>
+  within(sheet)
+    .queryAllByRole("group")
+    .map((g) => g.getAttribute("aria-label"));
+// A Plugin's Widget rows in the Sheet, each as "<title> <sizes> <Add or On the Overview>".
+const offered = (sheet: HTMLElement, plugin: string) =>
+  within(within(sheet).getByRole("group", { name: plugin }))
+    .getAllByRole("listitem")
+    .map((li) => [...li.querySelectorAll("[data-row-part]")].map((el) => el.textContent?.trim()).join(" "));
+
+it("Add Widget lists every offered Widget by Plugin, with its sizes and Add, or On the Overview once placed", async () => {
+  plugins = [
+    [installed("lab", "Lab"), three()],
+    [installed("docker", "Docker"), docker()],
+  ];
+  stored = { entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c", "docker.containers"] };
   await boot();
 
   edit();
-  fireEvent.click(screen.getByRole("button", { name: "Add Widget" }));
-  const drawer = screen.getByRole("dialog", { name: "Add Widget" });
-  expect(
-    within(drawer)
-      .getAllByRole("button", { name: /^Add / })
-      .map((b) => b.getAttribute("aria-label")),
-  ).toEqual(["Add Alpha", "Add Charlie"]);
-  fireEvent.click(within(drawer).getByRole("button", { name: "Add Charlie" }));
+  const sheet = addWidget();
+  expect(groups(sheet)).toEqual(["Lab", "Docker"]);
+  expect(offered(sheet, "Lab")).toEqual(["Alpha SML Add", "Bravo S On the Overview", "Charlie ML Add"]);
+  expect(offered(sheet, "Docker")).toEqual(["Containers SM Add"]);
+  expect(within(sheet).getByText("1 Widget on the Overview")).toBeTruthy();
+
+  fireEvent.click(within(sheet).getByRole("button", { name: "Add Charlie" }));
+  // The Sheet stays open for the next pick, and the row now says it's placed.
+  expect(offered(sheet, "Lab")).toEqual(["Alpha SML Add", "Bravo S On the Overview", "Charlie ML On the Overview"]);
+  expect(within(sheet).getByText("2 Widgets on the Overview")).toBeTruthy();
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Bravo", "Charlie"]);
+
+  // The footer's Close, not the header's icon button.
+  fireEvent.click(within(sheet).getAllByRole("button", { name: "Close" }).at(-1)!);
+  expect(screen.queryByRole("dialog")).toBeNull();
   await done();
 
   expect(saves).toEqual([
@@ -418,9 +509,42 @@ it("in Edit mode the Operator adds a Widget from the drawer of installed Widgets
         { widget: "lab.b", size: "S" },
         { widget: "lab.c", size: "M" },
       ],
-      seen: ["lab.a", "lab.b", "lab.c"],
+      seen: ["lab.a", "lab.b", "lab.c", "docker.containers"],
     },
   ]);
+});
+
+it("Add Widget's search narrows the list by Widget or Plugin, and says when nothing matches", async () => {
+  plugins = [
+    [installed("lab", "Lab"), three()],
+    [installed("docker", "Docker"), docker()],
+  ];
+  await boot();
+
+  edit();
+  const sheet = addWidget();
+  const search = within(sheet).getByRole("searchbox", { name: "Search Widgets" });
+  fireEvent.change(search, { target: { value: "char" } });
+  expect(groups(sheet)).toEqual(["Lab"]);
+  expect(offered(sheet, "Lab")).toEqual(["Charlie ML On the Overview"]);
+
+  fireEvent.change(search, { target: { value: "docker" } });
+  expect(groups(sheet)).toEqual(["Docker"]);
+
+  fireEvent.change(search, { target: { value: "zzz" } });
+  expect(groups(sheet)).toEqual([]);
+  expect(within(sheet).getByText("No Widget matches “zzz”")).toBeTruthy();
+});
+
+it("Add Widget says so when no installed Plugin offers a Widget", async () => {
+  plugins = [[installed("plain", "Plain"), definePlugin({ pages: [{ index: true, Component: () => <p>plain</p> }] })]];
+  await boot();
+
+  edit();
+  const sheet = addWidget();
+  expect(within(sheet).queryByRole("searchbox")).toBeNull();
+  expect(within(sheet).getByText("No Plugin offers a Widget")).toBeTruthy();
+  expect(within(sheet).getByText("0 Widgets on the Overview")).toBeTruthy();
 });
 
 it("in Edit mode the Operator drags a Widget to another's place", async () => {
