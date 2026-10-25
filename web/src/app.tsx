@@ -9,6 +9,7 @@ import { Catalogue } from "./catalogue";
 import { icon } from "./icons";
 import { navItems, type NavItem } from "./nav";
 import { Overview, useOverviewLayout } from "./overview";
+import { Chrome, PrototypeSwitcher } from "./proto-shell";
 import { HostWatch, ReachContext, unreachableText, useReach } from "./reach";
 import { Settings } from "./settings";
 import { importBundle as defaultImport, usePlugins, type ImportBundle, type Plugins } from "./plugins";
@@ -45,18 +46,16 @@ function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBund
   useAppearance();
   return (
     <InstalledPlugins names={plugins.installed?.map((p) => p.name)}>
-      <div className="flex min-h-screen bg-background font-sans text-foreground">
-        <Sidebar items={navItems(plugins.loaded.values())} fetch={fetch} />
-        <main className="min-w-0 flex-1 p-8">
-          <Unreachable />
-          <Routes>
-            <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
-            <Route path="plugins" element={<Catalogue />} />
-            <Route path="settings/*" element={<Settings />} />
-            <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
-          </Routes>
-        </main>
-      </div>
+      {/* PROTOTYPE: the variant's chrome around the routes. */}
+      <Chrome items={navItems(plugins.loaded.values())} badge={(item) => <ItemBadge item={item} fetch={fetch} />} banner={<Unreachable />}>
+        <Routes>
+          <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
+          <Route path="plugins" element={<Catalogue />} />
+          <Route path="settings/*" element={<Settings />} />
+          <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
+        </Routes>
+      </Chrome>
+      <PrototypeSwitcher />
     </InstalledPlugins>
   );
 }
@@ -72,7 +71,20 @@ function Unreachable() {
   );
 }
 
-function Sidebar({ items, fetch }: { items: NavItem[]; fetch?: Fetch }) {
+/** A Nav Entry's live badge, or the warn dot of a broken bundle. */
+function ItemBadge({ item, fetch }: { item: NavItem; fetch?: Fetch }) {
+  if (item.broken) return <StatusDot tone="warn" label="failed to load" />;
+  if (!item.useBadge) return null;
+  return (
+    <PluginScope plugin={item.plugin} fetch={fetch}>
+      <ErrorBoundary fallback={() => null}>
+        <NavBadge useBadge={item.useBadge} />
+      </ErrorBoundary>
+    </PluginScope>
+  );
+}
+
+export function Sidebar({ items, fetch }: { items: NavItem[]; fetch?: Fetch }) {
   return (
     <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card p-3">
       <div className="mb-4 px-3 py-2 text-lg font-bold tracking-tight">ddash</div>

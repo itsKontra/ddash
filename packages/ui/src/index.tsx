@@ -2,6 +2,7 @@
 // stylesheet carries their Tailwind classes, so Plugins use them without
 // generating any CSS for them.
 import { useId, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { Pill, useVariant } from "./proto";
 
 /** A status: up, down, warn (attention), maint (Maintenance) or idle (unknown). */
 export type Tone = "up" | "down" | "warn" | "maint" | "idle";
@@ -204,14 +205,48 @@ export function WidgetCard({
   className?: string;
   children?: ReactNode;
 }) {
+  // PROTOTYPE: the frame per variant.
+  const v = useVariant();
+  const dot = status && <StatusDot tone={status.tone} label={`${status.tone}: ${status.summary}`} />;
+  if (v === "B") {
+    return (
+      <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-panel", className)}>
+        <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+          {dot}
+          <h2 className="truncate text-xs font-extrabold tracking-wide uppercase">{title}</h2>
+          {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+        </header>
+        <div className="min-h-0 flex-1 p-4">{children}</div>
+      </section>
+    );
+  }
+  if (v === "C") {
+    return (
+      <section className={cx("flex h-full flex-col rounded-2xl bg-card p-5 ring-1 ring-border transition-shadow hover:shadow-panel", className)}>
+        <header className="mb-3 flex items-center gap-2">
+          <h2 className="truncate text-base font-extrabold tracking-tight">{title}</h2>
+          {status && (
+            <span className="ml-1">
+              <Pill tone={status.tone} dot>
+                {status.tone === "maint" ? "maintenance" : status.tone}
+              </Pill>
+            </span>
+          )}
+          {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+        </header>
+        <div className="min-h-0 flex-1">{children}</div>
+      </section>
+    );
+  }
   return (
-    <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-sm", className)}>
-      <header className="flex items-center gap-2 px-4 pt-3 pb-2">
-        {status && <StatusDot tone={status.tone} label={`${status.tone}: ${status.summary}`} />}
-        <h2 className="truncate text-sm font-semibold">{title}</h2>
+    <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-panel", className)}>
+      <header className="flex items-center gap-2 px-5 pt-4 pb-2">
+        <h2 className="truncate text-sm font-extrabold tracking-tight">{title}</h2>
+        {status && <span className="ml-1">{dot}</span>}
         {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
       </header>
-      <div className="min-h-0 flex-1 px-4 pb-4">{children}</div>
+      {status && status.tone !== "up" && <p className="-mt-1 truncate px-5 pb-2 text-xs text-muted-foreground">{status.summary}</p>}
+      <div className="min-h-0 flex-1 px-5 pb-5">{children}</div>
     </section>
   );
 }
@@ -473,3 +508,6 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
     </div>
   );
 }
+
+// PROTOTYPE: the redesign candidates (prototype/ui-redesign only).
+export * from "./proto";

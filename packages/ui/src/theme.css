@@ -1,38 +1,68 @@
 /*
- * The default Theme's tokens, light and dark. The shell imports this once;
- * Plugins only reference the tokens (through plugin.css), never set them.
- * The shell puts .dark on <html> for the dark variant.
+ * PROTOTYPE tokens (wayfinder: "What should the shell, Overview and a
+ * Plugin Page look like in the new language?"). The inspiration's teal
+ * language, light and dark, plus nav, hero and elevation tokens.
  */
 @import "./tokens.css";
 
 :root {
   --font: "Inter", ui-sans-serif, system-ui, sans-serif;
   --radius: 0.75rem;
-  --background: #f6f7f9;
-  --foreground: #0f172a;
+  --background: #f6f8fb;
+  --foreground: #14263b;
   --card: #ffffff;
-  --muted: #eef0f3;
-  --muted-foreground: #64748b;
-  --border: #e2e5ea;
-  --primary: #2563eb;
+  --muted: #eef2f6;
+  --muted-foreground: #7b8ba0;
+  --border: #e7ecf2;
+  --primary: #168e85;
   --primary-foreground: #ffffff;
-  --up: #16a34a;
-  --down: #dc2626;
-  --warn: #d97706;
-  --maint: #7c3aed;
+  --up: #0c9c78;
+  --down: #dc5b6c;
+  --warn: #cf9146;
+  --maint: #8b71c9;
+  --info: #5e8ac9;
+  --nav: #121f2f;
+  --nav-foreground: #a9b8c8;
+  --nav-strong: #ffffff;
+  --nav-hover: #1e3042;
+  --nav-active: #203c45;
+  --nav-border: #223348;
+  --nav-accent: #20b6a4;
+  --hero-from: #133342;
+  --hero-to: #0e2635;
+  --hero-foreground: #ffffff;
+  --hero-muted: #b2c5ce;
+  --hero-accent: #4fdfbd;
+  --elevation: 0 12px 34px rgba(22, 42, 63, 0.05);
+  --elevation-strong: 0 18px 40px rgba(14, 40, 53, 0.14);
 }
 
 :root.dark {
-  --background: #0b0f17;
-  --foreground: #e5e9f0;
-  --card: #121826;
-  --muted: #1a2232;
-  --muted-foreground: #8b97ab;
-  --border: #232c3d;
-  --primary: #3b82f6;
-  --primary-foreground: #ffffff;
-  --up: #22c55e;
-  --down: #f43f5e;
-  --warn: #f59e0b;
-  --maint: #a78bfa;
+  --background: #0a121c;
+  --foreground: #e3ebf3;
+  --card: #111c2a;
+  --muted: #182636;
+  --muted-foreground: #8597ab;
+  --border: #1e2e42;
+  --primary: #20b6a4;
+  --primary-foreground: #04201c;
+  --up: #2fc79a;
+  --down: #f06b7c;
+  --warn: #e3a55a;
+  --maint: #a48be0;
+  --info: #7ea6e0;
+  --nav: #08101a;
+  --nav-foreground: #95a7ba;
+  --nav-strong: #f1f6fa;
+  --nav-hover: #132131;
+  --nav-active: #15323a;
+  --nav-border: #16253a;
+  --nav-accent: #2fc7b4;
+  --hero-from: #10313d;
+  --hero-to: #0a1d29;
+  --hero-foreground: #ffffff;
+  --hero-muted: #a6bec8;
+  --hero-accent: #4fdfbd;
+  --elevation: 0 12px 34px rgba(0, 0, 0, 0.3);
+  --elevation-strong: 0 18px 40px rgba(0, 0, 0, 0.45);
 }

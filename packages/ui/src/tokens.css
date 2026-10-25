@@ -20,4 +20,19 @@
   --color-down: var(--down);
   --color-warn: var(--warn);
   --color-maint: var(--maint);
+  --color-info: var(--info);
+  --color-nav: var(--nav);
+  --color-nav-foreground: var(--nav-foreground);
+  --color-nav-strong: var(--nav-strong);
+  --color-nav-hover: var(--nav-hover);
+  --color-nav-active: var(--nav-active);
+  --color-nav-border: var(--nav-border);
+  --color-nav-accent: var(--nav-accent);
+  --color-hero-from: var(--hero-from);
+  --color-hero-to: var(--hero-to);
+  --color-hero-foreground: var(--hero-foreground);
+  --color-hero-muted: var(--hero-muted);
+  --color-hero-accent: var(--hero-accent);
+  --shadow-panel: var(--elevation);
+  --shadow-hero: var(--elevation-strong);
 }

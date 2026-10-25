@@ -26,6 +26,8 @@ function importMapped(): Plugin {
       if (config.command === "serve") release = "dev";
     },
     resolveId(id) {
+      // PROTOTYPE: serve @ddash/ui from source in dev (see uiFromSource).
+      if (id === "@ddash/ui" && this.environment.mode === "dev") return uiSource;
       if (!isImportMapped(id)) return null;
       // The dev server rewrites bare imports, so point it at the vendor URL
       // the import map gives; a build leaves the bare import to the map.
@@ -40,8 +42,26 @@ function importMapped(): Plugin {
   };
 }
 
+// PROTOTYPE: @ddash/ui from source, so its edits show without rebuilding
+// the vendor bundle; Plugins' /vendor/dev/ddash-ui.js redirects to the
+// same module, so shell and Plugins still share one instance.
+const uiSource = new URL("../packages/ui/src/index.tsx", import.meta.url).pathname;
+function uiFromSource(): Plugin {
+  return {
+    name: "prototype-ui-from-source",
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url !== "/vendor/dev/ddash-ui.js") return next();
+        res.statusCode = 302;
+        res.setHeader("Location", `/@fs${uiSource}`);
+        res.end();
+      });
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [importMapped(), tailwindcss()],
+  plugins: [uiFromSource(), importMapped(), tailwindcss()],
   oxc: jsx,
   // No pre-bundling: it would bundle its own React into deps such as
   // lucide-react. The shell's other deps are ESM and served as they are.

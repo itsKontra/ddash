@@ -1,6 +1,6 @@
 import { PluginScope, useAction, useQuery, type Fetch, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Button, cx, Hero, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
+import { Button, cx, Donut, HeroCard, Icon, Kicker, MetricTile, PageTitle, Panel, Pill, Ring, Segmented, Sheet, Timeline, toneBg, toneText, useVariant, WidgetCard, type HeroProblem, type Tone } from "@ddash/ui";
 import { GripVertical, Pencil, Plus, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
@@ -65,9 +65,124 @@ function fromProto(l: { entries: { widget: string; size: string }[]; seen: strin
 
 const span: Record<WidgetSize, string> = {
   S: "col-span-1 row-span-1",
-  M: "col-span-2 row-span-1",
-  L: "col-span-2 row-span-2",
+  M: "col-span-1 sm:col-span-2 row-span-1",
+  L: "col-span-1 sm:col-span-2 row-span-2",
 };
+
+const count = (tones: readonly Tone[], t: Tone) => tones.filter((x) => x === t).length;
+const today = () => new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+/** PROTOTYPE: the Overview's head, per variant. */
+function OverviewHead({ tone, headline, problems, tones, actions }: { tone: Tone; headline: string; problems: readonly HeroProblem[]; tones: readonly Tone[]; actions: ReactNode }) {
+  const v = useVariant();
+  const up = count(tones, "up");
+  const total = tones.length;
+  const down = count(tones, "down");
+  const warn = count(tones, "warn");
+  const maint = count(tones, "maint");
+  const ratio = total ? up / total : 0;
+  if (v === "B") {
+    return (
+      <>
+        <div className="flex flex-wrap items-center gap-3">
+          <Pill tone={tone} dot>
+            {headline}
+          </Pill>
+          <span className="text-xs text-muted-foreground">{today()}</span>
+          <div className="ml-auto flex gap-2">{actions}</div>
+        </div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+          <Panel kicker="Distribution" title="Widget status" description="What every Widget on the Overview last reported.">
+            <Donut
+              total={total}
+              caption="Widgets"
+              segments={[
+                { tone: "up", label: "Up", value: up },
+                { tone: "warn", label: "Needs attention", value: warn },
+                { tone: "down", label: "Down", value: down },
+                { tone: "maint", label: "Maintenance", value: maint },
+              ]}
+            />
+          </Panel>
+          <Panel kicker="Right now" title={problems.length ? "What needs you" : "All clear"} description="Widgets that aren't up, worst first.">
+            {problems.length ? (
+              <Timeline items={problems.map((p) => ({ tone: p.tone, title: p.title, meta: p.summary, aside: p.tone }))} />
+            ) : (
+              <Timeline items={[{ tone: "up", title: "Everything is up", meta: `${total} Widgets reporting`, aside: "now" }]} />
+            )}
+          </Panel>
+        </div>
+      </>
+    );
+  }
+  if (v === "C") {
+    return (
+      <>
+        <PageTitle kicker={today()} title={headline + "."} size="xl" actions={actions} />
+        <div className="-mt-2 mb-2 grid grid-cols-2 gap-y-5 border-y border-border py-6 sm:grid-cols-4">
+          {(
+            [
+              ["Up", up, "up"],
+              ["Needs attention", warn, "warn"],
+              ["Down", down, "down"],
+              ["Maintenance", maint, "maint"],
+            ] as const
+          ).map(([label, n, t], i) => (
+            <div key={label} className={cx("px-5", i > 0 && "sm:border-l sm:border-border")}>
+              <div className={cx("text-4xl font-extrabold tracking-tight tabular-nums", n > 0 && t !== "up" && toneText[t])}>{n}</div>
+              <div className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                <span className={cx("h-1.5 w-1.5 rounded-full", toneBg[t])} />
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+        {problems.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {problems.map((p) => (
+              <Pill key={p.title} tone={p.tone} dot>
+                {p.title}: {p.summary}
+              </Pill>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+  return (
+    <>
+      <PageTitle kicker="Home network" title="Overview" subtitle="Every Widget's latest report, worst first in the summary. Arrange the grid with Edit." actions={actions} />
+      <HeroCard
+        kicker={`Status · ${today()}`}
+        title={headline}
+        caption={problems.length ? problems.map((p) => `${p.title}: ${p.summary}`).join(" · ") : "Every Widget on the Overview reports up. Checks, Workloads and the VPN Tunnel are healthy."}
+        foot={
+          <>
+            <span className="flex items-center gap-1.5">
+              <Icon name="up" className="text-hero-accent" /> {up} up
+            </span>
+            <span className="h-3.5 w-px bg-hero-muted/30" />
+            <span className="flex items-center gap-1.5">
+              <Icon name="alert" className="text-hero-accent" /> {warn + down} need attention
+            </span>
+            <span className="h-3.5 w-px bg-hero-muted/30" />
+            <span className="flex items-center gap-1.5">
+              <Icon name="wrench" className="text-hero-accent" /> {maint} in Maintenance
+            </span>
+          </>
+        }
+        aside={<Ring ratio={ratio} value={`${Math.round(ratio * 100)}%`} label="Widgets up" />}
+      />
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        <MetricTile label="Up" value={up} icon="up" tone="up" desc={`of ${total} Widgets`} />
+        <MetricTile label="Needs attention" value={warn} icon="alert" tone="warn" desc="flapping, expiring, degraded" />
+        <MetricTile label="Down" value={down} icon="down" tone="down" desc="reporting down right now" />
+        <MetricTile label="Maintenance" value={maint} icon="wrench" tone="maint" desc="not counted toward uptime" />
+      </div>
+      {total > 0 && <Kicker className="mt-4">Widgets</Kicker>}
+    </>
+  );
+}
 
 /** /: the Hero over the 4-column grid of placed Widgets, with Edit mode. */
 export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch }) {
@@ -121,8 +236,12 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Overview"
+      {/* PROTOTYPE: each variant's head of the Overview. */}
+      <OverviewHead
+        tone={h.tone}
+        headline={h.headline}
+        problems={h.problems}
+        tones={cards.map((c) => statuses.get(c.entry.widget)?.tone).filter((t): t is Tone => t !== undefined)}
         actions={
           layout &&
           (draft ? (
@@ -140,8 +259,7 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
         }
       />
       {draft && overview.error && <ErrorFrame title="Saving the layout failed" error={overview.error} />}
-      <Hero tone={h.tone} headline={h.headline} problems={h.problems} />
-      <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-4 gap-4 grid-flow-dense">
+      <ul aria-label="Widgets" className="grid grid-flow-dense auto-rows-[minmax(9rem,auto)] grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => (
           <li
             key={c.entry.widget}

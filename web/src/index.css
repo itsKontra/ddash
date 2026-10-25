@@ -3,10 +3,13 @@
  * the utilities of the shell and of @ddash/ui, whose classes every Plugin
  * relies on without generating them itself.
  */
+/* PROTOTYPE: Plugin utilities sit under the shell's (see plugin.css), and the shell generates the Plugins' classes too. */
+@layer theme, base, components, plugin-utilities, utilities;
 @import "tailwindcss" source(none);
 @import "@ddash/ui/theme.css";
 @source "./";
 @source "../../packages/ui/src";
+@source "../../plugins/*/src";
 
 body {
   background: var(--background);
