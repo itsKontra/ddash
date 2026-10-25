@@ -9,6 +9,7 @@ export * from "./atoms";
 export * from "./layout";
 export * from "./forms";
 export * from "./feedback";
+export * from "./data";
 export * from "./charts";
 export * from "./overlays";
 export * from "./icon";
