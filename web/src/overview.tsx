@@ -1,5 +1,5 @@
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { PluginScope, useAction, useQuery, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
+import { PluginScope, useAction, useQuery, type Action, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
 import {
   Button,
   cx,
@@ -9,6 +9,7 @@ import {
   HeroCard,
   Icon,
   MetricTile,
+  Notice,
   PageTitle,
   Pill,
   Ring,
@@ -36,7 +37,7 @@ export interface OverviewLayout {
   /** Saves layout; resolves to whether the core took it. */
   save: (layout: Layout) => Promise<boolean>;
   /** Why the last save failed. */
-  error?: Error;
+  error?: Action<typeof CoreService.method.saveLayout>["error"];
 }
 
 /**
@@ -162,19 +163,23 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
     <div className="flex flex-col gap-6">
       {draft && <EditBar changed={changed} onAdd={() => setAdding(true)} onCancel={cancel} onDone={done} />}
       <PageTitle
-        kicker="Dashboard"
+        kicker="Main"
         title="Overview"
         subtitle="Every Widget's latest report. Arrange the grid with Edit."
         actions={
           layout &&
           !draft && (
-            <Button variant="outline" onClick={() => setDraft(overview.layout!)}>
-              <Icon name="pencil" /> Edit
+            <Button variant="outline" icon="pencil" onClick={() => setDraft(overview.layout!)}>
+              Edit
             </Button>
           )
         }
       />
-      {draft && overview.error && <ErrorFrame title="Saving the layout failed" error={overview.error} />}
+      {draft && overview.error && (
+        <Notice tone="down" title="Saving the layout failed">
+          {overview.error.rawMessage}
+        </Notice>
+      )}
       <OverviewHero state={h} placed={cards.length} up={tally(tones, "up")} reporting={tones.length} />
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {tiles.map((t) => (
@@ -220,9 +225,7 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
                         {c.widget && c.widget.sizes.length > 1 && (
                           <Segmented label="Size" value={c.entry.size} options={c.widget.sizes} onChange={(size) => resize(key, size)} />
                         )}
-                        <Button variant="ghost" size="sm" aria-label={`Remove ${c.title}`} onClick={() => remove(key)}>
-                          <Icon name="x" />
-                        </Button>
+                        <Button variant="ghost" size="sm" icon="x" aria-label={`Remove ${c.title}`} onClick={() => remove(key)} />
                       </>
                     }
                   >
@@ -296,8 +299,8 @@ function EditBar({ changed, onAdd, onCancel, onDone }: { changed: boolean; onAdd
           >
             Cancel
           </button>
-          <Button onClick={onDone}>
-            <Icon name="check" /> Done
+          <Button icon="check" onClick={onDone}>
+            Done
           </Button>
         </div>
       </div>
@@ -526,8 +529,8 @@ function OfferRow({
             On the Overview
           </Pill>
         ) : (
-          <Button size="sm" variant="outline" aria-label={`Add ${w.title}`} onClick={() => onAdd(key, w)}>
-            <Icon name="plus" size="sm" /> Add
+          <Button size="sm" variant="outline" icon="plus" aria-label={`Add ${w.title}`} onClick={() => onAdd(key, w)}>
+            Add
           </Button>
         )}
       </div>

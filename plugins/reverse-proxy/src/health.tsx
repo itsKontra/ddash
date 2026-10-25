@@ -10,6 +10,7 @@ export function ReverseProxy() {
   return (
     <>
       <PageTitle
+        kicker="Infrastructure"
         title="Reverse proxy"
         subtitle="nginx's config, as ddash last read it."
         actions={

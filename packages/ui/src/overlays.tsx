@@ -3,6 +3,8 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode,
 import { Button } from "./atoms";
 import { Checkbox } from "./forms";
 import { Icon } from "./icon";
+import { Kicker } from "./kicker";
+import { InFlush } from "./surface";
 import { cx, toneTint } from "./tone";
 
 /** What a confirm dialog asks. */
@@ -125,53 +127,60 @@ function Overlay({
   const panel = useRef<HTMLDivElement>(null);
   const trap = useFocusTrap(panel);
   return (
-    <div
-      // A confirm sits over the Sheet or Dialog whose Action asked it.
-      className={cx("fixed inset-0 flex bg-foreground/40 backdrop-blur-xs", role === "alertdialog" ? "z-60" : "z-50", placement)}
-      onClick={onClose}
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
-    >
+    // An overlay is its own surface, even when a flush Panel opened it.
+    <InFlush value={false}>
       <div
-        ref={panel}
-        tabIndex={-1}
-        onKeyDown={trap}
-        role={role}
-        aria-modal="true"
-        aria-labelledby={`${id}-title`}
-        aria-describedby={subtitle ? `${id}-subtitle` : undefined}
-        className={cx("flex w-full flex-col border-border bg-card shadow-elevation-raised outline-none", panelClassName)}
-        onClick={(e) => e.stopPropagation()}
+        // A confirm sits over the Sheet or Dialog whose Action asked it.
+        className={cx("fixed inset-0 flex bg-foreground/40 backdrop-blur-xs", role === "alertdialog" ? "z-60" : "z-50", placement)}
+        onClick={onClose}
+        onKeyDown={(e) => e.key === "Escape" && onClose()}
       >
-        <header className="flex items-start gap-4 px-6 pt-6 pb-4">
-          {icon}
-          <div className="min-w-0 flex-1">
-            {kicker && <div className="mb-1.5 text-[10px] font-extrabold tracking-[0.15em] text-primary uppercase">{kicker}</div>}
-            <h2 id={`${id}-title`} className="text-lg leading-tight font-extrabold tracking-tight">
-              {title}
-            </h2>
-            {subtitle && (
-              <p id={`${id}-subtitle`} className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {subtitle}
-              </p>
-            )}
-          </div>
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={onClose}
-            className="-mt-1 -mr-2 grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <Icon name="x" />
-          </button>
-        </header>
-        {children && (
-          <div data-scrolls className="min-h-0 flex-1 overflow-y-auto px-6 pb-5">
-            {children}
-          </div>
-        )}
-        {footer && <footer className="border-t border-border px-6 py-4">{footer}</footer>}
+        <div
+          ref={panel}
+          tabIndex={-1}
+          onKeyDown={trap}
+          role={role}
+          aria-modal="true"
+          aria-labelledby={`${id}-title`}
+          aria-describedby={subtitle ? `${id}-subtitle` : undefined}
+          className={cx("flex w-full flex-col border-border bg-card shadow-elevation-raised outline-none", panelClassName)}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <header className="flex items-start gap-4 px-6 pt-6 pb-4">
+            {icon}
+            <div className="min-w-0 flex-1">
+              {kicker && (
+                <div className="mb-1.5">
+                  <Kicker>{kicker}</Kicker>
+                </div>
+              )}
+              <h2 id={`${id}-title`} className="text-lg leading-tight font-extrabold tracking-tight">
+                {title}
+              </h2>
+              {subtitle && (
+                <p id={`${id}-subtitle`} className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={onClose}
+              className="-mt-1 -mr-2 grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <Icon name="x" />
+            </button>
+          </header>
+          {children && (
+            <div data-scrolls className="min-h-0 flex-1 overflow-y-auto px-6 pb-5">
+              {children}
+            </div>
+          )}
+          {footer && <footer className="border-t border-border px-6 py-4">{footer}</footer>}
+        </div>
       </div>
-    </div>
+    </InFlush>
   );
 }
 

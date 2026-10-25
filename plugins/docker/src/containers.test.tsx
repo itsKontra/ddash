@@ -1,7 +1,8 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import { pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { docker } from "./testing";
 
 afterEach(cleanup);
 
@@ -23,36 +24,22 @@ it("is the docker Nav Entry at order 50 (its icon, container, is in plugin.yaml)
   expect(plugin.nav?.order).toBe(50);
 });
 
-// Renders the docker Page against docker-api answering with answer, and
-// returns the requests it made.
-async function show(answer: () => Response | Promise<Response>) {
-  const requests: Request[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input), "http://ddash.test");
-    if (url.pathname.startsWith("/api/icons")) return Response.json({});
-    requests.push(new Request(url, init));
-    return answer();
-  });
-  vi.stubGlobal("fetch", fetch);
+// Renders the docker Page against docker-api answering ListContainers
+// with answer, and returns the calls it made.
+async function show(answer: Answer) {
   const Page = plugin.pages![0].Component!;
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "docker", requires: ["docker-api"] }} fetch={fetch}>
-        <Page />
-      </PluginScope>
-    </PluginHost>,
-  );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
-  return requests;
+  const calls = renderScoped(docker, <Page />, { answers: { ListContainers: answer } });
+  await settle();
+  return calls;
 }
 
-afterEach(() => vi.unstubAllGlobals());
-
 it("lists containers per host in a table with a header row, each with its state", async () => {
-  const requests = await show(() => Response.json(listed));
+  const calls = await show(() => Response.json(listed));
 
-  expect(new URL(requests[0].url).pathname).toBe("/api/c/docker-api/ddash.dockerapi.DockerApiService/ListContainers");
+  expect(calls[0].url).toBe("/api/c/docker-api/ddash.dockerapi.DockerApiService/ListContainers");
   expect(screen.getByRole("heading", { level: 1, name: "Docker" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "Docker" }).previousElementSibling?.textContent).toBe("Infrastructure");
   const media = screen.getByRole("region", { name: "media" });
   expect(within(media).getByText("1/2 running")).toBeTruthy();
   const headers = within(media)
@@ -76,13 +63,13 @@ it("shows a host it can't read as a failure Notice in that host's Panel", async 
 });
 
 it("shows a failure Notice when docker-api can't be reached", async () => {
-  await show(() => Response.json({ code: "unavailable", message: "docker-api is down" }, { status: 503 }));
+  await show(() => unavailable("docker-api is down"));
 
   expect(screen.getByRole("alert").textContent).toMatch(/docker-api is down/);
 });
 
 it("shows a skeleton, not loading text, until docker-api first answers", async () => {
-  await show(() => new Promise<Response>(() => {}));
+  await show(pending);
 
   expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
   expect(screen.queryByText(/loading/i)).toBeNull();

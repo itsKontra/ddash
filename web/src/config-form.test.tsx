@@ -1,7 +1,8 @@
 import { create, toBinary } from "@bufbuild/protobuf";
 import { ConfigErrorsSchema } from "@ddash/proto/ddash/core/core_pb";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -101,12 +102,10 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   }
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 async function boot() {
   render(
     <MemoryRouter initialEntries={["/plugins"]}>
-      <App client={createQueryClient()} fetch={vi.fn(fetchFake)} importBundle={async () => ({})} />
+      <App client={createQueryClient()} fetch={tracked(vi.fn(fetchFake))} importBundle={async () => ({})} />
     </MemoryRouter>,
   );
   await settle();

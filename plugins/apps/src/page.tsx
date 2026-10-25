@@ -1,8 +1,8 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App, type Overlay, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
-import { AppIcon, Button, EmptyState, Notice, PageTitle, Panel, Pill, SectionHeading, Select, Skeleton } from "@ddash/ui";
-import { useState, type ReactNode } from "react";
+import { AppIcon, Button, DataTable, Dialog, EmptyState, Field, FormActions, Notice, PageTitle, Panel, Pill, SectionHeading, Select, Skeleton, type Column } from "@ddash/ui";
+import { useId, useState, type ReactNode } from "react";
 import { sections, useApps } from "./apps";
 import { checkStatus } from "@ddash/display";
 import { useAppChecks } from "./checks";
@@ -27,7 +27,7 @@ export function AppsPage() {
 
   return (
     <div>
-      <PageTitle title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={add} />
+      <PageTitle kicker="Services" title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={add} />
       <div className="flex flex-col gap-6">
         {!list && !error && <Skeleton height="lg" />}
         {!list && error && <Notice tone="down">apps unavailable: {error.rawMessage}</Notice>}
@@ -57,11 +57,7 @@ export function AppsPage() {
             <p className="mb-3 text-sm text-muted-foreground">
               Settings kept for Proxy Hosts that are gone or were renamed. Re-attach them to an App, or delete them.
             </p>
-            <ul aria-label="Unmatched settings" className="flex flex-col gap-3">
-              {list.unmatched.map((o) => (
-                <Unmatched key={o.serverName} overlay={o} targets={apps.filter((a) => !a.manual && !a.overlay)} />
-              ))}
-            </ul>
+            <UnmatchedSettings overlays={list.unmatched} targets={apps.filter((a) => !a.manual && !a.overlay)} />
           </Section>
         )}
       </div>
@@ -145,44 +141,88 @@ function summary(o: Overlay) {
   return [o.name, o.icon && `icon ${o.icon}`, o.group && `group ${o.group}`, o.hidden && "hidden", workload].filter(Boolean).join(" · ");
 }
 
-/** Settings whose Proxy Host is gone: re-attach to an App without settings, or delete. */
-function Unmatched({ overlay, targets }: { overlay: Overlay; targets: readonly App[] }) {
-  const attach = useAction(AppsService.method.attachOverlay);
+const unmatchedColumns: Column<Overlay>[] = [
+  { id: "host", header: "Proxy Host", rowHeader: true, mono: true, cell: (o) => o.serverName },
+  { id: "settings", header: "Settings", cell: (o) => summary(o) },
+];
+
+/**
+ * Settings whose Proxy Host is gone, as a compact table: each row's menu
+ * re-attaches them to an App without settings, or deletes them.
+ */
+function UnmatchedSettings({ overlays, targets }: { overlays: readonly Overlay[]; targets: readonly App[] }) {
   const remove = useAction(AppsService.method.deleteOverlay);
-  const [to, setTo] = useState("");
-  const error = attach.error ?? remove.error;
+  const [reattaching, setReattaching] = useState<Overlay>();
   return (
-    <li aria-label={overlay.serverName}>
-      <Panel>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-            <span className="font-semibold">{overlay.serverName}</span>
-            <span className="text-muted-foreground">{summary(overlay)}</span>
-            <span className="ml-auto flex flex-wrap items-center gap-2">
-              <Select label="Re-attach to" value={to} onChange={(e) => setTo(e.target.value)}>
-                <option value="">Choose an App…</option>
-                {targets.map((a) => (
-                  <option key={a.serverName} value={a.serverName}>
-                    {a.name} ({a.serverName})
-                  </option>
-                ))}
-              </Select>
-              <Button size="sm" variant="outline" disabled={!to || attach.pending} onClick={() => void attach.run({ serverName: overlay.serverName, to })}>
-                Re-attach
-              </Button>
-              <Button
-                size="sm"
-                variant="danger"
-                disabled={remove.pending}
-                onClick={() => void remove.run({ serverName: overlay.serverName }, { confirm: { text: `Delete the settings kept for ${overlay.serverName}?`, action: "Delete" } })}
-              >
-                Delete
-              </Button>
-            </span>
-          </div>
-          {error && <Notice tone="down">{error.rawMessage}</Notice>}
+    <>
+      {remove.error && (
+        <div className="mb-3">
+          <Notice tone="down">{remove.error.rawMessage}</Notice>
         </div>
+      )}
+      <Panel flush>
+        <DataTable
+          rows={overlays}
+          rowKey={(o) => o.serverName}
+          columns={unmatchedColumns}
+          density="compact"
+          actions={(o) => [
+            { label: "Re-attach…", disabled: targets.length === 0, onSelect: () => setReattaching(o) },
+            {
+              label: "Delete",
+              danger: true,
+              disabled: remove.pending,
+              onSelect: () => void remove.run({ serverName: o.serverName }, { confirm: { text: `Delete the settings kept for ${o.serverName}?`, action: "Delete" } }),
+            },
+          ]}
+        />
       </Panel>
-    </li>
+      {reattaching && <Reattach overlay={reattaching} targets={targets} onClose={() => setReattaching(undefined)} />}
+    </>
+  );
+}
+
+/** Re-attaches an unmatched setting to an App without settings of its own. */
+function Reattach({ overlay, targets, onClose }: { overlay: Overlay; targets: readonly App[]; onClose: () => void }) {
+  const attach = useAction(AppsService.method.attachOverlay);
+  const [to, setTo] = useState("");
+  const form = useId();
+  return (
+    <Dialog
+      title={`Re-attach ${overlay.serverName}`}
+      subtitle={summary(overlay)}
+      onClose={onClose}
+      footer={
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form={form} disabled={!to || attach.pending}>
+            Re-attach
+          </Button>
+        </FormActions>
+      }
+    >
+      <form
+        id={form}
+        className="flex flex-col gap-4"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          if (await attach.run({ serverName: overlay.serverName, to })) onClose();
+        }}
+      >
+        <Field label="Re-attach to" hint="Only Apps without settings of their own.">
+          <Select value={to} onChange={(e) => setTo(e.target.value)}>
+            <option value="">Choose an App…</option>
+            {targets.map((a) => (
+              <option key={a.serverName} value={a.serverName}>
+                {a.name} ({a.serverName})
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {attach.error && <Notice tone="down">{attach.error.rawMessage}</Notice>}
+      </form>
+    </Dialog>
   );
 }

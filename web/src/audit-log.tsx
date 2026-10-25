@@ -118,11 +118,9 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
         <Page key={p.token} request={{ ...filter, pageToken: p.token }} onSettled={(page) => settled(i, page)} onTargets={i === 0 ? onTargets : undefined} />
       ))}
       {error && (
-        <div className="p-5">
-          <Notice tone="down" title="The Audit Log can't be read">
-            {error}
-          </Notice>
-        </div>
+        <Notice tone="down" title="The Audit Log can't be read">
+          {error}
+        </Notice>
       )}
       {(!error || chains.length > 0) && (
         <DataTable
@@ -186,8 +184,8 @@ const toneOf = (outcome: string): Tone => (outcome === "ok" ? "up" : outcome ===
 const columns: Column<AuditChain>[] = [
   { id: "action", header: "Action", rowHeader: true, cell: (c) => <ActionName entry={root(c)} /> },
   { id: "when", header: "When", sortable: true, sortValue: (c) => timeOf(root(c))?.getTime() ?? 0, cell: (c) => <When entry={root(c)} /> },
-  { id: "actor", header: "Actor", cell: (c) => <span className="text-muted-foreground">{actorOf(root(c))}</span> },
-  { id: "outcome", header: "Outcome", hideBelow: "sm", cell: (c) => <ChainOutcome chain={c} /> },
+  { id: "actor", header: "Actor", hideBelow: "sm", cell: (c) => <span className="text-muted-foreground">{actorOf(root(c))}</span> },
+  { id: "outcome", header: "Outcome", cell: (c) => <ChainOutcome chain={c} /> },
   { id: "hops", header: "Hops", align: "right", hideBelow: "sm", cell: (c) => <span className="tabular-nums">{c.entries.length}</span> },
   { id: "took", header: "Took", align: "right", hideBelow: "sm", cell: (c) => <span className="tabular-nums">{tookOf(root(c))}</span> },
 ];

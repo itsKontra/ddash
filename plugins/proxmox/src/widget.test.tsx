@@ -1,7 +1,8 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Status, type Widget } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import { metricValue, pending, showWidget, unavailable, type Answer } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { proxmox } from "./testing";
 
 afterEach(cleanup);
 
@@ -30,25 +31,8 @@ const guests = () => plugin.widgets!.find((w) => w.id === "guests")!;
 
 // Renders the Widget's body at size, against proxmox-api answering with
 // answer, and returns what its useStatus reported last.
-async function show(answer: () => Response, size: "S" | "M" = "S") {
-  const w = guests();
-  const fetch = vi.fn(async () => answer());
-  const reported: { status?: Status } = {};
-  function Probe({ widget }: { widget: Widget }) {
-    reported.status = widget.useStatus();
-    return null;
-  }
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "proxmox", requires: ["proxmox-api"] }} fetch={fetch}>
-        <Probe widget={w} />
-        <section aria-label="widget">
-          <w.Body size={size} />
-        </section>
-      </PluginScope>
-    </PluginHost>,
-  );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
+async function show(answer: Answer, size?: "S" | "M") {
+  const { reported } = await showWidget(proxmox, guests(), { size, answers: { ListWorkloads: answer } });
   return reported;
 }
 
@@ -66,8 +50,8 @@ it("reports up with the counts in its summary", async () => {
 it("shows the counts at S, and each kind's at M", async () => {
   await show(() => Response.json(listed));
   const s = screen.getByRole("region", { name: "widget" });
-  expect(within(s).getByRole("group", { name: "running" }).textContent).toBe("running3");
-  expect(within(s).getByRole("group", { name: "guests" }).textContent).toBe("guests5");
+  expect(metricValue("running", s)).toBe("3");
+  expect(metricValue("guests", s)).toBe("5");
   expect(within(s).queryByText("LXCs")).toBeNull();
   cleanup();
 
@@ -78,21 +62,21 @@ it("shows the counts at S, and each kind's at M", async () => {
 });
 
 it("draws its counts as skeletons until proxmox-api first answers", async () => {
-  await show(() => new Promise<Response>(() => {}) as unknown as Response);
+  await show(pending);
   const s = screen.getByRole("region", { name: "widget" });
 
-  expect(within(within(s).getByRole("group", { name: "running" })).getByRole("status", { name: "Loading" })).toBeTruthy();
-  expect(within(within(s).getByRole("group", { name: "guests" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(metricValue("running", s)).toBeUndefined();
+  expect(metricValue("guests", s)).toBeUndefined();
 });
 
 it("reports warn when proxmox-api is unavailable", async () => {
-  const reported = await show(() => Response.json({ code: "unavailable", message: "Proxmox refused the API token" }, { status: 503 }));
+  const reported = await show(() => unavailable("Proxmox refused the API token"));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "proxmox-api unavailable: Proxmox refused the API token" });
 });
 
 it("reports nothing until proxmox-api first answers", async () => {
-  const reported = await show(() => new Promise<Response>(() => {}) as unknown as Response);
+  const reported = await show(pending);
 
   expect(reported.status).toBeUndefined();
 });

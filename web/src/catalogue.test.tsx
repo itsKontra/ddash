@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -25,10 +26,12 @@ let catalogue: {
 };
 let calls: { method: string; body: unknown }[];
 let refusal: { code: string; message: string } | undefined;
+let catalogueAnswer: (() => Promise<Response>) | undefined;
 
 beforeEach(() => {
   calls = [];
   refusal = undefined;
+  catalogueAnswer = undefined;
   catalogue = {
     release: "v1.2.3",
     plugins: [
@@ -46,18 +49,16 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   const method = String(input).split("/").pop()!;
   if (method === "GetLayout") return Response.json({}); // the shell reads it on every page
   calls.push({ method, body: JSON.parse(new TextDecoder().decode(init?.body as Uint8Array)) });
-  if (method === "ListCatalogue") return Response.json(catalogue);
+  if (method === "ListCatalogue") return catalogueAnswer ? catalogueAnswer() : Response.json(catalogue);
   if (method === "ListInstalledPlugins") return Response.json({});
   if (refusal) return Response.json(refusal, { status: 400 });
   return Response.json({});
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 async function boot() {
   render(
     <MemoryRouter initialEntries={["/plugins"]}>
-      <App client={createQueryClient()} fetch={vi.fn(fetchFake)} importBundle={async () => ({})} />
+      <App client={createQueryClient()} fetch={tracked(vi.fn(fetchFake))} importBundle={async () => ({})} />
     </MemoryRouter>,
   );
   await settle();
@@ -236,6 +237,23 @@ it("says nothing is orphaned when no DB file is", async () => {
   await boot();
 
   expect(screen.queryByRole("region", { name: "Orphaned data" })).toBeNull();
+});
+
+it("shows a skeleton while the Catalogue loads", async () => {
+  catalogueAnswer = () => pending();
+  await boot();
+
+  expect(within(screen.getByRole("main")).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(screen.queryByRole("list", { name: "Installed" })).toBeNull();
+});
+
+it("says in a down Notice why the Catalogue can't be read, not as a crash", async () => {
+  catalogueAnswer = async () => Response.json({ code: "unavailable", message: "the core is starting" }, { status: 503 });
+  await boot();
+
+  const alert = within(screen.getByRole("main")).getByRole("alert");
+  expect(alert.textContent).toMatch(/The Catalogue can't be read.*the core is starting/);
+  expect(alert.querySelector("pre")).toBeNull();
 });
 
 it("shows why an Action failed", async () => {

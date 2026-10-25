@@ -13,7 +13,17 @@ export interface HeroState {
   problems: Problem[];
 }
 
-const worse: Tone[] = ["down", "warn", "maint", "idle", "up"];
+const worse: Tone[] = ["down", "warn", "maint", "info", "idle", "up"];
+
+// What the headline says of n Widgets at a tone: [one, many].
+const said: Record<Tone, [string, string]> = {
+  down: ["down", "down"],
+  warn: ["needs attention", "need attention"],
+  maint: ["in Maintenance", "in Maintenance"],
+  info: ["has news", "have news"],
+  idle: ["unknown", "unknown"],
+  up: ["up", "up"],
+};
 
 /**
  * The hero over the placed Widgets, in grid order, with each one's status
@@ -27,11 +37,15 @@ export function hero(placed: readonly { title: string; status?: Status }[], unre
   const problems = reported
     .filter((p) => p.status!.tone !== "up")
     .map((p) => ({ title: p.title, tone: p.status!.tone, summary: p.status!.summary }));
-  let tone: Tone = problems.length ? worse.find((t) => problems.some((p) => p.tone === t))! : reported.length ? "up" : "idle";
+  const worst = worse.find((t) => problems.some((p) => p.tone === t));
+  let tone: Tone = worst ?? (reported.length ? "up" : "idle");
   if (unreachable && tone !== "down") tone = "warn";
   let headline: string;
-  if (problems.length) headline = `${problems.length} ${problems.length === 1 ? "Widget needs" : "Widgets need"} attention`;
-  else if (reported.length) headline = "Everything is up";
+  if (worst) {
+    // The worst tone's count, as its metric tile has it.
+    const n = problems.filter((p) => p.tone === worst).length;
+    headline = `${n} ${n === 1 ? "Widget" : "Widgets"} ${n === 1 ? said[worst][0] : said[worst][1]}`;
+  } else if (reported.length) headline = "Everything is up";
   else if (placed.length) headline = "Waiting for the Widgets to report";
   else headline = "No Widgets on the Overview";
   return { tone, headline, problems };

@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, type PluginDefinition, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -80,7 +81,7 @@ async function boot(path = "/", reload = vi.fn()) {
     <MemoryRouter initialEntries={[path]}>
       <App
         client={createQueryClient()}
-        fetch={vi.fn(fetchFake)}
+        fetch={tracked(vi.fn(fetchFake))}
         reload={reload}
         importBundle={async (url) => {
           const b = bundles.get(url);
@@ -92,8 +93,6 @@ async function boot(path = "/", reload = vi.fn()) {
   );
   await settle();
 }
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 
 const cards = () => within(screen.getByRole("list", { name: "Widgets" })).queryAllByRole("listitem");
 const card = (title: string) => within(screen.getByRole("list", { name: "Widgets" })).getByRole("listitem", { name: title });
@@ -189,8 +188,37 @@ it("the hero lists the placed Widgets that aren't up, ignoring one that hasn't r
   expect(problems()).toEqual(["Checkspaperless down 14 min", "VPNon the fallback"]);
   expect(within(hero()).getAllByRole("img", { name: /^(down|warn)$/ }).map((d) => d.getAttribute("aria-label"))).toEqual(["down", "warn"]);
   expect(overall()).toBe("Overall: down");
+  // The headline counts the worst tone, as its tile does: the warn one isn't down.
+  expect(headline()).toBe("1 Widget down");
+  expect(screen.getByRole("region", { name: "1 Widget down" })).toBe(hero());
+});
+
+it("the hero's headline counts only the Widgets needing attention, as their tile does, when none is down", async () => {
+  plugins = [
+    [
+      installed("lab", "Lab"),
+      definePlugin({
+        widgets: [
+          widget("a", "Alpha", { tone: "warn", summary: "flapping" }, "S"),
+          widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S"),
+          widget("c", "Charlie", { tone: "warn", summary: "slow" }, "S"),
+        ],
+      }),
+    ],
+  ];
+
+  await boot();
+
   expect(headline()).toBe("2 Widgets need attention");
-  expect(screen.getByRole("region", { name: "2 Widgets need attention" })).toBe(hero());
+  expect(screen.getByRole("group", { name: "Needs attention" }).textContent).toBe("Needs attention2");
+});
+
+it("the hero's headline counts the Widgets in Maintenance when nothing worse is wrong", async () => {
+  plugins = [[installed("lab", "Lab"), definePlugin({ widgets: [widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S")] })]];
+
+  await boot();
+
+  expect(headline()).toBe("1 Widget in Maintenance");
 });
 
 it("the hero says everything is up when every reporting Widget is", async () => {
@@ -261,7 +289,7 @@ it("four metric tiles count the reporting Widgets that are up, need attention, a
 });
 
 it("the metric tiles load until the layout has come", async () => {
-  intercept = (method) => (method === "GetLayout" ? new Promise<Response>(() => {}) : undefined);
+  intercept = (method) => (method === "GetLayout" ? pending() : undefined);
 
   await boot();
 
@@ -596,6 +624,22 @@ it("shows the unreachable banner from a 5xx until the next success, with the her
 
   expect(screen.queryByRole("status")).toBeNull();
   expect(overall()).toBe("Overall: up");
+});
+
+it("says in a down Notice why Done couldn't save the layout, staying in edit mode", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  await boot();
+  intercept = (method) =>
+    method === "SaveLayout" ? Response.json({ code: "invalid_argument", message: "unknown widget nope.x" }, { status: 400 }) : undefined;
+
+  edit();
+  fireEvent.click(within(card("Containers")).getByRole("radio", { name: "M" }));
+  await done();
+
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toMatch(/Saving the layout failed.*unknown widget nope\.x/);
+  expect(alert.querySelector("pre")).toBeNull();
+  expect(screen.getByRole("toolbar", { name: "Edit the Overview" })).toBeTruthy();
 });
 
 it("shows the unreachable banner when the network fails", async () => {

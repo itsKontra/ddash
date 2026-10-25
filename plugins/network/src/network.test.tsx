@@ -1,8 +1,8 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import { pending, renderScoped, settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { withAdguard } from "./testing";
 
 afterEach(cleanup);
 
@@ -26,28 +26,13 @@ const tunnel = {
   ],
 };
 
-async function showPage(answers: Record<string, () => Response>, { pending = false } = {}) {
-  const paths: string[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL) => {
-    const path = new URL(String(input), "http://ddash.test").pathname;
-    paths.push(path);
-    // A pending read never answers (icons aren't under test).
-    if (pending && !path.startsWith("/api/icons")) return new Promise<Response>(() => {});
-    const method = path.split("/").pop()!;
-    return (answers[method] ?? (() => Response.json({})))();
-  });
+// Shows the Network Page and returns the paths it called; with stuck, no
+// read ever answers.
+async function showPage(answers: Answers, { stuck = false } = {}) {
   const Page = plugin.pages![0].Component!;
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api", "adguard-api"] }} fetch={fetch}>
-        <MemoryRouter>
-          <Page />
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
-  );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
-  return paths;
+  const calls = renderScoped(withAdguard, <Page />, stuck ? { unanswered: pending } : { answers });
+  await settle();
+  return calls.map((c) => c.url);
 }
 
 it("is the network Nav Entry at order 30 (its icon, network, is in plugin.yaml)", () => {
@@ -55,9 +40,11 @@ it("is the network Nav Entry at order 30 (its icon, network, is in plugin.yaml)"
 });
 
 it("is titled Network, and shows each section loading until its read answers", async () => {
-  await showPage({}, { pending: true });
+  await showPage({}, { stuck: true });
 
   expect(screen.getByRole("heading", { level: 1, name: "Network" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "Network" }).previousElementSibling?.textContent).toBe("Infrastructure");
   for (const name of ["VPN Tunnel", "Gateways", "Throughput", "Devices", "Remote Access", "AdGuard"]) {
     const section = screen.getByRole("region", { name });
     expect(within(section).getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
@@ -110,7 +97,7 @@ it("says why the tier is unknown when network can't read the group", async () =>
 
 it("shows pfsense-api's error in place of the gateways", async () => {
   await showPage({
-    ListGateways: () => Response.json({ code: "unavailable", message: "pfSense unreachable: connection refused" }, { status: 503 }),
+    ListGateways: () => unavailable("pfSense unreachable: connection refused"),
     GetVpnTunnel: () => Response.json(tunnel),
   });
 
@@ -185,7 +172,7 @@ it("says why there's no Remote Access", async () => {
 });
 
 it("shows network's error in place of the Remote Access peers", async () => {
-  await showPage({ GetRemoteAccess: () => Response.json({ code: "unavailable", message: "can't read the WireGuard tunnels: pfSense unreachable" }, { status: 503 }) });
+  await showPage({ GetRemoteAccess: () => unavailable("can't read the WireGuard tunnels: pfSense unreachable") });
 
   const section = screen.getByRole("region", { name: "Remote Access" });
   expect(within(section).getByRole("alert").textContent).toMatch(/can't read the WireGuard tunnels/);

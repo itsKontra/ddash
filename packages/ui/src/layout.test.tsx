@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it } from "vitest";
-import { HeroCard, MetricTile, PageTitle, Panel, Ring, SectionHeading, StatusList, WidgetCard } from "./index";
+import { HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, SectionHeading, StatusList, WidgetCard } from "./index";
 
 afterEach(cleanup);
 
@@ -44,6 +44,29 @@ it("Panel with only a kicker is still a section, named by the kicker", () => {
   render(<Panel kicker="Maintenance">none planned</Panel>);
 
   expect(screen.getByRole("region", { name: "Maintenance" }).textContent).toContain("none planned");
+});
+
+it("A flush Panel pads a Notice in its body itself, so the message doesn't run to the edges", () => {
+  // Spelled at run time, so this file generates no classes of its own.
+  const padded = `.${["p", "5"].join("-")}`;
+  render(
+    <>
+      <Panel title="Gateways" flush>
+        <Notice tone="down">pfSense is unreachable</Notice>
+      </Panel>
+      <Panel title="Devices">
+        <Notice tone="warn">partial</Notice>
+      </Panel>
+    </>,
+  );
+
+  const flush = screen.getByRole("region", { name: "Gateways" });
+  expect(flush.contains(within(flush).getByRole("alert").closest(padded))).toBe(true);
+  // A plain Panel's body is padded already: the Notice adds none of its own.
+  const plain = screen.getByRole("region", { name: "Devices" });
+  const notice = within(plain).getByRole("status");
+  expect(notice.parentElement!.matches(padded)).toBe(true);
+  expect(notice.parentElement!.parentElement).toBe(plain);
 });
 
 it("Panel without a title or kicker is a plain surface, not a landmark", () => {

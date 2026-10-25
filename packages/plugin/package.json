@@ -4,7 +4,8 @@
   "type": "module",
   "description": "What a Plugin is written with: definePlugin, useQuery and useClient. An import-map singleton, so Plugins never bundle it.",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

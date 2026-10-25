@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -51,14 +52,12 @@ async function boot(path: string, answer: Answer) {
   });
   render(
     <MemoryRouter initialEntries={[path]}>
-      <App client={createQueryClient()} fetch={fetch} />
+      <App client={createQueryClient()} fetch={tracked(fetch)} />
       <Probe />
     </MemoryRouter>,
   );
   await settle();
 }
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 
 // The table's body rows, each led by its Action as the row header.
 const rows = () => screen.queryAllByRole("row").filter((r) => within(r).queryByRole("rowheader"));
@@ -102,6 +101,18 @@ it("is a Page under Settings, a table of Operator-rooted chains, newest first", 
   expect(second.textContent).toMatch(/core.*Install.*operator:alice.*ok.*1.*12 ms/);
   expect(second.textContent).not.toMatch(/disruptive|not ok/);
   expect(within(first).getByText((_, el) => el?.tagName === "TIME").getAttribute("datetime")).toBe("2026-10-19T08:30:00.000Z");
+});
+
+it("keeps the Action, When and Outcome on a phone, hiding Actor, Hops and Took", async () => {
+  await boot("/settings/audit-log", () => ({ chains: [relayed] }));
+
+  // Spelled at run time, so this file generates no classes of its own.
+  const hidden = ["hid", "den"].join("");
+  const phoneHidden = screen
+    .getAllByRole("columnheader")
+    .filter((h) => h.className.split(" ").includes(hidden))
+    .map((h) => h.textContent);
+  expect(phoneHidden).toEqual(["Actor", "Hops", "Took"]);
 });
 
 it("opens a chain in a Sheet: the failure, its facts, and each hop with its redacted request", async () => {

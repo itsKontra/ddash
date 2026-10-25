@@ -48,7 +48,7 @@ export function DevicesTable({ aside }: { aside?: ReactNode }) {
   const failed = error && !data;
   const none = data?.devices.length === 0;
   return (
-    <Panel title="Devices" actions={aside} flush={!failed && !none}>
+    <Panel title="Devices" actions={aside} flush>
       {failed ? (
         <Notice tone="down">{error.rawMessage}</Notice>
       ) : none ? (

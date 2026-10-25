@@ -1,6 +1,6 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { CoreService, Theme } from "@ddash/proto/ddash/core/core_pb";
-import { cx, Icon, Notice, PageTitle, Panel, Segmented, type IconName } from "@ddash/ui";
+import { cx, Icon, Notice, PageTitle, Panel, Segmented, Skeleton, type IconName } from "@ddash/ui";
 import { Link, Route, Routes } from "react-router";
 import { themeName, useScheme } from "./appearance";
 import { AuditLog } from "./audit-log";
@@ -48,39 +48,47 @@ function Appearance() {
   const current = `THEME_${Theme[settings.data?.settings?.theme ?? Theme.DDASH]}`;
   return (
     <Panel title="Appearance" description="The Theme applies to every Operator.">
-      <div role="radiogroup" aria-label="Theme" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {themes.map((t) => {
-          const on = t.value === current;
-          return (
-            <button
-              key={t.value}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              data-theme={themeName(Theme[t.value.replace(/^THEME_/, "") as keyof typeof Theme])}
-              disabled={save.pending}
-              onClick={() => save.run({ owner: "core", values: { theme: t.value } })}
-              className={cx(
-                "cursor-pointer rounded-ui border-2 bg-background p-4 text-left text-foreground transition-colors",
-                on ? "border-primary" : "border-border hover:border-muted-foreground",
-              )}
-            >
-              <span className="mb-3 flex items-center gap-2 text-sm font-extrabold">
-                {t.label}
-                {on && <span className="ml-auto text-[10px] font-extrabold tracking-[0.14em] text-primary uppercase">in use</span>}
-              </span>
-              <span aria-hidden className="flex gap-1.5">
-                <span className="h-5 w-5 rounded-ui-sm bg-nav" />
-                <span className="h-5 w-5 rounded-ui-sm bg-primary" />
-                <span className="h-5 w-5 rounded-ui-sm bg-up" />
-                <span className="h-5 w-5 rounded-ui-sm bg-warn" />
-                <span className="h-5 w-5 rounded-ui-sm bg-down" />
-                <span className="h-5 w-5 rounded-ui-sm bg-maint" />
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {form.data ? (
+        <div role="radiogroup" aria-label="Theme" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {themes.map((t) => {
+            const on = t.value === current;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                data-theme={themeName(Theme[t.value.replace(/^THEME_/, "") as keyof typeof Theme])}
+                disabled={save.pending}
+                onClick={() => save.run({ owner: "core", values: { theme: t.value } })}
+                className={cx(
+                  "cursor-pointer rounded-ui border-2 bg-background p-4 text-left text-foreground transition-colors",
+                  on ? "border-primary" : "border-border hover:border-muted-foreground",
+                )}
+              >
+                <span className="mb-3 flex items-center gap-2 text-sm font-extrabold">
+                  {t.label}
+                  {on && <span className="ml-auto text-[10px] font-extrabold tracking-[0.14em] text-primary uppercase">in use</span>}
+                </span>
+                <span aria-hidden className="flex gap-1.5">
+                  <span className="h-5 w-5 rounded-ui-sm bg-nav" />
+                  <span className="h-5 w-5 rounded-ui-sm bg-primary" />
+                  <span className="h-5 w-5 rounded-ui-sm bg-up" />
+                  <span className="h-5 w-5 rounded-ui-sm bg-warn" />
+                  <span className="h-5 w-5 rounded-ui-sm bg-down" />
+                  <span className="h-5 w-5 rounded-ui-sm bg-maint" />
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : form.error ? (
+        <Notice tone="down" title="The Themes can't be read">
+          {form.error.rawMessage}
+        </Notice>
+      ) : (
+        <Skeleton height="lg" />
+      )}
       <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-5">
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold">Scheme</div>

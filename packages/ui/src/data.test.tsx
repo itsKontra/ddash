@@ -193,6 +193,19 @@ it("DataTable draws a header row and one row per item, its rowHeader column as t
   expect(screen.getByRole("rowheader", { name: "router" }).tagName).toBe("TH");
 });
 
+it("DataTable rows hover in the primary tint, the sticky first cell staying opaque over it", () => {
+  render(<DataTable rows={checks} rowKey={(c) => c.name} columns={columns} />);
+
+  // Spelled at run time, so this file generates no classes of its own.
+  const tint = ["primary", "tint"].join("-");
+  const row = screen.getByRole("rowheader", { name: "nas" }).closest("tr")!;
+  expect(row.className.split(" ")).toContain(`hover:bg-${tint}`);
+  const sticky = screen.getByRole("rowheader", { name: "nas" }).className.split(" ");
+  expect(sticky).toContain("bg-card");
+  expect(sticky.some((c) => c.startsWith("group-hover:") && c.endsWith(tint))).toBe(true);
+  expect(sticky.some((c) => c.startsWith("group-hover:bg-muted"))).toBe(false);
+});
+
 it("DataTable with no rows keeps its header row and shows empty", () => {
   render(<DataTable rows={[]} rowKey={(c: Check) => c.name} columns={columns} empty="No Checks yet" />);
 

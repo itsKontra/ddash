@@ -1,5 +1,5 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { cx, ErrorFrame, Notice, PageTitle, StatusDot, type Tone } from "@ddash/ui";
+import { cx, ErrorFrame, Notice, PageTitle, Skeleton, StatusDot, type Tone } from "@ddash/ui";
 import { useState } from "react";
 import { Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
@@ -80,16 +80,18 @@ function Unreachable() {
   );
 }
 
-// A count pill's fill on the nav surface, by its tone.
-const navBadgeFill: Record<Exclude<Tone, "idle">, string> = {
-  up: "bg-up",
-  down: "bg-down",
-  warn: "bg-warn",
-  maint: "bg-maint",
-  info: "bg-info",
+// A count pill on the nav surface: its tone's tint, in its tone's nav text
+// (the light <tone>-text is too dark for the nav).
+const navBadgeTone: Record<Tone, string> = {
+  up: "bg-up-tint text-nav-up",
+  down: "bg-down-tint text-nav-down",
+  warn: "bg-warn-tint text-nav-warn",
+  maint: "bg-maint-tint text-nav-maint",
+  info: "bg-info-tint text-nav-info",
+  idle: "bg-nav-hover text-nav-strong",
 };
 
-/** A Nav Entry's badge as a count pill, filled in its tone. */
+/** A Nav Entry's badge as a count pill on its tone's tint. */
 function NavBadge({ useBadge }: { useBadge: NonNullable<NavItem["useBadge"]> }) {
   const badge = useBadge();
   if (!badge) return null;
@@ -97,7 +99,7 @@ function NavBadge({ useBadge }: { useBadge: NonNullable<NavItem["useBadge"]> }) 
     <span
       className={cx(
         "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold tabular-nums",
-        badge.tone === "idle" ? "bg-nav-hover text-nav-strong" : cx(navBadgeFill[badge.tone], "text-primary-foreground"),
+        navBadgeTone[badge.tone],
       )}
     >
       {"text" in badge ? badge.text : badge.count}
@@ -113,7 +115,7 @@ function PluginPage({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }) {
   const plugin = plugins.loaded.get(name);
   if (!plugin) {
     const listed = plugins.installed?.some((p) => p.name === name);
-    return listed || !plugins.installed ? <p className="text-sm text-muted-foreground">Loading…</p> : <NotFound />;
+    return listed || !plugins.installed ? <Skeleton height="xl" /> : <NotFound />;
   }
   if (plugin.error) return <ErrorFrame title={`${plugin.title} failed to load`} error={plugin.error} />;
   return (

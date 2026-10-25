@@ -1,42 +1,42 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Badge, type Status, type Widget } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import type { Badge, Status, Widget } from "@ddash/plugin";
+import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { check } from "./testing";
+import { check, checks } from "./testing";
 
 afterEach(cleanup);
 
 const summary = () => plugin.widgets!.find((w) => w.id === "summary")!;
 
-const listed = (...checks: object[]) => Response.json({ checks });
+const listed = (...checks: object[]) => () => Response.json({ checks });
 
 // Renders the summary Widget's body at size and the Nav Entry's badge,
 // against checks answering with answer, and returns what they reported last.
-async function show(answer: Response | (() => Response), size: "S" | "M" = "S") {
+async function show(answer: Answer, size: "S" | "M" = "S") {
   const w = summary();
-  const fetch = vi.fn(async () => (typeof answer === "function" ? answer() : answer.clone()));
   const reported: { status?: Status; badge?: Badge | null } = {};
   function Probe({ widget }: { widget: Widget }) {
     reported.status = widget.useStatus();
     reported.badge = plugin.nav!.useBadge!();
     return null;
   }
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
-        <Probe widget={w} />
-        <section aria-label="widget">
-          <w.Body size={size} />
-        </section>
-      </PluginScope>
-    </PluginHost>,
+  renderScoped(
+    checks,
+    <>
+      <Probe widget={w} />
+      <section aria-label="widget">
+        <w.Body size={size} />
+      </section>
+    </>,
+    { answers: { ListChecks: answer } },
   );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
+  await settle();
   return reported;
 }
 
-// A MetricTile's value: its text after its label.
-const stat = (label: string) => within(screen.getByRole("region", { name: "widget" })).getByRole("group", { name: label }).textContent?.slice(label.length);
+// A MetricTile's value in the Widget.
+const metric = (label: string) => metricValue(label, screen.getByRole("region", { name: "widget" }));
 
 it("is the summary Widget, S or M, S by default", () => {
   const w = summary();
@@ -48,7 +48,7 @@ it("reports up with the count while every Check is up", async () => {
 
   expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 up" });
   expect(reported.badge).toBeNull();
-  expect([stat("up"), stat("down"), stat("Maintenance")]).toEqual(["2", "0", "0"]);
+  expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["2", "0", "0"]);
 });
 
 it("reports down, naming what's down, with an N down badge", async () => {
@@ -58,7 +58,7 @@ it("reports down, naming what's down, with an N down badge", async () => {
 
   expect(reported.status).toEqual({ tone: "down", summary: "2 down: nas, 198.18.1.5" });
   expect(reported.badge).toEqual({ text: "2 down", tone: "down" });
-  expect([stat("up"), stat("down")]).toEqual(["1", "2"]);
+  expect([metric("up"), metric("down")]).toEqual(["1", "2"]);
 });
 
 it("counts a Check in Maintenance as maint, never as down", async () => {
@@ -66,7 +66,7 @@ it("counts a Check in Maintenance as maint, never as down", async () => {
 
   expect(reported.status).toEqual({ tone: "maint", summary: "1 in Maintenance" });
   expect(reported.badge).toBeNull();
-  expect([stat("up"), stat("down"), stat("Maintenance")]).toEqual(["1", "0", "1"]);
+  expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["1", "0", "1"]);
 });
 
 it("reports warn, naming them, for a Flapping Check that is up and an expiring certificate", async () => {
@@ -111,13 +111,13 @@ it("lists what isn't up at M", async () => {
 });
 
 it("reports warn when checks is unavailable", async () => {
-  const reported = await show(() => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }));
+  const reported = await show(() => unavailable("checks is down"));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "checks unavailable: checks is down" });
 });
 
 it("reports nothing and draws skeletons until checks first answers", async () => {
-  const reported = await show(() => new Promise<Response>(() => {}) as unknown as Response);
+  const reported = await show(pending);
 
   expect(reported.status).toBeUndefined();
   expect(reported.badge).toBeNull();

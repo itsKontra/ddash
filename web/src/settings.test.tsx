@@ -1,15 +1,18 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
 
 let saves: Record<string, unknown>[];
 let prefersDark: boolean;
+let formAnswer: (() => Promise<Response>) | undefined;
 
 beforeEach(() => {
   saves = [];
   prefersDark = false;
+  formAnswer = undefined;
   window.localStorage.clear();
   document.documentElement.className = "";
   delete document.documentElement.dataset.theme;
@@ -30,6 +33,7 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
     case "GetCoreSettings":
       return Response.json({ settings: { theme: "THEME_DDASH" } });
     case "GetConfigForm":
+      if (formAnswer) return formAnswer();
       return Response.json({
         fields: [
           {
@@ -51,12 +55,10 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   }
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 async function boot() {
   render(
     <MemoryRouter initialEntries={["/settings"]}>
-      <App client={createQueryClient()} fetch={vi.fn(fetchFake)} importBundle={async () => ({})} />
+      <App client={createQueryClient()} fetch={tracked(vi.fn(fetchFake))} importBundle={async () => ({})} />
     </MemoryRouter>,
   );
   await settle();
@@ -90,6 +92,15 @@ it("is a System Page with an Appearance panel, marking the Theme in use", async 
   const theme = within(appearance).getByRole("radio", { name: /ddash/ });
   expect(theme.textContent).toMatch(/in use/);
   expect(within(appearance).getByText(/remembered in this browser only/i)).toBeTruthy();
+});
+
+it("shows a skeleton in place of the Themes while they load", async () => {
+  formAnswer = () => pending();
+  await boot();
+
+  const appearance = screen.getByRole("region", { name: "Appearance" });
+  expect(within(appearance).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(within(appearance).queryByRole("radiogroup", { name: "Theme" })).toBeNull();
 });
 
 it("links to the Audit Log and Plugins under More settings", async () => {

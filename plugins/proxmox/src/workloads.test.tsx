@@ -1,7 +1,8 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { pending, show } from "./testing";
+import { pending, unavailable } from "@ddash/plugin/testing";
+import { show } from "./testing";
 
 afterEach(cleanup);
 
@@ -11,6 +12,8 @@ it("is the proxmox Nav Entry at order 40 (its icon, server, is in plugin.yaml)",
 
 it("lists every LXC and VM with its status, resources, tags and uptime", async () => {
   const calls = await show("/proxmox");
+
+  expect(screen.getByRole("heading", { level: 1, name: "Proxmox" }).previousElementSibling?.textContent).toBe("Infrastructure");
 
   expect(calls.find((c) => c.method === "ListWorkloads")?.url).toBe("/api/c/proxmox-api/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads");
   const nginx = screen.getByRole("row", { name: /nginx/ });
@@ -66,7 +69,7 @@ it("shows IPs read from the running guest, and marks those from a stopped one's 
 
 it("shows why proxmox-api can't list the Workloads", async () => {
   await show("/proxmox", {
-    ListWorkloads: () => Response.json({ code: "unavailable", message: "Proxmox refused the API token" }, { status: 503 }),
+    ListWorkloads: () => unavailable("Proxmox refused the API token"),
   });
 
   expect(screen.getByRole("alert").textContent).toContain("Proxmox refused the API token");

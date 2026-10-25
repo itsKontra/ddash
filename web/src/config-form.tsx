@@ -16,7 +16,6 @@ import {
   Dialog,
   Field,
   FormActions,
-  Icon,
   Notice,
   Pill,
   Select,
@@ -415,9 +414,7 @@ function List({ field: f, items, onChange, errors }: { field: FormField; items: 
               value={item}
               onChange={(v) => onChange(items.map((x, j) => (j === i ? (v ?? "") : x)))}
             />
-            <Button variant="ghost" aria-label={`Remove item ${i + 1}`} onClick={() => onChange(items.filter((_, j) => j !== i))}>
-              <Icon name="x" />
-            </Button>
+            <Button variant="ghost" icon="x" aria-label={`Remove item ${i + 1}`} onClick={() => onChange(items.filter((_, j) => j !== i))} />
           </div>
           <FieldError message={errors[`${f.name}[${i}]`]} />
         </div>
@@ -470,9 +467,7 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
                   );
                 })}
                 <td className="pb-2">
-                  <Button variant="ghost" aria-label={`Remove row ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))}>
-                    <Icon name="x" />
-                  </Button>
+                  <Button variant="ghost" icon="x" aria-label={`Remove row ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))} />
                 </td>
               </tr>
             ))}

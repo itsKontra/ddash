@@ -6,7 +6,6 @@ import {
   cx,
   DataTable,
   EmptyState,
-  ErrorFrame,
   Icon,
   Menu,
   Notice,
@@ -14,6 +13,7 @@ import {
   Panel,
   Pill,
   SectionHeading,
+  Skeleton,
   StatusDot,
   type IconName,
   type Tone,
@@ -51,7 +51,12 @@ export function Catalogue() {
           </Notice>
         </div>
       )}
-      {error && !data && <ErrorFrame title="The Catalogue can't be read" error={error} />}
+      {error && !data && (
+        <Notice tone="down" title="The Catalogue can't be read">
+          {error.rawMessage}
+        </Notice>
+      )}
+      {!error && !data && <Skeleton height="xl" />}
       {data && (
         <>
           <SectionHeading kicker={`${installed.length} of ${data.plugins.length}`} title="Installed" />

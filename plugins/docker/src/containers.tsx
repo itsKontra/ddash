@@ -18,7 +18,7 @@ export function Containers() {
   const { data, error } = useQuery(DockerApiService.method.listContainers, {});
   return (
     <div>
-      <PageTitle title="Docker" subtitle="Containers on every Docker host." />
+      <PageTitle kicker="Infrastructure" title="Docker" subtitle="Containers on every Docker host." />
       {error && !data && <Notice tone="down">{error.message}</Notice>}
       {!data && !error && <Skeleton lines={3} />}
       <div className="flex flex-col gap-6">
@@ -59,9 +59,7 @@ function Host({ host }: { host: HostContainers }) {
       }
     >
       {host.error ? (
-        <div className="p-5">
-          <Notice tone="down">{host.error}</Notice>
-        </div>
+        <Notice tone="down">{host.error}</Notice>
       ) : (
         <DataTable rows={host.containers} rowKey={(c) => c.id} columns={columns} empty="No containers on this host" />
       )}

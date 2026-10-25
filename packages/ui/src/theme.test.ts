@@ -97,6 +97,7 @@ describe("the ddash Theme", () => {
       ["--color-nav-hover", "color-mix(in srgb, var(--nav-strong) 6%, var(--nav))"],
       ["--color-nav-border", "color-mix(in srgb, var(--nav-strong) 8%, var(--nav))"],
       ["--color-nav-active", "color-mix(in srgb, var(--nav-accent) 15%, var(--nav))"],
+      ["--color-nav-down", "color-mix(in srgb, var(--down) 60%, var(--nav-strong))"],
       ["--radius-ui-sm", "calc(var(--radius) * 2 / 3)"],
       ["--radius-ui-lg", "calc(var(--radius) * 4 / 3)"],
       ["--font-mono", "ui-monospace,"],
@@ -130,6 +131,12 @@ describe("the AA bar", () => {
     expect(failing("dark", "nav-accent", "#1d3a66")).toContainEqual(expect.stringMatching(/^dark: nav-accent on hero-from is 1\.\d+:1, below 3:1$/));
     // Text on its own tint.
     expect(failing("light", "info-text", "#1393b4")).toContainEqual(expect.stringMatching(/^light: info-text on info-tint is \d\.\d+:1, below 4\.5:1$/));
+    // A Nav Entry's badge: its tone's nav text on its tint, over the nav and its states.
+    expect(failing("light", "nav-strong", "#334155")).toContainEqual(
+      expect.stringMatching(/^light: nav-down on down-tint over nav-active is \d\.\d+:1, below 4\.5:1$/),
+    );
+    // Primary as text on its tint: a selected Segmented, Tab or chip.
+    expect(failing("light", "primary", "#5b8ff0")).toContainEqual(expect.stringMatching(/^light: primary on primary-tint is \d\.\d+:1, below 4\.5:1$/));
   });
 });
 
