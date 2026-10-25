@@ -60,19 +60,6 @@ export function PageTitle({
   );
 }
 
-/** The top of every Page: its title, an optional subtitle and actions. */
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
-  return (
-    <div className="mb-6 flex items-end gap-4">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
-      </div>
-      {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
-    </div>
-  );
-}
-
 /**
  * A surface on a Page. With a `title` or `kicker` it is a section named by
  * them, its header carrying the description and actions; without either it
@@ -252,16 +239,6 @@ export function HeroCard({
   );
 }
 
-/** A number with a label under it, e.g. "12" over "running". */
-export function Stat({ label, value, tone }: { label: string; value: ReactNode; tone?: Tone }) {
-  return (
-    <div>
-      <div className={cx("text-2xl leading-tight font-semibold tabular-nums", tone && toneText[tone])}>{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
 /**
  * The frame every Widget renders in, owned by the host: the title (a link
  * to the Plugin's Page, when it has one), the status dot, the summary when
@@ -271,18 +248,16 @@ export function WidgetCard({
   title,
   status,
   actions,
-  className,
   children,
 }: {
   title: ReactNode;
   /** The Widget's last report; no dot until it first reports. */
   status?: { tone: Tone; summary: string };
   actions?: ReactNode;
-  className?: string;
   children?: ReactNode;
 }) {
   return (
-    <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-elevation", className)}>
+    <section className="flex h-full flex-col rounded-ui border border-border bg-card shadow-elevation">
       <header className="px-5 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <h2 className="truncate text-sm font-extrabold tracking-tight">{title}</h2>
@@ -296,32 +271,3 @@ export function WidgetCard({
   );
 }
 
-/** One line of the Hero: something that isn't up. */
-export interface HeroProblem {
-  title: string;
-  tone: Tone;
-  summary: string;
-}
-
-/** The answer to "is everything up?" at the top of the Overview. */
-export function Hero({ tone, headline, problems }: { tone: Tone; headline: ReactNode; problems: readonly HeroProblem[] }) {
-  return (
-    <section aria-label="Status" className="rounded-ui border border-border bg-card p-5">
-      <div className="flex items-center gap-3">
-        <StatusDot tone={tone} pulse={tone !== "up" && tone !== "idle"} />
-        <div className="text-xl font-semibold">{headline}</div>
-      </div>
-      {problems.length > 0 && (
-        <ul className="mt-3 flex flex-col gap-1.5">
-          {problems.map((p) => (
-            <li key={p.title} className="flex items-center gap-2 text-sm">
-              <StatusDot tone={p.tone} label={`${p.title} is ${p.tone}`} />
-              <span className="font-medium">{p.title}</span>
-              <span className="text-muted-foreground">{p.summary}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
-  );
-}

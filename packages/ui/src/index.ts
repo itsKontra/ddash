@@ -4,7 +4,7 @@
 //
 // This is the package's only entry: Plugins and the shell import from it,
 // never from a family module.
-export { cx, toneBg, toneText, type Tone } from "./tone";
+export { cx, type Tone } from "./tone";
 export * from "./atoms";
 export * from "./layout";
 export * from "./forms";

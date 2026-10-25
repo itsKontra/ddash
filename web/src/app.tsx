@@ -1,5 +1,5 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { cx, ErrorFrame, Notice, PageHeader, StatusDot, toneBg } from "@ddash/ui";
+import { cx, ErrorFrame, Notice, PageTitle, StatusDot, type Tone } from "@ddash/ui";
 import { useState } from "react";
 import { Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
@@ -80,6 +80,15 @@ function Unreachable() {
   );
 }
 
+// A count pill's fill on the nav surface, by its tone.
+const navBadgeFill: Record<Exclude<Tone, "idle">, string> = {
+  up: "bg-up",
+  down: "bg-down",
+  warn: "bg-warn",
+  maint: "bg-maint",
+  info: "bg-info",
+};
+
 /** A Nav Entry's badge as a count pill, filled in its tone. */
 function NavBadge({ useBadge }: { useBadge: NonNullable<NavItem["useBadge"]> }) {
   const badge = useBadge();
@@ -88,7 +97,7 @@ function NavBadge({ useBadge }: { useBadge: NonNullable<NavItem["useBadge"]> }) 
     <span
       className={cx(
         "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold tabular-nums",
-        badge.tone === "idle" ? "bg-nav-hover text-nav-strong" : cx(toneBg[badge.tone], "text-primary-foreground"),
+        badge.tone === "idle" ? "bg-nav-hover text-nav-strong" : cx(navBadgeFill[badge.tone], "text-primary-foreground"),
       )}
     >
       {"text" in badge ? badge.text : badge.count}
@@ -121,6 +130,6 @@ function Pages({ pages }: { pages: NonNullable<PluginDefinition["pages"]> }) {
 }
 
 function NotFound() {
-  return <PageHeader title="Not found" subtitle="No installed Plugin has a Page here." />;
+  return <PageTitle title="Not found" subtitle="No installed Plugin has a Page here." />;
 }
 

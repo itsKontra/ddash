@@ -1,17 +1,9 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it } from "vitest";
-import { HeroCard, MetricTile, PageHeader, PageTitle, Panel, Ring, SectionHeading, StatusList, WidgetCard } from "./index";
+import { HeroCard, MetricTile, PageTitle, Panel, Ring, SectionHeading, StatusList, WidgetCard } from "./index";
 
 afterEach(cleanup);
-
-it("PageHeader shows the title as the Page's heading, with subtitle and actions", () => {
-  render(<PageHeader title="Docker" subtitle="Containers per host" actions={<button>Refresh</button>} />);
-
-  expect(screen.getByRole("heading", { level: 1, name: "Docker" })).toBeTruthy();
-  expect(screen.getByText("Containers per host")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "Refresh" })).toBeTruthy();
-});
 
 it("PageTitle names the Page with its title alone, the kicker and subtitle around it", () => {
   render(<PageTitle kicker="System" title="Settings" subtitle="How ddash looks and runs" actions={<button>Save</button>} />);
