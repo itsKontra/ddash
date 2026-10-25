@@ -66,7 +66,8 @@ const quietTurns = 20;
  * machine only makes it slower.
  */
 export async function settle() {
-  for (let quiet = 0, turns = 0; quiet < quietTurns && turns < 5000; turns++) {
+  for (let quiet = 0, turns = 0; quiet < quietTurns; turns++) {
+    if (turns === 2000) throw new Error("settle: a call is still unanswered; answer one that never comes with pending()");
     await act(() => new Promise((r) => setTimeout(r, 0)));
     quiet = inFlight.all > inFlight.stuck ? 0 : quiet + 1;
   }

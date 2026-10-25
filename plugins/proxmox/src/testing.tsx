@@ -1,15 +1,8 @@
-import { act, render, waitFor } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
-import { expect, vi } from "vitest";
+import { showPlugin, type Answers, type Call } from "@ddash/plugin/testing";
 import plugin from "./index";
 
-/** A call the Page made: the method's name and its decoded JSON body. */
-export interface Call {
-  method: string;
-  url: string;
-  body: unknown;
-}
+/** The proxmox Plugin's scope in tests. */
+export const proxmox = { name: "proxmox", requires: ["proxmox", "proxmox-api"] };
 
 const GiB = 1024 ** 3;
 
@@ -97,54 +90,19 @@ export const permissions = {
   ],
 };
 
-function PluginPages() {
-  return useRoutes(plugin.pages!);
-}
-
-/** Lets queries and Actions settle. */
-export const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
-
-/** An answer that never comes, to see what shows while a call is in flight. */
-export const pending = () => new Promise<Response>(() => {}) as unknown as Response;
-
 /**
  * Shows the proxmox Plugin at path (e.g. "/proxmox") with its Components
  * answering by method name (Actions {} unless given), and returns the calls.
- * It waits for every answer unless one is pending.
  */
-export async function show(path: string, answers: Record<string, () => Response> = {}) {
-  const calls: Call[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = new URL(String(input), "http://ddash.test").pathname;
-    const method = url.split("/").pop()!;
-    const raw = init?.body;
-    calls.push({ method, url, body: raw ? JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw as Uint8Array)) : undefined });
-    const all: Record<string, () => Response> = {
+export const show = (path: string, answers: Answers = {}) =>
+  showPlugin(plugin, proxmox, path, {
+    answers: {
       ListWorkloads: () => Response.json(listed),
       ListPermissions: () => Response.json(permissions),
       ListPowerTasks: () => Response.json({}),
       ...answers,
-    };
-    return all[method]?.() ?? Response.json({});
+    },
   });
-  const client = createQueryClient();
-  render(
-    <PluginHost client={client}>
-      <PluginScope plugin={{ name: "proxmox", requires: ["proxmox", "proxmox-api"] }} fetch={fetch}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/proxmox/*" element={<PluginPages />} />
-          </Routes>
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
-  );
-  // Wait for the first answers however long a loaded machine takes, then
-  // for what they render.
-  if (!Object.values(answers).includes(pending)) await waitFor(() => expect(client.isFetching()).toBe(0));
-  await settle();
-  return calls;
-}
 
 /** The bodies of the calls to method. */
 export const bodies = (calls: Call[], method: string) => calls.filter((c) => c.method === method).map((c) => c.body);

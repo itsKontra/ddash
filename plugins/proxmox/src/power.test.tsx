@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { bodies, pending, settle, show } from "./testing";
+import { pending, settle, unavailable } from "@ddash/plugin/testing";
+import { bodies, show } from "./testing";
 
 afterEach(cleanup);
 
@@ -134,7 +135,7 @@ it("draws a skeleton for a Workload's detail until proxmox-api first answers", a
 
 it("shows why proxmox-api can't list the Workloads on a Workload's detail", async () => {
   await show("/proxmox/workloads/102", {
-    ListWorkloads: () => Response.json({ code: "unavailable", message: "Proxmox refused the API token" }, { status: 503 }),
+    ListWorkloads: () => unavailable("Proxmox refused the API token"),
   });
 
   expect(screen.getByRole("alert").textContent).toContain("Proxmox refused the API token");
