@@ -1,5 +1,5 @@
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { PluginScope, useAction, useQuery, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
+import { PluginScope, useAction, useQuery, type Action, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
 import {
   Button,
   cx,
@@ -9,6 +9,7 @@ import {
   HeroCard,
   Icon,
   MetricTile,
+  Notice,
   PageTitle,
   Pill,
   Ring,
@@ -36,7 +37,7 @@ export interface OverviewLayout {
   /** Saves layout; resolves to whether the core took it. */
   save: (layout: Layout) => Promise<boolean>;
   /** Why the last save failed. */
-  error?: Error;
+  error?: Action<typeof CoreService.method.saveLayout>["error"];
 }
 
 /**
@@ -174,7 +175,11 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
           )
         }
       />
-      {draft && overview.error && <ErrorFrame title="Saving the layout failed" error={overview.error} />}
+      {draft && overview.error && (
+        <Notice tone="down" title="Saving the layout failed">
+          {overview.error.rawMessage}
+        </Notice>
+      )}
       <OverviewHero state={h} placed={cards.length} up={tally(tones, "up")} reporting={tones.length} />
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {tiles.map((t) => (

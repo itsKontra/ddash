@@ -627,6 +627,22 @@ it("shows the unreachable banner from a 5xx until the next success, with the her
   expect(overall()).toBe("Overall: up");
 });
 
+it("says in a down Notice why Done couldn't save the layout, staying in edit mode", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  await boot();
+  intercept = (method) =>
+    method === "SaveLayout" ? Response.json({ code: "invalid_argument", message: "unknown widget nope.x" }, { status: 400 }) : undefined;
+
+  edit();
+  fireEvent.click(within(card("Containers")).getByRole("radio", { name: "M" }));
+  await done();
+
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toMatch(/Saving the layout failed.*unknown widget nope\.x/);
+  expect(alert.querySelector("pre")).toBeNull();
+  expect(screen.getByRole("toolbar", { name: "Edit the Overview" })).toBeTruthy();
+});
+
 it("shows the unreachable banner when the network fails", async () => {
   plugins = [[installed("docker", "Docker"), docker()]];
   intercept = (method) => (method === "SaveLayout" ? Promise.reject(new TypeError("Failed to fetch")) : undefined);
