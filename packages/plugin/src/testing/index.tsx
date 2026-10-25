@@ -87,8 +87,8 @@ export interface Scope {
 export interface ScopedOptions {
   /** How the Components answer, by method name. */
   answers?: Answers;
-  /** What a method without an answer gets; {} by default. */
-  unanswered?: (method: string) => Response;
+  /** What a method without an answer gets, e.g. an Action; {} by default. */
+  unanswered?: (method: string, body: unknown) => Response;
   /** The installed Plugins, for usePluginLink; none by default. */
   installed?: string[];
   /** Where the router starts; "/" by default. */
@@ -107,7 +107,7 @@ export function renderScoped(scope: Scope, children: ReactNode, { answers = {}, 
     const method = url.split("/").pop()!;
     const body = decode(init?.body);
     calls.push({ method, url, body });
-    return (answers[method] ?? (() => unanswered(method)))(body);
+    return answers[method] ? answers[method](body) : unanswered(method, body);
   });
   // Icon draws through the page's own fetch.
   vi.stubGlobal("fetch", async () => Response.json({}));

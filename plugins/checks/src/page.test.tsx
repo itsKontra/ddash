@@ -1,9 +1,9 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, useLocation } from "react-router";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { useLocation } from "react-router";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import plugin from "./index";
-import { check } from "./testing";
+import { check, checks } from "./testing";
 
 afterEach(cleanup);
 
@@ -45,27 +45,30 @@ const listed = {
 // What checks answers ListMaintenance with; none unless a test sets it.
 let maintenance: unknown[];
 
-// The fake host: ListChecks answers listed, an Action answers {} or the
-// queued refusal. Every Action call is recorded with its JSON body.
+// The fake host: ListChecks answers listed (or listAnswer, when a test
+// sets it), an Action answers {} or the queued refusal. Every Action call is
+// recorded with its JSON body.
 let actions: { method: string; body: unknown }[];
 let refusal: { code: string; message: string } | undefined;
+let listAnswer: Answer | undefined;
 
 beforeEach(() => {
   actions = [];
   refusal = undefined;
+  listAnswer = undefined;
   maintenance = [];
 });
 
-const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-  const method = String(input).split("/").pop()!;
-  if (method === "ListChecks") return Response.json(listed);
-  if (method === "ListMaintenance") return Response.json({ maintenance });
-  actions.push({ method, body: JSON.parse(new TextDecoder().decode(init?.body as Uint8Array)) });
+const answers = {
+  ListChecks: (body: unknown) => (listAnswer ? listAnswer(body) : Response.json(listed)),
+  ListMaintenance: () => Response.json({ maintenance }),
+};
+
+function answerAction(method: string, body: unknown) {
+  actions.push({ method, body });
   if (refusal) return Response.json(refusal, { status: 400 });
   return Response.json(method === "DeleteCheck" ? {} : { check: listed.checks[0] });
-});
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
+}
 
 // The Page's URL search, as the explorer last wrote it.
 let search = "";
@@ -76,27 +79,25 @@ async function open(at = "/") {
     search = useLocation().search;
     return null;
   }
-  render(
-    <MemoryRouter initialEntries={[at]}>
-      <PluginHost client={createQueryClient()}>
-        <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
-          <Page />
-          <Where />
-        </PluginScope>
-      </PluginHost>
-    </MemoryRouter>,
+  renderScoped(
+    checks,
+    <>
+      <Page />
+      <Where />
+    </>,
+    { path: at, answers, unanswered: answerAction },
   );
   await settle();
 }
 
 /** Picks item from the ⋯ Menu of the Check named name. */
-function pick(name: string, item: string) {
+function chooseAction(name: string, item: string) {
   fireEvent.click(within(row(name)).getByRole("button", { name: `Actions for ${name}` }));
   fireEvent.click(screen.getByRole("menuitem", { name: item }));
 }
 
 /** The items of the ⋯ Menu of the Check named name; the Menu is closed again after. */
-function itemsOf(name: string) {
+function actionItems(name: string) {
   const opener = within(row(name)).getByRole("button", { name: `Actions for ${name}` });
   fireEvent.click(opener);
   const items = screen.getAllByRole("menuitem").map((i) => i.textContent);
@@ -133,14 +134,14 @@ it("lists each Check with its state, latency or reason, and markers", async () =
 });
 
 /** The Checks the table shows, by name, in order. */
-const shown = () => within(screen.getByRole("table")).queryAllByRole("rowheader").map((h) => h.querySelector("button")!.textContent);
+const checkNames = () => within(screen.getByRole("table")).queryAllByRole("rowheader").map((h) => h.querySelector("button")!.textContent);
 
 it("searches the Checks by name or target, kept in the URL", async () => {
   await open();
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search Checks" }), { target: { value: "jellyfin" } });
 
-  expect(shown()).toEqual(["adguard", "Jellyfin"]);
+  expect(checkNames()).toEqual(["adguard", "Jellyfin"]);
   expect(search).toBe("?q=jellyfin");
 });
 
@@ -149,7 +150,7 @@ it("filters the Checks by type, kept in the URL", async () => {
 
   fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "HTTP" } });
 
-  expect(shown()).toEqual(["Jellyfin", "Sonarr", "Radarr"]);
+  expect(checkNames()).toEqual(["Jellyfin", "Sonarr", "Radarr"]);
   expect(search).toBe("?type=HTTP");
 });
 
@@ -160,7 +161,7 @@ it("splits the Checks into tabs with counts, the tab kept in the URL", async () 
   expect(tabs.map((t) => t.textContent)).toEqual(["All8", "Down1", "Attention3", "Maintenance2", "Muted1"]);
   fireEvent.click(screen.getByRole("tab", { name: /Attention/ }));
 
-  expect(shown()).toEqual(["adguard", "Jellyfin", "camera"]);
+  expect(checkNames()).toEqual(["adguard", "Jellyfin", "camera"]);
   expect(search).toBe("?tab=attention");
 });
 
@@ -168,13 +169,13 @@ it("opens on the search, type and tab a link carries", async () => {
   await open("/?tab=maint&type=HTTP&q=rad");
 
   expect(screen.getByRole("tab", { name: /Maintenance/ }).getAttribute("aria-selected")).toBe("true");
-  expect(shown()).toEqual(["Radarr"]);
+  expect(checkNames()).toEqual(["Radarr"]);
 });
 
 it("says so when no Check matches", async () => {
   await open("/?q=nothing-like-it");
 
-  expect(shown()).toEqual([]);
+  expect(checkNames()).toEqual([]);
   expect(screen.getByText("No Check matches.")).toBeTruthy();
 });
 
@@ -194,7 +195,7 @@ it("lists App Checks, marks an expiring certificate, and leaves their editing to
   expect(within(jellyfin).getByText("HTTP")).toBeTruthy();
   expect(within(jellyfin).getByText("https://jellyfin.home.example")).toBeTruthy();
   expect(within(jellyfin).getByText("certificate expiring")).toBeTruthy();
-  expect(itemsOf("Jellyfin")).toEqual(["Maintenance", "Mute", "Disable"]);
+  expect(actionItems("Jellyfin")).toEqual(["Maintenance", "Mute", "Disable"]);
 });
 
 it("adds a Check from the form", async () => {
@@ -246,7 +247,7 @@ it("keeps the form open with checks' refusal", async () => {
 it("edits a Check from its row, filled in", async () => {
   await open();
 
-  pick("adguard", "Edit");
+  chooseAction("adguard", "Edit");
   const form = screen.getByRole("dialog", { name: "Edit adguard" });
   expect((within(form).getByLabelText("Name to resolve") as HTMLInputElement).value).toBe("jellyfin.home.example");
   fireEvent.change(within(form).getByLabelText("DNS server"), { target: { value: "198.18.1.3" } });
@@ -264,7 +265,7 @@ it("edits a Check from its row, filled in", async () => {
 it("keeps a Check's Actions in its row's ⋯ Menu, never inline", async () => {
   await open();
 
-  expect(itemsOf("nas")).toEqual(["Edit", "Maintenance", "Mute", "Disable", "Delete"]);
+  expect(actionItems("nas")).toEqual(["Edit", "Maintenance", "Mute", "Disable", "Delete"]);
   const buttons = within(row("nas")).getAllByRole("button");
   expect(buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["nas", "Actions for nas"]);
 });
@@ -273,7 +274,7 @@ it("mutes, unmutes, disables and enables from the row's Menu", async () => {
   await open();
 
   for (const [check, item] of [["nas", "Mute"], ["router", "Unmute"], ["nas", "Disable"], ["nvr", "Enable"]]) {
-    pick(check, item);
+    chooseAction(check, item);
     await settle();
   }
 
@@ -288,7 +289,7 @@ it("mutes, unmutes, disables and enables from the row's Menu", async () => {
 it("deletes a Check only once confirmed", async () => {
   await open();
 
-  pick("router", "Delete");
+  chooseAction("router", "Delete");
   await settle();
   const ask = screen.getByRole("alertdialog");
   expect(ask.textContent).toContain("Delete the Check router? Its history goes with it.");
@@ -300,7 +301,7 @@ it("deletes a Check only once confirmed", async () => {
 });
 
 it("says so when there are no Checks, with a way to add one", async () => {
-  fetch.mockImplementationOnce(async () => Response.json({}));
+  listAnswer = () => Response.json({});
   await open();
 
   expect(screen.getByText(/No Checks yet/)).toBeTruthy();
@@ -308,30 +309,28 @@ it("says so when there are no Checks, with a way to add one", async () => {
   expect(screen.getAllByRole("button", { name: "Add Check" })).toHaveLength(2);
 });
 
-const tile = (label: string) => screen.getByRole("group", { name: label });
-
 it("heads the Page with the up, down and Maintenance counts and the median latency", async () => {
   await open();
 
   expect(screen.getByRole("heading", { level: 1, name: "Checks" })).toBeTruthy();
-  expect(tile("Up").textContent).toBe("Up3of 7 enabled");
-  expect(tile("Down").textContent).toContain("1");
-  expect(tile("Maintenance").textContent).toContain("2");
+  expect(metricValue("Up")).toBe("3of 7 enabled");
+  expect(metricValue("Down")).toBe("1after 3 failures in a row");
+  expect(metricValue("Maintenance")).toBe("2left out of uptime");
   // nas at 12.4 ms and camera at 30 ms; Jellyfin hasn't beaten yet.
-  expect(tile("Median latency").textContent).toContain("21 ms");
+  expect(metricValue("Median latency")).toBe("21 msacross up Checks");
 });
 
 it("draws skeletons, not text, until checks first answers", async () => {
-  fetch.mockImplementationOnce(() => new Promise<Response>(() => {}));
+  listAnswer = pending;
   await open();
 
-  expect(within(tile("Up")).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(metricValue("Up")).toBeUndefined();
   expect(within(screen.getByRole("table")).getByRole("status", { name: "Loading" })).toBeTruthy();
   expect(screen.queryByText(/Loading/)).toBeNull();
 });
 
 it("says what failed when checks can't list the Checks", async () => {
-  fetch.mockImplementationOnce(async () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }));
+  listAnswer = () => unavailable("checks is down");
   await open();
 
   expect(screen.getByRole("alert").textContent).toContain("checks is down");
@@ -410,7 +409,7 @@ it("starts Maintenance on a Workload its App Checks run on, until ended", async 
 it("starts Maintenance for one Check from its row", async () => {
   await open();
 
-  pick("nas", "Maintenance");
+  chooseAction("nas", "Maintenance");
   const sheet = screen.getByRole("dialog", { name: "Maintenance for nas" });
   expect(within(sheet).queryByRole("radio", { name: "Everything" })).toBeNull();
   fireEvent.click(within(sheet).getByRole("radio", { name: "30 min" }));
