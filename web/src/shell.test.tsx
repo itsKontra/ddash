@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, usePlugin, usePluginLink, type PluginDefinition } from "@ddash/plugin";
 import { MemoryRouter, useParams } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -247,4 +247,81 @@ it("answers a path no installed Plugin owns with not found", async () => {
   await boot("/nope/x", [[installed("docker", "Docker"), definePlugin({ nav: { order: 50 } })]]);
 
   expect(screen.getByRole("heading", { name: "Not found" })).toBeTruthy();
+});
+
+const breadcrumb = () => screen.getByRole("navigation", { name: "Breadcrumb" }).textContent;
+
+it("names the current Page in the breadcrumb and marks its Nav Entry, following navigation", async () => {
+  await boot("/", [[installed("docker", "Docker"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("all hosts") }] })]]);
+
+  expect(breadcrumb()).toBe("ddash/Overview");
+  expect(screen.getByRole("link", { name: "Overview" }).getAttribute("aria-current")).toBe("page");
+
+  fireEvent.click(screen.getByRole("link", { name: "Docker" }));
+  await settle();
+
+  expect(screen.getByText("all hosts")).toBeTruthy();
+  expect(breadcrumb()).toBe("ddash/Docker");
+  expect(screen.getByRole("link", { name: "Docker" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name: "Overview" }).getAttribute("aria-current")).toBeNull();
+});
+
+it("switches light and dark from the top bar, remembered in this browser and shown in Settings", async () => {
+  window.localStorage.clear();
+  document.documentElement.className = "";
+  await boot("/settings", []);
+  const toggle = screen.getByRole("button", { name: "Dark mode" });
+  const settingsSwitch = () => screen.getByRole("switch", { name: "Dark" }).getAttribute("aria-checked");
+  expect([toggle.getAttribute("aria-pressed"), settingsSwitch()]).toEqual(["false", "false"]);
+
+  fireEvent.click(toggle);
+
+  expect(document.documentElement.classList.contains("dark")).toBe(true);
+  expect(window.localStorage.getItem("ddash.scheme")).toBe("dark");
+  expect([toggle.getAttribute("aria-pressed"), settingsSwitch()]).toEqual(["true", "true"]);
+
+  fireEvent.click(screen.getByRole("switch", { name: "Dark" }));
+
+  expect(document.documentElement.classList.contains("dark")).toBe(false);
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+});
+
+it("opens the navigation in a focus-trapped drawer from the phone top bar, and closes it on Escape or a link", async () => {
+  await boot("/", [[installed("docker", "Docker"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("all hosts") }] })]]);
+  const hamburger = screen.getByRole("button", { name: "Open navigation" });
+  expect(screen.queryByRole("dialog", { name: "Navigation" })).toBeNull();
+
+  fireEvent.click(hamburger);
+  const drawer = screen.getByRole("dialog", { name: "Navigation" });
+  expect(drawer.getAttribute("aria-modal")).toBe("true");
+  expect(drawer.contains(document.activeElement)).toBe(true);
+
+  // Tab past the last control wraps to the first, and Shift+Tab back.
+  const controls = [...drawer.querySelectorAll<HTMLElement>("a[href], button")];
+  controls.at(-1)!.focus();
+  fireEvent.keyDown(document.activeElement!, { key: "Tab" });
+  expect(document.activeElement).toBe(controls[0]);
+  fireEvent.keyDown(document.activeElement!, { key: "Tab", shiftKey: true });
+  expect(document.activeElement).toBe(controls.at(-1));
+
+  fireEvent.keyDown(document.activeElement!, { key: "Escape" });
+  expect(screen.queryByRole("dialog", { name: "Navigation" })).toBeNull();
+  expect(document.activeElement).toBe(hamburger);
+
+  fireEvent.click(hamburger);
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Navigation" })).getByRole("link", { name: "Docker" }));
+  await settle();
+  expect(screen.queryByRole("dialog", { name: "Navigation" })).toBeNull();
+  expect(screen.getByText("all hosts")).toBeTruthy();
+});
+
+it("groups the sidebar under MAIN, PLUGINS and SYSTEM", async () => {
+  await boot("/", [[installed("docker", "Docker"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("d") }] })]]);
+
+  const nav = screen.getByRole("navigation", { name: "Main" });
+  const group = (name: string) =>
+    within(within(nav).getByRole("group", { name }))
+      .getAllByRole("link")
+      .map((l) => l.textContent);
+  expect([group("MAIN"), group("PLUGINS"), group("SYSTEM")]).toEqual([["Overview"], ["Docker"], ["Plugins", "Settings"]]);
 });
