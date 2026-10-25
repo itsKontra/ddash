@@ -96,18 +96,11 @@ const iconsPath = "/api/icons"
 // running Release's icons are immutable.
 func (h *Host) icons(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	b, err := json.Marshal(icons.Nodes(strings.Split(q.Get("names"), ",")))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	cache := cacheNone
 	if rel := q.Get("release"); rel == h.runtime.Release() {
 		cache = versioned(rel)
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", cache)
-	w.Write(b)
+	writeJSON(w, icons.Nodes(strings.Split(q.Get("names"), ",")), cache)
 }
 
 // iconSearchPath searches the lucide icons: GET iconSearchPath?q=.
@@ -116,13 +109,18 @@ const iconSearchPath = iconsPath + "/search"
 // iconSearch serves GET /api/icons/search: the names of the icons q
 // matches by name or tag, best first (icons.Search).
 func (h *Host) iconSearch(w http.ResponseWriter, r *http.Request) {
-	b, err := json.Marshal(icons.Search(r.URL.Query().Get("q")))
+	writeJSON(w, icons.Search(r.URL.Query().Get("q")), cacheNone)
+}
+
+// writeJSON writes v as a JSON response with the given Cache-Control.
+func writeJSON(w http.ResponseWriter, v any, cacheControl string) {
+	b, err := json.Marshal(v)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", cacheNone)
+	w.Header().Set("Cache-Control", cacheControl)
 	w.Write(b)
 }
 
