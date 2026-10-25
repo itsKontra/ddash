@@ -59,9 +59,16 @@ it("reports up with the counts, and shows Devices, online and new", async () => 
 
   expect(reported.status).toEqual({ tone: "up", summary: "5 Devices, 3 online, 2 new" });
   const body = screen.getByRole("region", { name: "widget" });
-  expect(within(body).getByText("Devices").parentElement?.textContent).toMatch(/5/);
-  expect(within(body).getByText("online").parentElement?.textContent).toMatch(/3/);
-  expect(within(body).getByText("new").parentElement?.textContent).toMatch(/2/);
+  expect(within(body).getByRole("group", { name: "Devices" }).textContent).toMatch(/5/);
+  expect(within(body).getByRole("group", { name: "online" }).textContent).toMatch(/3/);
+  expect(within(body).getByRole("group", { name: "new" }).textContent).toMatch(/2/);
+});
+
+it("shows each count loading until network first answers", async () => {
+  await show(() => new Promise<Response>(() => {}) as unknown as Response);
+
+  const body = screen.getByRole("region", { name: "widget" });
+  for (const name of ["Devices", "online", "new"]) expect(within(within(body).getByRole("group", { name })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 
 it("leaves New out of the summary when there are none", async () => {

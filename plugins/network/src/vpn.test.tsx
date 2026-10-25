@@ -11,6 +11,8 @@ const ovpn = (up: boolean) => ({ name: "OVPN_VPN", tier: 2, up, status: up ? "on
 // What network answers GetVpnTunnel with (Connect JSON).
 const tunnel = (tier: string, wgUp: boolean, ovpnUp: boolean) => ({ tier, group: "VPN_FAILOVER", gateways: [wg(wgUp), ovpn(ovpnUp)] });
 
+const tier = (kind: string) => within(screen.getByRole("region", { name: "widget" })).getByText(kind).closest("li")!;
+
 const vpn = () => plugin.widgets!.find((w) => w.id === "vpn")!;
 
 // Renders the Widget's body against network answering with answer, and
@@ -52,18 +54,17 @@ it("reports up via WireGuard, and shows WireGuard active with the fallback stand
   const { reported } = await show(Response.json(tunnel("TIER_WIREGUARD", true, true)));
 
   expect(reported.status).toEqual({ tone: "up", summary: "Via WireGuard" });
-  const body = screen.getByRole("region", { name: "widget" });
-  expect(within(body).getByRole("listitem", { name: "WireGuard" }).textContent).toMatch(/active.*24 ms/);
-  expect(within(body).getByRole("listitem", { name: "OpenVPN" }).textContent).toMatch(/standby/);
+  expect(within(tier("WireGuard")).getByRole("img", { name: "up" })).toBeTruthy();
+  expect(tier("WireGuard").textContent).toMatch(/active · 24 ms/);
+  expect(tier("OpenVPN").textContent).toMatch(/standby/);
 });
 
 it("reports warn on the OpenVPN fallback", async () => {
   const { reported } = await show(Response.json(tunnel("TIER_OPENVPN", false, true)));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "Via the OpenVPN fallback: WireGuard is down" });
-  const body = screen.getByRole("region", { name: "widget" });
-  expect(within(body).getByRole("listitem", { name: "WireGuard" }).textContent).toMatch(/down/);
-  expect(within(body).getByRole("listitem", { name: "OpenVPN" }).textContent).toMatch(/active.*33 ms/);
+  expect(within(tier("WireGuard")).getByRole("img", { name: "down" })).toBeTruthy();
+  expect(tier("OpenVPN").textContent).toMatch(/active · 33 ms/);
 });
 
 it("reports down when both tiers are down", async () => {
@@ -76,6 +77,7 @@ it("reports warn when network can't read the gateway group", async () => {
   const { reported } = await show(Response.json({ error: "can't read the gateways: pfSense unreachable" }));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "VPN Tunnel unknown: can't read the gateways: pfSense unreachable" });
+  expect(within(screen.getByRole("region", { name: "widget" })).getByRole("status").textContent).toMatch(/pfSense unreachable/);
 });
 
 it("reports warn when network is unavailable", async () => {
@@ -88,4 +90,5 @@ it("reports nothing until network first answers", async () => {
   const { reported } = await show(() => new Promise<Response>(() => {}) as unknown as Response);
 
   expect(reported.status).toBeUndefined();
+  expect(within(screen.getByRole("region", { name: "widget" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
