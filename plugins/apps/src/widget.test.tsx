@@ -107,6 +107,22 @@ it("shows each App's Check status on its icon", async () => {
   expect(within(jellyfin).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
 });
 
+it("draws a skeleton while apps answers", async () => {
+  renderScoped(<widget.Body size="L" />);
+
+  expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
+  await settle();
+  expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
+});
+
+it("says there are no Apps yet in an empty state", async () => {
+  renderScoped(<widget.Body size="M" />, { ListApps: () => Response.json({}) });
+  await settle();
+
+  expect(screen.getByText("No Apps yet").tagName).toBe("P");
+  expect(screen.getByText(/Proxy Hosts show here/)).toBeTruthy();
+});
+
 it("is idle without Apps", async () => {
   renderScoped(<Probe />, { ListApps: () => Response.json({}) });
   await settle();

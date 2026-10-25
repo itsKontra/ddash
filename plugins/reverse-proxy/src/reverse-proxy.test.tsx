@@ -2,7 +2,7 @@ import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { Badge, Status, Widget } from "@ddash/plugin";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { Page, renderScoped, settle } from "./testing";
+import { Page, renderScoped, settle, type Answers } from "./testing";
 
 afterEach(cleanup);
 
@@ -31,8 +31,8 @@ it("shows nginx's error text while the read fails, with the last good read", asy
   await settle();
 
   const health = screen.getByRole("region", { name: "Config health" });
-  expect(within(health).getByRole("alert").textContent).toBe(nginxError);
-  expect(health.textContent).toMatch(/doesn't load/);
+  expect(within(health).getByRole("alert").textContent).toMatch(/nginx's config doesn't load/);
+  expect(within(health).getByRole("region", { name: "nginx's error" }).textContent).toBe(nginxError);
   expect(health.textContent).toMatch(/Last good read/);
   expect(within(health).getByText((_, el) => el?.tagName === "TIME").getAttribute("datetime")).toBe("2026-10-20T07:15:00.000Z");
 });
@@ -42,8 +42,29 @@ it("says so when the config never loaded", async () => {
   await settle();
 
   const health = screen.getByRole("region", { name: "Config health" });
-  expect(within(health).getByRole("alert").textContent).toBe("permission denied (publickey)");
+  expect(within(health).getByRole("region", { name: "nginx's error" }).textContent).toBe("permission denied (publickey)");
   expect(health.textContent).toMatch(/No good read yet/);
+});
+
+it("is the Reverse proxy Page, and shows a skeleton until nginx-config answers", async () => {
+  renderScoped(<Page />, { GetSnapshot: () => new Promise<Response>(() => {}) });
+  await settle();
+
+  expect(screen.getByRole("heading", { level: 1, name: "Reverse proxy" })).toBeTruthy();
+  expect(within(screen.getByRole("region", { name: "Config health" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+});
+
+it("says why a Refresh failed", async () => {
+  renderScoped(<Page />, {
+    GetSnapshot: () => Response.json(loads),
+    Refresh: () => Response.json({ code: "unavailable", message: "nginx-config is restarting" }, { status: 503 }),
+  });
+  await settle();
+
+  fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+  await settle();
+
+  expect(screen.getAllByRole("alert").map((a) => a.textContent)).toContain("Refresh failed: nginx-config is restarting");
 });
 
 it("re-reads the config at once with Refresh, and shows the new read", async () => {
@@ -68,12 +89,13 @@ it("says nginx-config is unavailable when it can't answer", async () => {
   renderScoped(<Page />, { GetSnapshot: () => Response.json({ code: "unavailable", message: "nginx-config is starting" }, { status: 503 }) });
   await settle();
 
-  expect(screen.getByRole("region", { name: "Config health" }).textContent).toMatch(/nginx-config is starting/);
+  const health = screen.getByRole("region", { name: "Config health" });
+  expect(within(health).getByRole("alert").textContent).toBe("nginx-config unavailable: nginx-config is starting");
 });
 
 const nginx = () => plugin.widgets!.find((w) => w.id === "nginx")!;
 
-async function widgetStatus(answer: () => Response) {
+async function widgetStatus(answer: Answers[string]) {
   const reported: { status?: Status } = {};
   function Probe({ widget }: { widget: Widget }) {
     reported.status = widget.useStatus();
@@ -111,6 +133,11 @@ it("reports down with the error's first line while the read fails", async () => 
     summary: 'nginx: [emerg] unknown directive "proxy_pas" in /etc/nginx/conf.d/jellyfin.conf:11',
   });
   expect(screen.getByRole("region", { name: "widget" }).textContent).toMatch(/doesn't load/);
+});
+
+it("shows a skeleton until nginx-config answers", async () => {
+  expect(await widgetStatus(() => new Promise<Response>(() => {}))).toBeUndefined();
+  expect(within(screen.getByRole("region", { name: "widget" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 
 it("reports warn when nginx-config is unavailable", async () => {
