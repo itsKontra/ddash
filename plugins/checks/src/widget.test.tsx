@@ -35,7 +35,8 @@ async function show(answer: Response | (() => Response), size: "S" | "M" = "S") 
   return reported;
 }
 
-const stat = (label: string) => within(screen.getByRole("region", { name: "widget" })).getByText(label).previousSibling?.textContent;
+// A MetricTile's value: its text after its label.
+const stat = (label: string) => within(screen.getByRole("region", { name: "widget" })).getByRole("group", { name: label }).textContent?.slice(label.length);
 
 it("is the summary Widget, S or M, S by default", () => {
   const w = summary();
@@ -105,6 +106,7 @@ it("lists what isn't up at M", async () => {
   await show(listed(check(1, "nas", "STATE_DOWN", { reason: "connection refused" }), check(2, "router", "STATE_UP")), "M");
 
   const nas = within(screen.getByRole("region", { name: "widget" })).getByRole("listitem");
+  expect(within(nas).getByRole("img").getAttribute("aria-label")).toBe("down");
   expect(nas.textContent).toMatch(/nas.*connection refused/);
 });
 
@@ -114,9 +116,10 @@ it("reports warn when checks is unavailable", async () => {
   expect(reported.status).toEqual({ tone: "warn", summary: "checks unavailable: checks is down" });
 });
 
-it("reports nothing until checks first answers", async () => {
+it("reports nothing and draws skeletons until checks first answers", async () => {
   const reported = await show(() => new Promise<Response>(() => {}) as unknown as Response);
 
   expect(reported.status).toBeUndefined();
   expect(reported.badge).toBeNull();
+  expect(within(screen.getByRole("region", { name: "widget" })).getAllByRole("status", { name: "Loading" })).toHaveLength(3);
 });
