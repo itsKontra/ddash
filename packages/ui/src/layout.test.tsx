@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it } from "vitest";
-import { HeroCard, MetricTile, PageHeader, PageTitle, Panel, Ring, SectionHeading, WidgetCard } from "./index";
+import { HeroCard, MetricTile, PageHeader, PageTitle, Panel, Ring, SectionHeading, StatusList, WidgetCard } from "./index";
 
 afterEach(cleanup);
 
@@ -125,6 +125,23 @@ it("A Ring draws its arc in nav-accent on a HeroCard and in primary elsewhere", 
   const arc = (label: string) => screen.getByRole("meter", { name: label }).querySelector("[data-colour]")?.getAttribute("data-colour");
   expect(arc("On the hero")).toBe("nav-accent");
   expect(arc("On a Panel")).toBe("primary");
+});
+
+it("A StatusList in a HeroCard's caption writes its details in the hero's text, not the muted one", () => {
+  const items = [{ tone: "down" as const, title: "Proxmox", meta: "unreachable", aside: "2m" }];
+  render(
+    <>
+      <HeroCard kicker="Status" title="1 Widget needs attention" caption={<StatusList items={items} />} />
+      <section aria-label="Panel">
+        <StatusList items={items} />
+      </section>
+    </>,
+  );
+
+  const muted = (region: string, text: string) => /muted-foreground/.test(within(screen.getByRole("region", { name: region })).getByText(text).className);
+  expect(muted("1 Widget needs attention", "unreachable")).toBe(false);
+  expect(muted("1 Widget needs attention", "2m")).toBe(false);
+  expect(muted("Panel", "unreachable")).toBe(true);
 });
 
 it("WidgetCard's header writes the summary out when the Widget isn't up", () => {

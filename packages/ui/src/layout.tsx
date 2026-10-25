@@ -207,8 +207,9 @@ export function MetricTile({
 /**
  * The dark gradient card at the top of the Overview, the only way onto the
  * hero surface: a kicker, the title (the status headline), a caption
- * clamped to three lines, a foot of counts and an aside such as a Ring,
- * which draws itself in the hero's accent here.
+ * clamped to three lines, a foot of counts and an aside such as a Ring.
+ * A Ring in the aside and a StatusList in the caption draw themselves in
+ * the hero's colours.
  */
 export function HeroCard({
   kicker,
@@ -235,7 +236,11 @@ export function HeroCard({
         <h2 id={id} className="mb-3 text-2xl leading-tight font-extrabold tracking-tight text-nav-strong sm:text-3xl">
           {title}
         </h2>
-        {caption && <div className="line-clamp-3 max-w-xl text-xs leading-relaxed">{caption}</div>}
+        {caption && (
+          <div className="line-clamp-3 max-w-xl text-xs leading-relaxed">
+            <OnHero value={true}>{caption}</OnHero>
+          </div>
+        )}
         {foot && <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">{foot}</div>}
       </div>
       {aside && (

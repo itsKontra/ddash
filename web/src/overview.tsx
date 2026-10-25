@@ -1,10 +1,26 @@
-import { PluginScope, useAction, useQuery, type Fetch, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Button, cx, ErrorFrame, Hero, Icon, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
+import { PluginScope, useAction, useQuery, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
+import {
+  Button,
+  cx,
+  ErrorFrame,
+  HeroCard,
+  Icon,
+  MetricTile,
+  PageTitle,
+  Ring,
+  Segmented,
+  Sheet,
+  Skeleton,
+  StatusDot,
+  StatusList,
+  WidgetCard,
+  type IconName,
+} from "@ddash/ui";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
-import { hero } from "./hero";
+import { hero, type HeroState } from "./hero";
 import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
 import type { LoadedPlugin, Plugins } from "./plugins";
 import { useReach } from "./reach";
@@ -62,13 +78,24 @@ function fromProto(l: { entries: { widget: string; size: string }[]; seen: strin
   };
 }
 
+// On phones the grid has one column, so every size fits in it.
 const span: Record<WidgetSize, string> = {
   S: "col-span-1 row-span-1",
-  M: "col-span-2 row-span-1",
-  L: "col-span-2 row-span-2",
+  M: "col-span-1 row-span-1 sm:col-span-2",
+  L: "col-span-1 row-span-2 sm:col-span-2",
 };
 
-/** /: the Hero over the 4-column grid of placed Widgets, with Edit mode. */
+/** The metric tiles under the hero: how many reporting Widgets are at each tone. */
+const tiles: { label: string; icon: IconName; tone: Tone }[] = [
+  { label: "Up", icon: "circle-check", tone: "up" },
+  { label: "Needs attention", icon: "triangle-alert", tone: "warn" },
+  { label: "Down", icon: "circle-x", tone: "down" },
+  { label: "Maintenance", icon: "wrench", tone: "maint" },
+];
+
+const tally = (tones: readonly Tone[], tone: Tone) => tones.filter((t) => t === tone).length;
+
+/** /: the hero and metric tiles over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode. */
 export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch }) {
   const reach = useReach();
   // While editing, the Operator's unsaved layout.
@@ -96,6 +123,8 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
     cards.map((c) => ({ title: c.title, status: statuses.get(c.entry.widget) })),
     reach.unreachable,
   );
+  // The tones of the placed Widgets that have reported.
+  const tones = cards.flatMap((c) => statuses.get(c.entry.widget)?.tone ?? []);
 
   const edit = (change: (l: Layout) => Layout) => setDraft((d) => (d ? change(d) : d));
   const move = (from: string, to: string) =>
@@ -120,8 +149,10 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      <PageTitle
+        kicker="Dashboard"
         title="Overview"
+        subtitle="Every Widget's latest report. Arrange the grid with Edit."
         actions={
           layout &&
           (draft ? (
@@ -139,8 +170,13 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
         }
       />
       {draft && overview.error && <ErrorFrame title="Saving the layout failed" error={overview.error} />}
-      <Hero tone={h.tone} headline={h.headline} problems={h.problems} />
-      <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-4 gap-4 grid-flow-dense">
+      <OverviewHero state={h} placed={cards.length} up={tally(tones, "up")} reporting={tones.length} />
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {tiles.map((t) => (
+          <MetricTile key={t.label} label={t.label} icon={t.icon} tone={t.tone} value={layout ? tally(tones, t.tone) : undefined} />
+        ))}
+      </div>
+      <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-1 gap-4 grid-flow-dense sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => (
           <li
             key={c.entry.widget}
@@ -212,6 +248,41 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
   );
 }
 
+/**
+ * The status headline over the Widgets that aren't up, a foot of counts and
+ * the share of placed Widgets that are up.
+ */
+function OverviewHero({ state, placed, reporting, up }: { state: HeroState; placed: number; reporting: number; up: number }) {
+  return (
+    <HeroCard
+      kicker="Status"
+      title={state.headline}
+      caption={
+        state.problems.length > 0 && (
+          <>
+            <StatusList items={state.problems.slice(0, shown).map((p) => ({ tone: p.tone, title: p.title, meta: p.summary }))} />
+            {state.problems.length > shown && <p className="mt-2">and {state.problems.length - shown} more</p>}
+          </>
+        )
+      }
+      foot={
+        <>
+          <StatusDot tone={state.tone} label={`Overall: ${state.tone}`} pulse={state.tone !== "up" && state.tone !== "idle"} />
+          <span>{count(placed, "Widget")} on the Overview</span>
+          <span>{reporting} reporting</span>
+          <span>{up} up</span>
+        </>
+      }
+      aside={placed > 0 && <Ring ratio={up / placed} value={`${Math.round((up / placed) * 100)}%`} label="Widgets up" />}
+    />
+  );
+}
+
+// The most problems the hero lists; the caption counts the rest.
+const shown = 3;
+
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
 /** A placed Widget as the grid draws it. */
 interface Card {
   entry: Placed;
@@ -248,7 +319,7 @@ function CardBody({ card, fetch, onStatus }: { card: Card; fetch?: Fetch; onStat
       </>
     );
   }
-  if (!card.plugin || !card.widget) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!card.plugin || !card.widget) return <Skeleton lines={3} />;
   const widget = card.widget;
   return (
     <PluginScope plugin={card.plugin} fetch={fetch}>
