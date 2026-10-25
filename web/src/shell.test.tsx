@@ -234,7 +234,9 @@ it("shows the unreachable banner when a bundle fails to load because the host fa
   const badGateway = () => new Response("<html>Bad Gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } });
   await boot("/", [[installed("docker", "Docker"), new TypeError("Failed to fetch dynamically imported module")]], badGateway);
 
-  expect(screen.getByRole("status").textContent).toMatch(/^ddash unreachable/);
+  const banner = screen.getByRole("status");
+  expect(banner.textContent).toMatch(/^ddash unreachable/);
+  expect(banner.className).toMatch(/\bbg-warn-tint\b/);
 });
 
 it("shows no banner for a broken bundle the host serves", async () => {
@@ -271,7 +273,8 @@ it("switches light and dark from the top bar, remembered in this browser and sho
   document.documentElement.className = "";
   await boot("/settings", []);
   const toggle = screen.getByRole("button", { name: "Dark mode" });
-  const settingsSwitch = () => screen.getByRole("switch", { name: "Dark" }).getAttribute("aria-checked");
+  const scheme = () => within(screen.getByRole("radiogroup", { name: "Scheme" }));
+  const settingsSwitch = () => scheme().getByRole("radio", { name: "Dark" }).getAttribute("aria-checked");
   expect([toggle.getAttribute("aria-pressed"), settingsSwitch()]).toEqual(["false", "false"]);
 
   fireEvent.click(toggle);
@@ -280,7 +283,7 @@ it("switches light and dark from the top bar, remembered in this browser and sho
   expect(window.localStorage.getItem("ddash.scheme")).toBe("dark");
   expect([toggle.getAttribute("aria-pressed"), settingsSwitch()]).toEqual(["true", "true"]);
 
-  fireEvent.click(screen.getByRole("switch", { name: "Dark" }));
+  fireEvent.click(scheme().getByRole("radio", { name: "Light" }));
 
   expect(document.documentElement.classList.contains("dark")).toBe(false);
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
