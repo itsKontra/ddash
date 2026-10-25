@@ -10,8 +10,23 @@ import {
   type TestAction,
 } from "@ddash/proto/ddash/core/core_pb";
 import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/config_pb";
-import { Button, ErrorFrame, Icon, StatusDot, Switch, type Tone } from "@ddash/ui";
-import { useId, useState, type ReactNode } from "react";
+import {
+  Button,
+  CodeBlock,
+  Dialog,
+  Field,
+  FormActions,
+  Icon,
+  Notice,
+  Pill,
+  Select,
+  Skeleton,
+  StatusDot,
+  Switch,
+  TextInput,
+  type Tone,
+} from "@ddash/ui";
+import { useEffect, useId, useState, type ReactNode } from "react";
 import { validate } from "./config-rules";
 
 /** Errors by path, e.g. "hosts[1].url". */
@@ -23,14 +38,21 @@ type Secret = { mode: "keep" } | { mode: "replace"; value: string } | { mode: "c
 /**
  * A Component's config form (or the core's, owner "core"), generated from
  * its config message. It saves through SaveConfig, which restarts the
- * Component, and shows the health polled right after its Start.
+ * Component, and shows the health polled right after its Start. The form
+ * has no submit of its own: a button outside it (a Dialog's footer) names
+ * it by formId. onSaving hears whether a save is under way.
  */
-export function ConfigForm({ owner }: { owner: string }) {
+export function ConfigForm({ owner, formId, onSaving }: { owner: string; formId: string; onSaving?: (pending: boolean) => void }) {
   const { data, error } = useQuery(CoreService.method.getConfigForm, { owner });
   const [status, setStatus] = useState<ComponentStatus>();
   const [saves, setSaves] = useState(0);
-  if (error && !data) return <ErrorFrame title={`${owner}'s config can't be read`} error={error} />;
-  if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (error && !data)
+    return (
+      <Notice tone="down" title={`${owner}'s config can't be read`}>
+        {error.rawMessage}
+      </Notice>
+    );
+  if (!data) return <Skeleton lines={4} />;
   return (
     <div>
       {data.setupHint && <SetupHint hint={data.setupHint} />}
@@ -39,6 +61,8 @@ export function ConfigForm({ owner }: { owner: string }) {
         key={saves}
         owner={owner}
         form={data}
+        formId={formId}
+        onSaving={onSaving}
         onSaved={(s) => {
           setStatus(s);
           setSaves((n) => n + 1);
@@ -52,29 +76,17 @@ export function ConfigForm({ owner }: { owner: string }) {
 
 /** What the Operator does outside ddash to finish the setup, with a Copy button for its block. */
 function SetupHint({ hint }: { hint: SetupHintMessage }) {
-  const id = useId();
-  const [copied, setCopied] = useState(false);
   return (
-    <section aria-labelledby={id} className="mb-5 rounded-ui border border-border bg-muted p-3 text-sm">
-      <h3 id={id} className="mb-1 font-medium">
-        Setup
-      </h3>
-      <p className="text-muted-foreground">{hint.text}</p>
+    <div className="mb-6 flex flex-col gap-3">
+      <Notice tone="info" title="Setup">
+        {hint.text}
+      </Notice>
       {hint.block && (
-        <div className="mt-2 flex items-start gap-2">
-          <pre className="min-w-0 flex-1 overflow-x-auto rounded-ui border border-border bg-card p-2 text-xs whitespace-pre-wrap break-all">{hint.block}</pre>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => {
-              void navigator.clipboard.writeText(hint.block).then(() => setCopied(true));
-            }}
-          >
-            {copied ? "Copied" : "Copy"}
-          </Button>
-        </div>
+        <CodeBlock label="Setup" copy>
+          {hint.block}
+        </CodeBlock>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -94,7 +106,7 @@ function TestButton({ owner, test }: { owner: string; test: TestAction }) {
     </>
   ) : null;
   return (
-    <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-4">
+    <div className="mt-6 flex flex-wrap items-center gap-3 rounded-ui bg-muted p-4">
       <Button
         variant="outline"
         disabled={run.pending}
@@ -114,9 +126,10 @@ function TestButton({ owner, test }: { owner: string; test: TestAction }) {
 
 function Health({ status }: { status: ComponentStatus }) {
   return (
-    <p role="status" className="mt-4 flex items-center gap-2 text-sm">
-      <StatusDot tone={toneOf(status.state)} />
-      <span className="font-medium">{status.state}</span>
+    <p role="status" className="mt-5 flex items-center gap-2 text-sm">
+      <Pill tone={toneOf(status.state)} dot>
+        {status.state}
+      </Pill>
       {status.message && <span className="text-muted-foreground">{status.message}</span>}
     </p>
   );
@@ -125,7 +138,19 @@ function Health({ status }: { status: ComponentStatus }) {
 const tones: Record<string, Tone> = { ok: "up", degraded: "warn", unconfigured: "warn", down: "down", crashed: "down" };
 const toneOf = (state: string): Tone => tones[state] ?? "idle";
 
-function Editor({ owner, form, onSaved }: { owner: string; form: GetConfigFormResponse; onSaved: (s: ComponentStatus | undefined) => void }) {
+function Editor({
+  owner,
+  form,
+  formId,
+  onSaving,
+  onSaved,
+}: {
+  owner: string;
+  form: GetConfigFormResponse;
+  formId: string;
+  onSaving?: (pending: boolean) => void;
+  onSaved: (s: ComponentStatus | undefined) => void;
+}) {
   const save = useAction(CoreService.method.saveConfig);
   const [values, setValues] = useState<JsonObject>(() => structuredClone(form.values ?? {}));
   const [secrets, setSecrets] = useState<Record<string, Secret>>({});
@@ -133,6 +158,8 @@ function Editor({ owner, form, onSaved }: { owner: string; form: GetConfigFormRe
   const stored = Object.fromEntries(form.errors.map((e) => [e.path, e.message]));
   const startErrors = Object.fromEntries((save.error?.findDetails(ConfigErrorsSchema)[0]?.errors ?? []).map((e) => [e.path, e.message]));
   const errors: Errors = { ...stored, ...startErrors, ...checked };
+
+  useEffect(() => onSaving?.(save.pending), [onSaving, save.pending]);
 
   const set = (name: string, value: JsonValue | undefined) =>
     setValues((v) => {
@@ -145,6 +172,7 @@ function Editor({ owner, form, onSaved }: { owner: string; form: GetConfigFormRe
   const secretsSet = form.secretsSet.filter((name) => (secrets[name]?.mode ?? "keep") === "keep");
 
   const submit = async () => {
+    if (save.pending) return;
     const out: JsonObject = { ...values };
     const clearSecrets: string[] = [];
     for (const [name, s] of Object.entries(secrets)) {
@@ -160,6 +188,7 @@ function Editor({ owner, form, onSaved }: { owner: string; form: GetConfigFormRe
 
   return (
     <form
+      id={formId}
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
@@ -168,7 +197,7 @@ function Editor({ owner, form, onSaved }: { owner: string; form: GetConfigFormRe
       className="flex flex-col gap-5"
     >
       {form.fields.map((f) => (
-        <Field
+        <ConfigField
           key={f.name}
           field={f}
           value={values[f.name]}
@@ -178,12 +207,11 @@ function Editor({ owner, form, onSaved }: { owner: string; form: GetConfigFormRe
           onSecret={(s) => setSecrets((all) => ({ ...all, [f.name]: s }))}
         />
       ))}
-      {save.error && !save.error.findDetails(ConfigErrorsSchema).length && <ErrorFrame title="Save failed" error={save.error} />}
-      <div className="flex justify-end">
-        <Button type="submit" disabled={save.pending}>
-          Save
-        </Button>
-      </div>
+      {save.error && !save.error.findDetails(ConfigErrorsSchema).length && (
+        <Notice tone="down" title="Save failed">
+          {save.error.rawMessage}
+        </Notice>
+      )}
     </form>
   );
 }
@@ -197,71 +225,103 @@ interface FieldProps {
   onSecret: (s: Secret) => void;
 }
 
-function Field({ field: f, value, onChange, errors, secret, onSecret }: FieldProps) {
-  const id = useId();
+/** One field of the form: a scalar in a Field, or a group for a secret, a list or a table. */
+function ConfigField({ field: f, value, onChange, errors, secret, onSecret }: FieldProps) {
   if (secret) return <SecretField field={f} secret={secret} onSecret={onSecret} error={errors[f.name]} />;
-  const set = value !== undefined;
-  const Label = f.repeated ? "span" : "label";
+  if (f.repeated)
+    return (
+      <Group field={f} error={errors[f.name]}>
+        {f.kind === FormField_Kind.TABLE ? (
+          <Table field={f} rows={Array.isArray(value) ? (value as JsonObject[]) : []} onChange={onChange} errors={errors} />
+        ) : (
+          <List field={f} items={Array.isArray(value) ? value : []} onChange={onChange} errors={errors} />
+        )}
+      </Group>
+    );
+  const hint =
+    f.help || f.choicesNote ? (
+      <>
+        {f.help}
+        {f.help && f.choicesNote && " "}
+        {f.choicesNote && <span className="text-warn-text">{f.choicesNote}</span>}
+      </>
+    ) : undefined;
   return (
-    <div data-field={f.name}>
-      <div className="mb-1 flex items-center gap-2">
-        <Label htmlFor={f.repeated ? undefined : id} className="text-sm font-medium">
-          {f.label}
-        </Label>
-        {f.required && <span className="text-xs text-muted-foreground">required</span>}
-        {set && !f.repeated && (
-          <button type="button" aria-label={`Reset ${f.label}`} className="ml-auto text-xs text-muted-foreground hover:underline" onClick={() => onChange(undefined)}>
+    <div data-field={f.name} className="relative">
+      <Field label={f.label} hint={hint} error={errors[f.name]}>
+        <Scalar field={f} value={value} onChange={onChange} />
+      </Field>
+      <div className="absolute top-0 right-0 flex items-center gap-2">
+        {f.required && <Required />}
+        {value !== undefined && (
+          <button
+            type="button"
+            aria-label={`Reset ${f.label}`}
+            className="cursor-pointer text-xs font-semibold text-primary hover:underline"
+            onClick={() => onChange(undefined)}
+          >
             Reset
           </button>
         )}
       </div>
-      {f.kind === FormField_Kind.TABLE ? (
-        <Table field={f} rows={Array.isArray(value) ? (value as JsonObject[]) : []} onChange={onChange} errors={errors} />
-      ) : f.repeated ? (
-        <List field={f} items={Array.isArray(value) ? value : []} onChange={onChange} errors={errors} />
-      ) : (
-        <Scalar id={id} field={f} value={value} onChange={onChange} />
-      )}
-      {f.help && <p className="mt-1 text-xs text-muted-foreground">{f.help}</p>}
-      {f.choicesNote && <p className="mt-1 text-xs text-warn-text">{f.choicesNote}</p>}
-      <FieldError message={errors[f.name]} />
     </div>
   );
 }
 
-function FieldError({ message }: { message?: string }) {
-  return message ? <p className="mt-1 text-xs text-down-text">{message}</p> : null;
+function Required() {
+  return <span className="text-[10px] font-bold tracking-wide text-muted-foreground uppercase">required</span>;
 }
 
-const inputClass = "h-9 w-full rounded-ui border border-border bg-card px-3 text-sm placeholder:text-muted-foreground";
+/** A field of several controls (a list, a table, a secret): a fieldset whose legend looks like a Field's label. */
+function Group({ field: f, error, children }: { field: FormField; error?: string; children: ReactNode }) {
+  return (
+    <fieldset data-field={f.name} className="flex min-w-0 flex-col gap-1.5">
+      <legend className="mb-1.5 flex w-full items-center gap-2 text-xs font-semibold text-foreground">
+        {f.label}
+        {f.required && (
+          <span className="ml-auto">
+            <Required />
+          </span>
+        )}
+      </legend>
+      {children}
+      {f.help && <p className="text-xs text-muted-foreground">{f.help}</p>}
+      <FieldError message={error} />
+    </fieldset>
+  );
+}
 
-/** One string, int, bool or enum value; unset shows the default. */
-function Scalar({ id, field: f, value, onChange, label }: { id?: string; field: FormField; value: JsonValue | undefined; onChange: (v: JsonValue | undefined) => void; label?: string }) {
+function FieldError({ message }: { message?: string }) {
+  return message ? <p className="mt-1 text-xs font-medium text-down-text">{message}</p> : null;
+}
+
+/**
+ * One string, int, bool or enum value; unset shows the default. label names
+ * it when it sits in a list or a table, outside a Field.
+ */
+function Scalar({ field: f, value, onChange, label }: { field: FormField; value: JsonValue | undefined; onChange: (v: JsonValue | undefined) => void; label?: string }) {
   switch (f.kind) {
     case FormField_Kind.BOOL: {
       const on = value === undefined ? f.default === "true" : value === true;
-      return <Switch id={id} label={label ?? f.label} checked={on} onChange={onChange} />;
+      return <Switch label={label ?? f.label} checked={on} onChange={onChange} />;
     }
     case FormField_Kind.ENUM:
       return (
-        <select id={id} aria-label={label} className={inputClass} value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value || undefined)}>
+        <Select aria-label={label} value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value || undefined)}>
           <option value="">{f.default ? `Default (${f.options.find((o) => o.value === f.default)?.label ?? f.default})` : "—"}</option>
           {f.options.map((o) => (
             <option key={o.value} value={o.value}>
               {o.label}
             </option>
           ))}
-        </select>
+        </Select>
       );
     default:
-      if (f.choices.length > 0) return <Choices id={id} field={f} value={value} onChange={onChange} label={label} />;
+      if (f.choices.length > 0) return <Choices field={f} value={value} onChange={onChange} label={label} />;
       return (
-        <input
-          id={id}
+        <TextInput
           aria-label={label}
-          type="text"
           inputMode={f.kind === FormField_Kind.INT ? "numeric" : undefined}
-          className={inputClass}
           placeholder={f.placeholder}
           value={value === undefined || value === null ? "" : String(value)}
           onChange={(e) => onChange(e.target.value === "" ? undefined : e.target.value)}
@@ -275,11 +335,11 @@ function Scalar({ id, field: f, value, onChange, label }: { id?: string; field: 
  * stored value no longer on offer stays selectable, so opening the form
  * never changes it.
  */
-function Choices({ id, field: f, value, onChange, label }: { id?: string; field: FormField; value: JsonValue | undefined; onChange: (v: JsonValue | undefined) => void; label?: string }) {
+function Choices({ field: f, value, onChange, label }: { field: FormField; value: JsonValue | undefined; onChange: (v: JsonValue | undefined) => void; label?: string }) {
   const current = typeof value === "string" ? value : "";
   const offered = f.choices.some((c) => c.value === current);
   return (
-    <select id={id} aria-label={label} className={inputClass} value={current} onChange={(e) => onChange(e.target.value || undefined)}>
+    <Select aria-label={label} value={current} onChange={(e) => onChange(e.target.value || undefined)}>
       <option value="">{f.placeholder || "—"}</option>
       {current && !offered && <option value={current}>{`${current} (not on offer)`}</option>}
       {f.choices.map((c) => (
@@ -287,7 +347,7 @@ function Choices({ id, field: f, value, onChange, label }: { id?: string; field:
           {c.label}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
 
@@ -299,11 +359,10 @@ function SecretField({ field: f, secret, onSecret, error }: { field: FormField; 
   if (typing) {
     control = (
       <div className="flex gap-2">
-        <input
+        <TextInput
           type="password"
           aria-label={f.label}
           autoComplete="off"
-          className={inputClass}
           placeholder={f.placeholder}
           value={edit.mode === "replace" ? edit.value : ""}
           onChange={(e) => onSecret({ mode: "replace", value: e.target.value })}
@@ -337,12 +396,9 @@ function SecretField({ field: f, secret, onSecret, error }: { field: FormField; 
     );
   }
   return (
-    <fieldset data-field={f.name}>
-      <legend className="mb-1 text-sm font-medium">{f.label}</legend>
+    <Group field={f} error={error}>
       {control}
-      {f.help && <p className="mt-1 text-xs text-muted-foreground">{f.help}</p>}
-      <FieldError message={error} />
-    </fieldset>
+    </Group>
   );
 }
 
@@ -367,7 +423,7 @@ function List({ field: f, items, onChange, errors }: { field: FormField; items: 
         </div>
       ))}
       <div>
-        <Button size="sm" variant="outline" aria-label={`Add an item to ${f.label}`} onClick={() => onChange([...items, ""])}>
+        <Button size="sm" variant="outline" icon="plus" aria-label={`Add an item to ${f.label}`} onClick={() => onChange([...items, ""])}>
           Add
         </Button>
       </div>
@@ -389,40 +445,42 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
     );
   return (
     <div className="flex flex-col gap-2">
-      <table aria-label={f.label} className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-xs text-muted-foreground">
-            {f.columns.map((c) => (
-              <th key={c.name} className="pb-1 font-medium">
-                {c.label}
-              </th>
-            ))}
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={i} className="align-top">
-              {f.columns.map((c) => {
-                const path = `${f.name}[${i}].${c.name}`;
-                return (
-                  <td key={c.name} data-field={path} className="pr-2 pb-2">
-                    <Scalar field={c} label={`${c.label}, row ${i + 1}`} value={row[c.name]} onChange={(v) => setCell(i, c.name, v)} />
-                    <FieldError message={errors[path]} />
-                  </td>
-                );
-              })}
-              <td className="pb-2">
-                <Button variant="ghost" aria-label={`Remove row ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))}>
-                  <Icon name="x" />
-                </Button>
-              </td>
+      <div className="overflow-x-auto">
+        <table aria-label={f.label} className="w-full text-sm">
+          <thead>
+            <tr className="text-left text-xs text-muted-foreground">
+              {f.columns.map((c) => (
+                <th key={c.name} className="pb-1 font-semibold">
+                  {c.label}
+                </th>
+              ))}
+              <th />
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={i} className="align-top">
+                {f.columns.map((c) => {
+                  const path = `${f.name}[${i}].${c.name}`;
+                  return (
+                    <td key={c.name} data-field={path} className="min-w-32 pr-2 pb-2">
+                      <Scalar field={c} label={`${c.label}, row ${i + 1}`} value={row[c.name]} onChange={(v) => setCell(i, c.name, v)} />
+                      <FieldError message={errors[path]} />
+                    </td>
+                  );
+                })}
+                <td className="pb-2">
+                  <Button variant="ghost" aria-label={`Remove row ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))}>
+                    <Icon name="x" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <div>
-        <Button size="sm" variant="outline" aria-label={`Add a row to ${f.label}`} onClick={() => onChange([...rows, {}])}>
+        <Button size="sm" variant="outline" icon="plus" aria-label={`Add a row to ${f.label}`} onClick={() => onChange([...rows, {}])}>
           Add row
         </Button>
       </div>
@@ -430,33 +488,31 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
   );
 }
 
-/** The config form in a dialog over the page. */
+/**
+ * The config form in a centred Dialog, titled by the Component, with
+ * Cancel and Save and restart pinned in its footer.
+ */
 export function ConfigDialog({ owner, onClose }: { owner: string; onClose: () => void }) {
-  const id = useId();
+  const formId = useId();
+  const [saving, setSaving] = useState(false);
   return (
-    <div className="fixed inset-0 z-40 flex items-start justify-center overflow-y-auto bg-foreground/40 p-4 sm:p-10" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${owner} config`}
-        aria-describedby={id}
-        className="w-full max-w-2xl rounded-ui border border-border bg-card p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.key === "Escape" && onClose()}
-      >
-        <div className="mb-5 flex items-start gap-3">
-          <div>
-            <h2 className="text-lg font-semibold">{owner}</h2>
-            <p id={id} className="text-sm text-muted-foreground">
-              Saving restarts {owner} with the new config. Unset fields take their defaults.
-            </p>
-          </div>
-          <Button variant="ghost" className="ml-auto" aria-label="Close" onClick={onClose}>
-            <Icon name="x" />
+    <Dialog
+      kicker="Configure"
+      title={owner}
+      subtitle={`Saving restarts ${owner} with the new config. Unset fields take their defaults.`}
+      onClose={onClose}
+      footer={
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
           </Button>
-        </div>
-        <ConfigForm owner={owner} />
-      </div>
-    </div>
+          <Button type="submit" form={formId} disabled={saving}>
+            Save and restart
+          </Button>
+        </FormActions>
+      }
+    >
+      <ConfigForm owner={owner} formId={formId} onSaving={setSaving} />
+    </Dialog>
   );
 }

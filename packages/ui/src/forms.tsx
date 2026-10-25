@@ -210,11 +210,17 @@ export function Segmented<T extends string>({
   );
 }
 
-/** An on/off switch that acts at once (no confirm), e.g. a Device's Direct toggle; label names it for screen readers. */
+/**
+ * An on/off switch that acts at once (no confirm), e.g. a Device's Direct
+ * toggle; label names it for screen readers. Inside a Field it takes the
+ * Field's id and hint.
+ */
 export function Switch({ id, checked, onChange, label, disabled }: { id?: string; checked: boolean; onChange: (checked: boolean) => void; label: string; disabled?: boolean }) {
+  const wiring = useWiring();
   return (
     <button
-      id={id}
+      {...wiring}
+      id={id ?? wiring.id}
       type="button"
       role="switch"
       aria-checked={checked}
