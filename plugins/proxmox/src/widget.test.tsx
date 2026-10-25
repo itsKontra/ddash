@@ -66,14 +66,23 @@ it("reports up with the counts in its summary", async () => {
 it("shows the counts at S, and each kind's at M", async () => {
   await show(() => Response.json(listed));
   const s = screen.getByRole("region", { name: "widget" });
-  expect(within(s).getByText("running").previousSibling?.textContent).toBe("3");
-  expect(within(s).getByText("guests").previousSibling?.textContent).toBe("5");
+  expect(within(s).getByRole("group", { name: "running" }).textContent).toBe("running3");
+  expect(within(s).getByRole("group", { name: "guests" }).textContent).toBe("guests5");
+  expect(within(s).queryByText("LXCs")).toBeNull();
   cleanup();
 
   await show(() => Response.json(listed), "M");
   const m = screen.getByRole("region", { name: "widget" });
-  expect(within(m).getByRole("row", { name: /LXCs/ }).textContent).toMatch(/LXCs.*2\/3 running/);
-  expect(within(m).getByRole("row", { name: /VMs/ }).textContent).toMatch(/VMs.*1\/2 running/);
+  expect(within(m).getByText("LXCs").nextElementSibling?.textContent).toBe("2/3 running");
+  expect(within(m).getByText("VMs").nextElementSibling?.textContent).toBe("1/2 running");
+});
+
+it("draws its counts as skeletons until proxmox-api first answers", async () => {
+  await show(() => new Promise<Response>(() => {}) as unknown as Response);
+  const s = screen.getByRole("region", { name: "widget" });
+
+  expect(within(within(s).getByRole("group", { name: "running" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(within(within(s).getByRole("group", { name: "guests" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 
 it("reports warn when proxmox-api is unavailable", async () => {

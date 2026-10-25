@@ -104,9 +104,13 @@ function PluginPages() {
 /** Lets queries and Actions settle. */
 export const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
 
+/** An answer that never comes, to see what shows while a call is in flight. */
+export const pending = () => new Promise<Response>(() => {}) as unknown as Response;
+
 /**
  * Shows the proxmox Plugin at path (e.g. "/proxmox") with its Components
  * answering by method name (Actions {} unless given), and returns the calls.
+ * It waits for every answer unless one is pending.
  */
 export async function show(path: string, answers: Record<string, () => Response> = {}) {
   const calls: Call[] = [];
@@ -137,7 +141,7 @@ export async function show(path: string, answers: Record<string, () => Response>
   );
   // Wait for the first answers however long a loaded machine takes, then
   // for what they render.
-  await waitFor(() => expect(client.isFetching()).toBe(0));
+  if (!Object.values(answers).includes(pending)) await waitFor(() => expect(client.isFetching()).toBe(0));
   await settle();
   return calls;
 }

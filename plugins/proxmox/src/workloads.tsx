@@ -1,6 +1,6 @@
 import { useQuery } from "@ddash/plugin";
 import { AddressSource, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { Badge, PageHeader, StatusDot, type Tone } from "@ddash/ui";
+import { DataTable, EmptyState, Notice, PageTitle, Panel, Pill, type Column, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
@@ -13,97 +13,100 @@ export const tones: Record<string, Tone> = {
   stopped: "idle",
 };
 
+/** A Workload's status as a Pill in its tone: "running". */
+export const StatusPill = ({ workload: w }: { workload: Workload }) => (
+  <Pill tone={tones[w.status] ?? "idle"} dot>
+    {w.status}
+  </Pill>
+);
+
+/** Its CPU, memory, disk, network and uptime as the Page shows them: live while it runs, else its size. */
+export function resources(w: Workload) {
+  const running = w.status === "running";
+  return {
+    cpu: running ? cpu(w.cpu, w.maxCpu) : `${w.maxCpu} ${w.maxCpu === 1 ? "CPU" : "CPUs"}`,
+    memory: running ? `${bytes(w.mem)} / ${bytes(w.maxMem)}` : bytes(w.maxMem),
+    disk: w.disk ? `${bytes(w.disk)} / ${bytes(w.maxDisk)}` : bytes(w.maxDisk),
+    network: running ? `${bytes(w.netIn)} in · ${bytes(w.netOut)} out` : "–",
+    uptime: running ? uptime(w.uptimeSeconds) : "–",
+  };
+}
+
+/** Its template mark and tags as Pills, or "–" without either. */
+export function Tags({ workload: w }: { workload: Workload }) {
+  if (!w.template && !w.tags.length) return <span className="text-muted-foreground">–</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-1.5">
+      {w.template && <Pill tone="info">template</Pill>}
+      {w.tags.map((t) => (
+        <Pill key={t}>{t}</Pill>
+      ))}
+    </span>
+  );
+}
+
+/** Why proxmox-api gave no Workloads: not configured yet (with the way to configure it), or the failure. */
+export function Unlisted({ error }: { error: { rawMessage: string } }) {
+  if (error.rawMessage === "not configured") {
+    return (
+      <Panel>
+        <EmptyState
+          icon="server"
+          title="proxmox-api isn't configured"
+          action={
+            <Link to="/plugins" className="text-sm font-semibold text-primary hover:underline">
+              Configure it in Plugins
+            </Link>
+          }
+        >
+          Give it a Proxmox API token to list the LXCs and VMs.
+        </EmptyState>
+      </Panel>
+    );
+  }
+  return (
+    <Notice tone="down" title="proxmox-api can't list the Workloads">
+      {error.rawMessage}
+    </Notice>
+  );
+}
+
+const columns: readonly Column<Workload>[] = [
+  {
+    id: "name",
+    header: "Name",
+    rowHeader: true,
+    sortable: true,
+    sortValue: (w) => w.name,
+    cell: (w) => <Link to={`workloads/${w.vmid}`}>{w.name}</Link>,
+  },
+  { id: "status", header: "Status", sortable: true, sortValue: (w) => w.status, cell: (w) => <StatusPill workload={w} /> },
+  { id: "id", header: "ID", sortable: true, sortValue: (w) => w.vmid, hideBelow: "sm", cell: (w) => <span className="tabular-nums">{w.vmid}</span> },
+  { id: "kind", header: "Kind", cell: (w) => kindLabel(w.kind) },
+  { id: "tags", header: "Tags", hideBelow: "sm", cell: (w) => <Tags workload={w} /> },
+  { id: "cpu", header: "CPU", cell: (w) => <span className="tabular-nums">{resources(w).cpu}</span> },
+  { id: "memory", header: "Memory", cell: (w) => <span className="tabular-nums">{resources(w).memory}</span> },
+  { id: "disk", header: "Disk", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).disk}</span> },
+  { id: "network", header: "Network", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).network}</span> },
+  { id: "uptime", header: "Uptime", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span> },
+  { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} /> },
+  { id: "power", header: <span className="sr-only">Power</span>, align: "right", cell: (w) => <PowerMenu workload={w} /> },
+];
+
 /** The proxmox Page: every LXC and VM with its status, resources and IPs, and a menu of its power Actions. */
 export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   return (
     <div>
-      <PageHeader title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
-      {error && !data && <p className="text-sm text-down-text">{error.rawMessage}</p>}
-      {data && (
-        <div className="overflow-x-auto rounded-ui border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="text-left text-muted-foreground">
-              <tr className="border-b border-border">
-                <th scope="col" className="w-6 py-2 pl-4">
-                  <span className="sr-only">Status</span>
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  ID
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  Name
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  Kind
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  CPU
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  Memory
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  Disk
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  Network
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  Uptime
-                </th>
-                <th scope="col" className="px-2 py-2 font-medium">
-                  IPs
-                </th>
-                <th scope="col" className="px-2 py-2 pr-4 text-right font-medium">
-                  <span className="sr-only">Power</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.workloads.map((w) => (
-                <Row key={w.vmid} workload={w} />
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <PageTitle title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
+      {error && !data ? (
+        <Unlisted error={error} />
+      ) : (
+        <Panel flush>
+          <DataTable rows={data?.workloads ?? []} rowKey={(w) => String(w.vmid)} columns={columns} loading={!data} empty="Proxmox lists no LXCs or VMs" />
+        </Panel>
       )}
     </div>
-  );
-}
-
-function Row({ workload: w }: { workload: Workload }) {
-  const running = w.status === "running";
-  return (
-    <tr className="border-b border-border align-top last:border-b-0">
-      <td className="py-2 pl-4">
-        <StatusDot tone={tones[w.status] ?? "idle"} label={w.status} />
-      </td>
-      <td className="px-2 py-2 text-muted-foreground tabular-nums">{w.vmid}</td>
-      <th scope="row" className="px-2 py-2 text-left font-medium">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Link to={`workloads/${w.vmid}`} className="hover:underline">
-            {w.name}
-          </Link>
-          {w.template && <Badge>template</Badge>}
-          {w.tags.map((t) => (
-            <Badge key={t}>{t}</Badge>
-          ))}
-        </div>
-      </th>
-      <td className="px-2 py-2 text-muted-foreground">{kindLabel(w.kind)}</td>
-      <td className="px-2 py-2 text-muted-foreground tabular-nums">{running ? cpu(w.cpu, w.maxCpu) : `${w.maxCpu} ${w.maxCpu === 1 ? "CPU" : "CPUs"}`}</td>
-      <td className="px-2 py-2 text-muted-foreground tabular-nums">{running ? `${bytes(w.mem)} / ${bytes(w.maxMem)}` : bytes(w.maxMem)}</td>
-      <td className="px-2 py-2 text-muted-foreground tabular-nums">{w.disk ? `${bytes(w.disk)} / ${bytes(w.maxDisk)}` : bytes(w.maxDisk)}</td>
-      <td className="px-2 py-2 text-muted-foreground tabular-nums">{running ? `${bytes(w.netIn)} in · ${bytes(w.netOut)} out` : "–"}</td>
-      <td className="px-2 py-2 text-muted-foreground tabular-nums">{running ? uptime(w.uptimeSeconds) : "–"}</td>
-      <td className="px-2 py-2">
-        <Addresses workload={w} />
-      </td>
-      <td className="px-2 py-2 pr-4 text-right">
-        <PowerMenu workload={w} />
-      </td>
-    </tr>
   );
 }
 
@@ -115,11 +118,9 @@ export function Addresses({ workload: w }: { workload: Workload }) {
   return (
     <div className="flex flex-col">
       {shown.map((a) => (
-        <span key={a} className="tabular-nums">
-          {a}
-        </span>
+        <span key={a}>{a}</span>
       ))}
-      {w.addresses === AddressSource.CONFIG && <span className="text-xs text-muted-foreground">from config</span>}
+      {w.addresses === AddressSource.CONFIG && <span className="font-sans text-xs text-muted-foreground">from config</span>}
     </div>
   );
 }
