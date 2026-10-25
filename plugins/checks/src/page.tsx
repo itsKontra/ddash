@@ -124,16 +124,6 @@ function target(c: Check): string {
   return s?.target ?? "";
 }
 
-/** The tinted chip each state's icon sits in, by tone. */
-const stateChip: Record<Tone, string> = {
-  up: "bg-up-tint text-up-text",
-  down: "bg-down-tint text-down-text",
-  warn: "bg-warn-tint text-warn-text",
-  maint: "bg-maint-tint text-maint-text",
-  info: "bg-info-tint text-info-text",
-  idle: "bg-muted text-muted-foreground",
-};
-
 const stateIcon: Record<Tone, IconName> = {
   up: "circle-check",
   down: "circle-x",
@@ -146,11 +136,7 @@ const stateIcon: Record<Tone, IconName> = {
 /** A Check's state at a glance: its tone's icon on its tint, named by the state. */
 function StateIcon({ check: c }: { check: Check }) {
   const tone = toneOf(c);
-  return (
-    <span role="img" aria-label={stateLabel(c)} className={`inline-grid size-7 shrink-0 place-items-center rounded-ui-sm align-middle ${stateChip[tone]}`}>
-      <Icon name={stateIcon[tone]} size="sm" />
-    </span>
-  );
+  return <Icon name={stateIcon[tone]} size="sm" tone={tone} label={stateLabel(c)} />;
 }
 
 /**

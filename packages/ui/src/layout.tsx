@@ -6,7 +6,7 @@ import { Icon } from "./icon";
 import { Kicker } from "./kicker";
 import type { IconName } from "./icon-names";
 import { InFlush, OnHero } from "./surface";
-import { cx, toneText, toneTint, type Tone } from "./tone";
+import { cx, toneText, type Tone } from "./tone";
 
 /**
  * The top of every Page: an optional back link and kicker over the title,
@@ -163,11 +163,7 @@ export function MetricTile({
         <span id={id} className="truncate">
           {label}
         </span>
-        {icon && (
-          <span className={cx("grid size-8 shrink-0 place-items-center rounded-ui-sm", toneTint[tone])}>
-            <Icon name={icon} />
-          </span>
-        )}
+        {icon && <Icon name={icon} tone={tone} />}
       </div>
       {value === undefined ? (
         <div className="mt-1">

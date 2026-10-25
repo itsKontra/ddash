@@ -112,3 +112,23 @@ it("Icon's name is a lucide name", () => {
   // @ts-expect-error a typo is a type error
   render(<Icon name="plsu" />);
 });
+
+it("Icon with a tone sits on its tone's tint in a chip, the chip named by the label", async () => {
+  render(
+    <>
+      <Icon name="plus" tone="up" label="up" />
+      <Icon name="minus" tone="down" />
+    </>,
+  );
+  await settle();
+
+  // Spelled at run time, so this file generates no classes of its own.
+  const tint = (tone: string) => ["bg", tone, "tint"].join("-");
+  const chip = screen.getByRole("img", { name: "up" });
+  expect(chip.tagName).toBe("SPAN");
+  expect(chip.className.split(" ")).toContain(tint("up"));
+  expect(chip.querySelector("svg")!.getAttribute("aria-hidden")).toBe("true");
+  const decoration = document.querySelectorAll("svg")[1].parentElement!;
+  expect(decoration.className.split(" ")).toContain(tint("down"));
+  expect(decoration.hasAttribute("role")).toBe(false);
+});

@@ -1,5 +1,6 @@
 import { createElement, useSyncExternalStore } from "react";
 import type { IconName } from "./icon-names";
+import { cx, toneTint, type Tone } from "./tone";
 
 export type { IconName };
 
@@ -7,6 +8,7 @@ export type { IconName };
 type IconNodes = [string, Record<string, string>][];
 
 const px = { sm: 14, md: 16, lg: 20 } as const;
+const chip = { sm: "size-7", md: "size-8", lg: "size-10" } as const;
 
 export interface IconProps {
   /** A lucide icon; one lucide doesn't have draws the puzzle. */
@@ -15,13 +17,29 @@ export interface IconProps {
   size?: keyof typeof px;
   /** What the icon means, when nothing beside it says so. Without one the icon is decoration. */
   label?: string;
+  /** Sets the icon on its tone's tint in a square chip, e.g. a Check's state or a MetricTile's icon. */
+  tone?: Tone;
 }
 
 /**
  * A lucide icon, served by the core and drawn as an inline svg in
- * currentColor. While it loads, it reserves its box.
+ * currentColor. While it loads, it reserves its box. With a tone it sits
+ * in its tone's chip.
  */
-export function Icon({ name, size = "md", label }: IconProps) {
+export function Icon({ tone, ...props }: IconProps) {
+  if (tone === undefined) return <Glyph {...props} />;
+  const { label, size = "md" } = props;
+  return (
+    <span
+      className={cx("inline-grid shrink-0 place-items-center rounded-ui-sm align-middle", chip[size], toneTint[tone])}
+      {...(label ? { role: "img", "aria-label": label } : {})}
+    >
+      <Glyph {...props} label={undefined} />
+    </span>
+  );
+}
+
+function Glyph({ name, size = "md", label }: Omit<IconProps, "tone">) {
   const nodes = useSyncExternalStore(
     (onChange) => icons.subscribe(name, onChange),
     () => icons.get(name),
