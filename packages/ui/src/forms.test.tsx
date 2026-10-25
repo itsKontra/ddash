@@ -1,6 +1,6 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
-import { Button, Checkbox, Field, FormActions, SearchField, Segmented, Select, Switch, TextArea, TextInput } from "./index";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Button, Checkbox, Field, FormActions, IconPicker, SearchField, Segmented, Select, Switch, TextArea, TextInput } from "./index";
 
 afterEach(cleanup);
 
@@ -163,4 +163,119 @@ it("Switch is a named switch that reports the flipped value, and does nothing wh
   rerender(<Switch label="Ad-blocking" checked={false} disabled onChange={(v) => changes.push(v)} />);
   fireEvent.click(screen.getByRole("switch", { name: "Ad-blocking" }));
   expect(changes).toEqual([false]);
+});
+
+describe("IconPicker", () => {
+  // What GET /api/icons/search answers, by query.
+  const found: Record<string, string[]> = {
+    house: ["house", "house-cog", "house-heart", "house-plug", "house-plus", "house-wifi", "houses", "birdhouse", "lighthouse", "warehouse"],
+  };
+  let searches: string[];
+
+  beforeEach(() => {
+    searches = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      const u = new URL(url, "http://ddash");
+      if (u.pathname === "/api/icons/search") {
+        searches.push(u.searchParams.get("q")!);
+        return Response.json(found[u.searchParams.get("q")!] ?? []);
+      }
+      return Response.json(Object.fromEntries(u.searchParams.get("names")!.split(",").map((n) => [n, [["path", { d: "M5 12h14" }]]])));
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  const open = (name: string) => fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }));
+  const search = () => screen.getByRole("combobox", { name: "Search icons" });
+  const type = (q: string) => fireEvent.change(search(), { target: { value: q } });
+
+  it("inside a Field is named by the Field and shows the picked icon", () => {
+    render(
+      <Field label="Icon" hint="Drawn on the card">
+        <IconPicker label="Icon" value="server" onChange={() => {}} />
+      </Field>,
+    );
+
+    const trigger = screen.getByRole("button", { name: /^Icon/ });
+    expect(trigger.textContent).toContain("server");
+    expect(trigger.getAttribute("aria-describedby")).toBe(screen.getByText("Drawn on the card").id);
+  });
+
+  it("searches the core once typing pauses, with the last query", async () => {
+    render(<IconPicker label="Icon" value={null} onChange={() => {}} />);
+    open("Icon");
+
+    type("h");
+    type("ho");
+    type("house");
+    expect(searches).toEqual([]);
+
+    expect(await screen.findByRole("option", { name: "house-cog" })).toBeTruthy();
+    expect(searches).toEqual(["house"]);
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(found.house);
+  });
+
+  it("moves through the grid with the arrow keys, rows of eight, and picks with Enter", async () => {
+    const picked: string[] = [];
+    render(<IconPicker label="Icon" value={null} onChange={(n) => picked.push(n)} />);
+    open("Icon");
+    type("house");
+    await screen.findByRole("option", { name: "house" });
+
+    const active = () => document.getElementById(search().getAttribute("aria-activedescendant")!)?.getAttribute("aria-label");
+    expect(active()).toBe("house");
+    fireEvent.keyDown(search(), { key: "ArrowRight" });
+    expect(active()).toBe("house-cog");
+    fireEvent.keyDown(search(), { key: "ArrowDown" });
+    expect(active()).toBe("warehouse");
+    fireEvent.keyDown(search(), { key: "ArrowLeft" });
+    fireEvent.keyDown(search(), { key: "ArrowUp" });
+    expect(active()).toBe("house");
+    fireEvent.keyDown(search(), { key: "ArrowLeft" });
+    expect(active()).toBe("house");
+    fireEvent.keyDown(search(), { key: "ArrowRight" });
+    fireEvent.keyDown(search(), { key: "Enter" });
+
+    expect(picked).toEqual(["house-cog"]);
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("picks an icon on click", async () => {
+    const picked: string[] = [];
+    render(<IconPicker label="Icon" value="server" onChange={(n) => picked.push(n)} />);
+    open("Icon");
+    type("house");
+
+    fireEvent.click(await screen.findByRole("option", { name: "warehouse" }));
+
+    expect(picked).toEqual(["warehouse"]);
+  });
+
+  it("says so when nothing matches", async () => {
+    render(<IconPicker label="Icon" value={null} onChange={() => {}} />);
+    open("Icon");
+    type("zzqx");
+
+    expect(await screen.findByText(/No icons match/)).toBeTruthy();
+    expect(screen.queryAllByRole("option")).toEqual([]);
+  });
+
+  it("closes on Escape without picking, and only the picker closes", async () => {
+    const picked: string[] = [];
+    const outer: string[] = [];
+    render(
+      <div onKeyDown={(e) => outer.push(e.key)}>
+        <IconPicker label="Icon" value={null} onChange={(n) => picked.push(n)} />
+      </div>,
+    );
+    open("Icon");
+
+    fireEvent.keyDown(search(), { key: "Escape" });
+
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(picked).toEqual([]);
+    expect(outer).toEqual([]);
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /^Icon/ })));
+  });
 });

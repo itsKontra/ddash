@@ -1,5 +1,17 @@
 // The forms family: the controls an Operator sets.
-import { createContext, useContext, useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from "react";
+import { Icon, type IconName } from "./icon";
 import { cx } from "./tone";
 
 type Wiring = { id: string; "aria-describedby"?: string; "aria-invalid"?: true };
@@ -60,13 +72,9 @@ export function Checkbox({ label, ...props }: Omit<InputHTMLAttributes<HTMLInput
           {...props}
           className="peer h-4 w-4 cursor-pointer appearance-none rounded-ui-sm border border-muted-foreground bg-card transition-colors checked:border-primary checked:bg-primary disabled:cursor-not-allowed aria-invalid:border-down"
         />
-        <svg
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0.5 hidden fill-none stroke-primary-foreground stroke-3 peer-checked:block"
-        >
-          <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <span className="pointer-events-none absolute inset-0 hidden items-center justify-center text-primary-foreground peer-checked:flex">
+          <Icon name="check" size="sm" />
+        </span>
       </span>
       {label}
     </label>
@@ -80,14 +88,7 @@ export function Checkbox({ label, ...props }: Omit<InputHTMLAttributes<HTMLInput
 export function SearchField({ value, onChange, label, placeholder }: { value: string; onChange: (value: string) => void; label: string; placeholder?: string }) {
   return (
     <span className="relative block min-w-0 flex-1">
-      <svg
-        viewBox="0 0 24 24"
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 fill-none stroke-muted-foreground stroke-2"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="m20 20-3.5-3.5" strokeLinecap="round" />
-      </svg>
+      <Magnifier />
       <input
         type="search"
         aria-label={label}
@@ -106,16 +107,21 @@ export function SearchField({ value, onChange, label, placeholder }: { value: st
   );
 }
 
-/** An up/down chevron pair drawn at the end of a Select; Icon arrives with the icon family. */
+/** The search icon at the start of a search box. */
+function Magnifier() {
+  return (
+    <span className="pointer-events-none absolute top-1/2 left-3 flex -translate-y-1/2 text-muted-foreground">
+      <Icon name="search" />
+    </span>
+  );
+}
+
+/** An up/down chevron pair drawn at the end of a Select. */
 function Chevrons() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className="pointer-events-none absolute top-1/2 right-2.5 h-3.5 w-3.5 -translate-y-1/2 fill-none stroke-muted-foreground stroke-2"
-    >
-      <path d="m7 15 5 5 5-5M7 9l5-5 5 5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <span className="pointer-events-none absolute top-1/2 right-2.5 flex -translate-y-1/2 text-muted-foreground">
+      <Icon name="chevrons-up-down" size="sm" />
+    </span>
   );
 }
 
@@ -227,5 +233,169 @@ export function Switch({ id, checked, onChange, label, disabled }: { id?: string
         )}
       />
     </button>
+  );
+}
+
+/** The icon grid's columns, which ArrowUp and ArrowDown step by. */
+const pickerColumns = 8;
+
+/** How long typing pauses before IconPicker searches the core. */
+const searchDelay = 250;
+
+/** What IconPicker's search found for a query: the matching names, or a failure. */
+type Found = { q: string; names: string[] } | { q: string; failed: true };
+
+/**
+ * Picks a lucide icon by name, e.g. a record's icon. A button showing the
+ * icon opens a popover: typing searches the core's icons by name and tag,
+ * the arrow keys move through the grid and Enter picks. Inside a Field it
+ * takes the Field's label.
+ */
+export function IconPicker({ value, onChange, label }: { value: string | null; onChange: (name: string) => void; label: string }) {
+  const wiring = useWiring();
+  const inField = useContext(FieldContext) !== null;
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const close = () => {
+    setOpen(false);
+    trigger.current?.focus();
+  };
+  return (
+    <span className="relative inline-block">
+      <button
+        ref={trigger}
+        type="button"
+        {...wiring}
+        aria-label={inField ? undefined : label}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className={cx(control, "inline-flex h-9 w-auto cursor-pointer items-center gap-2 bg-card")}
+      >
+        {value ? (
+          <>
+            <Icon name={value as IconName} />
+            <span className="font-mono text-xs">{value}</span>
+          </>
+        ) : (
+          <span className="text-muted-foreground">Choose an icon</span>
+        )}
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <IconSearch
+            label={label}
+            onPick={(name) => {
+              onChange(name);
+              close();
+            }}
+            onClose={close}
+          />
+        </>
+      )}
+    </span>
+  );
+}
+
+const gridStep: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: pickerColumns, ArrowUp: -pickerColumns };
+
+/** IconPicker's popover: the search box over the grid of what it finds. */
+function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: string) => void; onClose: () => void }) {
+  const id = useId();
+  const [q, setQ] = useState("");
+  const [found, setFound] = useState<Found | null>(null);
+  const [active, setActive] = useState(0);
+  const query = q.trim();
+
+  useEffect(() => {
+    if (query === "") return;
+    let stale = false;
+    const timer = setTimeout(async () => {
+      let next: Found;
+      try {
+        const res = await globalThis.fetch(`/api/icons/search?q=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error(`GET /api/icons/search: ${res.status}`);
+        next = { q: query, names: (await res.json()) as string[] };
+      } catch {
+        next = { q: query, failed: true };
+      }
+      if (stale) return;
+      setFound(next);
+      setActive(0);
+    }, searchDelay);
+    return () => {
+      stale = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const shown = query !== "" && found?.q === query ? found : null;
+  const names = shown && "names" in shown ? shown.names : [];
+
+  return (
+    <div
+      role="dialog"
+      aria-label={label}
+      className="absolute left-0 z-40 mt-1 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-2 rounded-ui-lg border border-border bg-card p-2 shadow-elevation-raised"
+    >
+      <span className="relative block">
+        <Magnifier />
+        <input
+          type="text"
+          role="combobox"
+          aria-label="Search icons"
+          aria-expanded={names.length > 0}
+          aria-controls={`${id}-grid`}
+          aria-activedescendant={names.length > 0 ? `${id}-${active}` : undefined}
+          aria-autocomplete="list"
+          autoFocus
+          value={q}
+          placeholder="Search icons"
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose();
+            } else if (e.key === "Enter") {
+              e.preventDefault();
+              if (names[active]) onPick(names[active]);
+            } else if (gridStep[e.key] !== undefined) {
+              e.preventDefault();
+              const next = active + gridStep[e.key];
+              if (next >= 0 && next < names.length) setActive(next);
+            }
+          }}
+          className={cx(control, "h-9 bg-background pl-9 focus:bg-card")}
+        />
+      </span>
+      <div id={`${id}-grid`} role="listbox" aria-label={`${label} results`} className="grid max-h-64 grid-cols-8 gap-1 overflow-y-auto">
+        {names.map((n, i) => (
+          <div
+            key={n}
+            id={`${id}-${i}`}
+            role="option"
+            aria-label={n}
+            aria-selected={i === active}
+            title={n}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onPick(n)}
+            className={cx(
+              "flex aspect-square cursor-pointer items-center justify-center rounded-ui-sm transition-colors",
+              i === active ? "bg-primary-tint text-primary" : "text-foreground hover:bg-muted",
+            )}
+          >
+            <Icon name={n as IconName} />
+          </div>
+        ))}
+      </div>
+      {shown && names.length === 0 && (
+        <p className="px-1 py-2 text-xs text-muted-foreground">
+          {"failed" in shown ? "Couldn't search the icons. Try again." : `No icons match “${shown.q}”.`}
+        </p>
+      )}
+      {query === "" && <p className="px-1 py-2 text-xs text-muted-foreground">Type a name or a word, e.g. server.</p>}
+    </div>
   );
 }
