@@ -219,6 +219,20 @@ it("shows a Nav Entry's badge, and drops a badge that crashes without breaking t
   quiet.mockRestore();
 });
 
+it("draws a Nav Entry's badge on its tone's tint, in its tone's text for the nav", async () => {
+  await boot("/", [
+    [
+      installed("checks", "Checks"),
+      definePlugin({ nav: { order: 20, useBadge: () => ({ count: 3, tone: "down" }) }, pages: [{ index: true, Component: page("c") }] }),
+    ],
+  ]);
+
+  // Spelled at run time, so this file generates no classes of its own.
+  const badge = within(screen.getByRole("link", { name: "Checks3" })).getByText("3").className.split(" ");
+  expect(badge).toContain(["bg", "down", "tint"].join("-"));
+  expect(badge).toContain(["text", "nav", "down"].join("-"));
+});
+
 it("shows a badge's text in place of a count", async () => {
   await boot("/", [
     [

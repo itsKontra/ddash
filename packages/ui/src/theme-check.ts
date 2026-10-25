@@ -75,6 +75,19 @@ export function aaFailures(theme: Theme): string[] {
     bar("nav-foreground", navAndHero, 4.5);
     bar("nav-strong", navAndHero, 4.5);
     bar("nav-accent", ["hero-from", "hero-to"], 3);
+    // A Nav Entry's badge: its tone's nav text on its tint, over the nav and its states.
+    const strong = colour("nav-strong");
+    for (const tone of tones) {
+      const fill = colour(tone);
+      if (!fill || !strong) continue;
+      const tinted = ["nav", "nav-hover", "nav-active"].map((row) => {
+        const name = `${tone}-tint over ${row}`;
+        const under = surfaces.get(row);
+        surface(name, under && mix(fill, 0.12, under));
+        return name;
+      });
+      bar(`nav-${tone}`, tinted, 4.5, mix(fill, 0.6, strong));
+    }
   }
   return [...new Set(failures)];
 }
