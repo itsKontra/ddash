@@ -1,7 +1,9 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Status, type Widget } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import type { Status, Widget } from "@ddash/plugin";
+import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { docker } from "./testing";
 
 afterEach(cleanup);
 
@@ -21,27 +23,28 @@ const containers = () => plugin.widgets!.find((w) => w.id === "containers")!;
 
 // Renders the Widget's body at size, against docker-api answering with
 // answer, and returns what its useStatus reported last.
-async function show(answer: Response | (() => Response), size: "S" | "M" = "S") {
+async function show(answer: Answer, size: "S" | "M" = "S") {
   const w = containers();
-  const fetch = vi.fn(async () => (typeof answer === "function" ? answer() : answer.clone()));
   const reported: { status?: Status } = {};
   function Probe({ widget }: { widget: Widget }) {
     reported.status = widget.useStatus();
     return null;
   }
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "docker", requires: ["docker-api"] }} fetch={fetch}>
-        <Probe widget={w} />
-        <section aria-label="widget">
-          <w.Body size={size} />
-        </section>
-      </PluginScope>
-    </PluginHost>,
+  renderScoped(
+    docker,
+    <>
+      <Probe widget={w} />
+      <section aria-label="widget">
+        <w.Body size={size} />
+      </section>
+    </>,
+    { answers: { ListContainers: answer } },
   );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
+  await settle();
   return reported;
 }
+
+const widget = () => screen.getByRole("region", { name: "widget" });
 
 it("is the containers Widget, S or M, S by default", () => {
   const w = containers();
@@ -49,21 +52,21 @@ it("is the containers Widget, S or M, S by default", () => {
 });
 
 it("reports up with the running count while every container is fine", async () => {
-  const reported = await show(Response.json(healthy));
+  const reported = await show(() => Response.json(healthy));
 
   expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 running" });
 });
 
 it("shows the counts at S, and each host's at M", async () => {
-  await show(Response.json(healthy));
+  await show(() => Response.json(healthy));
   const s = screen.getByRole("region", { name: "widget" });
-  expect(within(s).getByRole("group", { name: "running" }).textContent).toBe("running2");
-  expect(within(s).getByRole("group", { name: "containers" }).textContent).toBe("containers3");
+  expect(metricValue("running", s)).toBe("2");
+  expect(metricValue("containers", s)).toBe("3");
   expect(within(s).queryByRole("group", { name: "need attention" })).toBeNull();
   expect(within(s).queryByRole("definition")).toBeNull();
   cleanup();
 
-  await show(Response.json({ hosts: [...healthy.hosts, { host: "nas", error: "connection refused" }] }), "M");
+  await show(() => Response.json({ hosts: [...healthy.hosts, { host: "nas", error: "connection refused" }] }), "M");
   const m = screen.getByRole("region", { name: "widget" });
   const facts = within(m)
     .getAllByRole("term")
@@ -72,18 +75,15 @@ it("shows the counts at S, and each host's at M", async () => {
 });
 
 it("counts the containers that need attention", async () => {
-  await show(Response.json({ hosts: [{ host: "media", containers: [container("sonarr", "restarting", "Restarting (1) 5 seconds ago")] }] }));
+  await show(() => Response.json({ hosts: [{ host: "media", containers: [container("sonarr", "restarting", "Restarting (1) 5 seconds ago")] }] }));
 
-  const s = screen.getByRole("region", { name: "widget" });
-  expect(within(s).getByRole("group", { name: "need attention" }).textContent).toBe("need attention1");
+  expect(metricValue("need attention", widget())).toBe("1");
 });
 
 it("draws its tiles as skeletons until docker-api first answers", async () => {
-  await show(() => new Promise<Response>(() => {}) as unknown as Response);
+  await show(pending);
 
-  const s = screen.getByRole("region", { name: "widget" });
-  expect(within(s).getByRole("group", { name: "running" })).toBeTruthy();
-  expect(within(s).getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
+  expect(metricValue("running", widget())).toBeUndefined();
 });
 
 it("reports warn when a container is unhealthy or restarting", async () => {
@@ -100,25 +100,25 @@ it("reports warn when a container is unhealthy or restarting", async () => {
     ],
   };
 
-  const reported = await show(Response.json(troubled));
+  const reported = await show(() => Response.json(troubled));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "1 unhealthy · 1 restarting" });
 });
 
 it("reports warn when docker-api is unavailable", async () => {
-  const reported = await show(() => Response.json({ code: "unavailable", message: "docker-api is down" }, { status: 503 }));
+  const reported = await show(() => unavailable("docker-api is down"));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "docker-api unavailable: docker-api is down" });
 });
 
 it("reports warn when a Docker host can't be read", async () => {
-  const reported = await show(Response.json({ hosts: [...healthy.hosts, { host: "nas", error: "connection refused" }] }));
+  const reported = await show(() => Response.json({ hosts: [...healthy.hosts, { host: "nas", error: "connection refused" }] }));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "nas unreadable" });
 });
 
 it("reports nothing until docker-api first answers", async () => {
-  const reported = await show(() => new Promise<Response>(() => {}) as unknown as Response);
+  const reported = await show(pending);
 
   expect(reported.status).toBeUndefined();
 });
