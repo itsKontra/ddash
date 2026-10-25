@@ -2,12 +2,16 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
+	"strings"
 	"time"
+
+	"github.com/itsKontra/ddash/core/icons"
 )
 
 // Plugin bundles are served at bundlePrefix<name>/<release>/ from the
@@ -82,6 +86,28 @@ func (h *Host) index(w http.ResponseWriter, r *http.Request) {
 	}
 	b = bytes.ReplaceAll(b, []byte(ReleasePlaceholder), []byte(h.runtime.Release()))
 	serveContent(w, r, "index.html", b, cacheNone)
+}
+
+// iconsPath serves lucide icons: GET iconsPath?names=a,b&release=<release>.
+const iconsPath = "/api/icons"
+
+// icons serves GET /api/icons: each named icon's lucide elements, by name,
+// the puzzle's for an unknown name. The URL carries the Release, so the
+// running Release's icons are immutable.
+func (h *Host) icons(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	b, err := json.Marshal(icons.Nodes(strings.Split(q.Get("names"), ",")))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	cache := cacheNone
+	if rel := q.Get("release"); rel == h.runtime.Release() {
+		cache = versioned(rel)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", cache)
+	w.Write(b)
 }
 
 // versioned is the Cache-Control of a path versioned by rel.

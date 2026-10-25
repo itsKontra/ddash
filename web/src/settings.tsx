@@ -1,7 +1,6 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { CoreService, Theme } from "@ddash/proto/ddash/core/core_pb";
-import { cx, PageHeader, Switch } from "@ddash/ui";
-import { ChevronRight, ScrollText, type LucideIcon } from "lucide-react";
+import { cx, Icon, PageHeader, Switch, type IconName } from "@ddash/ui";
 import { Link, Route, Routes } from "react-router";
 import { themeName, useScheme } from "./appearance";
 import { AuditLog } from "./audit-log";
@@ -24,7 +23,7 @@ function Overview() {
       <PageHeader title="Settings" />
       <Appearance />
       <ul className="divide-y divide-border rounded-ui border border-border bg-card">
-        <Entry to="audit-log" icon={ScrollText} title="Audit Log" description="Every Action ddash took, kept for a year." />
+        <Entry to="audit-log" icon="scroll-text" title="Audit Log" description="Every Action ddash took, kept for a year." />
       </ul>
     </div>
   );
@@ -85,16 +84,20 @@ function Appearance() {
   );
 }
 
-function Entry({ to, icon: Icon, title, description }: { to: string; icon: LucideIcon; title: string; description: string }) {
+function Entry({ to, icon, title, description }: { to: string; icon: IconName; title: string; description: string }) {
   return (
     <li>
       <Link to={to} className="flex items-center gap-3 px-4 py-3 hover:bg-muted">
-        <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />
+        <span className="flex text-muted-foreground">
+          <Icon name={icon} size="lg" />
+        </span>
         <span>
           <span className="block font-medium">{title}</span>
           <span className="block text-sm text-muted-foreground">{description}</span>
         </span>
-        <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden />
+        <span className="ml-auto flex text-muted-foreground">
+          <Icon name="chevron-right" />
+        </span>
       </Link>
     </li>
   );

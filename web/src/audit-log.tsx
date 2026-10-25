@@ -1,8 +1,7 @@
 import { durationMs, timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@ddash/plugin";
 import { CoreService, type AuditChain, type AuditEntry } from "@ddash/proto/ddash/core/core_pb";
-import { Badge, cx, PageHeader, type Tone } from "@ddash/ui";
-import { ChevronRight } from "lucide-react";
+import { Badge, cx, Icon, PageHeader, type Tone } from "@ddash/ui";
 import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
 
 /** What the Audit Log is filtered by; empty means any. */
@@ -155,7 +154,9 @@ function Chain({ chain }: { chain: AuditChain }) {
         onClick={() => setOpen((o) => !o)}
         className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-left text-sm hover:bg-muted"
       >
-        <ChevronRight aria-hidden className={cx("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
+        <span className={cx("flex shrink-0 text-muted-foreground transition-transform", open && "rotate-90")}>
+          <Icon name="chevron-right" />
+        </span>
         <EntryLine entry={root} />
         {rest.length > 0 && (
           <span className="text-muted-foreground">

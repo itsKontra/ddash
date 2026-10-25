@@ -1,12 +1,11 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, useQuery, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Badge, Button, cx, PageHeader, StatusDot } from "@ddash/ui";
+import { Badge, Button, cx, Icon, PageHeader, StatusDot, type IconName } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
 import { ErrorBoundary, ErrorFrame } from "./boundary";
 import { Catalogue } from "./catalogue";
-import { icon } from "./icons";
 import { navItems, type NavItem } from "./nav";
 import { Overview, useOverviewLayout } from "./overview";
 import { HostWatch, ReachContext, unreachableText, useReach } from "./reach";
@@ -126,8 +125,8 @@ function Operator() {
   );
 }
 
-function Link({ to, label, icon: name, aside, end }: { to: string; label: string; icon: string; aside?: ReactNode; end?: boolean }) {
-  const Icon = icon(name);
+/** icon is a lucide name, a plain string when it comes from a manifest. */
+function Link({ to, label, icon, aside, end }: { to: string; label: string; icon: string; aside?: ReactNode; end?: boolean }) {
   return (
     <NavLink
       to={to}
@@ -136,7 +135,7 @@ function Link({ to, label, icon: name, aside, end }: { to: string; label: string
         cx("flex items-center gap-3 rounded-ui px-3 py-2 text-sm", isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted")
       }
     >
-      <Icon className="h-4 w-4" aria-hidden />
+      <Icon name={icon as IconName} />
       {label}
       {aside && <span className="ml-auto flex items-center">{aside}</span>}
     </NavLink>

@@ -36,6 +36,8 @@ function importMapped(): Plugin {
       order: "pre",
       handler: () => [
         { tag: "script", attrs: { type: "importmap" }, children: JSON.stringify(importMap(release)), injectTo: "head-prepend" },
+        // @ddash/ui's Icon puts the Release in its icon URLs, so they cache immutably.
+        { tag: "meta", attrs: { name: "ddash-release", content: release }, injectTo: "head-prepend" },
       ],
     },
   };
@@ -52,8 +54,8 @@ export default defineConfig({
     tailwindcss(),
   ],
   oxc: jsx,
-  // No pre-bundling: it would bundle its own React into deps such as
-  // lucide-react. The shell's other deps are ESM and served as they are.
+  // No pre-bundling: it would bundle its own React into deps that import
+  // it. The shell's other deps are ESM and served as they are.
   optimizeDeps: { noDiscovery: true, include: [], exclude: importMapPackages },
   build: {
     outDir: "dist/shell",
