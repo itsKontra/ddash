@@ -162,7 +162,7 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
     <div className="flex flex-col gap-6">
       {draft && <EditBar changed={changed} onAdd={() => setAdding(true)} onCancel={cancel} onDone={done} />}
       <PageTitle
-        kicker="Dashboard"
+        kicker="Main"
         title="Overview"
         subtitle="Every Widget's latest report. Arrange the grid with Edit."
         actions={
