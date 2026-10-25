@@ -97,7 +97,10 @@ const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 
 const cards = () => within(screen.getByRole("list", { name: "Widgets" })).queryAllByRole("listitem");
 const card = (title: string) => within(screen.getByRole("list", { name: "Widgets" })).getByRole("listitem", { name: title });
-const hero = () => screen.getByRole("region", { name: "Status" });
+// The HeroCard: the region named by its headline, under the "Status" kicker.
+const hero = () => screen.getByText("Status").closest("section")!;
+const headline = () => within(hero()).getByRole("heading", { level: 2 }).textContent;
+const overall = () => within(hero()).getByRole("img", { name: /^Overall: / }).getAttribute("aria-label");
 const problems = () =>
   within(hero())
     .queryAllByRole("listitem")
@@ -166,7 +169,7 @@ it("reconciles on every page, so an uninstall from the Catalogue forgets the Plu
   expect(saves).toEqual([{ entries: [], seen: [] }]);
 });
 
-it("the Hero lists the placed Widgets that aren't up, ignoring one that hasn't reported", async () => {
+it("the hero lists the placed Widgets that aren't up, ignoring one that hasn't reported", async () => {
   plugins = [
     [
       installed("checks", "Checks"),
@@ -184,21 +187,114 @@ it("the Hero lists the placed Widgets that aren't up, ignoring one that hasn't r
   await boot();
 
   expect(problems()).toEqual(["Checkspaperless down 14 min", "VPNon the fallback"]);
-  expect(within(hero()).getByRole("img", { name: "down" })).toBeTruthy();
-  expect(hero().textContent).toContain("2 Widgets need attention");
+  expect(within(hero()).getAllByRole("img", { name: /^(down|warn)$/ }).map((d) => d.getAttribute("aria-label"))).toEqual(["down", "warn"]);
+  expect(overall()).toBe("Overall: down");
+  expect(headline()).toBe("2 Widgets need attention");
+  expect(screen.getByRole("region", { name: "2 Widgets need attention" })).toBe(hero());
 });
 
-it("the Hero says everything is up when every reporting Widget is", async () => {
+it("the hero says everything is up when every reporting Widget is", async () => {
   plugins = [[installed("docker", "Docker"), docker()]];
 
   await boot();
 
   expect(problems()).toEqual([]);
-  expect(within(hero()).getByRole("img", { name: "up" })).toBeTruthy();
-  expect(hero().textContent).toContain("Everything is up");
+  expect(overall()).toBe("Overall: up");
+  expect(headline()).toBe("Everything is up");
 });
 
-it("shows a Widget whose body or status crashes as an error frame, reported to the Hero at warn", async () => {
+const mixed = () =>
+  definePlugin({
+    widgets: [
+      widget("a", "Alpha", up("a"), "S"),
+      widget("b", "Bravo", up("b"), "S"),
+      widget("c", "Charlie", { tone: "down", summary: "gone" }, "S"),
+      widget("d", "Delta", { tone: "warn", summary: "flapping" }, "S"),
+      widget("e", "Echo", { tone: "maint", summary: "patching" }, "S"),
+      widget("f", "Foxtrot", undefined, "S"),
+    ],
+  });
+
+it("the hero's foot counts the placed, reporting and up Widgets, and its ring shows the share up", async () => {
+  plugins = [[installed("lab", "Lab"), mixed()]];
+
+  await boot();
+
+  const foot = within(hero()).getByRole("img", { name: /^Overall: / }).parentElement!;
+  expect([...foot.children].slice(1).map((s) => s.textContent)).toEqual(["6 Widgets on the Overview", "5 reporting", "2 up"]);
+  const ring = within(hero()).getByRole("meter", { name: "Widgets up" });
+  expect(ring.getAttribute("aria-valuenow")).toBe("33");
+  expect(ring.getAttribute("aria-valuetext")).toBe("33%");
+});
+
+it("the hero clamps its problems to the first three and says how many more there are", async () => {
+  plugins = [
+    [
+      installed("lab", "Lab"),
+      definePlugin({ widgets: ["One", "Two", "Three", "Four", "Five"].map((t) => widget(t.toLowerCase(), t, { tone: "warn", summary: "slow" }, "S")) }),
+    ],
+  ];
+
+  await boot();
+
+  expect(problems()).toEqual(["Oneslow", "Twoslow", "Threeslow"]);
+  expect(within(hero()).getByText("and 2 more")).toBeTruthy();
+});
+
+it("the hero has no ring while nothing is on the Overview", async () => {
+  await boot();
+
+  expect(headline()).toBe("No Widgets on the Overview");
+  expect(within(hero()).queryByRole("meter")).toBeNull();
+});
+
+it("four metric tiles count the reporting Widgets that are up, need attention, are down and are in Maintenance", async () => {
+  plugins = [[installed("lab", "Lab"), mixed()]];
+
+  await boot();
+
+  const tiles = ["Up", "Needs attention", "Down", "Maintenance"].map((label) => screen.getByRole("group", { name: label }));
+  expect(tiles.map((t) => t.textContent)).toEqual(["Up2", "Needs attention1", "Down1", "Maintenance1"]);
+  // Each tile's icon chip carries its tone's tint.
+  const chipTone = (tile: HTMLElement) => tile.querySelector("[class*='-tint']")?.className.match(/bg-(\w+)-tint/)?.[1];
+  expect(tiles.map(chipTone)).toEqual(["up", "warn", "down", "maint"]);
+});
+
+it("the metric tiles load until the layout has come", async () => {
+  intercept = (method) => (method === "GetLayout" ? new Promise<Response>(() => {}) : undefined);
+
+  await boot();
+
+  expect(within(screen.getByRole("group", { name: "Up" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+});
+
+it("lays the Widget grid out in one column on phones, two from small screens and four from wide ones", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "L" },
+      { widget: "lab.b", size: "S" },
+      { widget: "lab.c", size: "M" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+
+  await boot();
+
+  const cols = (el: Element, prefix: string) => el.className.split(" ").filter((c) => c.startsWith(prefix));
+  const grid = screen.getByRole("list", { name: "Widgets" });
+  expect(cols(grid, "grid-cols-").concat(cols(grid, "sm:grid-cols-"), cols(grid, "xl:grid-cols-"))).toEqual([
+    "grid-cols-1",
+    "sm:grid-cols-2",
+    "xl:grid-cols-4",
+  ]);
+  // A wide Widget spans both columns from small screens on, never more than the phone's one.
+  expect(cols(card("Alpha"), "col-span-").concat(cols(card("Alpha"), "sm:col-span-"))).toEqual(["col-span-1", "sm:col-span-2"]);
+  expect(cols(card("Charlie"), "sm:col-span-")).toEqual(["sm:col-span-2"]);
+  expect(cols(card("Bravo"), "sm:col-span-")).toEqual([]);
+});
+
+it("shows a Widget whose body or status crashes as an error frame, reported to the hero at warn", async () => {
   const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
   const crashingBody: Widget = {
     ...widget("guests", "Guests", up("4 running"), "S"),
@@ -222,7 +318,7 @@ it("shows a Widget whose body or status crashes as an error frame, reported to t
   expect(within(card("Guests")).getByRole("alert").textContent).toMatch(/Guests failed to render.*body boom/);
   expect(within(card("nginx")).getByRole("alert").textContent).toMatch(/nginx failed to render.*status boom/);
   expect(problems()).toEqual(["GuestsGuests failed to render", "nginxnginx failed to render"]);
-  expect(within(hero()).getByRole("img", { name: "warn" })).toBeTruthy();
+  expect(overall()).toBe("Overall: warn");
   quiet.mockRestore();
 });
 
@@ -353,7 +449,7 @@ it("in Edit mode the Operator drags a Widget to another's place", async () => {
 
 const badGateway = () => new Response("<html>Bad Gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } });
 
-it("shows the unreachable banner from a 5xx until the next success, with the Hero at warn meanwhile", async () => {
+it("shows the unreachable banner from a 5xx until the next success, with the hero at warn meanwhile", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 9, 20, 8, 5));
   plugins = [[installed("docker", "Docker"), docker()]];
@@ -368,14 +464,14 @@ it("shows the unreachable banner from a 5xx until the next success, with the Her
   await boot(); // appending Containers saves, and that save fails
 
   expect(screen.getByRole("status").textContent).toBe("ddash unreachable, showing data from 08:05");
-  expect(within(hero()).getByRole("img", { name: "warn" })).toBeTruthy();
+  expect(overall()).toBe("Overall: warn");
 
   edit();
   fireEvent.click(within(card("Containers")).getByRole("radio", { name: "M" }));
   await done();
 
   expect(screen.queryByRole("status")).toBeNull();
-  expect(within(hero()).getByRole("img", { name: "up" })).toBeTruthy();
+  expect(overall()).toBe("Overall: up");
 });
 
 it("shows the unreachable banner when the network fails", async () => {

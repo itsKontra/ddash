@@ -1,18 +1,23 @@
 import type { Status, Tone } from "@ddash/plugin";
-import type { HeroProblem } from "@ddash/ui";
+/** One line of the hero's caption: a placed Widget that isn't up. */
+export interface Problem {
+  title: string;
+  tone: Tone;
+  summary: string;
+}
 
-/** What the Hero shows. */
+/** What the hero shows. */
 export interface HeroState {
   tone: Tone;
   headline: string;
-  problems: HeroProblem[];
+  problems: Problem[];
 }
 
 const worse: Tone[] = ["down", "warn", "maint", "idle", "up"];
 
 /**
- * The Hero over the placed Widgets, in grid order, with each one's status
- * (undefined until it first reports, which the Hero ignores). It lists the
+ * The hero over the placed Widgets, in grid order, with each one's status
+ * (undefined until it first reports, which the hero ignores). It lists the
  * Widgets whose tone isn't up and takes the worst tone among them. While
  * ddash is unreachable its tone is at least warn, since what's on screen
  * may be stale.

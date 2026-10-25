@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router";
 import { StatusDot } from "./atoms";
 import { Icon } from "./icon";
 import { Menu, type MenuItem } from "./overlays";
+import { useOnHero } from "./surface";
 import { cx, type Tone } from "./tone";
 
 /**
@@ -105,6 +106,9 @@ export interface StatusItem {
  */
 export function StatusList({ items, timeline }: { items: readonly StatusItem[]; timeline?: boolean }) {
   const List = timeline ? "ol" : "ul";
+  // On the hero the details take the caption's colour (Theme rule: hero text reuses the nav set).
+  const hero = useOnHero();
+  const quiet = hero ? undefined : "text-muted-foreground";
   return (
     <List
       data-timeline={timeline || undefined}
@@ -120,10 +124,10 @@ export function StatusList({ items, timeline }: { items: readonly StatusItem[]; 
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-3">
-              <div className="min-w-0 truncate text-sm font-semibold">{it.title}</div>
-              {it.aside !== undefined && <div className="shrink-0 text-xs text-muted-foreground tabular-nums">{it.aside}</div>}
+              <div className={cx("min-w-0 truncate text-sm font-semibold", hero && "text-nav-strong")}>{it.title}</div>
+              {it.aside !== undefined && <div className={cx("shrink-0 text-xs tabular-nums", quiet)}>{it.aside}</div>}
             </div>
-            {it.meta !== undefined && <div className="mt-0.5 text-xs text-muted-foreground">{it.meta}</div>}
+            {it.meta !== undefined && <div className={cx("mt-0.5 text-xs", quiet)}>{it.meta}</div>}
             {it.body !== undefined && <div className="mt-2 min-w-0">{it.body}</div>}
           </div>
         </li>
