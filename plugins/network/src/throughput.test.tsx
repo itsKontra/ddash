@@ -1,7 +1,9 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Status, type Widget } from "@ddash/plugin";
+import { act, cleanup, screen, within } from "@testing-library/react";
+import type { Status } from "@ddash/plugin";
+import { renderScoped, unavailable } from "@ddash/plugin/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import plugin from "./index";
+import { network } from "./testing";
 
 beforeEach(() => vi.useFakeTimers({ now: new Date("2026-10-20T08:00:00Z") }));
 
@@ -10,6 +12,8 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// The Widget polls on fake timers, so this settle advances them; the
+// shared one waits on real ones.
 const settle = async () => {
   for (let i = 0; i < 5; i++) await act(() => vi.advanceTimersByTimeAsync(1));
 };
@@ -30,27 +34,30 @@ const throughput = () => plugin.widgets!.find((w) => w.id === "throughput")!;
 async function show(...answers: (() => Response)[]) {
   const w = throughput();
   const requests: { since?: string }[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(new URL(String(input), "http://ddash.test").pathname).toBe("/api/c/network/ddash.network.NetworkService/GetThroughput");
-    requests.push(JSON.parse(new TextDecoder().decode(init?.body as Uint8Array)));
-    return (answers.length > 1 ? answers.shift()! : answers[0])();
-  });
   const reported: { status?: Status } = {};
-  function Probe({ widget }: { widget: Widget }) {
-    reported.status = widget.useStatus();
+  function Probe() {
+    reported.status = w.useStatus();
     return null;
   }
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-        <Probe widget={w} />
-        <section aria-label="widget">
-          <w.Body size="M" />
-        </section>
-      </PluginScope>
-    </PluginHost>,
+  const calls = renderScoped(
+    network,
+    <>
+      <Probe />
+      <section aria-label="widget">
+        <w.Body size="M" />
+      </section>
+    </>,
+    {
+      answers: {
+        GetThroughput: (body) => {
+          requests.push(body as { since?: string });
+          return (answers.length > 1 ? answers.shift()! : answers[0])();
+        },
+      },
+    },
   );
   await settle();
+  expect(new Set(calls.map((c) => c.url))).toEqual(new Set(["/api/c/network/ddash.network.NetworkService/GetThroughput"]));
   return { reported, requests };
 }
 
@@ -124,7 +131,7 @@ it("reports warn when network can't read the counters", async () => {
 });
 
 it("reports warn when network is unavailable", async () => {
-  const { reported } = await show(() => Response.json({ code: "unavailable", message: "network is down" }, { status: 503 }));
+  const { reported } = await show(() => unavailable("network is down"));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "network unavailable: network is down" });
 });

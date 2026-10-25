@@ -88,7 +88,7 @@ export interface ScopedOptions {
   /** How the Components answer, by method name. */
   answers?: Answers;
   /** What a method without an answer gets, e.g. an Action; {} by default. */
-  unanswered?: (method: string, body: unknown) => Response;
+  unanswered?: (method: string, body: unknown) => Response | Promise<Response>;
   /** The installed Plugins, for usePluginLink; none by default. */
   installed?: string[];
   /** Where the router starts; "/" by default. */

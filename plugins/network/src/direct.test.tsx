@@ -1,8 +1,8 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { settle, type Answers, type Call } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { show as showNetwork } from "./testing";
 
 afterEach(cleanup);
 
@@ -30,45 +30,17 @@ const tablet = {
 };
 const devices = { bypassAlias: "VPN_BYPASS", devices: [tv, laptop, tablet] };
 
-interface Call {
-  method: string;
-  body: unknown;
-}
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
-
-function PluginPages() {
-  return useRoutes(plugin.pages!);
-}
 
 // Shows the network Plugin at path with network answering by method name
 // (Actions {} unless given), and returns the calls with their JSON bodies.
-async function show(path: string, answers: Record<string, () => Response> = {}) {
-  const calls: Call[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const method = String(input).split("/").pop()!;
-    const raw = init?.body;
-    calls.push({ method, body: raw ? JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw as Uint8Array)) : undefined });
-    const all: Record<string, () => Response> = {
+const show = (path: string, answers: Answers = {}) =>
+  showNetwork(
+    path,
+    {
       ListDevices: () => Response.json(devices),
       ...answers,
-    };
-    return all[method]?.() ?? Response.json({});
-  });
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/network/*" element={<PluginPages />} />
-          </Routes>
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
+    },
   );
-  await settle();
-  return calls;
-}
 
 const setDirect = (calls: Call[]) => calls.filter((c) => c.method === "SetDirect").map((c) => c.body as { mac: string; direct?: boolean });
 

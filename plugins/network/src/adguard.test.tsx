@@ -1,8 +1,8 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Status, type Widget } from "@ddash/plugin";
-import { MemoryRouter } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen, within } from "@testing-library/react";
+import { metricValue, renderScoped, settle, showWidget as show, unavailable, type Answers } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { withAdguard } from "./testing";
 
 afterEach(cleanup);
 
@@ -23,41 +23,11 @@ const stats = {
   topClients: [{ name: "198.18.1.150", count: "6120" }],
 };
 
-type Answers = Record<string, () => Response>;
 
-function fakeFetch(answers: Answers) {
-  return vi.fn(async (input: RequestInfo | URL) => {
-    const method = String(input).split("/").pop()!;
-    return (answers[method] ?? (() => Response.json({})))();
-  });
-}
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
-const scope = { name: "network", requires: ["network", "pfsense-api", "adguard-api"] };
 
 const widget = () => plugin.widgets!.find((w) => w.id === "adguard")!;
 
-async function showWidget(answers: Answers) {
-  const w = widget();
-  const fetch = fakeFetch(answers);
-  const reported: { status?: Status } = {};
-  function Probe({ widget }: { widget: Widget }) {
-    reported.status = widget.useStatus();
-    return null;
-  }
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={scope} fetch={fetch}>
-        <Probe widget={w} />
-        <section aria-label="widget">
-          <w.Body size="S" />
-        </section>
-      </PluginScope>
-    </PluginHost>,
-  );
-  await settle();
-  return { reported, fetch };
-}
+const showWidget = (answers: Answers) => show(withAdguard, widget(), { answers });
 
 it("is the adguard Widget, S only", () => {
   const w = widget();
@@ -65,14 +35,14 @@ it("is the adguard Widget, S only", () => {
 });
 
 it("is up while protection is on, with the share of the day's queries blocked", async () => {
-  const { reported, fetch } = await showWidget({ GetStatus: () => Response.json(on), GetStats: () => Response.json(stats) });
+  const { reported, calls } = await showWidget({ GetStatus: () => Response.json(on), GetStats: () => Response.json(stats) });
 
-  const paths = fetch.mock.calls.map((c) => new URL(String(c[0]), "http://ddash.test").pathname);
+  const paths = calls.map((c) => c.url);
   expect(paths).toContain("/api/c/adguard-api/ddash.adguardapi.AdguardApiService/GetStatus");
   expect(reported.status).toEqual({ tone: "up", summary: "Protection on, 15% of 18,432 queries blocked" });
   const body = screen.getByRole("region", { name: "widget" });
-  expect(within(body).getByRole("group", { name: "queries, 24 h" }).textContent).toMatch(/18,432/);
-  expect(within(body).getByRole("group", { name: "blocked" }).textContent).toMatch(/15%/);
+  expect(metricValue("queries, 24 h", body)).toMatch(/18,432/);
+  expect(metricValue("blocked", body)).toMatch(/15%/);
 });
 
 it("is warn while protection is off, and says how long a pause lasts", async () => {
@@ -92,7 +62,7 @@ it("is down when AdGuard's DNS server isn't running", async () => {
 
 it("is warn when adguard-api is unavailable", async () => {
   const { reported } = await showWidget({
-    GetStatus: () => Response.json({ code: "unavailable", message: "AdGuard Home unreachable: connection refused" }, { status: 503 }),
+    GetStatus: () => unavailable("AdGuard Home unreachable: connection refused"),
   });
 
   expect(reported.status).toEqual({ tone: "warn", summary: "AdGuard unavailable: AdGuard Home unreachable: connection refused" });
@@ -100,15 +70,7 @@ it("is warn when adguard-api is unavailable", async () => {
 
 async function showPage(answers: Answers) {
   const Page = plugin.pages![0].Component!;
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={scope} fetch={fakeFetch(answers)}>
-        <MemoryRouter>
-          <Page />
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
-  );
+  renderScoped(withAdguard, <Page />, { answers });
   await settle();
 }
 
@@ -117,9 +79,9 @@ it("shows AdGuard's protection and the last 24 h's stats on the Network Page", a
 
   const section = screen.getByRole("region", { name: "AdGuard" });
   expect(within(section).getByText("Protection on")).toBeTruthy();
-  expect(within(section).getByRole("group", { name: "queries, 24 h" }).textContent).toMatch(/18,432/);
-  expect(within(section).getByRole("group", { name: "blocked by filters" }).textContent).toMatch(/2,765/);
-  expect(within(section).getByRole("group", { name: "avg processing" }).textContent).toMatch(/18\.4 ms/);
+  expect(metricValue("queries, 24 h", section)).toMatch(/18,432/);
+  expect(metricValue("blocked by filters", section)).toMatch(/2,765/);
+  expect(metricValue("avg processing", section)).toMatch(/18\.4 ms/);
   expect(within(section).getByRole("img", { name: "Queries and blocked, per hour" })).toBeTruthy();
   expect(within(section).getByRole("img", { name: "Most blocked domains" })).toBeTruthy();
   const top = within(section).getByRole("list", { name: "Most blocked domains legend" });

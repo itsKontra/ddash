@@ -1,8 +1,8 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { show as showNetwork, withAdguard } from "./testing";
 
 afterEach(cleanup);
 
@@ -48,47 +48,19 @@ const queries = {
 };
 const blocked = { queries: [queries.queries[1]], oldest: "" };
 
-interface Call {
-  method: string;
-  body: unknown;
-}
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
-
-function PluginPages() {
-  return useRoutes(plugin.pages!);
-}
 
 // Shows the network Plugin at path, answering by method name ({} unless
 // given), and returns the calls with their JSON bodies.
-async function show(path: string, answers: Record<string, (body: Record<string, unknown>) => Response> = {}) {
-  const calls: Call[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const method = String(input).split("/").pop()!;
-    const raw = init?.body;
-    const body = raw ? JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw as Uint8Array)) : undefined;
-    calls.push({ method, body });
-    const all: Record<string, (body: Record<string, unknown>) => Response> = {
+const show = (path: string, answers: Answers = {}) =>
+  showNetwork(
+    path,
+    {
       ListDevices: () => Response.json(devices),
-      ListQueries: (b) => Response.json(b.blockedOnly ? blocked : queries),
+      ListQueries: (b) => Response.json((b as { blockedOnly?: boolean }).blockedOnly ? blocked : queries),
       ...answers,
-    };
-    return all[method]?.(body ?? {}) ?? Response.json({});
-  });
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api", "adguard-api"] }} fetch={fetch}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/network/*" element={<PluginPages />} />
-          </Routes>
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
+    },
+    withAdguard,
   );
-  await settle();
-  return calls;
-}
 
 const deviceRegion = () => screen.getByRole("region", { name: "Device" });
 
@@ -135,7 +107,7 @@ it("says a toggle on a New Device Adopts it first", async () => {
 
 it("shows why a toggle failed", async () => {
   await show("/network/devices/02:5e:00:00:10:02", {
-    SetAdBlocking: () => Response.json({ code: "unavailable", message: "AdGuard Home unreachable: connection refused" }, { status: 503 }),
+    SetAdBlocking: () => unavailable("AdGuard Home unreachable: connection refused"),
   });
 
   fireEvent.click(within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / }));

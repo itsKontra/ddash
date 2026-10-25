@@ -1,8 +1,8 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { pending, renderScoped, settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { network, show as showNetwork } from "./testing";
 
 afterEach(cleanup);
 
@@ -48,42 +48,20 @@ const devices = {
 const gateways = { gateways: [] };
 const tunnel = { tier: "TIER_WIREGUARD", group: "VPN_FAILOVER", gateways: [] };
 
-function PluginPages() {
-  return useRoutes(plugin.pages!);
-}
-
 // Shows the network Plugin's pages at path, as the shell mounts them under
 // /network/, with network and pfsense-api answering by method.
-async function show(path: string, answers: Record<string, () => Response> = {}) {
-  const all: Record<string, () => Response> = {
+const show = (path: string, answers: Answers = {}) =>
+  showNetwork(path, {
     ListDevices: () => Response.json(devices),
     ListGateways: () => Response.json(gateways),
     GetVpnTunnel: () => Response.json(tunnel),
     ...answers,
-  };
-  const fetch = vi.fn(async (input: RequestInfo | URL) => {
-    const method = new URL(String(input), "http://ddash.test").pathname.split("/").pop()!;
-    return all[method]?.() ?? Response.json({});
   });
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/network/*" element={<PluginPages />} />
-          </Routes>
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
-  );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
-  return fetch;
-}
 
 it("lists every Device with name, IP, MAC, online, Adopted or New, and Tunnelled or Direct", async () => {
-  const fetch = await show("/network");
+  const calls = await show("/network");
 
-  expect(fetch.mock.calls.map(([input]) => new URL(String(input), "http://ddash.test").pathname)).toContain(
+  expect(calls.map((c) => c.url)).toContain(
     "/api/c/network/ddash.network.NetworkService/ListDevices",
   );
   const table = within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
@@ -107,7 +85,7 @@ it("opens a Device's detail from its name", async () => {
   await show("/network");
 
   fireEvent.click(screen.getByRole("link", { name: "Living room TV" }));
-  await act(() => new Promise((r) => setTimeout(r, 20)));
+  await settle();
 
   expect(screen.getByRole("heading", { level: 1, name: "Living room TV" })).toBeTruthy();
   // The kicker sits right above the title.
@@ -136,17 +114,17 @@ it("goes back to the Network Page from a Device's detail", async () => {
   await show("/network/devices/02:5e:00:00:10:01");
 
   fireEvent.click(screen.getByRole("link", { name: "Network" }));
-  await act(() => new Promise((r) => setTimeout(r, 20)));
+  await settle();
 
   expect(screen.getByRole("heading", { level: 1, name: "Network" })).toBeTruthy();
 });
 
 it("shows a Device's detail loading, then network's error in its place", async () => {
-  await show("/network/devices/02:5e:00:00:10:01", { ListDevices: () => new Promise<Response>(() => {}) as never });
+  await show("/network/devices/02:5e:00:00:10:01", { ListDevices: pending });
   expect(screen.getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
   cleanup();
 
-  await show("/network/devices/02:5e:00:00:10:01", { ListDevices: () => Response.json({ code: "unavailable", message: "network is down" }, { status: 503 }) });
+  await show("/network/devices/02:5e:00:00:10:01", { ListDevices: () => unavailable("network is down") });
   expect(screen.getByRole("heading", { level: 1, name: "02:5e:00:00:10:01" })).toBeTruthy();
   expect(screen.getByRole("alert").textContent).toMatch(/network is down/);
 });
@@ -199,15 +177,8 @@ it("badges the Nav Entry with the New Devices, and with nothing when there are n
     return null;
   }
   for (const answer of [devices, { ...devices, devices: devices.devices.slice(0, 2) }]) {
-    const fetch = vi.fn(async () => Response.json(answer));
-    render(
-      <PluginHost client={createQueryClient()}>
-        <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-          <Probe />
-        </PluginScope>
-      </PluginHost>,
-    );
-    await act(() => new Promise((r) => setTimeout(r, 50)));
+    renderScoped(network, <Probe />, { answers: { ListDevices: () => Response.json(answer) } });
+    await settle();
     cleanup();
   }
 
