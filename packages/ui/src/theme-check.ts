@@ -5,7 +5,8 @@
 export type Theme = { name: string; light: Map<string, string>; dark: Map<string, string> };
 
 // :root is the ddash Theme; another is :root[data-theme="<name>"]; .dark marks the dark scheme.
-const selector = /(?:^|[;}])\s*:root((?:\.dark|\[data-theme="[\w-]+"\])*)\s*{([^}]*)/g;
+// A block's first selector names it; the rest of its list (the previews) is skipped.
+const selector = /(?:^|[;}])\s*:root((?:\.dark|\[data-theme="[\w-]+"\])*)\s*(?:,[^{]*)?{([^}]*)/g;
 
 /** Every Theme theme.css sets, by name. */
 export function themes(css: string): Theme[] {

@@ -98,6 +98,8 @@ describe("the ddash Theme", () => {
       ["--color-nav-border", "color-mix(in srgb, var(--nav-strong) 8%, var(--nav))"],
       ["--color-nav-active", "color-mix(in srgb, var(--nav-accent) 15%, var(--nav))"],
       ["--color-nav-down", "color-mix(in srgb, var(--down) 60%, var(--nav-strong))"],
+      ["--color-nav-glow", "color-mix(in srgb, var(--nav-accent) 14%, transparent)"],
+      ["--color-hero-halo", "color-mix(in srgb, var(--nav-accent) 2%, transparent)"],
       ["--radius-ui-sm", "calc(var(--radius) * 2 / 3)"],
       ["--radius-ui-lg", "calc(var(--radius) * 4 / 3)"],
       ["--font-mono", "ui-monospace,"],
@@ -106,6 +108,27 @@ describe("the ddash Theme", () => {
     }
     expect(css).toMatch(/:focus-visible\s*{\s*outline:\s*2px solid var\(--primary\);\s*outline-offset:\s*2px;/);
   });
+});
+
+describe("the Lagoon Theme", () => {
+  const all = themes(css);
+  const ddashTheme = all.find((t) => t.name === "ddash")!;
+  const lagoon = all.find((t) => t.name === "lagoon");
+
+  it("sets every colour and elevation the ddash Theme sets, light and dark", () => {
+    expect(lagoon).toBeDefined();
+    const colours = (m: Map<string, string>) => [...m.keys()].filter((k) => k !== "radius" && k !== "font").sort();
+    expect(colours(lagoon!.light)).toEqual(colours(ddashTheme.light));
+    expect([...lagoon!.dark.keys()].sort()).toEqual([...ddashTheme.dark.keys()].sort());
+  });
+});
+
+it("applies each Theme under its own data-theme too, so a preview shows it whichever is in use", () => {
+  for (const name of themes(css).map((t) => t.name)) {
+    const root = name === "ddash" ? ":root" : `:root[data-theme="${name}"]`;
+    expect(css, name).toContain(`${root},\n[data-theme="${name}"] {`);
+    expect(css, name).toContain(`${root.replace(":root", ":root.dark")},\n.dark [data-theme="${name}"] {`);
+  }
 });
 
 describe("the AA bar", () => {

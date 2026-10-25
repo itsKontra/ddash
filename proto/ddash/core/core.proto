@@ -330,6 +330,7 @@ message CoreSettings {
 enum Theme {
   THEME_UNSPECIFIED = 0;
   THEME_DDASH = 1 [(ddash.config.value) = {label: "ddash"}];
+  THEME_LAGOON = 2 [(ddash.config.value) = {label: "Lagoon"}];
 }
 
 message GetCoreSettingsRequest {}

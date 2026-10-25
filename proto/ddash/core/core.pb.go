@@ -35,6 +35,7 @@ type Theme int32
 const (
 	Theme_THEME_UNSPECIFIED Theme = 0
 	Theme_THEME_DDASH       Theme = 1
+	Theme_THEME_LAGOON      Theme = 2
 )
 
 // Enum value maps for Theme.
@@ -42,10 +43,12 @@ var (
 	Theme_name = map[int32]string{
 		0: "THEME_UNSPECIFIED",
 		1: "THEME_DDASH",
+		2: "THEME_LAGOON",
 	}
 	Theme_value = map[string]int32{
 		"THEME_UNSPECIFIED": 0,
 		"THEME_DDASH":       1,
+		"THEME_LAGOON":      2,
 	}
 )
 
@@ -2874,11 +2877,13 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x05field\x18\x01 \x01(\tR\x05field\x12\x10\n" +
 	"\x03old\x18\x02 \x01(\tR\x03old\x12\x10\n" +
 	"\x03new\x18\x03 \x01(\tR\x03new\x12\x16\n" +
-	"\x06change\x18\x04 \x01(\tR\x06change*<\n" +
+	"\x06change\x18\x04 \x01(\tR\x06change*\\\n" +
 	"\x05Theme\x12\x15\n" +
 	"\x11THEME_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\vTHEME_DDASH\x10\x01\x1a\v\xa2\xb5\x18\a\n" +
-	"\x05ddash2\xea\t\n" +
+	"\x05ddash\x12\x1e\n" +
+	"\fTHEME_LAGOON\x10\x02\x1a\f\xa2\xb5\x18\b\n" +
+	"\x06Lagoon2\xea\t\n" +
 	"\vCoreService\x12q\n" +
 	"\x14ListInstalledPlugins\x12'.ddash.core.ListInstalledPluginsRequest\x1a(.ddash.core.ListInstalledPluginsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12H\n" +
 	"\aInstall\x12\x1a.ddash.core.InstallRequest\x1a\x1b.ddash.core.InstallResponse\"\x04\x92\xb5\x18\x00\x12P\n" +

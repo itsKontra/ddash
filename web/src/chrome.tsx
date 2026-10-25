@@ -129,7 +129,7 @@ function Brand({ sub = true }: { sub?: boolean }) {
     <div className="flex items-center gap-3">
       <div
         aria-hidden
-        className="grid h-10 w-10 place-items-center rounded-ui bg-linear-to-br from-nav-accent to-primary text-xl font-black text-primary-foreground"
+        className="grid h-10 w-10 place-items-center rounded-ui bg-linear-to-br from-nav-accent to-primary text-xl font-black text-primary-foreground shadow-[0_5px_20px_var(--color-nav-glow-strong)]"
       >
         d
       </div>
@@ -143,8 +143,13 @@ function Brand({ sub = true }: { sub?: boolean }) {
 
 function Sidebar({ sections: { main, plugins, system }, onNavigate }: { sections: Sections; onNavigate?: () => void }) {
   return (
-    <div className="flex h-full flex-col overflow-y-auto" onClick={(e) => (e.target as HTMLElement).closest("a") && onNavigate?.()}>
-      <div className="border-b border-nav-border px-6 pt-8 pb-7">
+    <div className="relative flex h-full flex-col overflow-y-auto" onClick={(e) => (e.target as HTMLElement).closest("a") && onNavigate?.()}>
+      {/* The brand's halo, bleeding in from the corner. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-28 -left-32 size-60 rounded-full bg-[radial-gradient(circle,var(--color-nav-glow),transparent_70%)]"
+      />
+      <div className="relative border-b border-nav-border px-6 pt-8 pb-7">
         <Brand />
       </div>
       <nav aria-label="Main">

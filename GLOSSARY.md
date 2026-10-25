@@ -53,7 +53,7 @@ The list of Plugins available in the Release ddash is running, from which the Op
 _Avoid_: Store, marketplace, registry
 
 **Theme**:
-A named set of look-and-feel values the operator picks for the whole UI: for light and dark, the colours of its surfaces (the page and its cards, the navigation sidebar, the Overview's hero), the primary accent, each status tone as a fill and a text colour, the chart colours, and two elevations (the shadow under panels and the stronger one under the hero and overlays); once, a corner radius and a font family. Tints, nav states and the radius scale are derived from these, never set. Defined by the core only, applied to every Plugin alike, and held to WCAG AA contrast.
+A named set of look-and-feel values the operator picks for the whole UI: for light and dark, the colours of its surfaces (the page and its cards, the navigation sidebar, the Overview's hero), the primary accent, each status tone as a fill and a text colour, the chart colours, and two elevations (the shadow under panels and the stronger one under the hero and overlays); once, a corner radius and a font family. Tints, glows, nav states and the radius scale are derived from these, never set. Defined by the core only, applied to every Plugin alike, and held to WCAG AA contrast.
 _Avoid_: Skin, style
 
 ### Apps and what runs them
