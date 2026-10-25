@@ -1,6 +1,6 @@
 import type { Status, Widget, WidgetSize } from "@ddash/plugin";
 import { State } from "@ddash/proto/checks/checks_pb";
-import { AppIcon, StatusDot } from "@ddash/ui";
+import { AppIcon, EmptyState, Skeleton, StatusDot } from "@ddash/ui";
 import { useApps, visible } from "./apps";
 import { checkStatus } from "@ddash/display";
 import { useAppChecks, worst } from "./checks";
@@ -46,11 +46,12 @@ function useStatus(): Status | undefined {
 
 /** The visible Apps as icons that open them, each with its Check's status. */
 function Body({ size }: { size: WidgetSize }) {
-  const { list } = useApps();
+  const { list, error } = useApps();
   const { byApp } = useAppChecks();
-  if (!list) return null;
+  // While apps is unavailable, the Widget's status says so.
+  if (!list) return error ? null : <Skeleton height={size === "L" ? "lg" : "md"} />;
   const apps = visible(list.apps);
-  if (apps.length === 0) return <p className="text-sm text-muted-foreground">No Apps yet.</p>;
+  if (apps.length === 0) return <EmptyState icon="layout-grid" title="No Apps yet">Proxy Hosts show here once nginx-config reads them.</EmptyState>;
   const shown = apps.slice(0, fits[size]);
   const more = apps.length - shown.length;
   return (
