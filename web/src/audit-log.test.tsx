@@ -104,6 +104,18 @@ it("is a Page under Settings, a table of Operator-rooted chains, newest first", 
   expect(within(first).getByText((_, el) => el?.tagName === "TIME").getAttribute("datetime")).toBe("2026-10-19T08:30:00.000Z");
 });
 
+it("keeps the Action, When and Outcome on a phone, hiding Actor, Hops and Took", async () => {
+  await boot("/settings/audit-log", () => ({ chains: [relayed] }));
+
+  // Spelled at run time, so this file generates no classes of its own.
+  const hidden = ["hid", "den"].join("");
+  const phoneHidden = screen
+    .getAllByRole("columnheader")
+    .filter((h) => h.className.split(" ").includes(hidden))
+    .map((h) => h.textContent);
+  expect(phoneHidden).toEqual(["Actor", "Hops", "Took"]);
+});
+
 it("opens a chain in a Sheet: the failure, its facts, and each hop with its redacted request", async () => {
   await boot("/settings/audit-log", () => ({ chains: [failed, relayed], targets: [] }));
 
