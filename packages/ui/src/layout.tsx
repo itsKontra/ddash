@@ -5,7 +5,7 @@ import { Skeleton, StatusDot } from "./atoms";
 import { Icon } from "./icon";
 import { Kicker } from "./kicker";
 import type { IconName } from "./icon-names";
-import { OnHero } from "./surface";
+import { InFlush, OnHero } from "./surface";
 import { cx, toneText, toneTint, type Tone } from "./tone";
 
 /**
@@ -56,7 +56,7 @@ export function PageTitle({
  * them, its header carrying the description and actions; without either it
  * is a plain card. `toolbar` (search, selects, tabs) sits under the header
  * and wraps onto its own lines on phones. `flush` drops the body's padding,
- * for a table that runs to the edges.
+ * for a table that runs to the edges; a Notice in it pads itself.
  */
 export function Panel({
   kicker,
@@ -113,7 +113,9 @@ export function Panel({
           {toolbar}
         </div>
       )}
-      <div className={cx(!flush && "p-5")}>{children}</div>
+      <div className={cx(!flush && "p-5")}>
+        <InFlush value={Boolean(flush)}>{children}</InFlush>
+      </div>
     </Surface>
   );
 }

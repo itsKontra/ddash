@@ -44,7 +44,7 @@ export function DeviceQueries({ ip }: { ip: string }) {
       title="Queries"
       description={`The last ${QueryLimit} queries AdGuard logged from ${ip}, newest first.`}
       toolbar={<Checkbox label="Blocked only" checked={blockedOnly} onChange={(e) => setBlockedOnly(e.target.checked)} />}
-      flush={!failed}
+      flush
     >
       {failed ? (
         <Notice tone="down">{error.rawMessage}</Notice>

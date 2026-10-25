@@ -118,11 +118,9 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
         <Page key={p.token} request={{ ...filter, pageToken: p.token }} onSettled={(page) => settled(i, page)} onTargets={i === 0 ? onTargets : undefined} />
       ))}
       {error && (
-        <div className="p-5">
-          <Notice tone="down" title="The Audit Log can't be read">
-            {error}
-          </Notice>
-        </div>
+        <Notice tone="down" title="The Audit Log can't be read">
+          {error}
+        </Notice>
       )}
       {(!error || chains.length > 0) && (
         <DataTable

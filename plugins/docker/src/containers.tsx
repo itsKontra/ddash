@@ -59,9 +59,7 @@ function Host({ host }: { host: HostContainers }) {
       }
     >
       {host.error ? (
-        <div className="p-5">
-          <Notice tone="down">{host.error}</Notice>
-        </div>
+        <Notice tone="down">{host.error}</Notice>
       ) : (
         <DataTable rows={host.containers} rowKey={(c) => c.id} columns={columns} empty="No containers on this host" />
       )}

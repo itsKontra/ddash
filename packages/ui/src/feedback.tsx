@@ -3,6 +3,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import { Button, StatusDot } from "./atoms";
 import { Icon, type IconName } from "./icon";
+import { useInFlush } from "./surface";
 import { cx, toneTint } from "./tone";
 
 const noticeIcon = { info: "info", warn: "triangle-alert", down: "octagon-alert" } as const satisfies Record<string, IconName>;
@@ -13,7 +14,8 @@ const noticeIcon = { info: "info", warn: "triangle-alert", down: "octagon-alert"
  * polite status messages.
  */
 export function Notice({ tone, title, children }: { tone: "info" | "warn" | "down"; title?: ReactNode; children: ReactNode }) {
-  return (
+  const flush = useInFlush();
+  const notice = (
     <div role={tone === "down" ? "alert" : "status"} className={cx("flex gap-3 rounded-ui px-4 py-3 text-sm", toneTint[tone])}>
       <span className="mt-0.5 flex">
         <Icon name={noticeIcon[tone]} />
@@ -24,6 +26,8 @@ export function Notice({ tone, title, children }: { tone: "info" | "warn" | "dow
       </div>
     </div>
   );
+  // In a flush Panel the body has no padding of its own.
+  return flush ? <div className="p-5">{notice}</div> : notice;
 }
 
 /** Nothing to show yet, and what to do about it: e.g. a Component that isn't configured, with a link to configure it. */

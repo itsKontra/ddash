@@ -86,7 +86,7 @@ function Gateways() {
   const { data, error } = useQuery(PfsenseApiService.method.listGateways, {});
   const failed = error && !data;
   return (
-    <Panel title="Gateways" flush={!failed}>
+    <Panel title="Gateways" flush>
       {failed ? (
         <Notice tone="down">{error.rawMessage}</Notice>
       ) : (

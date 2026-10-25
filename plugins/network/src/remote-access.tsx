@@ -88,7 +88,6 @@ export function RemoteAccessPeers() {
   // Handshake ages are as of the read, which refreshes every minute.
   const { data, error, dataUpdatedAt: now } = useQuery(NetworkService.method.getRemoteAccess, {});
   const failed = error && !data;
-  const partial = Boolean(data?.error);
   return (
     <Panel
       title="Remote Access"
@@ -97,7 +96,7 @@ export function RemoteAccessPeers() {
         !data.error &&
         `Tunnel ${data.tunnel} on ${data.interface}. What each peer can reach comes from that interface's pass rules; aliases aren't expanded.`
       }
-      flush={!failed && !partial}
+      flush
     >
       {failed ? (
         <Notice tone="down">{error.rawMessage}</Notice>
