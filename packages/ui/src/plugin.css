@@ -13,10 +13,9 @@
  *     }
  *
  * animating only transform, opacity and the Theme tokens, the custom
- * properties the shell's Theme sets: --background, --foreground, --card,
- * --muted, --muted-foreground, --border, --primary, --primary-foreground,
- * --up, --down, --warn, --maint, --radius and --font (as var(--up), ...).
- * JSX applies one with motion-safe:animate-[<plugin>-<name>_2s_infinite].
+ * properties theme.css sets (as var(--up), ...; the nav and hero ones are
+ * the shell's). JSX applies one with
+ * motion-safe:animate-[<plugin>-<name>_2s_infinite].
  *
  * Plain CSS: Tailwind's token utilities (tokens.css) mean nothing here, and
  * a Plugin's build would ship their @theme unprocessed.

@@ -81,7 +81,7 @@ export function MaintenanceList({ checks }: { checks: readonly Check[] }) {
         })}
       </ul>
       {end.error && (
-        <p role="alert" className="text-xs text-down">
+        <p role="alert" className="text-xs text-down-text">
           {end.error.rawMessage}
         </p>
       )}
@@ -161,7 +161,7 @@ export function MaintenanceSheet({ check, checks, onClose }: { check?: Check; ch
           <Segmented label="For" value={length} options={lengths} onChange={setLength} />
         </Labelled>
         {start.error && (
-          <p role="alert" className="text-sm text-down">
+          <p role="alert" className="text-sm text-down-text">
             {start.error.rawMessage}
           </p>
         )}

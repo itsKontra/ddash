@@ -64,7 +64,7 @@ function HostRow({ host }: { host: HostContainers }) {
         {host.host}
       </th>
       <td className="py-0.5 text-right text-muted-foreground tabular-nums">
-        {host.error ? <span className="text-warn">unreadable</span> : `${running(host.containers)}/${host.containers.length} running`}
+        {host.error ? <span className="text-warn-text">unreadable</span> : `${running(host.containers)}/${host.containers.length} running`}
       </td>
     </tr>
   );

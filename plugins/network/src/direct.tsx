@@ -19,7 +19,7 @@ export function DirectToggle({ device: d, bypassAlias }: { device: Device; bypas
       </span>
       {!d.adopted && <span className="text-xs text-muted-foreground">Toggling Adopts it first, at the lowest free reserved address.</span>}
       {set.error && (
-        <span role="alert" className="text-down">
+        <span role="alert" className="text-down-text">
           {set.error.rawMessage}
         </span>
       )}

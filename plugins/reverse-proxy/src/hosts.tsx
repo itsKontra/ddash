@@ -167,7 +167,7 @@ function Certificate({ check }: { check: Check | null | undefined }) {
   return (
     <span className="flex flex-col">
       <time dateTime={d.toISOString()}>{d.toLocaleDateString(undefined, { dateStyle: "medium" })}</time>
-      {warning && <span className="text-xs text-warn">{warning.replace(/^certificate /, "")}</span>}
+      {warning && <span className="text-xs text-warn-text">{warning.replace(/^certificate /, "")}</span>}
     </span>
   );
 }

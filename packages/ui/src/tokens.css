@@ -1,13 +1,23 @@
 /*
- * The Theme tokens as Tailwind utilities (bg-card, text-up, rounded-ui,
- * font-sans, ...). Inline, so every utility reads the CSS variable the
- * Theme sets, and switching Theme or dark mode needs no rebuild.
+ * The Theme tokens a Plugin may use, as Tailwind utilities (bg-card,
+ * text-up-text, bg-up-tint, rounded-ui, shadow-elevation, ...). Inline, so
+ * every utility reads the CSS variable the Theme sets, and switching Theme
+ * or dark mode needs no rebuild. The nav and hero surfaces are shell-only:
+ * surfaces.css.
+ *
+ * Derived here, not set by a Theme: tints (a fill at 12%, the only
+ * strength), the radius scale and the monospace stack.
  */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --font-sans: var(--font);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --radius-ui: var(--radius);
+  --radius-ui-sm: calc(var(--radius) * 2 / 3);
+  --radius-ui-lg: calc(var(--radius) * 4 / 3);
+  --shadow-elevation: var(--elevation);
+  --shadow-elevation-raised: var(--elevation-raised);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -16,8 +26,26 @@
   --color-border: var(--border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-tint: color-mix(in srgb, var(--primary) 12%, transparent);
   --color-up: var(--up);
+  --color-up-text: var(--up-text);
+  --color-up-tint: color-mix(in srgb, var(--up) 12%, transparent);
   --color-down: var(--down);
+  --color-down-text: var(--down-text);
+  --color-down-tint: color-mix(in srgb, var(--down) 12%, transparent);
   --color-warn: var(--warn);
+  --color-warn-text: var(--warn-text);
+  --color-warn-tint: color-mix(in srgb, var(--warn) 12%, transparent);
   --color-maint: var(--maint);
+  --color-maint-text: var(--maint-text);
+  --color-maint-tint: color-mix(in srgb, var(--maint) 12%, transparent);
+  --color-info: var(--info);
+  --color-info-text: var(--info-text);
+  --color-info-tint: color-mix(in srgb, var(--info) 12%, transparent);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
 }

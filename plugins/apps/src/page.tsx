@@ -170,7 +170,7 @@ function Unmatched({ overlay, targets }: { overlay: Overlay; targets: readonly A
         </Button>
       </span>
       {error && (
-        <p role="alert" className="w-full text-down">
+        <p role="alert" className="w-full text-down-text">
           {error.rawMessage}
         </p>
       )}

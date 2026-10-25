@@ -52,8 +52,8 @@ function VpnTunnel() {
   const tier = data && tiers[data.tier];
   return (
     <Section id="network-vpn" title="VPN Tunnel" aside={tier && <Badge tone={tier.tone}>{tier.label}</Badge>}>
-      {error && !data && <p className="px-4 py-3 text-sm text-down">{error.message}</p>}
-      {data?.error && <p className="px-4 py-3 text-sm text-warn">{data.error}</p>}
+      {error && !data && <p className="px-4 py-3 text-sm text-down-text">{error.message}</p>}
+      {data?.error && <p className="px-4 py-3 text-sm text-warn-text">{data.error}</p>}
       {data && data.gateways.length > 0 && (
         <ul className="flex flex-col gap-2 px-4 py-3 text-sm">
           {members(data).map((m) => (
@@ -92,7 +92,7 @@ function Gateways() {
   const { data, error } = useQuery(PfsenseApiService.method.listGateways, {});
   return (
     <Section id="network-gateways" title="Gateways">
-      {error && !data && <p className="px-4 py-3 text-sm text-down">{error.message}</p>}
+      {error && !data && <p className="px-4 py-3 text-sm text-down-text">{error.message}</p>}
       {data && (
         <table aria-label="Gateways" className="w-full text-sm">
           <thead>

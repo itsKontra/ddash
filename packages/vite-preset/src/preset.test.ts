@@ -1,10 +1,10 @@
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { build } from "vite";
-import { beforeAll, describe, expect, it } from "vitest";
-import { importMap, importMapPackages, pluginConfig } from "./index";
+import { build, createServer, type ViteDevServer } from "vite";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { importMap, importMapPackages, pluginConfig, vendorFromSource } from "./index";
 
 const fixture = fileURLToPath(new URL("../testdata/hello", import.meta.url));
 
@@ -54,6 +54,41 @@ describe("pluginConfig", () => {
   it("leaves preflight out", () => {
     expect(css).not.toMatch(/box-sizing:\s*border-box/);
     expect(css).not.toContain("@layer base{");
+  });
+});
+
+describe("vendorFromSource", () => {
+  const source = fileURLToPath(new URL("../testdata/vendor-source/ui.ts", import.meta.url));
+  let server: ViteDevServer;
+  let base: string;
+
+  beforeAll(async () => {
+    server = await createServer({
+      configFile: false,
+      logLevel: "silent",
+      root: dirname(source),
+      plugins: [vendorFromSource({ "@ddash/ui": source })],
+      server: { port: 0, host: "127.0.0.1" },
+    });
+    await server.listen();
+    base = server.resolvedUrls!.local[0]!.replace(/\/$/, "");
+  }, 60_000);
+  afterAll(() => server?.close());
+
+  it("serves the dev Release's vendor file of a package as its source, transformed on each request", async () => {
+    const shim = await fetch(`${base}/vendor/dev/ddash-ui.js`);
+    expect(shim.headers.get("content-type")).toMatch(/javascript/);
+    const target = /export \* from "([^"]+)"/.exec(await shim.text())?.[1];
+    expect(target).toBeDefined();
+
+    const module = await (await fetch(base + target)).text();
+    expect(module).toContain("hello from source");
+    expect(module).not.toContain(": string"); // TypeScript, transformed
+  });
+
+  it("leaves the vendor files of other packages alone", async () => {
+    const res = await fetch(`${base}/vendor/dev/react.js`);
+    expect(await res.text()).not.toContain("export * from");
   });
 });
 

@@ -22,7 +22,7 @@ function Text({ label, help, value, onChange, placeholder }: { label: string; he
 function Failed({ error }: { error?: { rawMessage: string } }) {
   if (!error) return null;
   return (
-    <p role="alert" className="text-sm text-down">
+    <p role="alert" className="text-sm text-down-text">
       {error.rawMessage}
     </p>
   );
