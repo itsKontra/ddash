@@ -168,8 +168,8 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
         actions={
           layout &&
           !draft && (
-            <Button variant="outline" onClick={() => setDraft(overview.layout!)}>
-              <Icon name="pencil" /> Edit
+            <Button variant="outline" icon="pencil" onClick={() => setDraft(overview.layout!)}>
+              Edit
             </Button>
           )
         }
@@ -220,9 +220,7 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
                         {c.widget && c.widget.sizes.length > 1 && (
                           <Segmented label="Size" value={c.entry.size} options={c.widget.sizes} onChange={(size) => resize(key, size)} />
                         )}
-                        <Button variant="ghost" size="sm" aria-label={`Remove ${c.title}`} onClick={() => remove(key)}>
-                          <Icon name="x" />
-                        </Button>
+                        <Button variant="ghost" size="sm" icon="x" aria-label={`Remove ${c.title}`} onClick={() => remove(key)} />
                       </>
                     }
                   >
@@ -296,8 +294,8 @@ function EditBar({ changed, onAdd, onCancel, onDone }: { changed: boolean; onAdd
           >
             Cancel
           </button>
-          <Button onClick={onDone}>
-            <Icon name="check" /> Done
+          <Button icon="check" onClick={onDone}>
+            Done
           </Button>
         </div>
       </div>
@@ -526,8 +524,8 @@ function OfferRow({
             On the Overview
           </Pill>
         ) : (
-          <Button size="sm" variant="outline" aria-label={`Add ${w.title}`} onClick={() => onAdd(key, w)}>
-            <Icon name="plus" size="sm" /> Add
+          <Button size="sm" variant="outline" icon="plus" aria-label={`Add ${w.title}`} onClick={() => onAdd(key, w)}>
+            Add
           </Button>
         )}
       </div>
