@@ -1,7 +1,64 @@
 // The layout family: what a Page and a Widget are framed by.
-import type { ReactNode } from "react";
-import { StatusDot } from "./atoms";
-import { cx, toneText, type Tone } from "./tone";
+import { useId, type ReactNode } from "react";
+import { Link } from "react-router";
+import { Skeleton, StatusDot } from "./atoms";
+import { Icon } from "./icon";
+import type { IconName } from "./icon-names";
+import { OnHero } from "./surface";
+import { cx, toneText, toneTint, type Tone } from "./tone";
+
+/** The small uppercase label over a heading, with its accent rule. */
+function Kicker({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2.5 text-[10px] font-extrabold tracking-[0.17em] text-primary uppercase">
+      <span aria-hidden="true" className="block h-0.5 w-5 bg-primary" />
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The top of every Page: an optional back link and kicker over the title,
+ * the subtitle under it, and the Page's actions to its right (below it on
+ * phones). `back.href` is a router path, absolute or relative to the route.
+ */
+export function PageTitle({
+  kicker,
+  title,
+  subtitle,
+  actions,
+  back,
+}: {
+  kicker?: string;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+  back?: { href: string; label: string };
+}) {
+  return (
+    <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end">
+      <div className="min-w-0">
+        {back && (
+          <Link
+            to={back.href}
+            className="mb-4 inline-flex items-center gap-1.5 rounded-ui-sm text-xs font-bold text-muted-foreground hover:text-foreground"
+          >
+            <Icon name="chevron-left" size="sm" />
+            {back.label}
+          </Link>
+        )}
+        {kicker && (
+          <div className="mb-2.5">
+            <Kicker>{kicker}</Kicker>
+          </div>
+        )}
+        <h1 className="text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">{title}</h1>
+        {subtitle && <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{subtitle}</p>}
+      </div>
+      {actions && <div className="flex flex-wrap items-center gap-2 sm:ml-auto">{actions}</div>}
+    </div>
+  );
+}
 
 /** The top of every Page: its title, an optional subtitle and actions. */
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
@@ -13,6 +70,180 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
       </div>
       {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
     </div>
+  );
+}
+
+/**
+ * A surface on a Page. With a `title` or `kicker` it is a section named by
+ * them, its header carrying the description and actions; without either it
+ * is a plain card. `toolbar` (search, selects, tabs) sits under the header
+ * and wraps onto its own lines on phones. `flush` drops the body's padding,
+ * for a table that runs to the edges.
+ */
+export function Panel({
+  kicker,
+  title,
+  description,
+  actions,
+  toolbar,
+  children,
+  flush,
+}: {
+  kicker?: string;
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  toolbar?: ReactNode;
+  children: ReactNode;
+  flush?: boolean;
+}) {
+  const id = useId();
+  const named = Boolean(title || kicker);
+  const Surface = named ? "section" : "div";
+  const head = named || actions;
+  return (
+    <Surface
+      aria-labelledby={named ? id : undefined}
+      className="min-w-0 overflow-hidden rounded-ui border border-border bg-card shadow-elevation"
+    >
+      {head && (
+        <header className={cx("flex items-start gap-4 px-5", flush && !toolbar ? "border-b border-border py-4" : "pt-5")}>
+          <div className="min-w-0">
+            {kicker && (
+              <div id={title ? undefined : id} className="text-[10px] font-extrabold tracking-[0.12em] text-muted-foreground uppercase">
+                {kicker}
+              </div>
+            )}
+            {title && (
+              <h2 id={id} className="text-base font-extrabold tracking-tight">
+                {title}
+              </h2>
+            )}
+            {description && <p className="mt-1 text-xs text-muted-foreground">{description}</p>}
+          </div>
+          {actions && <div className="ml-auto flex shrink-0 items-center gap-2">{actions}</div>}
+        </header>
+      )}
+      {toolbar && (
+        <div
+          className={cx(
+            "flex flex-col gap-2 px-5 sm:flex-row sm:flex-wrap sm:items-center",
+            head ? "pt-4" : "pt-5",
+            flush ? "border-b border-border pb-4" : "",
+          )}
+        >
+          {toolbar}
+        </div>
+      )}
+      <div className={cx(!flush && "p-5")}>{children}</div>
+    </Surface>
+  );
+}
+
+/** A heading between Panels, e.g. "Installed" over a grid of cards, with its kicker and actions. */
+export function SectionHeading({ kicker, title, actions }: { kicker?: string; title: ReactNode; actions?: ReactNode }) {
+  return (
+    <div className="mt-2 mb-3 flex items-end gap-3">
+      <div className="min-w-0">
+        {kicker && <div className="mb-1 text-[10px] font-extrabold tracking-[0.14em] text-primary uppercase">{kicker}</div>}
+        <h2 className="text-lg font-extrabold tracking-tight">{title}</h2>
+      </div>
+      {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+/**
+ * One figure on a Page or in a Widget: its label, a big value and an
+ * optional description. With an `icon`, `tone` tints the icon's chip;
+ * without one, it colours the value. An undefined `value` is still
+ * loading and draws a skeleton.
+ */
+export function MetricTile({
+  label,
+  value,
+  icon,
+  tone = "idle",
+  desc,
+}: {
+  label: string;
+  value: ReactNode;
+  icon?: IconName;
+  tone?: Tone;
+  desc?: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div role="group" aria-labelledby={id} className="min-w-0 rounded-ui border border-border bg-card p-5 shadow-elevation">
+      <div className="flex min-h-8 items-center justify-between gap-2 text-xs font-bold text-muted-foreground">
+        <span id={id} className="truncate">
+          {label}
+        </span>
+        {icon && (
+          <span className={cx("grid size-8 shrink-0 place-items-center rounded-ui-sm", toneTint[tone])}>
+            <Icon name={icon} />
+          </span>
+        )}
+      </div>
+      {value === undefined ? (
+        <div className="mt-1">
+          <Skeleton height="sm" />
+        </div>
+      ) : (
+        <div
+          className={cx(
+            "mt-1 truncate text-3xl leading-tight font-extrabold tracking-tight tabular-nums",
+            !icon && tone !== "idle" && toneText[tone],
+          )}
+        >
+          {value}
+        </div>
+      )}
+      {desc && <div className="mt-1.5 text-xs text-muted-foreground">{desc}</div>}
+    </div>
+  );
+}
+
+/**
+ * The dark gradient card at the top of the Overview, the only way onto the
+ * hero surface: a kicker, the title (the status headline), a caption
+ * clamped to three lines, a foot of counts and an aside such as a Ring,
+ * which draws itself in the hero's accent here.
+ */
+export function HeroCard({
+  kicker,
+  title,
+  caption,
+  foot,
+  aside,
+}: {
+  kicker: string;
+  title: ReactNode;
+  caption?: ReactNode;
+  foot?: ReactNode;
+  aside?: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <section
+      aria-labelledby={id}
+      className="relative flex flex-col gap-6 overflow-hidden rounded-ui-lg bg-linear-to-br from-hero-from to-hero-to p-7 text-nav-foreground shadow-elevation-raised sm:flex-row sm:items-center sm:p-9"
+    >
+      <div aria-hidden="true" className="pointer-events-none absolute -top-20 -right-16 size-90 rounded-full border border-nav-accent/10" />
+      <div className="relative min-w-0 flex-1">
+        <div className="mb-3 text-[10px] font-extrabold tracking-[0.15em] text-nav-accent uppercase">{kicker}</div>
+        <h2 id={id} className="mb-3 text-2xl leading-tight font-extrabold tracking-tight text-nav-strong sm:text-3xl">
+          {title}
+        </h2>
+        {caption && <div className="line-clamp-3 max-w-xl text-xs leading-relaxed">{caption}</div>}
+        {foot && <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">{foot}</div>}
+      </div>
+      {aside && (
+        <div className="relative">
+          <OnHero value={true}>{aside}</OnHero>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -28,8 +259,8 @@ export function Stat({ label, value, tone }: { label: string; value: ReactNode; 
 
 /**
  * The frame every Widget renders in, owned by the host: the title (a link
- * to the Plugin's Page, when it has one), the status dot and the edit
- * controls. The Plugin draws only the body.
+ * to the Plugin's Page, when it has one), the status dot, the summary when
+ * the Widget isn't up, and the edit controls. The Plugin draws only the body.
  */
 export function WidgetCard({
   title,
@@ -46,13 +277,16 @@ export function WidgetCard({
   children?: ReactNode;
 }) {
   return (
-    <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-sm", className)}>
-      <header className="flex items-center gap-2 px-4 pt-3 pb-2">
-        {status && <StatusDot tone={status.tone} label={`${status.tone}: ${status.summary}`} />}
-        <h2 className="truncate text-sm font-semibold">{title}</h2>
-        {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+    <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-elevation", className)}>
+      <header className="px-5 pt-4 pb-2">
+        <div className="flex items-center gap-2">
+          <h2 className="truncate text-sm font-extrabold tracking-tight">{title}</h2>
+          {status && <StatusDot tone={status.tone} label={`${status.tone}: ${status.summary}`} />}
+          {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
+        </div>
+        {status && status.tone !== "up" && <p className="mt-0.5 truncate text-xs text-muted-foreground">{status.summary}</p>}
       </header>
-      <div className="min-h-0 flex-1 px-4 pb-4">{children}</div>
+      <div className="min-h-0 flex-1 px-5 pb-5">{children}</div>
     </section>
   );
 }
