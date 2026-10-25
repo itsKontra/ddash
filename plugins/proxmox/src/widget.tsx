@@ -1,6 +1,6 @@
 import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { Stat } from "@ddash/ui";
+import { Facts, MetricTile } from "@ddash/ui";
 
 const running = (ws: readonly Workload[]) => ws.filter((w) => w.status === "running").length;
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
@@ -23,33 +23,26 @@ function useStatus(): Status | undefined {
 
 /** S: the running and total counts. M: each kind's counts too. */
 function Body({ size }: { size: WidgetSize }) {
-  const { workloads } = useWorkloads();
-  if (!workloads) return null;
+  const { workloads, error } = useWorkloads();
+  // Unavailable: the Widget's status says why.
+  if (error && !workloads) return null;
   const kinds = [
-    ["LXCs", workloads.filter((w) => w.kind === Kind.LXC)],
-    ["VMs", workloads.filter((w) => w.kind === Kind.VM)],
+    ["LXCs", Kind.LXC],
+    ["VMs", Kind.VM],
   ] as const;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-6">
-        <Stat label="running" value={running(workloads)} tone="up" />
-        <Stat label="guests" value={workloads.length} />
+      <div className="grid grid-cols-2 gap-3">
+        <MetricTile label="running" value={workloads && running(workloads)} tone="up" />
+        <MetricTile label="guests" value={workloads?.length} />
       </div>
-      {size === "M" && (
-        <table className="w-full text-sm">
-          <tbody>
-            {kinds.map(([label, ws]) => (
-              <tr key={label}>
-                <th scope="row" className="py-0.5 text-left font-medium">
-                  {label}
-                </th>
-                <td className="py-0.5 text-right text-muted-foreground tabular-nums">
-                  {running(ws)}/{ws.length} running
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {size === "M" && workloads && (
+        <Facts
+          items={kinds.map(([label, kind]) => {
+            const ws = workloads.filter((w) => w.kind === kind);
+            return { label, value: `${running(ws)}/${ws.length} running` };
+          })}
+        />
       )}
     </div>
   );
