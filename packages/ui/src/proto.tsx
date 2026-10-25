@@ -16,39 +16,40 @@ import {
 import { useSyncExternalStore, type ReactNode } from "react";
 import { cx, type Tone } from "./index";
 
-export type Variant = "A" | "B" | "C";
-export const variants: readonly Variant[] = ["A", "B", "C"];
-export const variantNames: Record<Variant, string> = { A: "Control room", B: "Rail & split", C: "Light editorial" };
+// PROTOTYPE (wayfinder: "What do the remaining screens look like in the
+// Control room language?"): the shell is variant A for good; ?variant= now
+// picks between 1, 2 and 3, which each screen names for itself.
+export type Variant = "1" | "2" | "3";
+export const variants: readonly Variant[] = ["1", "2", "3"];
 
-const key = "ddash.prototype.variant";
+const key = "ddash.prototype.screen-variant";
 const listeners = new Set<() => void>();
+const valid = (v: string | null): v is Variant => v === "1" || v === "2" || v === "3";
 function read(): Variant {
   const q = new URLSearchParams(window.location.search).get("variant");
-  if (q === "A" || q === "B" || q === "C") {
-    try {
-      localStorage.setItem(key, q);
-    } catch {}
-    return q;
-  }
+  if (valid(q)) return q;
   try {
     const s = localStorage.getItem(key);
-    if (s === "A" || s === "B" || s === "C") return s;
+    if (valid(s)) return s;
   } catch {}
-  return "A";
+  return "1";
 }
-let current: Variant = typeof window === "undefined" ? "A" : read();
-if (typeof document !== "undefined") document.documentElement.dataset.variant = current;
+let current: Variant = typeof window === "undefined" ? "1" : read();
+if (typeof window !== "undefined")
+  window.addEventListener("popstate", () => {
+    const v = read();
+    if (v !== current) setVariant(v);
+  });
 
 export function setVariant(v: Variant) {
   current = v;
   try {
     localStorage.setItem(key, v);
   } catch {}
-  document.documentElement.dataset.variant = v;
   listeners.forEach((l) => l());
 }
 
-/** The prototype variant in use, shared by the shell and every Plugin. */
+/** The screen variant in use, shared by the shell and every Plugin. */
 export function useVariant(): Variant {
   return useSyncExternalStore(
     (l) => {
@@ -86,10 +87,15 @@ export function Kicker({ children, rule = true, className }: { children: ReactNo
 }
 
 /** A Page's top: kicker, big title, subtitle and actions. */
-export function PageTitle({ kicker, title, subtitle, actions, size = "lg" }: { kicker?: string; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; size?: "lg" | "xl" }) {
+export function PageTitle({ kicker, title, subtitle, actions, size = "lg", back }: { kicker?: string; title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; size?: "lg" | "xl"; back?: { href: string; label: string } }) {
   return (
     <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end">
       <div className="min-w-0">
+        {back && (
+          <a href={back.href} className="mb-4 inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground">
+            <ChevronRight className="h-3.5 w-3.5 rotate-180" aria-hidden /> {back.label}
+          </a>
+        )}
         {kicker && <Kicker className="mb-2.5">{kicker}</Kicker>}
         <h1 className={cx("leading-tight font-extrabold tracking-tight", size === "xl" ? "text-4xl sm:text-5xl" : "text-3xl sm:text-4xl")}>{title}</h1>
         {subtitle && <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted-foreground">{subtitle}</p>}

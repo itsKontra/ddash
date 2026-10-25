@@ -1,9 +1,11 @@
 // PROTOTYPE (wayfinder: "What should the shell, Overview and a Plugin Page
-// look like in the new language?"): three shell chromes, switched by
-// ?variant=, and the floating switcher. Lives on prototype/ui-redesign only.
+// look like in the new language?", then "What do the remaining screens look
+// like in the Control room language?"): the shell is variant A, "Control
+// room"; ?variant= now switches each screen's own variants, named below.
+// Lives on prototype/ui-screens only.
 import { useQuery } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { cx, setVariant, useVariant, variantNames, variants, type Variant } from "@ddash/ui";
+import { cx, setVariant, useVariant, variants, type Variant } from "@ddash/ui";
 import { ChevronLeft, ChevronRight, LogOut, Menu as MenuIcon, Moon, Search, Sun, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router";
@@ -70,8 +72,7 @@ function Brand({ sub = true }: { sub?: boolean }) {
 }
 
 export function Chrome(props: ChromeProps) {
-  const v = useVariant();
-  return v === "B" ? <ChromeB {...props} /> : v === "C" ? <ChromeC {...props} /> : <ChromeA {...props} />;
+  return <ChromeA {...props} />;
 }
 
 /* ---------- A: Control room — the inspiration's dark sidebar ---------- */
@@ -141,8 +142,11 @@ function ChromeA({ items, badge, banner, children }: ChromeProps) {
   const label = usePageLabel(entries({ items, badge }).all);
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground">
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-nav-border bg-nav lg:block">
-        <SidebarA items={items} badge={badge} />
+      {/* The column stretches to the page's full height, so its navy reaches the bottom of any page; only its content sticks. */}
+      <aside className="hidden w-64 shrink-0 border-r border-nav-border bg-nav lg:block">
+        <div className="sticky top-0 h-screen">
+          <SidebarA items={items} badge={badge} />
+        </div>
       </aside>
       {open && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setOpen(false)}>
@@ -174,149 +178,15 @@ function ChromeA({ items, badge, banner, children }: ChromeProps) {
   );
 }
 
-/* ---------- B: Rail & split — icon rail, top header, bottom tabs on phones ---------- */
-
-function RailLink({ e, bottom }: { e: Entry; bottom?: boolean }) {
-  const Icon = icon(e.icon);
-  return (
-    <NavLink
-      to={e.to}
-      end={e.end}
-      title={e.label}
-      className={({ isActive }) =>
-        cx(
-          "relative grid place-items-center rounded-xl transition-colors",
-          bottom ? "h-12 flex-1" : "h-12 w-12",
-          isActive ? "bg-nav-active text-nav-strong" : "text-nav-foreground hover:bg-nav-hover hover:text-nav-strong",
-          !bottom && "aria-[current=page]:before:absolute aria-[current=page]:before:-left-3.5 aria-[current=page]:before:h-6 aria-[current=page]:before:w-1 aria-[current=page]:before:rounded-r aria-[current=page]:before:bg-nav-accent",
-        )
-      }
-    >
-      <Icon className="h-5 w-5" aria-hidden />
-      <span className="sr-only">{e.label}</span>
-      {e.aside && <span className="absolute -top-2 -right-4 origin-top-right scale-75">{e.aside}</span>}
-    </NavLink>
-  );
-}
-
-function ChromeB({ items, badge, banner, children }: ChromeProps) {
-  const { main, plugins, system, all } = entries({ items, badge });
-  const label = usePageLabel(all);
-  const operator = useOperator();
-  return (
-    <div className="flex min-h-screen bg-background font-sans text-foreground">
-      <aside className="sticky top-0 hidden h-screen w-20 shrink-0 flex-col items-center gap-2 border-r border-nav-border bg-nav py-5 md:flex">
-        <div className="mb-4 grid h-10 w-10 place-items-center rounded-xl bg-linear-to-br from-nav-accent to-primary text-xl font-black text-white">d</div>
-        <nav aria-label="Main" className="flex flex-1 flex-col items-center gap-2">
-          {[...main, ...plugins].map((e) => (
-            <RailLink key={e.to} e={e} />
-          ))}
-          <div className="mt-auto flex flex-col items-center gap-2 border-t border-nav-border pt-3">
-            {system.map((e) => (
-              <RailLink key={e.to} e={e} />
-            ))}
-          </div>
-        </nav>
-      </aside>
-      <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-card/85 px-4 py-3 backdrop-blur sm:px-8">
-          <div className="min-w-0">
-            <div className="text-[10px] font-extrabold tracking-[0.16em] text-primary">DDASH</div>
-            <div className="truncate text-lg leading-tight font-extrabold tracking-tight">{label}</div>
-          </div>
-          <div className="mx-auto hidden h-10 w-full max-w-md items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm text-muted-foreground md:flex">
-            <Search className="h-4 w-4" aria-hidden /> Search Apps, Checks, Devices…
-            <kbd className="ml-auto rounded border border-border px-1.5 text-[10px] font-bold">⌘K</kbd>
-          </div>
-          <div className="ml-auto flex items-center gap-2 md:ml-0">
-            <SchemeToggle className="text-muted-foreground hover:bg-muted" />
-            <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/12 text-sm font-extrabold text-primary" title={operator}>
-              {operator.slice(0, 1).toUpperCase()}
-            </div>
-          </div>
-        </header>
-        <main className="mx-auto max-w-[1600px] px-4 pt-6 pb-28 sm:px-8">
-          {banner}
-          {children}
-        </main>
-      </div>
-      <nav aria-label="Main" className="fixed inset-x-0 bottom-0 z-30 flex gap-1 border-t border-nav-border bg-nav px-2 py-2 md:hidden">
-        {[...main, ...plugins].slice(0, 5).map((e) => (
-          <RailLink key={e.to} e={e} bottom />
-        ))}
-      </nav>
-    </div>
-  );
-}
-
-/* ---------- C: Light editorial — floating light sidebar, chip nav on phones ---------- */
-
-function ChromeC({ items, badge, banner, children }: ChromeProps) {
-  const { main, plugins, system } = entries({ items, badge });
-  const operator = useOperator();
-  const link = (e: Entry, chip?: boolean) => {
-    const Icon = icon(e.icon);
-    return (
-      <NavLink
-        key={e.to}
-        to={e.to}
-        end={e.end}
-        className={({ isActive }) =>
-          cx(
-            "flex items-center gap-3 text-sm font-semibold whitespace-nowrap transition-colors",
-            chip ? "rounded-full border px-3.5 py-1.5" : "rounded-xl px-3 py-2.5",
-            isActive ? (chip ? "border-primary bg-primary text-primary-foreground" : "bg-primary/10 font-bold text-primary") : chip ? "border-border bg-card text-muted-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-          )
-        }
-      >
-        <Icon className="h-4 w-4" aria-hidden />
-        {e.label}
-        {e.aside && !chip && <span className="ml-auto flex items-center">{e.aside}</span>}
-      </NavLink>
-    );
-  };
-  return (
-    <div className="min-h-screen bg-background font-sans text-foreground lg:flex">
-      <aside className="sticky top-4 m-4 hidden h-[calc(100vh-2rem)] w-60 shrink-0 flex-col rounded-2xl border border-border bg-card p-3 shadow-panel lg:flex">
-        <div className="flex items-center gap-2 px-3 pt-2 pb-5">
-          <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-          <span className="text-lg font-extrabold tracking-tight">ddash</span>
-          <SchemeToggle className="ml-auto text-muted-foreground hover:bg-muted" />
-        </div>
-        <nav aria-label="Main" className="flex flex-1 flex-col gap-0.5">
-          {main.map((e) => link(e))}
-          <div className="mt-5 mb-1.5 px-3 text-[10px] font-extrabold tracking-[0.14em] text-muted-foreground">PLUGINS</div>
-          {plugins.map((e) => link(e))}
-          <div className="mt-auto flex flex-col gap-0.5 border-t border-border pt-2">{system.map((e) => link(e))}</div>
-        </nav>
-        <div className="mt-2 flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5 text-sm">
-          <span className="truncate font-semibold">{operator}</span>
-          <form method="post" action="/auth/logout" className="ml-auto">
-            <button type="submit" aria-label="Sign out" className="cursor-pointer text-muted-foreground hover:text-foreground">
-              <LogOut className="h-4 w-4" aria-hidden />
-            </button>
-          </form>
-        </div>
-      </aside>
-      <div className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur lg:hidden">
-        <div className="flex items-center gap-2 px-4 pt-3">
-          <span className="h-2.5 w-2.5 rounded-full bg-primary" />
-          <span className="text-lg font-extrabold tracking-tight">ddash</span>
-          <SchemeToggle className="ml-auto text-muted-foreground" />
-        </div>
-        <nav aria-label="Main" className="flex gap-2 overflow-x-auto px-4 py-3">
-          {[...main, ...plugins, ...system].map((e) => link(e, true))}
-        </nav>
-      </div>
-      <main className="mx-auto min-w-0 max-w-[1400px] flex-1 px-4 pt-6 pb-24 sm:px-8 lg:px-12 lg:pt-12">
-        {banner}
-        {children}
-      </main>
-    </div>
-  );
-}
-
 /* ---------- The floating switcher (dev only) ---------- */
+
+/** Each screen's variants, by the path it lives on. */
+const screens: { match: (path: string) => boolean; screen: string; names: Partial<Record<Variant, string>> }[] = [
+  { match: (p) => p === "/", screen: "Overview edit", names: { "1": "Edit in place", "2": "Arrange board", "3": "Docked library" } },
+  { match: (p) => p.startsWith("/plugins"), screen: "Catalogue", names: { "1": "Explorer · Sheet form", "2": "Cards · Dialog form" } },
+  { match: (p) => p.startsWith("/settings/audit-log"), screen: "Audit Log", names: { "1": "Table · hops in a Sheet", "2": "Timeline · hops inline" } },
+  { match: (p) => p.startsWith("/settings"), screen: "Settings", names: { "1": "Stacked panels", "2": "Live previews" } },
+];
 
 export function PrototypeSwitcher() {
   const v = useVariant();
@@ -329,7 +199,9 @@ export function PrototypeSwitcher() {
     q.set("variant", to);
     navigate({ pathname, search: q.toString() }, { replace: true });
   };
-  const step = (d: number) => go(variants[(variants.indexOf(v) + d + variants.length) % variants.length]);
+  const screen = screens.find((s) => s.match(pathname));
+  const keys = screen ? variants.filter((k) => screen.names[k]) : [];
+  const step = (d: number) => keys.length && go(keys[(Math.max(0, keys.indexOf(v)) + d + keys.length) % keys.length]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement;
@@ -340,14 +212,14 @@ export function PrototypeSwitcher() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   });
-  if (!import.meta.env.DEV || hidden) return null;
+  if (!import.meta.env.DEV || hidden || !screen) return null;
   return (
     <div className="fixed bottom-20 left-1/2 z-[60] flex -translate-x-1/2 items-center gap-1 rounded-full bg-[#ff3e8a] p-1 text-sm font-bold text-white shadow-2xl ring-2 ring-white md:bottom-5">
       <button type="button" aria-label="Previous variant" className="grid h-8 w-8 cursor-pointer place-items-center rounded-full hover:bg-white/20" onClick={() => step(-1)}>
         <ChevronLeft className="h-4 w-4" />
       </button>
       <span className="px-2 whitespace-nowrap">
-        {v} ({variantNames[v]})
+        {screen.screen} {keys.includes(v) ? v : keys[0]}: {screen.names[keys.includes(v) ? v : keys[0]]}
       </span>
       <button type="button" aria-label="Next variant" className="grid h-8 w-8 cursor-pointer place-items-center rounded-full hover:bg-white/20" onClick={() => step(1)}>
         <ChevronRight className="h-4 w-4" />

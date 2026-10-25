@@ -63,7 +63,7 @@ function median(xs: number[]) {
 
 /** The checks Page: every Check with its state and latency, and their editing. */
 export function ChecksPage() {
-  const v = useVariant();
+  const v = useVariant() as string;
   const { data, error } = useChecks();
   const [editing, setEditing] = useState<Check | null | undefined>(undefined);
   const [maintaining, setMaintaining] = useState<Check | null | undefined>(undefined);

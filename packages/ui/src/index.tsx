@@ -2,7 +2,8 @@
 // stylesheet carries their Tailwind classes, so Plugins use them without
 // generating any CSS for them.
 import { useId, useState, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { Pill, useVariant } from "./proto";
+import { AlertTriangle, MoreHorizontal } from "lucide-react";
+import { Checkbox, Dialog, ProtoSheet } from "./proto-screens";
 
 /** A status: up, down, warn (attention), maint (Maintenance) or idle (unknown). */
 export type Tone = "up" | "down" | "warn" | "maint" | "idle";
@@ -76,12 +77,12 @@ export function Button({
       type={type}
       {...rest}
       className={cx(
-        "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-ui font-medium transition-colors disabled:pointer-events-none disabled:opacity-40",
-        size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
-        variant === "default" && "bg-primary text-primary-foreground hover:opacity-90",
-        variant === "outline" && "border border-border bg-card hover:bg-muted",
-        variant === "ghost" && "hover:bg-muted",
-        variant === "danger" && "bg-down text-primary-foreground hover:opacity-90",
+        "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg font-bold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:pointer-events-none disabled:opacity-40",
+        size === "sm" ? "h-8 px-3 text-xs" : "h-10 px-4 text-sm",
+        variant === "default" && "bg-primary text-primary-foreground shadow-[0_6px_16px_-6px_var(--primary)] hover:brightness-110",
+        variant === "outline" && "border border-border bg-card text-foreground/85 hover:border-foreground/25 hover:text-foreground",
+        variant === "ghost" && "text-muted-foreground hover:bg-muted hover:text-foreground",
+        variant === "danger" && "bg-down/12 text-down hover:bg-down/20",
         className,
       )}
     />
@@ -107,39 +108,29 @@ export type ConfirmAnswer = { checked: boolean } | null;
  */
 export function ConfirmDialog({ request, onAnswer }: { request: ConfirmRequest; onAnswer: (answer: ConfirmAnswer) => void }) {
   const [checked, setChecked] = useState(false);
-  const id = useId();
+  // PROTOTYPE: the question's first sentence is the title, the rest the body.
+  const [title, ...rest] = request.text.split(/(?<=[?.])\s+/);
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
-      onClick={() => onAnswer(null)}
-      onKeyDown={(e) => e.key === "Escape" && onAnswer(null)}
-    >
-      <div
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={`${id}-text`}
-        className="w-full max-w-sm rounded-ui border border-border bg-card p-5 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <p id={`${id}-text`} className="text-sm">
-          {request.text}
-        </p>
-        {request.checkbox && (
-          <label className="mt-4 flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-            {request.checkbox}
-          </label>
-        )}
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" autoFocus onClick={() => onAnswer(null)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={() => onAnswer({ checked })}>
-            {request.action ?? "Confirm"}
-          </Button>
+    <Dialog
+      size="sm"
+      icon={{ tone: "down", icon: AlertTriangle }}
+      title={title}
+      subtitle={rest.join(" ") || undefined}
+      onClose={() => onAnswer(null)}
+      footer={
+        <div className="flex flex-col gap-4">
+          {request.checkbox && <Checkbox label={request.checkbox} checked={checked} onChange={setChecked} />}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" autoFocus onClick={() => onAnswer(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => onAnswer({ checked })}>
+              {request.action ?? "Confirm"}
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      }
+    />
   );
 }
 
@@ -166,7 +157,7 @@ export function Segmented<T extends string>({
   onChange: (value: T) => void;
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-ui border border-border bg-muted p-0.5">
+    <div role="radiogroup" aria-label={label} className="inline-flex rounded-lg bg-muted p-0.5">
       {options.map((o) => (
         <button
           key={o}
@@ -175,8 +166,8 @@ export function Segmented<T extends string>({
           aria-checked={o === value}
           onClick={() => onChange(o)}
           className={cx(
-            "cursor-pointer rounded-ui px-2 py-0.5 text-xs font-medium",
-            o === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+            "cursor-pointer rounded-md px-2.5 py-1 text-xs font-bold",
+            o === value ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
           )}
         >
           {o}
@@ -205,39 +196,7 @@ export function WidgetCard({
   className?: string;
   children?: ReactNode;
 }) {
-  // PROTOTYPE: the frame per variant.
-  const v = useVariant();
   const dot = status && <StatusDot tone={status.tone} label={`${status.tone}: ${status.summary}`} />;
-  if (v === "B") {
-    return (
-      <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-panel", className)}>
-        <header className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-          {dot}
-          <h2 className="truncate text-xs font-extrabold tracking-wide uppercase">{title}</h2>
-          {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
-        </header>
-        <div className="min-h-0 flex-1 p-4">{children}</div>
-      </section>
-    );
-  }
-  if (v === "C") {
-    return (
-      <section className={cx("flex h-full flex-col rounded-2xl bg-card p-5 ring-1 ring-border transition-shadow hover:shadow-panel", className)}>
-        <header className="mb-3 flex items-center gap-2">
-          <h2 className="truncate text-base font-extrabold tracking-tight">{title}</h2>
-          {status && (
-            <span className="ml-1">
-              <Pill tone={status.tone} dot>
-                {status.tone === "maint" ? "maintenance" : status.tone}
-              </Pill>
-            </span>
-          )}
-          {actions && <div className="ml-auto flex items-center gap-1">{actions}</div>}
-        </header>
-        <div className="min-h-0 flex-1">{children}</div>
-      </section>
-    );
-  }
   return (
     <section className={cx("flex h-full flex-col rounded-ui border border-border bg-card shadow-panel", className)}>
       <header className="flex items-center gap-2 px-5 pt-4 pb-2">
@@ -374,31 +333,10 @@ export function AppIcon({ name, icon, url, size = 36 }: { name: string; icon?: s
 
 /** A drawer from the right, e.g. the Overview's Add Widget picker. Escape or a click outside closes it. */
 export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  const id = useId();
   return (
-    <div
-      className="fixed inset-0 z-40 flex justify-end bg-foreground/40"
-      onClick={onClose}
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={id}
-        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-background p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center">
-          <h2 id={id} className="text-lg font-semibold">
-            {title}
-          </h2>
-          <Button variant="ghost" size="sm" className="ml-auto" autoFocus onClick={onClose}>
-            Close
-          </Button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <ProtoSheet title={title} onClose={onClose}>
+      {children}
+    </ProtoSheet>
   );
 }
 
@@ -472,7 +410,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
   return (
     <div className="relative inline-block">
       <Button variant="ghost" size="sm" aria-label={label} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
-        ⋯
+        <MoreHorizontal className="h-4 w-4" aria-hidden />
       </Button>
       {open && (
         <>
@@ -480,7 +418,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
           <div
             role="menu"
             aria-label={label}
-            className="absolute right-0 z-40 mt-1 flex min-w-32 flex-col rounded-ui border border-border bg-card p-1 shadow-lg"
+            className="absolute right-0 z-40 mt-1 flex min-w-40 flex-col rounded-xl border border-border bg-card p-1.5 shadow-hero"
             onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
           >
             {items.map((item, i) => (
@@ -495,7 +433,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
                   item.onSelect();
                 }}
                 className={cx(
-                  "cursor-pointer rounded-ui px-2.5 py-1.5 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
+                  "cursor-pointer rounded-lg px-3 py-2 text-left text-sm font-semibold hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
                   item.danger && "text-down",
                 )}
               >
@@ -511,3 +449,4 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
 
 // PROTOTYPE: the redesign candidates (prototype/ui-redesign only).
 export * from "./proto";
+export * from "./proto-screens";

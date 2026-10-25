@@ -28,6 +28,8 @@ function importMapped(): Plugin {
     resolveId(id) {
       // PROTOTYPE: serve @ddash/ui from source in dev (see uiFromSource).
       if (id === "@ddash/ui" && this.environment.mode === "dev") return uiSource;
+      // PROTOTYPE (prototype/ui-screens): @ddash/plugin too, so its ConfirmDialog is the restyled one.
+      if (id === "@ddash/plugin" && this.environment.mode === "dev") return pluginSource;
       if (!isImportMapped(id)) return null;
       // The dev server rewrites bare imports, so point it at the vendor URL
       // the import map gives; a build leaves the bare import to the map.
@@ -46,14 +48,16 @@ function importMapped(): Plugin {
 // the vendor bundle; Plugins' /vendor/dev/ddash-ui.js redirects to the
 // same module, so shell and Plugins still share one instance.
 const uiSource = new URL("../packages/ui/src/index.tsx", import.meta.url).pathname;
+const pluginSource = new URL("../packages/plugin/src/index.ts", import.meta.url).pathname;
 function uiFromSource(): Plugin {
   return {
     name: "prototype-ui-from-source",
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (req.url !== "/vendor/dev/ddash-ui.js") return next();
+        const to = req.url === "/vendor/dev/ddash-ui.js" ? uiSource : req.url === "/vendor/dev/ddash-plugin.js" ? pluginSource : undefined;
+        if (!to) return next();
         res.statusCode = 302;
-        res.setHeader("Location", `/@fs${uiSource}`);
+        res.setHeader("Location", `/@fs${to}`);
         res.end();
       });
     },
