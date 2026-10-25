@@ -1,9 +1,9 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { cx, PageHeader, StatusDot, toneBg } from "@ddash/ui";
+import { cx, ErrorFrame, PageHeader, StatusDot, toneBg } from "@ddash/ui";
 import { useState } from "react";
 import { Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
-import { ErrorBoundary, ErrorFrame } from "./boundary";
+import { ErrorBoundary } from "./boundary";
 import { Catalogue } from "./catalogue";
 import { Chrome } from "./chrome";
 import { navItems, type NavItem } from "./nav";

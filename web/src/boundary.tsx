@@ -1,4 +1,3 @@
-import { StatusDot } from "@ddash/ui";
 import { Component, type ReactNode } from "react";
 
 /**
@@ -24,15 +23,3 @@ export class ErrorBoundary extends Component<
   }
 }
 
-/** Where a Plugin's Page would be, when it can't render. */
-export function ErrorFrame({ title, error }: { title: string; error: Error }) {
-  return (
-    <div role="alert" className="rounded-ui border border-warn bg-card p-5">
-      <div className="flex items-center gap-2 font-semibold">
-        <StatusDot tone="warn" />
-        {title}
-      </div>
-      <pre className="mt-2 text-sm whitespace-pre-wrap text-muted-foreground">{error.message}</pre>
-    </div>
-  );
-}

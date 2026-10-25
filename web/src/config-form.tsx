@@ -10,9 +10,8 @@ import {
   type TestAction,
 } from "@ddash/proto/ddash/core/core_pb";
 import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/config_pb";
-import { Button, Icon, StatusDot, Switch, type Tone } from "@ddash/ui";
+import { Button, ErrorFrame, Icon, StatusDot, Switch, type Tone } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
-import { ErrorFrame } from "./boundary";
 import { validate } from "./config-rules";
 
 /** Errors by path, e.g. "hosts[1].url". */

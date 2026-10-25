@@ -1,9 +1,9 @@
 import { PluginScope, useAction, useQuery, type Fetch, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Button, cx, Hero, Icon, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
+import { Button, cx, ErrorFrame, Hero, Icon, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ErrorBoundary, ErrorFrame } from "./boundary";
+import { ErrorBoundary } from "./boundary";
 import { hero } from "./hero";
 import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
 import type { LoadedPlugin, Plugins } from "./plugins";
