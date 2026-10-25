@@ -1,4 +1,5 @@
 // The charts family: hand-rolled SVG, coloured by Theme classes.
+import { useOnHero } from "./surface";
 import { cx, toneFill, type Tone } from "./tone";
 
 const sparkStroke = ["stroke-primary", "stroke-muted-foreground"];
@@ -51,6 +52,8 @@ export function Ring({ ratio, value, label }: { ratio: number; value: string; la
   const r = 42;
   const c = 2 * Math.PI * r;
   const filled = clamp01(ratio);
+  // On the hero the ring reuses the nav set (Theme rule: ring = nav-accent).
+  const hero = useOnHero();
   return (
     <div
       role="meter"
@@ -62,7 +65,7 @@ export function Ring({ ratio, value, label }: { ratio: number; value: string; la
       className="relative grid size-32 shrink-0 place-items-center"
     >
       <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-muted" />
+        <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={hero ? "stroke-nav-strong/15" : "stroke-muted"} />
         <circle
           cx="50"
           cy="50"
@@ -71,10 +74,16 @@ export function Ring({ ratio, value, label }: { ratio: number; value: string; la
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={`${c * filled} ${c}`}
-          className="stroke-primary motion-safe:transition-[stroke-dasharray] motion-safe:duration-500"
+          data-colour={hero ? "nav-accent" : "primary"}
+          className={cx(
+            hero ? "stroke-nav-accent" : "stroke-primary",
+            "motion-safe:transition-[stroke-dasharray] motion-safe:duration-500",
+          )}
         />
       </svg>
-      <span className="relative text-3xl leading-none font-extrabold tracking-tight tabular-nums">{value}</span>
+      <span className={cx("relative text-3xl leading-none font-extrabold tracking-tight tabular-nums", hero && "text-nav-strong")}>
+        {value}
+      </span>
     </div>
   );
 }
