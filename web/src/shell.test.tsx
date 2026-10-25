@@ -82,6 +82,25 @@ it("lists Overview first, then Nav Entries by order and title, then Plugins and 
   ]);
 });
 
+it("draws each Nav Entry's icon, named in its manifest or Nav Entry, from the core", async () => {
+  const icons = vi.fn(async (url: string) => {
+    const names = new URL(url, "http://ddash").searchParams.get("names")!.split(",");
+    return Response.json(Object.fromEntries(names.map((n) => [n, [["path", { d: `icon ${n}` }]]])));
+  });
+  vi.stubGlobal("fetch", icons);
+  try {
+    await boot("/", [
+      [installed("docker", "Docker", "container"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("d") }] })],
+      [installed("checks", "Checks", "puzzle"), definePlugin({ nav: { order: 20, icon: "activity" }, pages: [{ index: true, Component: page("c") }] })],
+    ]);
+  } finally {
+    vi.unstubAllGlobals();
+  }
+
+  const drawn = (link: string) => screen.getByRole("link", { name: link }).querySelector("svg path")?.getAttribute("d");
+  expect([drawn("Docker"), drawn("Checks"), drawn("Settings")]).toEqual(["icon container", "icon activity", "icon settings"]);
+});
+
 it("names the signed-in Operator and signs out through the host", async () => {
   await boot("/", []);
 

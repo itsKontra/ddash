@@ -8,12 +8,15 @@ all: check
 install:
 	$(PNPM) install --frozen-lockfile
 
-# Regenerate Go and TS from every .proto. Generated code is committed.
+# Regenerate Go and TS from every .proto, and the icon data from the
+# pinned lucide-static (packages/ui/scripts/icons.ts). Generated code is
+# committed.
 generate:
 	go tool buf generate
+	node packages/ui/scripts/icons.ts
 
 # Fail when committed generated code differs from what `make generate` produces.
-GENERATED := '*.pb.go' '*.connect.go' packages/proto/src
+GENERATED := '*.pb.go' '*.connect.go' packages/proto/src core/icons/lucide packages/ui/src/icon-names.ts
 
 check-generated: generate
 	@drift="$$(git status --porcelain -- $(GENERATED))"; \

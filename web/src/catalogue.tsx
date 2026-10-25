@@ -1,12 +1,10 @@
 import type { DescMethodUnary } from "@bufbuild/protobuf";
 import { Refresh, useAction, useQuery, type Action } from "@ddash/plugin";
 import { CoreService, type CataloguePlugin, type ComponentStatus, type ListCatalogueResponse } from "@ddash/proto/ddash/core/core_pb";
-import { Button, PageHeader, StatusDot, type Tone } from "@ddash/ui";
-import { ChevronDown } from "lucide-react";
+import { Button, cx, Icon, PageHeader, StatusDot, type IconName, type Tone } from "@ddash/ui";
 import { useEffect, useState } from "react";
 import { ErrorFrame } from "./boundary";
 import { ConfigDialog } from "./config-form";
-import { icon } from "./icons";
 
 /**
  * The Plugins page: the Catalogue of the running Release, read at the FAST
@@ -82,12 +80,13 @@ function Entry({
   const install = useAction(CoreService.method.install);
   const uninstall = useAction(CoreService.method.uninstall);
   const [open, setOpen] = useState(false);
-  const Icon = icon(p.icon);
   const summary = summaryOf(p);
   return (
     <li aria-label={p.title} className="px-4 py-3">
       <div className="flex items-start gap-4">
-        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="mt-0.5 flex text-muted-foreground">
+          <Icon name={p.icon as IconName} size="lg" />
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
             <span className="font-medium">{p.title}</span>
@@ -117,7 +116,9 @@ function Entry({
             >
               <StatusDot tone={toneOf(summary)} label={summary} />
               {summary}
-              <ChevronDown className={open ? "h-4 w-4 rotate-180" : "h-4 w-4"} aria-hidden />
+              <span className={cx("flex", open && "rotate-180")}>
+                <Icon name="chevron-down" />
+              </span>
             </button>
           )}
           {p.installed ? (

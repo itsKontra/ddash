@@ -10,3 +10,4 @@ export * from "./layout";
 export * from "./forms";
 export * from "./charts";
 export * from "./overlays";
+export * from "./icon";

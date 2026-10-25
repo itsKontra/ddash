@@ -1,7 +1,6 @@
 import { PluginScope, useAction, useQuery, type Fetch, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Button, cx, Hero, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
-import { GripVertical, Pencil, Plus, X } from "lucide-react";
+import { Button, cx, Hero, Icon, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary, ErrorFrame } from "./boundary";
@@ -128,13 +127,13 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
           (draft ? (
             <>
               <Button variant="outline" onClick={() => setAdding(true)}>
-                <Plus className="h-4 w-4" aria-hidden /> Add Widget
+                <Icon name="plus" /> Add Widget
               </Button>
               <Button onClick={done}>Done</Button>
             </>
           ) : (
             <Button variant="outline" onClick={() => setDraft(overview.layout!)}>
-              <Pencil className="h-4 w-4" aria-hidden /> Edit
+              <Icon name="pencil" /> Edit
             </Button>
           ))
         }
@@ -175,14 +174,16 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
                         onChange={(size) => edit((l) => ({ ...l, entries: l.entries.map((e) => (e.widget === c.entry.widget ? { ...e, size } : e)) }))}
                       />
                     )}
-                    <GripVertical className="h-4 w-4 text-muted-foreground" aria-hidden />
+                    <span className="flex text-muted-foreground">
+                      <Icon name="grip-vertical" />
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
                       aria-label={`Remove ${c.title}`}
                       onClick={() => edit((l) => ({ ...l, entries: l.entries.filter((e) => e.widget !== c.entry.widget) }))}
                     >
-                      <X className="h-4 w-4" aria-hidden />
+                      <Icon name="x" />
                     </Button>
                   </>
                 )

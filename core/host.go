@@ -168,6 +168,7 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.healthz)
+	mux.HandleFunc("GET "+iconsPath, h.icons) // public lucide data, so sign-in can draw icons
 	if h.keycloak != nil {
 		mux.Handle("/auth/", h.keycloak.Handler())
 	}

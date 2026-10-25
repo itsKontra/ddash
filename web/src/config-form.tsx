@@ -10,8 +10,7 @@ import {
   type TestAction,
 } from "@ddash/proto/ddash/core/core_pb";
 import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/config_pb";
-import { Button, StatusDot, Switch, type Tone } from "@ddash/ui";
-import { X } from "lucide-react";
+import { Button, Icon, StatusDot, Switch, type Tone } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { ErrorFrame } from "./boundary";
 import { validate } from "./config-rules";
@@ -362,7 +361,7 @@ function List({ field: f, items, onChange, errors }: { field: FormField; items: 
               onChange={(v) => onChange(items.map((x, j) => (j === i ? (v ?? "") : x)))}
             />
             <Button variant="ghost" aria-label={`Remove item ${i + 1}`} onClick={() => onChange(items.filter((_, j) => j !== i))}>
-              <X className="h-4 w-4" aria-hidden />
+              <Icon name="x" />
             </Button>
           </div>
           <FieldError message={errors[`${f.name}[${i}]`]} />
@@ -416,7 +415,7 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
               })}
               <td className="pb-2">
                 <Button variant="ghost" aria-label={`Remove row ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))}>
-                  <X className="h-4 w-4" aria-hidden />
+                  <Icon name="x" />
                 </Button>
               </td>
             </tr>
@@ -454,7 +453,7 @@ export function ConfigDialog({ owner, onClose }: { owner: string; onClose: () =>
             </p>
           </div>
           <Button variant="ghost" className="ml-auto" aria-label="Close" onClick={onClose}>
-            <X className="h-4 w-4" aria-hidden />
+            <Icon name="x" />
           </Button>
         </div>
         <ConfigForm owner={owner} />
