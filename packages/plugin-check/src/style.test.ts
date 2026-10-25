@@ -69,11 +69,10 @@ export function Row({ down }: { down: boolean }) {
     ]);
   });
 
-  it("fails hard-coded fonts", () => {
+  it("fails hard-coded fonts, and passes the Theme's font and @ddash/ui's monospace", () => {
     const dir = plugin({ "row.tsx": `export const c = "font-mono font-serif font-sans font-semibold";\n` });
     expect(lintStyle(dir)).toEqual([
-      'src/row.tsx:1: "font-mono" is a hard-coded font; use font-sans, the Theme\'s font',
-      'src/row.tsx:1: "font-serif" is a hard-coded font; use font-sans, the Theme\'s font',
+      'src/row.tsx:1: "font-serif" is a hard-coded font; use font-sans, the Theme\'s font, or font-mono',
     ]);
   });
 

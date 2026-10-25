@@ -165,8 +165,9 @@ const radius = "use rounded-ui, the Theme's radius";
 const surfaceUtility = new RegExp(`^${colourPrefix}-(nav|hero)(-[\\w-]+)?(/[\\w.]+)?$`);
 const surface = "the nav is the shell's and the hero is HeroCard's";
 
-const fontUtility = /^font-(mono|serif)$/;
-const font = "use font-sans, the Theme's font";
+// font-mono is @ddash/ui's fixed monospace stack (tokens.css), not a font choice.
+const fontUtility = /^font-serif$/;
+const font = "use font-sans, the Theme's font, or font-mono";
 
 // w-[13px], bg-[#fff]/50, bg-(--brand), bg-up/[.5], [color:red].
 const arbitraryUtility = /^-?[a-z][\w-]*-(\[.+\]|\(.+\))(\/.+)?$|\/(\[.+\]|\(.+\))$|^\[[a-z-]+:.+\]$/;
