@@ -8,13 +8,21 @@ import { importMap, importMapPackages, pluginConfig } from "./index";
 
 const fixture = fileURLToPath(new URL("../testdata/hello", import.meta.url));
 
+/** Builds the Plugin at dir with pluginConfig into a temp dir, which it returns. */
+async function buildPlugin(dir: string): Promise<string> {
+  const out = mkdtempSync(join(tmpdir(), "ddash-preset-"));
+  await build({ ...pluginConfig(dir), configFile: false, logLevel: "silent", build: { ...pluginConfig(dir).build, outDir: out } });
+  return out;
+}
+
+const buildCSS = async (dir: string) => readFileSync(join(await buildPlugin(dir), "index.css"), "utf8");
+
 describe("pluginConfig", () => {
   let js: string;
   let css: string;
 
   beforeAll(async () => {
-    const out = mkdtempSync(join(tmpdir(), "ddash-preset-"));
-    await build({ ...pluginConfig(fixture), configFile: false, logLevel: "silent", build: { ...pluginConfig(fixture).build, outDir: out } });
+    const out = await buildPlugin(fixture);
     js = readFileSync(join(out, "index.js"), "utf8");
     css = readFileSync(join(out, "index.css"), "utf8");
   }, 60_000);
@@ -27,14 +35,21 @@ describe("pluginConfig", () => {
     expect(js).toMatch(/export\s*\{[^}]*as default/);
   });
 
-  it("builds the Plugin's own Tailwind CSS from its own sources, on the Theme tokens", () => {
-    expect(css).toContain(".text-up");
-    expect(css).toContain("var(--up)");
-    expect(css).toContain(".p-3");
-    // Classes only @ddash/ui or other sources use aren't the Plugin's to ship.
-    expect(css).not.toContain(".bg-maint");
-    expect(css).not.toContain(".animate-ping");
+  it("ships the Plugin's own keyframes", () => {
+    expect(css).toMatch(/@keyframes hello-pulse\s*\{/);
   });
+
+  it("ships no utilities, which are the shell's to generate and order", () => {
+    // The fixture's hidden lg:flex text-up p-3 and the animate-[hello-pulse_...]
+    // applying its keyframes all come from the shell's stylesheet.
+    for (const cls of [".hidden", ".text-up", ".p-3", ".lg\\:flex", "animate-"]) expect(css).not.toContain(cls);
+    expect(css).not.toContain("@layer utilities{");
+  });
+
+  it("ships no utilities even when a Plugin's stylesheet @sources its sources: plugin.css carries only the tokens", async () => {
+    const sourced = await buildCSS(fileURLToPath(new URL("../testdata/sourced", import.meta.url)));
+    for (const cls of [".hidden", ".text-up", ".p-3", ".lg\\:flex"]) expect(sourced).not.toContain(cls);
+  }, 60_000);
 
   it("leaves preflight out", () => {
     expect(css).not.toMatch(/box-sizing:\s*border-box/);
