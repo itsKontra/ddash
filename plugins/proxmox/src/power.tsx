@@ -80,7 +80,7 @@ export function ProtectedLock() {
 
 function Failure({ message }: { message?: string }) {
   return message ? (
-    <p role="alert" className="text-xs text-down">
+    <p role="alert" className="text-xs text-down-text">
       {message}
     </p>
   ) : null;

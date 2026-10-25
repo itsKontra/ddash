@@ -18,10 +18,10 @@ export const toneBg: Record<Tone, string> = {
 };
 
 export const toneText: Record<Tone, string> = {
-  up: "text-up",
-  down: "text-down",
-  warn: "text-warn",
-  maint: "text-maint",
+  up: "text-up-text",
+  down: "text-down-text",
+  warn: "text-warn-text",
+  maint: "text-maint-text",
   idle: "text-muted-foreground",
 };
 
@@ -461,7 +461,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
                 }}
                 className={cx(
                   "cursor-pointer rounded-ui px-2.5 py-1.5 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
-                  item.danger && "text-down",
+                  item.danger && "text-down-text",
                 )}
               >
                 {item.label}

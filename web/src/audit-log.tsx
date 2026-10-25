@@ -133,7 +133,7 @@ function Page({
   }, [data]);
   if (error && !data) {
     return (
-      <li role="alert" className="px-4 py-3 text-sm text-down">
+      <li role="alert" className="px-4 py-3 text-sm text-down-text">
         The Audit Log can't be read: {error.message}
       </li>
     );
@@ -196,7 +196,7 @@ function EntryLine({ entry: e }: { entry: AuditEntry }) {
       </span>
       {e.disruptive && <Badge tone="warn">disruptive</Badge>}
       <Outcome outcome={e.outcome} />
-      {e.message && <span className="text-down">{e.message}</span>}
+      {e.message && <span className="text-down-text">{e.message}</span>}
       {e.duration && <span className="tabular-nums text-muted-foreground">{formatDuration(durationMs(e.duration))}</span>}
     </>
   );

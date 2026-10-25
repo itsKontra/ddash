@@ -25,7 +25,7 @@ export function DeviceQueries({ ip }: { ip: string }) {
         <input id={id} type="checkbox" checked={blockedOnly} onChange={(e) => setBlockedOnly(e.target.checked)} />
         Blocked only
       </label>
-      {error && !data && <p className="text-down">{error.rawMessage}</p>}
+      {error && !data && <p className="text-down-text">{error.rawMessage}</p>}
       {data && data.queries.length === 0 && (
         <p className="text-muted-foreground">{blockedOnly ? `No blocked queries from ${ip} in AdGuard's log.` : `No queries from ${ip} in AdGuard's log.`}</p>
       )}

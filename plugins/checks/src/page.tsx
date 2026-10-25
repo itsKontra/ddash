@@ -34,7 +34,7 @@ export function ChecksPage() {
         }
       />
       {data && <MaintenanceList checks={data.checks} />}
-      {error && !data && <p className="text-sm text-down">{error.message}</p>}
+      {error && !data && <p className="text-sm text-down-text">{error.message}</p>}
       {data && data.checks.length === 0 && <p className="text-sm text-muted-foreground">No Checks yet. Add one to watch any address.</p>}
       {data && data.checks.length > 0 && (
         <div className="rounded-ui border border-border bg-card">
@@ -107,12 +107,12 @@ function Row({ check: c, onEdit, onShow, onMaintain }: { check: Check; onEdit: (
       <td className="px-2 py-2 text-muted-foreground">{typeLabels[c.spec?.type ?? CheckType.UNSPECIFIED]}</td>
       <td className="truncate px-2 py-2 text-muted-foreground">{target(c)}</td>
       <td className="px-2 py-2 text-muted-foreground tabular-nums">
-        {up && c.lastBeat ? latency(c.latencyMs) : !c.disabled && c.reason ? <span className="text-down">{c.reason}</span> : null}
+        {up && c.lastBeat ? latency(c.latencyMs) : !c.disabled && c.reason ? <span className="text-down-text">{c.reason}</span> : null}
       </td>
       <td className="py-2 pr-4">
         <div className="flex items-center justify-end gap-1">
           {failure && (
-            <span role="alert" className="text-xs text-down">
+            <span role="alert" className="text-xs text-down-text">
               {failure.rawMessage}
             </span>
           )}
@@ -207,7 +207,7 @@ function CheckForm({ check, onClose }: { check?: Check; onClose: () => void }) {
           Probed every 60 s with a 10 s timeout. {type === "DNS" ? "Up when the server answers with at least one record." : ""}
         </p>
         {failure && (
-          <p role="alert" className="text-sm text-down">
+          <p role="alert" className="text-sm text-down-text">
             {failure.rawMessage}
           </p>
         )}

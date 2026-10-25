@@ -45,9 +45,9 @@ function ReachItem({ reach }: { reach: Reach }) {
 export function RemoteAccessPeers() {
   // Handshake ages are as of the read, which refreshes every minute.
   const { data, error, dataUpdatedAt: now } = useQuery(NetworkService.method.getRemoteAccess, {});
-  if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
+  if (error && !data) return <p className="px-4 py-3 text-sm text-down-text">{error.rawMessage}</p>;
   if (!data) return null;
-  if (data.error) return <p className="px-4 py-3 text-sm text-warn">{data.error}</p>;
+  if (data.error) return <p className="px-4 py-3 text-sm text-warn-text">{data.error}</p>;
   return (
     <>
       <table aria-label="Remote Access peers" className="w-full text-sm">

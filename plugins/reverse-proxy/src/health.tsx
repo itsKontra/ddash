@@ -18,7 +18,7 @@ export function ReverseProxy() {
           </Button>
         }
       />
-      {refresh.error && <p className="text-sm text-down">Refresh failed: {refresh.error.rawMessage}</p>}
+      {refresh.error && <p className="text-sm text-down-text">Refresh failed: {refresh.error.rawMessage}</p>}
       <ConfigHealth />
       <ProxyHosts />
     </div>
@@ -40,7 +40,7 @@ function ConfigHealth() {
             <StatusDot tone="down" />
             <span className="font-medium">nginx's config doesn't load</span>
           </p>
-          <pre role="alert" className="overflow-x-auto rounded-ui border border-border bg-muted p-3 text-xs whitespace-pre-wrap text-down">
+          <pre role="alert" className="overflow-x-auto rounded-ui border border-border bg-muted p-3 text-xs whitespace-pre-wrap text-down-text">
             {snapshot.error}
           </pre>
           <p className="text-muted-foreground">

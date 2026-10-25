@@ -103,11 +103,11 @@ function Body() {
 /** The Network Page's throughput: WAN and LAN over the last hour, and why sampling fails. */
 export function ThroughputRates() {
   const { data, error } = useThroughput();
-  if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
+  if (error && !data) return <p className="px-4 py-3 text-sm text-down-text">{error.rawMessage}</p>;
   if (!data) return null;
   return (
     <div className="flex flex-col gap-3 px-4 py-3">
-      {data.error && <p className="text-sm text-warn">{data.error}</p>}
+      {data.error && <p className="text-sm text-warn-text">{data.error}</p>}
       {data.samples.length === 0 ? (
         <p className="text-sm text-muted-foreground">Collecting the first samples</p>
       ) : (
