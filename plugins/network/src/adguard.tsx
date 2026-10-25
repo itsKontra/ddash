@@ -106,7 +106,7 @@ export function AdguardStats() {
   const { data: status, error } = useAdguardStatus();
   const { data: stats, error: statsError } = useAdguardStats();
   const failed = error ?? statsError;
-  if (failed && !stats) return <p className="px-4 py-3 text-sm text-down">{failed.rawMessage}</p>;
+  if (failed && !stats) return <p className="px-4 py-3 text-sm text-down-text">{failed.rawMessage}</p>;
   if (!stats) return null;
   const unit = stats.timeUnit === "days" ? "day" : "hour";
   return (

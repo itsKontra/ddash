@@ -27,7 +27,7 @@ const cell = "px-2 py-2";
 /** Every Device with its routing and status; each name opens its detail, and a New one has Adopt. */
 export function DevicesTable() {
   const { data, error } = useDevices();
-  if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
+  if (error && !data) return <p className="px-4 py-3 text-sm text-down-text">{error.rawMessage}</p>;
   if (!data) return null;
   if (data.devices.length === 0) return <p className="px-4 py-3 text-sm text-muted-foreground">The firewall's DHCP knows no Devices.</p>;
   return (

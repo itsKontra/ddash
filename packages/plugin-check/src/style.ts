@@ -91,8 +91,10 @@ function designSystem(specifier: string): boolean {
 const colour = "use a Theme token class (bg-card, text-down, ...)";
 const palette =
   "red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone|mauve|olive|mist|taupe";
+const colourPrefix =
+  "(bg|text|border(-[xytrblse])?|divide|outline|ring|ring-offset|inset-ring|shadow|inset-shadow|drop-shadow|text-shadow|accent|caret|fill|stroke|decoration|placeholder|from|via|to)";
 const colourUtility = new RegExp(
-  "^(bg|text|border(-[xytrblse])?|divide|outline|ring|ring-offset|inset-ring|shadow|inset-shadow|drop-shadow|text-shadow|accent|caret|fill|stroke|decoration|placeholder|from|via|to)-" +
+  `^${colourPrefix}-` +
     `(black|white|(${palette})-\\d{2,3})(/[\\w.]+)?$`,
 );
 const hex = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
@@ -100,9 +102,13 @@ const colourFunction = /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/i;
 
 // rounded, rounded-t, rounded-lg, rounded-tl-md, ...: the value (if any) in group 1.
 const radiusUtility = /^rounded(?:-(?:[trblse]|tl|tr|br|bl|ss|se|es|ee))?(?:-(.+))?$/;
-// The Theme's radius, and the two that aren't a radius choice: a circle and none.
-const radii = new Set(["ui", "full", "none"]);
+// The Theme's radius and its scale, and the two that aren't a radius choice: a circle and none.
+const radii = new Set(["ui", "ui-sm", "ui-lg", "full", "none"]);
 const radius = "use rounded-ui, the Theme's radius";
+
+// The nav and hero surfaces (bg-nav, text-nav-strong, from-hero-from, ...): the shell's and HeroCard's alone.
+const surfaceUtility = new RegExp(`^${colourPrefix}-(nav|hero)(-[\\w-]+)?(/[\\w.]+)?$`);
+const surface = "the nav is the shell's and the hero is HeroCard's";
 
 const fontUtility = /^font-(mono|serif)$/;
 const font = "use font-sans, the Theme's font";
@@ -128,6 +134,7 @@ function checkString(value: string): string[] {
     if (colourUtility.test(utility) || hex.test(token)) report(token, "a hard-coded colour", colour);
     else if (!classLike.test(utility)) continue; // text, e.g. a "[::]:443" listen
     else if (arbitraryUtility.test(utility) || /[[(]/.test(token.slice(0, start))) report(token, "an arbitrary value", arbitrary);
+    else if (surfaceUtility.test(utility)) report(token, "a shell-only surface", surface);
     else if (hardCodedRadius(utility)) report(token, "a hard-coded radius", radius);
     else if (fontUtility.test(utility)) report(token, "a hard-coded font", font);
   }

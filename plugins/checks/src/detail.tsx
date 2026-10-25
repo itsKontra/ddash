@@ -13,7 +13,7 @@ export function CheckDetail({ check, onClose }: { check: Check; onClose: () => v
   return (
     <Sheet title={shownName(check)} onClose={onClose}>
       <div className="flex flex-col gap-5">
-        {error && !data && <p className="text-sm text-down">{error.message}</p>}
+        {error && !data && <p className="text-sm text-down-text">{error.message}</p>}
         <Section title="Uptime">
           <div className="grid grid-cols-3 gap-3">
             {windowNames.map((w, i) => (
@@ -52,7 +52,7 @@ export function CheckDetail({ check, onClose }: { check: Check; onClose: () => v
                       <StatusDot tone={c.state === State.UP ? "up" : c.state === State.DOWN ? "down" : "warn"} label={stateWord(c.state)} />
                       <span className="font-medium">{stateWord(c.state)}</span>
                       <span className="text-muted-foreground">{c.at ? when(timestampMs(c.at)) : ""}</span>
-                      {c.reason && <span className="truncate text-down">{c.reason}</span>}
+                      {c.reason && <span className="truncate text-down-text">{c.reason}</span>}
                       {c.maintenance && <Badge tone="maint">in Maintenance</Badge>}
                     </li>
                   ))}

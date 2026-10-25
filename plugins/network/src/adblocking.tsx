@@ -22,10 +22,10 @@ export function AdBlockingToggle({ device: d, adguardError }: { device: Device; 
         <Switch label={`Ad-blocking ${nameOf(d)}`} checked={on} disabled={set.pending || adguardError !== ""} onChange={(enabled) => void set.run({ mac: d.mac, enabled })} />
         <span className="text-muted-foreground">{on ? "on" : "off: ads allowed, until turned back on"}</span>
       </span>
-      {adguardError && <span className="text-xs text-warn">{adguardError}</span>}
+      {adguardError && <span className="text-xs text-warn-text">{adguardError}</span>}
       {!d.adopted && <span className="text-xs text-muted-foreground">Turning ad-blocking off Adopts it first, at the lowest free reserved address.</span>}
       {set.error && (
-        <span role="alert" className="text-xs text-down">
+        <span role="alert" className="text-xs text-down-text">
           {set.error.rawMessage}
         </span>
       )}

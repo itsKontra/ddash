@@ -224,14 +224,14 @@ function Field({ field: f, value, onChange, errors, secret, onSecret }: FieldPro
         <Scalar id={id} field={f} value={value} onChange={onChange} />
       )}
       {f.help && <p className="mt-1 text-xs text-muted-foreground">{f.help}</p>}
-      {f.choicesNote && <p className="mt-1 text-xs text-warn">{f.choicesNote}</p>}
+      {f.choicesNote && <p className="mt-1 text-xs text-warn-text">{f.choicesNote}</p>}
       <FieldError message={errors[f.name]} />
     </div>
   );
 }
 
 function FieldError({ message }: { message?: string }) {
-  return message ? <p className="mt-1 text-xs text-down">{message}</p> : null;
+  return message ? <p className="mt-1 text-xs text-down-text">{message}</p> : null;
 }
 
 const inputClass = "h-9 w-full rounded-ui border border-border bg-card px-3 text-sm placeholder:text-muted-foreground";

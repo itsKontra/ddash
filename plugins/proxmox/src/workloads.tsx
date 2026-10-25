@@ -19,7 +19,7 @@ export function Workloads() {
   return (
     <div>
       <PageHeader title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
-      {error && !data && <p className="text-sm text-down">{error.rawMessage}</p>}
+      {error && !data && <p className="text-sm text-down-text">{error.rawMessage}</p>}
       {data && (
         <div className="overflow-x-auto rounded-ui border border-border bg-card">
           <table className="w-full text-sm">
@@ -109,7 +109,7 @@ function Row({ workload: w }: { workload: Workload }) {
 
 /** Its IPs, or each NIC's MAC when it has none; marked when from the config. */
 export function Addresses({ workload: w }: { workload: Workload }) {
-  if (w.addressesError) return <span className="text-warn">{w.addressesError}</span>;
+  if (w.addressesError) return <span className="text-warn-text">{w.addressesError}</span>;
   const shown = w.nics.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
   if (!shown.length) return <span className="text-muted-foreground">–</span>;
   return (

@@ -130,7 +130,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
                 }}
                 className={cx(
                   "cursor-pointer rounded-ui px-2.5 py-1.5 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
-                  item.danger && "text-down",
+                  item.danger && "text-down-text",
                 )}
               >
                 {item.label}

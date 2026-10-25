@@ -22,7 +22,7 @@ export function DeviceDetail() {
     return (
       <div>
         <PageHeader title={mac} actions={back} />
-        <p className="text-sm text-down">{error.rawMessage}</p>
+        <p className="text-sm text-down-text">{error.rawMessage}</p>
       </div>
     );
   }
