@@ -24,6 +24,9 @@ export const toneText: Record<Tone, string> = {
   idle: "text-muted-foreground",
 };
 
+// A tone as a chart mark, filled, stroked or as a swatch: idle (no data) is
+// muted. The three must name the same colour (tone.test.ts).
+
 /** A tone as an SVG fill. */
 export const toneFill: Record<Tone, string> = {
   up: "fill-up",
@@ -32,6 +35,26 @@ export const toneFill: Record<Tone, string> = {
   maint: "fill-maint",
   info: "fill-info",
   idle: "fill-muted",
+};
+
+/** A tone as an SVG stroke. */
+export const toneStroke: Record<Tone, string> = {
+  up: "stroke-up",
+  down: "stroke-down",
+  warn: "stroke-warn",
+  maint: "stroke-maint",
+  info: "stroke-info",
+  idle: "stroke-muted",
+};
+
+/** A tone as a mark's background: a Meter's bar, a legend's swatch. */
+export const toneMark: Record<Tone, string> = {
+  up: "bg-up",
+  down: "bg-down",
+  warn: "bg-warn",
+  maint: "bg-maint",
+  info: "bg-info",
+  idle: "bg-muted",
 };
 
 /** A tone as a surface under text: its 12% tint with its text colour. Idle is muted. */

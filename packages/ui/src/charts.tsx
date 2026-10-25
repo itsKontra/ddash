@@ -1,6 +1,6 @@
 // The charts family: hand-rolled SVG, coloured by Theme classes.
 import { useOnHero } from "./surface";
-import { cx, toneFill, type Tone } from "./tone";
+import { cx, toneFill, toneMark, toneStroke, type Tone } from "./tone";
 
 const sparkStroke = ["stroke-primary", "stroke-muted-foreground"];
 
@@ -101,8 +101,8 @@ export interface ChartItem {
 const chartColours = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "chart-6"] as const;
 type Colour = (typeof chartColours)[number] | Tone | "muted";
 
-// Literal class names, so the shell's Tailwind build finds them. idle and
-// "Other" are both muted, as in UptimeBars.
+// Literal class names, so the shell's Tailwind build finds them. A tone
+// draws as its chart mark (tone.ts); "Other" is muted, like idle.
 const colourStroke: Record<Colour, string> = {
   "chart-1": "stroke-chart-1",
   "chart-2": "stroke-chart-2",
@@ -110,13 +110,8 @@ const colourStroke: Record<Colour, string> = {
   "chart-4": "stroke-chart-4",
   "chart-5": "stroke-chart-5",
   "chart-6": "stroke-chart-6",
-  up: "stroke-up",
-  down: "stroke-down",
-  warn: "stroke-warn",
-  maint: "stroke-maint",
-  info: "stroke-info",
-  idle: "stroke-muted",
-  muted: "stroke-muted",
+  ...toneStroke,
+  muted: toneStroke.idle,
 };
 const colourFill: Record<Colour, string> = {
   "chart-1": "fill-chart-1",
@@ -126,7 +121,7 @@ const colourFill: Record<Colour, string> = {
   "chart-5": "fill-chart-5",
   "chart-6": "fill-chart-6",
   ...toneFill,
-  muted: "fill-muted",
+  muted: toneFill.idle,
 };
 const colourBg: Record<Colour, string> = {
   "chart-1": "bg-chart-1",
@@ -135,13 +130,8 @@ const colourBg: Record<Colour, string> = {
   "chart-4": "bg-chart-4",
   "chart-5": "bg-chart-5",
   "chart-6": "bg-chart-6",
-  up: "bg-up",
-  down: "bg-down",
-  warn: "bg-warn",
-  maint: "bg-maint",
-  info: "bg-info",
-  idle: "bg-muted",
-  muted: "bg-muted",
+  ...toneMark,
+  muted: toneMark.idle,
 };
 
 interface Coloured {
