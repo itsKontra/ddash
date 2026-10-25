@@ -1,11 +1,15 @@
 // The overlays family: what opens over the Page.
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { Button } from "./atoms";
-import { cx } from "./tone";
+import { Checkbox } from "./forms";
+import { Icon } from "./icon";
+import { cx, toneTint } from "./tone";
 
 /** What a confirm dialog asks. */
 export interface ConfirmRequest {
-  /** The question, e.g. "Stop container plex on media?". */
+  /** The question as the heading, e.g. "Uninstall Docker?"; without it, text is the heading. */
+  title?: string;
+  /** The question, or with a title the detail under it, e.g. "Stop container plex on media?". */
   text: string;
   /** The confirm button's label. Default "Confirm". */
   action?: string;
@@ -17,74 +21,184 @@ export interface ConfirmRequest {
 export type ConfirmAnswer = { checked: boolean } | null;
 
 /**
- * The standard confirm dialog every disruptive Action shows. Cancel has the
- * focus, and Escape or a click outside cancels.
+ * The standard confirm dialog every disruptive Action shows, a small Dialog
+ * with a down icon chip. Cancel has the focus, and Escape or a click
+ * outside cancels.
  */
 export function ConfirmDialog({ request, onAnswer }: { request: ConfirmRequest; onAnswer: (answer: ConfirmAnswer) => void }) {
   const [checked, setChecked] = useState(false);
+  const cancel = () => onAnswer(null);
+  return (
+    <Overlay
+      {...dialogLook}
+      role="alertdialog"
+      panelClassName={cx(dialogLook.panelClassName, "sm:max-w-md")}
+      icon={
+        <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-ui", toneTint.down)}>
+          <Icon name="triangle-alert" size="lg" />
+        </span>
+      }
+      title={request.title ?? request.text}
+      subtitle={request.title && request.text}
+      onClose={cancel}
+      footer={
+        <div className="flex flex-col gap-4">
+          {request.checkbox && <Checkbox label={request.checkbox} checked={checked} onChange={(e) => setChecked(e.target.checked)} />}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" autoFocus onClick={cancel}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => onAnswer({ checked })}>
+              {request.action ?? "Confirm"}
+            </Button>
+          </div>
+        </div>
+      }
+    />
+  );
+}
+
+/** What a Dialog and a Sheet both draw: the heading block, a scrolling body and a pinned footer. */
+interface OverlayProps {
+  title: string;
+  onClose: () => void;
+  children?: ReactNode;
+  /** A small uppercase label over the title, e.g. "Configure". */
+  kicker?: string;
+  subtitle?: ReactNode;
+  /** Pinned under the body while it scrolls, e.g. FormActions; a submit there names its form by id. */
+  footer?: ReactNode;
+}
+
+const focusable = 'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Keeps the focus inside panel while it's open: it moves in on open (unless
+ * an autoFocus child already took it), Tab wraps at either end, and the
+ * focus goes back to where it was on close.
+ */
+function useFocusTrap(panel: RefObject<HTMLElement | null>) {
+  // Read during the first render, before an autoFocus child moves the focus.
+  const [opener] = useState(() => (typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null)));
+  useEffect(() => {
+    const el = panel.current;
+    if (el && !el.contains(document.activeElement)) (el.querySelector<HTMLElement>(focusable) ?? el).focus();
+    return () => {
+      if (opener?.isConnected) opener.focus();
+    };
+  }, [panel, opener]);
+  return (e: KeyboardEvent) => {
+    const el = panel.current;
+    if (e.key !== "Tab" || !el) return;
+    const all = [...el.querySelectorAll<HTMLElement>(focusable)];
+    if (all.length === 0) return;
+    const [first, last] = [all[0], all[all.length - 1]];
+    const at = document.activeElement;
+    if (e.shiftKey && (at === first || at === el)) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && at === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+}
+
+/**
+ * The dimmed, blurred overlay a Dialog and a Sheet share. Escape (heard
+ * while bubbling, so a SearchField's Escape only clears it) and a click
+ * outside the panel close it.
+ */
+function Overlay({
+  role = "dialog",
+  placement,
+  panelClassName,
+  icon,
+  title,
+  onClose,
+  children,
+  kicker,
+  subtitle,
+  footer,
+}: OverlayProps & { role?: "dialog" | "alertdialog"; placement: string; panelClassName: string; icon?: ReactNode }) {
   const id = useId();
+  const panel = useRef<HTMLDivElement>(null);
+  const trap = useFocusTrap(panel);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 p-4"
-      onClick={() => onAnswer(null)}
-      onKeyDown={(e) => e.key === "Escape" && onAnswer(null)}
+      // A confirm sits over the Sheet or Dialog whose Action asked it.
+      className={cx("fixed inset-0 flex bg-foreground/40 backdrop-blur-xs", role === "alertdialog" ? "z-60" : "z-50", placement)}
+      onClick={onClose}
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
       <div
-        role="alertdialog"
+        ref={panel}
+        tabIndex={-1}
+        onKeyDown={trap}
+        role={role}
         aria-modal="true"
-        aria-labelledby={`${id}-text`}
-        className="w-full max-w-sm rounded-ui border border-border bg-card p-5 shadow-lg"
+        aria-labelledby={`${id}-title`}
+        aria-describedby={subtitle ? `${id}-subtitle` : undefined}
+        className={cx("flex w-full flex-col border-border bg-card shadow-elevation-raised outline-none", panelClassName)}
         onClick={(e) => e.stopPropagation()}
       >
-        <p id={`${id}-text`} className="text-sm">
-          {request.text}
-        </p>
-        {request.checkbox && (
-          <label className="mt-4 flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} />
-            {request.checkbox}
-          </label>
+        <header className="flex items-start gap-4 px-6 pt-6 pb-4">
+          {icon}
+          <div className="min-w-0 flex-1">
+            {kicker && <div className="mb-1.5 text-[10px] font-extrabold tracking-[0.15em] text-primary uppercase">{kicker}</div>}
+            <h2 id={`${id}-title`} className="text-lg leading-tight font-extrabold tracking-tight">
+              {title}
+            </h2>
+            {subtitle && (
+              <p id={`${id}-subtitle`} className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="-mt-1 -mr-2 grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <Icon name="x" />
+          </button>
+        </header>
+        {children && (
+          <div data-scrolls className="min-h-0 flex-1 overflow-y-auto px-6 pb-5">
+            {children}
+          </div>
         )}
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="outline" autoFocus onClick={() => onAnswer(null)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={() => onAnswer({ checked })}>
-            {request.action ?? "Confirm"}
-          </Button>
-        </div>
+        {footer && <footer className="border-t border-border px-6 py-4">{footer}</footer>}
       </div>
     </div>
   );
 }
 
-/** A drawer from the right, e.g. the Overview's Add Widget picker. Escape or a click outside closes it. */
-export function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  const id = useId();
+/** A centred dialog, e.g. a Component's config form; a bottom sheet on phones. */
+export function Dialog(props: OverlayProps) {
+  return <Overlay {...dialogLook} {...props} />;
+}
+
+const dialogLook = {
+  placement: "items-end justify-center sm:items-center sm:p-6",
+  panelClassName: "max-h-[92vh] rounded-t-ui-lg border sm:max-h-[86vh] sm:max-w-xl sm:rounded-ui-lg",
+};
+
+/**
+ * A drawer from the right, e.g. the Overview's Add Widget picker; a bottom
+ * sheet on phones. wide gives it room for a timeline or a table.
+ */
+export function Sheet({ wide, ...props }: OverlayProps & { children: ReactNode; wide?: boolean }) {
   return (
-    <div
-      className="fixed inset-0 z-40 flex justify-end bg-foreground/40"
-      onClick={onClose}
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={id}
-        className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-background p-5"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-4 flex items-center">
-          <h2 id={id} className="text-lg font-semibold">
-            {title}
-          </h2>
-          <Button variant="ghost" size="sm" className="ml-auto" autoFocus onClick={onClose}>
-            Close
-          </Button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Overlay
+      {...props}
+      placement="items-end justify-end sm:items-stretch"
+      panelClassName={cx(
+        "max-h-[92vh] rounded-t-ui-lg border-t sm:h-full sm:max-h-none sm:rounded-none sm:border-t-0 sm:border-l",
+        wide ? "sm:max-w-2xl" : "sm:max-w-lg",
+      )}
+    />
   );
 }
 
@@ -106,7 +220,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
   return (
     <div className="relative inline-block">
       <Button variant="ghost" size="sm" aria-label={label} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
-        ⋯
+        <Icon name="ellipsis" />
       </Button>
       {open && (
         <>
@@ -114,7 +228,7 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
           <div
             role="menu"
             aria-label={label}
-            className="absolute right-0 z-40 mt-1 flex min-w-32 flex-col rounded-ui border border-border bg-card p-1 shadow-lg"
+            className="absolute right-0 z-40 mt-1 flex min-w-40 flex-col rounded-ui-lg border border-border bg-card p-1.5 shadow-elevation-raised"
             onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
           >
             {items.map((item, i) => (
@@ -129,8 +243,8 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
                   item.onSelect();
                 }}
                 className={cx(
-                  "cursor-pointer rounded-ui px-2.5 py-1.5 text-left text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
-                  item.danger && "text-down-text",
+                  "cursor-pointer rounded-ui-sm px-2.5 py-1.5 text-left text-sm font-medium focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-40",
+                  item.danger ? "text-down-text hover:bg-down-tint" : "hover:bg-muted",
                 )}
               >
                 {item.label}
