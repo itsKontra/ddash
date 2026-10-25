@@ -1,46 +1,29 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App } from "@ddash/proto/apps/apps_pb";
-import { Button, iconName, Sheet } from "@ddash/ui";
+import { Button, Checkbox, Field, FormActions, iconName, Notice, Select, Sheet, TextInput } from "@ddash/ui";
 import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
-import { useId, useState, type FormEvent, type ReactNode } from "react";
+import { useId, useState, type FormEvent } from "react";
 import { workloadName } from "@ddash/display";
 import { external, refKey, refOf, useWorkloads, WorkloadOptions } from "./workload";
 
-const inputClass = "h-9 w-full rounded-ui border border-border bg-card px-3 text-sm placeholder:text-muted-foreground";
-
-function Field({ label, help, children }: { label: string; help?: string; children: (id: string) => ReactNode }) {
-  const id = useId();
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      {children(id)}
-      {help && <p className="text-xs text-muted-foreground">{help}</p>}
-    </div>
-  );
-}
-
 function Text({
   label,
-  help,
+  hint,
   value,
   onChange,
   placeholder,
   list,
 }: {
   label: string;
-  help?: string;
+  hint?: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   list?: string;
 }) {
   return (
-    <Field label={label} help={help}>
-      {(id) => (
-        <input id={id} type="text" list={list} className={inputClass} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
-      )}
+    <Field label={label} hint={hint}>
+      <TextInput list={list} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
     </Field>
   );
 }
@@ -56,15 +39,10 @@ function Groups({ id, groups }: { id: string; groups: readonly string[] }) {
   );
 }
 
-const iconHelp = "A homarr-labs/dashboard-icons name, e.g. jellyfin. Empty matches one by the App's name, else the site's favicon is used.";
+const iconHint = "A homarr-labs/dashboard-icons name, e.g. jellyfin. Empty matches one by the App's name, else the site's favicon is used.";
 
 function Failed({ error }: { error?: { rawMessage: string } }) {
-  if (!error) return null;
-  return (
-    <p role="alert" className="text-sm text-down-text">
-      {error.rawMessage}
-    </p>
-  );
+  return error ? <Notice tone="down">{error.rawMessage}</Notice> : null;
 }
 
 /** Picks a discovered App's Workload override, or leaves it to the match. */
@@ -72,25 +50,23 @@ function WorkloadField({ app, value, onChange, host, onHost }: { app: App; value
   const { workloads, error } = useWorkloads();
   const w = app.workload;
   const matchLabel = w?.override ? "Match from the upstream" : `Matched: ${w ? workloadName(w) : "none"}`;
-  const help = error
+  const hint = error
     ? `Workloads can't be listed now (${error.rawMessage}); the match and the current override stay on offer.`
     : "The match is the container publishing the upstream's port on a Docker host, else the Proxmox guest at its address.";
   return (
     <>
-      <Field label="Workload" help={help}>
-        {(id) => (
-          <select id={id} className={inputClass} value={value} onChange={(e) => onChange(e.target.value)}>
-            <WorkloadOptions matchLabel={matchLabel} current={app.overlay?.workload} listed={workloads ?? []} />
-          </select>
-        )}
+      <Field label="Workload" hint={hint}>
+        <Select value={value} onChange={(e) => onChange(e.target.value)}>
+          <WorkloadOptions matchLabel={matchLabel} current={app.overlay?.workload} listed={workloads ?? []} />
+        </Select>
       </Field>
       {value === external && <Text label="External host" value={host} onChange={onHost} placeholder="198.18.1.50" />}
     </>
   );
 }
 
-/** Edits a discovered App's overlay: display name, icon, group, hidden, Workload. */
-function OverlayForm({ app, groups, onDone }: { app: App; groups: readonly string[]; onDone: () => void }) {
+/** Edits a discovered App's overlay in its sheet: display name, icon, group, hidden, Workload. */
+function OverlaySheet({ app, groups, onClose }: { app: App; groups: readonly string[]; onClose: () => void }) {
   const set = useAction(AppsService.method.setOverlay);
   const reset = useAction(AppsService.method.deleteOverlay);
   const o = app.overlay;
@@ -101,49 +77,60 @@ function OverlayForm({ app, groups, onDone }: { app: App; groups: readonly strin
   const [workload, setWorkload] = useState(o?.workload?.kind === Kind.EXTERNAL ? external : refKey(o?.workload));
   const [host, setHost] = useState(o?.workload?.kind === Kind.EXTERNAL ? o.workload.host : "");
   const listId = useId();
+  const formId = useId();
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
     const ref = workload === external ? { kind: Kind.EXTERNAL, host, id: "" } : refOf(workload);
-    if (await set.run({ overlay: { serverName: app.serverName, name, icon, group, hidden, workload: ref } })) onDone();
+    if (await set.run({ overlay: { serverName: app.serverName, name, icon, group, hidden, workload: ref } })) onClose();
   };
   const drop = async () => {
     const confirm = { text: `Reset ${app.name} to its defaults? Its display name, icon, group, hidden setting and Workload are dropped.`, action: "Reset" };
-    if (await reset.run({ serverName: app.serverName }, { confirm })) onDone();
+    if (await reset.run({ serverName: app.serverName }, { confirm })) onClose();
   };
 
-  return (
-    <form onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
-      <p className="text-sm text-muted-foreground">
-        From the Proxy Host <span className="font-medium text-foreground">{app.serverName}</span>. These settings stay with that name, even while
-        the Proxy Host is gone.
-      </p>
-      <Text label="Display name" value={name} onChange={setName} placeholder={o?.name ? undefined : app.name} />
-      <Text label="Icon" help={iconHelp} value={icon} onChange={setIcon} placeholder={iconName(name || app.name)} />
-      <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
-      <Groups id={listId} groups={groups} />
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
-        Hidden
-      </label>
-      <WorkloadField app={app} value={workload} onChange={setWorkload} host={host} onHost={setHost} />
-      <Failed error={set.error ?? reset.error} />
-      <div className="flex gap-2">
-        <Button type="submit" disabled={set.pending}>
-          Save
-        </Button>
-        {o && (
-          <Button variant="outline" className="ml-auto" disabled={reset.pending} onClick={() => void drop()}>
+  const footer = (
+    <FormActions
+      status={
+        o && (
+          <Button variant="outline" disabled={reset.pending} onClick={() => void drop()}>
             Reset
           </Button>
-        )}
-      </div>
-    </form>
+        )
+      }
+    >
+      <Button variant="outline" onClick={onClose}>
+        Cancel
+      </Button>
+      <Button type="submit" form={formId} disabled={set.pending}>
+        Save
+      </Button>
+    </FormActions>
+  );
+
+  return (
+    <Sheet
+      title={app.name}
+      kicker="Edit App"
+      subtitle={`From the Proxy Host ${app.serverName}. These settings stay with that name, even while the Proxy Host is gone.`}
+      footer={footer}
+      onClose={onClose}
+    >
+      <form id={formId} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
+        <Text label="Display name" value={name} onChange={setName} placeholder={o?.name ? undefined : app.name} />
+        <Text label="Icon" hint={iconHint} value={icon} onChange={setIcon} placeholder={iconName(name || app.name)} />
+        <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
+        <Groups id={listId} groups={groups} />
+        <Checkbox label="Hidden" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+        <WorkloadField app={app} value={workload} onChange={setWorkload} host={host} onHost={setHost} />
+        <Failed error={set.error ?? reset.error} />
+      </form>
+    </Sheet>
   );
 }
 
-/** Adds a manual App, or edits or deletes one. */
-function ManualForm({ app, groups, onDone }: { app?: App; groups: readonly string[]; onDone: () => void }) {
+/** Adds a manual App in its sheet, or edits or deletes one. */
+function ManualSheet({ app, groups, onClose }: { app?: App; groups: readonly string[]; onClose: () => void }) {
   const create = useAction(AppsService.method.createApp);
   const update = useAction(AppsService.method.updateApp);
   const remove = useAction(AppsService.method.deleteApp);
@@ -152,48 +139,52 @@ function ManualForm({ app, groups, onDone }: { app?: App; groups: readonly strin
   const [icon, setIcon] = useState(app?.icon ?? "");
   const [group, setGroup] = useState(app?.group ?? "");
   const listId = useId();
+  const formId = useId();
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
     const spec = { name, url, icon, group };
     const done = app ? await update.run({ id: app.id, app: spec }) : await create.run({ app: spec });
-    if (done) onDone();
+    if (done) onClose();
   };
   const drop = async () => {
-    if (app && (await remove.run({ id: app.id }, { confirm: { text: `Delete the App ${app.name}?`, action: "Delete" } }))) onDone();
+    if (app && (await remove.run({ id: app.id }, { confirm: { text: `Delete the App ${app.name}?`, action: "Delete" } }))) onClose();
   };
 
-  return (
-    <form onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
-      <Text label="Name" value={name} onChange={setName} />
-      <Text label="URL" value={url} onChange={setUrl} placeholder="https://198.18.0.1" />
-      <Text label="Icon" help={iconHelp} value={icon} onChange={setIcon} placeholder={iconName(name)} />
-      <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
-      <Groups id={listId} groups={groups} />
-      <Failed error={(app ? update.error : create.error) ?? remove.error} />
-      <div className="flex gap-2">
-        <Button type="submit" disabled={create.pending || update.pending}>
-          {app ? "Save" : "Add"}
-        </Button>
-        {app && (
-          <Button variant="danger" className="ml-auto" disabled={remove.pending} onClick={() => void drop()}>
+  const footer = (
+    <FormActions
+      status={
+        app && (
+          <Button variant="danger" disabled={remove.pending} onClick={() => void drop()}>
             Delete
           </Button>
-        )}
-      </div>
-    </form>
+        )
+      }
+    >
+      <Button variant="outline" onClick={onClose}>
+        Cancel
+      </Button>
+      <Button type="submit" form={formId} disabled={create.pending || update.pending}>
+        {app ? "Save" : "Add"}
+      </Button>
+    </FormActions>
+  );
+
+  return (
+    <Sheet title={app ? app.name : "Add App"} kicker={app ? "Edit App" : undefined} footer={footer} onClose={onClose}>
+      <form id={formId} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
+        <Text label="Name" value={name} onChange={setName} />
+        <Text label="URL" value={url} onChange={setUrl} placeholder="https://198.18.0.1" />
+        <Text label="Icon" hint={iconHint} value={icon} onChange={setIcon} placeholder={iconName(name)} />
+        <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
+        <Groups id={listId} groups={groups} />
+        <Failed error={(app ? update.error : create.error) ?? remove.error} />
+      </form>
+    </Sheet>
   );
 }
 
 /** The sheet editing an App, or adding a manual one when app is undefined. */
 export function EditSheet({ app, groups, onClose }: { app?: App; groups: readonly string[]; onClose: () => void }) {
-  return (
-    <Sheet title={app ? app.name : "Add App"} onClose={onClose}>
-      {app && !app.manual ? (
-        <OverlayForm app={app} groups={groups} onDone={onClose} />
-      ) : (
-        <ManualForm app={app} groups={groups} onDone={onClose} />
-      )}
-    </Sheet>
-  );
+  return app && !app.manual ? <OverlaySheet app={app} groups={groups} onClose={onClose} /> : <ManualSheet app={app} groups={groups} onClose={onClose} />;
 }

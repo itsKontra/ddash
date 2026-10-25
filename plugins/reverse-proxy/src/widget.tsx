@@ -1,5 +1,5 @@
 import type { Badge, Status, Widget } from "@ddash/plugin";
-import { StatusDot } from "@ddash/ui";
+import { Skeleton, StatusList } from "@ddash/ui";
 import { firstLine, ReadTime, useSnapshot } from "./snapshot";
 
 /** Down while the read fails, with nginx's first error line; warn while nginx-config is unavailable. */
@@ -12,21 +12,24 @@ function useStatus(): Status | undefined {
 
 /** Whether the config loads, and when it was last read. */
 function Body() {
-  const { snapshot } = useSnapshot();
-  if (!snapshot) return null;
+  const { snapshot, error } = useSnapshot();
+  // While nginx-config can't answer, the Widget's status says why.
+  if (!snapshot) return error ? null : <Skeleton lines={2} />;
   return (
-    <div className="flex flex-col gap-1 text-sm">
-      <p className="flex items-center gap-2 font-medium">
-        <StatusDot tone={snapshot.error ? "down" : "up"} />
-        {snapshot.error ? "Config doesn't load" : "Config loads"}
-      </p>
-      {snapshot.readAt && (
-        <p className="text-xs text-muted-foreground">
-          {snapshot.error ? "Last good read " : "Read "}
-          <ReadTime at={snapshot.readAt} />
-        </p>
-      )}
-    </div>
+    <StatusList
+      items={[
+        {
+          tone: snapshot.error ? "down" : "up",
+          title: snapshot.error ? "Config doesn't load" : "Config loads",
+          meta: snapshot.readAt && (
+            <>
+              {snapshot.error ? "Last good read " : "Read "}
+              <ReadTime at={snapshot.readAt} />
+            </>
+          ),
+        },
+      ]}
+    />
   );
 }
 

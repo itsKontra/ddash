@@ -1,6 +1,6 @@
 import { useQuery } from "@ddash/plugin";
 import { DockerApiService, type Container, type HostContainers } from "@ddash/proto/docker-api/docker_api_pb";
-import { Badge, PageHeader, StatusDot, type Tone } from "@ddash/ui";
+import { DataTable, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, type Column, type Tone } from "@ddash/ui";
 
 /** How each of Docker's container states reads at a glance. */
 const tones: Record<string, Tone> = {
@@ -18,8 +18,9 @@ export function Containers() {
   const { data, error } = useQuery(DockerApiService.method.listContainers, {});
   return (
     <div>
-      <PageHeader title="Docker" subtitle="Containers on every Docker host." />
-      {error && !data && <p className="text-sm text-down-text">{error.message}</p>}
+      <PageTitle title="Docker" subtitle="Containers on every Docker host." />
+      {error && !data && <Notice tone="down">{error.message}</Notice>}
+      {!data && !error && <Skeleton lines={3} />}
       <div className="flex flex-col gap-6">
         {data?.hosts.map((h) => <Host key={h.host} host={h} />)}
       </div>
@@ -27,45 +28,43 @@ export function Containers() {
   );
 }
 
+const columns: readonly Column<Container>[] = [
+  { id: "name", header: "Container", rowHeader: true, cell: (c) => c.name },
+  {
+    id: "state",
+    header: "State",
+    cell: (c) => (
+      <span className="inline-flex items-center gap-2">
+        <StatusDot tone={tones[c.state] ?? "idle"} label={c.state} />
+        {c.state}
+      </span>
+    ),
+  },
+  { id: "image", header: "Image", mono: true, hideBelow: "sm", cell: (c) => c.image },
+  { id: "status", header: "Status", cell: (c) => c.status },
+];
+
 function Host({ host }: { host: HostContainers }) {
   const running = host.containers.filter((c) => c.state === "running").length;
-  const id = `docker-host-${host.host}`;
   return (
-    <section aria-labelledby={id} className="rounded-ui border border-border bg-card">
-      <header className="flex items-center gap-3 border-b border-border px-4 py-3">
-        <h2 id={id} className="font-semibold">
-          {host.host}
-        </h2>
-        {!host.error && (
-          <Badge>
+    <Panel
+      title={host.host}
+      flush
+      actions={
+        !host.error && (
+          <Pill tone={running === host.containers.length ? "up" : "idle"}>
             {running}/{host.containers.length} running
-          </Badge>
-        )}
-      </header>
+          </Pill>
+        )
+      }
+    >
       {host.error ? (
-        <p className="px-4 py-3 text-sm text-down-text">{host.error}</p>
+        <div className="p-5">
+          <Notice tone="down">{host.error}</Notice>
+        </div>
       ) : (
-        <table className="w-full text-sm">
-          <tbody>
-            {host.containers.map((c) => <Row key={c.id} container={c} />)}
-          </tbody>
-        </table>
+        <DataTable rows={host.containers} rowKey={(c) => c.id} columns={columns} empty="No containers on this host" />
       )}
-    </section>
-  );
-}
-
-function Row({ container: c }: { container: Container }) {
-  return (
-    <tr className="border-b border-border last:border-b-0">
-      <td className="w-6 py-2 pl-4">
-        <StatusDot tone={tones[c.state] ?? "idle"} label={c.state} />
-      </td>
-      <th scope="row" className="px-2 py-2 text-left font-medium">
-        {c.name}
-      </th>
-      <td className="truncate px-2 py-2 text-muted-foreground">{c.image}</td>
-      <td className="px-2 py-2 pr-4 text-right text-muted-foreground">{c.status}</td>
-    </tr>
+    </Panel>
   );
 }
