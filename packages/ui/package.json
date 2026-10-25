@@ -4,7 +4,7 @@
   "type": "module",
   "description": "ddash's design system: the components every UI is built from and the Theme tokens. An import-map singleton, so Plugins never bundle it.",
   "exports": {
-    ".": "./src/index.tsx",
+    ".": "./src/index.ts",
     "./theme.css": "./src/theme.css",
     "./plugin.css": "./src/plugin.css"
   },
