@@ -151,6 +151,18 @@ it("Switch is a named switch reporting its state and asking for the other", () =
   expect(changes).toEqual([true]);
 });
 
+it("Switch inside a Field is described by the Field's hint", () => {
+  render(
+    <Field label="Markdown" hint="Formats the message body">
+      <Switch label="Markdown" checked={false} onChange={() => {}} />
+    </Field>,
+  );
+
+  const s = screen.getByRole("switch", { name: "Markdown" });
+  expect(s.getAttribute("aria-describedby")).toBe(screen.getByText("Formats the message body").id);
+  expect(screen.getByText("Markdown", { selector: "label" }).getAttribute("for")).toBe(s.id);
+});
+
 it("Switch is a named switch that reports the flipped value, and does nothing while disabled", () => {
   const changes: boolean[] = [];
   const { rerender } = render(<Switch label="Ad-blocking" checked onChange={(v) => changes.push(v)} />);

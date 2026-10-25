@@ -40,8 +40,11 @@ const uptime = [
 ];
 
 let asked: unknown[];
+// What GetHistory answers instead of histories, when a test sets it.
+let history: (() => Promise<Response>) | undefined;
 beforeEach(() => {
   asked = [];
+  history = undefined;
 });
 
 const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -50,6 +53,7 @@ const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
   if (method === "GetHistory") {
     const req = JSON.parse(new TextDecoder().decode(init?.body as Uint8Array));
     asked.push(req);
+    if (history) return history();
     return Response.json({ uptime, ...(histories[req.window ?? "WINDOW_24H"] as object) });
   }
   return Response.json({}, { status: 500 });
@@ -60,11 +64,13 @@ const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
 async function openDetail() {
   const Page = plugin.pages![0].Component!;
   render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
-        <Page />
-      </PluginScope>
-    </PluginHost>,
+    <MemoryRouter>
+      <PluginHost client={createQueryClient()}>
+        <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
+          <Page />
+        </PluginScope>
+      </PluginHost>
+    </MemoryRouter>,
   );
   await settle();
   fireEvent.click(screen.getByRole("button", { name: "nas" }));
@@ -87,7 +93,7 @@ it("opens the detail of the Check a Notification links to (/checks/<id>)", async
   );
   await settle();
 
-  expect(screen.getByRole("dialog", { name: "nas" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "nas" })).toBeTruthy();
 });
 
 const tones = (bars: HTMLElement) => [...bars.querySelectorAll("[data-tone]")].map((b) => b.getAttribute("data-tone"));
@@ -95,11 +101,26 @@ const tones = (bars: HTMLElement) => [...bars.querySelectorAll("[data-tone]")].m
 it("opens a Check's detail with its uptime over 24 h, 30 d and 365 d", async () => {
   const detail = await openDetail();
 
-  const uptimes = within(detail).getByRole("region", { name: "Uptime" });
-  expect(within(uptimes).getByText("99.5 %").nextElementSibling?.textContent).toBe("24 h");
-  expect(within(uptimes).getByText("99.98 %").nextElementSibling?.textContent).toBe("30 d");
-  expect(within(uptimes).getByText("no data").nextElementSibling?.textContent).toBe("365 d");
+  expect(within(detail).getByRole("heading", { name: "Uptime" })).toBeTruthy();
+  expect(within(detail).getByRole("group", { name: "24 h" }).textContent).toBe("24 h99.5 %");
+  expect(within(detail).getByRole("group", { name: "30 d" }).textContent).toBe("30 d99.98 %");
+  expect(within(detail).getByRole("group", { name: "365 d" }).textContent).toBe("365 dno data");
   expect(asked).toEqual([{ id: "1", window: "WINDOW_24H" }]);
+});
+
+it("draws skeletons, not text, until the history comes", async () => {
+  history = () => new Promise<Response>(() => {});
+  const detail = await openDetail();
+
+  expect(within(within(detail).getByRole("group", { name: "24 h" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(within(detail).queryByText("…")).toBeNull();
+});
+
+it("says what failed when checks can't answer the history", async () => {
+  history = async () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 });
+  const detail = await openDetail();
+
+  expect(within(detail).getByRole("alert").textContent).toContain("checks is down");
 });
 
 it("draws the last 24 h as one bar per minute, buckets without beats idle", async () => {
@@ -114,12 +135,14 @@ it("draws the last 24 h as one bar per minute, buckets without beats idle", asyn
 it("shows the window's latency and state changes", async () => {
   const detail = await openDetail();
 
-  const latency = within(detail).getByRole("region", { name: "Latency" });
-  expect(within(latency).getByText("12 ms").nextElementSibling?.textContent).toBe("average");
-  expect(within(latency).getByText("8 ms").nextElementSibling?.textContent).toBe("min");
-  expect(within(latency).getByText("40 ms").nextElementSibling?.textContent).toBe("max");
+  expect(within(detail).getByRole("heading", { name: "Latency" })).toBeTruthy();
+  expect(within(detail).getByRole("group", { name: "average" }).textContent).toBe("average12 ms");
+  expect(within(detail).getByRole("group", { name: "min" }).textContent).toBe("min8 ms");
+  expect(within(detail).getByRole("group", { name: "max" }).textContent).toBe("max40 ms");
 
-  const changes = within(within(detail).getByRole("list", { name: "State changes" })).getAllByRole("listitem");
+  expect(within(detail).getByRole("heading", { name: "State changes" })).toBeTruthy();
+  const changes = within(detail).getAllByRole("listitem");
+  expect(changes.map((c) => within(c).getByRole("img").getAttribute("aria-label"))).toEqual(["up", "down"]);
   expect(changes.map((c) => c.textContent)).toEqual([expect.stringMatching(/^up/), expect.stringMatching(/^down.*connection refused.*in Maintenance$/)]);
 });
 

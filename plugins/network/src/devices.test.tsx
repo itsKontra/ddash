@@ -86,7 +86,7 @@ it("lists every Device with name, IP, MAC, online, Adopted or New, and Tunnelled
   expect(fetch.mock.calls.map(([input]) => new URL(String(input), "http://ddash.test").pathname)).toContain(
     "/api/c/network/ddash.network.NetworkService/ListDevices",
   );
-  const table = screen.getByRole("table", { name: "Devices" });
+  const table = within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
   const tv = within(table).getByRole("row", { name: /Living room TV/ });
   expect(tv.textContent).toMatch(/198\.18\.1\.20.*02:5e:00:00:10:01.*Adopted.*Tunnelled/);
   expect(within(tv).getByRole("img", { name: "online" })).toBeTruthy();
@@ -119,7 +119,34 @@ it("shows pfsense-api's trouble in place of the Devices", async () => {
   });
 
   const section = screen.getByRole("region", { name: "Devices" });
-  expect(within(section).getByText(/no alias "VPN_BYPASS"/)).toBeTruthy();
+  expect(within(section).getByRole("alert").textContent).toMatch(/no alias "VPN_BYPASS"/);
+});
+
+it("says so when the firewall's DHCP knows no Devices", async () => {
+  await show("/network", { ListDevices: () => Response.json({ bypassAlias: "VPN_BYPASS", devices: [] }) });
+
+  const section = screen.getByRole("region", { name: "Devices" });
+  expect(within(section).getByText("No Devices")).toBeTruthy();
+  expect(within(section).queryByRole("table")).toBeNull();
+});
+
+it("goes back to the Network Page from a Device's detail", async () => {
+  await show("/network/devices/02:5e:00:00:10:01");
+
+  fireEvent.click(screen.getByRole("link", { name: "Network" }));
+  await act(() => new Promise((r) => setTimeout(r, 20)));
+
+  expect(screen.getByRole("heading", { level: 1, name: "Network" })).toBeTruthy();
+});
+
+it("shows a Device's detail loading, then network's error in its place", async () => {
+  await show("/network/devices/02:5e:00:00:10:01", { ListDevices: () => new Promise<Response>(() => {}) as never });
+  expect(screen.getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
+  cleanup();
+
+  await show("/network/devices/02:5e:00:00:10:01", { ListDevices: () => Response.json({ code: "unavailable", message: "network is down" }, { status: 503 }) });
+  expect(screen.getByRole("heading", { level: 1, name: "02:5e:00:00:10:01" })).toBeTruthy();
+  expect(screen.getByRole("alert").textContent).toMatch(/network is down/);
 });
 
 it("shows a Device's lease and reservation facts and its other aliases, read-only", async () => {
@@ -157,7 +184,9 @@ it("shows a New Device's lease times and that it has no reservation", async () =
 it("says so for a MAC that is no Device", async () => {
   await show("/network/devices/02:5e:00:00:99:99");
 
+  expect(screen.getByRole("heading", { level: 1, name: "02:5e:00:00:99:99" })).toBeTruthy();
   expect(screen.getByText(/No Device has the MAC 02:5e:00:00:99:99/)).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Network" })).toBeTruthy();
 });
 
 it("badges the Nav Entry with the New Devices, and with nothing when there are none", async () => {

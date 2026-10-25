@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { bodies, settle, show } from "./testing";
+import { bodies, pending, settle, show } from "./testing";
 
 afterEach(cleanup);
 
@@ -104,6 +104,39 @@ it("has the power Actions as buttons on a Workload's detail", async () => {
   expect(within(power).queryByRole("button", { name: "Start" })).toBeNull();
   const details = screen.getByRole("region", { name: "Details" });
   expect(within(details).getByText("198.18.2.10")).toBeTruthy();
+  expect(within(details).getByText("Node").nextElementSibling?.textContent).toBe("pve");
+  expect(within(details).getByText("Memory").nextElementSibling?.textContent).toBe("3.0 GiB / 8.0 GiB");
+});
+
+it("links a Workload's detail back to the Workloads", async () => {
+  await show("/proxmox/workloads/102");
+
+  expect(screen.getByRole("link", { name: "Proxmox" }).getAttribute("href")).toBe("/proxmox");
+});
+
+it("draws a skeleton for the power Actions while ddash's permissions are read", async () => {
+  await show("/proxmox/workloads/102", { ListPermissions: pending });
+
+  const power = screen.getByRole("region", { name: "Power" });
+  expect(within(power).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(within(power).queryByRole("button")).toBeNull();
+  expect(screen.queryByText(/reading/i)).toBeNull();
+});
+
+it("draws a skeleton for a Workload's detail until proxmox-api first answers", async () => {
+  await show("/proxmox/workloads/102", { ListWorkloads: pending });
+
+  expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(screen.getByRole("link", { name: "Proxmox" })).toBeTruthy();
+});
+
+it("shows why proxmox-api can't list the Workloads on a Workload's detail", async () => {
+  await show("/proxmox/workloads/102", {
+    ListWorkloads: () => Response.json({ code: "unavailable", message: "Proxmox refused the API token" }, { status: 503 }),
+  });
+
+  expect(screen.getByRole("alert").textContent).toContain("Proxmox refused the API token");
+  expect(screen.getByRole("link", { name: "Proxmox" }).getAttribute("href")).toBe("/proxmox");
 });
 
 it("shows the lock on a Protected Workload's detail, and why a Workload isn't listed", async () => {
@@ -116,4 +149,6 @@ it("shows the lock on a Protected Workload's detail, and why a Workload isn't li
   cleanup();
   await show("/proxmox/workloads/999");
   expect(screen.getByText("Proxmox lists no Workload 999.")).toBeTruthy();
+  expect(screen.queryByRole("alert")).toBeNull();
+  expect(screen.getByRole("link", { name: "Proxmox" }).getAttribute("href")).toBe("/proxmox");
 });

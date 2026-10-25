@@ -1,7 +1,6 @@
 import type { Device } from "@ddash/proto/network/network_pb";
-import { PageHeader, StatusDot } from "@ddash/ui";
-import { useId, type ReactNode } from "react";
-import { Link, useParams } from "react-router";
+import { EmptyState, Facts, Notice, PageTitle, Panel, Skeleton, StatusDot, type Fact } from "@ddash/ui";
+import { useParams } from "react-router";
 import { AdBlockingToggle } from "./adblocking";
 import { DeviceAction } from "./adopt";
 import { nameOf, useDevices } from "./devices";
@@ -9,97 +8,72 @@ import { Adoption } from "./devices-table";
 import { DirectToggle } from "./direct";
 import { DeviceQueries } from "./queries";
 
+// The detail is the route devices/:mac under the Network Page's.
+const back = { href: "..", label: "Network" };
+
 /** A Device's detail (/network/devices/:mac): Adopt or rename, the Direct and ad-blocking toggles, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
-  const back = (
-    <Link to="../.." relative="path" className="text-sm text-muted-foreground hover:underline">
-      ← Network
-    </Link>
-  );
-  if (error && !data) {
+  if (!data) {
     return (
       <div>
-        <PageHeader title={mac} actions={back} />
-        <p className="text-sm text-down-text">{error.rawMessage}</p>
+        <PageTitle title={mac} back={back} />
+        {error ? <Notice tone="down">{error.rawMessage}</Notice> : <Skeleton height="xl" />}
       </div>
     );
   }
-  if (!data) return null;
   const d = data.devices.find((x) => x.mac === mac.toLowerCase());
   if (!d) {
     return (
       <div>
-        <PageHeader title={mac} actions={back} />
-        <p className="text-sm text-muted-foreground">No Device has the MAC {mac}. It may have left the firewall's DHCP.</p>
+        <PageTitle title={mac} back={back} />
+        <Panel>
+          <EmptyState icon="search" title="No such Device">
+            No Device has the MAC {mac}. It may have left the firewall's DHCP.
+          </EmptyState>
+        </Panel>
       </div>
     );
   }
   return (
     <div>
-      <PageHeader title={nameOf(d)} subtitle={d.name ? d.mac : undefined} actions={back} />
+      <PageTitle title={nameOf(d)} subtitle={d.name ? d.mac : undefined} back={back} />
       <div className="flex flex-col gap-6">
         <Summary device={d} bypassAlias={data.bypassAlias} adguardError={data.adguardError} />
         <Lease device={d} />
         <Reservation device={d} />
         <OtherAliases device={d} />
-        {d.ip && (
-          <Panel title="Queries">
-            <DeviceQueries ip={d.ip} />
-          </Panel>
-        )}
+        {d.ip && <DeviceQueries ip={d.ip} />}
       </div>
     </div>
   );
 }
 
-function Panel({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
-  const id = useId();
-  return (
-    <section aria-labelledby={id} className="rounded-ui border border-border bg-card">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <h2 id={id} className="font-semibold">
-          {title}
-        </h2>
-        {action && <div className="ml-auto">{action}</div>}
-      </div>
-      <div className="px-4 py-3 text-sm">{children}</div>
-    </section>
-  );
-}
-
-/** Label and value rows; an empty value shows a dash. */
-function Facts({ rows }: { rows: [string, ReactNode][] }) {
-  return (
-    <dl className="grid grid-cols-3 gap-x-4 gap-y-2">
-      {rows.map(([label, value]) => (
-        <div key={label} className="contents">
-          <dt className="text-muted-foreground">{label}</dt>
-          <dd className="col-span-2 tabular-nums">{value === "" || value === undefined ? "—" : value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
+/** Facts whose empty values show a dash. */
+function DeviceFacts({ items }: { items: Fact[] }) {
+  return <Facts items={items.map((f) => (f.value === "" || f.value === undefined ? { ...f, value: "—" } : f))} />;
 }
 
 function Summary({ device: d, bypassAlias, adguardError }: { device: Device; bypassAlias: string; adguardError: string }) {
   return (
-    <Panel title="Device" action={<DeviceAction device={d} />}>
-      <Facts
-        rows={[
-          ["IP", d.ip],
-          ["MAC", d.mac],
-          [
-            "Online",
-            <span key="online" className="inline-flex items-center gap-2">
-              <StatusDot tone={d.online ? "up" : "idle"} />
-              {d.online ? "online" : "offline"}
-            </span>,
-          ],
-          ["Address", <Adoption key="adoption" device={d} />],
-          ["Routing", <DirectToggle key="routing" device={d} bypassAlias={bypassAlias} />],
-          ["Ad-blocking", <AdBlockingToggle key="ad-blocking" device={d} adguardError={adguardError} />],
+    <Panel title="Device" actions={<DeviceAction device={d} />}>
+      <DeviceFacts
+        items={[
+          { label: "IP", value: d.ip, mono: true },
+          { label: "MAC", value: d.mac, mono: true },
+          {
+            label: "Online",
+            value: (
+              <span className="inline-flex items-center gap-2">
+                <StatusDot tone={d.online ? "up" : "idle"} />
+                {d.online ? "online" : "offline"}
+              </span>
+            ),
+          },
+          { label: "Address", value: <Adoption device={d} /> },
+          { label: "Routing", value: <DirectToggle device={d} bypassAlias={bypassAlias} /> },
+          { label: "Ad-blocking", value: <AdBlockingToggle device={d} adguardError={adguardError} /> },
         ]}
       />
     </Panel>
@@ -111,19 +85,19 @@ function Lease({ device: d }: { device: Device }) {
   return (
     <Panel title="Lease">
       {l ? (
-        <Facts
-          rows={[
-            ["Address", l.ip],
-            ["Hostname", l.hostname],
-            ["Interface", l.interface],
-            ["Status", l.status],
-            ["Seen", l.onlineStatus],
-            ["Starts", l.starts],
-            ["Ends", l.ends],
+        <DeviceFacts
+          items={[
+            { label: "Address", value: l.ip, mono: true },
+            { label: "Hostname", value: l.hostname },
+            { label: "Interface", value: l.interface },
+            { label: "Status", value: l.status },
+            { label: "Seen", value: l.onlineStatus },
+            { label: "Starts", value: l.starts, mono: true },
+            { label: "Ends", value: l.ends, mono: true },
           ]}
         />
       ) : (
-        <p className="text-muted-foreground">No lease right now.</p>
+        <p className="text-sm text-muted-foreground">No lease right now.</p>
       )}
     </Panel>
   );
@@ -134,16 +108,16 @@ function Reservation({ device: d }: { device: Device }) {
   return (
     <Panel title="Reservation">
       {r ? (
-        <Facts
-          rows={[
-            ["Address", r.ip],
-            ["Description", r.description],
-            ["Hostname", r.hostname],
-            ["Interface", r.interface],
+        <DeviceFacts
+          items={[
+            { label: "Address", value: r.ip, mono: true },
+            { label: "Description", value: r.description },
+            { label: "Hostname", value: r.hostname },
+            { label: "Interface", value: r.interface },
           ]}
         />
       ) : (
-        <p className="text-muted-foreground">None: a New Device, on a temporary lease.</p>
+        <p className="text-sm text-muted-foreground">None: a New Device, on a temporary lease.</p>
       )}
     </Panel>
   );
@@ -151,20 +125,19 @@ function Reservation({ device: d }: { device: Device }) {
 
 function OtherAliases({ device: d }: { device: Device }) {
   return (
-    <Panel title="Other aliases">
+    <Panel title="Other aliases" description="Read-only: ddash changes only the bypass alias.">
       {d.aliases.length ? (
-        <ul className="flex flex-col gap-1">
+        <ul className="flex flex-col gap-1 text-sm">
           {d.aliases.map((a) => (
             <li key={a.name}>
-              <span className="font-medium">{a.name}</span>
+              <span className="font-semibold">{a.name}</span>
               {a.description && <span className="text-muted-foreground"> · {a.description}</span>}
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground">None.</p>
+        <p className="text-sm text-muted-foreground">None.</p>
       )}
-      <p className="mt-2 text-xs text-muted-foreground">Read-only: ddash changes only the bypass alias.</p>
     </Panel>
   );
 }

@@ -95,7 +95,7 @@ const deviceRegion = () => screen.getByRole("region", { name: "Device" });
 it("shows the Devices table's ad-blocking, off where the Operator turned it off", async () => {
   await show("/network");
 
-  const table = screen.getByRole("table", { name: "Devices" });
+  const table = within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
   expect(within(within(table).getByRole("row", { name: /Living room TV/ })).getByText("Ads allowed")).toBeTruthy();
   expect(within(within(table).getByRole("row", { name: /Work laptop/ })).queryByText("Ads allowed")).toBeNull();
 });
@@ -150,7 +150,7 @@ it("disables the toggle while AdGuard's clients can't be read, saying why", asyn
   });
 
   expect((within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / }) as HTMLButtonElement).disabled).toBe(true);
-  expect(within(deviceRegion()).getByText(/can't read AdGuard's clients/)).toBeTruthy();
+  expect(within(deviceRegion()).getByRole("status").textContent).toMatch(/can't read AdGuard's clients/);
 });
 
 it("shows the Device's last 100 queries, and only the blocked ones when asked", async () => {
@@ -158,7 +158,7 @@ it("shows the Device's last 100 queries, and only the blocked ones when asked", 
 
   expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toEqual([{ client: "198.18.1.20", limit: 100 }]);
   const region = screen.getByRole("region", { name: "Queries" });
-  const table = within(region).getByRole("table", { name: "Queries" });
+  const table = within(region).getByRole("table");
   expect(within(table).getAllByRole("row").slice(1).map((r) => within(r).getByRole("rowheader").textContent)).toEqual([
     "site1.example",
     "site2.example",
@@ -172,7 +172,7 @@ it("shows the Device's last 100 queries, and only the blocked ones when asked", 
   await settle();
 
   expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toContainEqual({ client: "198.18.1.20", limit: 100, blockedOnly: true });
-  expect(within(within(region).getByRole("table", { name: "Queries" })).getAllByRole("row")).toHaveLength(2);
+  expect(within(within(region).getByRole("table")).getAllByRole("row")).toHaveLength(2);
 });
 
 it("says when the Device made no queries", async () => {
