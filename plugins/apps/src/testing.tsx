@@ -1,6 +1,4 @@
-import { act, render } from "@testing-library/react";
-import { createQueryClient, InstalledPlugins, PluginHost, PluginScope } from "@ddash/plugin";
-import { vi } from "vitest";
+import { renderScoped as render, type Answers, type Call } from "@ddash/plugin/testing";
 
 /** ListApps' answer (Connect JSON). */
 export const list = {
@@ -70,13 +68,8 @@ export const allUp = {
   checks: checks.checks.map(({ id, spec, ...c }) => ({ id, spec, appId: "appId" in c ? c.appId : undefined, state: "STATE_UP" })),
 };
 
-/** A request a test's fake fetch received: the method and its JSON body. */
-export interface Call {
-  method: string;
-  body: unknown;
-}
-
-export const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
+/** The apps Plugin's scope in tests. */
+export const apps = { name: "apps", requires: ["apps", "checks"] };
 
 /**
  * Renders children in the apps Plugin's scope against apps answering by
@@ -84,34 +77,18 @@ export const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
  * ListWorkloads to workloads; Actions answer {}), with the installed
  * Plugins named, and returns the calls made.
  */
-export function renderScoped(children: React.ReactNode, answers: Record<string, () => Response> = {}, installed: string[] = ["apps"]) {
-  const calls: Call[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const method = String(input).split("/").pop()!;
-    const raw = init?.body;
-    const body = raw ? JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw as Uint8Array)) : undefined;
-    calls.push({ method, body });
-    const getters: Record<string, () => Response> = {
+export const renderScoped = (children: React.ReactNode, answers: Answers = {}, installed: string[] = ["apps"]) =>
+  render(apps, children, {
+    answers: {
       ListApps: () => Response.json(list),
       ListChecks: () => Response.json(checks),
       ListWorkloads: () => Response.json(workloads),
-    };
-    const answer = answers[method] ?? getters[method] ?? (() => Response.json({}));
-    return answer();
+      ...answers,
+    },
+    installed,
   });
-  render(
-    <PluginHost client={createQueryClient()}>
-      <InstalledPlugins names={installed}>
-        <PluginScope plugin={{ name: "apps", requires: ["apps", "checks"] }} fetch={fetch}>
-          {children}
-        </PluginScope>
-      </InstalledPlugins>
-    </PluginHost>,
-  );
-  return calls;
-}
 
 const getters = new Set(["ListApps", "ListChecks", "ListWorkloads"]);
 
-/** The calls to Actions, i.e. anything but the getters. */
-export const actions = (calls: Call[]) => calls.filter((c) => !getters.has(c.method));
+/** The calls to Actions, i.e. anything but the getters, each as its method and body. */
+export const actions = (calls: Call[]) => calls.filter((c) => !getters.has(c.method)).map(({ method, body }) => ({ method, body }));

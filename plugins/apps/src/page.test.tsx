@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { actions, allUp, list, renderScoped, settle } from "./testing";
+import { settle, unavailable } from "@ddash/plugin/testing";
+import { actions, allUp, list, renderScoped } from "./testing";
 
 afterEach(cleanup);
 
@@ -74,7 +75,7 @@ it("marks a card whose Check is Flapping", async () => {
 });
 
 it("shows the cards without a Check status while checks is unavailable", async () => {
-  renderScoped(<Page />, { ListChecks: () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }) });
+  renderScoped(<Page />, { ListChecks: () => unavailable("checks is down") });
   await settle();
 
   expect(within(screen.getByRole("listitem", { name: "Jellyfin" })).queryByRole("status")).toBeNull();
@@ -236,7 +237,7 @@ it("shows a skeleton while apps answers, and no loading text", async () => {
 });
 
 it("shows apps being unavailable as a failure", async () => {
-  renderScoped(<Page />, { ListApps: () => Response.json({ code: "unavailable", message: "apps is down" }, { status: 503 }) });
+  renderScoped(<Page />, { ListApps: () => unavailable("apps is down") });
   await settle();
 
   expect(screen.getByRole("alert").textContent).toMatch(/apps unavailable: apps is down/);
