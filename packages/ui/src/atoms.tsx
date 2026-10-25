@@ -1,5 +1,6 @@
 // The atoms: the smallest pieces, drawn inline.
 import { useState, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { dashboardIconsCommit } from "./dashboard-icons";
 import { Icon, type IconName } from "./icon";
 import { cx, toneBg, toneTint, type Tone } from "./tone";
 
@@ -92,9 +93,13 @@ export function Skeleton({ lines, height }: { lines?: number; height?: keyof typ
   );
 }
 
-/** Where an icon of homarr-labs/dashboard-icons is served, by its name: as SVG, or as PNG for the icons upstream has no SVG of. */
+/**
+ * Where an icon of homarr-labs/dashboard-icons is served, by its name: as
+ * SVG, or as PNG for the icons upstream has no SVG of. At the commit the
+ * core's App icon search knows, so what it finds is what's drawn.
+ */
 export const dashboardIcon = (name: string, format: "svg" | "png" = "svg") =>
-  `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/${format}/${name}.${format}`;
+  `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@${dashboardIconsCommit}/${format}/${name}.${format}`;
 
 /** A dashboard-icons name read off an App's name: "Home Assistant" → "home-assistant". */
 export const iconName = (name: string) =>

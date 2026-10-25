@@ -200,3 +200,11 @@ func TestAppIconSearchWithNoMatchOrNoQueryIsEmpty(t *testing.T) {
 		}
 	}
 }
+
+func TestAppIconSearchNeedsNoSignIn(t *testing.T) {
+	h := coretest.New(t, coretest.Options{Keycloak: oidctest.New(t), Release: "v1.2.3"})
+
+	if got := appIconSearch(t, h, "jellyfin"); len(got) == 0 || got[0] != "jellyfin" {
+		t.Errorf("got %v, want jellyfin first", got)
+	}
+}

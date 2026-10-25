@@ -1,6 +1,10 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppIconPicker, Button, Checkbox, Field, FormActions, IconPicker, SearchField, Segmented, Select, Switch, TextArea, TextInput } from "./index";
+import { dashboardIconsCommit } from "./dashboard-icons";
+
+// Where the pinned dashboard-icons logos load from.
+const logos = `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@${dashboardIconsCommit}`;
 
 afterEach(cleanup);
 
@@ -338,7 +342,7 @@ describe("AppIconPicker", () => {
 
     const trigger = screen.getByRole("button", { name: /^Icon/ });
     expect(trigger.textContent).toContain("Automatic");
-    expect(src(trigger)).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/home-assistant.svg");
+    expect(src(trigger)).toBe(`${logos}/svg/home-assistant.svg`);
   });
 
   it("shows the set icon by name", () => {
@@ -346,7 +350,7 @@ describe("AppIconPicker", () => {
 
     const trigger = screen.getByRole("button", { name: "Icon" });
     expect(trigger.textContent).toContain("jellyfin");
-    expect(src(trigger)).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg");
+    expect(src(trigger)).toBe(`${logos}/svg/jellyfin.svg`);
   });
 
   it("offers Automatic first while nothing is typed, which clears the icon", () => {
@@ -360,7 +364,7 @@ describe("AppIconPicker", () => {
     expect(picked).toEqual([""]);
   });
 
-  it("searches the dashboard-icons names, drawing each logo, then offers what was typed", async () => {
+  it("searches the dashboard-icons names after Automatic, drawing each logo, then offers what was typed", async () => {
     const picked: string[] = [];
     render(<AppIconPicker label="Icon" value="" name="Media" onChange={(v) => picked.push(v)} />);
     open();
@@ -368,8 +372,8 @@ describe("AppIconPicker", () => {
 
     expect(await screen.findByRole("option", { name: "jellyseerr" })).toBeTruthy();
     expect(searches).toEqual(["jelly"]);
-    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["jellyfin", "jellyseerr", "jellystat", "Use jelly"]);
-    expect(src(screen.getByRole("option", { name: "jellystat" }))).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellystat.svg");
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["Automatic", "jellyfin", "jellyseerr", "jellystat", "Use jelly"]);
+    expect(src(screen.getByRole("option", { name: "jellystat" }))).toBe(`${logos}/svg/jellystat.svg`);
 
     fireEvent.click(screen.getByRole("option", { name: "Use jelly" }));
     expect(picked).toEqual(["jelly"]);
@@ -381,7 +385,29 @@ describe("AppIconPicker", () => {
     type("jellyfin");
 
     await screen.findByRole("option", { name: "jellyfin" });
-    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["jellyfin"]);
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["Automatic", "jellyfin"]);
+  });
+
+  it("picks the first logo found with Enter, and the arrow keys reach Automatic above the grid and what was typed below it", async () => {
+    const picked: string[] = [];
+    render(<AppIconPicker label="Icon" value="" name="Media" onChange={(v) => picked.push(v)} />);
+    open();
+    type("jelly");
+    await screen.findByRole("option", { name: "jellyfin" });
+
+    const active = () => document.getElementById(search().getAttribute("aria-activedescendant")!)?.getAttribute("aria-label");
+    expect(active()).toBe("jellyfin");
+    fireEvent.keyDown(search(), { key: "ArrowRight" });
+    fireEvent.keyDown(search(), { key: "ArrowDown" });
+    expect(active()).toBe("Use jelly");
+    fireEvent.keyDown(search(), { key: "ArrowUp" });
+    expect(active()).toBe("jellystat");
+    fireEvent.keyDown(search(), { key: "ArrowUp" });
+    expect(active()).toBe("Automatic");
+    fireEvent.keyDown(search(), { key: "ArrowDown" });
+    fireEvent.keyDown(search(), { key: "Enter" });
+
+    expect(picked).toEqual(["jellyfin"]);
   });
 
   it("still offers what was typed when the search fails", async () => {

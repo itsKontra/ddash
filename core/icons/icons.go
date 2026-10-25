@@ -1,7 +1,7 @@
 // Package icons is ddash's icon source: lucide's icons, pinned per Release,
 // as the element lists lucide-static ships; and the names of the
-// homarr-labs/dashboard-icons logos an App may use, pinned the same way,
-// whose images the browser loads from jsDelivr.
+// homarr-labs/dashboard-icons logos an App may use, pinned to a commit per
+// Release, whose images the browser loads from jsDelivr at that commit.
 package icons
 
 import (
@@ -28,7 +28,7 @@ var nodesGz []byte
 var tagsGz []byte
 
 // appAliasesGz is every dashboard-icons name with its search aliases,
-// written by ./dashboard (`make generate`).
+// written by ./dashboard and compressed by ./gzip (`make generate`).
 //
 //go:embed dashboard-icons/aliases.json.gz
 var appAliasesGz []byte
@@ -105,21 +105,21 @@ func AppSearch(q string) []string {
 	return search(appAliases(), strings.Join(strings.Fields(q), "-"), q)
 }
 
-// search ranks the names in words that name (for the name) or q (for a
-// word) matches, as Search describes, up to MaxResults.
-func search(words map[string][]string, name, q string) []string {
+// search ranks the names in tagsByName that nameQ (against the name) or q
+// (against a tag) matches, as Search describes, up to MaxResults.
+func search(tagsByName map[string][]string, nameQ, q string) []string {
 	out := []string{}
 	if q == "" {
 		return out
 	}
 	var ranked [4][]string
-	for n, t := range words {
+	for n, t := range tagsByName {
 		switch {
-		case n == name:
+		case n == nameQ:
 			ranked[0] = append(ranked[0], n)
-		case strings.HasPrefix(n, name):
+		case strings.HasPrefix(n, nameQ):
 			ranked[1] = append(ranked[1], n)
-		case strings.Contains(n, name):
+		case strings.Contains(n, nameQ):
 			ranked[2] = append(ranked[2], n)
 		case slices.ContainsFunc(t, func(tag string) bool { return hasWordPrefix(tag, q) }):
 			ranked[3] = append(ranked[3], n)

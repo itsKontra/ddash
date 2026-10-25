@@ -15,11 +15,11 @@ install:
 generate:
 	go tool buf generate
 	node packages/ui/scripts/icons.ts
-	go run ./core/icons/gzip
 	go run ./core/icons/dashboard
+	go run ./core/icons/gzip
 
 # Fail when committed generated code differs from what `make generate` produces.
-GENERATED := '*.pb.go' '*.connect.go' packages/proto/src core/icons/lucide core/icons/dashboard-icons packages/ui/src/icon-names.ts
+GENERATED := '*.pb.go' '*.connect.go' packages/proto/src core/icons/lucide core/icons/dashboard-icons packages/ui/src/icon-names.ts packages/ui/src/dashboard-icons.ts
 
 check-generated: generate
 	@drift="$$(git status --porcelain -- $(GENERATED))"; \

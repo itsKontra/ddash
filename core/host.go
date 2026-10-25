@@ -170,7 +170,7 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	mux.HandleFunc("GET /healthz", h.healthz)
 	mux.HandleFunc("GET "+iconsPath, h.icons) // public lucide data, so sign-in can draw icons
 	mux.HandleFunc("GET "+iconSearchPath, h.iconSearch)
-	mux.HandleFunc("GET "+appIconSearchPath, h.appIconSearch)
+	mux.HandleFunc("GET "+appIconSearchPath, h.appIconSearch) // public upstream names, like the lucide search
 	if h.keycloak != nil {
 		mux.Handle("/auth/", h.keycloak.Handler())
 	}

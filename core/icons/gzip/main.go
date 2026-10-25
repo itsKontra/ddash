@@ -1,6 +1,6 @@
-// Command gzip compresses the lucide JSON that packages/ui/scripts/icons.ts
-// writes into core/icons/lucide, replacing each <name>.json with
-// <name>.json.gz. Node's zlib picks CPU-specific code paths, so its output
+// Command gzip compresses the icon JSON that packages/ui/scripts/icons.ts
+// writes into core/icons/lucide and ../dashboard into
+// core/icons/dashboard-icons, replacing each <name>.json with <name>.json.gz. Node's zlib picks CPU-specific code paths, so its output
 // differs between machines; Go's compress/gzip gives the same bytes for a
 // given toolchain, which `make check-generated` relies on.
 package main
@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	files, err := filepath.Glob("core/icons/lucide/*.json")
+	files, err := filepath.Glob("core/icons/*/*.json")
 	if err != nil {
 		log.Fatal(err)
 	}

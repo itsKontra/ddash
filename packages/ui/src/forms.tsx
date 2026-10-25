@@ -297,9 +297,10 @@ export function IconPicker({ value, onChange, label }: { value: string | null; o
 /**
  * Picks an App's icon: a homarr-labs/dashboard-icons name, or none
  * (Automatic: the icon matched by the App's name, else its favicon). The
- * button shows the icon the App gets. The popover searches the core's
- * dashboard-icons names and aliases, and offers what was typed too, for an
- * icon newer than this Release. Inside a Field it takes the Field's label.
+ * button shows the icon the App gets. The popover offers Automatic first,
+ * then the core's dashboard-icons names and aliases that match what's
+ * typed, then what's typed itself, saved as it is: its logo draws once
+ * ddash's pinned icons hold it. Inside a Field it takes the Field's label.
  */
 export function AppIconPicker({
   value,
@@ -315,29 +316,33 @@ export function AppIconPicker({
   name: string;
   url?: string;
 }) {
-  const automatic: Choice = {
+  const app = name || "?";
+  const automatic: Entry = {
     value: "",
     label: "Automatic",
+    row: true,
     content: (
       <>
-        <AppIcon name={name || "?"} url={url} size={24} />
+        <AppIcon name={app} url={url} size={24} />
         <span className="font-semibold">Automatic</span>
         <span className="truncate text-xs text-muted-foreground">By the App's name, else its favicon</span>
       </>
     ),
   };
-  const typed = (query: string, names: readonly string[]): Choice | null => {
+  const typed = (query: string, names: readonly string[]): Entry | null => {
     const slug = iconName(query);
     if (!slug || names.includes(slug)) return null;
     return {
       value: slug,
       label: `Use ${slug}`,
+      row: true,
       content: (
         <>
           <AppIcon name={slug} icon={slug} size={24} />
           <span>
             Use <span className="font-mono text-xs">{slug}</span>
           </span>
+          <span className="truncate text-xs text-muted-foreground">Not among this Release's icons</span>
         </>
       ),
     };
@@ -347,7 +352,7 @@ export function AppIconPicker({
       label={label}
       trigger={
         <>
-          <AppIcon name={name || "?"} icon={value} url={url} size={20} />
+          <AppIcon name={app} icon={value} url={url} size={20} />
           {value ? <span className="font-mono text-xs">{value}</span> : <span className="text-muted-foreground">Automatic</span>}
         </>
       }
@@ -356,7 +361,7 @@ export function AppIconPicker({
         columns: 6,
         draw: (n) => <AppIcon name={n} icon={n} size={28} />,
         hint: "Type an App's name, e.g. jellyfin.",
-        lead: [automatic],
+        first: automatic,
         typed,
       }}
       onPick={onChange}
@@ -364,11 +369,12 @@ export function AppIconPicker({
   );
 }
 
-/** A picker's own entry, a whole row of its grid: Automatic, or what was typed. */
-interface Choice {
+/** One entry of a picker's popover: a found icon, a cell of the grid, or a whole row of the picker's own (Automatic, what was typed). */
+interface Entry {
   value: string;
   label: string;
   content: ReactNode;
+  row?: true;
 }
 
 /** What a picker's popover searches, and how it draws what it finds. */
@@ -380,10 +386,10 @@ interface SearchSpec {
   draw: (name: string) => ReactNode;
   /** Shown while nothing is typed. */
   hint: string;
-  /** Offered while nothing is typed, first. */
-  lead?: Choice[];
+  /** Offered first, typed or not. */
+  first?: Entry;
   /** Offered after what a query found, or alone when the search failed. */
-  typed?: (query: string, names: readonly string[]) => Choice | null;
+  typed?: (query: string, names: readonly string[]) => Entry | null;
 }
 
 /** A button that opens a SearchSpec's popover and reports the pick. */
@@ -430,12 +436,38 @@ function Picker({ label, trigger, search, onPick }: { label: string; trigger: Re
 
 const gridCols = { 6: "grid-cols-6", 8: "grid-cols-8" };
 
+/**
+ * Where an arrow key moves from entry i, or i where it can't: through the
+ * grid's cells (gridStart to gridEnd) by one or a row, and from a whole row
+ * to the entry beside it.
+ */
+function moveFrom(i: number, key: string, gridStart: number, gridEnd: number, columns: number): number {
+  const inGrid = i >= gridStart && i < gridEnd;
+  const row = (j: number) => Math.floor((j - gridStart) / columns);
+  switch (key) {
+    case "ArrowRight":
+      return i + 1;
+    case "ArrowLeft":
+      return i - 1;
+    case "ArrowDown":
+      if (!inGrid) return i + 1;
+      if (i + columns < gridEnd) return i + columns;
+      return row(i) === row(gridEnd - 1) ? gridEnd : i;
+    case "ArrowUp":
+      if (!inGrid) return i === gridEnd && gridEnd > gridStart ? gridEnd - 1 : i - 1;
+      return i - columns >= gridStart ? i - columns : gridStart > 0 ? gridStart - 1 : i;
+    default:
+      return i;
+  }
+}
+
 /** A picker's popover: the search box over the grid of what it finds. */
 function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: SearchSpec; onPick: (value: string) => void; onClose: () => void }) {
   const id = useId();
   const [q, setQ] = useState("");
   const [found, setFound] = useState<Found | null>(null);
-  const [active, setActive] = useState(0);
+  // The entry the arrow keys moved to; -1 until they do, for the default below.
+  const [moved, setMoved] = useState(-1);
   const query = q.trim();
   const { path } = spec;
 
@@ -455,7 +487,7 @@ function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: Sea
       }
       if (stale) return;
       setFound(next);
-      setActive(0);
+      setMoved(-1);
     }, searchDelay);
     return () => {
       stale = true;
@@ -467,10 +499,15 @@ function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: Sea
   const names = shown && "names" in shown ? shown.names : [];
   // What was typed is offered even when the search failed, so an icon can still be set.
   const typed = shown ? spec.typed?.(query, names) : null;
-  // Every entry in grid order: the lead while nothing is typed, else the names found and what was typed.
-  const entries: (string | Choice)[] = query === "" ? (spec.lead ?? []) : typed ? [...names, typed] : names;
-  const valueOf = (e: string | Choice) => (typeof e === "string" ? e : e.value);
-  const step: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: spec.columns, ArrowUp: -spec.columns };
+  const gridStart = spec.first ? 1 : 0;
+  const gridEnd = gridStart + names.length;
+  const entries: Entry[] = [
+    ...(spec.first ? [spec.first] : []),
+    ...names.map((n) => ({ value: n, label: n, content: spec.draw(n) })),
+    ...(typed ? [typed] : []),
+  ];
+  // Unmoved, the first icon found is active, so Enter picks it; else the first entry.
+  const active = moved >= 0 && moved < entries.length ? moved : names.length > 0 ? gridStart : 0;
 
   return (
     <div
@@ -493,7 +530,7 @@ function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: Sea
           placeholder="Search icons"
           onChange={(e) => {
             setQ(e.target.value);
-            if (e.target.value.trim() === "") setActive(0);
+            setMoved(-1);
           }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
@@ -502,39 +539,36 @@ function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: Sea
               onClose();
             } else if (e.key === "Enter") {
               e.preventDefault();
-              if (entries[active] !== undefined) onPick(valueOf(entries[active]));
-            } else if (step[e.key] !== undefined) {
+              if (entries[active]) onPick(entries[active].value);
+            } else if (e.key.startsWith("Arrow")) {
               e.preventDefault();
-              const next = active + step[e.key];
-              if (next >= 0 && next < entries.length) setActive(next);
+              const next = moveFrom(active, e.key, gridStart, gridEnd, spec.columns);
+              if (next >= 0 && next < entries.length) setMoved(next);
             }
           }}
           className={cx(control, "h-9 bg-background pl-9 focus:bg-card")}
         />
       </span>
       <div id={`${id}-grid`} role="listbox" aria-label={`${label} results`} className={cx("grid max-h-64 gap-1 overflow-y-auto", gridCols[spec.columns])}>
-        {entries.map((e, i) => {
-          const choice = typeof e === "string" ? null : e;
-          return (
-            <div
-              key={choice ? `choice:${choice.value}` : e as string}
-              id={`${id}-${i}`}
-              role="option"
-              aria-label={choice ? choice.label : (e as string)}
-              aria-selected={i === active}
-              title={choice ? undefined : (e as string)}
-              onMouseDown={(ev) => ev.preventDefault()}
-              onClick={() => onPick(valueOf(e))}
-              className={cx(
-                "flex cursor-pointer items-center rounded-ui-sm transition-colors",
-                choice ? "col-span-full gap-2 px-2 py-1.5 text-sm" : "aspect-square justify-center",
-                i === active ? "bg-primary-tint text-primary" : "text-foreground hover:bg-muted",
-              )}
-            >
-              {choice ? choice.content : spec.draw(e as string)}
-            </div>
-          );
-        })}
+        {entries.map((e, i) => (
+          <div
+            key={`${e.row ? "row:" : ""}${e.value}`}
+            id={`${id}-${i}`}
+            role="option"
+            aria-label={e.label}
+            aria-selected={i === active}
+            title={e.row ? undefined : e.label}
+            onMouseDown={(ev) => ev.preventDefault()}
+            onClick={() => onPick(e.value)}
+            className={cx(
+              "flex cursor-pointer items-center rounded-ui-sm transition-colors",
+              e.row ? "col-span-full gap-2 px-2 py-1.5 text-sm" : "aspect-square justify-center",
+              i === active ? "bg-primary-tint text-primary" : "text-foreground hover:bg-muted",
+            )}
+          >
+            {e.content}
+          </div>
+        ))}
       </div>
       {shown && names.length === 0 && (
         <p className="px-1 py-2 text-xs text-muted-foreground">
