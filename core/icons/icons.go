@@ -13,14 +13,14 @@ import (
 	"sync"
 )
 
-// nodesGz is lucide-static's icon-nodes.json, gzipped by
-// packages/ui/scripts/icons.ts (`make generate`).
+// nodesGz is lucide-static's icon-nodes.json, written by
+// packages/ui/scripts/icons.ts and gzipped by ./gzip (`make generate`).
 //
 //go:embed lucide/icon-nodes.json.gz
 var nodesGz []byte
 
-// tagsGz is lucide-static's tags.json (each icon's search words), gzipped
-// by packages/ui/scripts/icons.ts.
+// tagsGz is lucide-static's tags.json (each icon's search words), generated
+// the same way.
 //
 //go:embed lucide/tags.json.gz
 var tagsGz []byte

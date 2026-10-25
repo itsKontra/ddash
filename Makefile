@@ -14,6 +14,7 @@ install:
 generate:
 	go tool buf generate
 	node packages/ui/scripts/icons.ts
+	go run ./core/icons/gzip
 
 # Fail when committed generated code differs from what `make generate` produces.
 GENERATED := '*.pb.go' '*.connect.go' packages/proto/src core/icons/lucide packages/ui/src/icon-names.ts
