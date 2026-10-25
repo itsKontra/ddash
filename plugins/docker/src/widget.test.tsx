@@ -1,6 +1,5 @@
 import { cleanup, screen, within } from "@testing-library/react";
-import type { Status, Widget } from "@ddash/plugin";
-import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { metricValue, pending, showWidget, unavailable, type Answer } from "@ddash/plugin/testing";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { docker } from "./testing";
@@ -23,24 +22,8 @@ const containers = () => plugin.widgets!.find((w) => w.id === "containers")!;
 
 // Renders the Widget's body at size, against docker-api answering with
 // answer, and returns what its useStatus reported last.
-async function show(answer: Answer, size: "S" | "M" = "S") {
-  const w = containers();
-  const reported: { status?: Status } = {};
-  function Probe({ widget }: { widget: Widget }) {
-    reported.status = widget.useStatus();
-    return null;
-  }
-  renderScoped(
-    docker,
-    <>
-      <Probe widget={w} />
-      <section aria-label="widget">
-        <w.Body size={size} />
-      </section>
-    </>,
-    { answers: { ListContainers: answer } },
-  );
-  await settle();
+async function show(answer: Answer, size?: "S" | "M") {
+  const { reported } = await showWidget(docker, containers(), { size, answers: { ListContainers: answer } });
   return reported;
 }
 

@@ -6,7 +6,7 @@ import { act, render, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
 import { afterEach, vi } from "vitest";
-import type { PluginDefinition } from "../define";
+import type { PluginDefinition, Status, Widget, WidgetSize } from "../define";
 import { InstalledPlugins } from "../link";
 import { createQueryClient } from "../query";
 import { PluginHost, PluginScope } from "../scope";
@@ -139,6 +139,31 @@ export async function showPlugin(plugin: PluginDefinition, scope: Scope, path: s
   );
   await settle();
   return calls;
+}
+
+/**
+ * Renders a Widget's body (at its default size unless given) in a section
+ * named "widget", settles, and returns what its useStatus reported last and
+ * the calls.
+ */
+export async function showWidget(scope: Scope, widget: Widget, { size = widget.defaultSize, ...options }: ScopedOptions & { size?: WidgetSize } = {}) {
+  const reported: { status?: Status } = {};
+  function Probe() {
+    reported.status = widget.useStatus();
+    return null;
+  }
+  const calls = renderScoped(
+    scope,
+    <>
+      <Probe />
+      <section aria-label="widget">
+        <widget.Body size={size} />
+      </section>
+    </>,
+    options,
+  );
+  await settle();
+  return { reported, calls };
 }
 
 /** A MetricTile's value, by its label: the text after the label, or undefined while it loads. */

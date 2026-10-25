@@ -1,6 +1,5 @@
 import { cleanup, screen, within } from "@testing-library/react";
-import type { Status, Widget } from "@ddash/plugin";
-import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { metricValue, pending, showWidget, unavailable, type Answer } from "@ddash/plugin/testing";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { proxmox } from "./testing";
@@ -32,24 +31,8 @@ const guests = () => plugin.widgets!.find((w) => w.id === "guests")!;
 
 // Renders the Widget's body at size, against proxmox-api answering with
 // answer, and returns what its useStatus reported last.
-async function show(answer: Answer, size: "S" | "M" = "S") {
-  const w = guests();
-  const reported: { status?: Status } = {};
-  function Probe({ widget }: { widget: Widget }) {
-    reported.status = widget.useStatus();
-    return null;
-  }
-  renderScoped(
-    proxmox,
-    <>
-      <Probe widget={w} />
-      <section aria-label="widget">
-        <w.Body size={size} />
-      </section>
-    </>,
-    { answers: { ListWorkloads: answer } },
-  );
-  await settle();
+async function show(answer: Answer, size?: "S" | "M") {
+  const { reported } = await showWidget(proxmox, guests(), { size, answers: { ListWorkloads: answer } });
   return reported;
 }
 
