@@ -12,6 +12,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { AppIcon, iconName } from "./atoms";
 import { Icon, type IconName } from "./icon";
 import { cx } from "./tone";
 
@@ -261,13 +262,10 @@ export function Switch({ id, checked, onChange, label, disabled }: { id?: string
   );
 }
 
-/** The icon grid's columns, which ArrowUp and ArrowDown step by. */
-const pickerColumns = 8;
-
-/** How long typing pauses before IconPicker searches the core. */
+/** How long typing pauses before a picker searches the core. */
 const searchDelay = 250;
 
-/** What IconPicker's search found for a query: the matching names, or a failure. */
+/** What a picker's search found for a query: the matching names, or a failure. */
 type Found = { q: string; names: string[] } | { q: string; failed: true };
 
 /**
@@ -277,18 +275,131 @@ type Found = { q: string; names: string[] } | { q: string; failed: true };
  * takes the Field's label.
  */
 export function IconPicker({ value, onChange, label }: { value: string | null; onChange: (name: string) => void; label: string }) {
+  return (
+    <Picker
+      label={label}
+      trigger={
+        value ? (
+          <>
+            <Icon name={value as IconName} />
+            <span className="font-mono text-xs">{value}</span>
+          </>
+        ) : (
+          <span className="text-muted-foreground">Choose an icon</span>
+        )
+      }
+      search={{ path: "/api/icons/search", columns: 8, draw: (n) => <Icon name={n as IconName} />, hint: "Type a name or a word, e.g. server." }}
+      onPick={onChange}
+    />
+  );
+}
+
+/**
+ * Picks an App's icon: a homarr-labs/dashboard-icons name, or none
+ * (Automatic: the icon matched by the App's name, else its favicon). The
+ * button shows the icon the App gets. The popover searches the core's
+ * dashboard-icons names and aliases, and offers what was typed too, for an
+ * icon newer than this Release. Inside a Field it takes the Field's label.
+ */
+export function AppIconPicker({
+  value,
+  onChange,
+  label,
+  name,
+  url,
+}: {
+  value: string;
+  onChange: (icon: string) => void;
+  label: string;
+  /** The App's name and URL, for what Automatic draws. */
+  name: string;
+  url?: string;
+}) {
+  const automatic: Choice = {
+    value: "",
+    label: "Automatic",
+    content: (
+      <>
+        <AppIcon name={name || "?"} url={url} size={24} />
+        <span className="font-semibold">Automatic</span>
+        <span className="truncate text-xs text-muted-foreground">By the App's name, else its favicon</span>
+      </>
+    ),
+  };
+  const typed = (query: string, names: readonly string[]): Choice | null => {
+    const slug = iconName(query);
+    if (!slug || names.includes(slug)) return null;
+    return {
+      value: slug,
+      label: `Use ${slug}`,
+      content: (
+        <>
+          <AppIcon name={slug} icon={slug} size={24} />
+          <span>
+            Use <span className="font-mono text-xs">{slug}</span>
+          </span>
+        </>
+      ),
+    };
+  };
+  return (
+    <Picker
+      label={label}
+      trigger={
+        <>
+          <AppIcon name={name || "?"} icon={value} url={url} size={20} />
+          {value ? <span className="font-mono text-xs">{value}</span> : <span className="text-muted-foreground">Automatic</span>}
+        </>
+      }
+      search={{
+        path: "/api/icons/apps/search",
+        columns: 6,
+        draw: (n) => <AppIcon name={n} icon={n} size={28} />,
+        hint: "Type an App's name, e.g. jellyfin.",
+        lead: [automatic],
+        typed,
+      }}
+      onPick={onChange}
+    />
+  );
+}
+
+/** A picker's own entry, a whole row of its grid: Automatic, or what was typed. */
+interface Choice {
+  value: string;
+  label: string;
+  content: ReactNode;
+}
+
+/** What a picker's popover searches, and how it draws what it finds. */
+interface SearchSpec {
+  /** The core's search, answering GET path?q= with names, best first. */
+  path: string;
+  /** The grid's columns, which ArrowUp and ArrowDown step by. */
+  columns: 6 | 8;
+  draw: (name: string) => ReactNode;
+  /** Shown while nothing is typed. */
+  hint: string;
+  /** Offered while nothing is typed, first. */
+  lead?: Choice[];
+  /** Offered after what a query found, or alone when the search failed. */
+  typed?: (query: string, names: readonly string[]) => Choice | null;
+}
+
+/** A button that opens a SearchSpec's popover and reports the pick. */
+function Picker({ label, trigger, search, onPick }: { label: string; trigger: ReactNode; search: SearchSpec; onPick: (value: string) => void }) {
   const wiring = useWiring();
   const inField = useContext(FieldContext) !== null;
   const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
-    trigger.current?.focus();
+    button.current?.focus();
   };
   return (
     <span className="relative inline-block">
       <button
-        ref={trigger}
+        ref={button}
         type="button"
         {...wiring}
         aria-label={inField ? undefined : label}
@@ -297,22 +408,16 @@ export function IconPicker({ value, onChange, label }: { value: string | null; o
         onClick={() => setOpen(!open)}
         className={cx(control, "inline-flex h-9 w-auto cursor-pointer items-center gap-2 bg-card")}
       >
-        {value ? (
-          <>
-            <Icon name={value as IconName} />
-            <span className="font-mono text-xs">{value}</span>
-          </>
-        ) : (
-          <span className="text-muted-foreground">Choose an icon</span>
-        )}
+        {trigger}
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <IconSearch
             label={label}
-            onPick={(name) => {
-              onChange(name);
+            spec={search}
+            onPick={(value) => {
+              onPick(value);
               close();
             }}
             onClose={close}
@@ -323,15 +428,16 @@ export function IconPicker({ value, onChange, label }: { value: string | null; o
   );
 }
 
-const gridStep: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: pickerColumns, ArrowUp: -pickerColumns };
+const gridCols = { 6: "grid-cols-6", 8: "grid-cols-8" };
 
-/** IconPicker's popover: the search box over the grid of what it finds. */
-function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: string) => void; onClose: () => void }) {
+/** A picker's popover: the search box over the grid of what it finds. */
+function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: SearchSpec; onPick: (value: string) => void; onClose: () => void }) {
   const id = useId();
   const [q, setQ] = useState("");
   const [found, setFound] = useState<Found | null>(null);
   const [active, setActive] = useState(0);
   const query = q.trim();
+  const { path } = spec;
 
   useEffect(() => {
     if (query === "") return;
@@ -339,9 +445,11 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
     const timer = setTimeout(async () => {
       let next: Found;
       try {
-        const res = await globalThis.fetch(`/api/icons/search?q=${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error(`GET /api/icons/search: ${res.status}`);
-        next = { q: query, names: (await res.json()) as string[] };
+        const res = await globalThis.fetch(`${path}?q=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error(`GET ${path}: ${res.status}`);
+        const names: unknown = await res.json();
+        if (!Array.isArray(names)) throw new Error(`GET ${path}: not a list`);
+        next = { q: query, names: names as string[] };
       } catch {
         next = { q: query, failed: true };
       }
@@ -353,10 +461,16 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
       stale = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [path, query]);
 
   const shown = query !== "" && found?.q === query ? found : null;
   const names = shown && "names" in shown ? shown.names : [];
+  // What was typed is offered even when the search failed, so an icon can still be set.
+  const typed = shown ? spec.typed?.(query, names) : null;
+  // Every entry in grid order: the lead while nothing is typed, else the names found and what was typed.
+  const entries: (string | Choice)[] = query === "" ? (spec.lead ?? []) : typed ? [...names, typed] : names;
+  const valueOf = (e: string | Choice) => (typeof e === "string" ? e : e.value);
+  const step: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: spec.columns, ArrowUp: -spec.columns };
 
   return (
     <div
@@ -370,14 +484,17 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
           type="text"
           role="combobox"
           aria-label="Search icons"
-          aria-expanded={names.length > 0}
+          aria-expanded={entries.length > 0}
           aria-controls={`${id}-grid`}
-          aria-activedescendant={names.length > 0 ? `${id}-${active}` : undefined}
+          aria-activedescendant={entries.length > 0 ? `${id}-${active}` : undefined}
           aria-autocomplete="list"
           autoFocus
           value={q}
           placeholder="Search icons"
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            if (e.target.value.trim() === "") setActive(0);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();
@@ -385,42 +502,46 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
               onClose();
             } else if (e.key === "Enter") {
               e.preventDefault();
-              if (names[active]) onPick(names[active]);
-            } else if (gridStep[e.key] !== undefined) {
+              if (entries[active] !== undefined) onPick(valueOf(entries[active]));
+            } else if (step[e.key] !== undefined) {
               e.preventDefault();
-              const next = active + gridStep[e.key];
-              if (next >= 0 && next < names.length) setActive(next);
+              const next = active + step[e.key];
+              if (next >= 0 && next < entries.length) setActive(next);
             }
           }}
           className={cx(control, "h-9 bg-background pl-9 focus:bg-card")}
         />
       </span>
-      <div id={`${id}-grid`} role="listbox" aria-label={`${label} results`} className="grid max-h-64 grid-cols-8 gap-1 overflow-y-auto">
-        {names.map((n, i) => (
-          <div
-            key={n}
-            id={`${id}-${i}`}
-            role="option"
-            aria-label={n}
-            aria-selected={i === active}
-            title={n}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => onPick(n)}
-            className={cx(
-              "flex aspect-square cursor-pointer items-center justify-center rounded-ui-sm transition-colors",
-              i === active ? "bg-primary-tint text-primary" : "text-foreground hover:bg-muted",
-            )}
-          >
-            <Icon name={n as IconName} />
-          </div>
-        ))}
+      <div id={`${id}-grid`} role="listbox" aria-label={`${label} results`} className={cx("grid max-h-64 gap-1 overflow-y-auto", gridCols[spec.columns])}>
+        {entries.map((e, i) => {
+          const choice = typeof e === "string" ? null : e;
+          return (
+            <div
+              key={choice ? `choice:${choice.value}` : e as string}
+              id={`${id}-${i}`}
+              role="option"
+              aria-label={choice ? choice.label : (e as string)}
+              aria-selected={i === active}
+              title={choice ? undefined : (e as string)}
+              onMouseDown={(ev) => ev.preventDefault()}
+              onClick={() => onPick(valueOf(e))}
+              className={cx(
+                "flex cursor-pointer items-center rounded-ui-sm transition-colors",
+                choice ? "col-span-full gap-2 px-2 py-1.5 text-sm" : "aspect-square justify-center",
+                i === active ? "bg-primary-tint text-primary" : "text-foreground hover:bg-muted",
+              )}
+            >
+              {choice ? choice.content : spec.draw(e as string)}
+            </div>
+          );
+        })}
       </div>
       {shown && names.length === 0 && (
         <p className="px-1 py-2 text-xs text-muted-foreground">
           {"failed" in shown ? "Couldn't search the icons. Try again." : `No icons match “${shown.q}”.`}
         </p>
       )}
-      {query === "" && <p className="px-1 py-2 text-xs text-muted-foreground">Type a name or a word, e.g. server.</p>}
+      {query === "" && <p className="px-1 py-2 text-xs text-muted-foreground">{spec.hint}</p>}
     </div>
   );
 }

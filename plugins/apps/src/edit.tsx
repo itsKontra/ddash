@@ -1,6 +1,6 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App } from "@ddash/proto/apps/apps_pb";
-import { Button, Checkbox, Field, FormActions, iconName, Notice, Select, Sheet, TextInput } from "@ddash/ui";
+import { AppIconPicker, Button, Checkbox, Field, FormActions, Notice, Select, Sheet, TextInput } from "@ddash/ui";
 import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
 import { useId, useState, type FormEvent } from "react";
 import { workloadName } from "@ddash/display";
@@ -39,7 +39,16 @@ function Groups({ id, groups }: { id: string; groups: readonly string[] }) {
   );
 }
 
-const iconHint = "A homarr-labs/dashboard-icons name, e.g. jellyfin. Empty matches one by the App's name, else the site's favicon is used.";
+const iconHint = "A homarr-labs/dashboard-icons logo. Automatic matches one by the App's name, else uses the site's favicon.";
+
+/** An App's icon, picked from dashboard-icons; name and url are what Automatic draws from. */
+function IconField({ value, onChange, name, url }: { value: string; onChange: (v: string) => void; name: string; url?: string }) {
+  return (
+    <Field label="Icon" hint={iconHint}>
+      <AppIconPicker label="Icon" value={value} onChange={onChange} name={name} url={url} />
+    </Field>
+  );
+}
 
 function Failed({ error }: { error?: { rawMessage: string } }) {
   return error ? <Notice tone="down">{error.rawMessage}</Notice> : null;
@@ -118,7 +127,7 @@ function OverlaySheet({ app, groups, onClose }: { app: App; groups: readonly str
     >
       <form id={formId} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
         <Text label="Display name" value={name} onChange={setName} placeholder={o?.name ? undefined : app.name} />
-        <Text label="Icon" hint={iconHint} value={icon} onChange={setIcon} placeholder={iconName(name || app.name)} />
+        <IconField value={icon} onChange={setIcon} name={name || app.name} url={app.url} />
         <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
         <Groups id={listId} groups={groups} />
         <Checkbox label="Hidden" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
@@ -175,7 +184,7 @@ function ManualSheet({ app, groups, onClose }: { app?: App; groups: readonly str
       <form id={formId} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
         <Text label="Name" value={name} onChange={setName} />
         <Text label="URL" value={url} onChange={setUrl} placeholder="https://198.18.0.1" />
-        <Text label="Icon" hint={iconHint} value={icon} onChange={setIcon} placeholder={iconName(name)} />
+        <IconField value={icon} onChange={setIcon} name={name} url={url} />
         <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
         <Groups id={listId} groups={groups} />
         <Failed error={(app ? update.error : create.error) ?? remove.error} />

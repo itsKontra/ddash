@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Button, Checkbox, Field, FormActions, IconPicker, SearchField, Segmented, Select, Switch, TextArea, TextInput } from "./index";
+import { AppIconPicker, Button, Checkbox, Field, FormActions, IconPicker, SearchField, Segmented, Select, Switch, TextArea, TextInput } from "./index";
 
 afterEach(cleanup);
 
@@ -304,5 +304,105 @@ describe("IconPicker", () => {
     expect(picked).toEqual([]);
     expect(outer).toEqual([]);
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: /^Icon/ })));
+  });
+});
+
+describe("AppIconPicker", () => {
+  // What GET /api/icons/apps/search answers, by query.
+  const found: Record<string, string[]> = { jelly: ["jellyfin", "jellyseerr", "jellystat"], jellyfin: ["jellyfin"] };
+  let searches: string[];
+
+  beforeEach(() => {
+    searches = [];
+    vi.stubGlobal("fetch", async (url: string) => {
+      const u = new URL(url, "http://ddash");
+      expect(u.pathname).toBe("/api/icons/apps/search");
+      searches.push(u.searchParams.get("q")!);
+      return Response.json(found[u.searchParams.get("q")!] ?? []);
+    });
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  const open = () => fireEvent.click(screen.getByRole("button", { name: /^Icon/ }));
+  const search = () => screen.getByRole("combobox", { name: "Search icons" });
+  const type = (q: string) => fireEvent.change(search(), { target: { value: q } });
+  const src = (el: Element) => el.querySelector("img")?.getAttribute("src");
+
+  it("shows Automatic with the icon the App's name matches, while no icon is set", () => {
+    render(
+      <Field label="Icon">
+        <AppIconPicker label="Icon" value="" name="Home Assistant" onChange={() => {}} />
+      </Field>,
+    );
+
+    const trigger = screen.getByRole("button", { name: /^Icon/ });
+    expect(trigger.textContent).toContain("Automatic");
+    expect(src(trigger)).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/home-assistant.svg");
+  });
+
+  it("shows the set icon by name", () => {
+    render(<AppIconPicker label="Icon" value="jellyfin" name="Media" onChange={() => {}} />);
+
+    const trigger = screen.getByRole("button", { name: "Icon" });
+    expect(trigger.textContent).toContain("jellyfin");
+    expect(src(trigger)).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg");
+  });
+
+  it("offers Automatic first while nothing is typed, which clears the icon", () => {
+    const picked: string[] = [];
+    render(<AppIconPicker label="Icon" value="jellyfin" name="Media" onChange={(v) => picked.push(v)} />);
+    open();
+
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["Automatic"]);
+    fireEvent.keyDown(search(), { key: "Enter" });
+
+    expect(picked).toEqual([""]);
+  });
+
+  it("searches the dashboard-icons names, drawing each logo, then offers what was typed", async () => {
+    const picked: string[] = [];
+    render(<AppIconPicker label="Icon" value="" name="Media" onChange={(v) => picked.push(v)} />);
+    open();
+    type("jelly");
+
+    expect(await screen.findByRole("option", { name: "jellyseerr" })).toBeTruthy();
+    expect(searches).toEqual(["jelly"]);
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["jellyfin", "jellyseerr", "jellystat", "Use jelly"]);
+    expect(src(screen.getByRole("option", { name: "jellystat" }))).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellystat.svg");
+
+    fireEvent.click(screen.getByRole("option", { name: "Use jelly" }));
+    expect(picked).toEqual(["jelly"]);
+  });
+
+  it("offers no typed entry when the typed name was found", async () => {
+    render(<AppIconPicker label="Icon" value="" name="Media" onChange={() => {}} />);
+    open();
+    type("jellyfin");
+
+    await screen.findByRole("option", { name: "jellyfin" });
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["jellyfin"]);
+  });
+
+  it("still offers what was typed when the search fails", async () => {
+    vi.stubGlobal("fetch", async () => new Response("", { status: 502 }));
+    const picked: string[] = [];
+    render(<AppIconPicker label="Icon" value="" name="Media" onChange={(v) => picked.push(v)} />);
+    open();
+    type("jellyfin");
+
+    expect(await screen.findByText(/Couldn't search the icons/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("option", { name: "Use jellyfin" }));
+    expect(picked).toEqual(["jellyfin"]);
+  });
+
+  it("offers what was typed, as a name, when nothing matches", async () => {
+    const picked: string[] = [];
+    render(<AppIconPicker label="Icon" value="" name="Media" onChange={(v) => picked.push(v)} />);
+    open();
+    type("My New App");
+
+    fireEvent.click(await screen.findByRole("option", { name: "Use my-new-app" }));
+    expect(picked).toEqual(["my-new-app"]);
   });
 });

@@ -112,6 +112,16 @@ func (h *Host) iconSearch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, icons.Search(r.URL.Query().Get("q")), cacheNone)
 }
 
+// appIconSearchPath searches the dashboard-icons names an App's icon may
+// take: GET appIconSearchPath?q=.
+const appIconSearchPath = iconsPath + "/apps/search"
+
+// appIconSearch serves GET /api/icons/apps/search: the dashboard-icons names
+// q matches by name or alias, best first (icons.AppSearch).
+func (h *Host) appIconSearch(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, icons.AppSearch(r.URL.Query().Get("q")), cacheNone)
+}
+
 // writeJSON writes v as a JSON response with the given Cache-Control.
 func writeJSON(w http.ResponseWriter, v any, cacheControl string) {
 	b, err := json.Marshal(v)

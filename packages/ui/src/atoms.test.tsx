@@ -97,10 +97,18 @@ it("AppIcon prefers the icon it is given over its name", () => {
   expect(img()?.getAttribute("src")).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg");
 });
 
+it("AppIcon falls back to the PNG, for the icons upstream has no SVG of", () => {
+  render(<AppIcon name="3x-ui" icon="3xui" />);
+
+  fireEvent.error(img()!);
+  expect(img()?.getAttribute("src")).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/png/3xui.png");
+});
+
 it("AppIcon falls back to the site's favicon, then to the name's first letter", () => {
   render(<AppIcon name="My Printer" url="http://printer.home.example:8080/ui/" />);
 
-  fireEvent.error(img()!);
+  fireEvent.error(img()!); // no SVG
+  fireEvent.error(img()!); // no PNG
   expect(img()?.getAttribute("src")).toBe("http://printer.home.example:8080/favicon.ico");
 
   fireEvent.error(img()!);

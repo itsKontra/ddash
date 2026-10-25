@@ -92,8 +92,9 @@ export function Skeleton({ lines, height }: { lines?: number; height?: keyof typ
   );
 }
 
-/** Where an icon of homarr-labs/dashboard-icons is served, by its name. */
-export const dashboardIcon = (name: string) => `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/${name}.svg`;
+/** Where an icon of homarr-labs/dashboard-icons is served, by its name: as SVG, or as PNG for the icons upstream has no SVG of. */
+export const dashboardIcon = (name: string, format: "svg" | "png" = "svg") =>
+  `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/${format}/${name}.${format}`;
 
 /** A dashboard-icons name read off an App's name: "Home Assistant" → "home-assistant". */
 export const iconName = (name: string) =>
@@ -105,13 +106,13 @@ export const iconName = (name: string) =>
 
 /**
  * An App's icon: the dashboard-icons icon named icon (else matched by the
- * App's name), falling back to the favicon of its url, then to the name's
- * first letter.
+ * App's name), as SVG else PNG, falling back to the favicon of its url,
+ * then to the name's first letter.
  */
 export function AppIcon({ name, icon, url, size = 36 }: { name: string; icon?: string; url?: string; size?: number }) {
   const sources: string[] = [];
   const slug = icon || iconName(name);
-  if (slug) sources.push(dashboardIcon(slug));
+  if (slug) sources.push(dashboardIcon(slug), dashboardIcon(slug, "png"));
   try {
     if (url) sources.push(new URL("/favicon.ico", url).href);
   } catch {

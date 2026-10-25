@@ -136,7 +136,9 @@ it("adds a manual App", async () => {
   const dialog = screen.getByRole("dialog", { name: "Add App" });
   fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Proxmox" } });
   fireEvent.change(within(dialog).getByLabelText("URL"), { target: { value: "https://198.18.0.2:8006" } });
-  fireEvent.change(within(dialog).getByLabelText("Icon"), { target: { value: "proxmox" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: /^Icon/ }));
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "Search icons" }), { target: { value: "proxmox" } });
+  fireEvent.click(await within(dialog).findByRole("option", { name: "Use proxmox" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
   await settle();
 
@@ -150,7 +152,7 @@ it("describes the Icon field by its hint, and Cancel closes the sheet unsaved", 
 
   fireEvent.click(screen.getByRole("button", { name: "Add App" }));
   const dialog = screen.getByRole("dialog", { name: "Add App" });
-  expect(within(dialog).getByRole("textbox", { name: "Icon", description: /homarr-labs\/dashboard-icons/ })).toBeTruthy();
+  expect(within(dialog).getByRole("button", { name: /^Icon/, description: /homarr-labs\/dashboard-icons/ })).toBeTruthy();
   fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Proxmox" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
   await settle();
