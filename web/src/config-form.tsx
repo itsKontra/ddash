@@ -28,17 +28,29 @@ type Secret = { mode: "keep" } | { mode: "replace"; value: string } | { mode: "c
  * Component, and shows the health polled right after its Start.
  */
 export function ConfigForm({ owner }: { owner: string }) {
-  const { data, error, dataUpdatedAt } = useQuery(CoreService.method.getConfigForm, { owner });
+  const { data, error } = useQuery(CoreService.method.getConfigForm, { owner });
   const [status, setStatus] = useState<ComponentStatus>();
+  const [saves, setSaves] = useState(0);
   if (error && !data) return <ErrorFrame title={`${owner}'s config can't be read`} error={error} />;
   if (!data) return <p className="text-sm text-muted-foreground">Loading…</p>;
   return (
     <div>
       {data.setupHint && <SetupHint hint={data.setupHint} />}
-      {/* A save refetches the form; start over from what is stored then. */}
-      <Editor key={dataUpdatedAt} owner={owner} form={data} onSaved={setStatus} />
+      {/*
+        Only a save starts over from what is stored: its Action has refetched
+        the form by then. Other refetches (focus, reconnect, any Action) keep
+        the Operator's edits.
+      */}
+      <Editor
+        key={saves}
+        owner={owner}
+        form={data}
+        onSaved={(s) => {
+          setStatus(s);
+          setSaves((n) => n + 1);
+        }}
+      />
       {status && <Health status={status} />}
-      {/* Outside the Editor: its success refetches the form, which remounts the Editor. */}
       {data.testAction && <TestButton owner={owner} test={data.testAction} />}
     </div>
   );
