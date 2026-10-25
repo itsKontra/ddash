@@ -19,7 +19,7 @@ export function Containers() {
   return (
     <div>
       <PageHeader title="Docker" subtitle="Containers on every Docker host." />
-      {error && !data && <p className="text-sm text-down">{error.message}</p>}
+      {error && !data && <p className="text-sm text-down-text">{error.message}</p>}
       <div className="flex flex-col gap-6">
         {data?.hosts.map((h) => <Host key={h.host} host={h} />)}
       </div>
@@ -43,7 +43,7 @@ function Host({ host }: { host: HostContainers }) {
         )}
       </header>
       {host.error ? (
-        <p className="px-4 py-3 text-sm text-down">{host.error}</p>
+        <p className="px-4 py-3 text-sm text-down-text">{host.error}</p>
       ) : (
         <table className="w-full text-sm">
           <tbody>

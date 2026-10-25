@@ -15,10 +15,10 @@ export const toneBg: Record<Tone, string> = {
 };
 
 export const toneText: Record<Tone, string> = {
-  up: "text-up",
-  down: "text-down",
-  warn: "text-warn",
-  maint: "text-maint",
+  up: "text-up-text",
+  down: "text-down-text",
+  warn: "text-warn-text",
+  maint: "text-maint-text",
   idle: "text-muted-foreground",
 };
 

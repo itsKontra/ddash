@@ -27,7 +27,7 @@ function useStatus(): Status | undefined {
 function Body() {
   const { data } = useTunnel();
   if (!data) return null;
-  if (data.tier === Tier.UNSPECIFIED) return <p className="text-sm text-warn">{data.error || "Not read yet"}</p>;
+  if (data.tier === Tier.UNSPECIFIED) return <p className="text-sm text-warn-text">{data.error || "Not read yet"}</p>;
   return (
     <ul className="flex flex-col gap-2 text-sm">
       {members(data).map((m) => (

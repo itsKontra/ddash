@@ -77,6 +77,26 @@ export function Row({ down }: { down: boolean }) {
     ]);
   });
 
+  it("passes the Theme's radius scale", () => {
+    const dir = plugin({ "row.tsx": `export const c = "rounded-ui-sm rounded-ui-lg rounded-t-ui-lg";\n` });
+    expect(lintStyle(dir)).toEqual([]);
+  });
+
+  it("fails the shell-only nav and hero surfaces", () => {
+    const dir = plugin({
+      "row.tsx": `export const c = "bg-nav text-nav-strong hover:bg-nav-hover/50 border-nav-border bg-linear-to-b from-hero-from to-hero-to text-navy";\n`,
+    });
+    const fix = "the nav is the shell's and the hero is HeroCard's";
+    expect(lintStyle(dir)).toEqual([
+      `src/row.tsx:1: "bg-nav" is a shell-only surface; ${fix}`,
+      `src/row.tsx:1: "text-nav-strong" is a shell-only surface; ${fix}`,
+      `src/row.tsx:1: "hover:bg-nav-hover/50" is a shell-only surface; ${fix}`,
+      `src/row.tsx:1: "border-nav-border" is a shell-only surface; ${fix}`,
+      `src/row.tsx:1: "from-hero-from" is a shell-only surface; ${fix}`,
+      `src/row.tsx:1: "to-hero-to" is a shell-only surface; ${fix}`,
+    ]);
+  });
+
   it("fails arbitrary Tailwind values", () => {
     const dir = plugin({
       "row.tsx": "const pad = 3;\nexport const c = `w-[13px] bg-(--brand) [color:red] [&>p]:p-2 mt-${pad}`;\n",

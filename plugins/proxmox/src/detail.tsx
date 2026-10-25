@@ -21,7 +21,7 @@ export function WorkloadDetail() {
     return (
       <div>
         <PageHeader title={vmid} actions={back} />
-        <p className="text-sm text-down">{error.rawMessage}</p>
+        <p className="text-sm text-down-text">{error.rawMessage}</p>
       </div>
     );
   }

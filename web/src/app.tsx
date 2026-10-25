@@ -66,7 +66,7 @@ function Unreachable() {
   const reach = useReach();
   if (!reach.unreachable) return null;
   return (
-    <div role="status" className="mb-6 rounded-ui border border-warn bg-card px-4 py-2 text-sm font-medium text-warn">
+    <div role="status" className="mb-6 rounded-ui border border-warn bg-card px-4 py-2 text-sm font-medium text-warn-text">
       {unreachableText(reach)}
     </div>
   );
