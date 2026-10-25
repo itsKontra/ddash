@@ -189,8 +189,37 @@ it("the hero lists the placed Widgets that aren't up, ignoring one that hasn't r
   expect(problems()).toEqual(["Checkspaperless down 14 min", "VPNon the fallback"]);
   expect(within(hero()).getAllByRole("img", { name: /^(down|warn)$/ }).map((d) => d.getAttribute("aria-label"))).toEqual(["down", "warn"]);
   expect(overall()).toBe("Overall: down");
+  // The headline counts the worst tone, as its tile does: the warn one isn't down.
+  expect(headline()).toBe("1 Widget down");
+  expect(screen.getByRole("region", { name: "1 Widget down" })).toBe(hero());
+});
+
+it("the hero's headline counts only the Widgets needing attention, as their tile does, when none is down", async () => {
+  plugins = [
+    [
+      installed("lab", "Lab"),
+      definePlugin({
+        widgets: [
+          widget("a", "Alpha", { tone: "warn", summary: "flapping" }, "S"),
+          widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S"),
+          widget("c", "Charlie", { tone: "warn", summary: "slow" }, "S"),
+        ],
+      }),
+    ],
+  ];
+
+  await boot();
+
   expect(headline()).toBe("2 Widgets need attention");
-  expect(screen.getByRole("region", { name: "2 Widgets need attention" })).toBe(hero());
+  expect(screen.getByRole("group", { name: "Needs attention" }).textContent).toBe("Needs attention2");
+});
+
+it("the hero's headline counts the Widgets in Maintenance when nothing worse is wrong", async () => {
+  plugins = [[installed("lab", "Lab"), definePlugin({ widgets: [widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S")] })]];
+
+  await boot();
+
+  expect(headline()).toBe("1 Widget in Maintenance");
 });
 
 it("the hero says everything is up when every reporting Widget is", async () => {
