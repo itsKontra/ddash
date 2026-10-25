@@ -72,16 +72,19 @@ export function Chrome({ items, aside, banner, children }: ChromeProps) {
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex items-center justify-between bg-nav px-4 py-3 lg:hidden">
           <Brand sub={false} />
-          <button
-            ref={opener}
-            type="button"
-            aria-label="Open navigation"
-            aria-expanded={open}
-            onClick={() => setOpen(true)}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-ui-sm text-nav-strong hover:bg-nav-hover"
-          >
-            <Icon name="menu" />
-          </button>
+          <div className="flex items-center gap-1">
+            <SchemeToggle className="text-nav-strong hover:bg-nav-hover" />
+            <button
+              ref={opener}
+              type="button"
+              aria-label="Open navigation"
+              aria-expanded={open}
+              onClick={() => setOpen(true)}
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-ui-sm text-nav-strong hover:bg-nav-hover"
+            >
+              <Icon name="menu" />
+            </button>
+          </div>
         </header>
         <main className="mx-auto max-w-[1520px] px-4 pt-6 pb-24 sm:px-8 lg:px-11 lg:pt-9">
           <div className="mb-8 hidden items-center justify-between lg:flex">

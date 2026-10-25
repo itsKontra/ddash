@@ -292,7 +292,8 @@ it("switches light and dark from the top bar, remembered in this browser and sho
   window.localStorage.clear();
   document.documentElement.className = "";
   await boot("/settings", []);
-  const toggle = screen.getByRole("button", { name: "Dark mode" });
+  // The desktop top bar's toggle, over the Page.
+  const toggle = within(screen.getByRole("main")).getByRole("button", { name: "Dark mode" });
   const scheme = () => within(screen.getByRole("radiogroup", { name: "Scheme" }));
   const settingsSwitch = () => scheme().getByRole("radio", { name: "Dark" }).getAttribute("aria-checked");
   expect([toggle.getAttribute("aria-pressed"), settingsSwitch()]).toEqual(["false", "false"]);
@@ -307,6 +308,19 @@ it("switches light and dark from the top bar, remembered in this browser and sho
 
   expect(document.documentElement.classList.contains("dark")).toBe(false);
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
+});
+
+it("switches light and dark from the phone top bar too, in step with the desktop one", async () => {
+  window.localStorage.clear();
+  document.documentElement.className = "";
+  await boot("/", []);
+  const phone = within(screen.getByRole("banner")).getByRole("button", { name: "Dark mode" });
+  const desktop = within(screen.getByRole("main")).getByRole("button", { name: "Dark mode" });
+
+  fireEvent.click(phone);
+
+  expect(document.documentElement.classList.contains("dark")).toBe(true);
+  expect([phone.getAttribute("aria-pressed"), desktop.getAttribute("aria-pressed")]).toEqual(["true", "true"]);
 });
 
 it("opens the navigation in a focus-trapped drawer from the phone top bar, and closes it on Escape or a link", async () => {
