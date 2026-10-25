@@ -1,7 +1,7 @@
 // The feedback family: how a Page says something failed, is partial, is
 // empty, or shows raw text.
-import type { ReactNode } from "react";
-import { StatusDot } from "./atoms";
+import { useRef, useState, type ReactNode } from "react";
+import { Button, StatusDot } from "./atoms";
 import { Icon, type IconName } from "./icon";
 import { cx, toneTint } from "./tone";
 
@@ -45,17 +45,42 @@ export function EmptyState({ icon, title, children, action }: { icon?: IconName;
 /**
  * Raw text in monospace: a config block, a request, an error. Lines never
  * wrap; the block scrolls sideways (and takes focus, so a keyboard can
- * scroll it). With label it is a region named by it.
+ * scroll it). With label it is a region named by it. copy adds a Copy
+ * button that puts the text on the clipboard, e.g. a line to paste elsewhere.
  */
-export function CodeBlock({ children, label }: { children: ReactNode; label?: string }) {
-  return (
+export function CodeBlock({ children, label, copy }: { children: ReactNode; label?: string; copy?: boolean }) {
+  const pre = useRef<HTMLPreElement>(null);
+  const [copied, setCopied] = useState(false);
+  const block = (
     <pre
+      ref={pre}
       tabIndex={0}
       {...(label && { role: "region", "aria-label": label })}
-      className="max-h-80 min-w-0 overflow-x-auto overflow-y-auto rounded-ui-sm border border-border bg-muted p-3 font-mono text-xs leading-relaxed whitespace-pre text-foreground"
+      className={cx(
+        "max-h-80 min-w-0 overflow-x-auto overflow-y-auto rounded-ui-sm border border-border bg-muted p-3 font-mono text-xs leading-relaxed whitespace-pre text-foreground",
+        copy && "pr-24",
+      )}
     >
       {children}
     </pre>
+  );
+  if (!copy) return block;
+  return (
+    <div className="relative min-w-0">
+      {block}
+      <span className="absolute top-2 right-2">
+        <Button
+          size="sm"
+          variant="outline"
+          icon={copied ? "check" : "copy"}
+          onClick={() => {
+            void navigator.clipboard.writeText(pre.current?.textContent ?? "").then(() => setCopied(true));
+          }}
+        >
+          {copied ? "Copied" : "Copy"}
+        </Button>
+      </span>
+    </div>
   );
 }
 

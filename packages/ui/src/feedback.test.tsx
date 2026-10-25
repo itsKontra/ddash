@@ -1,5 +1,5 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, expect, it, vi } from "vitest";
 import { Button, CodeBlock, EmptyState, ErrorFrame, Notice } from "./index";
 
 afterEach(cleanup);
@@ -82,6 +82,27 @@ it("CodeBlock without a label is plain preformatted text", () => {
 
   expect(screen.queryByRole("region")).toBeNull();
   expect(screen.getByText("docker ps").tagName).toBe("PRE");
+});
+
+it("CodeBlock with copy puts its text on the clipboard and says so", async () => {
+  const writeText = vi.fn<(text: string) => Promise<void>>(async () => {});
+  Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
+  render(
+    <CodeBlock label="authorized_keys" copy>
+      ssh-ed25519 AAAAC3Nza ddash
+    </CodeBlock>,
+  );
+
+  expect(screen.getByRole("region", { name: "authorized_keys" }).textContent).toBe("ssh-ed25519 AAAAC3Nza ddash");
+  fireEvent.click(screen.getByRole("button", { name: "Copy" }));
+  await waitFor(() => expect(screen.getByRole("button", { name: "Copied" })).toBeTruthy());
+  expect(writeText).toHaveBeenCalledWith("ssh-ed25519 AAAAC3Nza ddash");
+});
+
+it("CodeBlock without copy has no Copy button", () => {
+  render(<CodeBlock label="Caddyfile">nas.lan</CodeBlock>);
+
+  expect(screen.queryByRole("button")).toBeNull();
 });
 
 it("ErrorFrame alerts with its title and shows the error's message as code", () => {
