@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -54,12 +55,10 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   }
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 async function boot() {
   render(
     <MemoryRouter initialEntries={["/settings"]}>
-      <App client={createQueryClient()} fetch={vi.fn(fetchFake)} importBundle={async () => ({})} />
+      <App client={createQueryClient()} fetch={tracked(vi.fn(fetchFake))} importBundle={async () => ({})} />
     </MemoryRouter>,
   );
   await settle();
@@ -96,7 +95,7 @@ it("is a System Page with an Appearance panel, marking the Theme in use", async 
 });
 
 it("shows a skeleton in place of the Themes while they load", async () => {
-  formAnswer = () => new Promise<Response>(() => {});
+  formAnswer = () => pending();
   await boot();
 
   const appearance = screen.getByRole("region", { name: "Appearance" });

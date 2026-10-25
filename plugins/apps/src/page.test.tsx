@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { settle, unavailable } from "@ddash/plugin/testing";
@@ -28,10 +28,7 @@ it("shows the visible Apps as cards by group, ungrouped ones in the default sect
   renderScoped(<Page />);
   await settle();
 
-  // The first render is the coldest, so wait for the sections rather than trust settle()'s fixed delay.
-  await waitFor(() =>
-    expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Unmatched settings"]),
-  );
+  expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Unmatched settings"]);
   const names = (group: string) =>
     within(screen.getByRole("list", { name: group }))
       .getAllByRole("listitem")

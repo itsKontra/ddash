@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, usePlugin, usePluginLink, type PluginDefinition } from "@ddash/plugin";
+import { settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter, useParams } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -47,13 +48,11 @@ async function boot(path: string, plugins: [ReturnType<typeof installed>, Bundle
   });
   render(
     <MemoryRouter initialEntries={[path]}>
-      <App client={createQueryClient()} fetch={fetch} importBundle={importBundle} />
+      <App client={createQueryClient()} fetch={tracked(fetch)} importBundle={importBundle} />
     </MemoryRouter>,
   );
   await settle();
 }
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 
 const navLinks = () =>
   within(screen.getByRole("navigation", { name: "Main" }))

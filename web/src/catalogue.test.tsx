@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -54,12 +55,10 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   return Response.json({});
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 async function boot() {
   render(
     <MemoryRouter initialEntries={["/plugins"]}>
-      <App client={createQueryClient()} fetch={vi.fn(fetchFake)} importBundle={async () => ({})} />
+      <App client={createQueryClient()} fetch={tracked(vi.fn(fetchFake))} importBundle={async () => ({})} />
     </MemoryRouter>,
   );
   await settle();
@@ -241,7 +240,7 @@ it("says nothing is orphaned when no DB file is", async () => {
 });
 
 it("shows a skeleton while the Catalogue loads", async () => {
-  catalogueAnswer = () => new Promise<Response>(() => {});
+  catalogueAnswer = () => pending();
   await boot();
 
   expect(within(screen.getByRole("main")).getByRole("status", { name: "Loading" })).toBeTruthy();

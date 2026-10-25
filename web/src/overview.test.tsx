@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, type PluginDefinition, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -80,7 +81,7 @@ async function boot(path = "/", reload = vi.fn()) {
     <MemoryRouter initialEntries={[path]}>
       <App
         client={createQueryClient()}
-        fetch={vi.fn(fetchFake)}
+        fetch={tracked(vi.fn(fetchFake))}
         reload={reload}
         importBundle={async (url) => {
           const b = bundles.get(url);
@@ -92,8 +93,6 @@ async function boot(path = "/", reload = vi.fn()) {
   );
   await settle();
 }
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
 
 const cards = () => within(screen.getByRole("list", { name: "Widgets" })).queryAllByRole("listitem");
 const card = (title: string) => within(screen.getByRole("list", { name: "Widgets" })).getByRole("listitem", { name: title });
@@ -290,7 +289,7 @@ it("four metric tiles count the reporting Widgets that are up, need attention, a
 });
 
 it("the metric tiles load until the layout has come", async () => {
-  intercept = (method) => (method === "GetLayout" ? new Promise<Response>(() => {}) : undefined);
+  intercept = (method) => (method === "GetLayout" ? pending() : undefined);
 
   await boot();
 
