@@ -21,11 +21,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Install adds plugin to the installed set and wakes the reconcile loop to
+// Install adds plugin to the installed set, downloads its bundles, and
 
-// start the Components it requires. It returns the Components that weren't
+// wakes the reconcile loop to start the Components it requires. It returns
 
-// wanted before, in start order.
+// the Components that weren't wanted before, in start order. The shell
+
+// imports the bundle as soon as the Plugin is listed, so Install returns
+
+// only once the download ended; one that failed is retried by the loop.
 func (r *Runtime) Install(ctx context.Context, plugin string) (added []string, err error) {
 	r.mu.Lock()
 	catOK, rel := r.catOK, r.release
@@ -53,6 +57,7 @@ func (r *Runtime) Install(ctx context.Context, plugin string) (added []string, e
 	r.installed[plugin] = p
 	pulls := r.cat.Pulls(plugin)
 	r.mu.Unlock()
+	_ = r.fetchBundles(ctx, plugin)
 	for _, name := range pulls {
 		if !before[name] {
 			added = append(added, name)

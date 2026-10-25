@@ -95,6 +95,18 @@ func TestBumpingTheReleaseDownloadsItsBinariesAndBundlesIntoData(t *testing.T) {
 	}
 }
 
+func TestAPluginsBundleIsServedAsSoonAsItsInstallReturns(t *testing.T) {
+	gh := fakegithub.New(repo)
+	publish(t, gh, "v1.0.0", notebook())
+	h := fromGitHub(t, gh, t.TempDir(), "v1.0.0", notebook())
+
+	h.Install("hello")
+
+	if res := h.Get("/plugins/hello/v1.0.0/index.js"); res.Code != http.StatusOK {
+		t.Errorf("GET hello's bundle right after Install: %d, want 200", res.Code)
+	}
+}
+
 func TestInstalledPluginsKeepRunningWhileGitHubIsUnreachable(t *testing.T) {
 	gh := fakegithub.New(repo)
 	publish(t, gh, "v1.0.0", notebook())

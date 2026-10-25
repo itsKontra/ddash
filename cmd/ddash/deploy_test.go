@@ -95,7 +95,7 @@ func TestTheReferenceComposeRunsOnePinnedUnprivilegedService(t *testing.T) {
 		got, want []string
 	}{
 		{"ports", s.Ports, []string{"<ddash-ip>:8080:8080"}},
-		{"sysctls", s.Sysctls, []string{"net.ipv4.ping_group_range=0 2147483647"}},
+		{"sysctls", s.Sysctls, []string{"net.ipv4.ping_group_range=0 65535"}},
 		{"volumes", s.Volumes, []string{"/opt/ddash/data:/data"}},
 		{"healthcheck.test", s.Healthcheck.Test, []string{"CMD", "/ddash", "healthcheck"}},
 	} {
