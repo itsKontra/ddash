@@ -36,11 +36,7 @@ export function ConfigForm({ owner }: { owner: string }) {
   return (
     <div>
       {data.setupHint && <SetupHint hint={data.setupHint} />}
-      {/*
-        Only a save starts over from what is stored: its Action has refetched
-        the form by then. Other refetches (focus, reconnect, any Action) keep
-        the Operator's edits.
-      */}
+      {/* Only a save starts over from what is stored (its Action has refetched the form by then); other refetches keep the Operator's edits. */}
       <Editor
         key={saves}
         owner={owner}
