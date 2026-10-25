@@ -70,10 +70,12 @@ const field = (dialog: HTMLElement, name: string) => within(dialog).getByRole("t
 it("adopts a New Device from the Devices table with the lowest free reserved address pre-filled", async () => {
   const calls = await show("/network");
 
-  const table = screen.getByRole("table", { name: "Devices" });
+  const table = within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
   const row = within(table).getByRole("row", { name: /galaxy-s24/ });
-  expect(within(within(table).getByRole("row", { name: /Living room TV/ })).queryByRole("button")).toBeNull();
-  fireEvent.click(within(row).getByRole("button", { name: "Adopt galaxy-s24" }));
+  // Row actions live in the row's ⋯ Menu, never inline.
+  expect(within(row).queryByRole("button", { name: /Adopt/ })).toBeNull();
+  fireEvent.click(within(row).getByRole("button", { name: "Actions for 02:5e:00:00:20:01" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Adopt" }));
   await settle();
 
   const dialog = screen.getByRole("dialog", { name: "Adopt galaxy-s24" });
@@ -91,6 +93,17 @@ it("adopts a New Device from the Devices table with the lowest free reserved add
   expect(screen.queryByRole("dialog")).toBeNull();
   // Every query is refetched after the Action, so the table shows it.
   expect(calls.filter((c) => c.method === "ListDevices").length).toBeGreaterThan(1);
+});
+
+it("renames an Adopted Device from the Devices table's row Menu", async () => {
+  await show("/network");
+
+  const row = within(within(screen.getByRole("region", { name: "Devices" })).getByRole("table")).getByRole("row", { name: /Living room TV/ });
+  fireEvent.click(within(row).getByRole("button", { name: "Actions for 02:5e:00:00:10:01" }));
+  expect(screen.queryByRole("menuitem", { name: "Adopt" })).toBeNull();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+  expect(field(screen.getByRole("dialog", { name: "Rename Living room TV" }), "Name").value).toBe("Living room TV");
 });
 
 it("adopts a New Device from its detail; an Adopted one offers rename instead", async () => {

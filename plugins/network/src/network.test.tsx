@@ -26,18 +26,20 @@ const tunnel = {
   ],
 };
 
-async function showPage(answers: Record<string, () => Response>) {
+async function showPage(answers: Record<string, () => Response>, { pending = false } = {}) {
   const paths: string[] = [];
   const fetch = vi.fn(async (input: RequestInfo | URL) => {
     const path = new URL(String(input), "http://ddash.test").pathname;
     paths.push(path);
+    // A pending read never answers (icons aren't under test).
+    if (pending && !path.startsWith("/api/icons")) return new Promise<Response>(() => {});
     const method = path.split("/").pop()!;
     return (answers[method] ?? (() => Response.json({})))();
   });
   const Page = plugin.pages![0].Component!;
   render(
     <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
+      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api", "adguard-api"] }} fetch={fetch}>
         <MemoryRouter>
           <Page />
         </MemoryRouter>
@@ -52,11 +54,22 @@ it("is the network Nav Entry at order 30 (its icon, network, is in plugin.yaml)"
   expect(plugin.nav?.order).toBe(30);
 });
 
+it("is titled Network, and shows each section loading until its read answers", async () => {
+  await showPage({}, { pending: true });
+
+  expect(screen.getByRole("heading", { level: 1, name: "Network" })).toBeTruthy();
+  for (const name of ["VPN Tunnel", "Gateways", "Throughput", "Devices", "Remote Access", "AdGuard"]) {
+    const section = screen.getByRole("region", { name });
+    expect(within(section).getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);
+    expect(section.textContent).not.toMatch(/Loading/);
+  }
+});
+
 it("shows every gateway with its status, latency and loss, read from pfsense-api", async () => {
   const paths = await showPage({ ListGateways: () => Response.json(gateways), GetVpnTunnel: () => Response.json(tunnel) });
 
   expect(paths).toContain("/api/c/pfsense-api/ddash.pfsenseapi.PfsenseApiService/ListGateways");
-  const table = screen.getByRole("table", { name: "Gateways" });
+  const table = within(screen.getByRole("region", { name: "Gateways" })).getByRole("table");
   const wan = within(table).getByRole("row", { name: /WAN_DHCP/ });
   expect(within(wan).getByRole("img", { name: "online" })).toBeTruthy();
   expect(wan.textContent).toMatch(/8\.4 ms.*0%/);
@@ -77,8 +90,11 @@ it("shows the VPN Tunnel's tier from network, and which gateways carry each tier
   expect(paths).toContain("/api/c/network/ddash.network.NetworkService/GetVpnTunnel");
   const vpn = screen.getByRole("region", { name: "VPN Tunnel" });
   expect(within(vpn).getByText("Via the OpenVPN fallback")).toBeTruthy();
-  expect(within(vpn).getByRole("listitem", { name: "WireGuard" }).textContent).toMatch(/WG_VPN.*down/);
-  expect(within(vpn).getByRole("listitem", { name: "OpenVPN" }).textContent).toMatch(/OVPN_VPN.*active/);
+  const tier = (kind: string) => within(vpn).getByText(kind).closest("li")!;
+  expect(within(tier("WireGuard")).getByRole("img", { name: "down" })).toBeTruthy();
+  expect(tier("WireGuard").textContent).toMatch(/down.*WG_VPN · tier 1/);
+  expect(within(tier("OpenVPN")).getByRole("img", { name: "up" })).toBeTruthy();
+  expect(tier("OpenVPN").textContent).toMatch(/active.*OVPN_VPN · tier 2/);
 });
 
 it("says why the tier is unknown when network can't read the group", async () => {
@@ -89,7 +105,7 @@ it("says why the tier is unknown when network can't read the group", async () =>
 
   const vpn = screen.getByRole("region", { name: "VPN Tunnel" });
   expect(within(vpn).getByText("Unknown")).toBeTruthy();
-  expect(within(vpn).getByText(/no failover gateway group/)).toBeTruthy();
+  expect(within(vpn).getByRole("status").textContent).toMatch(/no failover gateway group/);
 });
 
 it("shows pfsense-api's error in place of the gateways", async () => {
@@ -99,7 +115,8 @@ it("shows pfsense-api's error in place of the gateways", async () => {
   });
 
   const section = screen.getByRole("region", { name: "Gateways" });
-  expect(within(section).getByText(/pfSense unreachable/)).toBeTruthy();
+  expect(within(section).getByRole("alert").textContent).toMatch(/pfSense unreachable/);
+  expect(within(section).queryByRole("table")).toBeNull();
 });
 
 it("shows WAN and LAN throughput over the last hour, read from network", async () => {
@@ -147,7 +164,7 @@ it("lists the Remote Access peers with their last handshake, traffic and what ea
 
   expect(paths).toContain("/api/c/network/ddash.network.NetworkService/GetRemoteAccess");
   const section = screen.getByRole("region", { name: "Remote Access" });
-  const table = within(section).getByRole("table", { name: "Remote Access peers" });
+  const table = within(section).getByRole("table");
   const phone = within(table).getByRole("row", { name: /Phone/ });
   expect(within(phone).getByRole("img", { name: "connected" })).toBeTruthy();
   expect(phone.textContent).toMatch(/198\.18\.40\.2.*2 min ago.*980 KiB.*8\.0 MiB/);
@@ -164,12 +181,12 @@ it("says why there's no Remote Access", async () => {
   await showPage({ GetRemoteAccess: () => Response.json({ error: "pfSense has no Remote Access tunnel (a WireGuard tunnel on an interface without a gateway)" }) });
 
   const section = screen.getByRole("region", { name: "Remote Access" });
-  expect(within(section).getByText(/no Remote Access tunnel/)).toBeTruthy();
+  expect(within(section).getByRole("status").textContent).toMatch(/no Remote Access tunnel/);
 });
 
 it("shows network's error in place of the Remote Access peers", async () => {
   await showPage({ GetRemoteAccess: () => Response.json({ code: "unavailable", message: "can't read the WireGuard tunnels: pfSense unreachable" }, { status: 503 }) });
 
   const section = screen.getByRole("region", { name: "Remote Access" });
-  expect(within(section).getByText(/can't read the WireGuard tunnels/)).toBeTruthy();
+  expect(within(section).getByRole("alert").textContent).toMatch(/can't read the WireGuard tunnels/);
 });

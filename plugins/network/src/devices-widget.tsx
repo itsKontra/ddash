@@ -1,5 +1,5 @@
 import type { Status, Widget } from "@ddash/plugin";
-import { Stat } from "@ddash/ui";
+import { MetricTile } from "@ddash/ui";
 import { tally, useDevices } from "./devices";
 
 /** Up with the counts; New Devices are news, not trouble. Warn when network can't list them. */
@@ -15,14 +15,14 @@ function useStatus(): Status | undefined {
 
 /** S: Devices, online and new. */
 function Body() {
-  const { data } = useDevices();
-  if (!data) return null;
-  const n = tally(data.devices);
+  const { data, error } = useDevices();
+  if (error && !data) return null;
+  const n = data && tally(data.devices);
   return (
-    <div className="flex gap-6">
-      <Stat label="Devices" value={n.total} />
-      <Stat label="online" value={n.online} tone="up" />
-      <Stat label="new" value={n.new} tone={n.new ? "warn" : undefined} />
+    <div className="grid grid-cols-3 gap-3">
+      <MetricTile label="Devices" value={n?.total} />
+      <MetricTile label="online" value={n?.online} tone="up" />
+      <MetricTile label="new" value={n?.new} tone={n?.new ? "warn" : "idle"} />
     </div>
   );
 }

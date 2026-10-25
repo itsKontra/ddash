@@ -2,7 +2,7 @@ import { timestampMs, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { bytes } from "@ddash/display";
 import { useQuery } from "@ddash/plugin";
 import { NetworkService, type Reach, type RemoteAccessPeer } from "@ddash/proto/network/network_pb";
-import { StatusDot, type Tone } from "@ddash/ui";
+import { DataTable, Notice, Panel, StatusDot, type Column, type Tone } from "@ddash/ui";
 
 /** WireGuard handshakes every 2 minutes while a peer is connected. */
 const CONNECTED_WITHIN = 3 * 60_000;
@@ -37,77 +37,76 @@ function ReachItem({ reach }: { reach: Reach }) {
   );
 }
 
+/** The peer table's columns; handshake ages are as of now. */
+function peerColumns(now: number): Column<RemoteAccessPeer>[] {
+  return [
+    {
+      id: "peer",
+      header: "Peer",
+      rowHeader: true,
+      cell: (p) => (
+        <>
+          {peerName(p)}
+          <div className="text-xs font-normal text-muted-foreground">{p.addresses.join(", ")}</div>
+        </>
+      ),
+    },
+    {
+      id: "connection",
+      header: "Connection",
+      cell: (p) => {
+        const c = connection(p, now);
+        return <StatusDot tone={c.tone} label={c.label} />;
+      },
+    },
+    { id: "handshake", header: "Last handshake", cell: (p) => <span className="text-muted-foreground">{ago(p.latestHandshake, now)}</span> },
+    { id: "rx", header: "From peer", align: "right", mono: true, cell: (p) => bytes(p.rxBytes) },
+    { id: "tx", header: "To peer", align: "right", mono: true, cell: (p) => bytes(p.txBytes) },
+    {
+      id: "reach",
+      header: "Can reach",
+      cell: (p) =>
+        p.reaches.length > 0 ? (
+          <ul aria-label={`${peerName(p)} can reach`} className="flex flex-col gap-0.5">
+            {p.reaches.map((r, i) => (
+              <ReachItem key={i} reach={r} />
+            ))}
+          </ul>
+        ) : (
+          <span className="text-muted-foreground">nothing</span>
+        ),
+    },
+  ];
+}
+
 /**
- * The Remote Access peers (read-only): when each last shook hands, its
- * traffic, and what the pass rules on the Remote Access interface let it
- * reach.
+ * The Remote Access section: the peers (read-only), when each last shook
+ * hands, its traffic, and what the pass rules on the Remote Access
+ * interface let it reach.
  */
 export function RemoteAccessPeers() {
   // Handshake ages are as of the read, which refreshes every minute.
   const { data, error, dataUpdatedAt: now } = useQuery(NetworkService.method.getRemoteAccess, {});
-  if (error && !data) return <p className="px-4 py-3 text-sm text-down-text">{error.rawMessage}</p>;
-  if (!data) return null;
-  if (data.error) return <p className="px-4 py-3 text-sm text-warn-text">{data.error}</p>;
+  const failed = error && !data;
+  const partial = Boolean(data?.error);
   return (
-    <>
-      <table aria-label="Remote Access peers" className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border text-left text-xs text-muted-foreground">
-            <th scope="col" className="w-6 py-2 pl-4">
-              <span className="sr-only">Connection</span>
-            </th>
-            <th scope="col" className="px-2 py-2 font-medium">
-              Peer
-            </th>
-            <th scope="col" className="px-2 py-2 font-medium">
-              Last handshake
-            </th>
-            <th scope="col" className="px-2 py-2 text-right font-medium">
-              From peer
-            </th>
-            <th scope="col" className="px-2 py-2 text-right font-medium">
-              To peer
-            </th>
-            <th scope="col" className="px-2 py-2 pr-4 font-medium">
-              Can reach
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.peers.map((p) => {
-            const c = connection(p, now);
-            const name = peerName(p);
-            return (
-              <tr key={p.publicKey} className="border-b border-border align-top last:border-b-0">
-                <td className="w-6 py-2 pl-4">
-                  <StatusDot tone={c.tone} label={c.label} />
-                </td>
-                <th scope="row" className="px-2 py-2 text-left font-medium">
-                  {name}
-                  <div className="text-xs font-normal text-muted-foreground">{p.addresses.join(", ")}</div>
-                </th>
-                <td className="px-2 py-2 text-muted-foreground">{ago(p.latestHandshake, now)}</td>
-                <td className="px-2 py-2 text-right text-muted-foreground tabular-nums">{bytes(p.rxBytes)}</td>
-                <td className="px-2 py-2 text-right text-muted-foreground tabular-nums">{bytes(p.txBytes)}</td>
-                <td className="px-2 py-2 pr-4">
-                  {p.reaches.length > 0 ? (
-                    <ul aria-label={`${name} can reach`} className="flex flex-col gap-0.5">
-                      {p.reaches.map((r, i) => (
-                        <ReachItem key={i} reach={r} />
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-muted-foreground">nothing</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <p className="px-4 py-3 text-xs text-muted-foreground">
-        Tunnel {data.tunnel} on {data.interface}. What each peer can reach comes from that interface's pass rules; aliases aren't expanded.
-      </p>
-    </>
+    <Panel
+      title="Remote Access"
+      description={
+        data &&
+        !data.error &&
+        `Tunnel ${data.tunnel} on ${data.interface}. What each peer can reach comes from that interface's pass rules; aliases aren't expanded.`
+      }
+      flush={!failed && !partial}
+    >
+      {failed ? (
+        <Notice tone="down">{error.rawMessage}</Notice>
+      ) : data?.error ? (
+        <Notice tone="warn">{data.error}</Notice>
+      ) : (
+        <DataTable rows={data?.peers ?? []} rowKey={(p) => p.publicKey} columns={peerColumns(now)} loading={!data} empty="The tunnel has no peers." />
+      )}
+    </Panel>
   );
 }
+

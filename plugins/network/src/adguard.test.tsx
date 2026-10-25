@@ -71,8 +71,8 @@ it("is up while protection is on, with the share of the day's queries blocked", 
   expect(paths).toContain("/api/c/adguard-api/ddash.adguardapi.AdguardApiService/GetStatus");
   expect(reported.status).toEqual({ tone: "up", summary: "Protection on, 15% of 18,432 queries blocked" });
   const body = screen.getByRole("region", { name: "widget" });
-  expect(within(body).getByText("queries, 24 h").parentElement?.textContent).toMatch(/18,432/);
-  expect(within(body).getByText("blocked").parentElement?.textContent).toMatch(/15%/);
+  expect(within(body).getByRole("group", { name: "queries, 24 h" }).textContent).toMatch(/18,432/);
+  expect(within(body).getByRole("group", { name: "blocked" }).textContent).toMatch(/15%/);
 });
 
 it("is warn while protection is off, and says how long a pause lasts", async () => {
@@ -117,11 +117,12 @@ it("shows AdGuard's protection and the last 24 h's stats on the Network Page", a
 
   const section = screen.getByRole("region", { name: "AdGuard" });
   expect(within(section).getByText("Protection on")).toBeTruthy();
-  expect(within(section).getByText("queries, 24 h").parentElement?.textContent).toMatch(/18,432/);
-  expect(within(section).getByText("blocked by filters").parentElement?.textContent).toMatch(/2,765/);
-  expect(within(section).getByText("avg processing").parentElement?.textContent).toMatch(/18\.4 ms/);
+  expect(within(section).getByRole("group", { name: "queries, 24 h" }).textContent).toMatch(/18,432/);
+  expect(within(section).getByRole("group", { name: "blocked by filters" }).textContent).toMatch(/2,765/);
+  expect(within(section).getByRole("group", { name: "avg processing" }).textContent).toMatch(/18\.4 ms/);
   expect(within(section).getByRole("img", { name: "Queries and blocked, per hour" })).toBeTruthy();
-  const top = within(section).getByRole("list", { name: "Most blocked domains" });
+  expect(within(section).getByRole("img", { name: "Most blocked domains" })).toBeTruthy();
+  const top = within(section).getByRole("list", { name: "Most blocked domains legend" });
   expect(within(top).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["site2.example610", "site5.example402"]);
 });
 
