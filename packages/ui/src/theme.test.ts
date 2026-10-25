@@ -130,6 +130,8 @@ describe("the AA bar", () => {
     expect(failing("dark", "nav-accent", "#1d3a66")).toContainEqual(expect.stringMatching(/^dark: nav-accent on hero-from is 1\.\d+:1, below 3:1$/));
     // Text on its own tint.
     expect(failing("light", "info-text", "#1393b4")).toContainEqual(expect.stringMatching(/^light: info-text on info-tint is \d\.\d+:1, below 4\.5:1$/));
+    // Primary as text on its tint: a selected Segmented, Tab or chip.
+    expect(failing("light", "primary", "#5b8ff0")).toContainEqual(expect.stringMatching(/^light: primary on primary-tint is \d\.\d+:1, below 4\.5:1$/));
   });
 });
 

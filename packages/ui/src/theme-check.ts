@@ -58,12 +58,16 @@ export function aaFailures(theme: Theme): string[] {
     bar("foreground", ["card", "background"], 4.5);
     bar("muted-foreground", ["card", "background"], 4.5);
     bar("primary-foreground", ["primary"], 4.5);
+    const card = surfaces.get("card");
     for (const tone of tones) {
       const fill = colour(tone);
-      const card = surfaces.get("card");
       surface(`${tone}-tint`, fill && card && mix(fill, 0.12, card));
       bar(`${tone}-text`, ["card", "background", `${tone}-tint`], 4.5);
     }
+    // Primary as text: a link, and a selected Segmented, Tab or chip on its tint.
+    const primary = surfaces.get("primary");
+    surface("primary-tint", primary && card && mix(primary, 0.12, card));
+    bar("primary", ["card", "primary-tint"], 4.5);
     // Marks: tone fills, chart colours and the focus outline on card.
     for (const mark of [...tones, ...charts, "primary"]) bar(mark, ["card"], 3);
     // Nav and hero text, and the ring on the hero.
