@@ -11,7 +11,7 @@ import { members, ms, percent, stateTone, tiers, useTunnel } from "./tunnel";
 export function Network() {
   return (
     <div>
-      <PageTitle title="Network" subtitle="The firewall's gateways, the VPN Tunnel, throughput, the Devices, Remote Access and AdGuard." />
+      <PageTitle kicker="Infrastructure" title="Network" subtitle="The firewall's gateways, the VPN Tunnel, throughput, the Devices, Remote Access and AdGuard." />
       <div className="flex flex-col gap-6">
         <VpnTunnel />
         <Gateways />

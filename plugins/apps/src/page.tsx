@@ -27,7 +27,7 @@ export function AppsPage() {
 
   return (
     <div>
-      <PageTitle title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={add} />
+      <PageTitle kicker="Services" title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={add} />
       <div className="flex flex-col gap-6">
         {!list && !error && <Skeleton height="lg" />}
         {!list && error && <Notice tone="down">apps unavailable: {error.rawMessage}</Notice>}

@@ -18,7 +18,7 @@ export function DeviceDetail() {
   if (!data) {
     return (
       <div>
-        <PageTitle title={mac} back={back} />
+        <PageTitle kicker="Device" title={mac} back={back} />
         {error ? <Notice tone="down">{error.rawMessage}</Notice> : <Skeleton height="xl" />}
       </div>
     );
@@ -27,7 +27,7 @@ export function DeviceDetail() {
   if (!d) {
     return (
       <div>
-        <PageTitle title={mac} back={back} />
+        <PageTitle kicker="Device" title={mac} back={back} />
         <Panel>
           <EmptyState icon="search" title="No such Device">
             No Device has the MAC {mac}. It may have left the firewall's DHCP.
@@ -38,7 +38,7 @@ export function DeviceDetail() {
   }
   return (
     <div>
-      <PageTitle title={nameOf(d)} subtitle={d.name ? d.mac : undefined} back={back} />
+      <PageTitle kicker="Device" title={nameOf(d)} subtitle={d.name ? d.mac : undefined} back={back} />
       <div className="flex flex-col gap-6">
         <Summary device={d} bypassAlias={data.bypassAlias} adguardError={data.adguardError} />
         <Lease device={d} />

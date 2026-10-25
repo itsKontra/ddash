@@ -17,7 +17,7 @@ export function WorkloadDetail() {
   if (!w) {
     return (
       <div>
-        <PageTitle title={vmid} back={back} />
+        <PageTitle kicker="Workload" title={vmid} back={back} />
         {error && !data ? (
           <Unlisted error={error} />
         ) : !data ? (
@@ -32,7 +32,7 @@ export function WorkloadDetail() {
   }
   return (
     <div>
-      <PageTitle title={w.name} subtitle={`${kindLabel(w.kind)} ${w.vmid} on ${w.node}`} back={back} />
+      <PageTitle kicker="Workload" title={w.name} subtitle={`${kindLabel(w.kind)} ${w.vmid} on ${w.node}`} back={back} />
       <div className="flex flex-col gap-6">
         <Panel title="Power">
           <PowerButtons workload={w} />

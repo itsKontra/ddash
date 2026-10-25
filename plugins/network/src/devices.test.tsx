@@ -110,6 +110,8 @@ it("opens a Device's detail from its name", async () => {
   await act(() => new Promise((r) => setTimeout(r, 20)));
 
   expect(screen.getByRole("heading", { level: 1, name: "Living room TV" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "Living room TV" }).previousElementSibling?.textContent).toBe("Device");
 });
 
 it("shows pfsense-api's trouble in place of the Devices", async () => {

@@ -12,6 +12,8 @@ it("is the proxmox Nav Entry at order 40 (its icon, server, is in plugin.yaml)",
 it("lists every LXC and VM with its status, resources, tags and uptime", async () => {
   const calls = await show("/proxmox");
 
+  expect(screen.getByRole("heading", { level: 1, name: "Proxmox" }).previousElementSibling?.textContent).toBe("Infrastructure");
+
   expect(calls.find((c) => c.method === "ListWorkloads")?.url).toBe("/api/c/proxmox-api/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads");
   const nginx = screen.getByRole("row", { name: /nginx/ });
   expect(within(nginx).getByText("running")).toBeTruthy();

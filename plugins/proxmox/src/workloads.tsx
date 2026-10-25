@@ -98,7 +98,7 @@ export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   return (
     <div>
-      <PageTitle title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
+      <PageTitle kicker="Infrastructure" title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
       {error && !data ? (
         <Unlisted error={error} />
       ) : (

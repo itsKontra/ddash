@@ -53,6 +53,8 @@ it("lists containers per host in a table with a header row, each with its state"
 
   expect(new URL(requests[0].url).pathname).toBe("/api/c/docker-api/ddash.dockerapi.DockerApiService/ListContainers");
   expect(screen.getByRole("heading", { level: 1, name: "Docker" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "Docker" }).previousElementSibling?.textContent).toBe("Infrastructure");
   const media = screen.getByRole("region", { name: "media" });
   expect(within(media).getByText("1/2 running")).toBeTruthy();
   const headers = within(media)

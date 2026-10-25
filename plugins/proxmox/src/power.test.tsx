@@ -95,6 +95,8 @@ it("has the power Actions as buttons on a Workload's detail", async () => {
   const calls = await show("/proxmox/workloads/102");
 
   expect(screen.getByRole("heading", { level: 1, name: "media-stack" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "media-stack" }).previousElementSibling?.textContent).toBe("Workload");
   const power = screen.getByRole("region", { name: "Power" });
   fireEvent.click(within(power).getByRole("button", { name: "Restart" }));
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restart" }));

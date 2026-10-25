@@ -51,6 +51,8 @@ it("is the Reverse proxy Page, and shows a skeleton until nginx-config answers",
   await settle();
 
   expect(screen.getByRole("heading", { level: 1, name: "Reverse proxy" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "Reverse proxy" }).previousElementSibling?.textContent).toBe("Infrastructure");
   expect(within(screen.getByRole("region", { name: "Config health" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 

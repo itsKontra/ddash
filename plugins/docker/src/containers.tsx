@@ -18,7 +18,7 @@ export function Containers() {
   const { data, error } = useQuery(DockerApiService.method.listContainers, {});
   return (
     <div>
-      <PageTitle title="Docker" subtitle="Containers on every Docker host." />
+      <PageTitle kicker="Infrastructure" title="Docker" subtitle="Containers on every Docker host." />
       {error && !data && <Notice tone="down">{error.message}</Notice>}
       {!data && !error && <Skeleton lines={3} />}
       <div className="flex flex-col gap-6">

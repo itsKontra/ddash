@@ -58,6 +58,8 @@ it("is titled Network, and shows each section loading until its read answers", a
   await showPage({}, { pending: true });
 
   expect(screen.getByRole("heading", { level: 1, name: "Network" })).toBeTruthy();
+  // The kicker sits right above the title.
+  expect(screen.getByRole("heading", { level: 1, name: "Network" }).previousElementSibling?.textContent).toBe("Infrastructure");
   for (const name of ["VPN Tunnel", "Gateways", "Throughput", "Devices", "Remote Access", "AdGuard"]) {
     const section = screen.getByRole("region", { name });
     expect(within(section).getAllByRole("status", { name: "Loading" }).length).toBeGreaterThan(0);

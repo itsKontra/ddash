@@ -16,6 +16,13 @@ it("is the apps Nav Entry at order 10 (its icon, layout-grid, is in plugin.yaml)
   expect(plugin.nav?.order).toBe(10);
 });
 
+it("titles the Page Apps under its kicker", async () => {
+  renderScoped(<Page />);
+
+  const title = await screen.findByRole("heading", { level: 1, name: "Apps" });
+  expect(title.previousElementSibling?.textContent).toBe("Services");
+});
+
 it("shows the visible Apps as cards by group, ungrouped ones in the default section after the groups", async () => {
   renderScoped(<Page />);
   await settle();
