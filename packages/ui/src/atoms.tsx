@@ -35,20 +35,6 @@ export function Pill({ tone = "idle", dot, children }: { tone?: Tone; dot?: bool
   );
 }
 
-/** A small pill, e.g. a count on a Nav Entry or a state in a list. */
-export function Badge({ tone = "idle", children }: { tone?: Tone; children: ReactNode }) {
-  return (
-    <span
-      className={cx(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
-        tone === "idle" ? "bg-muted text-muted-foreground" : cx(toneBg[tone], "text-primary-foreground"),
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
 /**
  * A button: default (primary), outline, ghost, or danger for a disruptive
  * Action, which is the down tint, never solid. icon leads the label as decoration.
@@ -57,11 +43,10 @@ export function Button({
   variant = "default",
   size = "md",
   icon,
-  className,
   type = "button",
   children,
   ...rest
-}: ButtonHTMLAttributes<HTMLButtonElement> & {
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className"> & {
   variant?: "default" | "outline" | "ghost" | "danger";
   size?: "sm" | "md";
   icon?: IconName;
@@ -77,7 +62,6 @@ export function Button({
         variant === "outline" && "border border-border bg-card hover:bg-muted",
         variant === "ghost" && "hover:bg-muted",
         variant === "danger" && "border border-transparent bg-down-tint text-down-text hover:border-down",
-        className,
       )}
     >
       {icon && <Icon name={icon} size={size} />}

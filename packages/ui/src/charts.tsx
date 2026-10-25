@@ -9,7 +9,7 @@ const sparkStroke = ["stroke-primary", "stroke-muted-foreground"];
  * last hour. Every series shares one scale from zero to the largest value;
  * the first is drawn strong, the rest muted.
  */
-export function Sparkline({ label, series, className }: { label: string; series: readonly (readonly number[])[]; className?: string }) {
+export function Sparkline({ label, series }: { label: string; series: readonly (readonly number[])[] }) {
   const W = 100;
   const H = 24;
   const max = Math.max(0, ...series.flat());
@@ -23,7 +23,7 @@ export function Sparkline({ label, series, className }: { label: string; series:
       })
       .join(" ");
   return (
-    <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={cx("h-12 w-full overflow-visible", className)}>
+    <svg role="img" aria-label={label} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-12 w-full overflow-visible">
       {series.map(
         (values, i) =>
           values.length > 0 && (

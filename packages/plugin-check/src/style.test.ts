@@ -22,7 +22,7 @@ describe("lintStyle", () => {
     const dir = plugin({
       "index.tsx": `import { definePlugin } from "@ddash/plugin";
 import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
-import { Badge, cx, StatusDot } from "@ddash/ui";
+import { cx, Pill, StatusDot } from "@ddash/ui";
 import { useState } from "react";
 import { Hosts } from "./hosts";
 import "./index.css";

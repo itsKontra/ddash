@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { AppIcon, Badge, Button, Pill, Skeleton, StatusDot } from "./index";
+import { AppIcon, Button, Pill, Skeleton, StatusDot } from "./index";
 
 afterEach(cleanup);
 
@@ -23,12 +23,6 @@ it("StatusDot draws info in the info fill", () => {
 
   const dot = screen.getByRole("img", { name: "updating" });
   expect(dot.querySelector(".bg-info")).toBeTruthy();
-});
-
-it("Badge shows its content", () => {
-  render(<Badge tone="warn">3 new</Badge>);
-
-  expect(screen.getByText("3 new")).toBeTruthy();
 });
 
 it("Pill draws its tone as a tint behind the tone's text colour", () => {
