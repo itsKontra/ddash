@@ -12,6 +12,7 @@ import {
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
 } from "react";
+import { AppIcon, iconName } from "./atoms";
 import { Icon, type IconName } from "./icon";
 import { cx } from "./tone";
 
@@ -261,13 +262,10 @@ export function Switch({ id, checked, onChange, label, disabled }: { id?: string
   );
 }
 
-/** The icon grid's columns, which ArrowUp and ArrowDown step by. */
-const pickerColumns = 8;
-
-/** How long typing pauses before IconPicker searches the core. */
+/** How long typing pauses before a picker searches the core. */
 const searchDelay = 250;
 
-/** What IconPicker's search found for a query: the matching names, or a failure. */
+/** What a picker's search found for a query: the matching names, or a failure. */
 type Found = { q: string; names: string[] } | { q: string; failed: true };
 
 /**
@@ -277,18 +275,137 @@ type Found = { q: string; names: string[] } | { q: string; failed: true };
  * takes the Field's label.
  */
 export function IconPicker({ value, onChange, label }: { value: string | null; onChange: (name: string) => void; label: string }) {
+  return (
+    <Picker
+      label={label}
+      trigger={
+        value ? (
+          <>
+            <Icon name={value as IconName} />
+            <span className="font-mono text-xs">{value}</span>
+          </>
+        ) : (
+          <span className="text-muted-foreground">Choose an icon</span>
+        )
+      }
+      search={{ path: "/api/icons/search", columns: 8, draw: (n) => <Icon name={n as IconName} />, hint: "Type a name or a word, e.g. server." }}
+      onPick={onChange}
+    />
+  );
+}
+
+/**
+ * Picks an App's icon: a homarr-labs/dashboard-icons name, or none
+ * (Automatic: the icon matched by the App's name, else its favicon). The
+ * button shows the icon the App gets. The popover offers Automatic first,
+ * then the core's dashboard-icons names and aliases that match what's
+ * typed, then what's typed itself, saved as it is: its logo draws once
+ * ddash's pinned icons hold it. Inside a Field it takes the Field's label.
+ */
+export function AppIconPicker({
+  value,
+  onChange,
+  label,
+  name,
+  url,
+}: {
+  value: string;
+  onChange: (icon: string) => void;
+  label: string;
+  /** The App's name and URL, for what Automatic draws. */
+  name: string;
+  url?: string;
+}) {
+  const app = name || "?";
+  const automatic: Entry = {
+    value: "",
+    label: "Automatic",
+    row: true,
+    content: (
+      <>
+        <AppIcon name={app} url={url} size={24} />
+        <span className="font-semibold">Automatic</span>
+        <span className="truncate text-xs text-muted-foreground">By the App's name, else its favicon</span>
+      </>
+    ),
+  };
+  const typed = (query: string, names: readonly string[]): Entry | null => {
+    const slug = iconName(query);
+    if (!slug || names.includes(slug)) return null;
+    return {
+      value: slug,
+      label: `Use ${slug}`,
+      row: true,
+      content: (
+        <>
+          <AppIcon name={slug} icon={slug} size={24} />
+          <span>
+            Use <span className="font-mono text-xs">{slug}</span>
+          </span>
+          <span className="truncate text-xs text-muted-foreground">Not among this Release's icons</span>
+        </>
+      ),
+    };
+  };
+  return (
+    <Picker
+      label={label}
+      trigger={
+        <>
+          <AppIcon name={app} icon={value} url={url} size={20} />
+          {value ? <span className="font-mono text-xs">{value}</span> : <span className="text-muted-foreground">Automatic</span>}
+        </>
+      }
+      search={{
+        path: "/api/icons/apps/search",
+        columns: 6,
+        draw: (n) => <AppIcon name={n} icon={n} size={28} />,
+        hint: "Type an App's name, e.g. jellyfin.",
+        first: automatic,
+        typed,
+      }}
+      onPick={onChange}
+    />
+  );
+}
+
+/** One entry of a picker's popover: a found icon, a cell of the grid, or a whole row of the picker's own (Automatic, what was typed). */
+interface Entry {
+  value: string;
+  label: string;
+  content: ReactNode;
+  row?: true;
+}
+
+/** What a picker's popover searches, and how it draws what it finds. */
+interface SearchSpec {
+  /** The core's search, answering GET path?q= with names, best first. */
+  path: string;
+  /** The grid's columns, which ArrowUp and ArrowDown step by. */
+  columns: 6 | 8;
+  draw: (name: string) => ReactNode;
+  /** Shown while nothing is typed. */
+  hint: string;
+  /** Offered first, typed or not. */
+  first?: Entry;
+  /** Offered after what a query found, or alone when the search failed. */
+  typed?: (query: string, names: readonly string[]) => Entry | null;
+}
+
+/** A button that opens a SearchSpec's popover and reports the pick. */
+function Picker({ label, trigger, search, onPick }: { label: string; trigger: ReactNode; search: SearchSpec; onPick: (value: string) => void }) {
   const wiring = useWiring();
   const inField = useContext(FieldContext) !== null;
   const [open, setOpen] = useState(false);
-  const trigger = useRef<HTMLButtonElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const close = () => {
     setOpen(false);
-    trigger.current?.focus();
+    button.current?.focus();
   };
   return (
     <span className="relative inline-block">
       <button
-        ref={trigger}
+        ref={button}
         type="button"
         {...wiring}
         aria-label={inField ? undefined : label}
@@ -297,22 +414,16 @@ export function IconPicker({ value, onChange, label }: { value: string | null; o
         onClick={() => setOpen(!open)}
         className={cx(control, "inline-flex h-9 w-auto cursor-pointer items-center gap-2 bg-card")}
       >
-        {value ? (
-          <>
-            <Icon name={value as IconName} />
-            <span className="font-mono text-xs">{value}</span>
-          </>
-        ) : (
-          <span className="text-muted-foreground">Choose an icon</span>
-        )}
+        {trigger}
       </button>
       {open && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <IconSearch
             label={label}
-            onPick={(name) => {
-              onChange(name);
+            spec={search}
+            onPick={(value) => {
+              onPick(value);
               close();
             }}
             onClose={close}
@@ -323,15 +434,42 @@ export function IconPicker({ value, onChange, label }: { value: string | null; o
   );
 }
 
-const gridStep: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: pickerColumns, ArrowUp: -pickerColumns };
+const gridCols = { 6: "grid-cols-6", 8: "grid-cols-8" };
 
-/** IconPicker's popover: the search box over the grid of what it finds. */
-function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: string) => void; onClose: () => void }) {
+/**
+ * Where an arrow key moves from entry i, or i where it can't: through the
+ * grid's cells (gridStart to gridEnd) by one or a row, and from a whole row
+ * to the entry beside it.
+ */
+function moveFrom(i: number, key: string, gridStart: number, gridEnd: number, columns: number): number {
+  const inGrid = i >= gridStart && i < gridEnd;
+  const row = (j: number) => Math.floor((j - gridStart) / columns);
+  switch (key) {
+    case "ArrowRight":
+      return i + 1;
+    case "ArrowLeft":
+      return i - 1;
+    case "ArrowDown":
+      if (!inGrid) return i + 1;
+      if (i + columns < gridEnd) return i + columns;
+      return row(i) === row(gridEnd - 1) ? gridEnd : i;
+    case "ArrowUp":
+      if (!inGrid) return i === gridEnd && gridEnd > gridStart ? gridEnd - 1 : i - 1;
+      return i - columns >= gridStart ? i - columns : gridStart > 0 ? gridStart - 1 : i;
+    default:
+      return i;
+  }
+}
+
+/** A picker's popover: the search box over the grid of what it finds. */
+function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: SearchSpec; onPick: (value: string) => void; onClose: () => void }) {
   const id = useId();
   const [q, setQ] = useState("");
   const [found, setFound] = useState<Found | null>(null);
-  const [active, setActive] = useState(0);
+  // The entry the arrow keys moved to; -1 until they do, for the default below.
+  const [moved, setMoved] = useState(-1);
   const query = q.trim();
+  const { path } = spec;
 
   useEffect(() => {
     if (query === "") return;
@@ -339,24 +477,37 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
     const timer = setTimeout(async () => {
       let next: Found;
       try {
-        const res = await globalThis.fetch(`/api/icons/search?q=${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error(`GET /api/icons/search: ${res.status}`);
-        next = { q: query, names: (await res.json()) as string[] };
+        const res = await globalThis.fetch(`${path}?q=${encodeURIComponent(query)}`);
+        if (!res.ok) throw new Error(`GET ${path}: ${res.status}`);
+        const names: unknown = await res.json();
+        if (!Array.isArray(names)) throw new Error(`GET ${path}: not a list`);
+        next = { q: query, names: names as string[] };
       } catch {
         next = { q: query, failed: true };
       }
       if (stale) return;
       setFound(next);
-      setActive(0);
+      setMoved(-1);
     }, searchDelay);
     return () => {
       stale = true;
       clearTimeout(timer);
     };
-  }, [query]);
+  }, [path, query]);
 
   const shown = query !== "" && found?.q === query ? found : null;
   const names = shown && "names" in shown ? shown.names : [];
+  // What was typed is offered even when the search failed, so an icon can still be set.
+  const typed = shown ? spec.typed?.(query, names) : null;
+  const gridStart = spec.first ? 1 : 0;
+  const gridEnd = gridStart + names.length;
+  const entries: Entry[] = [
+    ...(spec.first ? [spec.first] : []),
+    ...names.map((n) => ({ value: n, label: n, content: spec.draw(n) })),
+    ...(typed ? [typed] : []),
+  ];
+  // Unmoved, the first icon found is active, so Enter picks it; else the first entry.
+  const active = moved >= 0 && moved < entries.length ? moved : names.length > 0 ? gridStart : 0;
 
   return (
     <div
@@ -370,14 +521,17 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
           type="text"
           role="combobox"
           aria-label="Search icons"
-          aria-expanded={names.length > 0}
+          aria-expanded={entries.length > 0}
           aria-controls={`${id}-grid`}
-          aria-activedescendant={names.length > 0 ? `${id}-${active}` : undefined}
+          aria-activedescendant={entries.length > 0 ? `${id}-${active}` : undefined}
           aria-autocomplete="list"
           autoFocus
           value={q}
           placeholder="Search icons"
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setMoved(-1);
+          }}
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               e.preventDefault();
@@ -385,33 +539,34 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
               onClose();
             } else if (e.key === "Enter") {
               e.preventDefault();
-              if (names[active]) onPick(names[active]);
-            } else if (gridStep[e.key] !== undefined) {
+              if (entries[active]) onPick(entries[active].value);
+            } else if (e.key.startsWith("Arrow")) {
               e.preventDefault();
-              const next = active + gridStep[e.key];
-              if (next >= 0 && next < names.length) setActive(next);
+              const next = moveFrom(active, e.key, gridStart, gridEnd, spec.columns);
+              if (next >= 0 && next < entries.length) setMoved(next);
             }
           }}
           className={cx(control, "h-9 bg-background pl-9 focus:bg-card")}
         />
       </span>
-      <div id={`${id}-grid`} role="listbox" aria-label={`${label} results`} className="grid max-h-64 grid-cols-8 gap-1 overflow-y-auto">
-        {names.map((n, i) => (
+      <div id={`${id}-grid`} role="listbox" aria-label={`${label} results`} className={cx("grid max-h-64 gap-1 overflow-y-auto", gridCols[spec.columns])}>
+        {entries.map((e, i) => (
           <div
-            key={n}
+            key={`${e.row ? "row:" : ""}${e.value}`}
             id={`${id}-${i}`}
             role="option"
-            aria-label={n}
+            aria-label={e.label}
             aria-selected={i === active}
-            title={n}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => onPick(n)}
+            title={e.row ? undefined : e.label}
+            onMouseDown={(ev) => ev.preventDefault()}
+            onClick={() => onPick(e.value)}
             className={cx(
-              "flex aspect-square cursor-pointer items-center justify-center rounded-ui-sm transition-colors",
+              "flex cursor-pointer items-center rounded-ui-sm transition-colors",
+              e.row ? "col-span-full gap-2 px-2 py-1.5 text-sm" : "aspect-square justify-center",
               i === active ? "bg-primary-tint text-primary" : "text-foreground hover:bg-muted",
             )}
           >
-            <Icon name={n as IconName} />
+            {e.content}
           </div>
         ))}
       </div>
@@ -420,7 +575,7 @@ function IconSearch({ label, onPick, onClose }: { label: string; onPick: (name: 
           {"failed" in shown ? "Couldn't search the icons. Try again." : `No icons match “${shown.q}”.`}
         </p>
       )}
-      {query === "" && <p className="px-1 py-2 text-xs text-muted-foreground">Type a name or a word, e.g. server.</p>}
+      {query === "" && <p className="px-1 py-2 text-xs text-muted-foreground">{spec.hint}</p>}
     </div>
   );
 }

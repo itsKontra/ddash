@@ -1,5 +1,7 @@
-// Package icons is ddash's only icon source: lucide's icons, pinned per
-// Release, as the element lists lucide-static ships.
+// Package icons is ddash's icon source: lucide's icons, pinned per Release,
+// as the element lists lucide-static ships; and the names of the
+// homarr-labs/dashboard-icons logos an App may use, pinned to a commit per
+// Release, whose images the browser loads from jsDelivr at that commit.
 package icons
 
 import (
@@ -25,6 +27,12 @@ var nodesGz []byte
 //go:embed lucide/tags.json.gz
 var tagsGz []byte
 
+// appAliasesGz is every dashboard-icons name with its search aliases,
+// written by ./dashboard and compressed by ./gzip (`make generate`).
+//
+//go:embed dashboard-icons/aliases.json.gz
+var appAliasesGz []byte
+
 // Fallback is the icon an unknown name draws.
 const Fallback = "puzzle"
 
@@ -41,6 +49,9 @@ var tags = sync.OnceValue(func() map[string][]string {
 	}
 	return m
 })
+
+// appAliases decodes the embedded dashboard-icons names on first use.
+var appAliases = sync.OnceValue(func() map[string][]string { return decode[[]string](appAliasesGz) })
 
 // decode gunzips and unmarshals a generated file, which is well-formed.
 func decode[T any](gz []byte) map[string]T {
@@ -77,27 +88,41 @@ func Nodes(names []string) map[string]json.RawMessage {
 // MaxResults caps a Search, about a picker's grid of icons.
 const MaxResults = 96
 
-// Search returns the names of the icons q matches, case-insensitively, best
-// first: the exact name, then names starting with q, then names holding it,
-// then icons with a tag word starting with q; alphabetical within each. A
-// blank q matches nothing.
+// Search returns the names of the lucide icons q matches, case-insensitively,
+// best first: the exact name, then names starting with q, then names holding
+// it, then icons with a tag word starting with q; alphabetical within each.
+// A blank q matches nothing.
 func Search(q string) []string {
 	q = strings.ToLower(strings.TrimSpace(q))
+	return search(tags(), q, q)
+}
+
+// AppSearch returns the dashboard-icons names q matches, ranked as Search
+// ranks them, with aliases for tags. Spaces in q match the names' dashes,
+// so "home assistant" finds home-assistant.
+func AppSearch(q string) []string {
+	q = strings.ToLower(strings.TrimSpace(q))
+	return search(appAliases(), strings.Join(strings.Fields(q), "-"), q)
+}
+
+// search ranks the names in tagsByName that nameQ (against the name) or q
+// (against a tag) matches, as Search describes, up to MaxResults.
+func search(tagsByName map[string][]string, nameQ, q string) []string {
 	out := []string{}
 	if q == "" {
 		return out
 	}
 	var ranked [4][]string
-	for name, t := range tags() {
+	for n, t := range tagsByName {
 		switch {
-		case name == q:
-			ranked[0] = append(ranked[0], name)
-		case strings.HasPrefix(name, q):
-			ranked[1] = append(ranked[1], name)
-		case strings.Contains(name, q):
-			ranked[2] = append(ranked[2], name)
+		case n == nameQ:
+			ranked[0] = append(ranked[0], n)
+		case strings.HasPrefix(n, nameQ):
+			ranked[1] = append(ranked[1], n)
+		case strings.Contains(n, nameQ):
+			ranked[2] = append(ranked[2], n)
 		case slices.ContainsFunc(t, func(tag string) bool { return hasWordPrefix(tag, q) }):
-			ranked[3] = append(ranked[3], name)
+			ranked[3] = append(ranked[3], n)
 		}
 	}
 	for _, r := range ranked {

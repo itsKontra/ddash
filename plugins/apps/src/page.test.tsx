@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
+import { dashboardIcon } from "@ddash/ui";
 import plugin from "./index";
 import { settle, unavailable } from "@ddash/plugin/testing";
 import { actions, allUp, list, renderScoped } from "./testing";
@@ -92,10 +93,10 @@ it("shows each card's icon, name, URL and aliases, and opens the URL on a click"
   expect(link.textContent).toContain("jellyfin.home.example");
   expect(card.textContent).toContain("media.home.example");
   expect(card.textContent).toContain("tv.home.example");
-  expect(card.querySelector("img")?.getAttribute("src")).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg");
+  expect(card.querySelector("img")?.getAttribute("src")).toBe(dashboardIcon("jellyfin"));
 
   const pf = screen.getByRole("listitem", { name: "pfSense" });
-  expect(pf.querySelector("img")?.getAttribute("src")).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/pfsense.svg");
+  expect(pf.querySelector("img")?.getAttribute("src")).toBe(dashboardIcon("pfsense"));
 });
 
 it("sets a discovered App's display settings", async () => {
@@ -107,11 +108,14 @@ it("sets a discovered App's display settings", async () => {
   fireEvent.change(within(dialog).getByLabelText("Display name"), { target: { value: "Media" } });
   fireEvent.change(within(dialog).getByLabelText("Group"), { target: { value: "Media" } });
   fireEvent.click(within(dialog).getByRole("checkbox", { name: "Hidden" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: /^Icon/ }));
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "Search icons" }), { target: { value: "emby" } });
+  fireEvent.click(await within(dialog).findByRole("option", { name: "Use emby" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
   await settle();
 
   expect(actions(calls)).toEqual([
-    { method: "SetOverlay", body: { overlay: { serverName: "jellyfin.home.example", name: "Media", group: "Media", hidden: true } } },
+    { method: "SetOverlay", body: { overlay: { serverName: "jellyfin.home.example", name: "Media", icon: "emby", group: "Media", hidden: true } } },
   ]);
   expect(screen.queryByRole("dialog")).toBeNull();
 });
@@ -136,7 +140,9 @@ it("adds a manual App", async () => {
   const dialog = screen.getByRole("dialog", { name: "Add App" });
   fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Proxmox" } });
   fireEvent.change(within(dialog).getByLabelText("URL"), { target: { value: "https://198.18.0.2:8006" } });
-  fireEvent.change(within(dialog).getByLabelText("Icon"), { target: { value: "proxmox" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: /^Icon/ }));
+  fireEvent.change(within(dialog).getByRole("combobox", { name: "Search icons" }), { target: { value: "proxmox" } });
+  fireEvent.click(await within(dialog).findByRole("option", { name: "Use proxmox" }));
   fireEvent.click(within(dialog).getByRole("button", { name: "Add" }));
   await settle();
 
@@ -150,7 +156,7 @@ it("describes the Icon field by its hint, and Cancel closes the sheet unsaved", 
 
   fireEvent.click(screen.getByRole("button", { name: "Add App" }));
   const dialog = screen.getByRole("dialog", { name: "Add App" });
-  expect(within(dialog).getByRole("textbox", { name: "Icon", description: /homarr-labs\/dashboard-icons/ })).toBeTruthy();
+  expect(within(dialog).getByRole("button", { name: /^Icon/, description: /homarr-labs\/dashboard-icons/ })).toBeTruthy();
   fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Proxmox" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
   await settle();

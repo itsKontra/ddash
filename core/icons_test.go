@@ -92,7 +92,19 @@ func TestTheIconsNeedNoSignIn(t *testing.T) {
 // iconSearch decodes a GET /api/icons/search response.
 func iconSearch(t *testing.T, h *coretest.Harness, q string) []string {
 	t.Helper()
-	res := h.Get("/api/icons/search?q=" + q)
+	return searchAt(t, h, "/api/icons/search", q)
+}
+
+// appIconSearch decodes a GET /api/icons/apps/search response.
+func appIconSearch(t *testing.T, h *coretest.Harness, q string) []string {
+	t.Helper()
+	return searchAt(t, h, "/api/icons/apps/search", q)
+}
+
+// searchAt decodes a GET path?q= response.
+func searchAt(t *testing.T, h *coretest.Harness, path, q string) []string {
+	t.Helper()
+	res := h.Get(path + "?q=" + q)
 	if res.Code != http.StatusOK {
 		t.Fatalf("status %d: %s", res.Code, res.Body)
 	}
@@ -152,5 +164,47 @@ func TestIconSearchNeedsNoSignIn(t *testing.T) {
 
 	if got := iconSearch(t, h, "database"); len(got) == 0 || got[0] != "database" {
 		t.Errorf("got %v, want database first", got)
+	}
+}
+
+func TestAppIconSearchFindsDashboardIconsNamesNotLucides(t *testing.T) {
+	h := shelf(t)
+
+	if got := appIconSearch(t, h, "Jellyfin"); len(got) == 0 || got[0] != "jellyfin" {
+		t.Errorf("got %v, want jellyfin first", got)
+	}
+	if got := appIconSearch(t, h, "house"); slices.Contains(got, "house") {
+		t.Errorf("got lucide's house in %v", got)
+	}
+}
+
+func TestAppIconSearchMatchesSpacesToDashes(t *testing.T) {
+	if got := appIconSearch(t, shelf(t), "home%20assistant"); len(got) == 0 || got[0] != "home-assistant" {
+		t.Errorf("got %v, want home-assistant first", got)
+	}
+}
+
+func TestAppIconSearchFindsIconsByAliasAlone(t *testing.T) {
+	// proxmox's alias is "Virtualization Platform".
+	if got := appIconSearch(t, shelf(t), "virtualization"); !slices.Contains(got, "proxmox") {
+		t.Errorf("proxmox missing from %v", got)
+	}
+}
+
+func TestAppIconSearchWithNoMatchOrNoQueryIsEmpty(t *testing.T) {
+	h := shelf(t)
+
+	for _, q := range []string{"zzqx", "", "%20"} {
+		if got := appIconSearch(t, h, q); got == nil || len(got) != 0 {
+			t.Errorf("q %q: got %#v, want []", q, got)
+		}
+	}
+}
+
+func TestAppIconSearchNeedsNoSignIn(t *testing.T) {
+	h := coretest.New(t, coretest.Options{Keycloak: oidctest.New(t), Release: "v1.2.3"})
+
+	if got := appIconSearch(t, h, "jellyfin"); len(got) == 0 || got[0] != "jellyfin" {
+		t.Errorf("got %v, want jellyfin first", got)
 	}
 }

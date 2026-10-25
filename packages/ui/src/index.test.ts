@@ -30,6 +30,7 @@ it("exports exactly the spec's component set, plus cx and the AppIcon helpers", 
       "Segmented",
       "SearchField",
       "IconPicker",
+      "AppIconPicker",
       "FormActions",
       // data
       "DataTable",

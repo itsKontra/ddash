@@ -1,6 +1,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { AppIcon, Button, Pill, Skeleton, StatusDot } from "./index";
+import { dashboardIconsCommit } from "./dashboard-icons";
+
+// Where the pinned dashboard-icons logos load from.
+const logos = `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@${dashboardIconsCommit}`;
 
 afterEach(cleanup);
 
@@ -88,19 +92,27 @@ it("Skeleton with a height draws one block from the fixed scale", () => {
 it("AppIcon draws the dashboard-icons icon of its name", () => {
   render(<AppIcon name="Home Assistant" url="https://ha.home.example" />);
 
-  expect(img()?.getAttribute("src")).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/home-assistant.svg");
+  expect(img()?.getAttribute("src")).toBe(`${logos}/svg/home-assistant.svg`);
 });
 
 it("AppIcon prefers the icon it is given over its name", () => {
   render(<AppIcon name="Media" icon="jellyfin" url="https://media.home.example" />);
 
-  expect(img()?.getAttribute("src")).toBe("https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/jellyfin.svg");
+  expect(img()?.getAttribute("src")).toBe(`${logos}/svg/jellyfin.svg`);
+});
+
+it("AppIcon falls back to the PNG, for the icons upstream has no SVG of", () => {
+  render(<AppIcon name="3x-ui" icon="3xui" />);
+
+  fireEvent.error(img()!);
+  expect(img()?.getAttribute("src")).toBe(`${logos}/png/3xui.png`);
 });
 
 it("AppIcon falls back to the site's favicon, then to the name's first letter", () => {
   render(<AppIcon name="My Printer" url="http://printer.home.example:8080/ui/" />);
 
-  fireEvent.error(img()!);
+  fireEvent.error(img()!); // no SVG
+  fireEvent.error(img()!); // no PNG
   expect(img()?.getAttribute("src")).toBe("http://printer.home.example:8080/favicon.ico");
 
   fireEvent.error(img()!);
