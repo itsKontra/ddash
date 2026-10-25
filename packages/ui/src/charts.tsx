@@ -105,6 +105,7 @@ const colourStroke: Record<Colour, string> = {
   down: "stroke-down",
   warn: "stroke-warn",
   maint: "stroke-maint",
+  info: "stroke-info",
   idle: "stroke-muted",
   muted: "stroke-muted",
 };
@@ -129,6 +130,7 @@ const colourBg: Record<Colour, string> = {
   down: "bg-down",
   warn: "bg-warn",
   maint: "bg-maint",
+  info: "bg-info",
   idle: "bg-muted",
   muted: "bg-muted",
 };

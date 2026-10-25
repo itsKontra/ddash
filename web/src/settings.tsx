@@ -1,10 +1,9 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { CoreService, Theme } from "@ddash/proto/ddash/core/core_pb";
-import { cx, Icon, PageHeader, Switch, type IconName } from "@ddash/ui";
+import { cx, ErrorFrame, Icon, PageHeader, Switch, type IconName } from "@ddash/ui";
 import { Link, Route, Routes } from "react-router";
 import { themeName, useScheme } from "./appearance";
 import { AuditLog } from "./audit-log";
-import { ErrorFrame } from "./boundary";
 
 /** /settings/*: the core's settings and the Pages under them. */
 export function Settings() {

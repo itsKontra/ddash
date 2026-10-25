@@ -1,9 +1,8 @@
 import type { DescMethodUnary } from "@bufbuild/protobuf";
 import { Refresh, useAction, useQuery, type Action } from "@ddash/plugin";
 import { CoreService, type CataloguePlugin, type ComponentStatus, type ListCatalogueResponse } from "@ddash/proto/ddash/core/core_pb";
-import { Button, cx, Icon, PageHeader, StatusDot, type IconName, type Tone } from "@ddash/ui";
+import { Button, cx, ErrorFrame, Icon, PageHeader, StatusDot, type IconName, type Tone } from "@ddash/ui";
 import { useEffect, useState } from "react";
-import { ErrorFrame } from "./boundary";
 import { ConfigDialog } from "./config-form";
 
 /**
@@ -274,7 +273,7 @@ const tones: Record<string, Tone> = {
 
 const toneOf = (state: string): Tone => tones[state] ?? (state === "needs config" ? "warn" : "idle");
 
-const rank: Record<Tone, number> = { down: 3, warn: 2, idle: 1, maint: 1, up: 0 };
+const rank: Record<Tone, number> = { down: 3, warn: 2, idle: 1, maint: 1, info: 0, up: 0 };
 
 /**
  * What an installed Plugin shows: update pending while any of it couldn't be

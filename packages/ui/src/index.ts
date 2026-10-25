@@ -8,6 +8,7 @@ export { cx, toneBg, toneText, type Tone } from "./tone";
 export * from "./atoms";
 export * from "./layout";
 export * from "./forms";
+export * from "./feedback";
 export * from "./charts";
 export * from "./overlays";
 export * from "./icon";

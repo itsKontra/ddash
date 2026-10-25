@@ -1,10 +1,10 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, useQuery, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Badge, Button, cx, Icon, PageHeader, StatusDot, type IconName } from "@ddash/ui";
+import { Badge, Button, cx, ErrorFrame, Icon, PageHeader, StatusDot, type IconName } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
-import { ErrorBoundary, ErrorFrame } from "./boundary";
+import { ErrorBoundary } from "./boundary";
 import { Catalogue } from "./catalogue";
 import { navItems, type NavItem } from "./nav";
 import { Overview, useOverviewLayout } from "./overview";
