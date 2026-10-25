@@ -14,5 +14,5 @@ ddash's Components run as hashicorp/go-plugin subprocesses inside the ddash cont
 
 - Updating ddash means changing the image tag in compose. On start, the host brings installed Plugins to its own Release, and the previous Release stays on disk for rollback.
 - The migration runner is a shared Go SDK linked into each Component, not a core service. The core only does bookkeeping and snapshots before a migrating update.
-- Plugin UIs can't be scanned by the shell's Tailwind build. Each Plugin ships its own CSS, builds only from the core's `@ddash/ui` and Theme tokens, and a CI lint enforces this.
+- Plugins ship in lockstep with the shell, so the shell's Tailwind build scans every Plugin's sources (installed or not) and generates every Plugin's utility classes in one order; a Plugin's own CSS holds only its prefixed `@keyframes`. Plugin UIs build only from the core's `@ddash/ui` and Theme tokens, and a CI lint enforces this. Amended by [How do Plugin stylesheets stop overriding the shell's responsive utilities?](https://github.com/itsKontra/ddash/issues/77).
 - Details: [Plugin runtime: how Components run and Plugin UIs load](https://github.com/itsKontra/ddash/issues/19).

@@ -1,29 +1,84 @@
 // The style lint: a Plugin is built only from @ddash/ui and Theme tokens.
-// It reads every source under the Plugin's src/ (the files its Tailwind
-// @source scans) and reports hard-coded colours, radii and fonts, arbitrary
-// Tailwind values, and design-system imports other than @ddash/ui.
+// It reads every source under the Plugin's src/ (the files the shell's
+// Tailwind build scans) and reports hard-coded colours, radii and fonts,
+// arbitrary Tailwind values, animations not behind motion-safe:,
+// design-system imports other than @ddash/ui, and a stylesheet holding
+// more than the plugin.css import and the Plugin's own @keyframes.
 import { readdirSync, readFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { basename, join, relative } from "node:path";
 import { parseSync, Visitor } from "vite";
 
 const scripts = /\.[cm]?[jt]sx?$/;
 
-/** The problems in the Plugin at dir, as "src/<file>:<line>: <problem>"; none when it keeps the design system. */
+/**
+ * The problems in the Plugin at dir (named after its directory), as
+ * "src/<file>:<line>: <problem>"; none when it keeps the design system.
+ */
 export function lintStyle(dir: string): string[] {
+  const plugin = basename(dir);
   const problems: string[] = [];
   for (const file of sources(join(dir, "src"))) {
     const rel = relative(dir, file);
     const text = readFileSync(file, "utf8");
-    if (scripts.test(file)) lintScript(rel, text, problems);
-    else if (file.endsWith(".css") && !pluginCSS.test(text.replace(/\/\*[\s\S]*?\*\//g, ""))) {
-      problems.push(`${rel}: a Plugin's CSS may only @import "@ddash/ui/plugin.css" and @source its sources; style with @ddash/ui and Theme token classes`);
-    }
+    if (scripts.test(file)) lintScript(rel, text, plugin, problems);
+    else if (file.endsWith(".css")) lintStylesheet(rel, text, plugin, problems);
   }
   return problems;
 }
 
-// A Plugin's stylesheet, comments aside: only these two at-rules.
-const pluginCSS = /^(\s*(@import\s+["']@ddash\/ui\/plugin\.css["']|@source\s+(not\s+)?["'][^"']*["'])\s*;)*\s*$/;
+/**
+ * A Plugin's stylesheet holds only the plugin.css import and @keyframes
+ * <plugin>-<name> animating transform, opacity and token variables: no
+ * selectors, so it can't override the shell's utilities (which already
+ * carry every Plugin's classes).
+ */
+function lintStylesheet(file: string, text: string, plugin: string, problems: string[]) {
+  // Comments become spaces, so offsets (and lines) stay put.
+  const css = text.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
+  const line = (offset: number) => css.slice(0, offset).split("\n").length;
+  const own: string[] = [];
+  const foreign = () =>
+    problems.push(`${file}: a Plugin's CSS may only @import "@ddash/ui/plugin.css" and hold @keyframes ${plugin}-<name>; style with @ddash/ui and Theme token classes`);
+  let at = 0;
+  const take = (re: RegExp) => {
+    re.lastIndex = at;
+    const m = re.exec(css);
+    if (m) at = re.lastIndex;
+    return m;
+  };
+  while (take(/\s*/y) && at < css.length) {
+    if (take(/@import\s+["']@ddash\/ui\/plugin\.css["']\s*;/y)) continue;
+    const keyframes = take(/@keyframes\s+([\w-]+)\s*\{/y);
+    if (!keyframes) return foreign();
+    const name = keyframes[1];
+    const nameAt = keyframes.index;
+    if (!name.startsWith(`${plugin}-`) || name.length === plugin.length + 1) {
+      own.push(`${file}:${line(nameAt)}: @keyframes ${name} isn't named ${plugin}-<name>`);
+    }
+    for (;;) {
+      take(/\s*/y);
+      if (take(/\}/y)) break;
+      const block = take(/((?:from|to|\d+(?:\.\d+)?%)(?:\s*,\s*(?:from|to|\d+(?:\.\d+)?%))*)\s*\{([^{}]*)\}/y);
+      if (!block) return foreign();
+      let offset = block.index + block[0].indexOf("{") + 1;
+      for (const declaration of block[2].split(";")) {
+        const property = /^\s*([\w-]+)\s*:/.exec(declaration);
+        const start = offset + declaration.search(/\S|$/);
+        offset += declaration.length + 1;
+        if (declaration.trim() === "") continue;
+        if (!property) return foreign();
+        if (!keyframeProperty.test(property[1])) {
+          own.push(`${file}:${line(start)}: @keyframes ${name} animates ${property[1]}; animate only transform, opacity and token variables`);
+        }
+      }
+    }
+  }
+  problems.push(...own);
+}
+
+// What a Plugin's keyframes may animate: transform, opacity, and custom
+// properties (the Theme tokens and variables the keyframes define).
+const keyframeProperty = /^(transform|opacity|--[\w-]+)$/;
 
 /** Every file under dir, sorted, recursively. */
 function sources(dir: string): string[] {
@@ -33,7 +88,7 @@ function sources(dir: string): string[] {
     .sort();
 }
 
-function lintScript(file: string, text: string, problems: string[]) {
+function lintScript(file: string, text: string, plugin: string, problems: string[]) {
   const { program, errors } = parseSync(file, text);
   if (errors.length > 0) {
     problems.push(`${file}: ${errors[0].message}`);
@@ -42,7 +97,7 @@ function lintScript(file: string, text: string, problems: string[]) {
   const line = (offset: number) => text.slice(0, offset).split("\n").length;
   const at = (offset: number, problem: string) => problems.push(`${file}:${line(offset)}: ${problem}`);
   const check = (value: string, offset: number) => {
-    for (const p of checkString(value)) at(offset, p);
+    for (const p of checkString(value, plugin)) at(offset, p);
   };
   const source = (node: { source?: { value: unknown } | null | object; start: number }) => {
     const s = node.source && "value" in node.source ? node.source.value : undefined;
@@ -121,19 +176,28 @@ const arbitrary = "use Tailwind's scale and the Theme tokens";
 // has a "-" first) or an arbitrary property's "[name:".
 const classLike = /^-?[a-z]|^\[[a-z-]+:/;
 
+// An animation, which plays only behind motion-safe:. animate-none stops one.
+// A Plugin's own keyframes run as motion-safe:animate-[<plugin>-<name>_...].
+const animation = /^animate-(?!none$)/;
+
 /** The problems in one string literal: each class (or colour) in it is checked. */
-function checkString(value: string): string[] {
+function checkString(value: string, plugin: string): string[] {
   if (colourFunction.test(value)) return [`${JSON.stringify(value.trim())} is a hard-coded colour; ${colour}`];
   const problems: string[] = [];
   const report = (token: string, what: string, fix: string) => problems.push(`${JSON.stringify(token)} is ${what}; ${fix}`);
+  const ownAnimation = new RegExp(`^animate-\\[${plugin.replace(/[^\w]/g, "\\$&")}-[\\w-]+(_[\\w.%-]+)*\\]$`);
   for (const token of value.split(/\s+/)) {
     if (token === "") continue;
     const start = splitVariants(token);
+    const variants = token.slice(0, start);
     const utility = token.slice(start).replace(/^!|!$/g, "");
     if (utility === "") continue;
     if (colourUtility.test(utility) || hex.test(token)) report(token, "a hard-coded colour", colour);
     else if (!classLike.test(utility)) continue; // text, e.g. a "[::]:443" listen
-    else if (arbitraryUtility.test(utility) || /[[(]/.test(token.slice(0, start))) report(token, "an arbitrary value", arbitrary);
+    else if (animation.test(utility) && !variants.split(":").includes("motion-safe")) {
+      problems.push(`${JSON.stringify(token)} animates without motion-safe:; put it behind motion-safe:`);
+    } else if (ownAnimation.test(utility) && !/[[(]/.test(variants)) continue;
+    else if (arbitraryUtility.test(utility) || /[[(]/.test(variants)) report(token, "an arbitrary value", arbitrary);
     else if (surfaceUtility.test(utility)) report(token, "a shell-only surface", surface);
     else if (hardCodedRadius(utility)) report(token, "a hard-coded radius", radius);
     else if (fontUtility.test(utility)) report(token, "a hard-coded font", font);

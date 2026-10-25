@@ -133,9 +133,10 @@ describe("the AA bar", () => {
   });
 });
 
-it("gives Plugins no nav or hero utilities", () => {
-  const plugin = ["plugin.css", "tokens.css"].map((f) => readFileSync(new URL(`./${f}`, import.meta.url), "utf8")).join("\n").replace(/\/\*[\s\S]*?\*\//g, "");
-  expect(plugin).toContain('@import "./tokens.css"');
-  expect(plugin).not.toMatch(/surfaces\.css|--color-(nav|hero)/);
+it("gives Plugins no utilities of their own, nav or hero ones included", () => {
+  // The shell's build generates every Plugin's classes; the style lint keeps
+  // the nav and hero ones out of Plugin sources.
+  const plugin = readFileSync(new URL("./plugin.css", import.meta.url), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  expect(plugin).not.toMatch(/@import|@theme|@tailwind|surfaces\.css|--color-(nav|hero)/);
   expect(css).toContain('@import "./surfaces.css"');
 });

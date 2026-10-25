@@ -77,9 +77,9 @@ export const jsx: UserConfig["oxc"] = { jsx: { runtime: "automatic", development
  *
  * - src/index.tsx, whose default export is definePlugin(...), becomes one
  *   ESM file, dist/index.js, importing the import-map packages by name;
- * - the CSS it imports (src/index.css: `@import "@ddash/ui/plugin.css";
- *   @source "./";`) becomes dist/index.css: Tailwind for its own sources
- *   on the Theme tokens, without preflight.
+ * - the CSS it imports (src/index.css: `@import "@ddash/ui/plugin.css";`
+ *   and the Plugin's own @keyframes) becomes dist/index.css. It holds no
+ *   utilities: the shell's build generates every Plugin's classes.
  *
  * `vite build --watch` rebuilds it in place for `make dev`.
  */

@@ -4,11 +4,11 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { lintStyle } from "./style.ts";
 
-const indexCSS = '@import "@ddash/ui/plugin.css";\n@source "./";\n';
+const indexCSS = '@import "@ddash/ui/plugin.css";\n';
 
-/** A Plugin dir holding files (path under src/ → contents), plus its index.css. */
+/** The Plugin hello's dir, holding files (path under src/ → contents), plus its index.css. */
 function plugin(files: Record<string, string>): string {
-  const dir = mkdtempSync(join(tmpdir(), "ddash-style-"));
+  const dir = join(mkdtempSync(join(tmpdir(), "ddash-style-")), "hello");
   for (const [path, body] of Object.entries({ "index.css": indexCSS, ...files })) {
     const p = join(dir, "src", path);
     mkdirSync(dirname(p), { recursive: true });
@@ -151,10 +151,77 @@ const lazy = () => import("antd");
     ]);
   });
 
-  it("fails a Plugin stylesheet with its own rules", () => {
-    const dir = plugin({ "index.css": `${indexCSS}\n.title { color: #f00; }\n` });
+  it("passes animations behind motion-safe:, its own keyframes among them", () => {
+    const dir = plugin({
+      "row.tsx": `export const c = ["motion-safe:animate-ping", "md:motion-safe:hover:animate-pulse", "motion-safe:animate-[hello-pulse_2s_ease-in-out_infinite]", "motion-reduce:animate-none"];\n`,
+    });
+    expect(lintStyle(dir)).toEqual([]);
+  });
+
+  it("fails an animation not behind motion-safe:", () => {
+    const dir = plugin({ "row.tsx": `export const c = "animate-ping hover:animate-spin animate-[hello-pulse_2s]";\n` });
+    const fix = "put it behind motion-safe:";
     expect(lintStyle(dir)).toEqual([
-      'src/index.css: a Plugin\'s CSS may only @import "@ddash/ui/plugin.css" and @source its sources; style with @ddash/ui and Theme token classes',
+      `src/row.tsx:1: "animate-ping" animates without motion-safe:; ${fix}`,
+      `src/row.tsx:1: "hover:animate-spin" animates without motion-safe:; ${fix}`,
+      `src/row.tsx:1: "animate-[hello-pulse_2s]" animates without motion-safe:; ${fix}`,
+    ]);
+  });
+
+  it("fails an arbitrary animation other than the Plugin's own keyframes", () => {
+    const dir = plugin({ "row.tsx": `export const c = "motion-safe:animate-[spin_1s] motion-safe:animate-[docker-pulse_1s] motion-safe:animate-(--a)";\n` });
+    const fix = "use Tailwind's scale and the Theme tokens";
+    expect(lintStyle(dir)).toEqual([
+      `src/row.tsx:1: "motion-safe:animate-[spin_1s]" is an arbitrary value; ${fix}`,
+      `src/row.tsx:1: "motion-safe:animate-[docker-pulse_1s]" is an arbitrary value; ${fix}`,
+      `src/row.tsx:1: "motion-safe:animate-(--a)" is an arbitrary value; ${fix}`,
+    ]);
+  });
+
+  it("passes a Plugin stylesheet holding only the plugin.css import and its own keyframes", () => {
+    const dir = plugin({
+      "index.css": `/* The pulse on a fresh row. */
+@import "@ddash/ui/plugin.css";
+
+@keyframes hello-pulse {
+  from { transform: scale(1); opacity: 1; }
+  50%, 75% { transform: scale(1.1) translateY(-2px); opacity: var(--pulse-dim); --glow: var(--up); }
+  to { transform: none; opacity: 0.6 }
+}
+@keyframes hello-fade { 0% { opacity: 0 } 100% { opacity: 1 } }
+`,
+    });
+    expect(lintStyle(dir)).toEqual([]);
+  });
+
+  it("fails a Plugin stylesheet with selectors or other at-rules", () => {
+    const fix = 'a Plugin\'s CSS may only @import "@ddash/ui/plugin.css" and hold @keyframes hello-<name>; style with @ddash/ui and Theme token classes';
+    for (const extra of [".title { color: #f00; }", '@source "./";', '@import "./more.css";', "@media (min-width: 1px) { .flex { display: none } }"]) {
+      const dir = plugin({ "index.css": `${indexCSS}${extra}\n` });
+      expect(lintStyle(dir), extra).toEqual([`src/index.css: ${fix}`]);
+    }
+  });
+
+  it("fails keyframes not named after the Plugin", () => {
+    const dir = plugin({ "index.css": `${indexCSS}@keyframes spin { to { transform: rotate(1turn) } }\n@keyframes hello { to { opacity: 0 } }\n` });
+    expect(lintStyle(dir)).toEqual([
+      "src/index.css:2: @keyframes spin isn't named hello-<name>",
+      "src/index.css:3: @keyframes hello isn't named hello-<name>",
+    ]);
+  });
+
+  it("fails keyframes animating anything but transform, opacity and token variables", () => {
+    const dir = plugin({
+      "index.css": `${indexCSS}@keyframes hello-flash {
+  from { color: red; transform: none }
+  to { background-color: var(--up); opacity: 1 }
+}
+`,
+    });
+    const fix = "animate only transform, opacity and token variables";
+    expect(lintStyle(dir)).toEqual([
+      `src/index.css:3: @keyframes hello-flash animates color; ${fix}`,
+      `src/index.css:4: @keyframes hello-flash animates background-color; ${fix}`,
     ]);
   });
 });

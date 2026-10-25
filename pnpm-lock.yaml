@@ -135,6 +135,10 @@ importers:
       vite:
         specifier: 8.3.4
         version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)
+    devDependencies:
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../ui
 
   plugins/apps:
     dependencies:
