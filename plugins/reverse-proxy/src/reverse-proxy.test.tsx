@@ -2,7 +2,8 @@ import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { Badge, Status, Widget } from "@ddash/plugin";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { Page, renderScoped, settle, type Answers } from "./testing";
+import { pending, settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { Page, renderScoped } from "./testing";
 
 afterEach(cleanup);
 
@@ -47,7 +48,7 @@ it("says so when the config never loaded", async () => {
 });
 
 it("is the Reverse proxy Page, and shows a skeleton until nginx-config answers", async () => {
-  renderScoped(<Page />, { GetSnapshot: () => new Promise<Response>(() => {}) });
+  renderScoped(<Page />, { GetSnapshot: pending });
   await settle();
 
   expect(screen.getByRole("heading", { level: 1, name: "Reverse proxy" })).toBeTruthy();
@@ -59,7 +60,7 @@ it("is the Reverse proxy Page, and shows a skeleton until nginx-config answers",
 it("says why a Refresh failed", async () => {
   renderScoped(<Page />, {
     GetSnapshot: () => Response.json(loads),
-    Refresh: () => Response.json({ code: "unavailable", message: "nginx-config is restarting" }, { status: 503 }),
+    Refresh: () => unavailable("nginx-config is restarting"),
   });
   await settle();
 
@@ -83,12 +84,12 @@ it("re-reads the config at once with Refresh, and shows the new read", async () 
   fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
   await settle();
 
-  expect(calls).toContain("Refresh");
+  expect(calls.map((c) => c.method)).toContain("Refresh");
   expect(screen.getByRole("region", { name: "Config health" }).textContent).toMatch(/Config loads/);
 });
 
 it("says nginx-config is unavailable when it can't answer", async () => {
-  renderScoped(<Page />, { GetSnapshot: () => Response.json({ code: "unavailable", message: "nginx-config is starting" }, { status: 503 }) });
+  renderScoped(<Page />, { GetSnapshot: () => unavailable("nginx-config is starting") });
   await settle();
 
   const health = screen.getByRole("region", { name: "Config health" });
@@ -138,12 +139,12 @@ it("reports down with the error's first line while the read fails", async () => 
 });
 
 it("shows a skeleton until nginx-config answers", async () => {
-  expect(await widgetStatus(() => new Promise<Response>(() => {}))).toBeUndefined();
+  expect(await widgetStatus(pending)).toBeUndefined();
   expect(within(screen.getByRole("region", { name: "widget" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 
 it("reports warn when nginx-config is unavailable", async () => {
-  const status = await widgetStatus(() => Response.json({ code: "unavailable", message: "nginx-config is down" }, { status: 503 }));
+  const status = await widgetStatus(() => unavailable("nginx-config is down"));
   expect(status).toEqual({ tone: "warn", summary: "nginx-config unavailable: nginx-config is down" });
 });
 

@@ -1,6 +1,7 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Page, renderScoped, settle, type Answers } from "./testing";
+import { pending, settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { Page, renderScoped } from "./testing";
 
 afterEach(cleanup);
 
@@ -170,7 +171,7 @@ it("shows a Proxy Host that yields no App", async () => {
 });
 
 it("says why while apps or checks is unavailable, keeping what the other answers", async () => {
-  const down = (who: string) => () => Response.json({ code: "unavailable", message: `${who} is starting` }, { status: 503 });
+  const down = (who: string) => () => unavailable(`${who} is starting`);
   await show({ ListChecks: down("checks") });
 
   const printer = row("printer.home.example");
@@ -185,7 +186,7 @@ it("says why while apps or checks is unavailable, keeping what the other answers
 });
 
 it("shows skeleton rows until apps answers", async () => {
-  await show({ ListProxyHosts: () => new Promise<Response>(() => {}) });
+  await show({ ListProxyHosts: pending });
 
   expect(within(table()).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
@@ -199,5 +200,5 @@ it("says so when no server block forwards to an upstream", async () => {
 it("runs no probes of its own: it only reads nginx-config, apps and checks", async () => {
   const calls = await show();
 
-  expect(new Set(calls)).toEqual(new Set(["GetSnapshot", "ListProxyHosts", "ListChecks"]));
+  expect(new Set(calls.map((c) => c.method))).toEqual(new Set(["GetSnapshot", "ListProxyHosts", "ListChecks"]));
 });
