@@ -10,7 +10,9 @@
 //  5. It rebuilds every Plugin's bundle on change (`vite build --watch`;
 //     reload the page to see it, there is no HMR) and serves the shell from
 //     the Vite dev server, which proxies /api, /plugins and /vendor to the
-//     core: open http://127.0.0.1:5173.
+//     core: open http://127.0.0.1:5173. It serves @ddash/ui and
+//     @ddash/plugin from source in place of the core's vendor build, so
+//     their edits show in the shell and every Plugin on reload too.
 //
 // Run it from the repo root:
 //
