@@ -5,10 +5,14 @@
  * only through HeroCard.
  *
  * Derived, not set by a Theme: the nav's hover, active and border states,
- * the glows (faint nav-accent behind the brand, across the hero and around
- * its ring), and each tone as text on the nav (a Nav Entry's badge, on its tone's
+ * and each tone as text on the nav (a Nav Entry's badge, on its tone's
  * tint): the light <tone>-text is too dark for it. Hero text reuses the
  * nav set (title nav-strong, caption nav-foreground, ring nav-accent).
+ *
+ * The glows (behind the brand mark, across the hero, around its ring) are
+ * derived too, as faint nav-accent mixed where they're drawn: each at its own
+ * strength, following the Theme of the element it's on, and absent where
+ * color-mix isn't supported rather than solid.
  */
 @theme inline {
   --color-nav: var(--nav);
@@ -23,9 +27,6 @@
   --color-nav-warn: color-mix(in srgb, var(--warn) 60%, var(--nav-strong));
   --color-nav-maint: color-mix(in srgb, var(--maint) 60%, var(--nav-strong));
   --color-nav-info: color-mix(in srgb, var(--info) 60%, var(--nav-strong));
-  --color-nav-glow: color-mix(in srgb, var(--nav-accent) 14%, transparent);
-  --color-nav-glow-strong: color-mix(in srgb, var(--nav-accent) 20%, transparent);
-  --color-hero-halo: color-mix(in srgb, var(--nav-accent) 2%, transparent);
   --color-hero-from: var(--hero-from);
   --color-hero-to: var(--hero-to);
 }

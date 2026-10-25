@@ -98,8 +98,6 @@ describe("the ddash Theme", () => {
       ["--color-nav-border", "color-mix(in srgb, var(--nav-strong) 8%, var(--nav))"],
       ["--color-nav-active", "color-mix(in srgb, var(--nav-accent) 15%, var(--nav))"],
       ["--color-nav-down", "color-mix(in srgb, var(--down) 60%, var(--nav-strong))"],
-      ["--color-nav-glow", "color-mix(in srgb, var(--nav-accent) 14%, transparent)"],
-      ["--color-hero-halo", "color-mix(in srgb, var(--nav-accent) 2%, transparent)"],
       ["--radius-ui-sm", "calc(var(--radius) * 2 / 3)"],
       ["--radius-ui-lg", "calc(var(--radius) * 4 / 3)"],
       ["--font-mono", "ui-monospace,"],
@@ -121,6 +119,14 @@ describe("the Lagoon Theme", () => {
     expect(colours(lagoon!.light)).toEqual(colours(ddashTheme.light));
     expect([...lagoon!.dark.keys()].sort()).toEqual([...ddashTheme.dark.keys()].sort());
   });
+});
+
+it("draws every glow as nav-accent mixed where it's drawn, never a fixed colour", () => {
+  const sources = ["./layout.tsx", "./charts.tsx", "../../../web/src/chrome.tsx"].map((f) => readFileSync(new URL(f, import.meta.url), "utf8")).join("\n");
+  const mixed = [...sources.matchAll(/color-mix\(in_srgb,([^_]+)_[\d.]+%,transparent\)/g)].map((m) => m[1]);
+  // The hero's two glows and two halos, its Ring's glow, the brand mark's and the sidebar corner's.
+  expect(mixed).toHaveLength(7);
+  for (const colour of mixed) expect(colour).toBe("var(--nav-accent)");
 });
 
 it("applies each Theme under its own data-theme too, so a preview shows it whichever is in use", () => {

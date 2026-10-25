@@ -62,7 +62,7 @@ export function Ring({ ratio, value, label }: { ratio: number; value: string; la
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuetext={value}
-      className={cx("relative grid size-32 shrink-0 place-items-center", hero && "rounded-full shadow-[0_0_38px_var(--color-nav-glow)]")}
+      className={cx("relative grid size-32 shrink-0 place-items-center", hero && "rounded-full shadow-[0_0_38px_color-mix(in_srgb,var(--nav-accent)_8%,transparent)]")}
     >
       <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 -rotate-90">
         <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className={hero ? "stroke-nav-strong/15" : "stroke-muted"} />
