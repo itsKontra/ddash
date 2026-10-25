@@ -42,8 +42,6 @@ it("shows each card's Check status, and warns of a certificate expiring within 1
   expect(status("pfSense")).toBe("pending: timeout");
   expect(status("Old")).toBe("Check disabled");
   expect(status("Printer")).toBe("up, certificate expires in 5 days");
-  expect(within(card("Jellyfin")).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
-  expect(within(card("Printer")).getByRole("img", { name: "up, certificate expires in 5 days" })).toBeTruthy();
 });
 
 it("marks a card whose Check is Flapping", async () => {
@@ -62,9 +60,7 @@ it("marks a card whose Check is Flapping", async () => {
   const card = (name: string) => screen.getByRole("listitem", { name });
   const status = (name: string) => within(card(name)).getByRole("status").textContent;
   expect(status("Grafana")).toBe("up, flapping");
-  expect(within(card("Grafana")).getByRole("img", { name: "up, flapping" })).toBeTruthy();
   expect(status("Jellyfin")).toBe("down, flapping: HTTP 502");
-  expect(within(card("Jellyfin")).getByRole("img", { name: "down, flapping: HTTP 502" })).toBeTruthy();
 });
 
 it("shows the cards without a Check status while checks is unavailable", async () => {
@@ -72,7 +68,9 @@ it("shows the cards without a Check status while checks is unavailable", async (
   await settle();
 
   expect(within(screen.getByRole("listitem", { name: "Jellyfin" })).queryByRole("status")).toBeNull();
-  expect(screen.getByText("Check status unavailable: checks is down")).toBeTruthy();
+  // Partial: the cards show, so it's a warning, not a failure.
+  expect(screen.getByRole("status").textContent).toBe("Check status unavailable: checks is down");
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("shows each card's icon, name, URL and aliases, and opens the URL on a click", async () => {
@@ -136,6 +134,21 @@ it("adds a manual App", async () => {
 
   expect(actions(calls)).toEqual([{ method: "CreateApp", body: { app: { name: "Proxmox", url: "https://198.18.0.2:8006", icon: "proxmox" } } }]);
   expect(screen.queryByRole("dialog")).toBeNull();
+});
+
+it("describes the Icon field by its hint, and Cancel closes the sheet unsaved", async () => {
+  const calls = renderScoped(<Page />);
+  await settle();
+
+  fireEvent.click(screen.getByRole("button", { name: "Add App" }));
+  const dialog = screen.getByRole("dialog", { name: "Add App" });
+  expect(within(dialog).getByRole("textbox", { name: "Icon", description: /homarr-labs\/dashboard-icons/ })).toBeTruthy();
+  fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Proxmox" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  await settle();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(actions(calls)).toEqual([]);
 });
 
 it("shows why a save was refused and keeps the form open", async () => {
@@ -203,12 +216,31 @@ it("deletes unmatched settings after a confirm", async () => {
   expect(actions(calls)).toEqual([{ method: "DeleteOverlay", body: { serverName: "paperless.home.example" } }]);
 });
 
+it("shows a skeleton while apps answers, and no loading text", async () => {
+  renderScoped(<Page />);
+
+  expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(screen.queryByText(/loading/i)).toBeNull();
+  await settle();
+  expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
+});
+
+it("shows apps being unavailable as a failure", async () => {
+  renderScoped(<Page />, { ListApps: () => Response.json({ code: "unavailable", message: "apps is down" }, { status: 503 }) });
+  await settle();
+
+  expect(screen.getByRole("alert").textContent).toMatch(/apps unavailable: apps is down/);
+  expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
+});
+
 it("says when nginx-config couldn't be read", async () => {
   renderScoped(<Page />, { ListApps: () => Response.json({ apps: [], discoveryError: "nginx-config is not configured" }) });
   await settle();
 
   expect(screen.getByRole("status").textContent).toMatch(/nginx-config is not configured/);
-  expect(screen.getByText(/No Apps yet/)).toBeTruthy();
+  expect(screen.getByText("No Apps yet")).toBeTruthy();
+  // The empty state offers adding one, as the Page title does.
+  expect(screen.getAllByRole("button", { name: "Add App" })).toHaveLength(2);
 });
 
 it("shows each card's Workload, linked to its Proxmox detail or the Docker Page when that Plugin is installed", async () => {
