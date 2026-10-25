@@ -1,12 +1,11 @@
-import { CoreScope, InstalledPlugins, PluginHost, PluginScope, useQuery, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Badge, Button, cx, PageHeader, StatusDot } from "@ddash/ui";
-import { useState, type ReactNode } from "react";
-import { NavLink, Route, Routes, useLocation, useParams, useRoutes } from "react-router";
+import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
+import { cx, ErrorFrame, Notice, PageTitle, Skeleton, StatusDot, type Tone } from "@ddash/ui";
+import { useState } from "react";
+import { Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
-import { ErrorBoundary, ErrorFrame } from "./boundary";
+import { ErrorBoundary } from "./boundary";
 import { Catalogue } from "./catalogue";
-import { icon } from "./icons";
+import { Chrome } from "./chrome";
 import { navItems, type NavItem } from "./nav";
 import { Overview, useOverviewLayout } from "./overview";
 import { HostWatch, ReachContext, unreachableText, useReach } from "./reach";
@@ -45,19 +44,28 @@ function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBund
   useAppearance();
   return (
     <InstalledPlugins names={plugins.installed?.map((p) => p.name)}>
-      <div className="flex min-h-screen bg-background font-sans text-foreground">
-        <Sidebar items={navItems(plugins.loaded.values())} fetch={fetch} />
-        <main className="min-w-0 flex-1 p-8">
-          <Unreachable />
-          <Routes>
-            <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
-            <Route path="plugins" element={<Catalogue />} />
-            <Route path="settings/*" element={<Settings />} />
-            <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
-          </Routes>
-        </main>
-      </div>
+      <Chrome items={navItems(plugins.loaded.values())} aside={(item) => <NavAside item={item} fetch={fetch} />} banner={<Unreachable />}>
+        <Routes>
+          <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
+          <Route path="plugins" element={<Catalogue />} />
+          <Route path="settings/*" element={<Settings />} />
+          <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
+        </Routes>
+      </Chrome>
     </InstalledPlugins>
+  );
+}
+
+/** A Plugin Nav Entry's end: failed to load, or its live badge in the Plugin's scope. */
+function NavAside({ item, fetch }: { item: NavItem; fetch?: Fetch }) {
+  if (item.broken) return <StatusDot tone="warn" label="failed to load" />;
+  if (!item.useBadge) return null;
+  return (
+    <PluginScope plugin={item.plugin} fetch={fetch}>
+      <ErrorBoundary fallback={() => null}>
+        <NavBadge useBadge={item.useBadge} />
+      </ErrorBoundary>
+    </PluginScope>
   );
 }
 
@@ -66,87 +74,39 @@ function Unreachable() {
   const reach = useReach();
   if (!reach.unreachable) return null;
   return (
-    <div role="status" className="mb-6 rounded-ui border border-warn bg-card px-4 py-2 text-sm font-medium text-warn">
-      {unreachableText(reach)}
+    <div className="mb-6">
+      <Notice tone="warn">{unreachableText(reach)}</Notice>
     </div>
   );
 }
 
-function Sidebar({ items, fetch }: { items: NavItem[]; fetch?: Fetch }) {
-  return (
-    <aside className="sticky top-0 flex h-screen w-60 shrink-0 flex-col border-r border-border bg-card p-3">
-      <div className="mb-4 px-3 py-2 text-lg font-bold tracking-tight">ddash</div>
-      <nav aria-label="Main" className="flex flex-1 flex-col">
-        <Link to="/" label="Overview" icon="layout-dashboard" end />
-        <div className="mt-4 flex flex-col gap-0.5">
-          {items.map((item) => (
-            <Link
-              key={item.plugin.name}
-              to={`/${item.plugin.name}`}
-              label={item.label}
-              icon={item.icon}
-              aside={
-                item.broken ? (
-                  <StatusDot tone="warn" label="failed to load" />
-                ) : (
-                  item.useBadge && (
-                    <PluginScope plugin={item.plugin} fetch={fetch}>
-                      <ErrorBoundary fallback={() => null}>
-                        <NavBadge useBadge={item.useBadge} />
-                      </ErrorBoundary>
-                    </PluginScope>
-                  )
-                )
-              }
-            />
-          ))}
-        </div>
-        <div className="mt-auto flex flex-col gap-0.5 border-t border-border pt-3">
-          <Link to="/plugins" label="Plugins" icon="puzzle" />
-          <Link to="/settings" label="Settings" icon="settings" />
-        </div>
-      </nav>
-      <Operator />
-    </aside>
-  );
-}
+// A count pill on the nav surface: its tone's tint, in its tone's nav text
+// (the light <tone>-text is too dark for the nav).
+const navBadgeTone: Record<Tone, string> = {
+  up: "bg-up-tint text-nav-up",
+  down: "bg-down-tint text-nav-down",
+  warn: "bg-warn-tint text-nav-warn",
+  maint: "bg-maint-tint text-nav-maint",
+  info: "bg-info-tint text-nav-info",
+  idle: "bg-nav-hover text-nav-strong",
+};
 
-/** Who is signed in, and Sign out: the host ends the session and Keycloak's. */
-function Operator() {
-  const { data } = useQuery(CoreService.method.getOperator, {});
-  return (
-    <section aria-label="Operator" className="mt-3 flex items-center gap-2 border-t border-border px-3 pt-3 text-sm">
-      <span className="min-w-0 flex-1 truncate text-muted-foreground">{data?.operator?.name}</span>
-      <form method="post" action="/auth/logout">
-        <Button type="submit" variant="ghost" size="sm">
-          Sign out
-        </Button>
-      </form>
-    </section>
-  );
-}
-
-function Link({ to, label, icon: name, aside, end }: { to: string; label: string; icon: string; aside?: ReactNode; end?: boolean }) {
-  const Icon = icon(name);
-  return (
-    <NavLink
-      to={to}
-      end={end}
-      className={({ isActive }) =>
-        cx("flex items-center gap-3 rounded-ui px-3 py-2 text-sm", isActive ? "bg-primary text-primary-foreground" : "hover:bg-muted")
-      }
-    >
-      <Icon className="h-4 w-4" aria-hidden />
-      {label}
-      {aside && <span className="ml-auto flex items-center">{aside}</span>}
-    </NavLink>
-  );
-}
-
+/** A Nav Entry's badge as a count pill on its tone's tint. */
 function NavBadge({ useBadge }: { useBadge: NonNullable<NavItem["useBadge"]> }) {
   const badge = useBadge();
-  return badge ? <Badge tone={badge.tone}>{"text" in badge ? badge.text : badge.count}</Badge> : null;
+  if (!badge) return null;
+  return (
+    <span
+      className={cx(
+        "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-bold tabular-nums",
+        navBadgeTone[badge.tone],
+      )}
+    >
+      {"text" in badge ? badge.text : badge.count}
+    </span>
+  );
 }
+
 
 /** /<plugin-name>/*: the Plugin's Pages, in its scope, behind an error boundary. */
 function PluginPage({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }) {
@@ -155,7 +115,7 @@ function PluginPage({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }) {
   const plugin = plugins.loaded.get(name);
   if (!plugin) {
     const listed = plugins.installed?.some((p) => p.name === name);
-    return listed || !plugins.installed ? <p className="text-sm text-muted-foreground">Loading…</p> : <NotFound />;
+    return listed || !plugins.installed ? <Skeleton height="xl" /> : <NotFound />;
   }
   if (plugin.error) return <ErrorFrame title={`${plugin.title} failed to load`} error={plugin.error} />;
   return (
@@ -172,6 +132,6 @@ function Pages({ pages }: { pages: NonNullable<PluginDefinition["pages"]> }) {
 }
 
 function NotFound() {
-  return <PageHeader title="Not found" subtitle="No installed Plugin has a Page here." />;
+  return <PageTitle title="Not found" subtitle="No installed Plugin has a Page here." />;
 }
 

@@ -2,7 +2,7 @@ import { useAction, useQuery } from "@ddash/plugin";
 import { Kind as RefKind } from "@ddash/proto/ddash/workload/workload_pb";
 import { Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { PowerAction, ProxmoxService, type PowerTask } from "@ddash/proto/proxmox/proxmox_pb";
-import { Badge, Button, Menu } from "@ddash/ui";
+import { Button, Menu, Notice, Pill, Skeleton } from "@ddash/ui";
 import { kindLabel } from "@ddash/display";
 
 /** The privilege ddash needs on a Workload to start, stop or restart it. */
@@ -73,17 +73,13 @@ export function usePower(w: Workload) {
 export function ProtectedLock() {
   return (
     <span title="ddash doesn't hold VM.PowerMgmt on it. Start, stop or restart it in Proxmox.">
-      <Badge>protected in Proxmox</Badge>
+      <Pill>protected in Proxmox</Pill>
     </span>
   );
 }
 
 function Failure({ message }: { message?: string }) {
-  return message ? (
-    <p role="alert" className="text-xs text-down">
-      {message}
-    </p>
-  ) : null;
+  return message ? <Notice tone="down">{message}</Notice> : null;
 }
 
 /** A row's power Actions: its menu, or the lock. */
@@ -94,7 +90,7 @@ export function PowerMenu({ workload: w }: { workload: Workload }) {
   return (
     <div className="flex flex-col items-end gap-1">
       <div className="flex items-center gap-1.5">
-        {p.task && <Badge tone="maint">{p.task}</Badge>}
+        {p.task && <Pill tone="maint">{p.task}</Pill>}
         {p.items.length > 0 && (
           <Menu label={`Power for ${w.name}`} disabled={p.busy} items={p.items.map((i) => ({ label: i.label, danger: i.danger, onSelect: i.run }))} />
         )}
@@ -107,18 +103,18 @@ export function PowerMenu({ workload: w }: { workload: Workload }) {
 /** A Workload's detail: its power Actions as buttons, or the lock. */
 export function PowerButtons({ workload: w }: { workload: Workload }) {
   const p = usePower(w);
-  if (!p.known) return <p className="text-sm text-muted-foreground">Reading ddash's permissions…</p>;
+  if (!p.known) return <Skeleton height="sm" />;
   if (p.protected) return <ProtectedLock />;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         {p.items.map((i) => (
-          <Button key={i.label} variant={i.danger ? "outline" : "default"} disabled={p.busy} onClick={i.run}>
+          <Button key={i.label} variant={i.danger ? "danger" : "default"} disabled={p.busy} onClick={i.run}>
             {i.label}
           </Button>
         ))}
         {p.items.length === 0 && <span className="text-sm text-muted-foreground">No power Actions for a {w.template ? "template" : w.status} Workload.</span>}
-        {p.task && <Badge tone="maint">{p.task}</Badge>}
+        {p.task && <Pill tone="maint">{p.task}</Pill>}
       </div>
       <Failure message={p.error?.rawMessage} />
     </div>

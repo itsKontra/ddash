@@ -1,37 +1,14 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
-import { Button, Sheet } from "@ddash/ui";
+import { Button, Field, FormActions, Notice, Sheet, TextInput } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
 import { nameOf } from "./devices";
-
-const inputClass = "h-9 w-full rounded-ui border border-border bg-card px-3 text-sm tabular-nums placeholder:text-muted-foreground";
-
-function Text({ label, help, value, onChange, placeholder }: { label: string; help?: string; value: string; onChange: (v: string) => void; placeholder?: string }) {
-  const id = useId();
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <input id={id} type="text" className={inputClass} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
-      {help && <p className="text-xs text-muted-foreground">{help}</p>}
-    </div>
-  );
-}
-
-function Failed({ error }: { error?: { rawMessage: string } }) {
-  if (!error) return null;
-  return (
-    <p role="alert" className="text-sm text-down">
-      {error.rawMessage}
-    </p>
-  );
-}
 
 /** The sheet Adopting a New Device: its name and the reserved address, pre-filled with the lowest free one. */
 function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
   const adopt = useAction(NetworkService.method.adoptDevice);
   const { data: next } = useQuery(NetworkService.method.nextReservedAddress, {});
+  const form = useId();
   const [name, setName] = useState(d.name);
   // Until edited, the address follows the offer.
   const [ip, setIp] = useState<string>();
@@ -44,32 +21,38 @@ function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => voi
   };
 
   return (
-    <Sheet title={`Adopt ${nameOf(d)}`} onClose={onClose}>
-      <form onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
+    <Sheet
+      title={`Adopt ${nameOf(d)}`}
+      onClose={onClose}
+      footer={
+        <FormActions status="Applying it restarts the firewall's DHCP server, a few seconds' blip.">
+          <Button type="submit" form={form} disabled={adopt.pending}>
+            Adopt
+          </Button>
+        </FormActions>
+      }
+    >
+      <form id={form} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
         <p className="text-sm text-muted-foreground">
-          Names <span className="font-medium text-foreground tabular-nums">{d.mac}</span> and reserves the address below for it on the firewall. The
-          Device keeps <span className="tabular-nums">{d.ip}</span> for now and moves to it when its lease renews.
+          Names <span className="font-medium text-foreground tabular-nums">{d.mac}</span> and reserves the address below for it on the firewall. The Device
+          keeps <span className="tabular-nums">{d.ip}</span> for now and moves to it when its lease renews.
         </p>
-        <Text label="Name" value={name} onChange={setName} />
-        <Text
+        <Field label="Name">
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
+        <Field
           label="Address"
-          value={address}
-          onChange={setIp}
-          help={
+          hint={
             range
               ? next?.ip
                 ? `The lowest free address in the reserved range ${range}; any free one in it will do.`
                 : `The reserved range ${range} is full: widen it in network's config.`
               : undefined
           }
-        />
-        <p className="text-xs text-muted-foreground">Applying it restarts the firewall's DHCP server, a few seconds' blip.</p>
-        <Failed error={adopt.error} />
-        <div className="flex gap-2">
-          <Button type="submit" disabled={adopt.pending}>
-            Adopt
-          </Button>
-        </div>
+        >
+          <TextInput value={address} onChange={(e) => setIp(e.target.value)} />
+        </Field>
+        {adopt.error && <Notice tone="down">{adopt.error.rawMessage}</Notice>}
       </form>
     </Sheet>
   );
@@ -78,6 +61,7 @@ function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => voi
 /** The sheet renaming an Adopted Device: its static mapping's description. */
 function RenameSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
   const rename = useAction(NetworkService.method.renameDevice);
+  const form = useId();
   const [name, setName] = useState(d.name);
 
   const save = async (e: FormEvent) => {
@@ -86,22 +70,34 @@ function RenameSheet({ device: d, onClose }: { device: Device; onClose: () => vo
   };
 
   return (
-    <Sheet title={`Rename ${nameOf(d)}`} onClose={onClose}>
-      <form onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
-        <Text label="Name" value={name} onChange={setName} />
+    <Sheet
+      title={`Rename ${nameOf(d)}`}
+      onClose={onClose}
+      footer={
+        <FormActions>
+          <Button type="submit" form={form} disabled={rename.pending}>
+            Rename
+          </Button>
+        </FormActions>
+      }
+    >
+      <form id={form} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
+        <Field label="Name">
+          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
+        </Field>
         <p className="text-sm text-muted-foreground">
           It keeps its reserved address <span className="tabular-nums">{d.reservation?.ip ?? d.ip}</span>. Change the address or remove the
           reservation in pfSense.
         </p>
-        <Failed error={rename.error} />
-        <div className="flex gap-2">
-          <Button type="submit" disabled={rename.pending}>
-            Rename
-          </Button>
-        </div>
+        {rename.error && <Notice tone="down">{rename.error.rawMessage}</Notice>}
       </form>
     </Sheet>
   );
+}
+
+/** The sheet for a Device: Adopt for a New one, rename for an Adopted one. */
+export function DeviceSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
+  return d.adopted ? <RenameSheet device={d} onClose={onClose} /> : <AdoptSheet device={d} onClose={onClose} />;
 }
 
 /** Adopt for a New Device, Rename for an Adopted one, each opening its sheet. */
@@ -113,7 +109,7 @@ export function DeviceAction({ device: d }: { device: Device }) {
       <Button variant="outline" size="sm" aria-label={label} onClick={() => setOpen(true)}>
         {d.adopted ? "Rename" : "Adopt"}
       </Button>
-      {open && (d.adopted ? <RenameSheet device={d} onClose={() => setOpen(false)} /> : <AdoptSheet device={d} onClose={() => setOpen(false)} />)}
+      {open && <DeviceSheet device={d} onClose={() => setOpen(false)} />}
     </>
   );
 }

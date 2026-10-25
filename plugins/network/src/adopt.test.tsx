@@ -1,8 +1,7 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
-import { afterEach, expect, it, vi } from "vitest";
-import plugin from "./index";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { settle, type Answers } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
+import { show as showNetwork } from "./testing";
 
 afterEach(cleanup);
 
@@ -24,56 +23,30 @@ const phone = {
 const devices = { bypassAlias: "VPN_BYPASS", devices: [tv, phone] };
 const next = { ip: "198.18.1.23", reservedRange: "198.18.1.20-198.18.1.49" };
 
-interface Call {
-  method: string;
-  body: unknown;
-}
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
-
-function PluginPages() {
-  return useRoutes(plugin.pages!);
-}
 
 // Shows the network Plugin at path with network answering by method name
 // (Actions {} unless given), and returns the calls with their JSON bodies.
-async function show(path: string, answers: Record<string, () => Response> = {}) {
-  const calls: Call[] = [];
-  const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    const method = String(input).split("/").pop()!;
-    const raw = init?.body;
-    calls.push({ method, body: raw ? JSON.parse(typeof raw === "string" ? raw : new TextDecoder().decode(raw as Uint8Array)) : undefined });
-    const all: Record<string, () => Response> = {
+const show = (path: string, answers: Answers = {}) =>
+  showNetwork(
+    path,
+    {
       ListDevices: () => Response.json(devices),
       NextReservedAddress: () => Response.json(next),
       ...answers,
-    };
-    return all[method]?.() ?? Response.json({});
-  });
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/network/*" element={<PluginPages />} />
-          </Routes>
-        </MemoryRouter>
-      </PluginScope>
-    </PluginHost>,
+    },
   );
-  await settle();
-  return calls;
-}
 
 const field = (dialog: HTMLElement, name: string) => within(dialog).getByRole("textbox", { name }) as HTMLInputElement;
 
 it("adopts a New Device from the Devices table with the lowest free reserved address pre-filled", async () => {
   const calls = await show("/network");
 
-  const table = screen.getByRole("table", { name: "Devices" });
+  const table = within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
   const row = within(table).getByRole("row", { name: /galaxy-s24/ });
-  expect(within(within(table).getByRole("row", { name: /Living room TV/ })).queryByRole("button")).toBeNull();
-  fireEvent.click(within(row).getByRole("button", { name: "Adopt galaxy-s24" }));
+  // Row actions live in the row's ⋯ Menu, never inline.
+  expect(within(row).queryByRole("button", { name: /Adopt/ })).toBeNull();
+  fireEvent.click(within(row).getByRole("button", { name: "Actions for 02:5e:00:00:20:01" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Adopt" }));
   await settle();
 
   const dialog = screen.getByRole("dialog", { name: "Adopt galaxy-s24" });
@@ -91,6 +64,17 @@ it("adopts a New Device from the Devices table with the lowest free reserved add
   expect(screen.queryByRole("dialog")).toBeNull();
   // Every query is refetched after the Action, so the table shows it.
   expect(calls.filter((c) => c.method === "ListDevices").length).toBeGreaterThan(1);
+});
+
+it("renames an Adopted Device from the Devices table's row Menu", async () => {
+  await show("/network");
+
+  const row = within(within(screen.getByRole("region", { name: "Devices" })).getByRole("table")).getByRole("row", { name: /Living room TV/ });
+  fireEvent.click(within(row).getByRole("button", { name: "Actions for 02:5e:00:00:10:01" }));
+  expect(screen.queryByRole("menuitem", { name: "Adopt" })).toBeNull();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
+
+  expect(field(screen.getByRole("dialog", { name: "Rename Living room TV" }), "Name").value).toBe("Living room TV");
 });
 
 it("adopts a New Device from its detail; an Adopted one offers rename instead", async () => {

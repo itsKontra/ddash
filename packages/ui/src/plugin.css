@@ -1,14 +1,22 @@
 /*
- * What a Plugin's stylesheet starts from: Tailwind's theme and utilities
- * with the Theme tokens, and no preflight (the shell owns the base styles).
- * A Plugin's src/index.css is:
+ * What a Plugin's stylesheet starts from. It brings neither Tailwind's
+ * utilities nor preflight: the shell's build scans every Plugin's sources,
+ * so it generates (and orders) every class a Plugin uses, and a Plugin
+ * generating its own .flex would beat the shell's lg:hidden.
+ *
+ * A Plugin's src/index.css is the import alone, or with its own animations:
  *
  *     @import "@ddash/ui/plugin.css";
- *     @source "./";
  *
- * so it gets utilities for its own sources only.
+ *     @keyframes <plugin>-<name> {
+ *       to { transform: scale(1.1); opacity: 0.6; }
+ *     }
+ *
+ * animating only transform, opacity and the Theme tokens, the custom
+ * properties theme.css sets (as var(--up), ...; the nav and hero ones are
+ * the shell's). JSX applies one with
+ * motion-safe:animate-[<plugin>-<name>_2s_infinite].
+ *
+ * Plain CSS: Tailwind's token utilities (tokens.css) mean nothing here, and
+ * a Plugin's build would ship their @theme unprocessed.
  */
-@layer theme, base, components, utilities;
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities) source(none);
-@import "./tokens.css";

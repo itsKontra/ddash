@@ -3,7 +3,7 @@ import { certWarning, checkStatus, workloadPage, workloadText } from "@ddash/dis
 import { usePluginLink, useQuery } from "@ddash/plugin";
 import { AppsService, ProxyHostWarning, type ProxyHost, type Workload } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, type Check } from "@ddash/proto/checks/checks_pb";
-import { StatusDot } from "@ddash/ui";
+import { DataTable, Notice, Panel, StatusDot, StatusList, type Column } from "@ddash/ui";
 
 /**
  * apps' Proxy Hosts with their Apps' Checks. Reads only: the Check status
@@ -34,105 +34,85 @@ const describe = (host: ProxyHost, w: ProxyHostWarning) => (w === ProxyHostWarni
 
 const keyOf = (h: ProxyHost) => `${h.file}:${h.line}:${h.serverNames[0] ?? ""}`;
 
-const cell = "px-3 py-2 align-top";
+/** A Proxy Host with its App's Check: undefined without an App or while checks can't answer, null when the App has none. */
+interface Row {
+  host: ProxyHost;
+  check: Check | null | undefined;
+}
 
-/** The Page's Warnings and Proxy Hosts sections. */
+const columns: readonly Column<Row>[] = [
+  { id: "domains", header: "Domains", rowHeader: true, cell: ({ host }) => <Domains host={host} /> },
+  {
+    id: "upstream",
+    header: "Upstream",
+    mono: true,
+    cell: ({ host }) => (host.upstreamServers.length ? `${host.upstream} → ${host.upstreamServers.join(", ")}` : host.upstream),
+  },
+  { id: "app", header: "App", cell: ({ host }) => <AppName host={host} /> },
+  { id: "check", header: "Check", cell: ({ host, check }) => host.app && <CheckLine check={check} /> },
+  {
+    id: "workload",
+    header: "Workload",
+    cell: ({ host }) => (host.app ? host.app.workload ? <WorkloadName workload={host.app.workload} /> : "none" : "—"),
+  },
+  { id: "certificate", header: "Certificate", cell: ({ check }) => <Certificate check={check} /> },
+];
+
+/** The Page's Warnings and Proxy Hosts Panels. */
 export function ProxyHosts() {
   const { hosts, byApp, appsError, checksError } = useProxyHosts();
-  if (!hosts && !appsError) return null;
   const warned = (hosts ?? []).filter((h) => h.warnings.length);
   return (
     <>
       {warned.length > 0 && (
-        <section aria-labelledby="warnings" className="rounded-ui border border-border bg-card p-4">
-          <h2 id="warnings" className="mb-3 font-semibold">
-            Warnings
-          </h2>
-          <ul className="flex flex-col gap-1 text-sm">
-            {warned.flatMap((h) =>
-              h.warnings.map((w) => (
-                <li key={`${keyOf(h)} ${w}`} className="flex items-center gap-2">
-                  <StatusDot tone="warn" label="warning" />
-                  <span>
-                    <span className="font-medium">{h.serverNames[0]}</span>: {describe(h, w)}
-                  </span>
-                </li>
-              )),
-            )}
-          </ul>
-        </section>
+        <Panel title="Warnings">
+          <StatusList
+            items={warned.flatMap((h) => h.warnings.map((w) => ({ tone: "warn" as const, title: h.serverNames[0], meta: describe(h, w) })))}
+          />
+        </Panel>
       )}
-      <section aria-labelledby="proxy-hosts" className="rounded-ui border border-border bg-card">
-        <header className="border-b border-border px-4 py-3">
-          <h2 id="proxy-hosts" className="font-semibold">
-            Proxy Hosts
-          </h2>
-          {[appsError && `apps unavailable: ${appsError.rawMessage}`, checksError && `checks unavailable: ${checksError.rawMessage}`]
-            .filter(Boolean)
-            .map((note) => (
-              <p key={String(note)} className="text-sm text-muted-foreground">
-                {note}
-              </p>
-            ))}
-        </header>
-        {!hosts ? null : hosts.length === 0 ? (
-          <p className="px-4 py-3 text-sm text-muted-foreground">No server block forwards to an upstream.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table aria-label="Proxy Hosts" className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                  {["Domains", "Upstream", "App", "Check", "Workload", "Certificate"].map((h) => (
-                    <th key={h} scope="col" className={`${cell} font-medium first:pl-4 last:pr-4`}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {hosts.map((h) => (
-                  <Row key={keyOf(h)} host={h} check={h.app && byApp ? (byApp.get(h.app.id) ?? null) : undefined} />
-                ))}
-              </tbody>
-            </table>
+      <Panel title="Proxy Hosts" flush>
+        {appsError ? (
+          <div className="p-4">
+            <Notice tone="down">apps unavailable: {appsError.rawMessage}</Notice>
           </div>
+        ) : (
+          <>
+            {checksError && (
+              <div className="p-4">
+                <Notice tone="warn">checks unavailable: {checksError.rawMessage}</Notice>
+              </div>
+            )}
+            <DataTable
+              rows={(hosts ?? []).map((host) => ({ host, check: host.app && byApp ? (byApp.get(host.app.id) ?? null) : undefined }))}
+              rowKey={({ host }) => keyOf(host)}
+              columns={columns}
+              loading={!hosts}
+              empty="No server block forwards to an upstream."
+            />
+          </>
         )}
-      </section>
+      </Panel>
     </>
   );
 }
 
-/** A Proxy Host's row; check is undefined without an App or while checks can't answer, null when the App has none. */
-function Row({ host, check }: { host: ProxyHost; check: Check | null | undefined }) {
+/** A Proxy Host's domains, the first marked when something about the block looks wrong. */
+function Domains({ host }: { host: ProxyHost }) {
   const [first, ...more] = host.serverNames;
   const warnings = host.warnings.map((w) => short[w]);
   return (
-    <tr aria-label={first} className="border-b border-border last:border-b-0">
-      <th scope="row" className={`${cell} pl-4 text-left font-normal`}>
-        <span className="flex items-center gap-2 font-medium">
-          {warnings.length > 0 && <StatusDot tone="warn" label={warnings.join("; ")} />}
-          {first}
+    <>
+      <span className="flex items-center gap-2">
+        {warnings.length > 0 && <StatusDot tone="warn" label={warnings.join("; ")} />}
+        {first}
+      </span>
+      {more.map((n) => (
+        <span key={n} className="block text-xs font-normal text-muted-foreground">
+          {n}
         </span>
-        {more.map((n) => (
-          <span key={n} className="block text-xs text-muted-foreground">
-            {n}
-          </span>
-        ))}
-      </th>
-      <td aria-label="Upstream" className={`${cell} text-muted-foreground`}>
-        {host.upstreamServers.length ? `${host.upstream} → ${host.upstreamServers.join(", ")}` : host.upstream}
-      </td>
-      <td aria-label="App" className={cell}>
-        <AppName host={host} />
-      </td>
-      <td className={cell}>{host.app && <CheckLine check={check} />}</td>
-      <td aria-label="Workload" className={`${cell} text-muted-foreground`}>
-        {host.app ? host.app.workload ? <WorkloadName workload={host.app.workload} /> : "none" : "—"}
-      </td>
-      <td aria-label="Certificate" className={`${cell} pr-4 text-muted-foreground`}>
-        <Certificate check={check} />
-      </td>
-    </tr>
+      ))}
+    </>
   );
 }
 
@@ -167,7 +147,7 @@ function Certificate({ check }: { check: Check | null | undefined }) {
   return (
     <span className="flex flex-col">
       <time dateTime={d.toISOString()}>{d.toLocaleDateString(undefined, { dateStyle: "medium" })}</time>
-      {warning && <span className="text-xs text-warn">{warning.replace(/^certificate /, "")}</span>}
+      {warning && <span className="text-xs text-warn-text">{warning.replace(/^certificate /, "")}</span>}
     </span>
   );
 }

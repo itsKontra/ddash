@@ -1,9 +1,25 @@
 import { durationMs, timestampDate } from "@bufbuild/protobuf/wkt";
 import { useQuery } from "@ddash/plugin";
 import { CoreService, type AuditChain, type AuditEntry } from "@ddash/proto/ddash/core/core_pb";
-import { Badge, cx, PageHeader, type Tone } from "@ddash/ui";
-import { ChevronRight } from "lucide-react";
-import { useEffect, useEffectEvent, useState, type ReactNode } from "react";
+import {
+  Button,
+  CodeBlock,
+  DataTable,
+  EmptyState,
+  Facts,
+  Notice,
+  PageTitle,
+  Panel,
+  Pill,
+  Select,
+  Sheet,
+  StatusList,
+  Tabs,
+  useQueryState,
+  type Column,
+  type Tone,
+} from "@ddash/ui";
+import { useEffect, useEffectEvent, useState } from "react";
 
 /** What the Audit Log is filtered by; empty means any. */
 interface Filter {
@@ -12,11 +28,12 @@ interface Filter {
   outcome: string;
 }
 
-const actorKinds: [string, string][] = [
-  ["operator", "Operators"],
-  ["component", "Components"],
-  ["core", "Core"],
-  ["", "Anyone"],
+/** The actor tabs; "anyone" asks for every actor kind. */
+const actorKinds = [
+  { id: "operator", label: "Operators" },
+  { id: "component", label: "Components" },
+  { id: "core", label: "Core" },
+  { id: "anyone", label: "Anyone" },
 ];
 
 const outcomes: [string, string][] = [
@@ -29,29 +46,48 @@ const outcomes: [string, string][] = [
 
 /**
  * The Audit Log Page under Settings: every Action as one chain, newest
- * first, rooted in what the actor started and expandable to its hops. It
- * starts on the Operator's own Actions and loads older chains a page at a
- * time. Read at the NONE tier: on mount and after Actions.
+ * first, rooted in what the actor started; a row opens its hops in a Sheet.
+ * It starts on the Operator's own Actions and loads older chains a page at
+ * a time. The filters and the sort sit in the URL. Read at the NONE tier:
+ * on mount and after Actions.
  */
 export function AuditLog() {
-  const [filter, setFilter] = useState<Filter>({ actorKind: "operator", target: "", outcome: "" });
+  const [actor, setActor] = useQueryState("actor", "operator");
+  const [target, setTarget] = useQueryState("target", "");
+  const [outcome, setOutcome] = useQueryState("outcome", "");
   const [targets, setTargets] = useState<string[]>([]);
-  const set = (key: keyof Filter) => (value: string) => setFilter((f) => ({ ...f, [key]: value }));
+  const filter: Filter = { actorKind: actor === "anyone" ? "" : actor, target, outcome };
+  const toolbar = (
+    <>
+      <div className="overflow-x-auto">
+        <Tabs label="Actor" value={actor} onChange={setActor} options={actorKinds} />
+      </div>
+      <div className="flex flex-wrap gap-2 sm:ml-auto">
+        <Select label="Target" value={target} onChange={(e) => setTarget(e.target.value)}>
+          <option value="">Any target</option>
+          {withSelected(targets, target).map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </Select>
+        <Select label="Outcome" value={outcome} onChange={(e) => setOutcome(e.target.value)}>
+          {outcomes.map(([v, text]) => (
+            <option key={v} value={v}>
+              {text}
+            </option>
+          ))}
+        </Select>
+      </div>
+    </>
+  );
   return (
     <div>
-      <PageHeader title="Audit Log" subtitle="Every Action ddash took, kept for a year." />
-      <div className="mb-4 flex flex-wrap gap-3">
-        <Select label="Actor" value={filter.actorKind} onChange={set("actorKind")} options={actorKinds} />
-        <Select
-          label="Target"
-          value={filter.target}
-          onChange={set("target")}
-          options={[["", "Any target"], ...withSelected(targets, filter.target).map((t): [string, string] => [t, t])]}
-        />
-        <Select label="Outcome" value={filter.outcome} onChange={set("outcome")} options={outcomes} />
-      </div>
+      <PageTitle title="Audit Log" subtitle="Every Action ddash took, kept for a year." back={{ href: "/settings", label: "Settings" }} />
       {/* A new filter starts again from the newest page. */}
-      <Pages key={JSON.stringify(filter)} filter={filter} onTargets={setTargets} />
+      <Panel flush toolbar={toolbar}>
+        <Pages key={JSON.stringify(filter)} filter={filter} onTargets={setTargets} />
+      </Panel>
     </div>
   );
 }
@@ -60,152 +96,184 @@ export function AuditLog() {
 const withSelected = (targets: string[], selected: string) =>
   selected === "" || targets.includes(selected) ? targets : [...targets, selected].sort();
 
-function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: [string, string][] }) {
-  return (
-    <label className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <select
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-ui border border-border bg-card px-2 py-1 text-foreground"
-      >
-        {options.map(([v, text]) => (
-          <option key={v} value={v}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
+/** A page of chains, once its answer is in. */
+interface Loaded {
+  token: string;
+  next?: string;
+  chains?: AuditChain[];
+  error?: string;
 }
 
-/** The pages loaded so far: each starts at its token, the first at "". */
+/** The pages loaded so far, as one table: each starts at its token, the first at "". */
 function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: string[]) => void }) {
-  const [pages, setPages] = useState<{ token: string; next?: string; empty?: boolean }[]>([{ token: "" }]);
-  const settled = (i: number, next: string, empty: boolean) =>
-    setPages((ps) => (ps[i] && (ps[i].next !== next || ps[i].empty !== empty) ? ps.map((p, j) => (j === i ? { ...p, next, empty } : p)) : ps));
+  const [pages, setPages] = useState<Loaded[]>([{ token: "" }]);
+  const [shown, setShown] = useState<AuditChain>();
+  const settled = (i: number, page: Omit<Loaded, "token">) => setPages((ps) => ps.map((p, j) => (j === i ? { ...p, ...page } : p)));
   const last = pages[pages.length - 1];
+  const chains = pages.flatMap((p) => p.chains ?? []);
+  const error = pages.find((p) => p.error)?.error;
   return (
-    <div>
-      <ul aria-label="Chains" className="divide-y divide-border rounded-ui border border-border bg-card">
-        {pages.map((p, i) => (
-          <Page
-            key={p.token}
-            request={{ ...filter, pageToken: p.token }}
-            onSettled={(next, empty) => settled(i, next, empty)}
-            onTargets={i === 0 ? onTargets : undefined}
-          />
-        ))}
-      </ul>
-      {pages.length === 1 && pages[0].empty && <p className="mt-3 text-sm text-muted-foreground">No Actions match.</p>}
-      {last.next && (
-        <button
-          type="button"
-          onClick={() => setPages((ps) => [...ps, { token: last.next! }])}
-          className="mt-3 rounded-ui border border-border px-3 py-1.5 text-sm hover:bg-muted"
-        >
-          Older
-        </button>
+    <>
+      {pages.map((p, i) => (
+        <Page key={p.token} request={{ ...filter, pageToken: p.token }} onSettled={(page) => settled(i, page)} onTargets={i === 0 ? onTargets : undefined} />
+      ))}
+      {error && (
+        <Notice tone="down" title="The Audit Log can't be read">
+          {error}
+        </Notice>
       )}
-    </div>
+      {(!error || chains.length > 0) && (
+        <DataTable
+          rows={chains}
+          rowKey={(c) => c.id}
+          columns={columns}
+          onRowClick={setShown}
+          sortKey="sort"
+          loading={!pages[0].chains}
+          empty={
+            <EmptyState icon="scroll-text" title="No Actions match">
+              Try Anyone, or another target or outcome.
+            </EmptyState>
+          }
+        />
+      )}
+      {last.next && (
+        <div className="flex justify-center border-t border-border p-4">
+          <Button variant="outline" onClick={() => setPages((ps) => [...ps, { token: last.next! }])}>
+            Load older Actions
+          </Button>
+        </div>
+      )}
+      {shown && <ChainSheet chain={shown} onClose={() => setShown(undefined)} />}
+    </>
   );
 }
 
-/** One page of chains, as list items. */
+/** One page of chains, reported up as its answer comes in. */
 function Page({
   request,
   onSettled,
   onTargets,
 }: {
   request: Filter & { pageToken: string };
-  onSettled: (next: string, empty: boolean) => void;
+  onSettled: (page: Omit<Loaded, "token">) => void;
   onTargets?: (targets: string[]) => void;
 }) {
   const { data, error } = useQuery(CoreService.method.listAuditLog, request);
-  // The callbacks change every render; only new data is news.
+  // The callbacks change every render; only a new answer is news.
   const report = useEffectEvent((d: NonNullable<typeof data>) => {
-    onSettled(d.nextPageToken, d.chains.length === 0);
+    onSettled({ next: d.nextPageToken, chains: d.chains, error: undefined });
     onTargets?.(d.targets);
   });
+  const fail = useEffectEvent((message: string) => onSettled({ error: message }));
   useEffect(() => {
     if (data) report(data);
   }, [data]);
-  if (error && !data) {
-    return (
-      <li role="alert" className="px-4 py-3 text-sm text-down">
-        The Audit Log can't be read: {error.message}
-      </li>
-    );
-  }
-  return data?.chains.map((c) => <Chain key={c.id} chain={c} />);
+  useEffect(() => {
+    if (error && !data) fail(error.message);
+  }, [error, data]);
+  return null;
 }
 
-/** A chain: its root, which expands to every hop. */
-function Chain({ chain }: { chain: AuditChain }) {
-  const [open, setOpen] = useState(false);
-  const [root, ...rest] = chain.entries;
-  if (!root) return null;
+const root = (c: AuditChain) => c.entries[0] as AuditEntry | undefined;
+const timeOf = (e?: AuditEntry) => (e?.time ? timestampDate(e.time) : undefined);
+const actorOf = (e?: AuditEntry) => (e ? (e.username ? `${e.actorKind}:${e.username}` : e.actorKind) : "");
+const tookOf = (e?: AuditEntry) => (e?.duration ? formatDuration(durationMs(e.duration)) : "running");
+const toneOf = (outcome: string): Tone => (outcome === "ok" ? "up" : outcome === "interrupted" ? "warn" : outcome === "" ? "idle" : "down");
+
+const columns: Column<AuditChain>[] = [
+  { id: "action", header: "Action", rowHeader: true, cell: (c) => <ActionName entry={root(c)} /> },
+  { id: "when", header: "When", sortable: true, sortValue: (c) => timeOf(root(c))?.getTime() ?? 0, cell: (c) => <When entry={root(c)} /> },
+  { id: "actor", header: "Actor", hideBelow: "sm", cell: (c) => <span className="text-muted-foreground">{actorOf(root(c))}</span> },
+  { id: "outcome", header: "Outcome", cell: (c) => <ChainOutcome chain={c} /> },
+  { id: "hops", header: "Hops", align: "right", hideBelow: "sm", cell: (c) => <span className="tabular-nums">{c.entries.length}</span> },
+  { id: "took", header: "Took", align: "right", hideBelow: "sm", cell: (c) => <span className="tabular-nums">{tookOf(root(c))}</span> },
+];
+
+function When({ entry }: { entry?: AuditEntry }) {
+  const at = timeOf(entry);
+  return at ? (
+    <time dateTime={at.toISOString()} className="text-xs text-muted-foreground tabular-nums">
+      {at.toLocaleString()}
+    </time>
+  ) : null;
+}
+
+function ActionName({ entry: e }: { entry?: AuditEntry }) {
+  if (!e) return null;
+  return (
+    <span className="inline-flex items-center gap-2">
+      {e.target}
+      <span className="font-mono text-xs font-normal text-muted-foreground">{e.method}</span>
+      {e.disruptive && <Pill tone="warn">disruptive</Pill>}
+    </span>
+  );
+}
+
+function Outcome({ outcome }: { outcome: string }) {
+  return (
+    <Pill tone={toneOf(outcome)} dot>
+      {outcome === "" ? "running" : outcome}
+    </Pill>
+  );
+}
+
+/** The root's outcome, and how many hops after it weren't ok. */
+function ChainOutcome({ chain }: { chain: AuditChain }) {
+  const [first, ...rest] = chain.entries;
   const notOk = rest.filter((e) => e.outcome !== "ok").length;
   return (
-    <li>
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 text-left text-sm hover:bg-muted"
-      >
-        <ChevronRight aria-hidden className={cx("h-4 w-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-90")} />
-        <EntryLine entry={root} />
-        {rest.length > 0 && (
-          <span className="text-muted-foreground">
-            {chain.entries.length} hops
-            {notOk > 0 && <> · {notOk} not ok</>}
-          </span>
-        )}
-      </button>
-      {open && (
-        <ol aria-label="Hops" className="mx-4 mb-3 flex flex-col gap-2 border-l-2 border-border pl-4">
-          {chain.entries.map((e, i) => (
-            <li key={i} className="text-sm">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <EntryLine entry={e} />
-              </div>
-              <pre className="mt-1 overflow-x-auto rounded-ui bg-muted px-3 py-2 text-xs whitespace-pre-wrap break-all">{e.request}</pre>
-            </li>
-          ))}
-        </ol>
+    <span className="inline-flex items-center gap-2">
+      <Outcome outcome={first?.outcome ?? ""} />
+      {notOk > 0 && (
+        <span className="text-xs font-semibold text-down-text">
+          {notOk} {notOk === 1 ? "hop" : "hops"} not ok
+        </span>
       )}
-    </li>
+    </span>
   );
 }
 
-/** An entry's time, actor, target and method, disruptive, outcome (with its message) and duration. */
-function EntryLine({ entry: e }: { entry: AuditEntry }) {
-  const at = e.time ? timestampDate(e.time) : undefined;
+/** A chain in a wide Sheet: its failure, its facts, and every hop with its request. */
+function ChainSheet({ chain, onClose }: { chain: AuditChain; onClose: () => void }) {
+  const first = root(chain);
+  if (!first) return null;
   return (
-    <>
-      {at && (
-        <time dateTime={at.toISOString()} className="tabular-nums text-muted-foreground">
-          {at.toLocaleString()}
-        </time>
-      )}
-      <span>{e.username ? `${e.actorKind}:${e.username}` : e.actorKind}</span>
-      <span className="font-medium">
-        {e.target} · {e.method}
-      </span>
-      {e.disruptive && <Badge tone="warn">disruptive</Badge>}
-      <Outcome outcome={e.outcome} />
-      {e.message && <span className="text-down">{e.message}</span>}
-      {e.duration && <span className="tabular-nums text-muted-foreground">{formatDuration(durationMs(e.duration))}</span>}
-    </>
+    <Sheet wide kicker="Audit Log · Action" title={`${first.target} · ${first.method}`} subtitle={timeOf(first)?.toLocaleString()} onClose={onClose}>
+      <div className="flex flex-col gap-6">
+        {first.message && <Notice tone={toneOf(first.outcome) === "warn" ? "warn" : "down"}>{first.message}</Notice>}
+        <Facts
+          items={[
+            { label: "Actor", value: actorOf(first) },
+            { label: "Outcome", value: <ChainOutcome chain={chain} /> },
+            { label: "Took", value: tookOf(first) },
+            { label: "Hops", value: chain.entries.length },
+          ]}
+        />
+        <StatusList
+          timeline
+          items={chain.entries.map((e) => ({
+            tone: toneOf(e.outcome),
+            title: (
+              <span className="inline-flex items-center gap-2">
+                {e.target}
+                <span className="font-mono text-xs font-normal text-muted-foreground">{e.method}</span>
+                {e.disruptive && <Pill tone="warn">disruptive</Pill>}
+              </span>
+            ),
+            aside: (
+              <span className="inline-flex items-center gap-2">
+                <Outcome outcome={e.outcome} />
+                {e.duration && formatDuration(durationMs(e.duration))}
+              </span>
+            ),
+            meta: [actorOf(e), e.message].filter(Boolean).join(" · "),
+            body: e.request && <CodeBlock label="Request">{e.request}</CodeBlock>,
+          }))}
+        />
+      </div>
+    </Sheet>
   );
-}
-
-function Outcome({ outcome }: { outcome: string }): ReactNode {
-  const [tone, label]: [Tone, string] =
-    outcome === "ok" ? ["up", "ok"] : outcome === "interrupted" ? ["warn", "interrupted"] : outcome === "" ? ["idle", "running"] : ["down", outcome];
-  return <Badge tone={tone}>{label}</Badge>;
 }
 
 /** 3 ms, 1.5 s, 12 s, 2 min 5 s. */

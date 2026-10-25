@@ -3,8 +3,8 @@ import { kindLabel } from "@ddash/display";
 import { useAction, useQuery } from "@ddash/plugin";
 import { ChecksService, type Check, type Maintenance, type MaintenanceScope } from "@ddash/proto/checks/checks_pb";
 import { Kind, type WorkloadRef } from "@ddash/proto/ddash/workload/workload_pb";
-import { Badge, Button, Segmented, Sheet } from "@ddash/ui";
-import { useId, useState, type ReactNode } from "react";
+import { Button, Field, FormActions, Notice, Panel, Pill, Segmented, Select, Sheet, StatusList } from "@ddash/ui";
+import { useState } from "react";
 import { shownName } from "./checks";
 
 /** The Maintenance in force, refreshed on the getter's FAST tier. */
@@ -27,10 +27,15 @@ export function workloadLabel(w: WorkloadRef): string {
 /** A time of day, e.g. "14:30". */
 const clock = (ms: number) => new Date(ms).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 
-/** The Badge a Check in Maintenance carries: until when. */
-export function MaintenanceBadge({ check: c }: { check: Check }) {
+/** The Pill a Check in Maintenance carries: until when. */
+export function MaintenancePill({ check: c }: { check: Check }) {
   if (!c.maintenance) return null;
-  return <Badge tone="maint">Maintenance until {c.maintenanceEnds ? clock(timestampMs(c.maintenanceEnds)) : "ended"}</Badge>;
+  return (
+    <>
+      {" "}
+      <Pill tone="maint">Maintenance until {c.maintenanceEnds ? clock(timestampMs(c.maintenanceEnds)) : "ended"}</Pill>
+    </>
+  );
 }
 
 /** What a Maintenance covers, as people read it. */
@@ -59,33 +64,25 @@ function untilText(m: Maintenance): string {
 export function MaintenanceList({ checks }: { checks: readonly Check[] }) {
   const { data } = useMaintenance();
   const end = useAction(ChecksService.method.endMaintenance);
-  const id = useId();
   if (!data?.maintenance.length) return null;
   return (
-    <section aria-labelledby={id} className="mb-4 rounded-ui border border-border bg-card px-4 py-3">
-      <h2 id={id} className="mb-2 text-sm font-semibold">
-        Maintenance
-      </h2>
-      <ul className="flex flex-col gap-1 text-sm">
-        {data.maintenance.map((m) => {
-          const label = scopeLabel(m.scope, checks);
-          return (
-            <li key={label} aria-label={label} className="flex items-center gap-2">
-              <Badge tone="maint">{label}</Badge>
-              <span className="text-muted-foreground">{untilText(m)}</span>
-              <Button className="ml-auto" variant="ghost" size="sm" disabled={end.pending} onClick={() => end.run({ scope: m.scope })}>
+    <Panel title="Maintenance">
+      <div className="flex flex-col gap-3">
+        {end.error && <Notice tone="down">{end.error.rawMessage}</Notice>}
+        <StatusList
+          items={data.maintenance.map((m) => ({
+            tone: "maint",
+            title: scopeLabel(m.scope, checks),
+            meta: untilText(m),
+            aside: (
+              <Button variant="ghost" size="sm" disabled={end.pending} onClick={() => end.run({ scope: m.scope })}>
                 End
               </Button>
-            </li>
-          );
-        })}
-      </ul>
-      {end.error && (
-        <p role="alert" className="text-xs text-down">
-          {end.error.rawMessage}
-        </p>
-      )}
-    </section>
+            ),
+          }))}
+        />
+      </div>
+    </Panel>
   );
 }
 
@@ -113,7 +110,6 @@ export function MaintenanceSheet({ check, checks, onClose }: { check?: Check; ch
   const [cover, setCover] = useState<Covers>("Everything");
   const [picked, setPicked] = useState(0);
   const [length, setLength] = useState<Length>("1 h");
-  const pickId = useId();
 
   async function go() {
     const workload = workloads[picked]?.ref;
@@ -127,62 +123,43 @@ export function MaintenanceSheet({ check, checks, onClose }: { check?: Check; ch
   }
 
   return (
-    <Sheet title={check ? `Maintenance for ${shownName(check)}` : "Maintenance"} onClose={onClose}>
+    <Sheet
+      title={check ? `Maintenance for ${shownName(check)}` : "Maintenance"}
+      subtitle="Beats in Maintenance are recorded as such and left out of uptime. The Checks keep being probed."
+      onClose={onClose}
+      footer={
+        <FormActions>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button disabled={start.pending} onClick={go}>
+            Start
+          </Button>
+        </FormActions>
+      }
+    >
       <div className="flex flex-col gap-4">
-        <p className="text-sm text-muted-foreground">
-          Beats in Maintenance are recorded as such and left out of uptime. The Checks keep being probed.
-        </p>
         {!check && (
-          <Labelled label="Covers">
+          <Field label="Covers">
             <Segmented label="Covers" value={cover} options={workloads.length ? covers : covers.slice(0, 1)} onChange={setCover} />
-          </Labelled>
+          </Field>
         )}
         {!check && cover === "A Workload" && (
-          <div className="flex flex-col gap-1">
-            <label htmlFor={pickId} className="text-sm font-medium">
-              Workload
-            </label>
-            <select
-              id={pickId}
-              value={picked}
-              onChange={(e) => setPicked(Number(e.target.value))}
-              className="rounded-ui border border-border bg-background px-3 py-1.5 text-sm"
-            >
+          <Field label="Workload" hint="Covers the Checks of every App running on it.">
+            <Select value={picked} onChange={(e) => setPicked(Number(e.target.value))}>
               {workloads.map((w, i) => (
                 <option key={w.label} value={i}>
                   {w.label}
                 </option>
               ))}
-            </select>
-            <p className="text-xs text-muted-foreground">Covers the Checks of every App running on it.</p>
-          </div>
+            </Select>
+          </Field>
         )}
-        <Labelled label="For">
+        <Field label="For">
           <Segmented label="For" value={length} options={lengths} onChange={setLength} />
-        </Labelled>
-        {start.error && (
-          <p role="alert" className="text-sm text-down">
-            {start.error.rawMessage}
-          </p>
-        )}
-        <div className="flex gap-2">
-          <Button disabled={start.pending} onClick={go}>
-            Start
-          </Button>
-          <Button variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-        </div>
+        </Field>
+        {start.error && <Notice tone="down">{start.error.rawMessage}</Notice>}
       </div>
     </Sheet>
-  );
-}
-
-function Labelled({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium">{label}</span>
-      {children}
-    </div>
   );
 }

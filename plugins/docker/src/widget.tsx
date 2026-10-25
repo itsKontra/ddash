@@ -1,6 +1,6 @@
 import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
-import { DockerApiService, type Container, type HostContainers } from "@ddash/proto/docker-api/docker_api_pb";
-import { Stat } from "@ddash/ui";
+import { DockerApiService, type Container } from "@ddash/proto/docker-api/docker_api_pb";
+import { Facts, MetricTile, Pill } from "@ddash/ui";
 
 const unhealthy = (c: Container) => c.status.includes("(unhealthy)");
 const restarting = (c: Container) => c.state === "restarting";
@@ -34,39 +34,24 @@ function useStatus(): Status | undefined {
 /** S: the running and total counts. M: each host's counts too. */
 function Body({ size }: { size: WidgetSize }) {
   const { data } = useContainers();
-  if (!data) return null;
-  const all = data.hosts.flatMap((h) => h.containers);
-  const troubled = all.filter((c) => unhealthy(c) || restarting(c)).length;
+  const all = data?.hosts.flatMap((h) => h.containers);
+  const troubled = all?.filter((c) => unhealthy(c) || restarting(c)).length ?? 0;
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-6">
-        <Stat label="running" value={running(all)} tone="up" />
-        <Stat label="containers" value={all.length} />
-        {troubled > 0 && <Stat label="need attention" value={troubled} tone="warn" />}
+      <div className="grid grid-cols-2 gap-3">
+        <MetricTile label="running" value={all && running(all)} tone="up" />
+        <MetricTile label="containers" value={all?.length} />
+        {troubled > 0 && <MetricTile label="need attention" value={troubled} tone="warn" />}
       </div>
-      {size === "M" && (
-        <table className="w-full text-sm">
-          <tbody>
-            {data.hosts.map((h) => (
-              <HostRow key={h.host} host={h} />
-            ))}
-          </tbody>
-        </table>
+      {size === "M" && data && (
+        <Facts
+          items={data.hosts.map((h) => ({
+            label: h.host,
+            value: h.error ? <Pill tone="warn">unreadable</Pill> : `${running(h.containers)}/${h.containers.length} running`,
+          }))}
+        />
       )}
     </div>
-  );
-}
-
-function HostRow({ host }: { host: HostContainers }) {
-  return (
-    <tr>
-      <th scope="row" className="py-0.5 text-left font-medium">
-        {host.host}
-      </th>
-      <td className="py-0.5 text-right text-muted-foreground tabular-nums">
-        {host.error ? <span className="text-warn">unreadable</span> : `${running(host.containers)}/${host.containers.length} running`}
-      </td>
-    </tr>
   );
 }
 

@@ -1,7 +1,8 @@
 // The shell's build (into dist/shell, embedded by package web) and its dev
 // server for `make dev`, which proxies the core's paths to it.
 import tailwindcss from "@tailwindcss/vite";
-import { importMap, importMapPackages, isImportMapped, jsx, onLog } from "@ddash/vite-preset";
+import { importMap, importMapPackages, isImportMapped, jsx, onLog, vendorFromSource } from "@ddash/vite-preset";
+import { createRequire } from "node:module";
 import { defineConfig, type Plugin } from "vite";
 
 // Where `make dev` runs the core.
@@ -35,16 +36,26 @@ function importMapped(): Plugin {
       order: "pre",
       handler: () => [
         { tag: "script", attrs: { type: "importmap" }, children: JSON.stringify(importMap(release)), injectTo: "head-prepend" },
+        // @ddash/ui's Icon puts the Release in its icon URLs, so they cache immutably.
+        { tag: "meta", attrs: { name: "ddash-release", content: release }, injectTo: "head-prepend" },
       ],
     },
   };
 }
 
+const require = createRequire(import.meta.url);
+
 export default defineConfig({
-  plugins: [importMapped(), tailwindcss()],
+  // In `make dev`, @ddash/ui and @ddash/plugin come from source, so their
+  // edits show in the shell and every Plugin on reload.
+  plugins: [
+    vendorFromSource({ "@ddash/ui": require.resolve("@ddash/ui"), "@ddash/plugin": require.resolve("@ddash/plugin") }),
+    importMapped(),
+    tailwindcss(),
+  ],
   oxc: jsx,
-  // No pre-bundling: it would bundle its own React into deps such as
-  // lucide-react. The shell's other deps are ESM and served as they are.
+  // No pre-bundling: it would bundle its own React into deps that import
+  // it. The shell's other deps are ESM and served as they are.
   optimizeDeps: { noDiscovery: true, include: [], exclude: importMapPackages },
   build: {
     outDir: "dist/shell",

@@ -1,87 +1,70 @@
 import type { Device } from "@ddash/proto/network/network_pb";
-import { Badge, StatusDot } from "@ddash/ui";
+import { DataTable, EmptyState, Notice, Panel, Pill, StatusDot, type Column } from "@ddash/ui";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { AdBlocking } from "./adblocking";
-import { DeviceAction } from "./adopt";
+import { DeviceSheet } from "./adopt";
 import { detailPath, nameOf, tally, useDevices } from "./devices";
 
 /** The Devices section's header aside: how many are New. */
 export function NewCount() {
   const { data } = useDevices();
   const n = data ? tally(data.devices).new : 0;
-  return n ? <Badge tone="warn">{`${n} new`}</Badge> : null;
+  return n ? <Pill tone="warn">{`${n} new`}</Pill> : null;
 }
 
 /** Adopted or New, as a pill. */
 export function Adoption({ device: d }: { device: Device }) {
-  return d.adopted ? <Badge tone="idle">Adopted</Badge> : <Badge tone="warn">New</Badge>;
+  return d.adopted ? <Pill tone="idle">Adopted</Pill> : <Pill tone="warn">New</Pill>;
 }
 
 /** Tunnelled or Direct, as a pill. */
 export function Routing({ device: d }: { device: Device }) {
-  return d.direct ? <Badge tone="idle">Direct</Badge> : <Badge tone="up">Tunnelled</Badge>;
+  return d.direct ? <Pill tone="idle">Direct</Pill> : <Pill tone="up">Tunnelled</Pill>;
 }
 
-const cell = "px-2 py-2";
+const columns: Column<Device>[] = [
+  { id: "name", header: "Name", rowHeader: true, cell: (d) => <Link to={detailPath(d)}>{nameOf(d)}</Link> },
+  { id: "online", header: "Online", cell: (d) => <StatusDot tone={d.online ? "up" : "idle"} label={d.online ? "online" : "offline"} /> },
+  { id: "ip", header: "IP", mono: true, cell: (d) => d.ip },
+  { id: "mac", header: "MAC", mono: true, cell: (d) => d.mac },
+  { id: "adoption", header: "Address", cell: (d) => <Adoption device={d} /> },
+  {
+    id: "routing",
+    header: "Routing",
+    cell: (d) => (
+      <span className="inline-flex items-center gap-2">
+        <Routing device={d} />
+        <AdBlocking device={d} />
+      </span>
+    ),
+  },
+];
 
-/** Every Device with its routing and status; each name opens its detail, and a New one has Adopt. */
-export function DevicesTable() {
+/** The Devices section: every Device with its routing and status; each name opens its detail, and its ⋯ Menu Adopts a New one or renames an Adopted one. */
+export function DevicesTable({ aside }: { aside?: ReactNode }) {
   const { data, error } = useDevices();
-  if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
-  if (!data) return null;
-  if (data.devices.length === 0) return <p className="px-4 py-3 text-sm text-muted-foreground">The firewall's DHCP knows no Devices.</p>;
+  const [sheet, setSheet] = useState<Device>();
+  const failed = error && !data;
+  const none = data?.devices.length === 0;
   return (
-    <table aria-label="Devices" className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-border text-left text-xs text-muted-foreground">
-          <th scope="col" className="w-6 py-2 pl-4">
-            <span className="sr-only">Online</span>
-          </th>
-          <th scope="col" className={`${cell} font-medium`}>
-            Name
-          </th>
-          <th scope="col" className={`${cell} font-medium`}>
-            IP
-          </th>
-          <th scope="col" className={`${cell} font-medium`}>
-            MAC
-          </th>
-          <th scope="col" className={`${cell} font-medium`}>
-            <span className="sr-only">Adopted or New</span>
-          </th>
-          <th scope="col" className={`${cell} pr-4 font-medium`}>
-            Routing
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {data.devices.map((d) => (
-          <tr key={d.mac} className="border-b border-border last:border-b-0">
-            <td className="w-6 py-2 pl-4">
-              <StatusDot tone={d.online ? "up" : "idle"} label={d.online ? "online" : "offline"} />
-            </td>
-            <th scope="row" className={`${cell} text-left font-medium`}>
-              <Link to={detailPath(d)} className="hover:underline">
-                {nameOf(d)}
-              </Link>
-            </th>
-            <td className={`${cell} text-muted-foreground tabular-nums`}>{d.ip}</td>
-            <td className={`${cell} text-xs text-muted-foreground tabular-nums`}>{d.mac}</td>
-            <td className={cell}>
-              <span className="inline-flex items-center gap-2">
-                <Adoption device={d} />
-                {!d.adopted && <DeviceAction device={d} />}
-              </span>
-            </td>
-            <td className={`${cell} pr-4`}>
-              <span className="inline-flex items-center gap-2">
-                <Routing device={d} />
-                <AdBlocking device={d} />
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <Panel title="Devices" actions={aside} flush>
+      {failed ? (
+        <Notice tone="down">{error.rawMessage}</Notice>
+      ) : none ? (
+        <EmptyState icon="network" title="No Devices">
+          The firewall's DHCP knows no Devices.
+        </EmptyState>
+      ) : (
+        <DataTable
+          rows={data?.devices ?? []}
+          rowKey={(d) => d.mac}
+          columns={columns}
+          loading={!data}
+          actions={(d) => [{ label: d.adopted ? "Rename" : "Adopt", onSelect: () => setSheet(d) }]}
+        />
+      )}
+      {sheet && <DeviceSheet device={sheet} onClose={() => setSheet(undefined)} />}
+    </Panel>
   );
 }

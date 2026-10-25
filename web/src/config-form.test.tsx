@@ -1,7 +1,8 @@
 import { create, toBinary } from "@bufbuild/protobuf";
 import { ConfigErrorsSchema } from "@ddash/proto/ddash/core/core_pb";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
+import { settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -101,32 +102,52 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
   }
 };
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 async function boot() {
   render(
     <MemoryRouter initialEntries={["/plugins"]}>
-      <App client={createQueryClient()} fetch={vi.fn(fetchFake)} importBundle={async () => ({})} />
+      <App client={createQueryClient()} fetch={tracked(vi.fn(fetchFake))} importBundle={async () => ({})} />
     </MemoryRouter>,
   );
   await settle();
 }
 
 async function configure(component: string) {
-  const docker = screen.getByRole("listitem", { name: "Docker" });
-  fireEvent.click(within(docker).getByRole("button", { expanded: false }));
-  const row = within(within(docker).getByRole("list", { name: "Component health" })).getByRole("listitem", { name: component });
-  fireEvent.click(within(row).getByRole("button", { name: "Configure" }));
+  fireEvent.click(within(healthRow(component)).getByRole("button", { name: "Configure" }));
   await settle();
-  return screen.getByRole("dialog", { name: `${component} config` });
+  return screen.getByRole("dialog", { name: component });
 }
 
+const healthRow = (component: string) =>
+  within(within(screen.getByRole("listitem", { name: "Docker" })).getByRole("list", { name: "Component health" })).getByRole("listitem", { name: component });
+
 const save = async (form: HTMLElement) => {
-  fireEvent.click(within(form).getByRole("button", { name: "Save" }));
+  fireEvent.click(within(form).getByRole("button", { name: "Save and restart" }));
   await settle();
 };
 
 const input = (form: HTMLElement, label: string) => within(form).getByLabelText(label) as HTMLInputElement;
+
+it("opens a Component's form in a dialog titled by it, saying that saving restarts it", async () => {
+  await boot();
+
+  const form = await configure("ntfy-api");
+
+  expect(within(form).getByText("Configure")).toBeTruthy();
+  const note = document.getElementById(form.getAttribute("aria-describedby")!);
+  expect(note?.textContent).toMatch(/Saving restarts ntfy-api/);
+});
+
+it("closes the form on Cancel without saving", async () => {
+  await boot();
+  const form = await configure("ntfy-api");
+
+  fireEvent.change(input(form, "Topic"), { target: { value: "other" } });
+  fireEvent.click(within(form).getByRole("button", { name: "Cancel" }));
+  await settle();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(saves).toEqual([]);
+});
 
 it("renders each field from the schema: labels, help, defaults as placeholders, stored values", async () => {
   await boot();
@@ -136,7 +157,7 @@ it("renders each field from the schema: labels, help, defaults as placeholders, 
   expect(input(form, "Server").value).toBe("");
   expect(input(form, "Server").placeholder).toBe("https://ntfy.sh");
   expect(input(form, "Topic").value).toBe("ddash");
-  expect(within(form).getByText("Where Notifications go.")).toBeTruthy();
+  expect(input(form, "Topic").getAttribute("aria-describedby")).toBe(within(form).getByText("Where Notifications go.").id);
   expect(input(form, "Priority").value).toBe("4");
   expect(within(form).getByRole("switch", { name: "Markdown" }).getAttribute("aria-checked")).toBe("false");
   const tone = within(form).getByLabelText("Tone") as HTMLSelectElement;
@@ -178,7 +199,7 @@ it("replaces or clears a secret", async () => {
   await save(form);
   expect(saves.at(-1)).toMatchObject({ values: { token: "tk_new" } });
 
-  form = screen.getByRole("dialog", { name: "ntfy-api config" });
+  form = screen.getByRole("dialog", { name: "ntfy-api" });
   fireEvent.click(within(within(form).getByRole("group", { name: "Token" })).getByRole("button", { name: "Clear" }));
   await save(form);
   expect(saves.at(-1)).toMatchObject({ clearSecrets: ["token"] });
@@ -207,6 +228,8 @@ it("checks required, format and min/max before saving, showing each error under 
 
   expect(saves).toEqual([]);
   expect(within(form).getByText("is required").closest("[data-field]")?.getAttribute("data-field")).toBe("topic");
+  expect(input(form, "Topic").getAttribute("aria-invalid")).toBe("true");
+  expect(input(form, "Topic").getAttribute("aria-describedby")).toBe(within(form).getByText("is required").id);
   expect(within(form).getByText("must be a URL like https://host.example").closest("[data-field]")?.getAttribute("data-field")).toBe("server");
   expect(within(form).getByText("must be at most 5").closest("[data-field]")?.getAttribute("data-field")).toBe("priority");
 });
@@ -243,7 +266,8 @@ it("marks a Component needing config and opens its form with the stored config's
   forms["ntfy-api"] = { ...ntfyForm(), values: {}, errors: [{ path: "topic", message: "is required" }] } as never;
   await boot();
 
-  expect(within(screen.getByRole("listitem", { name: "Docker" })).getByText("needs config")).toBeTruthy();
+  expect(within(healthRow("ntfy-api")).getByText("needs config")).toBeTruthy();
+  expect(within(healthRow("ntfy-api")).getByRole("button", { name: "Configure" }).className.split(" ")).toContain("bg-primary");
   const form = await configure("ntfy-api");
 
   expect(within(form).getByText("is required").closest("[data-field]")?.getAttribute("data-field")).toBe("topic");
@@ -262,10 +286,10 @@ it("opens the forms of the unconfigured Components an install adds, in turn", as
   await settle();
   await settle();
 
-  expect(screen.getByRole("dialog", { name: "ntfy-api config" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "ntfy-api" })).toBeTruthy();
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
   await settle();
-  expect(screen.getByRole("dialog", { name: "docker-api config" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "docker-api" })).toBeTruthy();
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
   await settle();
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -283,10 +307,10 @@ it("keeps a form an install opened until it is closed, to show the health after 
   await settle();
   await settle();
 
-  await save(screen.getByRole("dialog", { name: "ntfy-api config" }));
+  await save(screen.getByRole("dialog", { name: "ntfy-api" }));
   await settle();
 
-  expect(within(screen.getByRole("dialog", { name: "ntfy-api config" })).getByRole("status").textContent).toMatch(/ok/);
+  expect(within(screen.getByRole("dialog", { name: "ntfy-api" })).getByRole("status").textContent).toMatch(/ok/);
 });
 
 it("shows a started Component's setup hint, with a button copying its block", async () => {
@@ -298,13 +322,14 @@ it("shows a started Component's setup hint, with a button copying its block", as
 
   const form = await configure("docker-api");
 
-  const hint = within(form).getByRole("region", { name: "Setup" });
-  expect(hint.textContent).toContain("Add this line to root's authorized_keys.");
-  expect(within(hint).getByText(line).tagName).toBe("PRE");
-  fireEvent.click(within(hint).getByRole("button", { name: "Copy" }));
+  expect(within(form).getByText("Add this line to root's authorized_keys.").closest("[role=status]")).toBeTruthy();
+  const block = within(form).getByRole("region", { name: "Setup" });
+  expect(block.tagName).toBe("PRE");
+  expect(block.textContent).toBe(line);
+  fireEvent.click(within(form).getByRole("button", { name: "Copy" }));
   await settle();
   expect(writeText).toHaveBeenCalledWith(line);
-  expect(within(hint).getByRole("button", { name: "Copied" })).toBeTruthy();
+  expect(within(form).getByRole("button", { name: "Copied" })).toBeTruthy();
 });
 
 it("shows no setup hint for a Component without one", async () => {

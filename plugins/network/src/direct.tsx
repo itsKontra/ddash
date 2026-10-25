@@ -1,6 +1,6 @@
 import { useAction } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
-import { Switch } from "@ddash/ui";
+import { Notice, Switch } from "@ddash/ui";
 import { nameOf } from "./devices";
 
 /**
@@ -18,11 +18,7 @@ export function DirectToggle({ device: d, bypassAlias }: { device: Device; bypas
         <span className="text-muted-foreground">{d.direct ? `in ${bypassAlias}` : "via the VPN Tunnel"}</span>
       </span>
       {!d.adopted && <span className="text-xs text-muted-foreground">Toggling Adopts it first, at the lowest free reserved address.</span>}
-      {set.error && (
-        <span role="alert" className="text-down">
-          {set.error.rawMessage}
-        </span>
-      )}
+      {set.error && <Notice tone="down">{set.error.rawMessage}</Notice>}
     </div>
   );
 }

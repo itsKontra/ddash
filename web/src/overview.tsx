@@ -1,11 +1,31 @@
-import { PluginScope, useAction, useQuery, type Fetch, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { Button, cx, Hero, PageHeader, Segmented, Sheet, WidgetCard } from "@ddash/ui";
-import { GripVertical, Pencil, Plus, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { PluginScope, useAction, useQuery, type Action, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
+import {
+  Button,
+  cx,
+  EmptyState,
+  ErrorFrame,
+  FormActions,
+  HeroCard,
+  Icon,
+  MetricTile,
+  Notice,
+  PageTitle,
+  Pill,
+  Ring,
+  SearchField,
+  Segmented,
+  Sheet,
+  Skeleton,
+  StatusDot,
+  StatusList,
+  WidgetCard,
+  type IconName,
+} from "@ddash/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
-import { ErrorBoundary, ErrorFrame } from "./boundary";
-import { hero } from "./hero";
+import { ErrorBoundary } from "./boundary";
+import { hero, type HeroState } from "./hero";
 import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
 import type { LoadedPlugin, Plugins } from "./plugins";
 import { useReach } from "./reach";
@@ -17,7 +37,7 @@ export interface OverviewLayout {
   /** Saves layout; resolves to whether the core took it. */
   save: (layout: Layout) => Promise<boolean>;
   /** Why the last save failed. */
-  error?: Error;
+  error?: Action<typeof CoreService.method.saveLayout>["error"];
 }
 
 /**
@@ -63,13 +83,24 @@ function fromProto(l: { entries: { widget: string; size: string }[]; seen: strin
   };
 }
 
+// On phones the grid has one column, so every size fits in it.
 const span: Record<WidgetSize, string> = {
   S: "col-span-1 row-span-1",
-  M: "col-span-2 row-span-1",
-  L: "col-span-2 row-span-2",
+  M: "col-span-1 row-span-1 sm:col-span-2",
+  L: "col-span-1 row-span-2 sm:col-span-2",
 };
 
-/** /: the Hero over the 4-column grid of placed Widgets, with Edit mode. */
+/** The metric tiles under the hero: how many reporting Widgets are at each tone. */
+const tiles: { label: string; icon: IconName; tone: Tone }[] = [
+  { label: "Up", icon: "circle-check", tone: "up" },
+  { label: "Needs attention", icon: "triangle-alert", tone: "warn" },
+  { label: "Down", icon: "circle-x", tone: "down" },
+  { label: "Maintenance", icon: "wrench", tone: "maint" },
+];
+
+const tally = (tones: readonly Tone[], tone: Tone) => tones.filter((t) => t === tone).length;
+
+/** /: the hero and metric tiles over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode. */
 export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch }) {
   const reach = useReach();
   // While editing, the Operator's unsaved layout.
@@ -97,6 +128,8 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
     cards.map((c) => ({ title: c.title, status: statuses.get(c.entry.widget) })),
     reach.unreachable,
   );
+  // The tones of the placed Widgets that have reported.
+  const tones = cards.flatMap((c) => statuses.get(c.entry.widget)?.tone ?? []);
 
   const edit = (change: (l: Layout) => Layout) => setDraft((d) => (d ? change(d) : d));
   const move = (from: string, to: string) =>
@@ -114,84 +147,102 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
       return { ...l, entries };
     });
   const done = async () => {
-    if (draft && JSON.stringify(draft) !== JSON.stringify(overview.layout) && !(await overview.save(draft))) return;
+    if (changed && !(await overview.save(draft))) return;
     setDraft(null);
     setAdding(false);
   };
+  const cancel = () => {
+    setDraft(null);
+    setAdding(false);
+  };
+  const changed = !!draft && JSON.stringify(draft) !== JSON.stringify(overview.layout);
+  const resize = (key: string, size: WidgetSize) => edit((l) => ({ ...l, entries: l.entries.map((e) => (e.widget === key ? { ...e, size } : e)) }));
+  const remove = (key: string) => edit((l) => ({ ...l, entries: l.entries.filter((e) => e.widget !== key) }));
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
+      {draft && <EditBar changed={changed} onAdd={() => setAdding(true)} onCancel={cancel} onDone={done} />}
+      <PageTitle
+        kicker="Main"
         title="Overview"
+        subtitle="Every Widget's latest report. Arrange the grid with Edit."
         actions={
           layout &&
-          (draft ? (
-            <>
-              <Button variant="outline" onClick={() => setAdding(true)}>
-                <Plus className="h-4 w-4" aria-hidden /> Add Widget
-              </Button>
-              <Button onClick={done}>Done</Button>
-            </>
-          ) : (
-            <Button variant="outline" onClick={() => setDraft(overview.layout!)}>
-              <Pencil className="h-4 w-4" aria-hidden /> Edit
+          !draft && (
+            <Button variant="outline" icon="pencil" onClick={() => setDraft(overview.layout!)}>
+              Edit
             </Button>
-          ))
+          )
         }
       />
-      {draft && overview.error && <ErrorFrame title="Saving the layout failed" error={overview.error} />}
-      <Hero tone={h.tone} headline={h.headline} problems={h.problems} />
-      <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-4 gap-4 grid-flow-dense">
-        {cards.map((c) => (
-          <li
-            key={c.entry.widget}
-            aria-label={c.title}
-            className={cx(span[c.entry.size], dragging === c.entry.widget && "opacity-40", draft && "cursor-grab")}
-            draggable={draft ? true : undefined}
-            onDragStart={(e) => {
-              e.dataTransfer?.setData("text/plain", c.entry.widget);
-              setDragging(c.entry.widget);
-            }}
-            onDragOver={(e) => {
-              if (!dragging) return;
-              e.preventDefault();
-              if (dragging !== c.entry.widget) move(dragging, c.entry.widget);
-            }}
-            onDrop={(e) => e.preventDefault()}
-            onDragEnd={() => setDragging(null)}
-          >
-            <WidgetCard
-              className={cx(draft && "ring-2 ring-primary/30")}
-              title={c.nav ? <Link to={`/${c.plugin!.name}`}>{c.title}</Link> : c.title}
-              status={statuses.get(c.entry.widget)}
-              actions={
-                draft && (
-                  <>
-                    {c.widget && c.widget.sizes.length > 1 && (
-                      <Segmented
-                        label="Size"
-                        value={c.entry.size}
-                        options={c.widget.sizes}
-                        onChange={(size) => edit((l) => ({ ...l, entries: l.entries.map((e) => (e.widget === c.entry.widget ? { ...e, size } : e)) }))}
-                      />
-                    )}
-                    <GripVertical className="h-4 w-4 text-muted-foreground" aria-hidden />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      aria-label={`Remove ${c.title}`}
-                      onClick={() => edit((l) => ({ ...l, entries: l.entries.filter((e) => e.widget !== c.entry.widget) }))}
-                    >
-                      <X className="h-4 w-4" aria-hidden />
-                    </Button>
-                  </>
-                )
-              }
-            >
-              <CardBody card={c} fetch={fetch} onStatus={onStatus} />
-            </WidgetCard>
-          </li>
+      {draft && overview.error && (
+        <Notice tone="down" title="Saving the layout failed">
+          {overview.error.rawMessage}
+        </Notice>
+      )}
+      <OverviewHero state={h} placed={cards.length} up={tally(tones, "up")} reporting={tones.length} />
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {tiles.map((t) => (
+          <MetricTile key={t.label} label={t.label} icon={t.icon} tone={t.tone} value={layout ? tally(tones, t.tone) : undefined} />
         ))}
+      </div>
+      <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-1 gap-4 grid-flow-dense sm:grid-cols-2 xl:grid-cols-4">
+        {cards.map((c) => {
+          const key = c.entry.widget;
+          const body = <CardBody card={c} fetch={fetch} onStatus={onStatus} />;
+          return (
+            <li
+              key={key}
+              aria-label={c.title}
+              className={cx(span[c.entry.size], dragging === key && "opacity-40", draft && "cursor-grab")}
+              draggable={draft ? true : undefined}
+              onDragStart={(e) => {
+                e.dataTransfer?.setData("text/plain", key);
+                setDragging(key);
+              }}
+              onDragOver={(e) => {
+                if (!dragging) return;
+                e.preventDefault();
+                if (dragging !== key) move(dragging, key);
+              }}
+              onDrop={(e) => e.preventDefault()}
+              onDragEnd={() => setDragging(null)}
+            >
+              {draft ? (
+                <div className="relative h-full rounded-ui outline-2 outline-offset-2 outline-primary/35 outline-dashed">
+                  <span
+                    data-size-tab
+                    className="absolute -top-3 left-4 z-1 inline-flex items-center gap-1 rounded-ui-sm bg-primary px-1.5 py-0.5 text-[10px] font-extrabold tracking-wider text-primary-foreground uppercase"
+                  >
+                    <Icon name="grip-vertical" size="sm" />
+                    {c.entry.size}
+                  </span>
+                  <WidgetCard
+                    title={c.title}
+                    status={statuses.get(key)}
+                    actions={
+                      <>
+                        {c.widget && c.widget.sizes.length > 1 && (
+                          <Segmented label="Size" value={c.entry.size} options={c.widget.sizes} onChange={(size) => resize(key, size)} />
+                        )}
+                        <Button variant="ghost" size="sm" icon="x" aria-label={`Remove ${c.title}`} onClick={() => remove(key)} />
+                      </>
+                    }
+                  >
+                    {/* Live, but out of reach: a click or Tab can't act on the Widget while arranging. */}
+                    <div inert className="select-none">
+                      {body}
+                    </div>
+                  </WidgetCard>
+                </div>
+              ) : (
+                <WidgetCard title={c.nav ? <Link to={`/${c.plugin!.name}`}>{c.title}</Link> : c.title} status={statuses.get(key)}>
+                  {body}
+                </WidgetCard>
+              )}
+            </li>
+          );
+        })}
       </ul>
       {draft && adding && (
         <AddWidget
@@ -203,13 +254,94 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
               entries: [...l.entries, { widget: key, size: w.defaultSize }],
               seen: l.seen.includes(key) ? l.seen : [...l.seen, key],
             }));
-            setAdding(false);
           }}
         />
       )}
     </div>
   );
 }
+
+/**
+ * Edit mode's bar, pinned under the top bar: what's being edited, whether
+ * the draft differs from the saved layout, and Add Widget, Cancel and Done.
+ * On phones the title takes a line and the buttons wrap below it.
+ */
+function EditBar({ changed, onAdd, onCancel, onDone }: { changed: boolean; onAdd: () => void; onCancel: () => void; onDone: () => void }) {
+  return (
+    <div className="sticky top-15 z-20 -mx-4 -mt-6 px-4 pt-3 pb-1 sm:-mx-8 sm:px-8 lg:top-0 lg:-mx-11 lg:-mt-9 lg:px-11 lg:pt-5">
+      <div
+        role="toolbar"
+        aria-label="Edit the Overview"
+        className="flex flex-wrap items-center gap-3 rounded-ui-lg bg-nav px-4 py-3 text-nav-strong shadow-elevation-raised sm:px-5"
+      >
+        <span className="grid h-9 w-9 place-items-center rounded-ui-sm bg-nav-active text-nav-accent">
+          <Icon name="pencil" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-extrabold">Editing the Overview</div>
+          <div className="text-xs text-nav-foreground">
+            <span className="hidden sm:inline">Drag a card to move it, pick its size, or remove it. </span>
+            {changed ? "Unsaved changes." : "No changes yet."}
+          </div>
+        </div>
+        <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+          <button
+            type="button"
+            onClick={onAdd}
+            className="mr-auto inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-ui-sm border border-nav-border px-3 text-sm font-bold text-nav-strong hover:bg-nav-hover sm:mr-0"
+          >
+            <Icon name="plus" /> Add Widget
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex h-9 cursor-pointer items-center rounded-ui-sm px-3 text-sm font-bold text-nav-foreground hover:text-nav-strong"
+          >
+            Cancel
+          </button>
+          <Button icon="check" onClick={onDone}>
+            Done
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The status headline over the Widgets that aren't up, a foot of counts and
+ * the share of placed Widgets that are up.
+ */
+function OverviewHero({ state, placed, reporting, up }: { state: HeroState; placed: number; reporting: number; up: number }) {
+  return (
+    <HeroCard
+      kicker="Status"
+      title={state.headline}
+      caption={
+        state.problems.length > 0 && (
+          <>
+            <StatusList items={state.problems.slice(0, shown).map((p) => ({ tone: p.tone, title: p.title, meta: p.summary }))} />
+            {state.problems.length > shown && <p className="mt-2">and {state.problems.length - shown} more</p>}
+          </>
+        )
+      }
+      foot={
+        <>
+          <StatusDot tone={state.tone} label={`Overall: ${state.tone}`} pulse={state.tone !== "up" && state.tone !== "idle"} />
+          <span>{count(placed, "Widget")} on the Overview</span>
+          <span>{reporting} reporting</span>
+          <span>{up} up</span>
+        </>
+      }
+      aside={placed > 0 && <Ring ratio={up / placed} value={`${Math.round((up / placed) * 100)}%`} label="Widgets up" />}
+    />
+  );
+}
+
+// The most problems the hero lists; the caption counts the rest.
+const shown = 3;
+
+const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 /** A placed Widget as the grid draws it. */
 interface Card {
@@ -247,7 +379,7 @@ function CardBody({ card, fetch, onStatus }: { card: Card; fetch?: Fetch; onStat
       </>
     );
   }
-  if (!card.plugin || !card.widget) return <p className="text-sm text-muted-foreground">Loading…</p>;
+  if (!card.plugin || !card.widget) return <Skeleton lines={3} />;
   const widget = card.widget;
   return (
     <PluginScope plugin={card.plugin} fetch={fetch}>
@@ -311,42 +443,97 @@ function AddWidget({
   onClose: () => void;
   onAdd: (key: string, w: Widget) => void;
 }) {
-  const groups = (plugins.installed ?? []).flatMap((p) => {
+  const [q, setQ] = useState("");
+  const offer = (plugins.installed ?? []).flatMap((p) => {
     const widgets = plugins.loaded.get(p.name)?.definition?.widgets ?? [];
     return widgets.length ? [{ plugin: p, widgets }] : [];
   });
+  const needle = q.trim().toLowerCase();
+  const groups = offer
+    .map((o) => ({ ...o, widgets: o.widgets.filter((w) => `${w.title} ${o.plugin.title}`.toLowerCase().includes(needle)) }))
+    .filter((o) => o.widgets.length);
   return (
-    <Sheet title="Add Widget" onClose={onClose}>
-      <div className="flex flex-col gap-5">
-        {groups.map(({ plugin, widgets }) => (
-          <section key={plugin.name} aria-label={plugin.title}>
-            <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">{plugin.title}</h3>
-            <ul className="flex flex-col gap-2">
-              {widgets.map((w) => {
-                const key = widgetKey(plugin.name, w.id);
-                return (
-                  <li key={key} className="flex items-center gap-3 rounded-ui border border-border bg-card px-3 py-2">
-                    <div>
-                      <div className="text-sm font-medium">{w.title}</div>
-                      <div className="text-xs text-muted-foreground">sizes {w.sizes.join(" / ")}</div>
-                    </div>
-                    <Placement placed={placed.some((e) => e.widget === key)}>
-                      <Button size="sm" aria-label={`Add ${w.title}`} onClick={() => onAdd(key, w)}>
-                        Add
-                      </Button>
-                    </Placement>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        ))}
-        {groups.length === 0 && <p className="text-sm text-muted-foreground">No installed Plugin offers a Widget. Install one from Plugins.</p>}
-      </div>
+    <Sheet
+      kicker="Overview"
+      title="Add Widget"
+      subtitle="Every Widget the installed Plugins offer. A Widget sits on the Overview at most once."
+      onClose={onClose}
+      footer={
+        <FormActions status={`${count(placed.length, "Widget")} on the Overview`}>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
+        </FormActions>
+      }
+    >
+      {offer.length === 0 ? (
+        <EmptyState icon="layout-grid" title="No Plugin offers a Widget">
+          Install a Plugin with Widgets from the Catalogue.
+        </EmptyState>
+      ) : (
+        <div className="flex flex-col gap-5">
+          <SearchField label="Search Widgets" value={q} onChange={setQ} placeholder="Search Widgets…" />
+          {groups.map(({ plugin, widgets }) => (
+            <div key={plugin.name} role="group" aria-label={plugin.title}>
+              <div className="mb-2 flex items-center gap-2 text-[10px] font-extrabold tracking-[0.14em] text-muted-foreground uppercase">
+                <Icon name={plugin.icon as IconName} size="sm" />
+                {plugin.title}
+              </div>
+              <ul className="flex flex-col gap-2">
+                {widgets.map((w) => (
+                  <OfferRow key={w.id} widget={w} widgetKey={widgetKey(plugin.name, w.id)} placed={placed} onAdd={onAdd} />
+                ))}
+              </ul>
+            </div>
+          ))}
+          {groups.length === 0 && <EmptyState icon="search-x" title={`No Widget matches “${q}”`} />}
+        </div>
+      )}
     </Sheet>
   );
 }
 
-function Placement({ placed, children }: { placed: boolean; children: ReactNode }) {
-  return <div className="ml-auto">{placed ? <span className="text-xs text-muted-foreground">On the Overview</span> : children}</div>;
+/** One offered Widget: its title and sizes (the default tinted), then Add, or a Pill once it's placed. */
+function OfferRow({
+  widget: w,
+  widgetKey: key,
+  placed,
+  onAdd,
+}: {
+  widget: Widget;
+  widgetKey: string;
+  placed: readonly Placed[];
+  onAdd: (key: string, w: Widget) => void;
+}) {
+  const on = placed.some((e) => e.widget === key);
+  return (
+    <li className={cx("flex items-center gap-3 rounded-ui border border-border px-3.5 py-3", on ? "bg-muted" : "bg-card")}>
+      <div className="min-w-0 flex-1">
+        <div data-row-part className="truncate text-sm font-bold">
+          {w.title}
+        </div>
+        <div data-row-part aria-label={`Sizes ${w.sizes.join(", ")}`} className="mt-1 flex gap-1">
+          {w.sizes.map((s) => (
+            <span
+              key={s}
+              className={cx("rounded-ui-sm px-1.5 text-[10px] font-extrabold", s === w.defaultSize ? "bg-primary-tint text-primary" : "bg-muted text-muted-foreground")}
+            >
+              {s}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div data-row-part className="shrink-0">
+        {on ? (
+          <Pill tone="up" dot>
+            On the Overview
+          </Pill>
+        ) : (
+          <Button size="sm" variant="outline" icon="plus" aria-label={`Add ${w.title}`} onClick={() => onAdd(key, w)}>
+            Add
+          </Button>
+        )}
+      </div>
+    </li>
+  );
 }

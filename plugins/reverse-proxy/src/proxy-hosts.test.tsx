@@ -1,6 +1,7 @@
 import { cleanup, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Page, renderScoped, settle, type Answers } from "./testing";
+import { pending, settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { Page, renderScoped } from "./testing";
 
 afterEach(cleanup);
 
@@ -86,15 +87,21 @@ async function show(over: Answers = {}, installed?: string[]) {
   return calls;
 }
 
-const table = () => screen.getByRole("table", { name: "Proxy Hosts" });
-const row = (name: string) => within(table()).getByRole("row", { name });
+const panel = () => screen.getByRole("region", { name: "Proxy Hosts" });
+const table = () => within(panel()).getByRole("table");
+const rows = () => within(table()).getAllByRole("row").slice(1);
+/** A row's first domain, the first line of its row header. */
+const domainOf = (r: HTMLElement) => within(r).getByRole("rowheader").firstElementChild?.textContent;
+const row = (domain: string) => rows().find((r) => domainOf(r) === domain)!;
+/** A row's cell under the column headed header. */
+const cell = (r: HTMLElement, header: string) =>
+  r.children[within(table()).getAllByRole("columnheader").findIndex((h) => h.textContent === header)] as HTMLElement;
 const datetime = (el: HTMLElement) => within(el).getByText((_, e) => e?.tagName === "TIME").getAttribute("datetime");
 
 it("lists the Proxy Hosts apps finds, by domain", async () => {
   await show();
 
-  const rows = within(table()).getAllByRole("row").slice(1);
-  expect(rows.map((r) => r.getAttribute("aria-label"))).toEqual(["grafana.home.example", "jellyfin.home.example", "printer.home.example"]);
+  expect(rows().map(domainOf)).toEqual(["grafana.home.example", "jellyfin.home.example", "printer.home.example"]);
 });
 
 it("shows a Proxy Host's domains, upstream, App with its Check status, Workload and certificate expiry", async () => {
@@ -102,47 +109,49 @@ it("shows a Proxy Host's domains, upstream, App with its Check status, Workload 
 
   const jellyfin = row("jellyfin.home.example");
   expect(jellyfin.textContent).toMatch(/media\.home\.example/);
-  expect(within(jellyfin).getByLabelText("Upstream").textContent).toBe("http://198.18.2.20:8096");
-  expect(within(jellyfin).getByLabelText("App").textContent).toBe("Jellyfin");
+  expect(cell(jellyfin, "Upstream").textContent).toBe("http://198.18.2.20:8096");
+  expect(cell(jellyfin, "App").textContent).toBe("Jellyfin");
   expect(within(jellyfin).getByRole("img", { name: "Check: up, certificate expires in 5 days" })).toBeTruthy();
-  expect(within(jellyfin).getByLabelText("Workload").textContent).toBe("Docker jellyfin · running");
-  const cert = within(jellyfin).getByLabelText("Certificate");
+  expect(cell(jellyfin, "Workload").textContent).toBe("Docker jellyfin · running");
+  const cert = cell(jellyfin, "Certificate");
   expect(cert.textContent).toMatch(/expires in 5 days/);
   expect(datetime(cert)).toBe(new Date(in5Days).toISOString());
 
   const grafana = row("grafana.home.example");
   expect(within(grafana).getByRole("img", { name: "Check: up" })).toBeTruthy();
-  expect(datetime(within(grafana).getByLabelText("Certificate"))).toBe("2027-01-10T12:00:00.000Z");
+  expect(datetime(cell(grafana, "Certificate"))).toBe("2027-01-10T12:00:00.000Z");
 
   const printer = row("printer.home.example");
   expect(within(printer).getByRole("img", { name: "Check: down: connection refused" })).toBeTruthy();
-  expect(within(printer).getByLabelText("Workload").textContent).toBe("none");
-  expect(within(printer).getByLabelText("Certificate").textContent).toBe("—");
+  expect(cell(printer, "Workload").textContent).toBe("none");
+  expect(cell(printer, "Certificate").textContent).toBe("—");
 });
 
 it("shows an upstream block's servers next to its name", async () => {
   await show();
 
-  expect(within(row("grafana.home.example")).getByLabelText("Upstream").textContent).toBe("http://grafana → 198.18.2.30:3000, 198.18.2.31:3000");
+  expect(cell(row("grafana.home.example"), "Upstream").textContent).toBe("http://grafana → 198.18.2.30:3000, 198.18.2.31:3000");
 });
 
 it("links the App to the apps Page and the Workload to its Proxmox detail or Docker Page when they are installed", async () => {
   await show({}, ["reverse-proxy", "apps", "proxmox"]);
 
   const grafana = row("grafana.home.example");
-  expect(within(within(grafana).getByLabelText("App")).getByRole("link").getAttribute("href")).toBe("/apps");
-  expect(within(within(grafana).getByLabelText("Workload")).getByRole("link").getAttribute("href")).toBe("/proxmox/workloads/120");
+  expect(within(cell(grafana, "App")).getByRole("link").getAttribute("href")).toBe("/apps");
+  expect(within(cell(grafana, "Workload")).getByRole("link").getAttribute("href")).toBe("/proxmox/workloads/120");
   // docker isn't installed: Jellyfin's container is plain text.
-  expect(within(within(row("jellyfin.home.example")).getByLabelText("Workload")).queryByRole("link")).toBeNull();
+  expect(within(cell(row("jellyfin.home.example"), "Workload")).queryByRole("link")).toBeNull();
 });
 
 it("warns about an upstream that matches no Workload and a block without TLS", async () => {
   await show();
 
   const warnings = screen.getByRole("region", { name: "Warnings" });
-  expect(within(warnings).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-    "printer.home.example: upstream http://198.18.2.99 matches no Workload",
-    "printer.home.example: no TLS",
+  const items = within(warnings).getAllByRole("listitem");
+  expect(items.map((li) => within(li).getByRole("img").getAttribute("aria-label"))).toEqual(["warn", "warn"]);
+  expect(items.map((li) => li.textContent)).toEqual([
+    "printer.home.exampleupstream http://198.18.2.99 matches no Workload",
+    "printer.home.exampleno TLS",
   ]);
   expect(within(row("printer.home.example")).getByRole("img", { name: "upstream matches no Workload; no TLS" })).toBeTruthy();
   expect(within(row("grafana.home.example")).queryByRole("img", { name: /no TLS|no Workload/ })).toBeNull();
@@ -157,26 +166,39 @@ it("shows a Proxy Host that yields no App", async () => {
   });
 
   const r = row("~^(?<app>.+)\\.home\\.example$");
-  expect(within(r).getByLabelText("App").textContent).toBe("no App");
+  expect(cell(r, "App").textContent).toBe("no App");
   expect(screen.queryByRole("region", { name: "Warnings" })).toBeNull();
 });
 
 it("says why while apps or checks is unavailable, keeping what the other answers", async () => {
-  const down = (who: string) => () => Response.json({ code: "unavailable", message: `${who} is starting` }, { status: 503 });
+  const down = (who: string) => () => unavailable(`${who} is starting`);
   await show({ ListChecks: down("checks") });
 
   const printer = row("printer.home.example");
-  expect(within(printer).getByLabelText("Upstream").textContent).toBe("http://198.18.2.99");
-  expect(screen.getByRole("region", { name: "Proxy Hosts" }).textContent).toMatch(/checks unavailable: checks is starting/);
+  expect(cell(printer, "Upstream").textContent).toBe("http://198.18.2.99");
+  // Partial: a warning, with the table still there.
+  expect(within(panel()).getByRole("status").textContent).toBe("checks unavailable: checks is starting");
   cleanup();
 
   await show({ ListProxyHosts: down("apps") });
-  expect(screen.getByRole("region", { name: "Proxy Hosts" }).textContent).toMatch(/apps unavailable: apps is starting/);
-  expect(screen.queryByRole("table", { name: "Proxy Hosts" })).toBeNull();
+  expect(within(panel()).getByRole("alert").textContent).toBe("apps unavailable: apps is starting");
+  expect(within(panel()).queryByRole("table")).toBeNull();
+});
+
+it("shows skeleton rows until apps answers", async () => {
+  await show({ ListProxyHosts: pending });
+
+  expect(within(table()).getByRole("status", { name: "Loading" })).toBeTruthy();
+});
+
+it("says so when no server block forwards to an upstream", async () => {
+  await show({ ListProxyHosts: () => Response.json({ proxyHosts: [] }) });
+
+  expect(table().textContent).toMatch(/No server block forwards to an upstream/);
 });
 
 it("runs no probes of its own: it only reads nginx-config, apps and checks", async () => {
   const calls = await show();
 
-  expect(new Set(calls)).toEqual(new Set(["GetSnapshot", "ListProxyHosts", "ListChecks"]));
+  expect(new Set(calls.map((c) => c.method))).toEqual(new Set(["GetSnapshot", "ListProxyHosts", "ListChecks"]));
 });

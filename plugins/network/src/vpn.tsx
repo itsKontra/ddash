@@ -1,6 +1,6 @@
 import type { Status, Widget } from "@ddash/plugin";
 import { Tier } from "@ddash/proto/network/network_pb";
-import { StatusDot } from "@ddash/ui";
+import { Notice, Skeleton, StatusList } from "@ddash/ui";
 import { members, ms, stateTone, tiers, useTunnel } from "./tunnel";
 
 /**
@@ -25,22 +25,17 @@ function useStatus(): Status | undefined {
 
 /** S: each tier's state and latency. */
 function Body() {
-  const { data } = useTunnel();
-  if (!data) return null;
-  if (data.tier === Tier.UNSPECIFIED) return <p className="text-sm text-warn">{data.error || "Not read yet"}</p>;
+  const { data, error } = useTunnel();
+  if (!data) return error ? null : <Skeleton lines={2} />;
+  if (data.tier === Tier.UNSPECIFIED) return <Notice tone="warn">{data.error || "Not read yet"}</Notice>;
   return (
-    <ul className="flex flex-col gap-2 text-sm">
-      {members(data).map((m) => (
-        <li key={m.gateway.name} aria-label={m.kind} className="flex items-center gap-2">
-          <StatusDot tone={stateTone[m.state]} label={m.state} />
-          <span className="font-medium">{m.kind}</span>
-          <span className="ml-auto text-muted-foreground tabular-nums">
-            {m.state}
-            {m.state === "active" && ` · ${ms(m.gateway.delayMs, 0)}`}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <StatusList
+      items={members(data).map((m) => ({
+        tone: stateTone[m.state],
+        title: m.kind,
+        aside: m.state === "active" ? `${m.state} · ${ms(m.gateway.delayMs, 0)}` : m.state,
+      }))}
+    />
   );
 }
 

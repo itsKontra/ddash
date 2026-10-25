@@ -1,7 +1,8 @@
-import { act, cleanup, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope, type Status, type Widget } from "@ddash/plugin";
-import { afterEach, expect, it, vi } from "vitest";
+import { cleanup, screen } from "@testing-library/react";
+import { metricValue, pending, showWidget, unavailable, type Answer } from "@ddash/plugin/testing";
+import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
+import { network } from "./testing";
 
 afterEach(cleanup);
 
@@ -21,27 +22,7 @@ const devices = {
 
 const widget = () => plugin.widgets!.find((w) => w.id === "devices")!;
 
-async function show(answer: () => Response) {
-  const w = widget();
-  const fetch = vi.fn(async (_input: RequestInfo | URL) => answer());
-  const reported: { status?: Status } = {};
-  function Probe({ widget }: { widget: Widget }) {
-    reported.status = widget.useStatus();
-    return null;
-  }
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "network", requires: ["network", "pfsense-api"] }} fetch={fetch}>
-        <Probe widget={w} />
-        <section aria-label="widget">
-          <w.Body size="S" />
-        </section>
-      </PluginScope>
-    </PluginHost>,
-  );
-  await act(() => new Promise((r) => setTimeout(r, 50)));
-  return { reported, fetch };
-}
+const show = (answer: Answer) => showWidget(network, widget(), { answers: { ListDevices: answer } });
 
 it("is the devices Widget, S only", () => {
   const w = widget();
@@ -49,9 +30,9 @@ it("is the devices Widget, S only", () => {
 });
 
 it("asks network for the Devices", async () => {
-  const { fetch } = await show(() => Response.json(devices));
+  const { calls } = await show(() => Response.json(devices));
 
-  expect(new URL(String(fetch.mock.calls[0][0]), "http://ddash.test").pathname).toBe("/api/c/network/ddash.network.NetworkService/ListDevices");
+  expect(calls[0].url).toBe("/api/c/network/ddash.network.NetworkService/ListDevices");
 });
 
 it("reports up with the counts, and shows Devices, online and new", async () => {
@@ -59,9 +40,16 @@ it("reports up with the counts, and shows Devices, online and new", async () => 
 
   expect(reported.status).toEqual({ tone: "up", summary: "5 Devices, 3 online, 2 new" });
   const body = screen.getByRole("region", { name: "widget" });
-  expect(within(body).getByText("Devices").parentElement?.textContent).toMatch(/5/);
-  expect(within(body).getByText("online").parentElement?.textContent).toMatch(/3/);
-  expect(within(body).getByText("new").parentElement?.textContent).toMatch(/2/);
+  expect(metricValue("Devices", body)).toMatch(/5/);
+  expect(metricValue("online", body)).toMatch(/3/);
+  expect(metricValue("new", body)).toMatch(/2/);
+});
+
+it("shows each count loading until network first answers", async () => {
+  await show(pending);
+
+  const body = screen.getByRole("region", { name: "widget" });
+  for (const name of ["Devices", "online", "new"]) expect(metricValue(name, body)).toBeUndefined();
 });
 
 it("leaves New out of the summary when there are none", async () => {
@@ -71,7 +59,7 @@ it("leaves New out of the summary when there are none", async () => {
 });
 
 it("warns when network can't list the Devices", async () => {
-  const { reported } = await show(() => Response.json({ code: "unavailable", message: "can't read the DHCP leases: pfSense unreachable" }, { status: 503 }));
+  const { reported } = await show(() => unavailable("can't read the DHCP leases: pfSense unreachable"));
 
   expect(reported.status).toEqual({ tone: "warn", summary: "Devices unavailable: can't read the DHCP leases: pfSense unreachable" });
 });

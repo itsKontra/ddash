@@ -1,9 +1,9 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { MemoryRouter, useRoutes } from "react-router";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { metricValue, pending, renderScoped, settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { useRoutes } from "react-router";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import plugin from "./index";
-import { check } from "./testing";
+import { check, checks } from "./testing";
 
 afterEach(cleanup);
 
@@ -40,32 +40,28 @@ const uptime = [
 ];
 
 let asked: unknown[];
+// What GetHistory answers instead of histories, when a test sets it.
+let history: (() => Response | Promise<Response>) | undefined;
 beforeEach(() => {
   asked = [];
+  history = undefined;
 });
 
-const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-  const method = String(input).split("/").pop()!;
-  if (method === "ListChecks") return Response.json(listed);
-  if (method === "GetHistory") {
-    const req = JSON.parse(new TextDecoder().decode(init?.body as Uint8Array));
+const answers: Answers = {
+  ListChecks: () => Response.json(listed),
+  GetHistory: (body) => {
+    const req = body as { window?: string };
     asked.push(req);
+    if (history) return history();
     return Response.json({ uptime, ...(histories[req.window ?? "WINDOW_24H"] as object) });
-  }
-  return Response.json({}, { status: 500 });
-});
-
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
+  },
+};
+const scoped = (children: React.ReactNode, path?: string) =>
+  renderScoped(checks, children, { answers, path, unanswered: () => Response.json({}, { status: 500 }) });
 
 async function openDetail() {
   const Page = plugin.pages![0].Component!;
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
-        <Page />
-      </PluginScope>
-    </PluginHost>,
-  );
+  scoped(<Page />);
   await settle();
   fireEvent.click(screen.getByRole("button", { name: "nas" }));
   await settle();
@@ -76,18 +72,10 @@ it("opens the detail of the Check a Notification links to (/checks/<id>)", async
   function Routes() {
     return useRoutes(plugin.pages!);
   }
-  render(
-    <MemoryRouter initialEntries={["/1"]}>
-      <PluginHost client={createQueryClient()}>
-        <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
-          <Routes />
-        </PluginScope>
-      </PluginHost>
-    </MemoryRouter>,
-  );
+  scoped(<Routes />, "/1");
   await settle();
 
-  expect(screen.getByRole("dialog", { name: "nas" })).toBeTruthy();
+  expect(await screen.findByRole("dialog", { name: "nas" })).toBeTruthy();
 });
 
 const tones = (bars: HTMLElement) => [...bars.querySelectorAll("[data-tone]")].map((b) => b.getAttribute("data-tone"));
@@ -95,11 +83,26 @@ const tones = (bars: HTMLElement) => [...bars.querySelectorAll("[data-tone]")].m
 it("opens a Check's detail with its uptime over 24 h, 30 d and 365 d", async () => {
   const detail = await openDetail();
 
-  const uptimes = within(detail).getByRole("region", { name: "Uptime" });
-  expect(within(uptimes).getByText("99.5 %").nextElementSibling?.textContent).toBe("24 h");
-  expect(within(uptimes).getByText("99.98 %").nextElementSibling?.textContent).toBe("30 d");
-  expect(within(uptimes).getByText("no data").nextElementSibling?.textContent).toBe("365 d");
+  expect(within(detail).getByRole("heading", { name: "Uptime" })).toBeTruthy();
+  expect(metricValue("24 h", detail)).toBe("99.5 %");
+  expect(metricValue("30 d", detail)).toBe("99.98 %");
+  expect(metricValue("365 d", detail)).toBe("no data");
   expect(asked).toEqual([{ id: "1", window: "WINDOW_24H" }]);
+});
+
+it("draws skeletons, not text, until the history comes", async () => {
+  history = pending;
+  const detail = await openDetail();
+
+  expect(metricValue("24 h", detail)).toBeUndefined();
+  expect(within(detail).queryByText("…")).toBeNull();
+});
+
+it("says what failed when checks can't answer the history", async () => {
+  history = () => unavailable("checks is down");
+  const detail = await openDetail();
+
+  expect(within(detail).getByRole("alert").textContent).toContain("checks is down");
 });
 
 it("draws the last 24 h as one bar per minute, buckets without beats idle", async () => {
@@ -114,12 +117,14 @@ it("draws the last 24 h as one bar per minute, buckets without beats idle", asyn
 it("shows the window's latency and state changes", async () => {
   const detail = await openDetail();
 
-  const latency = within(detail).getByRole("region", { name: "Latency" });
-  expect(within(latency).getByText("12 ms").nextElementSibling?.textContent).toBe("average");
-  expect(within(latency).getByText("8 ms").nextElementSibling?.textContent).toBe("min");
-  expect(within(latency).getByText("40 ms").nextElementSibling?.textContent).toBe("max");
+  expect(within(detail).getByRole("heading", { name: "Latency" })).toBeTruthy();
+  expect(metricValue("average", detail)).toBe("12 ms");
+  expect(metricValue("min", detail)).toBe("8 ms");
+  expect(metricValue("max", detail)).toBe("40 ms");
 
-  const changes = within(within(detail).getByRole("list", { name: "State changes" })).getAllByRole("listitem");
+  expect(within(detail).getByRole("heading", { name: "State changes" })).toBeTruthy();
+  const changes = within(detail).getAllByRole("listitem");
+  expect(changes.map((c) => within(c).getByRole("img").getAttribute("aria-label"))).toEqual(["up", "down"]);
   expect(changes.map((c) => c.textContent)).toEqual([expect.stringMatching(/^up/), expect.stringMatching(/^down.*connection refused.*in Maintenance$/)]);
 });
 

@@ -2,12 +2,16 @@ package core
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"io/fs"
 	"mime"
 	"net/http"
 	"path"
+	"strings"
 	"time"
+
+	"github.com/itsKontra/ddash/core/icons"
 )
 
 // Plugin bundles are served at bundlePrefix<name>/<release>/ from the
@@ -82,6 +86,42 @@ func (h *Host) index(w http.ResponseWriter, r *http.Request) {
 	}
 	b = bytes.ReplaceAll(b, []byte(ReleasePlaceholder), []byte(h.runtime.Release()))
 	serveContent(w, r, "index.html", b, cacheNone)
+}
+
+// iconsPath serves lucide icons: GET iconsPath?names=a,b&release=<release>.
+const iconsPath = "/api/icons"
+
+// icons serves GET /api/icons: each named icon's lucide elements, by name,
+// the puzzle's for an unknown name. The URL carries the Release, so the
+// running Release's icons are immutable.
+func (h *Host) icons(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	cache := cacheNone
+	if rel := q.Get("release"); rel == h.runtime.Release() {
+		cache = versioned(rel)
+	}
+	writeJSON(w, icons.Nodes(strings.Split(q.Get("names"), ",")), cache)
+}
+
+// iconSearchPath searches the lucide icons: GET iconSearchPath?q=.
+const iconSearchPath = iconsPath + "/search"
+
+// iconSearch serves GET /api/icons/search: the names of the icons q
+// matches by name or tag, best first (icons.Search).
+func (h *Host) iconSearch(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, icons.Search(r.URL.Query().Get("q")), cacheNone)
+}
+
+// writeJSON writes v as a JSON response with the given Cache-Control.
+func writeJSON(w http.ResponseWriter, v any, cacheControl string) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", cacheControl)
+	w.Write(b)
 }
 
 // versioned is the Cache-Control of a path versioned by rel.

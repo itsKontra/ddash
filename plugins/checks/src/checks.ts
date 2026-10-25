@@ -9,6 +9,18 @@ export function useChecks() {
 /** A Check's name, or its target when it has none. */
 export const shownName = (c: Check) => c.spec?.name || c.spec?.target || `Check ${c.id}`;
 
+/** A State's tone and word: up, down, or pending for any other. */
+export function stateOf(s: State): { tone: Tone; word: string } {
+  switch (s) {
+    case State.UP:
+      return { tone: "up", word: "up" };
+    case State.DOWN:
+      return { tone: "down", word: "down" };
+    default:
+      return { tone: "warn", word: "pending" };
+  }
+}
+
 /**
  * How a Check reads at a glance: disabled and Maintenance before its state;
  * a Flapping Check that is up is warn.
@@ -16,28 +28,17 @@ export const shownName = (c: Check) => c.spec?.name || c.spec?.target || `Check 
 export function toneOf(c: Check): Tone {
   if (c.disabled) return "idle";
   if (c.maintenance) return "maint";
-  switch (c.state) {
-    case State.UP:
-      return c.flapping ? "warn" : "up";
-    case State.DOWN:
-      return "down";
-    default:
-      return "warn";
-  }
+  if (c.state === State.UP && c.flapping) return "warn";
+  return stateOf(c.state).tone;
 }
 
 /** The word for a Check's tone. */
 export function stateLabel(c: Check): string {
   if (c.disabled) return "disabled";
   if (c.maintenance) return "Maintenance";
-  switch (c.state) {
-    case State.UP:
-      return c.flapping ? "up, flapping" : "up";
-    case State.DOWN:
-      return c.flapping ? "down, flapping" : "down";
-    default:
-      return "pending";
-  }
+  const { word } = stateOf(c.state);
+  const settled = c.state === State.UP || c.state === State.DOWN;
+  return c.flapping && settled ? `${word}, flapping` : word;
 }
 
 /**

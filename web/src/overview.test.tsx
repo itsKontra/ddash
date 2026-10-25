@@ -1,5 +1,6 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, type PluginDefinition, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -80,7 +81,7 @@ async function boot(path = "/", reload = vi.fn()) {
     <MemoryRouter initialEntries={[path]}>
       <App
         client={createQueryClient()}
-        fetch={vi.fn(fetchFake)}
+        fetch={tracked(vi.fn(fetchFake))}
         reload={reload}
         importBundle={async (url) => {
           const b = bundles.get(url);
@@ -93,11 +94,12 @@ async function boot(path = "/", reload = vi.fn()) {
   await settle();
 }
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 20)));
-
 const cards = () => within(screen.getByRole("list", { name: "Widgets" })).queryAllByRole("listitem");
 const card = (title: string) => within(screen.getByRole("list", { name: "Widgets" })).getByRole("listitem", { name: title });
-const hero = () => screen.getByRole("region", { name: "Status" });
+// The HeroCard: the region named by its headline, under the "Status" kicker.
+const hero = () => screen.getByText("Status").closest("section")!;
+const headline = () => within(hero()).getByRole("heading", { level: 2 }).textContent;
+const overall = () => within(hero()).getByRole("img", { name: /^Overall: / }).getAttribute("aria-label");
 const problems = () =>
   within(hero())
     .queryAllByRole("listitem")
@@ -166,7 +168,7 @@ it("reconciles on every page, so an uninstall from the Catalogue forgets the Plu
   expect(saves).toEqual([{ entries: [], seen: [] }]);
 });
 
-it("the Hero lists the placed Widgets that aren't up, ignoring one that hasn't reported", async () => {
+it("the hero lists the placed Widgets that aren't up, ignoring one that hasn't reported", async () => {
   plugins = [
     [
       installed("checks", "Checks"),
@@ -184,21 +186,143 @@ it("the Hero lists the placed Widgets that aren't up, ignoring one that hasn't r
   await boot();
 
   expect(problems()).toEqual(["Checkspaperless down 14 min", "VPNon the fallback"]);
-  expect(within(hero()).getByRole("img", { name: "down" })).toBeTruthy();
-  expect(hero().textContent).toContain("2 Widgets need attention");
+  expect(within(hero()).getAllByRole("img", { name: /^(down|warn)$/ }).map((d) => d.getAttribute("aria-label"))).toEqual(["down", "warn"]);
+  expect(overall()).toBe("Overall: down");
+  // The headline counts the worst tone, as its tile does: the warn one isn't down.
+  expect(headline()).toBe("1 Widget down");
+  expect(screen.getByRole("region", { name: "1 Widget down" })).toBe(hero());
 });
 
-it("the Hero says everything is up when every reporting Widget is", async () => {
+it("the hero's headline counts only the Widgets needing attention, as their tile does, when none is down", async () => {
+  plugins = [
+    [
+      installed("lab", "Lab"),
+      definePlugin({
+        widgets: [
+          widget("a", "Alpha", { tone: "warn", summary: "flapping" }, "S"),
+          widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S"),
+          widget("c", "Charlie", { tone: "warn", summary: "slow" }, "S"),
+        ],
+      }),
+    ],
+  ];
+
+  await boot();
+
+  expect(headline()).toBe("2 Widgets need attention");
+  expect(screen.getByRole("group", { name: "Needs attention" }).textContent).toBe("Needs attention2");
+});
+
+it("the hero's headline counts the Widgets in Maintenance when nothing worse is wrong", async () => {
+  plugins = [[installed("lab", "Lab"), definePlugin({ widgets: [widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S")] })]];
+
+  await boot();
+
+  expect(headline()).toBe("1 Widget in Maintenance");
+});
+
+it("the hero says everything is up when every reporting Widget is", async () => {
   plugins = [[installed("docker", "Docker"), docker()]];
 
   await boot();
 
   expect(problems()).toEqual([]);
-  expect(within(hero()).getByRole("img", { name: "up" })).toBeTruthy();
-  expect(hero().textContent).toContain("Everything is up");
+  expect(overall()).toBe("Overall: up");
+  expect(headline()).toBe("Everything is up");
 });
 
-it("shows a Widget whose body or status crashes as an error frame, reported to the Hero at warn", async () => {
+const mixed = () =>
+  definePlugin({
+    widgets: [
+      widget("a", "Alpha", up("a"), "S"),
+      widget("b", "Bravo", up("b"), "S"),
+      widget("c", "Charlie", { tone: "down", summary: "gone" }, "S"),
+      widget("d", "Delta", { tone: "warn", summary: "flapping" }, "S"),
+      widget("e", "Echo", { tone: "maint", summary: "patching" }, "S"),
+      widget("f", "Foxtrot", undefined, "S"),
+    ],
+  });
+
+it("the hero's foot counts the placed, reporting and up Widgets, and its ring shows the share up", async () => {
+  plugins = [[installed("lab", "Lab"), mixed()]];
+
+  await boot();
+
+  const foot = within(hero()).getByRole("img", { name: /^Overall: / }).parentElement!;
+  expect([...foot.children].slice(1).map((s) => s.textContent)).toEqual(["6 Widgets on the Overview", "5 reporting", "2 up"]);
+  const ring = within(hero()).getByRole("meter", { name: "Widgets up" });
+  expect(ring.getAttribute("aria-valuenow")).toBe("33");
+  expect(ring.getAttribute("aria-valuetext")).toBe("33%");
+});
+
+it("the hero clamps its problems to the first three and says how many more there are", async () => {
+  plugins = [
+    [
+      installed("lab", "Lab"),
+      definePlugin({ widgets: ["One", "Two", "Three", "Four", "Five"].map((t) => widget(t.toLowerCase(), t, { tone: "warn", summary: "slow" }, "S")) }),
+    ],
+  ];
+
+  await boot();
+
+  expect(problems()).toEqual(["Oneslow", "Twoslow", "Threeslow"]);
+  expect(within(hero()).getByText("and 2 more")).toBeTruthy();
+});
+
+it("the hero has no ring while nothing is on the Overview", async () => {
+  await boot();
+
+  expect(headline()).toBe("No Widgets on the Overview");
+  expect(within(hero()).queryByRole("meter")).toBeNull();
+});
+
+it("four metric tiles count the reporting Widgets that are up, need attention, are down and are in Maintenance", async () => {
+  plugins = [[installed("lab", "Lab"), mixed()]];
+
+  await boot();
+
+  const tiles = ["Up", "Needs attention", "Down", "Maintenance"].map((label) => screen.getByRole("group", { name: label }));
+  expect(tiles.map((t) => t.textContent)).toEqual(["Up2", "Needs attention1", "Down1", "Maintenance1"]);
+  // Each tile's icon chip carries its tone's tint.
+  const chipTone = (tile: HTMLElement) => tile.querySelector("[class*='-tint']")?.className.match(/bg-(\w+)-tint/)?.[1];
+  expect(tiles.map(chipTone)).toEqual(["up", "warn", "down", "maint"]);
+});
+
+it("the metric tiles load until the layout has come", async () => {
+  intercept = (method) => (method === "GetLayout" ? pending() : undefined);
+
+  await boot();
+
+  expect(within(screen.getByRole("group", { name: "Up" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+});
+
+it("lays the Widget grid out in one column on phones, two from small screens and four from wide ones", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "L" },
+      { widget: "lab.b", size: "S" },
+      { widget: "lab.c", size: "M" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+
+  await boot();
+
+  const cols = (el: Element, prefix: string) => el.className.split(" ").filter((c) => c.startsWith(prefix));
+  const grid = screen.getByRole("list", { name: "Widgets" });
+  expect(cols(grid, "grid-cols-").concat(cols(grid, "sm:grid-cols-"), cols(grid, "xl:grid-cols-"))).toEqual([
+    "grid-cols-1",
+    "sm:grid-cols-2",
+    "xl:grid-cols-4",
+  ]);
+  // A wide Widget spans both columns from small screens on, never more than the phone's one.
+  expect(cols(card("Alpha"), "col-span-").concat(cols(card("Alpha"), "sm:col-span-"))).toEqual(["col-span-1", "sm:col-span-2"]);
+  expect(cols(card("Charlie"), "sm:col-span-")).toEqual(["sm:col-span-2"]);
+  expect(cols(card("Bravo"), "sm:col-span-")).toEqual([]);
+});
+
+it("shows a Widget whose body or status crashes as an error frame, reported to the hero at warn", async () => {
   const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
   const crashingBody: Widget = {
     ...widget("guests", "Guests", up("4 running"), "S"),
@@ -222,7 +346,7 @@ it("shows a Widget whose body or status crashes as an error frame, reported to t
   expect(within(card("Guests")).getByRole("alert").textContent).toMatch(/Guests failed to render.*body boom/);
   expect(within(card("nginx")).getByRole("alert").textContent).toMatch(/nginx failed to render.*status boom/);
   expect(problems()).toEqual(["GuestsGuests failed to render", "nginxnginx failed to render"]);
-  expect(within(hero()).getByRole("img", { name: "warn" })).toBeTruthy();
+  expect(overall()).toBe("Overall: warn");
   quiet.mockRestore();
 });
 
@@ -247,6 +371,73 @@ const three = () =>
   definePlugin({
     widgets: [widget("a", "Alpha", up("a"), "S", "M", "L"), widget("b", "Bravo", up("b"), "S"), widget("c", "Charlie", up("c"), "M", "L")],
   });
+
+const editBar = () => screen.getByRole("toolbar", { name: "Edit the Overview" });
+
+it("Edit swaps the head's actions for the edit bar, whose line says whether anything changed", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = { entries: [{ widget: "lab.a", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] };
+  await boot();
+  expect(screen.queryByRole("toolbar")).toBeNull();
+
+  edit();
+  expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  expect(within(editBar()).getByText("Editing the Overview")).toBeTruthy();
+  expect(within(editBar()).getByText(/No changes yet/)).toBeTruthy();
+  expect(within(editBar()).getAllByRole("button").map((b) => b.textContent?.trim())).toEqual(["Add Widget", "Cancel", "Done"]);
+
+  fireEvent.click(within(card("Alpha")).getByRole("radio", { name: "M" }));
+  expect(within(editBar()).getByText(/Unsaved changes/)).toBeTruthy();
+});
+
+it("on phones the edit bar wraps: its title on one line, its buttons on a full-width line below", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  await boot();
+
+  edit();
+  const bar = editBar();
+  expect(bar.className.split(" ")).toContain("flex-wrap");
+  const buttons = within(bar).getByRole("button", { name: "Cancel" }).parentElement!;
+  expect(buttons.className.split(" ")).toEqual(expect.arrayContaining(["w-full", "sm:w-auto"]));
+});
+
+it("Cancel drops the draft and leaves Edit mode without saving", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = {
+    entries: [
+      { widget: "lab.a", size: "S" },
+      { widget: "lab.b", size: "S" },
+    ],
+    seen: ["lab.a", "lab.b", "lab.c"],
+  };
+  await boot();
+
+  edit();
+  fireEvent.click(within(card("Alpha")).getByRole("radio", { name: "L" }));
+  fireEvent.click(within(card("Bravo")).getByRole("button", { name: "Remove Bravo" }));
+  fireEvent.click(within(editBar()).getByRole("button", { name: "Cancel" }));
+  await settle();
+
+  expect(saves).toEqual([]);
+  expect(screen.queryByRole("toolbar")).toBeNull();
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Alpha", "Bravo"]);
+  expect(card("Alpha").textContent).toContain("Alpha body at S");
+  expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy();
+});
+
+it("in Edit mode a card keeps its live body but makes it inert, under a size tab", async () => {
+  plugins = [[installed("lab", "Lab"), three()]];
+  stored = { entries: [{ widget: "lab.a", size: "M" }], seen: ["lab.a", "lab.b", "lab.c"] };
+  await boot();
+  expect(card("Alpha").querySelector("[inert]")).toBeNull();
+
+  edit();
+  const body = within(card("Alpha")).getByText("Alpha body at M");
+  expect(body.closest("[inert]")).toBeTruthy();
+  expect(within(card("Alpha")).getByText("M", { selector: "[data-size-tab]" })).toBeTruthy();
+  // The title isn't a link while editing, so a click can't leave the draft.
+  expect(within(card("Alpha")).queryByRole("link")).toBeNull();
+});
 
 it("in Edit mode the Operator resizes a Widget among its sizes, and Done saves it", async () => {
   plugins = [[installed("lab", "Lab"), three()]];
@@ -300,20 +491,44 @@ it("in Edit mode the Operator removes a Widget, and it stays seen", async () => 
   expect(saves).toEqual([{ entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] }]);
 });
 
-it("in Edit mode the Operator adds a Widget from the drawer of installed Widgets not yet placed", async () => {
-  plugins = [[installed("lab", "Lab"), three()]];
-  stored = { entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c"] };
+const addWidget = () => {
+  fireEvent.click(within(editBar()).getByRole("button", { name: "Add Widget" }));
+  return screen.getByRole("dialog", { name: "Add Widget" });
+};
+const groups = (sheet: HTMLElement) =>
+  within(sheet)
+    .queryAllByRole("group")
+    .map((g) => g.getAttribute("aria-label"));
+// A Plugin's Widget rows in the Sheet, each as "<title> <sizes> <Add or On the Overview>".
+const offered = (sheet: HTMLElement, plugin: string) =>
+  within(within(sheet).getByRole("group", { name: plugin }))
+    .getAllByRole("listitem")
+    .map((li) => [...li.querySelectorAll("[data-row-part]")].map((el) => el.textContent?.trim()).join(" "));
+
+it("Add Widget lists every offered Widget by Plugin, with its sizes and Add, or On the Overview once placed", async () => {
+  plugins = [
+    [installed("lab", "Lab"), three()],
+    [installed("docker", "Docker"), docker()],
+  ];
+  stored = { entries: [{ widget: "lab.b", size: "S" }], seen: ["lab.a", "lab.b", "lab.c", "docker.containers"] };
   await boot();
 
   edit();
-  fireEvent.click(screen.getByRole("button", { name: "Add Widget" }));
-  const drawer = screen.getByRole("dialog", { name: "Add Widget" });
-  expect(
-    within(drawer)
-      .getAllByRole("button", { name: /^Add / })
-      .map((b) => b.getAttribute("aria-label")),
-  ).toEqual(["Add Alpha", "Add Charlie"]);
-  fireEvent.click(within(drawer).getByRole("button", { name: "Add Charlie" }));
+  const sheet = addWidget();
+  expect(groups(sheet)).toEqual(["Lab", "Docker"]);
+  expect(offered(sheet, "Lab")).toEqual(["Alpha SML Add", "Bravo S On the Overview", "Charlie ML Add"]);
+  expect(offered(sheet, "Docker")).toEqual(["Containers SM Add"]);
+  expect(within(sheet).getByText("1 Widget on the Overview")).toBeTruthy();
+
+  fireEvent.click(within(sheet).getByRole("button", { name: "Add Charlie" }));
+  // The Sheet stays open for the next pick, and the row now says it's placed.
+  expect(offered(sheet, "Lab")).toEqual(["Alpha SML Add", "Bravo S On the Overview", "Charlie ML On the Overview"]);
+  expect(within(sheet).getByText("2 Widgets on the Overview")).toBeTruthy();
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Bravo", "Charlie"]);
+
+  // The footer's Close, not the header's icon button.
+  fireEvent.click(within(sheet).getAllByRole("button", { name: "Close" }).at(-1)!);
+  expect(screen.queryByRole("dialog")).toBeNull();
   await done();
 
   expect(saves).toEqual([
@@ -322,9 +537,42 @@ it("in Edit mode the Operator adds a Widget from the drawer of installed Widgets
         { widget: "lab.b", size: "S" },
         { widget: "lab.c", size: "M" },
       ],
-      seen: ["lab.a", "lab.b", "lab.c"],
+      seen: ["lab.a", "lab.b", "lab.c", "docker.containers"],
     },
   ]);
+});
+
+it("Add Widget's search narrows the list by Widget or Plugin, and says when nothing matches", async () => {
+  plugins = [
+    [installed("lab", "Lab"), three()],
+    [installed("docker", "Docker"), docker()],
+  ];
+  await boot();
+
+  edit();
+  const sheet = addWidget();
+  const search = within(sheet).getByRole("searchbox", { name: "Search Widgets" });
+  fireEvent.change(search, { target: { value: "char" } });
+  expect(groups(sheet)).toEqual(["Lab"]);
+  expect(offered(sheet, "Lab")).toEqual(["Charlie ML On the Overview"]);
+
+  fireEvent.change(search, { target: { value: "docker" } });
+  expect(groups(sheet)).toEqual(["Docker"]);
+
+  fireEvent.change(search, { target: { value: "zzz" } });
+  expect(groups(sheet)).toEqual([]);
+  expect(within(sheet).getByText("No Widget matches “zzz”")).toBeTruthy();
+});
+
+it("Add Widget says so when no installed Plugin offers a Widget", async () => {
+  plugins = [[installed("plain", "Plain"), definePlugin({ pages: [{ index: true, Component: () => <p>plain</p> }] })]];
+  await boot();
+
+  edit();
+  const sheet = addWidget();
+  expect(within(sheet).queryByRole("searchbox")).toBeNull();
+  expect(within(sheet).getByText("No Plugin offers a Widget")).toBeTruthy();
+  expect(within(sheet).getByText("0 Widgets on the Overview")).toBeTruthy();
 });
 
 it("in Edit mode the Operator drags a Widget to another's place", async () => {
@@ -353,7 +601,7 @@ it("in Edit mode the Operator drags a Widget to another's place", async () => {
 
 const badGateway = () => new Response("<html>Bad Gateway</html>", { status: 502, headers: { "Content-Type": "text/html" } });
 
-it("shows the unreachable banner from a 5xx until the next success, with the Hero at warn meanwhile", async () => {
+it("shows the unreachable banner from a 5xx until the next success, with the hero at warn meanwhile", async () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   vi.setSystemTime(new Date(2026, 9, 20, 8, 5));
   plugins = [[installed("docker", "Docker"), docker()]];
@@ -368,14 +616,30 @@ it("shows the unreachable banner from a 5xx until the next success, with the Her
   await boot(); // appending Containers saves, and that save fails
 
   expect(screen.getByRole("status").textContent).toBe("ddash unreachable, showing data from 08:05");
-  expect(within(hero()).getByRole("img", { name: "warn" })).toBeTruthy();
+  expect(overall()).toBe("Overall: warn");
 
   edit();
   fireEvent.click(within(card("Containers")).getByRole("radio", { name: "M" }));
   await done();
 
   expect(screen.queryByRole("status")).toBeNull();
-  expect(within(hero()).getByRole("img", { name: "up" })).toBeTruthy();
+  expect(overall()).toBe("Overall: up");
+});
+
+it("says in a down Notice why Done couldn't save the layout, staying in edit mode", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  await boot();
+  intercept = (method) =>
+    method === "SaveLayout" ? Response.json({ code: "invalid_argument", message: "unknown widget nope.x" }, { status: 400 }) : undefined;
+
+  edit();
+  fireEvent.click(within(card("Containers")).getByRole("radio", { name: "M" }));
+  await done();
+
+  const alert = screen.getByRole("alert");
+  expect(alert.textContent).toMatch(/Saving the layout failed.*unknown widget nope\.x/);
+  expect(alert.querySelector("pre")).toBeNull();
+  expect(screen.getByRole("toolbar", { name: "Edit the Overview" })).toBeTruthy();
 });
 
 it("shows the unreachable banner when the network fails", async () => {

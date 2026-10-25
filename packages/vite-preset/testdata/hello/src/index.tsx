@@ -6,7 +6,7 @@ import "./index.css";
 function Hello() {
   const [n] = useState(1);
   return (
-    <p className="text-up p-3">
+    <p className="hidden lg:flex text-up p-3 motion-safe:animate-[hello-pulse_2s_infinite]">
       <StatusDot tone="up" /> {n}
     </p>
   );

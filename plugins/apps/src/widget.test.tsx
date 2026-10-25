@@ -2,7 +2,8 @@ import { cleanup, screen, within } from "@testing-library/react";
 import type { Status, WidgetSize } from "@ddash/plugin";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { allUp, checks, renderScoped, settle } from "./testing";
+import { settle, unavailable } from "@ddash/plugin/testing";
+import { allUp, checks, renderScoped } from "./testing";
 
 afterEach(cleanup);
 
@@ -93,7 +94,7 @@ it("is idle while no App has a Check yet", async () => {
 });
 
 it("warns while checks is unavailable", async () => {
-  renderScoped(<Probe />, { ListChecks: () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }) });
+  renderScoped(<Probe />, { ListChecks: () => unavailable("checks is down") });
   await settle();
 
   expect(seen).toEqual({ tone: "warn", summary: "checks unavailable: checks is down" });
@@ -107,6 +108,22 @@ it("shows each App's Check status on its icon", async () => {
   expect(within(jellyfin).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
 });
 
+it("draws a skeleton while apps answers", async () => {
+  renderScoped(<widget.Body size="L" />);
+
+  expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
+  await settle();
+  expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
+});
+
+it("says there are no Apps yet in an empty state", async () => {
+  renderScoped(<widget.Body size="M" />, { ListApps: () => Response.json({}) });
+  await settle();
+
+  expect(screen.getByText("No Apps yet").tagName).toBe("P");
+  expect(screen.getByText(/Proxy Hosts show here/)).toBeTruthy();
+});
+
 it("is idle without Apps", async () => {
   renderScoped(<Probe />, { ListApps: () => Response.json({}) });
   await settle();
@@ -115,7 +132,7 @@ it("is idle without Apps", async () => {
 });
 
 it("warns while apps is unavailable", async () => {
-  renderScoped(<Probe />, { ListApps: () => Response.json({ code: "unavailable", message: "apps is down" }, { status: 503 }) });
+  renderScoped(<Probe />, { ListApps: () => unavailable("apps is down") });
   await settle();
 
   expect(seen).toEqual({ tone: "warn", summary: "apps unavailable: apps is down" });

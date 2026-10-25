@@ -1,8 +1,9 @@
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, PluginHost, PluginScope } from "@ddash/plugin";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
+import { useLocation } from "react-router";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import plugin from "./index";
-import { check } from "./testing";
+import { check, checks } from "./testing";
 
 afterEach(cleanup);
 
@@ -44,38 +45,64 @@ const listed = {
 // What checks answers ListMaintenance with; none unless a test sets it.
 let maintenance: unknown[];
 
-// The fake host: ListChecks answers listed, an Action answers {} or the
-// queued refusal. Every Action call is recorded with its JSON body.
+// The fake host: ListChecks answers listed (or listAnswer, when a test
+// sets it), an Action answers {} or the queued refusal. Every Action call is
+// recorded with its JSON body.
 let actions: { method: string; body: unknown }[];
 let refusal: { code: string; message: string } | undefined;
+let listAnswer: Answer | undefined;
 
 beforeEach(() => {
   actions = [];
   refusal = undefined;
+  listAnswer = undefined;
   maintenance = [];
 });
 
-const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-  const method = String(input).split("/").pop()!;
-  if (method === "ListChecks") return Response.json(listed);
-  if (method === "ListMaintenance") return Response.json({ maintenance });
-  actions.push({ method, body: JSON.parse(new TextDecoder().decode(init?.body as Uint8Array)) });
+const answers = {
+  ListChecks: (body: unknown) => (listAnswer ? listAnswer(body) : Response.json(listed)),
+  ListMaintenance: () => Response.json({ maintenance }),
+};
+
+function answerAction(method: string, body: unknown) {
+  actions.push({ method, body });
   if (refusal) return Response.json(refusal, { status: 400 });
   return Response.json(method === "DeleteCheck" ? {} : { check: listed.checks[0] });
-});
+}
 
-const settle = () => act(() => new Promise((r) => setTimeout(r, 50)));
+// The Page's URL search, as the explorer last wrote it.
+let search = "";
 
-async function open() {
+async function open(at = "/") {
   const Page = plugin.pages![0].Component!;
-  render(
-    <PluginHost client={createQueryClient()}>
-      <PluginScope plugin={{ name: "checks", requires: ["checks"] }} fetch={fetch}>
-        <Page />
-      </PluginScope>
-    </PluginHost>,
+  function Where() {
+    search = useLocation().search;
+    return null;
+  }
+  renderScoped(
+    checks,
+    <>
+      <Page />
+      <Where />
+    </>,
+    { path: at, answers, unanswered: answerAction },
   );
   await settle();
+}
+
+/** Picks item from the ⋯ Menu of the Check named name. */
+function chooseAction(name: string, item: string) {
+  fireEvent.click(within(row(name)).getByRole("button", { name: `Actions for ${name}` }));
+  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+}
+
+/** The items of the ⋯ Menu of the Check named name; the Menu is closed again after. */
+function actionItems(name: string) {
+  const opener = within(row(name)).getByRole("button", { name: `Actions for ${name}` });
+  fireEvent.click(opener);
+  const items = screen.getAllByRole("menuitem").map((i) => i.textContent);
+  fireEvent.click(opener);
+  return items;
 }
 
 const row = (name: string) => screen.getByRole("row", { name: new RegExp(name) });
@@ -106,6 +133,52 @@ it("lists each Check with its state, latency or reason, and markers", async () =
   expect(within(row("nvr")).getByRole("img", { name: "disabled" })).toBeTruthy();
 });
 
+/** The Checks the table shows, by name, in order. */
+const checkNames = () => within(screen.getByRole("table")).queryAllByRole("rowheader").map((h) => h.querySelector("button")!.textContent);
+
+it("searches the Checks by name or target, kept in the URL", async () => {
+  await open();
+
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Checks" }), { target: { value: "jellyfin" } });
+
+  expect(checkNames()).toEqual(["adguard", "Jellyfin"]);
+  expect(search).toBe("?q=jellyfin");
+});
+
+it("filters the Checks by type, kept in the URL", async () => {
+  await open();
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "HTTP" } });
+
+  expect(checkNames()).toEqual(["Jellyfin", "Sonarr", "Radarr"]);
+  expect(search).toBe("?type=HTTP");
+});
+
+it("splits the Checks into tabs with counts, the tab kept in the URL", async () => {
+  await open();
+
+  const tabs = within(screen.getByRole("tablist", { name: "Show" })).getAllByRole("tab");
+  expect(tabs.map((t) => t.textContent)).toEqual(["All8", "Down1", "Attention3", "Maintenance2", "Muted1"]);
+  fireEvent.click(screen.getByRole("tab", { name: /Attention/ }));
+
+  expect(checkNames()).toEqual(["adguard", "Jellyfin", "camera"]);
+  expect(search).toBe("?tab=attention");
+});
+
+it("opens on the search, type and tab a link carries", async () => {
+  await open("/?tab=maint&type=HTTP&q=rad");
+
+  expect(screen.getByRole("tab", { name: /Maintenance/ }).getAttribute("aria-selected")).toBe("true");
+  expect(checkNames()).toEqual(["Radarr"]);
+});
+
+it("says so when no Check matches", async () => {
+  await open("/?q=nothing-like-it");
+
+  expect(checkNames()).toEqual([]);
+  expect(screen.getByText("No Check matches.")).toBeTruthy();
+});
+
 it("marks a Flapping Check, warn while it is up", async () => {
   await open();
 
@@ -122,10 +195,7 @@ it("lists App Checks, marks an expiring certificate, and leaves their editing to
   expect(within(jellyfin).getByText("HTTP")).toBeTruthy();
   expect(within(jellyfin).getByText("https://jellyfin.home.example")).toBeTruthy();
   expect(within(jellyfin).getByText("certificate expiring")).toBeTruthy();
-  expect(within(jellyfin).getByRole("button", { name: "Mute" })).toBeTruthy();
-  expect(within(jellyfin).getByRole("button", { name: "Disable" })).toBeTruthy();
-  expect(within(jellyfin).queryByRole("button", { name: "Edit" })).toBeNull();
-  expect(within(jellyfin).queryByRole("button", { name: "Delete" })).toBeNull();
+  expect(actionItems("Jellyfin")).toEqual(["Maintenance", "Mute", "Disable"]);
 });
 
 it("adds a Check from the form", async () => {
@@ -177,7 +247,7 @@ it("keeps the form open with checks' refusal", async () => {
 it("edits a Check from its row, filled in", async () => {
   await open();
 
-  fireEvent.click(within(row("adguard")).getByRole("button", { name: "Edit" }));
+  chooseAction("adguard", "Edit");
   const form = screen.getByRole("dialog", { name: "Edit adguard" });
   expect((within(form).getByLabelText("Name to resolve") as HTMLInputElement).value).toBe("jellyfin.home.example");
   fireEvent.change(within(form).getByLabelText("DNS server"), { target: { value: "198.18.1.3" } });
@@ -192,11 +262,19 @@ it("edits a Check from its row, filled in", async () => {
   ]);
 });
 
-it("mutes, unmutes, disables and enables from the row", async () => {
+it("keeps a Check's Actions in its row's ⋯ Menu, never inline", async () => {
   await open();
 
-  for (const [check, button] of [["nas", "Mute"], ["router", "Unmute"], ["nas", "Disable"], ["nvr", "Enable"]]) {
-    fireEvent.click(within(row(check)).getByRole("button", { name: button }));
+  expect(actionItems("nas")).toEqual(["Edit", "Maintenance", "Mute", "Disable", "Delete"]);
+  const buttons = within(row("nas")).getAllByRole("button");
+  expect(buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["nas", "Actions for nas"]);
+});
+
+it("mutes, unmutes, disables and enables from the row's Menu", async () => {
+  await open();
+
+  for (const [check, item] of [["nas", "Mute"], ["router", "Unmute"], ["nas", "Disable"], ["nvr", "Enable"]]) {
+    chooseAction(check, item);
     await settle();
   }
 
@@ -211,7 +289,7 @@ it("mutes, unmutes, disables and enables from the row", async () => {
 it("deletes a Check only once confirmed", async () => {
   await open();
 
-  fireEvent.click(within(row("router")).getByRole("button", { name: "Delete" }));
+  chooseAction("router", "Delete");
   await settle();
   const ask = screen.getByRole("alertdialog");
   expect(ask.textContent).toContain("Delete the Check router? Its history goes with it.");
@@ -222,11 +300,41 @@ it("deletes a Check only once confirmed", async () => {
   expect(actions).toEqual([{ method: "DeleteCheck", body: { id: "2" } }]);
 });
 
-it("says so when there are no Checks", async () => {
-  fetch.mockImplementationOnce(async () => Response.json({}));
+it("says so when there are no Checks, with a way to add one", async () => {
+  listAnswer = () => Response.json({});
   await open();
 
   expect(screen.getByText(/No Checks yet/)).toBeTruthy();
+  expect(screen.queryByRole("table")).toBeNull();
+  expect(screen.getAllByRole("button", { name: "Add Check" })).toHaveLength(2);
+});
+
+it("heads the Page with the up, down and Maintenance counts and the median latency", async () => {
+  await open();
+
+  expect(screen.getByRole("heading", { level: 1, name: "Checks" })).toBeTruthy();
+  expect(metricValue("Up")).toBe("3of 7 enabled");
+  expect(metricValue("Down")).toBe("1after 3 failures in a row");
+  expect(metricValue("Maintenance")).toBe("2left out of uptime");
+  // nas at 12.4 ms and camera at 30 ms; Jellyfin hasn't beaten yet.
+  expect(metricValue("Median latency")).toBe("21 msacross up Checks");
+});
+
+it("draws skeletons, not text, until checks first answers", async () => {
+  listAnswer = pending;
+  await open();
+
+  expect(metricValue("Up")).toBeUndefined();
+  expect(within(screen.getByRole("table")).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(screen.queryByText(/Loading/)).toBeNull();
+});
+
+it("says what failed when checks can't list the Checks", async () => {
+  listAnswer = () => unavailable("checks is down");
+  await open();
+
+  expect(screen.getByRole("alert").textContent).toContain("checks is down");
+  expect(screen.queryByRole("table")).toBeNull();
 });
 
 it("marks the Checks in Maintenance with when it ends", async () => {
@@ -249,9 +357,12 @@ it("lists the Maintenance in force and ends one early", async () => {
 
   const region = screen.getByRole("region", { name: "Maintenance" });
   const items = within(region).getAllByRole("listitem");
-  expect(items.map((i) => i.getAttribute("aria-label"))).toEqual(["Everything", "Docker sonarr on media", "nas"]);
-  expect(within(items[1]).getByText(/until ended/)).toBeTruthy();
-  expect(within(items[2]).getByText(/until its Checks are up/)).toBeTruthy();
+  expect(items.map((i) => within(i).getByRole("img").getAttribute("aria-label"))).toEqual(["maint", "maint", "maint"]);
+  expect(items.map((i) => i.textContent)).toEqual([
+    expect.stringMatching(/^EverythingEnduntil \S/),
+    "Docker sonarr on mediaEnduntil ended",
+    "nasEnduntil its Checks are up",
+  ]);
 
   fireEvent.click(within(items[1]).getByRole("button", { name: "End" }));
   await settle();
@@ -298,7 +409,7 @@ it("starts Maintenance on a Workload its App Checks run on, until ended", async 
 it("starts Maintenance for one Check from its row", async () => {
   await open();
 
-  fireEvent.click(within(row("nas")).getByRole("button", { name: "Maintenance" }));
+  chooseAction("nas", "Maintenance");
   const sheet = screen.getByRole("dialog", { name: "Maintenance for nas" });
   expect(within(sheet).queryByRole("radio", { name: "Everything" })).toBeNull();
   fireEvent.click(within(sheet).getByRole("radio", { name: "30 min" }));

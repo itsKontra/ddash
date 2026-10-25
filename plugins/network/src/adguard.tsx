@@ -1,6 +1,6 @@
 import { useQuery, type Status, type Widget } from "@ddash/plugin";
 import { AdguardApiService, type GetStatsResponse, type GetStatusResponse, type TopEntry } from "@ddash/proto/adguard-api/adguard_api_pb";
-import { Badge, Sparkline, Stat, StatusDot, type Tone } from "@ddash/ui";
+import { Bars, MetricTile, Notice, Pill, Skeleton, Sparkline, StatusDot, type Tone } from "@ddash/ui";
 
 /** AdGuard's status (FAST), shared by the Page and the Widget. */
 export function useAdguardStatus() {
@@ -46,9 +46,9 @@ function useStatus(): Status | undefined {
 
 /** S: protection, and the day's queries and share blocked. */
 function Body() {
-  const { data } = useAdguardStatus();
+  const { data, error } = useAdguardStatus();
   const { data: stats } = useAdguardStats();
-  if (!data) return null;
+  if (!data) return error ? null : <Skeleton lines={2} />;
   const p = protection(data);
   return (
     <div className="flex flex-col gap-3">
@@ -56,10 +56,10 @@ function Body() {
         <StatusDot tone={p.tone} />
         {p.label}
       </p>
-      {stats && (
-        <div className="flex gap-6">
-          <Stat label="queries, 24 h" value={count(stats.dnsQueries)} />
-          <Stat label="blocked" value={blockedShare(stats)} />
+      {data.running && (
+        <div className="grid grid-cols-2 gap-3">
+          <MetricTile label="queries, 24 h" value={stats && count(stats.dnsQueries)} />
+          <MetricTile label="blocked" value={stats && blockedShare(stats)} />
         </div>
       )}
     </div>
@@ -81,22 +81,15 @@ export function ProtectionBadge() {
   const { data } = useAdguardStatus();
   if (!data) return null;
   const p = protection(data);
-  return <Badge tone={p.tone}>{p.label}</Badge>;
+  return <Pill tone={p.tone}>{p.label}</Pill>;
 }
 
 function Top({ label, entries }: { label: string; entries: TopEntry[] }) {
   if (!entries.length) return null;
   return (
-    <div className="min-w-0 flex-1">
-      <h3 className="mb-1 text-xs text-muted-foreground">{label}</h3>
-      <ul aria-label={label} className="flex flex-col gap-1 text-sm">
-        {entries.slice(0, 5).map((e) => (
-          <li key={e.name} className="flex gap-2">
-            <span className="truncate">{e.name}</span>
-            <span className="ml-auto text-muted-foreground tabular-nums">{count(e.count)}</span>
-          </li>
-        ))}
-      </ul>
+    <div className="min-w-0 flex-1 basis-56">
+      <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{label}</h3>
+      <Bars label={label} items={entries.slice(0, 5).map((e) => ({ label: e.name, value: Number(e.count) }))} />
     </div>
   );
 }
@@ -106,17 +99,25 @@ export function AdguardStats() {
   const { data: status, error } = useAdguardStatus();
   const { data: stats, error: statsError } = useAdguardStats();
   const failed = error ?? statsError;
-  if (failed && !stats) return <p className="px-4 py-3 text-sm text-down">{failed.rawMessage}</p>;
-  if (!stats) return null;
+  if (failed && !stats) return <Notice tone="down">{failed.rawMessage}</Notice>;
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <MetricTile label="queries, 24 h" value={stats && count(stats.dnsQueries)} />
+        <MetricTile label="blocked by filters" value={stats && count(stats.blockedFiltering)} />
+        <MetricTile label="blocked share" value={stats && blockedShare(stats)} />
+        <MetricTile label="avg processing" value={stats && `${stats.avgProcessingMs.toFixed(1)} ms`} />
+      </div>
+      {stats && <Charts stats={stats} />}
+      {status?.version && <p className="text-xs text-muted-foreground">AdGuard Home {status.version}</p>}
+    </div>
+  );
+}
+
+function Charts({ stats }: { stats: GetStatsResponse }) {
   const unit = stats.timeUnit === "days" ? "day" : "hour";
   return (
-    <div className="flex flex-col gap-4 px-4 py-3">
-      <div className="flex flex-wrap gap-6">
-        <Stat label="queries, 24 h" value={count(stats.dnsQueries)} />
-        <Stat label="blocked by filters" value={count(stats.blockedFiltering)} />
-        <Stat label="blocked share" value={blockedShare(stats)} />
-        <Stat label="avg processing" value={`${stats.avgProcessingMs.toFixed(1)} ms`} />
-      </div>
+    <>
       <Sparkline
         label={`Queries and blocked, per ${unit}`}
         series={[stats.dnsQueriesSeries.map(Number), stats.blockedFilteringSeries.map(Number)]}
@@ -126,7 +127,6 @@ export function AdguardStats() {
         <Top label="Most queried domains" entries={stats.topQueriedDomains} />
         <Top label="Most active addresses" entries={stats.topClients} />
       </div>
-      {status?.version && <p className="text-xs text-muted-foreground">AdGuard Home {status.version}</p>}
-    </div>
+    </>
   );
 }

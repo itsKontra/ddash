@@ -1,11 +1,12 @@
 import { useQuery } from "@ddash/plugin";
 import { CoreService, Theme } from "@ddash/proto/ddash/core/core_pb";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 /**
  * The look of the UI: the Theme is a core setting (CoreSettings), the same
  * in every browser; light or dark starts from the browser's preference and
- * a switch in Settings overrides it, remembered per browser.
+ * a switch (the top bar's toggle or Settings') overrides it, remembered per
+ * browser.
  */
 
 export type Scheme = "light" | "dark";
@@ -54,17 +55,29 @@ export function useAppearance() {
 /** A Theme's name as <html data-theme> carries it: THEME_DDASH is "ddash". */
 export const themeName = (t: Theme): string => (Theme[t] ?? "DDASH").toLowerCase();
 
+// Every switch (the top bar's toggle, Settings') reads one scheme.
+let picked: Scheme | null = null;
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function setScheme(s: Scheme) {
+  try {
+    window.localStorage.setItem(storageKey, s);
+  } catch {
+    // Not remembered; it still applies until the page reloads.
+    picked = s;
+  }
+  document.documentElement.classList.toggle("dark", s === "dark");
+  listeners.forEach((l) => l());
+}
+
 /** The scheme in use and the switch that remembers another in this browser. */
 export function useScheme(): [Scheme, (s: Scheme) => void] {
-  const [scheme, setState] = useState(currentScheme);
-  const set = (s: Scheme) => {
-    try {
-      window.localStorage.setItem(storageKey, s);
-    } catch {
-      // Not remembered; it still applies until the page reloads.
-    }
-    document.documentElement.classList.toggle("dark", s === "dark");
-    setState(s);
-  };
-  return [scheme, set];
+  // picked covers a browser where nothing can be remembered.
+  const scheme = useSyncExternalStore(subscribe, () => stored() ?? picked ?? preferred());
+  return [scheme, setScheme];
 }

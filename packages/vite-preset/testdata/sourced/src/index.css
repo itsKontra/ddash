@@ -1,0 +1,3 @@
+/* Against the style lint, it @sources its sources: plugin.css must still bring no utilities. */
+@import "@ddash/ui/plugin.css";
+@source "./";

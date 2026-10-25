@@ -1,7 +1,7 @@
 import { timestampMs } from "@bufbuild/protobuf/wkt";
 import { useTail, type Status, type Widget } from "@ddash/plugin";
 import { NetworkService, type ThroughputSample } from "@ddash/proto/network/network_pb";
-import { Sparkline } from "@ddash/ui";
+import { EmptyState, Notice, Skeleton, Sparkline } from "@ddash/ui";
 
 const HOUR = 60 * 60 * 1000;
 
@@ -57,7 +57,7 @@ export function bitRate(bytesPerSecond: number): string {
 }
 
 /** One interface's current rates and its last hour. */
-export function Rates({ direction, samples, className }: { direction: Direction; samples: ThroughputSample[]; className?: string }) {
+export function Rates({ direction, samples }: { direction: Direction; samples: ThroughputSample[] }) {
   const last = samples.at(-1);
   return (
     <li aria-label={direction.label} className="flex flex-col gap-1">
@@ -69,7 +69,7 @@ export function Rates({ direction, samples, className }: { direction: Direction;
           </span>
         )}
       </div>
-      <Sparkline label={`${direction.label} over the last hour`} series={[samples.map(direction.down), samples.map(direction.up)]} className={className} />
+      <Sparkline label={`${direction.label} over the last hour`} series={[samples.map(direction.down), samples.map(direction.up)]} />
     </li>
   );
 }
@@ -88,13 +88,13 @@ function useStatus(): Status | undefined {
 
 /** M: WAN and LAN, each with its rates now and its last hour. */
 function Body() {
-  const { data } = useThroughput();
-  if (!data) return null;
+  const { data, error } = useThroughput();
+  if (!data) return error ? null : <Skeleton lines={4} />;
   if (data.samples.length === 0) return <p className="text-sm text-muted-foreground">Collecting the first samples</p>;
   return (
     <ul className="flex flex-col gap-3">
       {directions.map((d) => (
-        <Rates key={d.label} direction={d} samples={data.samples} className="h-8" />
+        <Rates key={d.label} direction={d} samples={data.samples} />
       ))}
     </ul>
   );
@@ -103,17 +103,19 @@ function Body() {
 /** The Network Page's throughput: WAN and LAN over the last hour, and why sampling fails. */
 export function ThroughputRates() {
   const { data, error } = useThroughput();
-  if (error && !data) return <p className="px-4 py-3 text-sm text-down">{error.rawMessage}</p>;
-  if (!data) return null;
+  if (error && !data) return <Notice tone="down">{error.rawMessage}</Notice>;
+  if (!data) return <Skeleton height="lg" />;
   return (
-    <div className="flex flex-col gap-3 px-4 py-3">
-      {data.error && <p className="text-sm text-warn">{data.error}</p>}
+    <div className="flex flex-col gap-3">
+      {data.error && <Notice tone="warn">{data.error}</Notice>}
       {data.samples.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Collecting the first samples</p>
+        <EmptyState icon="activity" title="Collecting the first samples">
+          network samples throughput every 5 seconds.
+        </EmptyState>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2">
           {directions.map((d) => (
-            <Rates key={d.label} direction={d} samples={data.samples} className="h-16" />
+            <Rates key={d.label} direction={d} samples={data.samples} />
           ))}
         </ul>
       )}

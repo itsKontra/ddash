@@ -1,2 +1,6 @@
 @import "@ddash/ui/plugin.css";
-@source "./";
+
+@keyframes hello-pulse {
+  from { opacity: 1; }
+  to { opacity: 0.4; transform: scale(1.1); }
+}

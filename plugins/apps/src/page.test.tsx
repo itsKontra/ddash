@@ -1,7 +1,8 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { actions, allUp, list, renderScoped, settle } from "./testing";
+import { settle, unavailable } from "@ddash/plugin/testing";
+import { actions, allUp, list, renderScoped } from "./testing";
 
 afterEach(cleanup);
 
@@ -14,6 +15,13 @@ const sectionNames = () => screen.getAllByRole("region").map((r) => r.getAttribu
 
 it("is the apps Nav Entry at order 10 (its icon, layout-grid, is in plugin.yaml)", () => {
   expect(plugin.nav?.order).toBe(10);
+});
+
+it("titles the Page Apps under its kicker", async () => {
+  renderScoped(<Page />);
+
+  const title = await screen.findByRole("heading", { level: 1, name: "Apps" });
+  expect(title.previousElementSibling?.textContent).toBe("Services");
 });
 
 it("shows the visible Apps as cards by group, ungrouped ones in the default section after the groups", async () => {
@@ -42,8 +50,6 @@ it("shows each card's Check status, and warns of a certificate expiring within 1
   expect(status("pfSense")).toBe("pending: timeout");
   expect(status("Old")).toBe("Check disabled");
   expect(status("Printer")).toBe("up, certificate expires in 5 days");
-  expect(within(card("Jellyfin")).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
-  expect(within(card("Printer")).getByRole("img", { name: "up, certificate expires in 5 days" })).toBeTruthy();
 });
 
 it("marks a card whose Check is Flapping", async () => {
@@ -62,17 +68,17 @@ it("marks a card whose Check is Flapping", async () => {
   const card = (name: string) => screen.getByRole("listitem", { name });
   const status = (name: string) => within(card(name)).getByRole("status").textContent;
   expect(status("Grafana")).toBe("up, flapping");
-  expect(within(card("Grafana")).getByRole("img", { name: "up, flapping" })).toBeTruthy();
   expect(status("Jellyfin")).toBe("down, flapping: HTTP 502");
-  expect(within(card("Jellyfin")).getByRole("img", { name: "down, flapping: HTTP 502" })).toBeTruthy();
 });
 
 it("shows the cards without a Check status while checks is unavailable", async () => {
-  renderScoped(<Page />, { ListChecks: () => Response.json({ code: "unavailable", message: "checks is down" }, { status: 503 }) });
+  renderScoped(<Page />, { ListChecks: () => unavailable("checks is down") });
   await settle();
 
   expect(within(screen.getByRole("listitem", { name: "Jellyfin" })).queryByRole("status")).toBeNull();
-  expect(screen.getByText("Check status unavailable: checks is down")).toBeTruthy();
+  // Partial: the cards show, so it's a warning, not a failure.
+  expect(screen.getByRole("status").textContent).toBe("Check status unavailable: checks is down");
+  expect(screen.queryByRole("alert")).toBeNull();
 });
 
 it("shows each card's icon, name, URL and aliases, and opens the URL on a click", async () => {
@@ -138,6 +144,21 @@ it("adds a manual App", async () => {
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
+it("describes the Icon field by its hint, and Cancel closes the sheet unsaved", async () => {
+  const calls = renderScoped(<Page />);
+  await settle();
+
+  fireEvent.click(screen.getByRole("button", { name: "Add App" }));
+  const dialog = screen.getByRole("dialog", { name: "Add App" });
+  expect(within(dialog).getByRole("textbox", { name: "Icon", description: /homarr-labs\/dashboard-icons/ })).toBeTruthy();
+  fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Proxmox" } });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  await settle();
+
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(actions(calls)).toEqual([]);
+});
+
 it("shows why a save was refused and keeps the form open", async () => {
   renderScoped(<Page />, {
     CreateApp: () => Response.json({ code: "invalid_argument", message: "url must be an http or https URL, e.g. https://198.18.0.1" }, { status: 400 }),
@@ -176,31 +197,67 @@ it("edits and deletes a manual App", async () => {
   ]);
 });
 
-it("re-attaches unmatched settings to an App without any", async () => {
+/** An unmatched setting's row in the Unmatched settings table, by its server name. */
+const unmatched = (serverName: string) =>
+  within(within(screen.getByRole("region", { name: "Unmatched settings" })).getByRole("table")).getByRole("rowheader", { name: serverName }).closest("tr")!;
+
+/** Picks item from the ⋯ Menu of the unmatched setting serverName. */
+function chooseUnmatched(serverName: string, item: string) {
+  fireEvent.click(within(unmatched(serverName)).getByRole("button", { name: `Actions for ${serverName}` }));
+  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+}
+
+it("tables the unmatched settings, each with what it sets", async () => {
+  renderScoped(<Page />);
+  await settle();
+
+  expect(unmatched("paperless.home.example").textContent).toContain("Documents · group Office");
+});
+
+it("re-attaches unmatched settings to an App without any, from the row's menu", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
-  const row = screen.getByRole("listitem", { name: "paperless.home.example" });
-  expect(row.textContent).toContain("Documents");
-  const target = within(row).getByRole("combobox", { name: "Re-attach to" });
+  chooseUnmatched("paperless.home.example", "Re-attach…");
+  const dialog = screen.getByRole("dialog", { name: "Re-attach paperless.home.example" });
+  const target = within(dialog).getByRole("combobox", { name: "Re-attach to" });
   // Only Apps without settings of their own.
   expect(within(target).getAllByRole("option").map((o) => o.getAttribute("value"))).toEqual(["", "jellyfin.home.example", "printer.home.example"]);
+  expect((within(dialog).getByRole("button", { name: "Re-attach" }) as HTMLButtonElement).disabled).toBe(true);
   fireEvent.change(target, { target: { value: "jellyfin.home.example" } });
-  fireEvent.click(within(row).getByRole("button", { name: "Re-attach" }));
+  fireEvent.click(within(dialog).getByRole("button", { name: "Re-attach" }));
   await settle();
 
   expect(actions(calls)).toEqual([{ method: "AttachOverlay", body: { serverName: "paperless.home.example", to: "jellyfin.home.example" } }]);
+  expect(screen.queryByRole("dialog", { name: "Re-attach paperless.home.example" })).toBeNull();
 });
 
-it("deletes unmatched settings after a confirm", async () => {
+it("deletes unmatched settings from the row's menu after a confirm", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
-  fireEvent.click(within(screen.getByRole("listitem", { name: "paperless.home.example" })).getByRole("button", { name: "Delete" }));
+  chooseUnmatched("paperless.home.example", "Delete");
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
   await settle();
 
   expect(actions(calls)).toEqual([{ method: "DeleteOverlay", body: { serverName: "paperless.home.example" } }]);
+});
+
+it("shows a skeleton while apps answers, and no loading text", async () => {
+  renderScoped(<Page />);
+
+  expect(screen.getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(screen.queryByText(/loading/i)).toBeNull();
+  await settle();
+  expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
+});
+
+it("shows apps being unavailable as a failure", async () => {
+  renderScoped(<Page />, { ListApps: () => unavailable("apps is down") });
+  await settle();
+
+  expect(screen.getByRole("alert").textContent).toMatch(/apps unavailable: apps is down/);
+  expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
 });
 
 it("says when nginx-config couldn't be read", async () => {
@@ -208,7 +265,9 @@ it("says when nginx-config couldn't be read", async () => {
   await settle();
 
   expect(screen.getByRole("status").textContent).toMatch(/nginx-config is not configured/);
-  expect(screen.getByText(/No Apps yet/)).toBeTruthy();
+  expect(screen.getByText("No Apps yet")).toBeTruthy();
+  // The empty state offers adding one, as the Page title does.
+  expect(screen.getAllByRole("button", { name: "Add App" })).toHaveLength(2);
 });
 
 it("shows each card's Workload, linked to its Proxmox detail or the Docker Page when that Plugin is installed", async () => {

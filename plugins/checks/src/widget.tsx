@@ -1,5 +1,5 @@
 import type { Status, Widget, WidgetSize } from "@ddash/plugin";
-import { StatusDot, Stat } from "@ddash/ui";
+import { MetricTile, StatusList } from "@ddash/ui";
 import { latency, shownName, stateLabel, tally, toneOf, useChecks, warning } from "./checks";
 
 /**
@@ -21,27 +21,26 @@ function useStatus(): Status | undefined {
 
 /** S: up, down and Maintenance counts. M: each Check that isn't up, too. */
 function Body({ size }: { size: WidgetSize }) {
-  const { data } = useChecks();
-  if (!data) return null;
-  const { enabled, up, down, maint } = tally(data.checks);
-  const troubled = enabled.filter((c) => toneOf(c) !== "up");
+  const { data, error } = useChecks();
+  // The Widget's status already says checks is unavailable.
+  if (error && !data) return null;
+  const t = data && tally(data.checks);
+  const troubled = t?.enabled.filter((c) => toneOf(c) !== "up") ?? [];
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-6">
-        <Stat label="up" value={up.length} tone="up" />
-        <Stat label="down" value={down.length} tone={down.length ? "down" : undefined} />
-        <Stat label="Maintenance" value={maint.length} tone={maint.length ? "maint" : undefined} />
+      <div className="grid grid-cols-3 gap-3">
+        <MetricTile label="up" value={t?.up.length} tone="up" />
+        <MetricTile label="down" value={t?.down.length} tone={t?.down.length ? "down" : "idle"} />
+        <MetricTile label="Maintenance" value={t?.maint.length} tone={t?.maint.length ? "maint" : "idle"} />
       </div>
       {size === "M" && troubled.length > 0 && (
-        <ul className="flex flex-col gap-1 text-sm">
-          {troubled.map((c) => (
-            <li key={String(c.id)} className="flex items-center gap-2">
-              <StatusDot tone={toneOf(c)} label={stateLabel(c)} />
-              <span className="truncate">{shownName(c)}</span>
-              <span className="ml-auto truncate text-muted-foreground">{c.reason || (c.latencyMs ? latency(c.latencyMs) : stateLabel(c))}</span>
-            </li>
-          ))}
-        </ul>
+        <StatusList
+          items={troubled.map((c) => ({
+            tone: toneOf(c),
+            title: shownName(c),
+            aside: c.reason || (c.latencyMs ? latency(c.latencyMs) : stateLabel(c)),
+          }))}
+        />
       )}
     </div>
   );
