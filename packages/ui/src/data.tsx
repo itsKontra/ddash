@@ -260,7 +260,8 @@ function Table<R>({
       "whitespace-nowrap",
       c.align === "right" ? "text-right" : "text-left",
       c.hideBelow === "sm" && "hidden sm:table-cell",
-      i === 0 && "sticky left-0 z-1 bg-card group-hover:bg-muted",
+      // The tint is translucent: laid as an image over bg-card, the sticky cell stays opaque.
+      i === 0 && "sticky left-0 z-1 bg-card group-hover:bg-linear-to-r group-hover:from-primary-tint group-hover:to-primary-tint",
     );
   return (
     <div className="w-full overflow-x-auto">
@@ -333,7 +334,7 @@ function Table<R>({
                     onRowClick(row);
                   })
                 }
-                className={cx("group border-b border-border transition-colors last:border-b-0 hover:bg-muted", onRowClick && "cursor-pointer")}
+                className={cx("group border-b border-border transition-colors last:border-b-0 hover:bg-primary-tint", onRowClick && "cursor-pointer")}
               >
                 {columns.map((c, i) => {
                   const Cell = c.rowHeader ? "th" : "td";
