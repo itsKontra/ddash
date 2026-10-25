@@ -210,7 +210,15 @@ export function HeroCard({
       aria-labelledby={id}
       className="relative flex flex-col gap-6 overflow-hidden rounded-ui-lg bg-linear-to-br from-hero-from to-hero-to p-7 text-nav-foreground shadow-elevation-raised sm:flex-row sm:items-center sm:p-9"
     >
-      <div aria-hidden="true" className="pointer-events-none absolute -top-20 -right-16 size-90 rounded-full border border-nav-accent/10" />
+      {/* Two glows, mid-right and from the corner, and the ring with two halos. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_64%_50%,color-mix(in_srgb,var(--nav-accent)_14%,transparent),transparent_49%),radial-gradient(circle_at_100%_0%,color-mix(in_srgb,var(--nav-accent)_12%,transparent),transparent_45%)]"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-20 -right-16 size-90 rounded-full border border-nav-accent/10 shadow-[0_0_0_44px_color-mix(in_srgb,var(--nav-accent)_1.8%,transparent),0_0_0_87px_color-mix(in_srgb,var(--nav-accent)_1.4%,transparent)]"
+      />
       <div className="relative min-w-0 flex-1">
         <div className="mb-3">
           <OnHero value={true}>

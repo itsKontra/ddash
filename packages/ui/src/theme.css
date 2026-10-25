@@ -1,10 +1,12 @@
 /*
  * The Themes' tokens, light and dark. The shell imports this once; Plugins
  * only reference the tokens (through plugin.css), never set them. The shell
- * puts .dark on <html> for the dark variant.
+ * puts .dark on <html> for the dark variant and data-theme="<name>" for
+ * the Theme in use. Each Theme also applies under its own data-theme, so a
+ * preview of one (Settings' swatches) shows its colours whichever is in use.
  *
  * A Theme sets 30 colours per scheme, two elevations per scheme, a radius
- * and a font. Tints, nav states, the radius scale, monospace and focus are
+ * and a font. Tints, glows, nav states, the radius scale, monospace and focus are
  * derived from them (tokens.css, surfaces.css, below). theme.test.ts holds
  * every Theme here to the WCAG AA bar.
  */
@@ -12,7 +14,8 @@
 @import "./surfaces.css";
 
 /* The ddash Theme: ddash blue on tinted navy, a dark navy nav and hero. */
-:root {
+:root,
+[data-theme="ddash"] {
   --font: "Inter", ui-sans-serif, system-ui, sans-serif;
   --radius: 0.75rem;
   --background: #f6f8fb;
@@ -49,7 +52,8 @@
   --elevation-raised: 0 18px 40px rgba(14, 40, 53, 0.14);
 }
 
-:root.dark {
+:root.dark,
+.dark [data-theme="ddash"] {
   --background: #0a0f1a;
   --foreground: #e3ebf3;
   --card: #111a2a;
@@ -80,6 +84,79 @@
   --nav-accent: #60a5fa;
   --hero-from: #132648;
   --hero-to: #0a1529;
+  --elevation: 0 12px 34px rgba(0, 0, 0, 0.3);
+  --elevation-raised: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* The Lagoon Theme: teal and green on slate, a deep teal-navy nav and hero. */
+:root[data-theme="lagoon"],
+[data-theme="lagoon"] {
+  --background: #f6f8fb;
+  --foreground: #14263b;
+  --card: #ffffff;
+  --muted: #eef3f5;
+  --muted-foreground: #5f7186;
+  --border: #e7ecf2;
+  --primary: #0a7568;
+  --primary-foreground: #ffffff;
+  --up: #0c9c78;
+  --up-text: #08745a;
+  --down: #dc5b6c;
+  --down-text: #b83448;
+  --warn: #bb7c2a;
+  --warn-text: #8a5a1f;
+  --maint: #8b71c9;
+  --maint-text: #6c52ab;
+  --info: #5e8ac9;
+  --info-text: #3d67a6;
+  --chart-1: #139a89;
+  --chart-2: #8b71c9;
+  --chart-3: #5e8ac9;
+  --chart-4: #bb7c2a;
+  --chart-5: #dc5b6c;
+  --chart-6: #8391a4;
+  --nav: #121f2f;
+  --nav-foreground: #a9b8c8;
+  --nav-strong: #ffffff;
+  --nav-accent: #20b6a4;
+  --hero-from: #133342;
+  --hero-to: #0e2635;
+  --elevation: 0 12px 34px rgba(22, 42, 63, 0.035);
+  --elevation-raised: 0 18px 40px rgba(14, 40, 53, 0.14);
+}
+
+:root.dark[data-theme="lagoon"],
+.dark [data-theme="lagoon"] {
+  --background: #08131a;
+  --foreground: #e2eef0;
+  --card: #0f1e26;
+  --muted: #15282f;
+  --muted-foreground: #86a0a8;
+  --border: #1b3039;
+  --primary: #2fd0b8;
+  --primary-foreground: #032620;
+  --up: #36d2a4;
+  --up-text: #36d2a4;
+  --down: #f07a88;
+  --down-text: #f07a88;
+  --warn: #e3a55a;
+  --warn-text: #e3a55a;
+  --maint: #a993e6;
+  --maint-text: #a993e6;
+  --info: #79a6e8;
+  --info-text: #79a6e8;
+  --chart-1: #2fd0b8;
+  --chart-2: #a993e6;
+  --chart-3: #79a6e8;
+  --chart-4: #e3a55a;
+  --chart-5: #f07a88;
+  --chart-6: #94a3b8;
+  --nav: #071017;
+  --nav-foreground: #93aab4;
+  --nav-strong: #f0f8f8;
+  --nav-accent: #3fd2bd;
+  --hero-from: #0f2c37;
+  --hero-to: #08171f;
   --elevation: 0 12px 34px rgba(0, 0, 0, 0.3);
   --elevation-raised: 0 18px 40px rgba(0, 0, 0, 0.45);
 }

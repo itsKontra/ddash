@@ -380,7 +380,7 @@ func TestTheThemeIsACoreSettingSavedLikeAnyConfig(t *testing.T) {
 	form := coreJSON(t, h, "GetConfigForm", `{"owner":"core"}`)
 	wantFields := []any{map[string]any{
 		"name": "theme", "kind": "KIND_ENUM", "label": "Theme", "placeholder": "THEME_DDASH", "default": "THEME_DDASH",
-		"options": []any{map[string]any{"value": "THEME_DDASH", "label": "ddash"}},
+		"options": []any{map[string]any{"value": "THEME_DDASH", "label": "ddash"}, map[string]any{"value": "THEME_LAGOON", "label": "Lagoon"}},
 	}}
 	if diff := cmp.Diff(wantFields, form["fields"]); diff != "" {
 		t.Errorf("core form (-want +got):\n%s", diff)

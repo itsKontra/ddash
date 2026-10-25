@@ -108,6 +108,35 @@ describe("the ddash Theme", () => {
   });
 });
 
+describe("the Lagoon Theme", () => {
+  const all = themes(css);
+  const ddashTheme = all.find((t) => t.name === "ddash")!;
+  const lagoon = all.find((t) => t.name === "lagoon");
+
+  it("sets every colour and elevation the ddash Theme sets, light and dark", () => {
+    expect(lagoon).toBeDefined();
+    const colours = (m: Map<string, string>) => [...m.keys()].filter((k) => k !== "radius" && k !== "font").sort();
+    expect(colours(lagoon!.light)).toEqual(colours(ddashTheme.light));
+    expect([...lagoon!.dark.keys()].sort()).toEqual([...ddashTheme.dark.keys()].sort());
+  });
+});
+
+it("draws every glow as nav-accent mixed where it's drawn, never a fixed colour", () => {
+  const sources = ["./layout.tsx", "./charts.tsx", "../../../web/src/chrome.tsx"].map((f) => readFileSync(new URL(f, import.meta.url), "utf8")).join("\n");
+  const mixed = [...sources.matchAll(/color-mix\(in_srgb,([^_]+)_[\d.]+%,transparent\)/g)].map((m) => m[1]);
+  // The hero's two glows and two halos, its Ring's glow, the brand mark's and the sidebar corner's.
+  expect(mixed).toHaveLength(7);
+  for (const colour of mixed) expect(colour).toBe("var(--nav-accent)");
+});
+
+it("applies each Theme under its own data-theme too, so a preview shows it whichever is in use", () => {
+  for (const name of themes(css).map((t) => t.name)) {
+    const root = name === "ddash" ? ":root" : `:root[data-theme="${name}"]`;
+    expect(css, name).toContain(`${root},\n[data-theme="${name}"] {`);
+    expect(css, name).toContain(`${root.replace(":root", ":root.dark")},\n.dark [data-theme="${name}"] {`);
+  }
+});
+
 describe("the AA bar", () => {
   it("is met by every Theme in theme.css, in both schemes", () => {
     const all = themes(css);
