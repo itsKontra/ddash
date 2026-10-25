@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type InputHTMLAttributes,
@@ -21,17 +22,25 @@ const FieldContext = createContext<Wiring | null>(null);
 /** The id, descriptions and error state a Field gives the control inside it. */
 const useWiring = (): Partial<Wiring> => useContext(FieldContext) ?? {};
 
+/**
+ * A group control (a radio group) can't be a `<label for>`'s target: it
+ * takes the Field's label by id instead, and tells the Field to drop `for`.
+ */
+const FieldGroup = createContext<{ labelId: string; asGroup: () => void } | null>(null);
+
 /** A labelled control with its hint, or its error in place of the hint; the control inside takes its id and descriptions. */
 export function Field({ label, hint, error, children }: { label: string; hint?: ReactNode; error?: string; children: ReactNode }) {
   const id = useId();
   const note = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+  const [group, setGroup] = useState(false);
+  const [labelling] = useState(() => ({ labelId: `${id}-label`, asGroup: () => setGroup(true) }));
   return (
     <FieldContext.Provider value={{ id, "aria-describedby": note, "aria-invalid": error ? true : undefined }}>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={id} className="text-xs font-semibold text-foreground">
+        <label id={labelling.labelId} htmlFor={group ? undefined : id} className="text-xs font-semibold text-foreground">
           {label}
         </label>
-        {children}
+        <FieldGroup.Provider value={labelling}>{children}</FieldGroup.Provider>
         {error ? (
           <p id={note} className="text-xs font-medium text-down-text">
             {error}
@@ -168,6 +177,7 @@ const arrowStep: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLe
 /**
  * Picks one of a few options, e.g. a Widget's size: a radio group drawn like
  * Tabs. It takes one tab stop; the arrow keys move along it and pick.
+ * Inside a Field it takes the Field's label and hint.
  */
 export function Segmented<T extends string>({
   label,
@@ -180,8 +190,17 @@ export function Segmented<T extends string>({
   options: readonly T[];
   onChange: (value: T) => void;
 }) {
+  const field = useContext(FieldGroup);
+  const { "aria-describedby": describedBy } = useWiring();
+  useLayoutEffect(() => field?.asGroup(), [field]);
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap gap-1">
+    <div
+      role="radiogroup"
+      aria-label={field ? undefined : label}
+      aria-labelledby={field?.labelId}
+      aria-describedby={describedBy}
+      className="inline-flex flex-wrap gap-1"
+    >
       {options.map((o, i) => (
         <button
           key={o}

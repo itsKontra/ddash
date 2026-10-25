@@ -114,6 +114,21 @@ it("Segmented is a named radio group with the picked option checked, picking on 
   expect(picked).toEqual(["L"]);
 });
 
+it("Segmented in a Field is named by the Field's label and described by its hint, leaving no label pointing nowhere", () => {
+  const { container } = render(
+    <Field label="Maintenance length" hint="Ends on its own">
+      <Segmented label="For" value="1 hour" options={["1 hour", "1 day"]} onChange={() => {}} />
+    </Field>,
+  );
+
+  const group = screen.getByRole("radiogroup", { name: "Maintenance length" });
+  expect(group.getAttribute("aria-describedby")).toBe(screen.getByText("Ends on its own").id);
+  for (const label of container.querySelectorAll("label[for]")) {
+    const target = document.getElementById((label as HTMLLabelElement).htmlFor);
+    expect(target?.matches("input, select, textarea, button"), `label "${label.textContent}"`).toBe(true);
+  }
+});
+
 it("Segmented takes one tab stop and picks with the arrow keys, wrapping at the ends", () => {
   const picked: string[] = [];
   const { rerender } = render(<Segmented label="Window" value="24h" options={["24h", "7d", "30d"]} onChange={(v) => picked.push(v)} />);
