@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { settle, type Answers, type Call } from "@ddash/plugin/testing";
 import { afterEach, expect, it } from "vitest";
-import plugin from "./index";
 import { show as showNetwork } from "./testing";
 
 afterEach(cleanup);

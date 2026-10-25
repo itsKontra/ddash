@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { settle, unavailable, type Answers } from "@ddash/plugin/testing";
 import { afterEach, expect, it } from "vitest";
-import plugin from "./index";
 import { show as showNetwork, withAdguard } from "./testing";
 
 afterEach(cleanup);
