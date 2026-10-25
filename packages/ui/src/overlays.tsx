@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode,
 import { Button } from "./atoms";
 import { Checkbox } from "./forms";
 import { Icon } from "./icon";
+import { Kicker } from "./kicker";
 import { cx, toneTint } from "./tone";
 
 /** What a confirm dialog asks. */
@@ -145,7 +146,11 @@ function Overlay({
         <header className="flex items-start gap-4 px-6 pt-6 pb-4">
           {icon}
           <div className="min-w-0 flex-1">
-            {kicker && <div className="mb-1.5 text-[10px] font-extrabold tracking-[0.15em] text-primary uppercase">{kicker}</div>}
+            {kicker && (
+              <div className="mb-1.5">
+                <Kicker>{kicker}</Kicker>
+              </div>
+            )}
             <h2 id={`${id}-title`} className="text-lg leading-tight font-extrabold tracking-tight">
               {title}
             </h2>

@@ -3,19 +3,10 @@ import { useId, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Skeleton, StatusDot } from "./atoms";
 import { Icon } from "./icon";
+import { Kicker } from "./kicker";
 import type { IconName } from "./icon-names";
 import { OnHero } from "./surface";
 import { cx, toneText, toneTint, type Tone } from "./tone";
-
-/** The small uppercase label over a heading, with its accent rule. */
-function Kicker({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 text-[10px] font-extrabold tracking-[0.17em] text-primary uppercase">
-      <span aria-hidden="true" className="block h-0.5 w-5 bg-primary" />
-      {children}
-    </div>
-  );
-}
 
 /**
  * The top of every Page: an optional back link and kicker over the title,
@@ -49,7 +40,7 @@ export function PageTitle({
         )}
         {kicker && (
           <div className="mb-2.5">
-            <Kicker>{kicker}</Kicker>
+            <Kicker rule>{kicker}</Kicker>
           </div>
         )}
         <h1 className="text-3xl leading-tight font-extrabold tracking-tight sm:text-4xl">{title}</h1>
@@ -97,9 +88,9 @@ export function Panel({
         <header className={cx("flex items-start gap-4 px-5", flush && !toolbar ? "border-b border-border py-4" : "pt-5")}>
           <div className="min-w-0">
             {kicker && (
-              <div id={title ? undefined : id} className="text-[10px] font-extrabold tracking-[0.12em] text-muted-foreground uppercase">
+              <Kicker id={title ? undefined : id} muted>
                 {kicker}
-              </div>
+              </Kicker>
             )}
             {title && (
               <h2 id={id} className="text-base font-extrabold tracking-tight">
@@ -132,7 +123,11 @@ export function SectionHeading({ kicker, title, actions }: { kicker?: string; ti
   return (
     <div className="mt-2 mb-3 flex items-end gap-3">
       <div className="min-w-0">
-        {kicker && <div className="mb-1 text-[10px] font-extrabold tracking-[0.14em] text-primary uppercase">{kicker}</div>}
+        {kicker && (
+          <div className="mb-1">
+            <Kicker>{kicker}</Kicker>
+          </div>
+        )}
         <h2 className="text-lg font-extrabold tracking-tight">{title}</h2>
       </div>
       {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
@@ -219,7 +214,11 @@ export function HeroCard({
     >
       <div aria-hidden="true" className="pointer-events-none absolute -top-20 -right-16 size-90 rounded-full border border-nav-accent/10" />
       <div className="relative min-w-0 flex-1">
-        <div className="mb-3 text-[10px] font-extrabold tracking-[0.15em] text-nav-accent uppercase">{kicker}</div>
+        <div className="mb-3">
+          <OnHero value={true}>
+            <Kicker>{kicker}</Kicker>
+          </OnHero>
+        </div>
         <h2 id={id} className="mb-3 text-2xl leading-tight font-extrabold tracking-tight text-nav-strong sm:text-3xl">
           {title}
         </h2>
