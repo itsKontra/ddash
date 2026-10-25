@@ -139,8 +139,8 @@ func TestGitHubKeepsWhatItDownloadedSoItNeedsNoNetworkAfterwards(t *testing.T) {
 	if b, err := fs.ReadFile(again, "hello.plugin.js"); string(b) != "export default {}" {
 		t.Errorf("hello.plugin.js = %q, %v", b, err)
 	}
-	if b, err := os.ReadFile(filepath.Join(data, "catalogue.json")); err != nil || !strings.Contains(string(b), `"v1.0.0"`) {
-		t.Errorf("/data/catalogue.json = %q, %v", b, err)
+	if b, err := os.ReadFile(filepath.Join(data, "releases", "v1.0.0", "catalogue.json")); err != nil || !strings.Contains(string(b), `"v1.0.0"`) {
+		t.Errorf("/data/releases/v1.0.0/catalogue.json = %q, %v", b, err)
 	}
 }
 
@@ -164,6 +164,94 @@ func TestGitHubFetchesTheCatalogueOfANewRelease(t *testing.T) {
 	}
 	if b, _ := os.ReadFile(bin.Path); string(b) != "greeter binary v1.1" {
 		t.Errorf("binary holds %q, want v1.1's", b)
+	}
+}
+
+func TestGitHubRollsBackToADownloadedReleaseWithoutNetwork(t *testing.T) {
+	gh := fakegithub.New(repo)
+	gh.Publish("v1.0.0", releaseDir(t, "v1.0.0", helloV1))
+	gh.Publish("v1.1.0", releaseDir(t, "v1.1.0", map[string]string{
+		"greeter":          "greeter binary v1.1",
+		"hello.plugin.js":  "export default { v: 1.1 }",
+		"hello.plugin.css": ".hello {}",
+	}))
+	data := t.TempDir()
+	for _, rel := range []string{"v1.0.0", "v1.1.0"} { // run v1.0.0, then update
+		src := github(gh, data, rel)
+		if _, err := src.Component(t.Context(), "greeter"); err != nil {
+			t.Fatal(err)
+		}
+		if err := src.Plugin(t.Context(), "hello"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gh.SetOffline(true)
+
+	back := github(gh, data, "v1.0.0") // the old image tag pinned again
+	cat, err := back.Catalogue(t.Context())
+	if err != nil || cat.Release != "v1.0.0" {
+		t.Fatalf("Catalogue offline = %v, %v; want v1.0.0's", cat.Release, err)
+	}
+	bin, err := back.Component(t.Context(), "greeter")
+	if err != nil {
+		t.Fatalf("Component offline: %v", err)
+	}
+	if b, _ := os.ReadFile(bin.Path); string(b) != "greeter binary v1" {
+		t.Errorf("binary holds %q, want v1.0.0's", b)
+	}
+	if err := back.Plugin(t.Context(), "hello"); err != nil {
+		t.Errorf("Plugin offline: %v", err)
+	}
+	if b, err := fs.ReadFile(back, "hello.plugin.js"); string(b) != "export default {}" {
+		t.Errorf("hello.plugin.js = %q, %v; want v1.0.0's", b, err)
+	}
+}
+
+func TestGitHubReadsTheIndexAnOlderCoreKeptAtTheDataRoot(t *testing.T) {
+	gh := fakegithub.New(repo)
+	dir := releaseDir(t, "v1.0.0", helloV1)
+	gh.Publish("v1.0.0", dir)
+	gh.SetOffline(true)
+	data := t.TempDir()
+	// /data as a core before per-Release indexes left it.
+	for src, dest := range map[string]string{
+		release.CatalogueFile: release.CatalogueFile,
+		release.SumsFile:      release.SumsFile,
+		"greeter":             filepath.Join("components", "greeter", "v1.0.0", "greeter"),
+	} {
+		b, err := os.ReadFile(filepath.Join(dir, src))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(data, dest)), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(data, dest), b, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	src := github(gh, data, "v1.0.0")
+	cat, err := src.Catalogue(t.Context())
+	if err != nil || cat.Release != "v1.0.0" {
+		t.Fatalf("Catalogue offline = %v, %v; want v1.0.0's from the data root", cat.Release, err)
+	}
+	if _, err := src.Component(t.Context(), "greeter"); err != nil {
+		t.Errorf("Component offline: %v", err)
+	}
+	// An older core rolled back to reads them there.
+	if _, err := os.Stat(filepath.Join(data, release.CatalogueFile)); err != nil {
+		t.Errorf("the data root's catalogue.json is gone: %v", err)
+	}
+
+	// That core keeps its own Release's there; v1.0.0's was kept already.
+	older := `{"release":"v0.9.0","plugins":[],"components":[]}`
+	if err := os.WriteFile(filepath.Join(data, release.CatalogueFile), []byte(older), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cat, err = github(gh, data, "v1.0.0").Catalogue(t.Context())
+	if err != nil || cat.Release != "v1.0.0" {
+		t.Errorf("Catalogue offline after an older core = %v, %v; want v1.0.0's", cat.Release, err)
 	}
 }
 

@@ -124,6 +124,28 @@ func TestInstalledPluginsKeepRunningWhileGitHubIsUnreachable(t *testing.T) {
 	}
 }
 
+func TestRollingBackToTheLastReleaseWorksWhileGitHubIsUnreachable(t *testing.T) {
+	gh := fakegithub.New(repo)
+	publish(t, gh, "v1.0.0", notebook())
+	publish(t, gh, "v1.1.0", notebook(addTag))
+	data := installedFromGitHub(t, gh)
+	updated := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
+	updated.WaitState("greeter", runtime.OK)
+	updated.Shutdown()
+	gh.SetOffline(true)
+
+	h := fromGitHub(t, gh, data, "v1.0.0", notebook()) // the old image tag pinned again
+
+	h.WaitState("greeter", runtime.OK)
+	if got, want := note(t, h, ""), []string{"before the update"}; !slices.Equal(got, want) {
+		t.Errorf("notes = %v, want %v", got, want)
+	}
+	res := h.Get("/plugins/hello/v1.0.0/index.js")
+	if want := "/* hello.plugin.js of Release v1.0.0 */"; res.Code != http.StatusOK || res.Body.String() != want {
+		t.Errorf("GET hello's bundle: %d %q, want %q", res.Code, res.Body, want)
+	}
+}
+
 func TestOnANewReleaseWhileGitHubIsUnreachableInstalledPluginsShowFromTheCoreDB(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		gh := fakegithub.New(repo)

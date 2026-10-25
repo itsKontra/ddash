@@ -37,12 +37,14 @@ type GitHubOptions struct {
 // a Release dir's files. It downloads each file once into DataDir and
 // verifies it against the release's SHA256SUMS:
 //
-//	catalogue.json, SHA256SUMS                  the running Release's
+//	releases/<release>/catalogue.json           the Release's index, and
+//	releases/<release>/SHA256SUMS               its checksums
 //	components/<name>/<release>/<name>          Component binaries
 //	plugins/<name>/<release>/<name>.plugin.js   Plugin bundles, and .css
 //
 // What is already downloaded needs no network, so installed Plugins keep
-// running while GitHub is unreachable.
+// running while GitHub is unreachable, and pinning a Release that ran
+// before rolls back to it without GitHub.
 type GitHubSource struct {
 	o GitHubOptions
 
@@ -70,11 +72,11 @@ func GitHub(o GitHubOptions) *GitHubSource {
 func (g *GitHubSource) Release() string { return g.o.Release }
 
 // Catalogue returns the Release's catalogue.json, kept in DataDir: it is
-// downloaded once per Release, with SHA256SUMS.
+// downloaded once per Release, with SHA256SUMS, and kept with it.
 func (g *GitHubSource) Catalogue(ctx context.Context) (Catalogue, error) {
 	g.indexing.Lock()
 	defer g.indexing.Unlock()
-	cat, sums, err := g.local()
+	cat, sums, err := g.keptIndex()
 	if err == nil {
 		g.setSums(sums)
 		return cat, nil
@@ -93,10 +95,7 @@ func (g *GitHubSource) Catalogue(ctx context.Context) (Catalogue, error) {
 	if cat.Release != g.o.Release {
 		return Catalogue{}, fmt.Errorf("Release %s: its catalogue.json is of Release %s", g.o.Release, cat.Release)
 	}
-	if err := writeFile(filepath.Join(g.o.DataDir, SumsFile), sums, 0o644); err != nil {
-		return Catalogue{}, err
-	}
-	if err := writeFile(filepath.Join(g.o.DataDir, CatalogueFile), b, 0o644); err != nil {
+	if err := g.keepIndex(b, sums); err != nil {
 		return Catalogue{}, err
 	}
 	g.setSums(sums)
@@ -109,22 +108,55 @@ func (g *GitHubSource) setSums(sums []byte) {
 	g.sums = sums
 }
 
-// local reads the kept catalogue.json and SHA256SUMS, if they are of this
-// Release.
-func (g *GitHubSource) local() (Catalogue, []byte, error) {
-	b, err := os.ReadFile(filepath.Join(g.o.DataDir, CatalogueFile))
-	if err != nil {
+// indexDir keeps the Release's catalogue.json and SHA256SUMS.
+func (g *GitHubSource) indexDir() string {
+	return filepath.Join(g.o.DataDir, "releases", g.o.Release)
+}
+
+// keptIndex returns the kept catalogue.json and SHA256SUMS of this Release.
+// A core before per-Release indexes kept them at the data root: when those
+// are of this Release they are kept in indexDir too, and left in place for
+// that core in case of a rollback to it.
+func (g *GitHubSource) keptIndex() (Catalogue, []byte, error) {
+	cat, _, sums, err := g.readIndex(g.indexDir())
+	if err == nil {
+		return cat, sums, nil
+	}
+	cat, b, sums, rootErr := g.readIndex(g.o.DataDir)
+	if rootErr != nil {
+		return Catalogue{}, nil, err // indexDir's: the data root has none of this Release
+	}
+	if err := g.keepIndex(b, sums); err != nil {
 		return Catalogue{}, nil, err
 	}
-	cat, err := parseCatalogue(b)
-	if err != nil {
-		return Catalogue{}, nil, err
+	return cat, sums, nil
+}
+
+// keepIndex writes the Release's catalogue.json b and SHA256SUMS sums to
+// indexDir, SHA256SUMS first: keptIndex reads them only with a catalogue.
+func (g *GitHubSource) keepIndex(b, sums []byte) error {
+	if err := writeFile(filepath.Join(g.indexDir(), SumsFile), sums, 0o644); err != nil {
+		return err
+	}
+	return writeFile(filepath.Join(g.indexDir(), CatalogueFile), b, 0o644)
+}
+
+// readIndex reads the catalogue.json and SHA256SUMS in dir, if they are of
+// this Release.
+func (g *GitHubSource) readIndex(dir string) (cat Catalogue, b, sums []byte, err error) {
+	if b, err = os.ReadFile(filepath.Join(dir, CatalogueFile)); err != nil {
+		return Catalogue{}, nil, nil, err
+	}
+	if cat, err = parseCatalogue(b); err != nil {
+		return Catalogue{}, nil, nil, err
 	}
 	if cat.Release != g.o.Release {
-		return Catalogue{}, nil, fmt.Errorf("kept catalogue.json is of Release %s", cat.Release)
+		return Catalogue{}, nil, nil, fmt.Errorf("kept catalogue.json is of Release %s", cat.Release)
 	}
-	sums, err := os.ReadFile(filepath.Join(g.o.DataDir, SumsFile))
-	return cat, sums, err
+	if sums, err = os.ReadFile(filepath.Join(dir, SumsFile)); err != nil {
+		return Catalogue{}, nil, nil, err
+	}
+	return cat, b, sums, nil
 }
 
 // Component downloads the Component's binary, unless it already has it.

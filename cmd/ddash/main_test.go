@@ -58,7 +58,7 @@ func TestWithoutAReleaseDirTheReleaseComesFromGitHubWithTheToken(t *testing.T) {
 	if reqs := gh.Requests(); len(reqs) == 0 || reqs[0].Authorization != "Bearer ghp_secret" {
 		t.Errorf("requests %v, want the first with the token", reqs)
 	}
-	if _, err := os.Stat(filepath.Join(data, "catalogue.json")); err != nil {
+	if _, err := os.Stat(filepath.Join(data, "releases", "v1.0.0", "catalogue.json")); err != nil {
 		t.Errorf("catalogue.json isn't kept in the data dir: %v", err)
 	}
 }
