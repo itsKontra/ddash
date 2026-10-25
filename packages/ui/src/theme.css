@@ -1,7 +1,8 @@
 /*
  * PROTOTYPE tokens (wayfinder: "What should the shell, Overview and a
- * Plugin Page look like in the new language?"). The inspiration's teal
- * language, light and dark, plus nav, hero and elevation tokens.
+ * Plugin Page look like in the new language?"). ddash blue on navy, light
+ * and dark, AA-checked (wayfinder: "What palette does the new ddash Theme
+ * use, in light and dark?"), plus nav, hero and elevation tokens.
  */
 @import "./tokens.css";
 
@@ -9,60 +10,60 @@
   --font: "Inter", ui-sans-serif, system-ui, sans-serif;
   --radius: 0.75rem;
   --background: #f6f8fb;
-  --foreground: #14263b;
+  --foreground: #0f1d33;
   --card: #ffffff;
   --muted: #eef2f6;
-  --muted-foreground: #7b8ba0;
+  --muted-foreground: #5c6b7f;
   --border: #e7ecf2;
-  --primary: #168e85;
+  --primary: #1e5eea;
   --primary-foreground: #ffffff;
-  --up: #0c9c78;
-  --down: #dc5b6c;
-  --warn: #cf9146;
-  --maint: #8b71c9;
-  --info: #5e8ac9;
-  --nav: #121f2f;
+  --up: #09785d;
+  --down: #c32a3e;
+  --warn: #8f5f25;
+  --maint: #7657bf;
+  --info: #0e7490;
+  --nav: #0f1a2e;
   --nav-foreground: #a9b8c8;
   --nav-strong: #ffffff;
-  --nav-hover: #1e3042;
-  --nav-active: #203c45;
-  --nav-border: #223348;
-  --nav-accent: #20b6a4;
-  --hero-from: #133342;
-  --hero-to: #0e2635;
+  --nav-hover: #1a2840;
+  --nav-active: #1c2f52;
+  --nav-border: #1f2d45;
+  --nav-accent: #5b9cf5;
+  --hero-from: #162a52;
+  --hero-to: #0d1a33;
   --hero-foreground: #ffffff;
-  --hero-muted: #b2c5ce;
-  --hero-accent: #4fdfbd;
+  --hero-muted: #b4c3dc;
+  --hero-accent: #7cc0ff;
   --elevation: 0 12px 34px rgba(22, 42, 63, 0.05);
   --elevation-strong: 0 18px 40px rgba(14, 40, 53, 0.14);
 }
 
 :root.dark {
-  --background: #0a121c;
+  --background: #0a0f1a;
   --foreground: #e3ebf3;
-  --card: #111c2a;
-  --muted: #182636;
+  --card: #111a2a;
+  --muted: #172235;
   --muted-foreground: #8597ab;
-  --border: #1e2e42;
-  --primary: #20b6a4;
-  --primary-foreground: #04201c;
+  --border: #1e2b40;
+  --primary: #60a5fa;
+  --primary-foreground: #04142e;
   --up: #2fc79a;
   --down: #f06b7c;
   --warn: #e3a55a;
   --maint: #a48be0;
-  --info: #7ea6e0;
-  --nav: #08101a;
+  --info: #22d3ee;
+  --nav: #070d18;
   --nav-foreground: #95a7ba;
   --nav-strong: #f1f6fa;
-  --nav-hover: #132131;
-  --nav-active: #15323a;
-  --nav-border: #16253a;
-  --nav-accent: #2fc7b4;
-  --hero-from: #10313d;
-  --hero-to: #0a1d29;
+  --nav-hover: #111c2e;
+  --nav-active: #13254a;
+  --nav-border: #141f33;
+  --nav-accent: #60a5fa;
+  --hero-from: #132648;
+  --hero-to: #0a1529;
   --hero-foreground: #ffffff;
   --hero-muted: #a6bec8;
-  --hero-accent: #4fdfbd;
+  --hero-accent: #7cc0ff;
   --elevation: 0 12px 34px rgba(0, 0, 0, 0.3);
   --elevation-strong: 0 18px 40px rgba(0, 0, 0, 0.45);
 }
