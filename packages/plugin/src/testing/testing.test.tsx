@@ -1,9 +1,11 @@
 import { cleanup, screen } from "@testing-library/react";
 import { MetricTile } from "@ddash/ui";
+import { useEffect } from "react";
 import { afterEach, expect, it } from "vitest";
 import { useQuery } from "../query";
+import { useClient } from "../scope";
 import { FakeService } from "./fake-service";
-import { metricValue, pending, renderScoped, settle, unavailable } from "./index";
+import { metricValue, pending, renderScoped, settle, streamed, unavailable } from "./index";
 
 afterEach(cleanup);
 
@@ -45,4 +47,29 @@ it("unavailable is the core's refusal while a Component is down", async () => {
   await settle();
 
   expect(screen.getByText("fake is down")).toBeTruthy();
+});
+
+it("streamed answers a streamed call message by message, and renderScoped records its body as JSON", async () => {
+  const got: string[] = [];
+  function Counter() {
+    // The fake service is built at runtime, so its client is untyped.
+    const client = useClient(FakeService.service) as unknown as Record<string, (req: object) => AsyncIterable<{ n: number }>>;
+    useEffect(() => {
+      void (async () => {
+        try {
+          for await (const m of client.count({ host: "media" })) got.push(`n=${m.n}`);
+        } catch (err) {
+          got.push((err as Error).message);
+        }
+      })();
+    }, [client]);
+    return null;
+  }
+  const calls = renderScoped(fake, <Counter />, {
+    answers: { Count: () => streamed([{ n: 1 }, { n: 2 }], { error: { code: "failed_precondition", message: "the fake refused" } }) },
+  });
+  await settle();
+
+  expect(calls).toEqual([{ method: "Count", url: "/api/c/fake/ddash.fake.FakeService/Count", body: { host: "media" } }]);
+  expect(got).toEqual(["n=1", "n=2", "[failed_precondition] the fake refused"]);
 });
