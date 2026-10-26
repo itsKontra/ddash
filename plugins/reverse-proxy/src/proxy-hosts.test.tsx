@@ -133,6 +133,26 @@ it("shows an upstream block's servers next to its name", async () => {
   expect(cell(row("grafana.home.example"), "Upstream").textContent).toBe("http://grafana → 198.18.2.30:3000, 198.18.2.31:3000");
 });
 
+it("shows an upstream without its nginx variables, keeping its literal path", async () => {
+  await show({
+    ListProxyHosts: () =>
+      Response.json({
+        proxyHosts: [
+          { serverNames: ["jellyfin.home.example"], upstream: "http://jellyfin:8096$request_uri" },
+          { serverNames: ["app.home.example"], upstream: "http://app$uri$is_args$args" },
+          { serverNames: ["api.home.example"], upstream: "http://198.18.2.40:8080/api${uri}", warnings: ["PROXY_HOST_WARNING_NO_WORKLOAD"] },
+        ],
+      }),
+  });
+
+  expect(cell(row("jellyfin.home.example"), "Upstream").textContent).toBe("http://jellyfin:8096");
+  expect(cell(row("app.home.example"), "Upstream").textContent).toBe("http://app");
+  expect(cell(row("api.home.example"), "Upstream").textContent).toBe("http://198.18.2.40:8080/api");
+  // The Warnings list names the upstream as nginx's config writes it.
+  const warnings = screen.getByRole("region", { name: "Warnings" });
+  expect(within(warnings).getByRole("listitem").textContent).toBe("api.home.exampleupstream http://198.18.2.40:8080/api${uri} matches no Workload");
+});
+
 it("links the App to the apps Page and the Workload to its Proxmox detail or Docker Page when they are installed", async () => {
   await show({}, ["reverse-proxy", "apps", "proxmox"]);
 
