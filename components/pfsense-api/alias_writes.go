@@ -173,26 +173,25 @@ func (c *component) MoveAliasAddress(ctx context.Context, req *pfsenseapipb.Move
 		if len(patches) == 0 {
 			return nil
 		}
-		// The writes wait for one apply, which also follows a failed one,
-		// so the filter runs what pfSense holds.
+		// The last write applies them all: pfSense answers it once the
+		// filter reloaded, but answers POST firewall/apply before. That
+		// apply only follows a failed write, so the filter runs what
+		// pfSense holds.
 		var werr error
-		for _, p := range patches {
+		for i, p := range patches {
 			var updated alias
-			body := map[string]any{"id": p.id, "address": p.addresses, "detail": p.details}
+			body := map[string]any{"id": p.id, "address": p.addresses, "detail": p.details, "apply": i == len(patches)-1}
 			if werr = c.api.send(ctx, http.MethodPatch, aliasPath, body, &updated); werr != nil {
 				break
 			}
 			out.Aliases = append(out.Aliases, updated.proto())
 		}
-		if len(out.Aliases) == 0 {
+		if werr == nil || len(out.Aliases) == 0 {
 			return werr
 		}
 		var applied any
-		aerr := c.api.send(ctx, http.MethodPost, firewallApplyPath, map[string]any{}, &applied)
-		if werr != nil {
-			return werr
-		}
-		return aerr
+		_ = c.api.send(ctx, http.MethodPost, firewallApplyPath, map[string]any{}, &applied)
+		return werr
 	})
 	if err != nil {
 		return nil, err

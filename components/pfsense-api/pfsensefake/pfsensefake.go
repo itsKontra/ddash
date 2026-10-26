@@ -60,6 +60,10 @@ type Options struct {
 	// ApplyDelay holds POST services/dns_resolver/apply this long, as
 	// Unbound's restart does.
 	ApplyDelay time.Duration
+	// FirewallApplyLag makes POST firewall/apply answer at once and apply
+	// this long after, as pfSense's does; an alias write's "apply": true
+	// still answers once applied.
+	FirewallApplyLag time.Duration
 }
 
 // Firewall is the fake, an http.Handler.
@@ -252,9 +256,16 @@ func (f *Firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.mu.Unlock()
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": applied, "pending_subsystems": subsystems})
 	case "POST " + firewallApplyPath:
-		f.mu.Lock()
-		f.applyFirewall()
-		f.mu.Unlock()
+		apply := func() {
+			f.mu.Lock()
+			f.applyFirewall()
+			f.mu.Unlock()
+		}
+		if f.opts.FirewallApplyLag > 0 {
+			time.AfterFunc(f.opts.FirewallApplyLag, apply)
+		} else {
+			apply()
+		}
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": true, "pending_subsystems": []string{}})
 	default:
 		if !f.serveDNSResolver(w, r) {

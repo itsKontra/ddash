@@ -318,10 +318,25 @@ func TestMovingAnAddressWritesBothAliasesAndAppliesOnce(t *testing.T) {
 	if !slices.Equal(names, []string{"VPN_BYPASS", "KILL_SWITCH"}) {
 		t.Errorf("answer names %v, want the two aliases written", names)
 	}
-	// One lookup, both writes, then one apply.
-	want := []string{readAliases, patchAlias, patchAlias, firewallPost, pfsensefake.AppliedFirewall}
+	// One lookup, then both writes, the last applying them.
+	want := []string{readAliases, patchAlias, patchAlias, pfsensefake.AppliedFirewall}
 	if diff := cmp.Diff(want, aliasWrites(fw)); diff != "" {
 		t.Errorf("calls (-want +got):\n%s", diff)
+	}
+}
+
+// pfSense answers POST firewall/apply before the filter reloads, so the
+// move applies with its last write, which answers once applied.
+func TestAMoveIsAppliedWhenItAnswers(t *testing.T) {
+	fw := firewallWith(t, "baseline", pfsensefake.Options{FirewallApplyLag: time.Minute})
+	_, c := start(t, fw.URL)
+
+	if _, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "198.18.1.6", From: []string{"VPN_BYPASS"}, To: "KILL_SWITCH", Detail: "AndroidTV"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if fw.FirewallPending() {
+		t.Error("alias changes still pending, want applied")
 	}
 }
 
@@ -342,7 +357,7 @@ func TestMovingAnAddressWithNoTargetTakesItOutOfEveryAliasHoldingIt(t *testing.T
 	if diff := cmp.Diff(bypass(), alias(fw, "VPN_BYPASS")); diff != "" {
 		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
 	}
-	want := []string{readAliases, patchAlias, patchAlias, firewallPost, pfsensefake.AppliedFirewall}
+	want := []string{readAliases, patchAlias, patchAlias, pfsensefake.AppliedFirewall}
 	if diff := cmp.Diff(want, aliasWrites(fw)); diff != "" {
 		t.Errorf("calls (-want +got):\n%s", diff)
 	}
@@ -393,5 +408,8 @@ func TestAMoveWhoseLastWriteIsRefusedStillAppliesTheOnesBefore(t *testing.T) {
 	}
 	if fw.FirewallPending() {
 		t.Error("alias changes still pending, want the first write applied")
+	}
+	if got := aliasWrites(fw); !slices.Contains(got, firewallPost) {
+		t.Errorf("calls = %v, want POST firewall/apply after the refusal", got)
 	}
 }
