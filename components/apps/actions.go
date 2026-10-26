@@ -130,13 +130,70 @@ func (c *component) Reattach(ctx context.Context, req *appspb.ReattachRequest) (
 			return changes{}, status.Errorf(codes.FailedPrecondition, "%s has settings of its own", target.GetName())
 		}
 		// The orphan's id, settings and Ignores; the other App's sources.
-		r.url, r.aliases, r.proxyHostID, r.linkOnly = to.url, to.aliases, to.proxyHostID, to.linkOnly
+		r.url, r.aliases, r.proxyHostID, r.hostOverride, r.linkOnly = to.url, to.aliases, to.proxyHostID, to.hostOverride, to.linkOnly
 		return changes{put: []*record{r}, drop: []string{to.id}}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
 	return &appspb.ReattachResponse{}, nil
+}
+
+func (c *component) Merge(ctx context.Context, req *appspb.MergeRequest) (*appspb.MergeResponse, error) {
+	if req.GetFrom() == req.GetId() {
+		return nil, status.Error(codes.InvalidArgument, "an App can't be merged into itself")
+	}
+	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, recs []*record) (changes, error) {
+		i := slices.IndexFunc(recs, func(r *record) bool { return r.id == req.GetFrom() })
+		if i < 0 {
+			return changes{}, status.Errorf(codes.NotFound, "no App has the id %q", req.GetFrom())
+		}
+		from := recs[i]
+		other := derive([]*record{from}, c.view())[0]
+		shared := slices.ContainsFunc(appHostnames(a), func(n string) bool { return slices.Contains(appHostnames(other), n) })
+		switch {
+		case a.GetOrphaned() || other.GetOrphaned():
+			return changes{}, status.Error(codes.FailedPrecondition, "orphaned App settings are reattached, not merged")
+		case !shared:
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s and %s share no hostname", a.GetName(), other.GetName())
+		case r.proxyHostID != 0 && from.proxyHostID != 0:
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s and %s each have a Proxy Host: delete one of them", a.GetName(), other.GetName())
+		case !r.hostOverride.isZero() && !from.hostOverride.isZero():
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s and %s each have a Host Override: delete one of them", a.GetName(), other.GetName())
+		}
+		// The App's id, URL, settings and Ignores; both Apps' sources.
+		if r.proxyHostID == 0 {
+			r.proxyHostID = from.proxyHostID
+		}
+		if r.hostOverride.isZero() {
+			r.hostOverride = from.hostOverride
+		}
+		r.linkOnly = r.linkOnly && from.linkOnly
+		r.aliases = mergedAliases(r, from)
+		return changes{put: []*record{r}, drop: []string{from.id}}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &appspb.MergeResponse{}, nil
+}
+
+// appHostnames are an App's URL's hostname and its aliases, canonical.
+func appHostnames(a *appspb.App) []string {
+	return append([]string{hostname(a.GetUrl())}, canonNames(a.GetAliases())...)
+}
+
+// mergedAliases are both records' hostnames but r's URL's, until the next
+// sync derives them from the sources.
+func mergedAliases(r, from *record) []string {
+	var out []string
+	for _, n := range append(append([]string{}, r.aliases...), append([]string{hostname(from.url)}, from.aliases...)...) {
+		if c := canonName(n); c != hostname(r.url) && !slices.ContainsFunc(out, func(x string) bool { return canonName(x) == c }) {
+			out = append(out, n)
+		}
+	}
+	slices.Sort(out)
+	return out
 }
 
 func (c *component) DeleteOrphan(ctx context.Context, req *appspb.DeleteOrphanRequest) (*appspb.DeleteOrphanResponse, error) {

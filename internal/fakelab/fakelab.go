@@ -193,6 +193,9 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
 	}
+	if fw, ok := l.handlers["pfsense-api"].(*pfsensefake.Firewall); ok {
+		fw.EditHostOverrides(movedTo(host))
+	}
 	for i, s := range sshSystems {
 		ln, err := net.Listen("tcp", net.JoinHostPort(host, "0"))
 		if err != nil {
@@ -210,6 +213,25 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		l.config[s.component] = s.config(srv.Addr(), srv.HostKey())
 	}
 	return l, nil
+}
+
+// recordedReverseProxy is the Reverse Proxy's address in the recordings.
+const recordedReverseProxy = "198.18.1.210"
+
+// movedTo points the Host Overrides at the recorded Reverse Proxy's
+// address to host, where the lab's Nginx Proxy Manager answers: Apps
+// matches the Reverse Proxy's Host Override by that address.
+func movedTo(host string) func([]pfsensefake.HostOverride) []pfsensefake.HostOverride {
+	return func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+		for i := range all {
+			for j, ip := range all[i].IPs {
+				if ip == recordedReverseProxy {
+					all[i].IPs[j] = host
+				}
+			}
+		}
+		return all
+	}
 }
 
 // Scenarios splits a -scenario flag's comma-separated names.

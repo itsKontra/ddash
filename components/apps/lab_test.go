@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -28,6 +29,9 @@ import (
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
+	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/core/coretest"
@@ -38,9 +42,18 @@ import (
 
 // The Apps host tests run apps through the host against the real
 // nginx-proxy-manager-api signed in to npmfake (Nginx Proxy Manager's
-// baseline: 23 Proxy Hosts), the real checks (whose probes dial nowhere),
+// baseline: 23 Proxy Hosts), the real pfsense-api over pfsensefake
+// (pfSense's baseline: the Reverse Proxy's Host Override nginx with 23
+// aliases, and five others), the real checks (whose probes dial nowhere),
 // and Workload sources: the real proxmox-api and docker-api over their
 // fixtures, or fakes a test sets.
+//
+// Nginx Proxy Manager answers on 127.0.0.1, which is therefore the
+// Reverse Proxy's address: the lab moves the nginx Host Override (at
+// 198.18.1.210 in the baseline) there.
+
+// rpAddress is the Reverse Proxy's address in the lab.
+const rpAddress = "127.0.0.1"
 
 // lab is one ddash with apps installed, and the systems behind it.
 type lab struct {
@@ -50,8 +63,12 @@ type lab struct {
 	// failNPM makes Nginx Proxy Manager answer every read of its Proxy
 	// Hosts and certificates with a 500.
 	failNPM *atomic.Bool
-	proxmox *proxmoxFake
-	docker  *dockerFake
+	fw      *pfsensefake.Firewall
+	// failPfSense makes pfSense answer every read of its Host Overrides
+	// with a 500.
+	failPfSense *atomic.Bool
+	proxmox     *proxmoxFake
+	docker      *dockerFake
 }
 
 type labOptions struct {
@@ -61,7 +78,9 @@ type labOptions struct {
 	fixtureWorkloads bool
 	proxmox          *proxmoxFake
 	docker           *dockerFake
-	// noProxyHosts starts Nginx Proxy Manager without Proxy Hosts.
+	// noProxyHosts starts Nginx Proxy Manager without Proxy Hosts, and
+	// pfSense with the Reverse Proxy's Host Override alone, without
+	// aliases or other Host Overrides.
 	noProxyHosts bool
 	// dataDir holds the host's data, e.g. an older apps DB at
 	// <dataDir>/db/apps.db; a temp dir when empty.
@@ -95,9 +114,30 @@ func newLab(t *testing.T, o labOptions) *lab {
 		l.npm.ServeHTTP(w, r)
 	}))
 	t.Cleanup(srv.Close)
+	l.fw, l.failPfSense = newFirewall(t)
+	if o.noProxyHosts {
+		l.editDNS(func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+			for _, h := range all {
+				if h.Host == "nginx" {
+					h.Aliases = nil
+					return []pfsensefake.HostOverride{h}
+				}
+			}
+			return nil
+		})
+	}
+	fwSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if l.failPfSense.Load() && r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/api/v2/services/dns_resolver/") {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte(`{"code":500,"status":"server error","response_id":"SERVER_ERROR","message":"Internal Error","data":[]}`))
+			return
+		}
+		l.fw.ServeHTTP(w, r)
+	}))
+	t.Cleanup(fwSrv.Close)
 
 	components := []sdk.Definition{
-		nginxproxymanagerapi.Definition(), ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
+		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
 	}
 	if o.fixtureWorkloads {
 		components = append(components, proxmoxapi.Definition(), dockerapi.Definition())
@@ -116,6 +156,7 @@ func newLab(t *testing.T, o labOptions) *lab {
 		DataDir:    o.dataDir,
 	})
 	l.h.SeedConfig("nginx-proxy-manager-api", &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: srv.URL, Email: npmEmail, Password: npmfake.DefaultPassword})
+	l.h.SeedConfig("pfsense-api", &pfsenseapipb.PfsenseApiConfig{Url: fwSrv.URL, ApiKey: "test"})
 	if o.fixtureWorkloads {
 		pve := fixture.Server(t, "../proxmox-api/testdata/baseline")
 		media := fixture.Server(t, "../docker-api/testdata/published-on-lan")
@@ -142,6 +183,64 @@ func newNPM(t *testing.T) (*npmfake.NPM, *atomic.Bool) {
 		t.Fatal(err)
 	}
 	return f, &atomic.Bool{}
+}
+
+// newFirewall is pfSense's baseline with the nginx Host Override at the
+// lab's Reverse Proxy address, and the switch failing its Host Override
+// reads (lab.failPfSense).
+func newFirewall(t *testing.T) (*pfsensefake.Firewall, *atomic.Bool) {
+	t.Helper()
+	fw, err := pfsensefake.New("../pfsense-api/testdata/baseline", pfsensefake.Options{
+		Miss: func(request string, err error) { t.Errorf("pfSense fixture: %v", err) },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fw.EditHostOverrides(func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+		for i := range all {
+			if all[i].Host == "nginx" {
+				all[i].IPs = []string{rpAddress}
+			}
+		}
+		return all
+	})
+	return fw, &atomic.Bool{}
+}
+
+// editDNS changes pfSense's Host Overrides as the Operator would in its
+// web UI.
+func (l *lab) editDNS(edit func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride) {
+	l.fw.EditHostOverrides(edit)
+}
+
+// register adds each hostname as an alias of the Reverse Proxy's Host
+// Override, as the Operator would in pfSense's web UI.
+func (l *lab) register(names ...string) {
+	l.editDNS(func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+		for i := range all {
+			if all[i].Host != "nginx" {
+				continue
+			}
+			for _, n := range names {
+				host, domain, _ := strings.Cut(n, ".")
+				all[i].Aliases = append(all[i].Aliases, pfsensefake.HostOverrideAlias{Host: host, Domain: domain})
+			}
+		}
+		return all
+	})
+}
+
+// unregister deletes each Host Override and alias for a hostname, as the
+// Operator would in pfSense's web UI.
+func (l *lab) unregister(names ...string) {
+	l.editDNS(func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+		gone := func(host, domain string) bool { return slices.Contains(names, host+"."+domain) }
+		all = slices.DeleteFunc(all, func(h pfsensefake.HostOverride) bool { return gone(h.Host, h.Domain) })
+		for i := range all {
+			all[i].Aliases = slices.DeleteFunc(all[i].Aliases, func(a pfsensefake.HostOverrideAlias) bool { return gone(a.Host, a.Domain) })
+		}
+		return all
+	})
 }
 
 // waitStarted waits until apps runs, healthy or not.

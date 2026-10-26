@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"crypto/rand"
 	"encoding/hex"
+	"maps"
 	"net"
 	"net/url"
 	"slices"
@@ -12,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
+	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 )
 
 // changes are what a sync writes: the records to put and the ids to drop.
@@ -20,43 +22,83 @@ type changes struct {
 	drop []string
 }
 
-// attach attaches every Proxy Host of a good read to an App record: by
-// known link (its id), else by hostname (any record's URL or alias, for a
-// Proxy Host no record links to yet), else to a new record. Records whose
-// Proxy Host is gone lose the link: an untouched one is dropped, a touched
-// one stays as orphaned App settings, a Link-only one stays as it is.
+// attach attaches the sources of the last good reads to the App records:
+// every Proxy Host, every Not-proxied Host Override with its aliases, and
+// every alias at the Reverse Proxy's address. Each goes by known link
+// (a Proxy Host's id, a Host Override's host and domain), else by hostname
+// (any record's URL or alias, for a source no record links to yet), else
+// to a new record; a proxied alias has no link, and needs a new record
+// only when no App has its hostname. So a Proxy Host and the Host
+// Override or alias for its hostname are one App, and a Link-only App
+// absorbs a Host Override for its hostname. Records whose source is gone
+// lose the link: an untouched one is dropped, a touched one stays as
+// orphaned App settings, a Link-only one stays as it is.
+//
+// A source not read since apps started (v.hosts or v.dns nil) keeps its
+// links as they are, and nothing is dropped until both were read.
 //
 // The first sync after the migration also merges each migrated manual App
 // a Proxy Host's hostname matches into that Proxy Host's App, which keeps
 // the manual App's name, icon and group; the manual App is dropped.
-func attach(recs []*record, hosts []*npmpb.ProxyHost) changes {
+func attach(recs []*record, v view) changes {
 	var (
 		all     = make([]*record, 0, len(recs))
 		dirty   = map[string]bool{}
 		dropped = map[string]bool{}
 		taken   = map[string]bool{}
-		used    = map[string]bool{}
-		byHost  = map[int64]*record{}
+		// byHost and byOverride: the records linked this sync, by
+		// source; proxiedBy: by a proxied alias.
+		byHost     = map[int64]*record{}
+		withHost   = map[string]bool{}
+		byOverride = map[string]*record{}
+		withHO     = map[string]bool{}
+		proxiedBy  = map[string]bool{}
 	)
 	for _, r := range recs {
 		all = append(all, r.clone())
 		taken[r.id] = true
 	}
+	used := func(r *record) bool { return withHost[r.id] || withHO[r.id] || proxiedBy[r.id] }
+	hosts := sortedHosts(v.hosts)
+	var overrides []*pfpb.HostOverride
+	if v.dns != nil {
+		overrides = v.dns.notProxied()
+	}
+
+	// By known link; a source not read keeps its links.
+	for _, r := range all {
+		if v.hosts == nil && r.proxyHostID != 0 {
+			withHost[r.id] = true
+		}
+		if v.dns == nil && !r.hostOverride.isZero() {
+			withHO[r.id] = true
+		}
+	}
 	for _, h := range hosts {
 		for _, r := range all {
-			if r.proxyHostID == h.GetId() && !used[r.id] {
-				byHost[h.GetId()], used[r.id] = r, true
+			if r.proxyHostID == h.GetId() && !withHost[r.id] {
+				byHost[h.GetId()], withHost[r.id] = r, true
 				break
 			}
 		}
 	}
+	for _, o := range overrides {
+		for _, r := range all {
+			if r.hostOverride.same(nameOf(o)) && !withHO[r.id] {
+				byOverride[nameOf(o).fqdn()], withHO[r.id] = r, true
+				break
+			}
+		}
+	}
+
+	// Proxy Hosts by hostname, else new.
 	for _, h := range hosts {
 		if byHost[h.GetId()] != nil {
 			continue
 		}
 		var merged, others []*record
 		for _, r := range all {
-			if used[r.id] || dropped[r.id] || !servesAny(h, r) {
+			if withHost[r.id] || dropped[r.id] || !servesAny(h, r) {
 				continue
 			}
 			if r.linkOnly && r.migrated {
@@ -67,9 +109,10 @@ func attach(recs []*record, hosts []*npmpb.ProxyHost) changes {
 		}
 		var r *record
 		if len(others) > 0 {
-			// An orphan before a Link-only App; then by id.
+			// A Host Override's App, then an orphan, then a Link-only
+			// App; then by id.
 			slices.SortStableFunc(others, func(a, b *record) int {
-				return cmp.Or(compareBool(a.linkOnly, b.linkOnly), cmp.Compare(a.id, b.id))
+				return cmp.Or(compareBool(!withHO[a.id], !withHO[b.id]), compareBool(a.linkOnly, b.linkOnly), cmp.Compare(a.id, b.id))
 			})
 			r = others[0]
 		} else {
@@ -89,12 +132,87 @@ func attach(recs []*record, hosts []*npmpb.ProxyHost) changes {
 			r.url = urlOf(h, hostname(r.url))
 		}
 		r.proxyHostID = h.GetId()
-		byHost[h.GetId()], used[r.id], dirty[r.id] = r, true, true
+		byHost[h.GetId()], withHost[r.id], dirty[r.id] = r, true, true
 	}
-	for _, h := range hosts {
-		r := byHost[h.GetId()]
-		if a := aliasesOf(h, hostname(r.url)); !slices.Equal(a, r.aliases) {
+
+	// Not-proxied Host Overrides by hostname, else new.
+	for _, o := range overrides {
+		if byOverride[nameOf(o).fqdn()] != nil {
+			continue
+		}
+		names := overrideNames(o)
+		var others []*record
+		for _, r := range all {
+			if withHO[r.id] || dropped[r.id] || !slices.ContainsFunc(hostnames(r), func(n string) bool { return slices.Contains(names, n) }) {
+				continue
+			}
+			others = append(others, r)
+		}
+		var r *record
+		if len(others) > 0 {
+			// A Proxy Host's App, then an orphan, then a Link-only App;
+			// then by id.
+			slices.SortStableFunc(others, func(a, b *record) int {
+				return cmp.Or(compareBool(!withHost[a.id], !withHost[b.id]), compareBool(a.linkOnly, b.linkOnly), cmp.Compare(a.id, b.id))
+			})
+			r = others[0]
+		} else {
+			r = &record{id: newID("", taken), url: "https://" + nameOf(o).fqdn(), settings: cloneSettings(nil)}
+			taken[r.id] = true
+			all = append(all, r)
+		}
+		r.hostOverride = nameOf(o)
+		byOverride[nameOf(o).fqdn()], withHO[r.id], dirty[r.id] = r, true, true
+	}
+
+	// The aliases of every record a source is linked to, as read.
+	for _, r := range all {
+		if dropped[r.id] || (!withHost[r.id] && !withHO[r.id]) {
+			continue
+		}
+		h, o := v.hosts[r.proxyHostID], (*pfpb.HostOverride)(nil)
+		if v.dns != nil {
+			o = v.dns.override(r.hostOverride)
+		}
+		if (h == nil && r.proxyHostID != 0) || (o == nil && !r.hostOverride.isZero()) {
+			continue // a source not read: its names aren't known
+		}
+		if a := sourceAliases(h, o, hostname(r.url)); !slices.Equal(a, r.aliases) {
 			r.aliases, dirty[r.id] = a, true
+		}
+	}
+
+	// Each alias at the Reverse Proxy's address no linked App has: by
+	// hostname, else new.
+	if v.dns != nil {
+		for _, n := range v.dns.proxiedNames() {
+			var others []*record
+			covered := false
+			for _, r := range all {
+				if dropped[r.id] || !slices.Contains(hostnames(r), n) {
+					continue
+				}
+				if withHost[r.id] || withHO[r.id] || proxiedBy[r.id] {
+					covered = true
+					break
+				}
+				others = append(others, r)
+			}
+			if covered {
+				continue
+			}
+			var r *record
+			if len(others) > 0 {
+				slices.SortStableFunc(others, func(a, b *record) int {
+					return cmp.Or(compareBool(a.linkOnly, b.linkOnly), cmp.Compare(a.id, b.id))
+				})
+				r = others[0]
+			} else {
+				r = &record{id: newID("", taken), url: "https://" + n, settings: cloneSettings(nil)}
+				taken[r.id], dirty[r.id] = true, true
+				all = append(all, r)
+			}
+			proxiedBy[r.id] = true
 		}
 	}
 
@@ -103,19 +221,26 @@ func attach(recs []*record, hosts []*npmpb.ProxyHost) changes {
 		if dropped[r.id] {
 			continue
 		}
-		if !used[r.id] {
-			if r.proxyHostID != 0 {
-				r.proxyHostID, dirty[r.id] = 0, true
-				if r.linkOnly {
-					r.aliases = nil
-				}
+		lost := false
+		if v.hosts != nil && !withHost[r.id] && r.proxyHostID != 0 {
+			r.proxyHostID, lost = 0, true
+		}
+		if v.dns != nil && !withHO[r.id] && !r.hostOverride.isZero() {
+			r.hostOverride, lost = hostName{}, true
+		}
+		if lost {
+			dirty[r.id] = true
+		}
+		if !used(r) {
+			if lost && r.linkOnly {
+				r.aliases = nil
 			}
-			if !r.linkOnly && !r.touched {
+			if !r.linkOnly && !r.touched && v.hosts != nil && v.dns != nil {
 				dropped[r.id] = true
 				continue
 			}
 		}
-		if r.migrated {
+		if r.migrated && v.hosts != nil {
 			r.migrated, dirty[r.id] = false, true
 		}
 		if dirty[r.id] {
@@ -127,6 +252,35 @@ func attach(recs []*record, hosts []*npmpb.ProxyHost) changes {
 			out.drop = append(out.drop, r.id)
 		}
 	}
+	return out
+}
+
+// sortedHosts are the Proxy Hosts of a read, by id.
+func sortedHosts(hosts map[int64]*npmpb.ProxyHost) []*npmpb.ProxyHost {
+	out := slices.Collect(maps.Values(hosts))
+	slices.SortFunc(out, func(a, b *npmpb.ProxyHost) int { return cmp.Compare(a.GetId(), b.GetId()) })
+	return out
+}
+
+// sourceAliases are an App's further hostnames from its sources: its
+// Proxy Host's domain names and its Host Override's own name and aliases,
+// but urlHost (canonical), sorted. h and o may be nil.
+func sourceAliases(h *npmpb.ProxyHost, o *pfpb.HostOverride, urlHost string) []string {
+	var out []string
+	add := func(n string) {
+		if c := canonName(n); c != urlHost && !slices.ContainsFunc(out, func(x string) bool { return canonName(x) == c }) {
+			out = append(out, n)
+		}
+	}
+	for _, n := range h.GetFields().GetDomainNames() {
+		add(n)
+	}
+	if o != nil {
+		for _, n := range overrideNames(o) {
+			add(n)
+		}
+	}
+	slices.Sort(out)
 	return out
 }
 
@@ -170,17 +324,6 @@ func urlOf(h *npmpb.ProxyHost, host string) string {
 		return "https://" + host
 	}
 	return "http://" + host
-}
-
-// aliasesOf are h's domain names but the URL's hostname, sorted.
-func aliasesOf(h *npmpb.ProxyHost, urlHost string) []string {
-	var out []string
-	for _, n := range slices.Sorted(slices.Values(h.GetFields().GetDomainNames())) {
-		if canonName(n) != urlHost {
-			out = append(out, n)
-		}
-	}
-	return out
 }
 
 // servesAny reports whether h serves the URL's hostname or an alias of r.

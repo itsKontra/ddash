@@ -110,3 +110,33 @@ func TestAnInjectedFailureFailsOnlyThatWrite(t *testing.T) {
 		t.Errorf("Host Overrides = %v, want %v", got, want)
 	}
 }
+
+// A test changes Host Overrides as the Operator would in pfSense's web UI,
+// and the API reads the result.
+func TestHostOverridesChangedOutsideTheAPIReadBack(t *testing.T) {
+	f := baseline(t)
+
+	f.EditHostOverrides(func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+		all[0].IPs = []string{"198.18.1.219"}
+		all[2].Aliases = append(all[2].Aliases, pfsensefake.HostOverrideAlias{Host: "files", Domain: "home.example"})
+		return append(all[:1], all[2:]...)
+	})
+
+	_, list := do(f, http.MethodGet, "/api/v2/services/dns_resolver/host_overrides")
+	var got []string
+	for _, h := range list["data"].([]any) {
+		h := h.(map[string]any)
+		line := h["host"].(string) + "=" + h["ip"].([]any)[0].(string)
+		for _, a := range h["aliases"].([]any) {
+			line += "," + a.(map[string]any)["host"].(string)
+		}
+		got = append(got, line)
+	}
+	want := []string{"cloud=198.18.1.219", "nas=198.18.2.10,files"}
+	if len(got) != 5 || !slices.Equal(got[:2], want) {
+		t.Errorf("Host Overrides = %v, want cloud re-addressed, docker gone and files an alias of nas", got)
+	}
+	if f.DNSPending() {
+		t.Error("a change made in the web UI is pending, want it applied")
+	}
+}
