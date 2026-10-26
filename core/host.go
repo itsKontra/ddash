@@ -214,7 +214,7 @@ func requireConnectHeader(next http.Handler) http.Handler {
 // It runs for the actor in ctx.
 func (h *Host) Install(ctx context.Context, req *corepb.InstallRequest) (*corepb.InstallResponse, error) {
 	resp := &corepb.InstallResponse{}
-	err := h.coreAction(ctx, "Install", req, func() (err error) {
+	err := h.coreAction(ctx, "Install", req, func(ctx context.Context) (err error) {
 		resp.Components, err = h.runtime.Install(ctx, req.GetPlugin())
 		return err
 	})
@@ -230,7 +230,7 @@ func (h *Host) Install(ctx context.Context, req *corepb.InstallRequest) (*corepb
 // the actor in ctx.
 func (h *Host) Uninstall(ctx context.Context, req *corepb.UninstallRequest) (*corepb.UninstallResponse, error) {
 	var orphans []string
-	err := h.coreAction(ctx, "Uninstall", req, func() (err error) {
+	err := h.coreAction(ctx, "Uninstall", req, func(ctx context.Context) (err error) {
 		orphans, err = h.runtime.Uninstall(ctx, req.GetPlugin(), req.GetDeleteData())
 		return err
 	})
@@ -244,7 +244,7 @@ func (h *Host) Uninstall(ctx context.Context, req *corepb.UninstallRequest) (*co
 // forgetting its crashes, so a Component held down after repeated crashes
 // runs again. It runs for the actor in ctx.
 func (h *Host) Restart(ctx context.Context, req *corepb.RestartRequest) (*corepb.RestartResponse, error) {
-	err := h.coreAction(ctx, "Restart", req, func() error {
+	err := h.coreAction(ctx, "Restart", req, func(ctx context.Context) error {
 		return h.runtime.Restart(ctx, req.GetComponent())
 	})
 	if err != nil {
@@ -256,7 +256,7 @@ func (h *Host) Restart(ctx context.Context, req *corepb.RestartRequest) (*corepb
 // DeleteOrphan is the core Action that deletes an orphaned Component's DB
 // file and config. It runs for the actor in ctx.
 func (h *Host) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanRequest) (*corepb.DeleteOrphanResponse, error) {
-	err := h.coreAction(ctx, "DeleteOrphan", req, func() error {
+	err := h.coreAction(ctx, "DeleteOrphan", req, func(ctx context.Context) error {
 		return h.runtime.DeleteOrphan(ctx, req.GetComponent())
 	})
 	if err != nil {
@@ -268,7 +268,7 @@ func (h *Host) DeleteOrphan(ctx context.Context, req *corepb.DeleteOrphanRequest
 // SaveLayout is the core Action that replaces the Overview layout. It runs
 // for the actor in ctx.
 func (h *Host) SaveLayout(ctx context.Context, req *corepb.SaveLayoutRequest) (*corepb.SaveLayoutResponse, error) {
-	err := h.coreAction(ctx, "SaveLayout", req, func() error {
+	err := h.coreAction(ctx, "SaveLayout", req, func(ctx context.Context) error {
 		return h.layout.Save(ctx, req.GetLayout())
 	})
 	if err != nil {
@@ -281,8 +281,9 @@ func (h *Host) SaveLayout(ctx context.Context, req *corepb.SaveLayoutRequest) (*
 var coreService = corepb.File_ddash_core_core_proto.Services().ByName("CoreService")
 
 // coreAction runs the core Action method through the gate, on a new chain,
-// for the actor in ctx, or for the core when there is none.
-func (h *Host) coreAction(ctx context.Context, method string, req proto.Message, run func() error) error {
+// for the actor in ctx, or for the core when there is none. Once admitted,
+// run gets ctx detached, so it runs to its end (ADR-0004).
+func (h *Host) coreAction(ctx context.Context, method string, req proto.Message, run func(ctx context.Context) error) error {
 	actor, ok := auth.ActorFrom(ctx)
 	if !ok {
 		actor = auth.Actor{Kind: auth.Core}
@@ -296,7 +297,9 @@ func (h *Host) coreAction(ctx context.Context, method string, req proto.Message,
 	if err != nil {
 		return err
 	}
-	err = run()
+	ctx, cancel := router.Detach(ctx)
+	defer cancel()
+	err = run(ctx)
 	done(err)
 	return err
 }

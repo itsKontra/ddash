@@ -5,6 +5,12 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- An Action you confirmed now runs to its end even when you close the tab,
+  and ddash lets a running Action finish before it stops for an update. Set
+  `stop_grace_period: 90s` on the ddash service in your compose file, as
+  [`deploy/compose.yaml`](../deploy/compose.yaml) does, so Docker gives it
+  that time.
+
 ## v0.0.2-rc.3
 
 - ddash no longer reads nginx over SSH: the Reverse Proxy and Apps read

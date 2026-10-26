@@ -77,7 +77,7 @@ func (rt *Router) proxy(caller string) grpc.StreamHandler {
 			done(refused)
 			return refused
 		}
-		ctx, cancel := context.WithTimeout(onward(ctx, actor, chain), Deadline(md))
+		ctx, cancel := callContext(onward(ctx, actor, chain), md)
 		defer cancel()
 		var resp frame
 		err = ep.Conn.Invoke(ctx, fullMethod, &req, &resp, grpc.ForceCodecV2(rawCodec{}))

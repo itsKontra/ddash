@@ -80,7 +80,7 @@ func (h *Host) RunTestAction(ctx context.Context, req *corepb.RunTestActionReque
 	if actor.Sub != "" {
 		kv = append(kv, sdk.SubMetadata, actor.Sub)
 	}
-	callCtx, cancel := context.WithTimeout(metadata.AppendToOutgoingContext(ctx, kv...), router.ActionDeadline)
+	callCtx, cancel := router.Detach(metadata.AppendToOutgoingContext(ctx, kv...))
 	defer cancel()
 	err = ep.Conn.Invoke(callCtx, "/"+string(ep.Service.FullName())+"/"+string(md.Name()), in, dynamicpb.NewMessage(md.Output()))
 	done(err)

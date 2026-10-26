@@ -36,6 +36,9 @@ type Hooks struct {
 	// SetupHint is its setup hint, given the config it started with. Nil:
 	// it offers none.
 	SetupHint func(cfg *samplepb.SampleConfig) *configpb.SetupHint
+	// Release, once closed, ends WaitAction ok. Nil: WaitAction waits until
+	// the call ends.
+	Release <-chan struct{}
 }
 
 // migrations give every sample a DB file of its own.
@@ -134,6 +137,10 @@ func (c *component) Act(ctx context.Context, req *samplepb.ActRequest) (*samplep
 }
 
 func (c *component) WaitAction(ctx context.Context, _ *samplepb.WaitActionRequest) (*samplepb.WaitActionResponse, error) {
-	<-ctx.Done()
-	return nil, status.FromContextError(ctx.Err()).Err()
+	select {
+	case <-c.hooks.Release:
+		return &samplepb.WaitActionResponse{}, nil
+	case <-ctx.Done():
+		return nil, status.FromContextError(ctx.Err()).Err()
+	}
 }
