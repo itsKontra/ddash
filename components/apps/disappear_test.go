@@ -119,11 +119,10 @@ func TestReattachAndDeleteOrphanTakeOrphanedAppSettings(t *testing.T) {
 // A Link-only App never disappears on its own.
 func TestALinkOnlyAppStaysWithoutSources(t *testing.T) {
 	l := newLab(t, labOptions{})
-	var created appspb.CreateAppResponse
-	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "pfSense", Url: "https://198.18.0.1"}}, &created)
+	id := l.addLinkOnly("pfSense", "https://198.18.0.1")
 	l.refresh()
 
-	got := l.app(created.GetApp().GetId())
+	got := l.app(id)
 	if got.GetReach() != appspb.Reach_REACH_LINK_ONLY || got.GetOrphaned() || len(got.GetWarnings()) != 0 {
 		t.Errorf("pfSense = %v, want Link only without Warnings", got)
 	}

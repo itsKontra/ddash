@@ -129,6 +129,17 @@ it("Segmented while busy disables every option and says so, picking nothing", ()
   expect(picked).toEqual([]);
 });
 
+it("Segmented's disabled options can't be picked, by click or arrow key, which skips them", () => {
+  const picked: string[] = [];
+  render(<Segmented label="Reach" value="A" options={["A", "B", "C"]} disabled={["B"]} onChange={(v) => picked.push(v)} />);
+
+  expect((screen.getByRole("radio", { name: "B" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("radio", { name: "C" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("radio", { name: "B" }));
+  fireEvent.keyDown(screen.getByRole("radio", { name: "A" }), { key: "ArrowRight" });
+  expect(picked).toEqual(["C"]);
+});
+
 it("Segmented in a Field is named by the Field's label and described by its hint, leaving no label pointing nowhere", () => {
   const { container } = render(
     <Field label="Maintenance length" hint="Ends on its own">

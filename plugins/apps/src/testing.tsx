@@ -279,7 +279,7 @@ export const renderScoped = (children: React.ReactNode, answers: Answers = {}, i
     path,
   });
 
-const getters = new Set(["ListApps", "ListChecks", "ListWorkloads", "GetHistory", "ListCertificates"]);
+const getters = new Set(["ListApps", "ListChecks", "ListWorkloads", "GetHistory", "ListCertificates", "PlanAction"]);
 
 /** The calls to Actions, i.e. anything but the getters, each as its method and body. */
 export const actions = (calls: Call[]) => calls.filter((c) => !getters.has(c.method)).map(({ method, body }) => ({ method, body }));

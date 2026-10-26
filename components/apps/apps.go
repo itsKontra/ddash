@@ -51,13 +51,20 @@ const (
 	pfsenseName = "pfsense-api"
 )
 
+// ResyncTimeout bounds the sync ending an App Action: its slice of the
+// host's 60 s Action deadline.
+const ResyncTimeout = 10 * time.Second
+
 // Definition is apps, ready for sdk.Serve.
-func Definition() sdk.Definition {
+func Definition() sdk.Definition { return define(ResyncTimeout) }
+
+// define is apps bounding the sync that ends an App Action to resync.
+func define(resync time.Duration) sdk.Definition {
 	return sdk.Define(sdk.Spec[*appspb.AppsConfig]{
 		Manifest:   manifest,
 		Service:    &appspb.AppsService_ServiceDesc,
 		Migrations: migrations,
-		New:        func() sdk.Component[*appspb.AppsConfig] { return &component{} },
+		New:        func() sdk.Component[*appspb.AppsConfig] { return &component{resync: resync} },
 	})
 }
 
@@ -72,6 +79,8 @@ type component struct {
 	docker  dockerapipb.DockerApiServiceClient
 	store   store
 	log     *slog.Logger
+	// resync bounds the sync ending an App Action.
+	resync time.Duration
 
 	// synced is closed once the first sync ended, so ListApps and Health
 	// never answer before the sources were first read.
@@ -198,6 +207,15 @@ func (c *component) waitSynced(ctx context.Context) error {
 func (c *component) sync(ctx context.Context, fresh bool) error {
 	c.turn.Lock()
 	defer c.turn.Unlock()
+	if failed := c.syncLocked(ctx, fresh); len(failed) > 0 {
+		return status.Errorf(codes.Unavailable, "couldn't read %s", strings.Join(failed, "; "))
+	}
+	return nil
+}
+
+// syncLocked is sync for a caller holding c.turn. It returns each source
+// it couldn't read, named, with why.
+func (c *component) syncLocked(ctx context.Context, fresh bool) (failed []string) {
 	hosts, hostsErr := c.npm.ListProxyHosts(ctx, &npmpb.ListProxyHostsRequest{Fresh: fresh})
 	// The Reverse Proxy's address comes from the config, so it is known
 	// while Nginx Proxy Manager can't be read too.
@@ -236,17 +254,13 @@ func (c *component) sync(ctx context.Context, fresh bool) error {
 	}
 	c.syncChecks(ctx)
 
-	var failed []string
 	if hostsErr != nil {
 		failed = append(failed, npmName+": "+status.Convert(hostsErr).Message())
 	}
 	if overridesErr != nil {
 		failed = append(failed, pfsenseName+": "+status.Convert(overridesErr).Message())
 	}
-	if len(failed) > 0 {
-		return status.Errorf(codes.Unavailable, "couldn't read %s", strings.Join(failed, "; "))
-	}
-	return nil
+	return failed
 }
 
 // attach attaches the last good reads' sources to the records and saves

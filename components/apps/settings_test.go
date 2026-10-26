@@ -70,22 +70,25 @@ func TestBadSettingsAreRefused(t *testing.T) {
 // can't be deleted that way.
 func TestLinkOnlyAppsAreAddedAndDeleted(t *testing.T) {
 	l := newLab(t, labOptions{})
-	for _, bad := range []*appspb.LinkOnlyApp{
-		{Url: "https://198.18.0.1"},
+	for _, bad := range []*appspb.AddApp{
 		{Name: "pfSense", Url: "198.18.0.1"},
 		{Name: "pfSense", Url: "ftp://198.18.0.1"},
 		{Name: "pfSense", Url: "https://198.18.0.1", Icon: "pf sense"},
 	} {
-		if err := l.try("CreateApp", &appspb.CreateAppRequest{App: bad}, nil); err == nil || err.code != "invalid_argument" {
-			t.Errorf("CreateApp %v: %v, want invalid_argument", bad, err)
+		bad.Reach = appspb.Reach_REACH_LINK_ONLY
+		action := addApp(bad)
+		p := l.plan(action)
+		if len(p.GetBlocked()) != 1 {
+			t.Errorf("Plan for %v = %v, want it blocked, saying why", bad, p)
+		}
+		if _, err := l.tryRun(action, p); err == nil || err.code != "failed_precondition" || err.message != p.GetBlocked()[0] {
+			t.Errorf("RunAction %v: %v, want failed_precondition saying why", bad, err)
 		}
 	}
 
-	var created appspb.CreateAppResponse
-	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: " pfSense ", Url: "https://198.18.0.1", Icon: "pfsense", Group: "Network"}}, &created)
-	a := created.GetApp()
-	if a.GetId() == "" || a.GetName() != "pfSense" || a.GetGroup() != "Network" || a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
-		t.Errorf("created %v, want a Link-only App with an id", a)
+	a := l.app(l.addLinkOnly("pfSense", "https://198.18.0.1"))
+	if a.GetName() != "pfSense" || a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
+		t.Errorf("added %v, want a Link-only App", a)
 	}
 
 	if err := l.try("DeleteApp", &appspb.DeleteAppRequest{Id: "proxy:video.home.example"}, nil); err == nil || err.code != "failed_precondition" {

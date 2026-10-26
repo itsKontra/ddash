@@ -154,31 +154,6 @@ it("offers no Address Edit without aliases to promote", async () => {
   expect(screen.queryByRole("button", { name: "Edit Address and DNS" })).toBeNull();
 });
 
-it("adds a Link-only App in the pane and selects it", async () => {
-  const calls = await open("", { CreateApp: () => Response.json({ app: { id: "app:0123456789abcdef", name: "Proxmox" } }) });
-
-  fireEvent.click(screen.getByRole("button", { name: "Add App" }));
-  const add = within(screen.getByRole("region", { name: "Add App" }));
-  fireEvent.change(add.getByLabelText("Name"), { target: { value: "Proxmox" } });
-  fireEvent.change(add.getByLabelText("URL"), { target: { value: "https://198.18.0.2:8006" } });
-  fireEvent.change(add.getByLabelText("Group"), { target: { value: "Infra" } });
-  fireEvent.click(add.getByRole("button", { name: "Add" }));
-  await settle();
-
-  expect(actions(calls)).toEqual([{ method: "CreateApp", body: { app: { name: "Proxmox", url: "https://198.18.0.2:8006", group: "Infra" } } }]);
-  expect(search).toBe("?app=app%3A0123456789abcdef");
-});
-
-it("shows why adding was refused and keeps the form", async () => {
-  await open("", { CreateApp: () => Response.json({ code: "invalid_argument", message: "url must be an http or https URL" }, { status: 400 }) });
-
-  fireEvent.click(screen.getByRole("button", { name: "Add App" }));
-  fireEvent.click(within(screen.getByRole("region", { name: "Add App" })).getByRole("button", { name: "Add" }));
-  await settle();
-
-  expect(within(screen.getByRole("region", { name: "Add App" })).getByRole("alert").textContent).toMatch(/url must be an http or https URL/);
-});
-
 it("deletes a Link-only App after a confirm; Delete… on others waits for the write tickets", async () => {
   const calls = await open("app:00aa11bb22cc33dd");
 

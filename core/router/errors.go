@@ -2,9 +2,11 @@ package router
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -35,9 +37,10 @@ var connectCodes = map[codes.Code]struct {
 }
 
 // WriteError writes err as a Connect unary error: the HTTP status for its
-// code and a JSON body {code, message}. A gRPC status error keeps its code;
-// a context error becomes deadline_exceeded or canceled; anything else is
-// unknown.
+// code and a JSON body {code, message, details}. A gRPC status error keeps
+// its code and its details, each named by its message's full name with
+// its bytes in unpadded base64, as connect-go writes them; a context error
+// becomes deadline_exceeded or canceled; anything else is unknown.
 func WriteError(w http.ResponseWriter, err error) {
 	st, ok := status.FromError(err)
 	switch {
@@ -51,11 +54,24 @@ func WriteError(w http.ResponseWriter, err error) {
 	if !known {
 		c = connectCodes[codes.Unknown]
 	}
+	var details []detail
+	for _, d := range st.Proto().GetDetails() {
+		// The message's full name, as connect-go writes it.
+		name := d.GetTypeUrl()[strings.LastIndex(d.GetTypeUrl(), "/")+1:]
+		details = append(details, detail{Type: name, Value: base64.RawStdEncoding.EncodeToString(d.GetValue())})
+	}
 	body, _ := json.Marshal(struct {
-		Code    string `json:"code"`
-		Message string `json:"message,omitempty"`
-	}{c.name, st.Message()})
+		Code    string   `json:"code"`
+		Message string   `json:"message,omitempty"`
+		Details []detail `json:"details,omitempty"`
+	}{c.name, st.Message(), details})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(c.status)
 	w.Write(body)
+}
+
+// detail is a Connect error detail.
+type detail struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }

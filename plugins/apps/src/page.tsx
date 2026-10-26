@@ -1,7 +1,7 @@
 import { Button, EmptyState, Notice, PageTitle, Panel, Skeleton, useQueryState } from "@ddash/ui";
-import { groupsOf, useApps } from "./apps";
+import { useApps } from "./apps";
 import { useAppChecks } from "./checks";
-import { AddLinkOnly } from "./link-only";
+import { AddApp } from "./add-app";
 import { AppList } from "./list";
 import { Notices } from "./notices";
 import { AppPane } from "./pane";
@@ -60,7 +60,7 @@ export function AppsPage() {
             </div>
             <div className="min-w-0 flex-1">
               {selected === adding ? (
-                <AddLinkOnly groups={groupsOf(list.apps)} onDone={(id) => select(id ?? "")} />
+                <AddApp list={list} onDone={(id) => select(id ?? "")} />
               ) : app ? (
                 <AppPane key={app.id} app={app} list={list} check={byApp?.get(app.id)} showIgnored={showIgnored} onGone={() => select("")} />
               ) : (

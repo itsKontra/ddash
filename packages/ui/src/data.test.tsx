@@ -143,6 +143,17 @@ it("StatusList names each item's status and shows its title, meta, aside and bod
   expect(within(items[1]).getByRole("img", { name: "up" })).toBeTruthy();
 });
 
+it("StatusList truncates its titles to one line, or wraps them with wrap", () => {
+  const items = [{ tone: "up" as const, title: "Add alias a-very-long-hostname.home.example to nginx.home.example" }];
+  const { unmount } = render(<StatusList items={items} />);
+  expect(screen.getByText(items[0].title).className).toContain("truncate");
+  unmount();
+
+  render(<StatusList items={items} wrap />);
+  expect(screen.getByText(items[0].title).className).not.toContain("truncate");
+  expect(screen.getByText(items[0].title).className).toContain("break-words");
+});
+
 it("StatusList timeline is an ordered list with the connecting rail; a plain one has none", () => {
   const items = [{ tone: "up" as const, title: "Hop 1" }, { tone: "down" as const, title: "Hop 2" }];
   const { unmount } = render(<StatusList items={items} timeline />);

@@ -223,6 +223,7 @@ func (c *component) fetchLeases(ctx context.Context) (*pfsenseapipb.ListLeasesRe
 type dhcpServer struct {
 	ID        string  `json:"id"`
 	Enable    bool    `json:"enable"`
+	Domain    *string `json:"domain"`
 	RangeFrom *string `json:"range_from"`
 	RangeTo   *string `json:"range_to"`
 	Pool      []struct {
@@ -267,7 +268,7 @@ func (c *component) fetchServers(ctx context.Context) (*pfsenseapipb.ListDhcpSer
 	}
 	out := &pfsenseapipb.ListDhcpServersResponse{}
 	for _, s := range data {
-		server := &pfsenseapipb.DhcpServer{Interface: s.ID, Enabled: s.Enable}
+		server := &pfsenseapipb.DhcpServer{Interface: s.ID, Enabled: s.Enable, Domain: str(s.Domain)}
 		addPool := func(from, to *string) {
 			if str(from) != "" && str(to) != "" {
 				server.Pools = append(server.Pools, &pfsenseapipb.AddressRange{From: str(from), To: str(to)})
