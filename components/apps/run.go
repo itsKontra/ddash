@@ -74,8 +74,12 @@ func (c *component) RunAction(ctx context.Context, req *appspb.RunActionRequest)
 	}
 	if len(pl.dns) > 0 {
 		if _, err := c.pfsense.ChangeHostOverrides(ctx, &pfpb.ChangeHostOverridesRequest{Steps: pl.dns}); err != nil {
-			n := succeeded(err)
+			r := batchResult(err)
+			n := int(r.GetSucceeded())
 			c.wroteDNS(pl.dns[:n])
+			if r.GetApplyFailed() && n == len(pl.dns) {
+				return nil, c.stoppedApplying(ctx, pl, done+n, err)
+			}
 			return nil, c.stopped(ctx, pl, done+n, err)
 		}
 		c.wroteDNS(pl.dns)
@@ -173,24 +177,40 @@ func applySteps(overrides []*pfpb.HostOverride, steps []*pfpb.HostOverrideStep) 
 	return out
 }
 
-// succeeded is how many steps of a failed ChangeHostOverrides batch were
-// written, from its error's details.
-func succeeded(err error) int {
+// batchResult is what a failed ChangeHostOverrides batch wrote, from its
+// error's details: nothing when they don't say.
+func batchResult(err error) *pfpb.ChangeHostOverridesResponse {
 	for _, d := range status.Convert(err).Details() {
 		if r, ok := d.(*pfpb.ChangeHostOverridesResponse); ok {
-			return int(r.GetSucceeded())
+			return r
 		}
 	}
-	return 0
+	return &pfpb.ChangeHostOverridesResponse{}
 }
 
 // stopped is the error of an App Action that stopped at its step done
 // (counting from 0) on err: it names the step and what was done before,
 // and carries a RunActionResponse. The Action still ends with a sync.
 func (c *component) stopped(ctx context.Context, pl *planned, done int, err error) error {
+	steps := pl.plan.GetSteps()
+	if done >= len(steps) {
+		return c.stoppedAt(ctx, pl, done, fmt.Sprintf("Stopped after step %d of %d", done, len(steps)), err)
+	}
+	return c.stoppedAt(ctx, pl, done, fmt.Sprintf("Stopped at step %d of %d, %s", done+1, len(steps), steps[done].GetTitle()), err)
+}
+
+// stoppedApplying is the error of an App Action whose pfSense steps, up to
+// its step done, were all written but pfSense failed to apply them.
+func (c *component) stoppedApplying(ctx context.Context, pl *planned, done int, err error) error {
+	at := fmt.Sprintf("Stopped after step %d of %d, applying the Host Override changes in pfSense", done, len(pl.plan.GetSteps()))
+	return c.stoppedAt(ctx, pl, done, at, err)
+}
+
+// stoppedAt is stopped's error, saying where the Action stopped with at.
+func (c *component) stoppedAt(ctx context.Context, pl *planned, done int, at string, err error) error {
 	reread := c.resyncLocked(ctx)
 	steps := pl.plan.GetSteps()
-	msg := fmt.Sprintf("Stopped at step %d of %d, %s: %s.", done+1, len(steps), steps[done].GetTitle(), why(err))
+	msg := fmt.Sprintf("%s: %s.", at, why(err))
 	if done > 0 {
 		var titles []string
 		for _, s := range steps[:done] {

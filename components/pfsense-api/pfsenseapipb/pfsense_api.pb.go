@@ -659,7 +659,10 @@ func (x *AliasChange) GetAlias() *HostOverrideAlias {
 type ChangeHostOverridesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// How many steps were written, from the first.
-	Succeeded     int32 `protobuf:"varint,1,opt,name=succeeded,proto3" json:"succeeded,omitempty"`
+	Succeeded int32 `protobuf:"varint,1,opt,name=succeeded,proto3" json:"succeeded,omitempty"`
+	// Applying what was written failed: pfSense holds the written steps,
+	// but its DNS Resolver doesn't answer with them yet.
+	ApplyFailed   bool `protobuf:"varint,2,opt,name=apply_failed,json=applyFailed,proto3" json:"apply_failed,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -699,6 +702,13 @@ func (x *ChangeHostOverridesResponse) GetSucceeded() int32 {
 		return x.Succeeded
 	}
 	return 0
+}
+
+func (x *ChangeHostOverridesResponse) GetApplyFailed() bool {
+	if x != nil {
+		return x.ApplyFailed
+	}
+	return false
 }
 
 type CreateStaticMappingRequest struct {
@@ -3027,9 +3037,10 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\x03ips\x18\x02 \x03(\tR\x03ips\"|\n" +
 	"\vAliasChange\x122\n" +
 	"\x06parent\x18\x01 \x01(\v2\x1a.ddash.pfsenseapi.HostNameR\x06parent\x129\n" +
-	"\x05alias\x18\x02 \x01(\v2#.ddash.pfsenseapi.HostOverrideAliasR\x05alias\";\n" +
+	"\x05alias\x18\x02 \x01(\v2#.ddash.pfsenseapi.HostOverrideAliasR\x05alias\"^\n" +
 	"\x1bChangeHostOverridesResponse\x12\x1c\n" +
-	"\tsucceeded\x18\x01 \x01(\x05R\tsucceeded\"W\n" +
+	"\tsucceeded\x18\x01 \x01(\x05R\tsucceeded\x12!\n" +
+	"\fapply_failed\x18\x02 \x01(\bR\vapplyFailed\"W\n" +
 	"\x1aCreateStaticMappingRequest\x129\n" +
 	"\amapping\x18\x01 \x01(\v2\x1f.ddash.pfsenseapi.StaticMappingR\amapping\"X\n" +
 	"\x1bCreateStaticMappingResponse\x129\n" +
