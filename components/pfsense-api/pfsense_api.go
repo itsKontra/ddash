@@ -33,20 +33,27 @@ import (
 var manifest []byte
 
 // requestTimeout bounds one REST call, so a dead firewall can't hold a
-// getter past the host's deadline.
+// getter past the host's deadline. The DNS Resolver's apply has its own
+// (applyTimeout).
 const requestTimeout = 5 * time.Second
 
 // Definition is pfsense-api, ready for sdk.Serve.
-func Definition() sdk.Definition {
+func Definition() sdk.Definition { return define(http.DefaultTransport) }
+
+// define is pfsense-api sending its requests through rt.
+func define(rt http.RoundTripper) sdk.Definition {
 	return sdk.Define(sdk.Spec[*pfsenseapipb.PfsenseApiConfig]{
 		Manifest: manifest,
 		Service:  &pfsenseapipb.PfsenseApiService_ServiceDesc,
-		New:      func() sdk.Component[*pfsenseapipb.PfsenseApiConfig] { return &component{queue: make(chan struct{}, 1)} },
+		New: func() sdk.Component[*pfsenseapipb.PfsenseApiConfig] {
+			return &component{transport: rt, queue: make(chan struct{}, 1)}
+		},
 	})
 }
 
 type component struct {
 	pfsenseapipb.UnimplementedPfsenseApiServiceServer
+	transport  http.RoundTripper
 	api        *api
 	gateways   *sdk.Cache[*pfsenseapipb.ListGatewaysResponse]
 	groups     *sdk.Cache[*pfsenseapipb.ListGatewayGroupsResponse]
@@ -56,6 +63,7 @@ type component struct {
 	interfaces *sdk.Cache[*pfsenseapipb.ListInterfacesResponse]
 	tunnels    *sdk.Cache[*pfsenseapipb.ListWireguardTunnelsResponse]
 	rules      *sdk.Cache[*pfsenseapipb.ListFirewallRulesResponse]
+	overrides  *sdk.Cache[*pfsenseapipb.ListHostOverridesResponse]
 
 	// queue holds the one write running (writes.go): writes wait in it.
 	queue chan struct{}
@@ -68,7 +76,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.Pfsen
 		errs.Add("url", "must be the firewall's web address, like https://198.18.1.1")
 		return errs.Err()
 	}
-	c.api = &api{base: strings.TrimSuffix(base.String(), "/"), key: cfg.GetApiKey(), http: &http.Client{Timeout: requestTimeout}}
+	c.api = &api{base: strings.TrimSuffix(base.String(), "/"), key: cfg.GetApiKey(), http: &http.Client{Transport: c.transport}}
 	c.gateways = sdk.Cached(sdk.TTLFast, c.fetchGateways)
 	c.groups = sdk.Cached(sdk.TTLFast, c.fetchGroups)
 	c.leases = sdk.Cached(sdk.TTLSlow, c.fetchLeases)
@@ -77,6 +85,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.Pfsen
 	c.interfaces = sdk.Cached(countersTTL, c.fetchInterfaces)
 	c.tunnels = sdk.Cached(sdk.TTLSlow, c.fetchTunnels)
 	c.rules = sdk.Cached(sdk.TTLSlow, c.fetchRules)
+	c.overrides = sdk.Cached(sdk.TTLSlow, c.fetchHostOverrides)
 	return nil
 }
 
@@ -580,6 +589,13 @@ func (a *api) get(ctx context.Context, path string, out any) error {
 // FailedPrecondition and one on an object it lacks (404) NotFound, both
 // with pfSense's message; any other failure is Unavailable.
 func (a *api) send(ctx context.Context, method, path string, body, out any) error {
+	return a.sendWithin(ctx, requestTimeout, method, path, body, out)
+}
+
+// sendWithin is send bounded by timeout instead of requestTimeout.
+func (a *api) sendWithin(ctx context.Context, timeout time.Duration, method, path string, body, out any) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
 	var reqBody io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)

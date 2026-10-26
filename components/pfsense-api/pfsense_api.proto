@@ -97,6 +97,100 @@ service PfsenseApiService {
   rpc RemoveAliasAddress(RemoveAliasAddressRequest) returns (RemoveAliasAddressResponse) {
     option (ddash.action) = {};
   }
+  // ListHostOverrides returns every DNS Resolver Host Override with its
+  // aliases (services/dns_resolver/host_overrides), in pfSense's order.
+  rpc ListHostOverrides(ListHostOverridesRequest) returns (ListHostOverridesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ChangeHostOverrides runs an ordered batch of Host Override changes as
+  // one write, then applies the DNS Resolver once, which restarts Unbound.
+  // Each step looks its Host Override up by host and domain right before
+  // it is sent (pfSense's ids are positions that move on every write). A
+  // step that would register a hostname already registered, as a Host
+  // Override or as any Host Override's alias, is refused before it is
+  // sent. The first failing step ends the batch; what the steps before it
+  // wrote is still applied, and the error's status details carry a
+  // ChangeHostOverridesResponse saying how many steps succeeded.
+  rpc ChangeHostOverrides(ChangeHostOverridesRequest) returns (ChangeHostOverridesResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message ListHostOverridesRequest {
+  // Read pfSense now rather than from the cache, and refill the cache.
+  bool fresh = 1;
+}
+
+message ListHostOverridesResponse {
+  repeated HostOverride host_overrides = 1;
+}
+
+// A DNS Resolver Host Override: host.domain resolves to its addresses, and
+// so does each of its aliases. host may be empty, naming the domain itself.
+message HostOverride {
+  string host = 1;
+  string domain = 2;
+  // IPv4 and IPv6 addresses.
+  repeated string ips = 3;
+  string description = 4;
+  // In pfSense's order: sorted by host once ddash has written the Host
+  // Override, as the web UI added them before.
+  repeated HostOverrideAlias aliases = 5;
+}
+
+// An alias of a Host Override: another name for its addresses.
+message HostOverrideAlias {
+  string host = 1;
+  string domain = 2;
+  string description = 3;
+}
+
+message ChangeHostOverridesRequest {
+  // Run in order.
+  repeated HostOverrideStep steps = 1;
+}
+
+// One change. A Host Override is named by host and domain, as is an
+// alias within its parent.
+message HostOverrideStep {
+  oneof change {
+    // Create a Host Override with its host, domain, addresses and
+    // description; it gets aliases from add_alias steps.
+    HostOverride create = 1;
+    // Delete a Host Override, its aliases with it.
+    HostName delete = 2;
+    // Change a Host Override's addresses; its aliases follow.
+    Readdress readdress = 3;
+    // Add an alias to a Host Override.
+    AliasChange add_alias = 4;
+    // Remove an alias from a Host Override.
+    AliasChange remove_alias = 5;
+  }
+}
+
+// A host and domain naming a Host Override or an alias.
+message HostName {
+  string host = 1;
+  string domain = 2;
+}
+
+message Readdress {
+  HostName host_override = 1;
+  repeated string ips = 2;
+}
+
+message AliasChange {
+  // The Host Override the alias belongs to.
+  HostName parent = 1;
+  // The alias; its description is only used when adding it.
+  HostOverrideAlias alias = 2;
+}
+
+// The answer of a batch that succeeded, and the status detail of one that
+// failed.
+message ChangeHostOverridesResponse {
+  // How many steps were written, from the first.
+  int32 succeeded = 1;
 }
 
 // pfsense-api writes one at a time: each write waits for the one before it,

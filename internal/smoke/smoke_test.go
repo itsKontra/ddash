@@ -68,6 +68,7 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok pfsense-api ListLeases",
 		"ok pfsense-api ListGatewayGroups",
 		"ok pfsense-api ListFirewallRules",
+		"ok pfsense-api ListHostOverrides",
 		"ok adguard-api ListQueries",
 		"ok proxmox-api ListWorkloads",
 		"ok nginx-config GetSnapshot",
