@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
 	"github.com/itsKontra/ddash/core/runtime"
 )
 
@@ -50,6 +51,25 @@ func TestTheReadSaysWhenNginxProxyManagerIsNotConfigured(t *testing.T) {
 	read := l.list().GetProxyHosts()
 	if !read.GetNotConfigured() || read.GetReadAt() != nil || read.GetError() == "" {
 		t.Errorf("Proxy Hosts read %v, want not configured, with its error and no good read", read)
+	}
+}
+
+// With Proxy Hosts set to View for ddash's user, the read says the Proxy
+// Hosts are read-only, for the Notice blocking the writes; reads go on.
+func TestTheReadSaysWhenProxyHostsAreReadOnly(t *testing.T) {
+	npm, failNPM := newNPM(t)
+	npm.EditUser(func(u *npmfake.User) { u.ProxyHosts = "view" })
+	l := newLab(t, labOptions{npm: npm, failNPM: failNPM})
+
+	resp := l.list()
+	if read := resp.GetProxyHosts(); !read.GetReadOnly() || read.GetError() != "" {
+		t.Errorf("Proxy Hosts read %v, want read-only without an error", read)
+	}
+	if !l.has("proxy:grafana.home.example") {
+		t.Error("Grafana isn't listed while the Proxy Hosts are read-only")
+	}
+	if l := newLab(t, labOptions{}); l.list().GetProxyHosts().GetReadOnly() {
+		t.Error("Proxy Hosts read read-only with Manage")
 	}
 }
 

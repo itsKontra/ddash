@@ -1,7 +1,7 @@
 import type { Badge, Status, Widget } from "@ddash/plugin";
 import { Status as NpmStatus, type Certificate } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
 import { Skeleton, StatusList, type Tone } from "@ddash/ui";
-import { certificateState, expiry, relative } from "./certificates";
+import { certificateState, expiry, relative } from "@ddash/display";
 import { notConfigured, Time, useCertificates, useStatus as useNpmStatus } from "./npm";
 
 const severity: Record<Tone, number> = { idle: 0, info: 0, maint: 0, up: 1, warn: 2, down: 3 };
