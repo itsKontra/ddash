@@ -13,7 +13,7 @@ const devices = {
   bypassAlias: "VPN_BYPASS",
   devices: [
     device("02:5e:00:00:10:01", { adopted: true, online: true }),
-    device("02:5e:00:00:10:02", { adopted: true, online: true, direct: true }),
+    device("02:5e:00:00:10:02", { adopted: true, online: true, internetPath: "INTERNET_PATH_DIRECT" }),
     device("02:5e:00:00:10:03", { adopted: true }),
     device("02:5e:00:00:20:01", { online: true }),
     device("02:5e:00:00:20:02", {}),

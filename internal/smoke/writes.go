@@ -236,6 +236,24 @@ func (w *writes) aliasRoundTrip(ctx context.Context) (string, error) {
 	if slices.Contains(alias.GetAddresses(), PlaceholderAddress) {
 		return "", fmt.Errorf("%s still holds %s after RemoveAliasAddress", SmokeAlias, PlaceholderAddress)
 	}
+	// The same round trip as one move in and one move out, each applied once.
+	for _, move := range []*pfsenseapipb.MoveAliasAddressRequest{
+		{Address: PlaceholderAddress, To: SmokeAlias, Detail: "make smoke-writes"},
+		{Address: PlaceholderAddress, From: []string{SmokeAlias}},
+	} {
+		if _, err := w.pf.MoveAliasAddress(ctx, move); err != nil {
+			return "", fmt.Errorf("MoveAliasAddress: %w", err)
+		}
+		if err := w.firewallApplied(ctx); err != nil {
+			return "", err
+		}
+		if alias, err = w.smokeAlias(ctx); err != nil {
+			return "", err
+		}
+		if slices.Contains(alias.GetAddresses(), PlaceholderAddress) != (move.GetTo() != "") {
+			return "", fmt.Errorf("%s = %v after MoveAliasAddress %v", SmokeAlias, alias.GetAddresses(), move)
+		}
+	}
 	return "", nil
 }
 

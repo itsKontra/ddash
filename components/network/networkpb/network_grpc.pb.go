@@ -30,7 +30,8 @@ const (
 	NetworkService_NextReservedAddress_FullMethodName = "/ddash.network.NetworkService/NextReservedAddress"
 	NetworkService_AdoptDevice_FullMethodName         = "/ddash.network.NetworkService/AdoptDevice"
 	NetworkService_RenameDevice_FullMethodName        = "/ddash.network.NetworkService/RenameDevice"
-	NetworkService_SetDirect_FullMethodName           = "/ddash.network.NetworkService/SetDirect"
+	NetworkService_SetInternetPath_FullMethodName     = "/ddash.network.NetworkService/SetInternetPath"
+	NetworkService_GetNetworkInfo_FullMethodName      = "/ddash.network.NetworkService/GetNetworkInfo"
 	NetworkService_SetAdBlocking_FullMethodName       = "/ddash.network.NetworkService/SetAdBlocking"
 )
 
@@ -42,8 +43,8 @@ type NetworkServiceClient interface {
 	// the failover gateway group (every 60 s).
 	GetVpnTunnel(ctx context.Context, in *GetVpnTunnelRequest, opts ...grpc.CallOption) (*GetVpnTunnelResponse, error)
 	// ListDevices returns every Device: the firewall's DHCP leases and static
-	// mappings joined by MAC, with each one's membership of the bypass alias
-	// and of the other aliases. Servers with fixed addresses aren't Devices,
+	// mappings joined by MAC, with each one's internet path and the other
+	// aliases holding its address. Servers with fixed addresses aren't Devices,
 	// and alias members that aren't Devices never show.
 	ListDevices(ctx context.Context, in *ListDevicesRequest, opts ...grpc.CallOption) (*ListDevicesResponse, error)
 	// GetThroughput returns the WAN and LAN throughput samples taken after
@@ -66,13 +67,19 @@ type NetworkServiceClient interface {
 	// description. Its address and reservation stay as they are; changing or
 	// removing them is done in pfSense.
 	RenameDevice(ctx context.Context, in *RenameDeviceRequest, opts ...grpc.CallOption) (*RenameDeviceResponse, error)
-	// SetDirect makes a Device Direct (its address added to the bypass
-	// alias) or Tunnelled (its address removed from it), applied at once. A
-	// New Device is Adopted first, under its name (else its MAC) at the
-	// lowest free reserved address. Only the Device's own address is ever
-	// written: a Device Direct through another member (a network, range or
-	// nested alias) stays so, and turning it Tunnelled is refused.
-	SetDirect(ctx context.Context, in *SetDirectRequest, opts ...grpc.CallOption) (*SetDirectResponse, error)
+	// SetInternetPath moves a Device's own address out of the alias of its
+	// path and into the alias of the new one (none for Tunnelled), with one
+	// apply. A New Device is Adopted first, under its name (else its MAC) at
+	// the lowest free reserved address. Only the Device's own address is
+	// ever written: a Device in an alias through another member (a network,
+	// range or nested alias) can't be moved out of it, so a path it would
+	// keep it from is refused. No Internet is refused while network has no
+	// block alias.
+	SetInternetPath(ctx context.Context, in *SetInternetPathRequest, opts ...grpc.CallOption) (*SetInternetPathResponse, error)
+	// GetNetworkInfo returns, for each address, its internet path, whether
+	// AdGuard allows it ads, and the Device holding it if there is one. By
+	// address, since servers with fixed addresses are no Devices.
+	GetNetworkInfo(ctx context.Context, in *GetNetworkInfoRequest, opts ...grpc.CallOption) (*GetNetworkInfoResponse, error)
 	// SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
 	// its address's persistent client in AdGuard (created the first time it
 	// is turned off). It works on Adopted Devices, whose address stays put: a
@@ -159,10 +166,20 @@ func (c *networkServiceClient) RenameDevice(ctx context.Context, in *RenameDevic
 	return out, nil
 }
 
-func (c *networkServiceClient) SetDirect(ctx context.Context, in *SetDirectRequest, opts ...grpc.CallOption) (*SetDirectResponse, error) {
+func (c *networkServiceClient) SetInternetPath(ctx context.Context, in *SetInternetPathRequest, opts ...grpc.CallOption) (*SetInternetPathResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetDirectResponse)
-	err := c.cc.Invoke(ctx, NetworkService_SetDirect_FullMethodName, in, out, cOpts...)
+	out := new(SetInternetPathResponse)
+	err := c.cc.Invoke(ctx, NetworkService_SetInternetPath_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkServiceClient) GetNetworkInfo(ctx context.Context, in *GetNetworkInfoRequest, opts ...grpc.CallOption) (*GetNetworkInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetNetworkInfoResponse)
+	err := c.cc.Invoke(ctx, NetworkService_GetNetworkInfo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -187,8 +204,8 @@ type NetworkServiceServer interface {
 	// the failover gateway group (every 60 s).
 	GetVpnTunnel(context.Context, *GetVpnTunnelRequest) (*GetVpnTunnelResponse, error)
 	// ListDevices returns every Device: the firewall's DHCP leases and static
-	// mappings joined by MAC, with each one's membership of the bypass alias
-	// and of the other aliases. Servers with fixed addresses aren't Devices,
+	// mappings joined by MAC, with each one's internet path and the other
+	// aliases holding its address. Servers with fixed addresses aren't Devices,
 	// and alias members that aren't Devices never show.
 	ListDevices(context.Context, *ListDevicesRequest) (*ListDevicesResponse, error)
 	// GetThroughput returns the WAN and LAN throughput samples taken after
@@ -211,13 +228,19 @@ type NetworkServiceServer interface {
 	// description. Its address and reservation stay as they are; changing or
 	// removing them is done in pfSense.
 	RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error)
-	// SetDirect makes a Device Direct (its address added to the bypass
-	// alias) or Tunnelled (its address removed from it), applied at once. A
-	// New Device is Adopted first, under its name (else its MAC) at the
-	// lowest free reserved address. Only the Device's own address is ever
-	// written: a Device Direct through another member (a network, range or
-	// nested alias) stays so, and turning it Tunnelled is refused.
-	SetDirect(context.Context, *SetDirectRequest) (*SetDirectResponse, error)
+	// SetInternetPath moves a Device's own address out of the alias of its
+	// path and into the alias of the new one (none for Tunnelled), with one
+	// apply. A New Device is Adopted first, under its name (else its MAC) at
+	// the lowest free reserved address. Only the Device's own address is
+	// ever written: a Device in an alias through another member (a network,
+	// range or nested alias) can't be moved out of it, so a path it would
+	// keep it from is refused. No Internet is refused while network has no
+	// block alias.
+	SetInternetPath(context.Context, *SetInternetPathRequest) (*SetInternetPathResponse, error)
+	// GetNetworkInfo returns, for each address, its internet path, whether
+	// AdGuard allows it ads, and the Device holding it if there is one. By
+	// address, since servers with fixed addresses are no Devices.
+	GetNetworkInfo(context.Context, *GetNetworkInfoRequest) (*GetNetworkInfoResponse, error)
 	// SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
 	// its address's persistent client in AdGuard (created the first time it
 	// is turned off). It works on Adopted Devices, whose address stays put: a
@@ -255,8 +278,11 @@ func (UnimplementedNetworkServiceServer) AdoptDevice(context.Context, *AdoptDevi
 func (UnimplementedNetworkServiceServer) RenameDevice(context.Context, *RenameDeviceRequest) (*RenameDeviceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RenameDevice not implemented")
 }
-func (UnimplementedNetworkServiceServer) SetDirect(context.Context, *SetDirectRequest) (*SetDirectResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetDirect not implemented")
+func (UnimplementedNetworkServiceServer) SetInternetPath(context.Context, *SetInternetPathRequest) (*SetInternetPathResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetInternetPath not implemented")
+}
+func (UnimplementedNetworkServiceServer) GetNetworkInfo(context.Context, *GetNetworkInfoRequest) (*GetNetworkInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetNetworkInfo not implemented")
 }
 func (UnimplementedNetworkServiceServer) SetAdBlocking(context.Context, *SetAdBlockingRequest) (*SetAdBlockingResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetAdBlocking not implemented")
@@ -408,20 +434,38 @@ func _NetworkService_RenameDevice_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _NetworkService_SetDirect_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetDirectRequest)
+func _NetworkService_SetInternetPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetInternetPathRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(NetworkServiceServer).SetDirect(ctx, in)
+		return srv.(NetworkServiceServer).SetInternetPath(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: NetworkService_SetDirect_FullMethodName,
+		FullMethod: NetworkService_SetInternetPath_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(NetworkServiceServer).SetDirect(ctx, req.(*SetDirectRequest))
+		return srv.(NetworkServiceServer).SetInternetPath(ctx, req.(*SetInternetPathRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NetworkService_GetNetworkInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetNetworkInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).GetNetworkInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_GetNetworkInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).GetNetworkInfo(ctx, req.(*GetNetworkInfoRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -480,8 +524,12 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _NetworkService_RenameDevice_Handler,
 		},
 		{
-			MethodName: "SetDirect",
-			Handler:    _NetworkService_SetDirect_Handler,
+			MethodName: "SetInternetPath",
+			Handler:    _NetworkService_SetInternetPath_Handler,
+		},
+		{
+			MethodName: "GetNetworkInfo",
+			Handler:    _NetworkService_GetNetworkInfo_Handler,
 		},
 		{
 			MethodName: "SetAdBlocking",

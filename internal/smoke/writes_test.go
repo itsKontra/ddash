@@ -118,12 +118,13 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 	}
 
 	fw, ag, px := logs(l)
-	// The placeholder went in and out, each write applied.
-	if n := count(fw, "PATCH /api/v2/firewall/alias"); n != 2 {
-		t.Errorf("%d alias writes, want 2 (add, remove)\n%v", n, fw)
+	// The placeholder went in and out twice (add and remove, then two
+	// moves), each write applied.
+	if n := count(fw, "PATCH /api/v2/firewall/alias"); n != 4 {
+		t.Errorf("%d alias writes, want 4 (add, remove, move in, move out)\n%v", n, fw)
 	}
-	if n := count(fw, pfsensefake.AppliedFirewall); n != 2 {
-		t.Errorf("the firewall applied %d times, want 2", n)
+	if n := count(fw, pfsensefake.AppliedFirewall); n != 4 {
+		t.Errorf("the firewall applied %d times, want 4", n)
 	}
 	for _, want := range []string{
 		"POST /api/v2/services/dhcp_server/static_mapping",

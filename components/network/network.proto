@@ -28,6 +28,26 @@ message NetworkConfig {
     format: FORMAT_IP_RANGE
     placeholder: "198.18.1.20-198.18.1.49"
   }];
+  // The firewall alias whose members may not reach the internet: the No
+  // Internet Devices. Optional: unset, no Device is No Internet. Like the
+  // bypass alias, network changes only its Devices' own addresses in it.
+  string block_alias = 3 [(ddash.config.field) = {
+    label: "No Internet alias"
+    help: "The firewall alias whose members may not reach the internet (No Internet Devices). Create the alias and its block rule in pfSense first."
+    choices_from: "pfsense-api.ListAliases"
+  }];
+}
+
+// A Device's internet path: exactly one of the three.
+enum InternetPath {
+  INTERNET_PATH_UNSPECIFIED = 0;
+  // Through the VPN Tunnel: in neither alias. The default.
+  INTERNET_PATH_TUNNELLED = 1;
+  // Straight through the WAN: in the bypass alias.
+  INTERNET_PATH_DIRECT = 2;
+  // No internet at all: in the block alias, whether or not it is also in
+  // the bypass alias.
+  INTERNET_PATH_NO_INTERNET = 3;
 }
 
 service NetworkService {
@@ -37,8 +57,8 @@ service NetworkService {
     option (ddash.getter) = {refresh: FAST};
   }
   // ListDevices returns every Device: the firewall's DHCP leases and static
-  // mappings joined by MAC, with each one's membership of the bypass alias
-  // and of the other aliases. Servers with fixed addresses aren't Devices,
+  // mappings joined by MAC, with each one's internet path and the other
+  // aliases holding its address. Servers with fixed addresses aren't Devices,
   // and alias members that aren't Devices never show.
   rpc ListDevices(ListDevicesRequest) returns (ListDevicesResponse) {
     option (ddash.getter) = {refresh: SLOW};
@@ -73,14 +93,22 @@ service NetworkService {
   rpc RenameDevice(RenameDeviceRequest) returns (RenameDeviceResponse) {
     option (ddash.action) = {};
   }
-  // SetDirect makes a Device Direct (its address added to the bypass
-  // alias) or Tunnelled (its address removed from it), applied at once. A
-  // New Device is Adopted first, under its name (else its MAC) at the
-  // lowest free reserved address. Only the Device's own address is ever
-  // written: a Device Direct through another member (a network, range or
-  // nested alias) stays so, and turning it Tunnelled is refused.
-  rpc SetDirect(SetDirectRequest) returns (SetDirectResponse) {
+  // SetInternetPath moves a Device's own address out of the alias of its
+  // path and into the alias of the new one (none for Tunnelled), with one
+  // apply. A New Device is Adopted first, under its name (else its MAC) at
+  // the lowest free reserved address. Only the Device's own address is
+  // ever written: a Device in an alias through another member (a network,
+  // range or nested alias) can't be moved out of it, so a path it would
+  // keep it from is refused. No Internet is refused while network has no
+  // block alias.
+  rpc SetInternetPath(SetInternetPathRequest) returns (SetInternetPathResponse) {
     option (ddash.action) = {};
+  }
+  // GetNetworkInfo returns, for each address, its internet path, whether
+  // AdGuard allows it ads, and the Device holding it if there is one. By
+  // address, since servers with fixed addresses are no Devices.
+  rpc GetNetworkInfo(GetNetworkInfoRequest) returns (GetNetworkInfoResponse) {
+    option (ddash.getter) = {refresh: SLOW};
   }
   // SetAdBlocking turns AdGuard's ad-blocking off or on for a Device, by
   // its address's persistent client in AdGuard (created the first time it
@@ -92,16 +120,40 @@ service NetworkService {
   }
 }
 
-message SetDirectRequest {
+message SetInternetPathRequest {
   // The Device's MAC.
   string mac = 1;
-  // true for Direct, false for Tunnelled.
-  bool direct = 2;
+  InternetPath path = 2;
 }
 
-message SetDirectResponse {
+message SetInternetPathResponse {
   // The Device after the change (Adopted, if it was New).
   Device device = 1;
+}
+
+message GetNetworkInfoRequest {
+  // IPv4 or IPv6 addresses, e.g. "198.18.1.20".
+  repeated string addresses = 1;
+}
+
+message GetNetworkInfoResponse {
+  // One per address asked, in the same order.
+  repeated NetworkInfo infos = 1;
+  // Why AdGuard's clients couldn't be read, so no address shows ads
+  // allowed; empty when they could.
+  string adguard_error = 2;
+}
+
+// How an address reaches the internet.
+message NetworkInfo {
+  // The address, as asked.
+  string address = 1;
+  InternetPath internet_path = 2;
+  // Ads Allowed: AdGuard has a persistent client for the address that
+  // doesn't filter.
+  bool ads_allowed = 3;
+  // The Device whose address it is; unset for any other address.
+  Device device = 4;
 }
 
 message SetAdBlockingRequest {
@@ -159,10 +211,15 @@ message ListDevicesResponse {
   // Why AdGuard's clients couldn't be read, so no Device shows ad-blocking
   // off; empty when they could.
   string adguard_error = 3;
+  // The configured block alias's name; empty when there is none, and so
+  // no No Internet.
+  string block_alias = 4;
 }
 
 // A piece of hardware the firewall hands addresses to, keyed by MAC.
 message Device {
+  reserved 6;
+  reserved "direct";
   // The MAC address in lower case, e.g. "02:5e:00:00:10:01".
   string mac = 1;
   // The static mapping's description, else its hostname, else the
@@ -175,9 +232,9 @@ message Device {
   // Adopted: it has a static mapping. A New Device holds only a dynamic
   // lease.
   bool adopted = 5;
-  // Direct: its address is in the bypass alias, so it skips the VPN
-  // Tunnel. Tunnelled otherwise.
-  bool direct = 6;
+  // Its internet path, by its address's membership of the bypass and
+  // block aliases.
+  InternetPath internet_path = 11;
   // The lease it holds; a dynamic one over the static entry. Unset when
   // there is none.
   DeviceLease lease = 7;

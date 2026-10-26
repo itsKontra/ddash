@@ -93,8 +93,9 @@ Do these by hand, in order, before first use.
         `api-v2-status-wireguard-tunnels-get`, `api-v2-firewall-rules-get`;
       - Adopt and rename: `api-v2-services-dhcp-server-static-mapping-post`,
         `api-v2-services-dhcp-server-static-mapping-patch`;
-      - Direct: `api-v2-firewall-alias-patch` (each write applies itself
-        with `"apply": true`);
+      - the internet path (Tunnelled, Direct, No Internet):
+        `api-v2-firewall-alias-patch`, `api-v2-firewall-apply-post` (a
+        move writes both aliases, then applies once);
       - `make smoke-writes` only (its cleanup and pending checks):
         `api-v2-services-dhcp-server-static-mapping-delete`,
         `api-v2-services-dhcp-server-apply-get`,
@@ -102,7 +103,12 @@ Do these by hand, in order, before first use.
         `api-v2-firewall-apply-get`.
 
       A privilege covers its endpoint for every object: ddash itself keeps
-      to the bypass alias and the Devices' static mappings.
+      to the bypass and No Internet aliases and the Devices' static
+      mappings.
+- [ ] pfSense, for No Internet (optional): a host alias for the No Internet
+      Devices and a rule blocking its members from the internet, then pick
+      the alias as network's **No Internet alias**. ddash never creates
+      either.
 - [ ] Proxmox: the role and token, plus the **Protected ACLs** below.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
 - [ ] Enter every credential in the UI (each Component's config form), not in

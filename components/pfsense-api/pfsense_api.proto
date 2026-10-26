@@ -97,6 +97,15 @@ service PfsenseApiService {
   rpc RemoveAliasAddress(RemoveAliasAddressRequest) returns (RemoveAliasAddressResponse) {
     option (ddash.action) = {};
   }
+  // MoveAliasAddress removes an address, with its description, from each
+  // alias in from that holds it and adds it to the alias to (unless it
+  // holds it already), then applies once: the filter reloads with the
+  // address never in both places. Every other member stays as it is; when
+  // nothing changes, nothing is written. A failed write still applies the
+  // ones before it, so the filter runs what pfSense holds.
+  rpc MoveAliasAddress(MoveAliasAddressRequest) returns (MoveAliasAddressResponse) {
+    option (ddash.action) = {};
+  }
 }
 
 // pfsense-api writes one at a time: each write waits for the one before it,
@@ -157,6 +166,23 @@ message RemoveAliasAddressRequest {
 message RemoveAliasAddressResponse {
   // The alias as it is after the write.
   Alias alias = 1;
+}
+
+message MoveAliasAddressRequest {
+  // An address, e.g. "198.18.1.20"; a member equal to it, or to the same
+  // IP written differently, is the one moved.
+  string address = 1;
+  // The aliases to take it out of.
+  repeated string from = 2;
+  // The alias to add it to; empty to only take it out.
+  string to = 3;
+  // Its description in to (pfSense's "detail").
+  string detail = 4;
+}
+
+message MoveAliasAddressResponse {
+  // The aliases written, as they are after the write, in the order written.
+  repeated Alias aliases = 1;
 }
 
 message ListGatewaysRequest {}

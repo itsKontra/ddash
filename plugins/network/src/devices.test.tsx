@@ -27,7 +27,7 @@ const devices = {
       ip: "198.18.1.21",
       online: true,
       adopted: true,
-      direct: true,
+      internetPath: "INTERNET_PATH_DIRECT",
       reservation: { interface: "lan", ip: "198.18.1.21", hostname: "work-laptop", description: "Work laptop" },
     },
     {
@@ -35,7 +35,7 @@ const devices = {
       name: "galaxy-s24",
       ip: "198.18.1.150",
       online: true,
-      direct: true,
+      internetPath: "INTERNET_PATH_DIRECT",
       lease: { ip: "198.18.1.150", hostname: "galaxy-s24", starts: "2026/10/20 08:02:11", ends: "2026/10/20 10:02:11", status: "active", onlineStatus: "active/online" },
     },
     {
@@ -252,7 +252,7 @@ it("sorts the Devices by name until another sort is chosen, and by IP as address
   expect(search).toBe("?devices.sort=address");
 });
 
-it("sorts by Online, MAC and Routing, ties by name", async () => {
+it("sorts by Online, MAC and internet path, ties by name", async () => {
   await showAt("/network?devices.sort=online");
   expect(names()).toEqual(["galaxy-s24", "Living room TV", "Work laptop", "02:5e:00:00:20:02"]);
   cleanup();

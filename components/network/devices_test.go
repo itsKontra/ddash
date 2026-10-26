@@ -160,6 +160,12 @@ func homeLeases() []*pfsenseapipb.Lease {
 	}
 }
 
+const (
+	tunnelled  = networkpb.InternetPath_INTERNET_PATH_TUNNELLED
+	direct     = networkpb.InternetPath_INTERNET_PATH_DIRECT
+	noInternet = networkpb.InternetPath_INTERNET_PATH_NO_INTERNET
+)
+
 func devices(t *testing.T, c networkpb.NetworkServiceClient) *networkpb.ListDevicesResponse {
 	t.Helper()
 	resp, err := c.ListDevices(t.Context(), &networkpb.ListDevicesRequest{})
@@ -178,32 +184,32 @@ func TestDevicesJoinLeasesStaticMappingsAndTheBypassAliasByMAC(t *testing.T) {
 		BypassAlias: "VPN_BYPASS",
 		Devices: []*networkpb.Device{
 			{
-				Mac: "02:5e:00:00:10:01", Name: "Living room TV", Ip: "198.18.1.20", Online: true, Adopted: true,
+				Mac: "02:5e:00:00:10:01", Name: "Living room TV", Ip: "198.18.1.20", Online: true, Adopted: true, InternetPath: tunnelled,
 				Lease:       &networkpb.DeviceLease{Ip: "198.18.1.20", Hostname: "living-room-tv", Interface: "lan", Status: "static", OnlineStatus: "active/online"},
 				Reservation: &networkpb.Reservation{Interface: "lan", Ip: "198.18.1.20", Hostname: "living-room-tv", Description: "Living room TV"},
 				Aliases:     []*networkpb.DeviceAlias{{Name: "KILL_SWITCH", Description: "Never leaves through the WAN"}},
 			},
 			{
-				Mac: "02:5e:00:00:10:02", Name: "Work laptop", Ip: "198.18.1.21", Online: true, Adopted: true, Direct: true,
+				Mac: "02:5e:00:00:10:02", Name: "Work laptop", Ip: "198.18.1.21", Online: true, Adopted: true, InternetPath: direct,
 				Lease:       &networkpb.DeviceLease{Ip: "198.18.1.21", Hostname: "work-laptop", Interface: "lan", Status: "static", OnlineStatus: "active/online"},
 				Reservation: &networkpb.Reservation{Interface: "lan", Ip: "198.18.1.21", Hostname: "work-laptop", Description: "Work laptop"},
 			},
 			{
 				// No description: the static mapping's hostname names it.
-				Mac: "02:5e:00:00:10:03", Name: "printer", Ip: "198.18.1.22", Adopted: true,
+				Mac: "02:5e:00:00:10:03", Name: "printer", Ip: "198.18.1.22", Adopted: true, InternetPath: tunnelled,
 				Lease:       &networkpb.DeviceLease{Ip: "198.18.1.22", Hostname: "printer", Interface: "lan", Status: "static", OnlineStatus: "idle/offline"},
 				Reservation: &networkpb.Reservation{Interface: "lan", Ip: "198.18.1.22", Hostname: "printer"},
 				Aliases:     []*networkpb.DeviceAlias{{Name: "KILL_SWITCH", Description: "Never leaves through the WAN"}},
 			},
 			{
 				// A New Device: a dynamic lease and no static mapping.
-				Mac: "02:5e:00:00:20:01", Name: "galaxy-s24", Ip: "198.18.1.150", Online: true, Direct: true,
+				Mac: "02:5e:00:00:20:01", Name: "galaxy-s24", Ip: "198.18.1.150", Online: true, InternetPath: direct,
 				Lease: &networkpb.DeviceLease{Ip: "198.18.1.150", Hostname: "galaxy-s24", Starts: "2026/10/20 08:02:11", Ends: "2026/10/20 10:02:11", Status: "active", OnlineStatus: "active/online"},
 				// In MOBILE by its range, and so in PHONES, which nests MOBILE.
 				Aliases: []*networkpb.DeviceAlias{{Name: "MOBILE"}, {Name: "PHONES", Description: "Phones and tablets"}},
 			},
 			{
-				Mac: "02:5e:00:00:20:02", Ip: "198.18.1.151",
+				Mac: "02:5e:00:00:20:02", Ip: "198.18.1.151", InternetPath: tunnelled,
 				Lease:   &networkpb.DeviceLease{Ip: "198.18.1.151", Starts: "2026/10/19 21:40:55", Ends: "2026/10/19 23:40:55", Status: "expired", OnlineStatus: "idle/offline"},
 				Aliases: []*networkpb.DeviceAlias{{Name: "MOBILE"}, {Name: "PHONES", Description: "Phones and tablets"}},
 			},
@@ -245,7 +251,7 @@ func TestADeviceAdoptedOnItsOldLeaseShowsItsReservedAddressAndTheLease(t *testin
 	got := devices(t, c).GetDevices()
 
 	want := []*networkpb.Device{{
-		Mac: "02:5e:00:00:20:01", Name: "Phone", Ip: "198.18.1.23", Online: true, Adopted: true,
+		Mac: "02:5e:00:00:20:01", Name: "Phone", Ip: "198.18.1.23", Online: true, Adopted: true, InternetPath: tunnelled,
 		Lease:       &networkpb.DeviceLease{Ip: "198.18.1.150", Hostname: "galaxy-s24", Starts: "2026/10/20 08:02:11", Ends: "2026/10/20 10:02:11", Status: "active", OnlineStatus: "active/online"},
 		Reservation: &networkpb.Reservation{Interface: "lan", Ip: "198.18.1.23", Hostname: "phone", Description: "Phone"},
 	}}
@@ -351,5 +357,73 @@ func TestStartRefusesAReservedRangeThatIsNoRange(t *testing.T) {
 
 	if len(errs) != 1 || errs[0].Path != "reserved_range" {
 		t.Errorf("Start errors = %v, want one on reserved_range", errs)
+	}
+}
+
+// blockingConfig is homeConfig with KILL_SWITCH as the block alias.
+func blockingConfig() *networkpb.NetworkConfig {
+	cfg := homeConfig()
+	cfg.BlockAlias = "KILL_SWITCH"
+	return cfg
+}
+
+func TestDevicesInTheBlockAliasAreNoInternetEvenWhenAlsoInTheBypassAlias(t *testing.T) {
+	fw := &firewall{leases: homeLeases(), aliases: homeAliases()}
+	// The laptop is in the bypass alias too.
+	fw.aliases[1].Addresses = append(fw.aliases[1].Addresses, "198.18.1.21")
+	_, c := startConfigured(t, fw, blockingConfig())
+
+	got := devices(t, c)
+
+	paths := map[string]networkpb.InternetPath{}
+	for _, d := range got.GetDevices() {
+		paths[d.GetName()] = d.GetInternetPath()
+		for _, a := range d.GetAliases() {
+			if a.GetName() == "KILL_SWITCH" {
+				t.Errorf("%s lists the block alias among its other aliases", d.GetName())
+			}
+		}
+	}
+	want := map[string]networkpb.InternetPath{"Living room TV": noInternet, "Work laptop": noInternet, "printer": noInternet, "galaxy-s24": direct, "": tunnelled}
+	if diff := cmp.Diff(want, paths); diff != "" {
+		t.Errorf("internet paths (-want +got):\n%s", diff)
+	}
+	if got.GetBlockAlias() != "KILL_SWITCH" {
+		t.Errorf("block alias = %q, want KILL_SWITCH", got.GetBlockAlias())
+	}
+}
+
+func TestDevicesFailNamingTheBlockAliasWhenItIsGone(t *testing.T) {
+	fw := &firewall{leases: homeLeases()}
+	_, c := startConfigured(t, fw, blockingConfig())
+	fw.mu.Lock()
+	fw.aliases = slices.Delete(homeAliases(), 1, 2)
+	fw.mu.Unlock()
+
+	_, err := c.ListDevices(t.Context(), &networkpb.ListDevicesRequest{})
+
+	if status.Code(err) != codes.FailedPrecondition || !strings.Contains(err.Error(), "KILL_SWITCH") || !strings.Contains(err.Error(), "No Internet alias") {
+		t.Errorf("ListDevices = %v, want FailedPrecondition naming the missing No Internet alias", err)
+	}
+}
+
+func TestStartRefusesABlockAliasThatIsMissingAPortAliasOrTheBypassAlias(t *testing.T) {
+	for name, want := range map[string]string{"NO_SUCH": "NO_SUCH", "WEB_PORTS": "port alias", "VPN_BYPASS": "bypass alias"} {
+		t.Run(name, func(t *testing.T) {
+			cfg := homeConfig()
+			cfg.BlockAlias = name
+
+			errs := sdk.FieldErrorsOf(startWith(t, &firewall{}, cfg))
+
+			if len(errs) != 1 || errs[0].Path != "block_alias" || !strings.Contains(errs[0].Message, want) {
+				t.Errorf("Start errors = %v, want one on block_alias saying %q", errs, want)
+			}
+		})
+	}
+}
+
+func TestStartAcceptsNoBlockAlias(t *testing.T) {
+	if err := startWith(t, &firewall{}, homeConfig()); err != nil {
+		t.Errorf("Start = %v, want ok", err)
 	}
 }

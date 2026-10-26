@@ -66,9 +66,9 @@ type component struct {
 	mu     sync.Mutex
 	tunnel *networkpb.GetVpnTunnelResponse
 
-	// The Device join (devices.go).
-	bypassAlias string
-	devices     *sdk.Cache[*networkpb.ListDevicesResponse]
+	// The Device join (devices.go); blockAlias is "" when there is none.
+	bypassAlias, blockAlias string
+	devices                 *sdk.Cache[*snapshot]
 	// Where Adopt reserves addresses (adopt.go), both ends included.
 	reservedRange          string
 	reservedLo, reservedHi netip.Addr

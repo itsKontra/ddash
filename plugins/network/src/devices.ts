@@ -6,13 +6,12 @@ export function useDevices() {
   return useQuery(NetworkService.method.listDevices, {});
 }
 
-/** How many Devices there are, are online, are New and are Direct. */
+/** How many Devices there are, are online and are New. */
 export function tally(devices: readonly Device[]) {
   return {
     total: devices.length,
     online: devices.filter((d) => d.online).length,
     new: devices.filter((d) => !d.adopted).length,
-    direct: devices.filter((d) => d.direct).length,
   };
 }
 
