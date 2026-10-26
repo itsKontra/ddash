@@ -1265,8 +1265,14 @@ type ListAuditLogRequest struct {
 	Outcome string `protobuf:"bytes,3,opt,name=outcome,proto3" json:"outcome,omitempty"`
 	// Chains per page: 50 when 0, at most 200.
 	PageSize int32 `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
-	// The previous page's next_page_token; empty for the newest page.
-	PageToken     string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// The previous page's next_page_token, read with the same filters, query
+	// and order; empty for the first page.
+	PageToken string `protobuf:"bytes,5,opt,name=page_token,json=pageToken,proto3" json:"page_token,omitempty"`
+	// Only chains whose root matches every whitespace-separated word, ignoring
+	// case, in its target, method or actor's username. Empty means any.
+	Query string `protobuf:"bytes,6,opt,name=query,proto3" json:"query,omitempty"`
+	// "newest" or "oldest" root first. Empty means newest.
+	Order         string `protobuf:"bytes,7,opt,name=order,proto3" json:"order,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1336,9 +1342,23 @@ func (x *ListAuditLogRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListAuditLogRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *ListAuditLogRequest) GetOrder() string {
+	if x != nil {
+		return x.Order
+	}
+	return ""
+}
+
 type ListAuditLogResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Newest root first.
+	// In the order asked for.
 	Chains []*AuditChain `protobuf:"bytes,1,rep,name=chains,proto3" json:"chains,omitempty"`
 	// Where the next page starts; empty on the last page.
 	NextPageToken string `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
@@ -2761,7 +2781,7 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\x06author\x18\x05 \x01(\tR\x06author\x12\x1a\n" +
 	"\brequires\x18\x06 \x03(\tR\brequires\x12\x16\n" +
 	"\x06script\x18\a \x01(\tR\x06script\x12\x14\n" +
-	"\x05style\x18\b \x01(\tR\x05style\"\xa2\x01\n" +
+	"\x05style\x18\b \x01(\tR\x05style\"\xce\x01\n" +
 	"\x13ListAuditLogRequest\x12\x1d\n" +
 	"\n" +
 	"actor_kind\x18\x01 \x01(\tR\tactorKind\x12\x16\n" +
@@ -2769,7 +2789,9 @@ const file_ddash_core_core_proto_rawDesc = "" +
 	"\aoutcome\x18\x03 \x01(\tR\aoutcome\x12\x1b\n" +
 	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
-	"page_token\x18\x05 \x01(\tR\tpageToken\"\x88\x01\n" +
+	"page_token\x18\x05 \x01(\tR\tpageToken\x12\x14\n" +
+	"\x05query\x18\x06 \x01(\tR\x05query\x12\x14\n" +
+	"\x05order\x18\a \x01(\tR\x05order\"\x88\x01\n" +
 	"\x14ListAuditLogResponse\x12.\n" +
 	"\x06chains\x18\x01 \x03(\v2\x16.ddash.core.AuditChainR\x06chains\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x18\n" +

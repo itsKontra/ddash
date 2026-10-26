@@ -165,16 +165,26 @@ it("filters by actor kind, target and outcome, listing the targets the core gave
   expect(requests.at(-1)).toEqual({ target: "greeter", outcome: "failed" });
 });
 
-it("keeps the filters and the sort in the URL, so they survive a reload and Back", async () => {
-  await boot("/settings/audit-log", () => ({ chains: [installed, relayed], targets: ["greeter"] }));
+// Answers ListAuditLog as the core would: the chains in the order asked for.
+const inOrder = (request: Record<string, unknown>) => ({
+  chains: request.order === "oldest" ? [installed, relayed] : [relayed, installed],
+  targets: ["greeter"],
+});
+const actionNames = () => rows().map((r) => within(r).getByRole("rowheader").textContent);
+
+it("keeps the search, the filters and the sort in the URL, so they survive a reload and Back", async () => {
+  await boot("/settings/audit-log", inOrder);
 
   fireEvent.click(screen.getByRole("tab", { name: "Anyone" }));
   await settle();
   fireEvent.change(screen.getByRole("combobox", { name: "Target" }), { target: { value: "greeter" } });
   await settle();
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Actions" }), { target: { value: "alice" } });
+  await settle();
   fireEvent.click(screen.getByRole("button", { name: /When/ }));
   await settle();
-  expect(rows().map((r) => within(r).getByRole("rowheader").textContent)).toEqual([expect.stringMatching(/Install/), expect.stringMatching(/relay/)]);
+  expect(requests.at(-1)).toEqual({ target: "greeter", query: "alice", order: "oldest" });
+  expect(actionNames()).toEqual([expect.stringMatching(/Install/), expect.stringMatching(/relay/)]);
   const url = location.pathname + location.search;
 
   act(() => navigate("/settings"));
@@ -185,12 +195,69 @@ it("keeps the filters and the sort in the URL, so they survive a reload and Back
 
   cleanup();
   requests = [];
-  await boot(url, () => ({ chains: [relayed, installed], targets: ["greeter"] }));
-  expect(requests).toEqual([{ target: "greeter" }]);
+  await boot(url, inOrder);
+  expect(requests).toEqual([{ target: "greeter", query: "alice", order: "oldest" }]);
   expect(screen.getByRole("tab", { name: "Anyone" }).getAttribute("aria-selected")).toBe("true");
   expect((screen.getByRole("combobox", { name: "Target" }) as HTMLSelectElement).value).toBe("greeter");
+  expect((screen.getByRole("searchbox", { name: "Search Actions" }) as HTMLInputElement).value).toBe("alice");
   expect(screen.getByRole("columnheader", { name: /When/ }).getAttribute("aria-sort")).toBe("ascending");
-  expect(rows().map((r) => within(r).getByRole("rowheader").textContent)).toEqual([expect.stringMatching(/Install/), expect.stringMatching(/relay/)]);
+  expect(actionNames()).toEqual([expect.stringMatching(/Install/), expect.stringMatching(/relay/)]);
+});
+
+it("sorts by When alone, newest first until the Operator flips it, the core doing the sorting", async () => {
+  await boot("/settings/audit-log", inOrder);
+
+  const sortable = screen.getAllByRole("columnheader").filter((h) => within(h).queryByRole("button"));
+  expect(sortable.map((h) => h.textContent)).toEqual(["When"]);
+  expect(screen.getByRole("columnheader", { name: /When/ }).getAttribute("aria-sort")).toBe("descending");
+  expect(requests).toEqual([{ actorKind: "operator" }]);
+  expect(location.search).toBe("");
+  expect(actionNames()).toEqual([expect.stringMatching(/relay/), expect.stringMatching(/Install/)]);
+
+  fireEvent.click(screen.getByRole("button", { name: /When/ }));
+  await settle();
+  expect(requests.at(-1)).toEqual({ actorKind: "operator", order: "oldest" });
+  expect(actionNames()).toEqual([expect.stringMatching(/Install/), expect.stringMatching(/relay/)]);
+
+  fireEvent.click(screen.getByRole("button", { name: /When/ }));
+  await settle();
+  expect(requests.at(-1)).toEqual({ actorKind: "operator" });
+  expect(actionNames()).toEqual([expect.stringMatching(/relay/), expect.stringMatching(/Install/)]);
+});
+
+it("loads newer chains a page at a time when oldest first", async () => {
+  await boot("/settings/audit-log?sort=when", (req) =>
+    req.pageToken === "newer" ? { chains: [relayed], targets: [] } : { chains: [installed], nextPageToken: "newer", targets: [] },
+  );
+
+  expect(screen.queryByRole("button", { name: "Load older Actions" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Load newer Actions" }));
+  await settle();
+
+  expect(requests.at(-1)).toEqual({ actorKind: "operator", order: "oldest", pageToken: "newer" });
+  expect(rows().map((r) => r.textContent)).toEqual([expect.stringMatching(/Install/), expect.stringMatching(/relay/)]);
+});
+
+it("searches on the server, a new search starting again from the first page", async () => {
+  await boot("/settings/audit-log", (req) =>
+    req.query === "zzz"
+      ? { chains: [], targets: [] }
+      : req.pageToken === "older"
+        ? { chains: [installed], targets: [] }
+        : { chains: [relayed], nextPageToken: "older", targets: [] },
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Load older Actions" }));
+  await settle();
+  expect(rows()).toHaveLength(2);
+
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Actions" }), { target: { value: "relay act" } });
+  await settle();
+  expect(requests.at(-1)).toEqual({ actorKind: "operator", query: "relay act" });
+  expect(rows().map((r) => r.textContent)).toEqual([expect.stringMatching(/relay/)]);
+
+  fireEvent.change(screen.getByRole("searchbox", { name: "Search Actions" }), { target: { value: "zzz" } });
+  await settle();
+  expect(screen.getByText('No Actions match "zzz"')).toBeTruthy();
 });
 
 it("loads older chains a page at a time", async () => {

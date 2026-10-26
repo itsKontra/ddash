@@ -163,18 +163,31 @@ func TestTheAuditLogFiltersByOutcome(t *testing.T) {
 	}
 }
 
-func TestTheAuditLogIsReadAPageOfChainsAtATime(t *testing.T) {
+// actFive has relay Act five times after relayer's Install, the second
+// relaying on to greeter.
+func actFive(t *testing.T) *coretest.Harness {
+	t.Helper()
 	h := newRelay(t, relayWhenAsked, sample.Hooks{})
 	for _, note := range []string{"1", "relay", "3", "4", "5"} {
 		if res := h.Call("relayer", "relay", "Act", `{"note":"`+note+`"}`); res.Code != http.StatusOK {
 			t.Fatalf("Act %s: status %d: %s", note, res.Code, res.Body)
 		}
 	}
+	return h
+}
 
+// rootsByPage reads the Audit Log two chains a page, each page's request
+// being fields (a JSON object's fields, or "") and the token the page before
+// gave, and names each page's roots as Method request.
+func rootsByPage(t *testing.T, h *coretest.Harness, fields string) [][]string {
+	t.Helper()
+	if fields != "" {
+		fields += ","
+	}
 	var pages [][]string
 	token := ""
 	for range 10 {
-		page := listAuditLog(t, h, `{"pageSize":2,"pageToken":"`+token+`"}`)
+		page := listAuditLog(t, h, `{`+fields+`"pageSize":2,"pageToken":"`+token+`"}`)
 		var roots []string
 		for _, c := range page.Chains {
 			root := c.Entries[0]
@@ -185,21 +198,88 @@ func TestTheAuditLogIsReadAPageOfChainsAtATime(t *testing.T) {
 			break
 		}
 	}
+	return pages
+}
+
+func TestTheAuditLogIsReadAPageOfChainsAtATime(t *testing.T) {
+	h := actFive(t)
 
 	want := [][]string{
 		{`Act {"note":"5"}`, `Act {"note":"4"}`},
 		{`Act {"note":"3"}`, `Act {"note":"relay"}`},
 		{`Act {"note":"1"}`, `Install {"plugin":"relayer"}`},
 	}
-	if !reflect.DeepEqual(pages, want) {
-		t.Errorf("pages = %v, want %v", pages, want)
+	if got := rootsByPage(t, h, ""); !reflect.DeepEqual(got, want) {
+		t.Errorf("pages = %v, want %v", got, want)
+	}
+}
+
+func TestTheAuditLogIsReadInEitherOrderAPageAtATimeWhateverItsSearchAndFilters(t *testing.T) {
+	h := actFive(t)
+
+	for fields, want := range map[string][][]string{
+		`"order":"oldest"`: {
+			{`Install {"plugin":"relayer"}`, `Act {"note":"1"}`},
+			{`Act {"note":"relay"}`, `Act {"note":"3"}`},
+			{`Act {"note":"4"}`, `Act {"note":"5"}`},
+		},
+		`"order":"newest"`: {
+			{`Act {"note":"5"}`, `Act {"note":"4"}`},
+			{`Act {"note":"3"}`, `Act {"note":"relay"}`},
+			{`Act {"note":"1"}`, `Install {"plugin":"relayer"}`},
+		},
+		`"order":"oldest","query":"act"`: {
+			{`Act {"note":"1"}`, `Act {"note":"relay"}`},
+			{`Act {"note":"3"}`, `Act {"note":"4"}`},
+			{`Act {"note":"5"}`},
+		},
+		`"query":"act"`: {
+			{`Act {"note":"5"}`, `Act {"note":"4"}`},
+			{`Act {"note":"3"}`, `Act {"note":"relay"}`},
+			{`Act {"note":"1"}`},
+		},
+		`"order":"oldest","query":"relay","outcome":"ok","target":"greeter"`: {
+			{`Act {"note":"relay"}`},
+		},
+	} {
+		if got := rootsByPage(t, h, fields); !reflect.DeepEqual(got, want) {
+			t.Errorf("pages for %s = %v, want %v", fields, got, want)
+		}
+	}
+}
+
+func TestTheAuditLogSearchesEachRootsActionTargetAndActor(t *testing.T) {
+	acted := make(chan error, 1)
+	h := newRelay(t, actOnItsOwn(acted), sample.Hooks{})
+	if err := <-acted; err != nil {
+		t.Fatalf("relay's own Act: %v", err)
+	}
+	if res := h.Call("relayer", "relay", "Act", `{}`); res.Code != http.StatusOK {
+		t.Fatalf("Act: status %d: %s", res.Code, res.Body)
+	}
+	everything := chainHops(listAuditLog(t, h, `{}`))
+
+	for request, want := range map[string][][]string{
+		// greeter's Act on its own was relay's, so relay is its actor.
+		`{"query":"RELAY"}`:                        {{"relay.Act"}, {"greeter.Act"}},
+		`{"query":"inst"}`:                         {{"core.Install"}},
+		`{"query":"act test"}`:                     {{"relay.Act"}},
+		`{"query":" greeter  act "}`:               {{"greeter.Act"}},
+		`{"query":"relay","actorKind":"operator"}`: {{"relay.Act"}},
+		`{"query":"act install"}`:                  nil,
+		`{"query":"a_t"}`:                          nil,
+		`{"query":"  "}`:                           everything,
+	} {
+		if got := chainHops(listAuditLog(t, h, request)); !reflect.DeepEqual(got, want) {
+			t.Errorf("chains for %s = %v, want %v", request, got, want)
+		}
 	}
 }
 
 func TestTheAuditLogRefusesAnUnknownFilter(t *testing.T) {
 	h := newHello(t, configured)
 
-	for _, request := range []string{`{"outcome":"meh"}`, `{"actorKind":"robot"}`, `{"pageToken":"bogus"}`} {
+	for _, request := range []string{`{"outcome":"meh"}`, `{"actorKind":"robot"}`, `{"pageToken":"bogus"}`, `{"order":"sideways"}`} {
 		wantError(t, h.CoreCall("ListAuditLog", request), http.StatusBadRequest, "invalid_argument", "")
 	}
 }

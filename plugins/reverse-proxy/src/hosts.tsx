@@ -1,9 +1,9 @@
-import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { certWarning, checkStatus, workloadPage, workloadText } from "@ddash/display";
-import { usePluginLink, useQuery } from "@ddash/plugin";
+import { timestampDate, timestampMs } from "@bufbuild/protobuf/wkt";
+import { certWarning, checkStatus, workloadName, workloadPage, workloadText } from "@ddash/display";
+import { usePluginLink, useQuery, type Tone } from "@ddash/plugin";
 import { AppsService, ProxyHostWarning, type ProxyHost, type Workload } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, type Check } from "@ddash/proto/checks/checks_pb";
-import { DataTable, Notice, Panel, StatusDot, StatusList, type Column } from "@ddash/ui";
+import { DataTable, matches, Notice, Panel, SearchField, StatusDot, StatusList, useQueryState, type Column } from "@ddash/ui";
 
 /**
  * apps' Proxy Hosts with their Apps' Checks. Reads only: the Check status
@@ -43,31 +43,76 @@ interface Row {
   check: Check | null | undefined;
 }
 
+/** A text sort value that puts a row without one after the rest, ascending. */
+const lastIfNone = (value: string | undefined) => (value === undefined ? "1" : `0${value}`);
+
+/** The Check column's order, Down first; a row whose Check status is unknown comes after these. */
+const checkRank: Record<Tone, number> = { down: 0, warn: 1, maint: 2, up: 3, info: 4, idle: 5 };
+
 const columns: readonly Column<Row>[] = [
-  { id: "domains", header: "Domains", rowHeader: true, cell: ({ host }) => <Domains host={host} /> },
+  {
+    id: "domains",
+    header: "Domains",
+    rowHeader: true,
+    sortable: true,
+    sortValue: ({ host }) => host.serverNames[0] ?? "",
+    cell: ({ host }) => <Domains host={host} />,
+  },
   {
     id: "upstream",
     header: "Upstream",
     mono: true,
+    sortable: true,
+    sortValue: ({ host }) => bareUpstream(host.upstream),
     cell: ({ host }) => {
       const upstream = bareUpstream(host.upstream);
       return host.upstreamServers.length ? `${upstream} → ${host.upstreamServers.join(", ")}` : upstream;
     },
   },
-  { id: "app", header: "App", cell: ({ host }) => <AppName host={host} /> },
-  { id: "check", header: "Check", cell: ({ host, check }) => host.app && <CheckLine check={check} /> },
+  { id: "app", header: "App", sortable: true, sortValue: ({ host }) => lastIfNone(host.app?.name), cell: ({ host }) => <AppName host={host} /> },
+  {
+    id: "check",
+    header: "Check",
+    sortable: true,
+    sortValue: ({ host, check }) => (host.app && check !== undefined ? checkRank[checkStatus(check ?? undefined).tone] : Number.MAX_SAFE_INTEGER),
+    cell: ({ host, check }) => host.app && <CheckLine check={check} />,
+  },
   {
     id: "workload",
     header: "Workload",
+    sortable: true,
+    sortValue: ({ host }) => lastIfNone(host.app?.workload && workloadName(host.app.workload)),
     cell: ({ host }) => (host.app ? host.app.workload ? <WorkloadName workload={host.app.workload} /> : "none" : "—"),
   },
-  { id: "certificate", header: "Certificate", cell: ({ check }) => <Certificate check={check} /> },
+  {
+    id: "certificate",
+    header: "Certificate",
+    sortable: true,
+    sortValue: ({ check }) => (check?.certExpires ? timestampMs(check.certExpires) : Number.MAX_SAFE_INTEGER),
+    cell: ({ check }) => <Certificate check={check} />,
+  },
 ];
+
+/** Whether a Proxy Host matches the search: any of its domains, its upstream and servers, its App's or its Workload's name. */
+const found = (q: string, host: ProxyHost) =>
+  matches(
+    q,
+    ...host.serverNames,
+    bareUpstream(host.upstream),
+    ...host.upstreamServers,
+    host.app?.name,
+    host.app?.workload && workloadName(host.app.workload),
+  );
+
+/** By first domain, the order rows a sort ties stay in. */
+const byDomain = (a: ProxyHost, b: ProxyHost) => (a.serverNames[0] ?? "").localeCompare(b.serverNames[0] ?? "", undefined, { numeric: true });
 
 /** The Page's Warnings and Proxy Hosts Panels. */
 export function ProxyHosts() {
   const { hosts, byApp, appsError, checksError } = useProxyHosts();
+  const [q, setQ] = useQueryState("q", "");
   const warned = (hosts ?? []).filter((h) => h.warnings.length);
+  const shown = (hosts ?? []).filter((h) => found(q, h)).sort(byDomain);
   return (
     <>
       {warned.length > 0 && (
@@ -77,7 +122,11 @@ export function ProxyHosts() {
           />
         </Panel>
       )}
-      <Panel title="Proxy Hosts" flush>
+      <Panel
+        title="Proxy Hosts"
+        flush
+        toolbar={<SearchField label="Search Proxy Hosts" value={q} onChange={setQ} placeholder="Search by domain, upstream, App or Workload" />}
+      >
         {appsError ? (
           <div className="p-4">
             <Notice tone="down">apps unavailable: {appsError.rawMessage}</Notice>
@@ -90,11 +139,13 @@ export function ProxyHosts() {
               </div>
             )}
             <DataTable
-              rows={(hosts ?? []).map((host) => ({ host, check: host.app && byApp ? (byApp.get(host.app.id) ?? null) : undefined }))}
+              rows={shown.map((host) => ({ host, check: host.app && byApp ? (byApp.get(host.app.id) ?? null) : undefined }))}
               rowKey={({ host }) => keyOf(host)}
               columns={columns}
+              sortKey="sort"
+              defaultSort="domains"
               loading={!hosts}
-              empty="No server block forwards to an upstream."
+              empty={hosts?.length && q ? `No Proxy Hosts match "${q}"` : "No server block forwards to an upstream."}
             />
           </>
         )}

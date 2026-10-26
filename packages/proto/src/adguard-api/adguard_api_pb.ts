@@ -5,8 +5,8 @@
 // adguard-api reads AdGuard Home through its HTTP API under /control, with
 // HTTP Basic auth, and turns ad-blocking off or on for one client.
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Duration, Timestamp } from "@bufbuild/protobuf/wkt";
@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file adguard-api/adguard_api.proto.
  */
 export const file_adguard_api_adguard_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1hZGd1YXJkLWFwaS9hZGd1YXJkX2FwaS5wcm90bxIQZGRhc2guYWRndWFyZGFwaSKGAwoQQWRndWFyZEFwaUNvbmZpZxJyCgN1cmwYASABKAlCZZq1GGEaA1VSTCJCQWRHdWFyZCBIb21lJ3Mgd2ViIGludGVyZmFjZTsgaXRzIEFQSSBhbnN3ZXJzIG9uIHRoZSBzYW1lIGFkZHJlc3MuKhJodHRwczovLzE5OC4xOC4xLjMwATgBEkYKCHVzZXJuYW1lGAIgASgJQjSatRgwIixBZEd1YXJkIEhvbWUgaGFzIG9uZSB1c2VyLCB3aXRoIGZ1bGwgYWNjZXNzLjABErUBCghwYXNzd29yZBgDIAEoCUKiAZq1GJ0BEAEilgFBZEd1YXJkIEhvbWUgbG9ja3Mgb3V0IGFuIGFkZHJlc3MgYWZ0ZXIgcmVwZWF0ZWQgd3JvbmcgcGFzc3dvcmRzLCBzbyBhZGd1YXJkLWFwaSBzdG9wcyBhc2tpbmcgYWZ0ZXIgdGhlIGZpcnN0IHJlZnVzYWwgdW50aWwgdGhlIGNvbmZpZyBpcyBzYXZlZCBhZ2Fpbi4wASISChBHZXRTdGF0dXNSZXF1ZXN0IosBChFHZXRTdGF0dXNSZXNwb25zZRIPCgdydW5uaW5nGAEgASgIEhoKEnByb3RlY3Rpb25fZW5hYmxlZBgCIAEoCBI4ChVwcm90ZWN0aW9uX3BhdXNlZF9mb3IYAyABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SDwoHdmVyc2lvbhgEIAEoCSIRCg9HZXRTdGF0c1JlcXVlc3QiqAMKEEdldFN0YXRzUmVzcG9uc2USEwoLZG5zX3F1ZXJpZXMYASABKAMSGQoRYmxvY2tlZF9maWx0ZXJpbmcYAiABKAMSHQoVcmVwbGFjZWRfc2FmZWJyb3dzaW5nGAMgASgDEhkKEXJlcGxhY2VkX3BhcmVudGFsGAQgASgDEhsKE3JlcGxhY2VkX3NhZmVzZWFyY2gYBSABKAMSGQoRYXZnX3Byb2Nlc3NpbmdfbXMYBiABKAESEQoJdGltZV91bml0GAcgASgJEhoKEmRuc19xdWVyaWVzX3NlcmllcxgIIAMoAxIgChhibG9ja2VkX2ZpbHRlcmluZ19zZXJpZXMYCSADKAMSNwoTdG9wX3F1ZXJpZWRfZG9tYWlucxgKIAMoCzIaLmRkYXNoLmFkZ3VhcmRhcGkuVG9wRW50cnkSNwoTdG9wX2Jsb2NrZWRfZG9tYWlucxgLIAMoCzIaLmRkYXNoLmFkZ3VhcmRhcGkuVG9wRW50cnkSLwoLdG9wX2NsaWVudHMYDCADKAsyGi5kZGFzaC5hZGd1YXJkYXBpLlRvcEVudHJ5IicKCFRvcEVudHJ5EgwKBG5hbWUYASABKAkSDQoFY291bnQYAiABKAMiXQoSTGlzdFF1ZXJpZXNSZXF1ZXN0Eg4KBmNsaWVudBgBIAEoCRISCgpvbGRlcl90aGFuGAIgASgJEg0KBWxpbWl0GAMgASgFEhQKDGJsb2NrZWRfb25seRgEIAEoCCJPChNMaXN0UXVlcmllc1Jlc3BvbnNlEigKB3F1ZXJpZXMYASADKAsyFy5kZGFzaC5hZGd1YXJkYXBpLlF1ZXJ5Eg4KBm9sZGVzdBgCIAEoCSLpAQoFUXVlcnkSKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGZG9tYWluGAIgASgJEgwKBHR5cGUYAyABKAkSDgoGY2xpZW50GAQgASgJEhMKC2NsaWVudF9uYW1lGAUgASgJEg4KBnJlYXNvbhgGIAEoCRIPCgdibG9ja2VkGAcgASgIEgwKBHJ1bGUYCCABKAkSDgoGc3RhdHVzGAkgASgJEhIKCmVsYXBzZWRfbXMYCiABKAESEAoIdXBzdHJlYW0YCyABKAkSDgoGY2FjaGVkGAwgASgIIhQKEkxpc3RDbGllbnRzUmVxdWVzdCJAChNMaXN0Q2xpZW50c1Jlc3BvbnNlEikKB2NsaWVudHMYASADKAsyGC5kZGFzaC5hZGd1YXJkYXBpLkNsaWVudCJbCgZDbGllbnQSDAoEbmFtZRgBIAEoCRILCgNpZHMYAiADKAkSGwoTdXNlX2dsb2JhbF9zZXR0aW5ncxgDIAEoCBIZChFmaWx0ZXJpbmdfZW5hYmxlZBgEIAEoCCJGChlTZXRDbGllbnRGaWx0ZXJpbmdSZXF1ZXN0EgoKAmlwGAEgASgJEgwKBG5hbWUYAiABKAkSDwoHZW5hYmxlZBgDIAEoCCJXChpTZXRDbGllbnRGaWx0ZXJpbmdSZXNwb25zZRIoCgZjbGllbnQYASABKAsyGC5kZGFzaC5hZGd1YXJkYXBpLkNsaWVudBIPCgdjcmVhdGVkGAIgASgIMocEChFBZGd1YXJkQXBpU2VydmljZRJcCglHZXRTdGF0dXMSIi5kZGFzaC5hZGd1YXJkYXBpLkdldFN0YXR1c1JlcXVlc3QaIy5kZGFzaC5hZGd1YXJkYXBpLkdldFN0YXR1c1Jlc3BvbnNlIgaKtRgCCAISVwoIR2V0U3RhdHMSIS5kZGFzaC5hZGd1YXJkYXBpLkdldFN0YXRzUmVxdWVzdBoiLmRkYXNoLmFkZ3VhcmRhcGkuR2V0U3RhdHNSZXNwb25zZSIEirUYABJiCgtMaXN0UXVlcmllcxIkLmRkYXNoLmFkZ3VhcmRhcGkuTGlzdFF1ZXJpZXNSZXF1ZXN0GiUuZGRhc2guYWRndWFyZGFwaS5MaXN0UXVlcmllc1Jlc3BvbnNlIgaKtRgCCAMSYAoLTGlzdENsaWVudHMSJC5kZGFzaC5hZGd1YXJkYXBpLkxpc3RDbGllbnRzUmVxdWVzdBolLmRkYXNoLmFkZ3VhcmRhcGkuTGlzdENsaWVudHNSZXNwb25zZSIEirUYABJ1ChJTZXRDbGllbnRGaWx0ZXJpbmcSKy5kZGFzaC5hZGd1YXJkYXBpLlNldENsaWVudEZpbHRlcmluZ1JlcXVlc3QaLC5kZGFzaC5hZGd1YXJkYXBpLlNldENsaWVudEZpbHRlcmluZ1Jlc3BvbnNlIgSStRgAQk1aS2dpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvYWRndWFyZC1hcGkvYWRndWFyZGFwaXBiO2FkZ3VhcmRhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("Ch1hZGd1YXJkLWFwaS9hZGd1YXJkX2FwaS5wcm90bxIQZGRhc2guYWRndWFyZGFwaSKGAwoQQWRndWFyZEFwaUNvbmZpZxJyCgN1cmwYASABKAlCZZq1GGEaA1VSTCJCQWRHdWFyZCBIb21lJ3Mgd2ViIGludGVyZmFjZTsgaXRzIEFQSSBhbnN3ZXJzIG9uIHRoZSBzYW1lIGFkZHJlc3MuKhJodHRwczovLzE5OC4xOC4xLjMwATgBEkYKCHVzZXJuYW1lGAIgASgJQjSatRgwIixBZEd1YXJkIEhvbWUgaGFzIG9uZSB1c2VyLCB3aXRoIGZ1bGwgYWNjZXNzLjABErUBCghwYXNzd29yZBgDIAEoCUKiAZq1GJ0BEAEilgFBZEd1YXJkIEhvbWUgbG9ja3Mgb3V0IGFuIGFkZHJlc3MgYWZ0ZXIgcmVwZWF0ZWQgd3JvbmcgcGFzc3dvcmRzLCBzbyBhZGd1YXJkLWFwaSBzdG9wcyBhc2tpbmcgYWZ0ZXIgdGhlIGZpcnN0IHJlZnVzYWwgdW50aWwgdGhlIGNvbmZpZyBpcyBzYXZlZCBhZ2Fpbi4wASISChBHZXRTdGF0dXNSZXF1ZXN0IosBChFHZXRTdGF0dXNSZXNwb25zZRIPCgdydW5uaW5nGAEgASgIEhoKEnByb3RlY3Rpb25fZW5hYmxlZBgCIAEoCBI4ChVwcm90ZWN0aW9uX3BhdXNlZF9mb3IYAyABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SDwoHdmVyc2lvbhgEIAEoCSIRCg9HZXRTdGF0c1JlcXVlc3QiqAMKEEdldFN0YXRzUmVzcG9uc2USEwoLZG5zX3F1ZXJpZXMYASABKAMSGQoRYmxvY2tlZF9maWx0ZXJpbmcYAiABKAMSHQoVcmVwbGFjZWRfc2FmZWJyb3dzaW5nGAMgASgDEhkKEXJlcGxhY2VkX3BhcmVudGFsGAQgASgDEhsKE3JlcGxhY2VkX3NhZmVzZWFyY2gYBSABKAMSGQoRYXZnX3Byb2Nlc3NpbmdfbXMYBiABKAESEQoJdGltZV91bml0GAcgASgJEhoKEmRuc19xdWVyaWVzX3NlcmllcxgIIAMoAxIgChhibG9ja2VkX2ZpbHRlcmluZ19zZXJpZXMYCSADKAMSNwoTdG9wX3F1ZXJpZWRfZG9tYWlucxgKIAMoCzIaLmRkYXNoLmFkZ3VhcmRhcGkuVG9wRW50cnkSNwoTdG9wX2Jsb2NrZWRfZG9tYWlucxgLIAMoCzIaLmRkYXNoLmFkZ3VhcmRhcGkuVG9wRW50cnkSLwoLdG9wX2NsaWVudHMYDCADKAsyGi5kZGFzaC5hZGd1YXJkYXBpLlRvcEVudHJ5IicKCFRvcEVudHJ5EgwKBG5hbWUYASABKAkSDQoFY291bnQYAiABKAMijgEKEkxpc3RRdWVyaWVzUmVxdWVzdBIOCgZjbGllbnQYASABKAkSEgoKb2xkZXJfdGhhbhgCIAEoCRINCgVsaW1pdBgDIAEoBRIpCgRtb2RlGAQgASgOMhsuZGRhc2guYWRndWFyZGFwaS5RdWVyeU1vZGUSDAoEdGV4dBgFIAEoCRIMCgR0eXBlGAYgASgJIq0BChNMaXN0UXVlcmllc1Jlc3BvbnNlEigKB3F1ZXJpZXMYASADKAsyFy5kZGFzaC5hZGd1YXJkYXBpLlF1ZXJ5Eg4KBm9sZGVzdBgCIAEoCRISCgpsaW5lc19yZWFkGAMgASgFEisKB3JlYWNoZWQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhsKE2Fub255bWl6ZV9jbGllbnRfaXAYBSABKAgi6QEKBVF1ZXJ5EigKBHRpbWUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBmRvbWFpbhgCIAEoCRIMCgR0eXBlGAMgASgJEg4KBmNsaWVudBgEIAEoCRITCgtjbGllbnRfbmFtZRgFIAEoCRIOCgZyZWFzb24YBiABKAkSDwoHYmxvY2tlZBgHIAEoCBIMCgRydWxlGAggASgJEg4KBnN0YXR1cxgJIAEoCRISCgplbGFwc2VkX21zGAogASgBEhAKCHVwc3RyZWFtGAsgASgJEg4KBmNhY2hlZBgMIAEoCCIUChJMaXN0Q2xpZW50c1JlcXVlc3QiQAoTTGlzdENsaWVudHNSZXNwb25zZRIpCgdjbGllbnRzGAEgAygLMhguZGRhc2guYWRndWFyZGFwaS5DbGllbnQiWwoGQ2xpZW50EgwKBG5hbWUYASABKAkSCwoDaWRzGAIgAygJEhsKE3VzZV9nbG9iYWxfc2V0dGluZ3MYAyABKAgSGQoRZmlsdGVyaW5nX2VuYWJsZWQYBCABKAgiRgoZU2V0Q2xpZW50RmlsdGVyaW5nUmVxdWVzdBIKCgJpcBgBIAEoCRIMCgRuYW1lGAIgASgJEg8KB2VuYWJsZWQYAyABKAgiVwoaU2V0Q2xpZW50RmlsdGVyaW5nUmVzcG9uc2USKAoGY2xpZW50GAEgASgLMhguZGRhc2guYWRndWFyZGFwaS5DbGllbnQSDwoHY3JlYXRlZBgCIAEoCCpXCglRdWVyeU1vZGUSGgoWUVVFUllfTU9ERV9VTlNQRUNJRklFRBAAEhYKElFVRVJZX01PREVfQkxPQ0tFRBABEhYKElFVRVJZX01PREVfQUxMT1dFRBACMocEChFBZGd1YXJkQXBpU2VydmljZRJcCglHZXRTdGF0dXMSIi5kZGFzaC5hZGd1YXJkYXBpLkdldFN0YXR1c1JlcXVlc3QaIy5kZGFzaC5hZGd1YXJkYXBpLkdldFN0YXR1c1Jlc3BvbnNlIgaKtRgCCAISVwoIR2V0U3RhdHMSIS5kZGFzaC5hZGd1YXJkYXBpLkdldFN0YXRzUmVxdWVzdBoiLmRkYXNoLmFkZ3VhcmRhcGkuR2V0U3RhdHNSZXNwb25zZSIEirUYABJiCgtMaXN0UXVlcmllcxIkLmRkYXNoLmFkZ3VhcmRhcGkuTGlzdFF1ZXJpZXNSZXF1ZXN0GiUuZGRhc2guYWRndWFyZGFwaS5MaXN0UXVlcmllc1Jlc3BvbnNlIgaKtRgCCAMSYAoLTGlzdENsaWVudHMSJC5kZGFzaC5hZGd1YXJkYXBpLkxpc3RDbGllbnRzUmVxdWVzdBolLmRkYXNoLmFkZ3VhcmRhcGkuTGlzdENsaWVudHNSZXNwb25zZSIEirUYABJ1ChJTZXRDbGllbnRGaWx0ZXJpbmcSKy5kZGFzaC5hZGd1YXJkYXBpLlNldENsaWVudEZpbHRlcmluZ1JlcXVlc3QaLC5kZGFzaC5hZGd1YXJkYXBpLlNldENsaWVudEZpbHRlcmluZ1Jlc3BvbnNlIgSStRgAQk1aS2dpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvYWRndWFyZC1hcGkvYWRndWFyZGFwaXBiO2FkZ3VhcmRhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.adguardapi.AdguardApiConfig
@@ -246,27 +246,48 @@ export type ListQueriesRequest = Message<"ddash.adguardapi.ListQueriesRequest"> 
   client: string;
 
   /**
-   * Only queries older than this cursor: a previous page's oldest. Empty
-   * for the newest page.
+   * Only queries older than this cursor: a previous answer's oldest. Empty
+   * for the newest.
    *
    * @generated from field: string older_than = 2;
    */
   olderThan: string;
 
   /**
-   * Page size; 0 means 100, at most 500.
+   * How many queries; 0 means 100, at most 500. With text or type, 0
+   * means 50 and 50 is the most.
    *
    * @generated from field: int32 limit = 3;
    */
   limit: number;
 
   /**
-   * Only blocked queries (filter lists, safe browsing, parental control,
-   * blocked services).
+   * Blocked, allowed or all queries. AdGuard filters on its side, so
+   * without text or type the answer holds limit queries when the log has
+   * that many.
    *
-   * @generated from field: bool blocked_only = 4;
+   * @generated from field: ddash.adguardapi.QueryMode mode = 4;
    */
-  blockedOnly: boolean;
+  mode: QueryMode;
+
+  /**
+   * Only queries whose domain or rule hold every word of text (split on
+   * whitespace), ignoring case. ddash applies text and type itself: it
+   * reads at most 2,000 of the client's log lines in mode and stops at
+   * limit matches, so the answer can hold fewer than the log has; oldest
+   * resumes the search where it stopped.
+   *
+   * @generated from field: string text = 5;
+   */
+  text: string;
+
+  /**
+   * Only queries of this record type, e.g. "AAAA", ignoring case; empty
+   * for any.
+   *
+   * @generated from field: string type = 6;
+   */
+  type: string;
 };
 
 /**
@@ -288,11 +309,37 @@ export type ListQueriesResponse = Message<"ddash.adguardapi.ListQueriesResponse"
   queries: Query[];
 
   /**
-   * The cursor for the next, older page; empty when there is none.
+   * The cursor to read on from, older_than for the next answer; empty
+   * once the log ended. The last queries can still carry one, and the
+   * answer after them has none.
    *
    * @generated from field: string oldest = 2;
    */
   oldest: string;
+
+  /**
+   * How many of the client's log lines in mode ddash read for this
+   * answer: with text or type at most 2,000, else at most limit.
+   *
+   * @generated from field: int32 lines_read = 3;
+   */
+  linesRead: number;
+
+  /**
+   * The time of the oldest of them; unset when it read none.
+   *
+   * @generated from field: google.protobuf.Timestamp reached = 4;
+   */
+  reached?: Timestamp | undefined;
+
+  /**
+   * Whether AdGuard anonymizes client addresses before logging them
+   * ("Anonymize client IP"). Then no log line holds the client's full
+   * address, so no query matches it.
+   *
+   * @generated from field: bool anonymize_client_ip = 5;
+   */
+  anonymizeClientIp: boolean;
 };
 
 /**
@@ -526,6 +573,41 @@ export const SetClientFilteringResponseSchema: GenMessage<SetClientFilteringResp
   messageDesc(file_adguard_api_adguard_api, 13);
 
 /**
+ * Which queries ListQueries returns, by AdGuard's reason.
+ *
+ * @generated from enum ddash.adguardapi.QueryMode
+ */
+export enum QueryMode {
+  /**
+   * All queries.
+   *
+   * @generated from enum value: QUERY_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Blocked by a filter list, safe browsing, parental control or a
+   * blocked service.
+   *
+   * @generated from enum value: QUERY_MODE_BLOCKED = 1;
+   */
+  BLOCKED = 1,
+
+  /**
+   * Every other reason, safe search and rewrites too.
+   *
+   * @generated from enum value: QUERY_MODE_ALLOWED = 2;
+   */
+  ALLOWED = 2,
+}
+
+/**
+ * Describes the enum ddash.adguardapi.QueryMode.
+ */
+export const QueryModeSchema: GenEnum<QueryMode> = /*@__PURE__*/
+  enumDesc(file_adguard_api_adguard_api, 0);
+
+/**
  * @generated from service ddash.adguardapi.AdguardApiService
  */
 export const AdguardApiService: GenService<{
@@ -553,7 +635,8 @@ export const AdguardApiService: GenService<{
   },
   /**
    * ListQueries returns one client's queries from the query log, newest
-   * first, a page at a time (/control/querylog).
+   * first, a page at a time (/control/querylog), and whether AdGuard
+   * anonymizes client addresses (/control/querylog/config).
    *
    * @generated from rpc ddash.adguardapi.AdguardApiService.ListQueries
    */

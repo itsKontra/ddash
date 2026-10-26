@@ -45,7 +45,8 @@ service AdguardApiService {
     option (ddash.getter) = {refresh: SLOW};
   }
   // ListQueries returns one client's queries from the query log, newest
-  // first, a page at a time (/control/querylog).
+  // first, a page at a time (/control/querylog), and whether AdGuard
+  // anonymizes client addresses (/control/querylog/config).
   rpc ListQueries(ListQueriesRequest) returns (ListQueriesResponse) {
     option (ddash.getter) = {refresh: NONE};
   }
@@ -114,21 +115,54 @@ message TopEntry {
 message ListQueriesRequest {
   // The client's address; matched exactly.
   string client = 1;
-  // Only queries older than this cursor: a previous page's oldest. Empty
-  // for the newest page.
+  // Only queries older than this cursor: a previous answer's oldest. Empty
+  // for the newest.
   string older_than = 2;
-  // Page size; 0 means 100, at most 500.
+  // How many queries; 0 means 100, at most 500. With text or type, 0
+  // means 50 and 50 is the most.
   int32 limit = 3;
-  // Only blocked queries (filter lists, safe browsing, parental control,
-  // blocked services).
-  bool blocked_only = 4;
+  // Blocked, allowed or all queries. AdGuard filters on its side, so
+  // without text or type the answer holds limit queries when the log has
+  // that many.
+  QueryMode mode = 4;
+  // Only queries whose domain or rule hold every word of text (split on
+  // whitespace), ignoring case. ddash applies text and type itself: it
+  // reads at most 2,000 of the client's log lines in mode and stops at
+  // limit matches, so the answer can hold fewer than the log has; oldest
+  // resumes the search where it stopped.
+  string text = 5;
+  // Only queries of this record type, e.g. "AAAA", ignoring case; empty
+  // for any.
+  string type = 6;
+}
+
+// Which queries ListQueries returns, by AdGuard's reason.
+enum QueryMode {
+  // All queries.
+  QUERY_MODE_UNSPECIFIED = 0;
+  // Blocked by a filter list, safe browsing, parental control or a
+  // blocked service.
+  QUERY_MODE_BLOCKED = 1;
+  // Every other reason, safe search and rewrites too.
+  QUERY_MODE_ALLOWED = 2;
 }
 
 message ListQueriesResponse {
   // Newest first.
   repeated Query queries = 1;
-  // The cursor for the next, older page; empty when there is none.
+  // The cursor to read on from, older_than for the next answer; empty
+  // once the log ended. The last queries can still carry one, and the
+  // answer after them has none.
   string oldest = 2;
+  // How many of the client's log lines in mode ddash read for this
+  // answer: with text or type at most 2,000, else at most limit.
+  int32 lines_read = 3;
+  // The time of the oldest of them; unset when it read none.
+  google.protobuf.Timestamp reached = 4;
+  // Whether AdGuard anonymizes client addresses before logging them
+  // ("Anonymize client IP"). Then no log line holds the client's full
+  // address, so no query matches it.
+  bool anonymize_client_ip = 5;
 }
 
 message Query {

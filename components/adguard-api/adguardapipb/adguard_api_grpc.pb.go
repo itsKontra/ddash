@@ -40,7 +40,8 @@ type AdguardApiServiceClient interface {
 	// lists (/control/stats).
 	GetStats(ctx context.Context, in *GetStatsRequest, opts ...grpc.CallOption) (*GetStatsResponse, error)
 	// ListQueries returns one client's queries from the query log, newest
-	// first, a page at a time (/control/querylog).
+	// first, a page at a time (/control/querylog), and whether AdGuard
+	// anonymizes client addresses (/control/querylog/config).
 	ListQueries(ctx context.Context, in *ListQueriesRequest, opts ...grpc.CallOption) (*ListQueriesResponse, error)
 	// ListClients returns the persistent clients, those with settings of
 	// their own (/control/clients), in AdGuard's order.
@@ -122,7 +123,8 @@ type AdguardApiServiceServer interface {
 	// lists (/control/stats).
 	GetStats(context.Context, *GetStatsRequest) (*GetStatsResponse, error)
 	// ListQueries returns one client's queries from the query log, newest
-	// first, a page at a time (/control/querylog).
+	// first, a page at a time (/control/querylog), and whether AdGuard
+	// anonymizes client addresses (/control/querylog/config).
 	ListQueries(context.Context, *ListQueriesRequest) (*ListQueriesResponse, error)
 	// ListClients returns the persistent clients, those with settings of
 	// their own (/control/clients), in AdGuard's order.
