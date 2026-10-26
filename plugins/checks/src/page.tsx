@@ -12,6 +12,7 @@ import {
   PageTitle,
   Panel,
   Pill,
+  Presence,
   SearchField,
   Segmented,
   Select,
@@ -100,11 +101,13 @@ export function ChecksPage() {
           <Explorer checks={data?.checks} onEdit={setEditing} onShow={(c) => setShown(c.id)} onMaintain={setMaintaining} />
         )}
       </div>
-      {editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}
-      {maintaining !== undefined && data && (
-        <MaintenanceSheet check={maintaining ?? undefined} checks={data.checks} onClose={() => setMaintaining(undefined)} />
-      )}
-      {detail && <CheckDetail check={detail} onClose={() => setShown(undefined)} />}
+      <Presence>{editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}</Presence>
+      <Presence>
+        {maintaining !== undefined && data && (
+          <MaintenanceSheet check={maintaining ?? undefined} checks={data.checks} onClose={() => setMaintaining(undefined)} />
+        )}
+      </Presence>
+      <Presence>{detail && <CheckDetail check={detail} onClose={() => setShown(undefined)} />}</Presence>
     </div>
   );
 }
@@ -231,7 +234,15 @@ function Explorer({
       align: "right",
       sortable: true,
       sortValue: (c) => (showsLatency(c) ? c.latencyMs : Number.MAX_SAFE_INTEGER),
-      cell: (c) => (showsLatency(c) ? latency(c.latencyMs) : !c.disabled && c.reason ? <span className="text-down-text">{c.reason}</span> : null),
+      // A long reason truncates, so it doesn't widen the column past a phone's width.
+      cell: (c) =>
+        showsLatency(c) ? (
+          latency(c.latencyMs)
+        ) : !c.disabled && c.reason ? (
+          <span title={c.reason} className="inline-block max-w-48 truncate align-bottom text-down-text">
+            {c.reason}
+          </span>
+        ) : null,
     },
   ];
 

@@ -95,6 +95,7 @@ it("draws skeletons, not text, until the history comes", async () => {
   const detail = await openDetail();
 
   expect(metricValue("24 h", detail)).toBeUndefined();
+  expect(metricValue("average", detail)).toBeUndefined();
   expect(within(detail).queryByText("…")).toBeNull();
 });
 

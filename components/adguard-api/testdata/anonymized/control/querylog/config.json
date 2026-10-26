@@ -1,0 +1,7 @@
+{
+  "enabled": true,
+  "interval": 7776000000,
+  "anonymize_client_ip": true,
+  "ignored": [],
+  "ignored_enabled": false
+}

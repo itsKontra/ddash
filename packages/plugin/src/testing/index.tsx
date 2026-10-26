@@ -166,7 +166,7 @@ export async function showWidget(scope: Scope, widget: Widget, { size = widget.d
   return { reported, calls };
 }
 
-/** A MetricTile's value, by its label: the text after the label, or undefined while it loads. */
+/** A MetricTile's or a StatRow figure's value, by its label: the text after the label, or undefined while it loads. */
 export function metricValue(label: string, container: HTMLElement = document.body): string | undefined {
   const tile = within(container).getByRole("group", { name: label });
   if (within(tile).queryByRole("status", { name: "Loading" })) return undefined;

@@ -55,7 +55,7 @@ const show = (path: string, answers: Answers = {}) =>
     path,
     {
       ListDevices: () => Response.json(devices),
-      ListQueries: (b) => Response.json((b as { blockedOnly?: boolean }).blockedOnly ? blocked : queries),
+      ListQueries: (b) => Response.json((b as { mode?: string }).mode === "QUERY_MODE_BLOCKED" ? blocked : queries),
       ...answers,
     },
     withAdguard,
@@ -142,7 +142,7 @@ it("shows the Device's last 100 queries, and only the blocked ones when asked", 
   fireEvent.click(within(region).getByRole("checkbox", { name: "Blocked only" }));
   await settle();
 
-  expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toContainEqual({ client: "198.18.1.20", limit: 100, blockedOnly: true });
+  expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toContainEqual({ client: "198.18.1.20", limit: 100, mode: "QUERY_MODE_BLOCKED" });
   expect(within(within(region).getByRole("table")).getAllByRole("row")).toHaveLength(2);
 });
 

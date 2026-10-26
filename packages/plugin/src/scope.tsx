@@ -2,7 +2,7 @@ import type { DescService } from "@bufbuild/protobuf";
 import { createClient, type Client } from "@connectrpc/connect";
 import { TransportProvider, useTransport } from "@connectrpc/connect-query";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { ConfirmDialog, type ConfirmAnswer, type ConfirmRequest } from "@ddash/ui";
+import { ConfirmDialog, Presence, type ConfirmAnswer, type ConfirmRequest } from "@ddash/ui";
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
 import { coreTransport, pluginTransport, type Fetch, type PluginRef } from "./transport";
 
@@ -26,16 +26,18 @@ export function PluginHost({ client, children }: { client: QueryClient; children
     <QueryClientProvider client={client}>
       <ConfirmContext.Provider value={ask}>
         {children}
-        {asking && (
-          <ConfirmDialog
-            request={asking.request}
-            onAnswer={(a) => {
-              asking.answer(a);
-              current.current = null;
-              setAsking(null);
-            }}
-          />
-        )}
+        <Presence>
+          {asking && (
+            <ConfirmDialog
+              request={asking.request}
+              onAnswer={(a) => {
+                asking.answer(a);
+                current.current = null;
+                setAsking(null);
+              }}
+            />
+          )}
+        </Presence>
       </ConfirmContext.Provider>
     </QueryClientProvider>
   );
