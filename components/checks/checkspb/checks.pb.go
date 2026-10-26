@@ -1221,8 +1221,8 @@ func (x *Latency) GetMaxMs() float64 {
 }
 
 // A Check's uptime over one window: beat-weighted up / (up + down), where
-// a failed beat counts as down even while the Check is pending, and beats
-// in Maintenance count as neither.
+// failed beats that leave the Check pending and beats in Maintenance count
+// as neither, so a window that was never down reads exactly 1.
 type Uptime struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Window Window                 `protobuf:"varint,1,opt,name=window,proto3,enum=ddash.checks.Window" json:"window,omitempty"`
@@ -1233,7 +1233,9 @@ type Uptime struct {
 	// Beats in Maintenance, left out of the ratio.
 	Maintenance int64 `protobuf:"varint,5,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
 	// Unset when the window holds no counted up beat.
-	Latency       *Latency `protobuf:"bytes,6,opt,name=latency,proto3" json:"latency,omitempty"`
+	Latency *Latency `protobuf:"bytes,6,opt,name=latency,proto3" json:"latency,omitempty"`
+	// Failed beats that left the Check pending, left out of the ratio.
+	Pending       int64 `protobuf:"varint,7,opt,name=pending,proto3" json:"pending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1310,6 +1312,13 @@ func (x *Uptime) GetLatency() *Latency {
 	return nil
 }
 
+func (x *Uptime) GetPending() int64 {
+	if x != nil {
+		return x.Pending
+	}
+	return 0
+}
+
 // One bucket of a window: its beats' counts and their latency.
 type Bucket struct {
 	state       protoimpl.MessageState `protogen:"open.v1"`
@@ -1318,7 +1327,9 @@ type Bucket struct {
 	Down        int64                  `protobuf:"varint,3,opt,name=down,proto3" json:"down,omitempty"`
 	Maintenance int64                  `protobuf:"varint,4,opt,name=maintenance,proto3" json:"maintenance,omitempty"`
 	// Unset when the bucket holds no counted up beat.
-	Latency       *Latency `protobuf:"bytes,5,opt,name=latency,proto3" json:"latency,omitempty"`
+	Latency *Latency `protobuf:"bytes,5,opt,name=latency,proto3" json:"latency,omitempty"`
+	// Failed beats that left the Check pending.
+	Pending       int64 `protobuf:"varint,6,opt,name=pending,proto3" json:"pending,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1386,6 +1397,13 @@ func (x *Bucket) GetLatency() *Latency {
 		return x.Latency
 	}
 	return nil
+}
+
+func (x *Bucket) GetPending() int64 {
+	if x != nil {
+		return x.Pending
+	}
+	return 0
 }
 
 // One probe of a Check.
@@ -2510,21 +2528,23 @@ const file_checks_checks_proto_rawDesc = "" +
 	"\aLatency\x12\x15\n" +
 	"\x06avg_ms\x18\x01 \x01(\x01R\x05avgMs\x12\x15\n" +
 	"\x06min_ms\x18\x02 \x01(\x01R\x05minMs\x12\x15\n" +
-	"\x06max_ms\x18\x03 \x01(\x01R\x05maxMs\"\xd2\x01\n" +
+	"\x06max_ms\x18\x03 \x01(\x01R\x05maxMs\"\xec\x01\n" +
 	"\x06Uptime\x12,\n" +
 	"\x06window\x18\x01 \x01(\x0e2\x14.ddash.checks.WindowR\x06window\x12\x19\n" +
 	"\x05ratio\x18\x02 \x01(\x01H\x00R\x05ratio\x88\x01\x01\x12\x0e\n" +
 	"\x02up\x18\x03 \x01(\x03R\x02up\x12\x12\n" +
 	"\x04down\x18\x04 \x01(\x03R\x04down\x12 \n" +
 	"\vmaintenance\x18\x05 \x01(\x03R\vmaintenance\x12/\n" +
-	"\alatency\x18\x06 \x01(\v2\x15.ddash.checks.LatencyR\alatencyB\b\n" +
-	"\x06_ratio\"\xb1\x01\n" +
+	"\alatency\x18\x06 \x01(\v2\x15.ddash.checks.LatencyR\alatency\x12\x18\n" +
+	"\apending\x18\a \x01(\x03R\apendingB\b\n" +
+	"\x06_ratio\"\xcb\x01\n" +
 	"\x06Bucket\x120\n" +
 	"\x05start\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x05start\x12\x0e\n" +
 	"\x02up\x18\x02 \x01(\x03R\x02up\x12\x12\n" +
 	"\x04down\x18\x03 \x01(\x03R\x04down\x12 \n" +
 	"\vmaintenance\x18\x04 \x01(\x03R\vmaintenance\x12/\n" +
-	"\alatency\x18\x05 \x01(\v2\x15.ddash.checks.LatencyR\alatency\"\xe0\x01\n" +
+	"\alatency\x18\x05 \x01(\v2\x15.ddash.checks.LatencyR\alatency\x12\x18\n" +
+	"\apending\x18\x06 \x01(\x03R\apending\"\xe0\x01\n" +
 	"\x04Beat\x12*\n" +
 	"\x02at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12\x0e\n" +
 	"\x02up\x18\x02 \x01(\bR\x02up\x12)\n" +

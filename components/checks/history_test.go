@@ -69,7 +69,7 @@ func TestHistoryIsASlowGetter(t *testing.T) {
 	}
 }
 
-func TestUptimeIsUpBeatsOverUpAndDownBeatsWithPendingCountedAsDown(t *testing.T) {
+func TestUptimeIsUpBeatsOverUpAndDownBeatsWithPendingLeftOut(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
 		l.set("nas:22", "up")
@@ -89,9 +89,12 @@ func TestUptimeIsUpBeatsOverUpAndDownBeatsWithPendingCountedAsDown(t *testing.T)
 		}
 
 		h := history(t, c, id, checkspb.Window_WINDOW_UNSPECIFIED)
-		want := []string{"WINDOW_24H 7/3 0.7", "WINDOW_30D 7/3 0.7", "WINDOW_365D 7/3 0.7"}
+		want := []string{"WINDOW_24H 7/1 0.875", "WINDOW_30D 7/1 0.875", "WINDOW_365D 7/1 0.875"}
 		if got := uptimes(h); !slices.Equal(got, want) {
 			t.Errorf("uptime %v, want %v", got, want)
+		}
+		if got := h.GetUptime()[0].GetPending(); got != 2 {
+			t.Errorf("24 h pending %d, want the 2 failed beats before down", got)
 		}
 		var changes []string
 		for _, b := range h.GetChanges() {
@@ -102,6 +105,32 @@ func TestUptimeIsUpBeatsOverUpAndDownBeatsWithPendingCountedAsDown(t *testing.T)
 		}
 		if h.GetWindow() != checkspb.Window_WINDOW_24H {
 			t.Errorf("window %v, want 24 h by default", h.GetWindow())
+		}
+	})
+}
+
+// The Operator's case (#116): a blip that never took the Check down left
+// the 30 d window at 99.99 %.
+func TestAWindowWithFailedBeatsOnlyWhilePendingHasFullUptime(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := newLab()
+		l.set("nas:22", "up")
+		_, c := startIn(t, l)
+		id := create(t, c, tcp("nas:22")).GetId()
+		synctest.Wait()
+		next(t, c, id)
+		l.set("nas:22", "refuse") // pending, pending
+		for range 2 {
+			next(t, c, id)
+		}
+		l.set("nas:22", "up")
+		for range 2 {
+			next(t, c, id)
+		}
+
+		want := []string{"WINDOW_24H 4/0 1", "WINDOW_30D 4/0 1", "WINDOW_365D 4/0 1"}
+		if got := uptimes(history(t, c, id, checkspb.Window_WINDOW_24H)); !slices.Equal(got, want) {
+			t.Errorf("uptime %v, want %v", got, want)
 		}
 	})
 }

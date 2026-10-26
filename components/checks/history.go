@@ -58,28 +58,32 @@ func periodOf(w checkspb.Window) period {
 	return periods[0]
 }
 
-// addToBuckets counts a beat at at in its minute, hour and day buckets: up
-// or down (a failed beat while pending is down too), or maint in
-// Maintenance. Latency is folded in from counted up beats only.
-func addToBuckets(ctx context.Context, tx *sql.Tx, id int64, at time.Time, r result, maint bool) error {
-	var up, down, inMaint int
+// addToBuckets counts a beat at at, after which its Check is in state, in
+// its minute, hour and day buckets: up, down, pending (failed but not yet
+// down), or maint in Maintenance. Latency is folded in from counted up
+// beats only.
+func addToBuckets(ctx context.Context, tx *sql.Tx, id int64, at time.Time, r result, state checkspb.State, maint bool) error {
+	var up, down, pending, inMaint int
 	var latency any
 	switch {
 	case maint:
 		inMaint = 1
 	case r.up:
 		up, latency = 1, latencyMs(r.latency)
+	case state == checkspb.State_STATE_PENDING:
+		pending = 1
 	default:
 		down = 1
 	}
 	for _, p := range periods {
 		// Column names on the right of SET read the row before the update.
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO check_stat (check_id, period, bucket, up, down, maint, latency_avg, latency_min, latency_max)
-			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?7, ?7)
+			INSERT INTO check_stat (check_id, period, bucket, up, down, pending, maint, latency_avg, latency_min, latency_max)
+			VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8, ?8)
 			ON CONFLICT (check_id, period, bucket) DO UPDATE SET
 			  up = up + excluded.up,
 			  down = down + excluded.down,
+			  pending = pending + excluded.pending,
 			  maint = maint + excluded.maint,
 			  latency_avg = CASE WHEN excluded.latency_avg IS NULL THEN latency_avg
 			                ELSE (COALESCE(latency_avg, 0) * up + excluded.latency_avg) / (up + 1) END,
@@ -87,7 +91,7 @@ func addToBuckets(ctx context.Context, tx *sql.Tx, id int64, at time.Time, r res
 			                THEN COALESCE(excluded.latency_min, latency_min) ELSE latency_min END,
 			  latency_max = CASE WHEN latency_max IS NULL OR excluded.latency_max > latency_max
 			                THEN COALESCE(excluded.latency_max, latency_max) ELSE latency_max END`,
-			id, p.name, ms(p.start(at)), up, down, inMaint, latency); err != nil {
+			id, p.name, ms(p.start(at)), up, down, pending, inMaint, latency); err != nil {
 			return err
 		}
 	}
@@ -173,10 +177,10 @@ func (s *store) uptime(ctx context.Context, id int64, p period, from time.Time) 
 	u := &checkspb.Uptime{Window: p.window}
 	var weighted, lo, hi sql.NullFloat64
 	if err := s.db.QueryRowContext(ctx, `
-		SELECT COALESCE(sum(up), 0), COALESCE(sum(down), 0), COALESCE(sum(maint), 0),
+		SELECT COALESCE(sum(up), 0), COALESCE(sum(down), 0), COALESCE(sum(pending), 0), COALESCE(sum(maint), 0),
 		       sum(latency_avg * up), min(latency_min), max(latency_max)
 		FROM check_stat WHERE check_id = ? AND period = ? AND bucket >= ?`,
-		id, p.name, ms(from)).Scan(&u.Up, &u.Down, &u.Maintenance, &weighted, &lo, &hi); err != nil {
+		id, p.name, ms(from)).Scan(&u.Up, &u.Down, &u.Pending, &u.Maintenance, &weighted, &lo, &hi); err != nil {
 		return nil, err
 	}
 	if counted := u.Up + u.Down; counted > 0 {
@@ -192,7 +196,7 @@ func (s *store) uptime(ctx context.Context, id int64, p period, from time.Time) 
 // buckets reads Check id's p buckets from from on, oldest first.
 func (s *store) buckets(ctx context.Context, id int64, p period, from time.Time) ([]*checkspb.Bucket, error) {
 	rows, err := s.db.QueryContext(ctx, `
-		SELECT bucket, up, down, maint, latency_avg, latency_min, latency_max
+		SELECT bucket, up, down, pending, maint, latency_avg, latency_min, latency_max
 		FROM check_stat WHERE check_id = ? AND period = ? AND bucket >= ?
 		ORDER BY bucket`, id, p.name, ms(from))
 	if err != nil {
@@ -206,7 +210,7 @@ func (s *store) buckets(ctx context.Context, id int64, p period, from time.Time)
 			start       int64
 			avg, lo, hi sql.NullFloat64
 		)
-		if err := rows.Scan(&start, &b.Up, &b.Down, &b.Maintenance, &avg, &lo, &hi); err != nil {
+		if err := rows.Scan(&start, &b.Up, &b.Down, &b.Pending, &b.Maintenance, &avg, &lo, &hi); err != nil {
 			return nil, err
 		}
 		b.Start = timestamppb.New(time.UnixMilli(start))
