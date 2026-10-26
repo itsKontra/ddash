@@ -1,5 +1,4 @@
-import { timestampMs } from "@bufbuild/protobuf/wkt";
-import { checkStatus } from "@ddash/display";
+import { ago, toneRank } from "@ddash/display";
 import { useAction } from "@ddash/plugin";
 import { CheckType, ChecksService, RecordType, State, type Check } from "@ddash/proto/checks/checks_pb";
 import {
@@ -24,6 +23,7 @@ import {
   TextInput,
   ToggleButton,
   matches,
+  noMatch,
   useQueryState,
   type Column,
   type IconName,
@@ -199,7 +199,8 @@ function Explorer({
       id: "state",
       header: "State",
       sortable: true,
-      sortValue: (c) => stateRank[checkStatus(c).tone],
+      // By the tone the Pill draws, Down first, as the Proxy Hosts' Check column sorts.
+      sortValue: (c) => toneRank[toneOf(c)],
       cell: (c) => (
         <Pill tone={toneOf(c)} dot>
           {stateLabel(c)}
@@ -260,18 +261,12 @@ function Explorer({
         onRowClick={onShow}
         sortKey="sort"
         defaultSort="state"
-        empty={query.trim() ? `No Checks match "${query.trim()}"` : "No Checks match these filters."}
+        empty={query.trim() ? noMatch("Checks", query) : "No Checks match these filters."}
         loading={loading}
       />
     </Panel>
   );
 }
-
-/**
- * The State column's order, Down first, as the Proxy Hosts' Check column
- * sorts: then warn, Maintenance, up, and last pending and disabled.
- */
-const stateRank: Record<Tone, number> = { down: 0, warn: 1, maint: 2, up: 3, info: 4, idle: 5 };
 
 /**
  * A Check's row strip: its summary and its Actions, each Action's error
@@ -334,18 +329,8 @@ function CheckStrip({
  */
 function summary(c: Check, now: number): string {
   const reading = showsLatency(c) ? latency(c.latencyMs) : !c.disabled && c.reason ? c.reason : undefined;
-  const beat = c.lastBeat ? `checked ${ago(timestampMs(c.lastBeat), now)}` : "not checked yet";
+  const beat = c.lastBeat ? `checked ${ago(c.lastBeat, now)}` : "not checked yet";
   return [stateLabel(c), reading, beat, c.appId && "Edited with its App"].filter(Boolean).join(" · ");
-}
-
-/** How long ago a time was, e.g. "2 min ago". */
-function ago(ms: number, now: number): string {
-  const mins = Math.floor((now - ms) / 60_000);
-  if (mins < 1) return "<1 min ago";
-  if (mins < 60) return `${mins} min ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 48) return `${hours} h ago`;
-  return `${Math.floor(hours / 24)} d ago`;
 }
 
 type TabId = "all" | "down" | "attention" | "maint" | "muted";

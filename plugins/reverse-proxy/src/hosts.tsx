@@ -1,9 +1,9 @@
 import { timestampDate, timestampMs } from "@bufbuild/protobuf/wkt";
-import { certWarning, checkStatus, workloadName, workloadPage, workloadText } from "@ddash/display";
-import { usePluginLink, useQuery, type Tone } from "@ddash/plugin";
+import { certWarning, checkStatus, toneRank, workloadName, workloadPage, workloadText } from "@ddash/display";
+import { usePluginLink, useQuery } from "@ddash/plugin";
 import { AppsService, ProxyHostWarning, type ProxyHost, type Workload } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, type Check } from "@ddash/proto/checks/checks_pb";
-import { DataTable, matches, Notice, Panel, SearchField, StatusDot, StatusList, useQueryState, type Column } from "@ddash/ui";
+import { DataTable, matches, noMatch, Notice, Panel, SearchField, StatusDot, StatusList, useQueryState, type Column } from "@ddash/ui";
 
 /**
  * apps' Proxy Hosts with their Apps' Checks. Reads only: the Check status
@@ -35,7 +35,7 @@ const describe = (host: ProxyHost, w: ProxyHostWarning) => (w === ProxyHostWarni
 /** proxy_pass without its nginx variables: "http://jellyfin:8096$request_uri" reads "http://jellyfin:8096". */
 const bareUpstream = (upstream: string) => upstream.replace(/\$(\{\w+\}|\w+)/g, "");
 
-const keyOf =(h: ProxyHost) => `${h.file}:${h.line}:${h.serverNames[0] ?? ""}`;
+const keyOf = (h: ProxyHost) => `${h.file}:${h.line}:${h.serverNames[0] ?? ""}`;
 
 /** A Proxy Host with its App's Check: undefined without an App or while checks can't answer, null when the App has none. */
 interface Row {
@@ -45,9 +45,6 @@ interface Row {
 
 /** A text sort value that puts a row without one after the rest, ascending. */
 const lastIfNone = (value: string | undefined) => (value === undefined ? "1" : `0${value}`);
-
-/** The Check column's order, Down first; a row whose Check status is unknown comes after these. */
-const checkRank: Record<Tone, number> = { down: 0, warn: 1, maint: 2, up: 3, info: 4, idle: 5 };
 
 const columns: readonly Column<Row>[] = [
   {
@@ -74,7 +71,8 @@ const columns: readonly Column<Row>[] = [
     id: "check",
     header: "Check",
     sortable: true,
-    sortValue: ({ host, check }) => (host.app && check !== undefined ? checkRank[checkStatus(check ?? undefined).tone] : Number.MAX_SAFE_INTEGER),
+    // By the tone CheckLine draws, Down first; a row whose Check status is unknown comes last.
+    sortValue: ({ host, check }) => (host.app && check !== undefined ? toneRank[checkStatus(check ?? undefined).tone] : Number.MAX_SAFE_INTEGER),
     cell: ({ host, check }) => host.app && <CheckLine check={check} />,
   },
   {
@@ -145,7 +143,7 @@ export function ProxyHosts() {
               sortKey="sort"
               defaultSort="domains"
               loading={!hosts}
-              empty={hosts?.length && q ? `No Proxy Hosts match "${q}"` : "No server block forwards to an upstream."}
+              empty={hosts?.length && q.trim() ? noMatch("Proxy Hosts", q) : "No server block forwards to an upstream."}
             />
           </>
         )}

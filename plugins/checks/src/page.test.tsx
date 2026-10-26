@@ -148,7 +148,7 @@ it("searches the Checks by name or target, kept in the URL", async () => {
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search Checks" }), { target: { value: "jellyfin" } });
 
-  expect(checkNames()).toEqual(["Jellyfin", "adguard"]);
+  expect(checkNames()).toEqual(["adguard", "Jellyfin"]);
   expect(search).toBe("?q=jellyfin");
 });
 
@@ -162,8 +162,8 @@ it("matches every word of the search, in the name or the target", async () => {
 it("sorts by State, Down first, while the URL names no sort", async () => {
   await open();
 
-  // Down, then warn (Flapping, an expiring certificate), Maintenance, up, then pending and disabled.
-  expect(checkNames()).toEqual(["router", "Jellyfin", "camera", "Sonarr", "Radarr", "nas", "adguard", "nvr"]);
+  // Down, then warn (pending, Flapping), Maintenance, up, then disabled.
+  expect(checkNames()).toEqual(["router", "adguard", "camera", "Sonarr", "Radarr", "nas", "Jellyfin", "nvr"]);
   expect(screen.getByRole("columnheader", { name: /State/ }).getAttribute("aria-sort")).toBe("ascending");
   expect(search).toBe("");
 });
@@ -178,7 +178,23 @@ it("sorts by Target, kept in the URL, and opens on the sort a link carries", asy
 
   cleanup();
   await open("/?sort=-state");
-  expect(checkNames()).toEqual(["adguard", "nvr", "nas", "Sonarr", "Radarr", "Jellyfin", "camera", "router"]);
+  expect(checkNames()).toEqual(["nvr", "nas", "Jellyfin", "Sonarr", "Radarr", "adguard", "camera", "router"]);
+});
+
+it("sorts by the tone the State Pill draws: pending with warn, an up Check with an expiring certificate with up", async () => {
+  listAnswer = () =>
+    Response.json({
+      checks: [
+        check(1, "expiring", "STATE_UP", { certExpires: "2026-10-30T00:00:00Z", certExpiring: true }),
+        check(2, "steady", "STATE_UP"),
+        check(3, "waiting", "STATE_PENDING"),
+        check(4, "flaky", "STATE_UP", { flapping: true }),
+        check(5, "paused", "STATE_UP", { maintenance: true }),
+      ],
+    });
+  await open();
+
+  expect(checkNames()).toEqual(["waiting", "flaky", "paused", "expiring", "steady"]);
 });
 
 it("filters the Checks by type, kept in the URL", async () => {
@@ -186,7 +202,7 @@ it("filters the Checks by type, kept in the URL", async () => {
 
   fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "HTTP" } });
 
-  expect(checkNames()).toEqual(["Jellyfin", "Sonarr", "Radarr"]);
+  expect(checkNames()).toEqual(["Sonarr", "Radarr", "Jellyfin"]);
   expect(search).toBe("?type=HTTP");
 });
 
@@ -197,7 +213,7 @@ it("splits the Checks into tabs with counts, the tab kept in the URL", async () 
   expect(tabs.map((t) => t.textContent)).toEqual(["All8", "Down1", "Attention3", "Maintenance2", "Muted1"]);
   fireEvent.click(screen.getByRole("tab", { name: /Attention/ }));
 
-  expect(checkNames()).toEqual(["Jellyfin", "camera", "adguard"]);
+  expect(checkNames()).toEqual(["adguard", "camera", "Jellyfin"]);
   expect(search).toBe("?tab=attention");
 });
 
