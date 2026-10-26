@@ -231,7 +231,15 @@ function Explorer({
       align: "right",
       sortable: true,
       sortValue: (c) => (showsLatency(c) ? c.latencyMs : Number.MAX_SAFE_INTEGER),
-      cell: (c) => (showsLatency(c) ? latency(c.latencyMs) : !c.disabled && c.reason ? <span className="text-down-text">{c.reason}</span> : null),
+      // A long reason truncates, so it doesn't widen the column past a phone's width.
+      cell: (c) =>
+        showsLatency(c) ? (
+          latency(c.latencyMs)
+        ) : !c.disabled && c.reason ? (
+          <span title={c.reason} className="inline-block max-w-48 truncate align-bottom text-down-text">
+            {c.reason}
+          </span>
+        ) : null,
     },
   ];
 

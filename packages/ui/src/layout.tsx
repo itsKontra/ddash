@@ -184,6 +184,46 @@ export function MetricTile({
   );
 }
 
+/** One figure in a StatRow: its label and value; an undefined value is still loading. */
+export interface Stat {
+  label: string;
+  value: ReactNode;
+}
+
+/**
+ * A few related figures side by side in one card, e.g. a Check's uptime
+ * over 24 h, 30 d and 365 d: smaller than MetricTiles, so a Sheet or a
+ * phone shows each value in full ("99.99 %", "999 ms"), never truncated.
+ * Each figure is a group named by its label.
+ */
+export function StatRow({ items }: { items: readonly Stat[] }) {
+  return (
+    <div className="grid auto-cols-fr grid-flow-col divide-x divide-border rounded-ui border border-border bg-card">
+      {items.map((s) => (
+        <StatCell key={s.label} {...s} />
+      ))}
+    </div>
+  );
+}
+
+function StatCell({ label, value }: Stat) {
+  const id = useId();
+  return (
+    <div role="group" aria-labelledby={id} className="px-3 py-2.5">
+      <div id={id} className="text-xs font-bold text-muted-foreground">
+        {label}
+      </div>
+      {value === undefined ? (
+        <div className="mt-0.5 flex h-6 items-center">
+          <Skeleton />
+        </div>
+      ) : (
+        <div className="mt-0.5 text-lg leading-6 font-extrabold tracking-tight whitespace-nowrap tabular-nums">{value}</div>
+      )}
+    </div>
+  );
+}
+
 /**
  * The dark gradient card at the top of the Overview, the only way onto the
  * hero surface: a kicker, the title (the status headline), a caption

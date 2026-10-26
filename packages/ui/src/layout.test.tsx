@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it } from "vitest";
-import { HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, SectionHeading, StatusList, WidgetCard } from "./index";
+import { HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, SectionHeading, StatRow, StatusList, WidgetCard } from "./index";
 
 afterEach(cleanup);
 
@@ -108,6 +108,22 @@ it("MetricTile shows a zero as a value, not as loading", () => {
   const tile = screen.getByRole("group", { name: "Down" });
   expect(within(tile).queryByRole("status")).toBeNull();
   expect(tile.textContent).toBe("Down0");
+});
+
+it("StatRow holds each figure as a group named by its label, a skeleton while its value is undefined", () => {
+  render(
+    <StatRow
+      items={[
+        { label: "24 h", value: "99.99 %" },
+        { label: "30 d", value: "100 %" },
+        { label: "365 d", value: undefined },
+      ]}
+    />,
+  );
+
+  expect(screen.getByRole("group", { name: "24 h" }).textContent).toBe("24 h99.99 %");
+  expect(screen.getByRole("group", { name: "30 d" }).textContent).toBe("30 d100 %");
+  expect(within(screen.getByRole("group", { name: "365 d" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 
 it("HeroCard is a section named by its title, with kicker, caption, foot and aside", () => {
