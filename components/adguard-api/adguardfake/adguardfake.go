@@ -1,9 +1,9 @@
 // Package adguardfake is a stateful fake of AdGuard Home's HTTP API for
 // adguard-api's Action and `make smoke-writes`. It keeps the persistent
 // clients (add, update, delete, list) and answers the query log from a
-// scenario's recorded entries, filtered as AdGuard filters them; anything
-// else is served from the scenario's fixtures (fixture.Scenario).
-// adguard-api's tests and fakelab serve it.
+// scenario's recorded entries, filtered and paged as AdGuard filters and
+// pages them; anything else is served from the scenario's fixtures
+// (fixture.Scenario). adguard-api's tests and fakelab serve it.
 //
 // Like AdGuard Home, an update replaces the whole client: a field the
 // request leaves out is reset to its zero value, except ignore_querylog
@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
+	"net/netip"
 	"slices"
 	"strconv"
 	"strings"
@@ -30,7 +31,14 @@ const (
 	updatePath   = "/control/clients/update"
 	deletePath   = "/control/clients/delete"
 	querylogPath = "/control/querylog"
+	// querylogConfigPath is served from the scenario's fixture; its
+	// anonymize_client_ip masks the log's client addresses.
+	querylogConfigPath = "/control/querylog/config"
 )
+
+// DefaultScanCap is how many log lines AdGuard Home reads for one query
+// log request without offset (maxFileScanEntries).
+const DefaultScanCap = 50_000
 
 // Options shape an AdGuard.
 type Options struct {
@@ -40,6 +48,12 @@ type Options struct {
 	// credentials accepted; anything else is refused with 403 Forbidden,
 	// as AdGuard Home refuses an API call it can't authenticate.
 	Username, Password string
+	// QueryLog, when not nil, is the query log, newest first, instead of
+	// the scenario's.
+	QueryLog []map[string]any
+	// ScanCap is how many log lines a query log request without offset
+	// reads at most; 0 is AdGuard's DefaultScanCap.
+	ScanCap int
 }
 
 // AdGuard is the fake, an http.Handler.
@@ -76,7 +90,44 @@ func New(dir string, opts Options) (*AdGuard, error) {
 		return nil, err
 	}
 	a.queries = ql.Data
+	if opts.QueryLog != nil {
+		a.queries = opts.QueryLog
+	}
+	var cfg struct {
+		AnonymizeClientIP bool `json:"anonymize_client_ip"`
+	}
+	if err := load(dir, querylogConfigPath, &cfg); err != nil {
+		return nil, err
+	}
+	if cfg.AnonymizeClientIP {
+		a.queries = anonymized(a.queries)
+	}
 	return a, nil
+}
+
+// anonymized is log as an AdGuard anonymizing client addresses logs it:
+// the last 2 bytes of an IPv4 address and the last 10 of an IPv6 address
+// zeroed (querylog.AnonymizeIP).
+func anonymized(log []map[string]any) []map[string]any {
+	out := make([]map[string]any, len(log))
+	for i, e := range log {
+		e = maps.Clone(e)
+		if ip, err := netip.ParseAddr(text(e["client"])); err == nil {
+			b := ip.As16()
+			n := 10
+			if ip.Is4() {
+				n = 2
+			}
+			clear(b[16-n:])
+			masked := netip.AddrFrom16(b)
+			if ip.Is4() {
+				masked = masked.Unmap()
+			}
+			e["client"] = masked.String()
+		}
+		out[i] = e
+	}
+	return out
 }
 
 // load decodes the scenario's file for path, else baseline's.
@@ -235,8 +286,15 @@ func (a *AdGuard) clash(c map[string]any, skip string) string {
 
 // querylog answers GET /control/querylog: search (an exact match when
 // quoted: client address or name; else a substring of the domain, client
-// or name), any of the repeated reasons, older_than and limit (default
-// 500), newest first.
+// or name), any of the repeated reasons, older_than, offset and limit
+// (default 500), newest first.
+//
+// Like AdGuard, it reads lines until offset+limit match, and without
+// offset (any number, 0 too, lifts it) no more than the scan cap, so a
+// sparse filter can answer a short or empty page. oldest is the last row's
+// time, else the last line read's, and empty once the log ended: after the
+// last rows comes one more call with none. AdGuard's in-memory buffer,
+// always read in full, isn't modelled.
 func (a *AdGuard) querylog(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	search := q.Get("search")
@@ -263,18 +321,33 @@ func (a *AdGuard) querylog(w http.ResponseWriter, r *http.Request) {
 		}
 		limit = n
 	}
+	offset, scanCap := 0, a.opts.ScanCap
+	if scanCap == 0 {
+		scanCap = DefaultScanCap
+	}
+	if n, err := strconv.Atoi(q.Get("offset")); err == nil {
+		offset, scanCap = n, 0
+	}
 
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	lines := a.queries
+	if !olderThan.IsZero() {
+		lines = slices.DeleteFunc(slices.Clone(lines), func(e map[string]any) bool {
+			t, _ := time.Parse(time.RFC3339Nano, text(e["time"]))
+			return !t.Before(olderThan)
+		})
+	}
 	data := []map[string]any{}
-	for _, e := range a.queries {
-		if len(data) == limit {
+	// last is the last line read; nil once the log ended.
+	var last map[string]any
+	for n := 0; scanCap == 0 || n < scanCap; n++ {
+		if n == len(lines) {
+			last = nil
 			break
 		}
-		t, _ := time.Parse(time.RFC3339Nano, text(e["time"]))
-		if !olderThan.IsZero() && !t.Before(olderThan) {
-			continue
-		}
+		e := lines[n]
+		last = e
 		if len(reasons) > 0 && !slices.Contains(reasons, text(e["reason"])) {
 			continue
 		}
@@ -282,10 +355,23 @@ func (a *AdGuard) querylog(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		data = append(data, e)
+		if len(data) == offset+limit {
+			break
+		}
+	}
+	if offset > 0 {
+		if len(data) <= offset {
+			data, last = []map[string]any{}, nil
+		} else {
+			data = data[offset:]
+		}
+	}
+	if len(data) > 0 {
+		last = data[len(data)-1]
 	}
 	oldest := ""
-	if len(data) > 0 {
-		oldest = text(data[len(data)-1]["time"])
+	if last != nil {
+		oldest = text(last["time"])
 	}
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]any{"data": data, "oldest": oldest})
