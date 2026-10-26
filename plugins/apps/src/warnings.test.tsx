@@ -118,7 +118,7 @@ it("deletes orphaned App settings from their Warning box after a confirm", async
   fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
   await settle();
 
-  expect(actions(calls)).toEqual([{ method: "DeleteOrphan", body: { id: "proxy:paperless.home.example" } }]);
+  expect(actions(calls)).toEqual([{ method: "DeleteRecord", body: { id: "proxy:paperless.home.example" } }]);
   expect(screen.queryByRole("article")).toBeNull();
 });
 

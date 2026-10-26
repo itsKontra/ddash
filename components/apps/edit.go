@@ -63,18 +63,23 @@ func (p planning) proxyHost(r *record) *npmpb.ProxyHost {
 }
 
 // delete plans Delete: the App's Proxy Host, its own Host Override or the
-// Reverse Proxy's aliases for it, then its record, its Check with it.
+// Reverse Proxy's aliases for it, then its record, its Check with it. A
+// Link-only App is deleted without a Plan (DeleteRecord).
 func (p planning) delete(d *appspb.DeleteApp) *planned {
 	out := &planned{plan: &appspb.Plan{}}
 	a, r := p.target(d.GetId(), out.block)
 	if a == nil {
 		return out
 	}
+	if a.GetReach() == appspb.Reach_REACH_LINK_ONLY {
+		out.block(a.GetName() + " is Link only: delete it at once, without a Plan.")
+		return out
+	}
 	if h := p.proxyHost(r); h != nil {
 		p.npmWritable(out.block)
 		out.deleteProxyHost(h)
 	}
-	if a.GetReach() != appspb.Reach_REACH_LINK_ONLY && len(a.GetDns()) > 0 {
+	if len(a.GetDns()) > 0 {
 		p.pfWritable(out.block)
 		p.unregister(out, a, r)
 	}

@@ -159,17 +159,16 @@ it("edits the address of an App without aliases, with none to promote", async ()
   expect((form.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
-it("deletes a Link-only App through its Plan, which changes ddash alone", async () => {
-  const plan = { steps: [{ system: "SYSTEM_DDASH", title: "Delete the App pfSense and its Check" }] };
-  const calls = await open("app:00aa11bb22cc33dd", { PlanAction: () => Response.json({ plan }), RunAction: () => Response.json({ appId: "app:00aa11bb22cc33dd", done: 1 }) });
+it("deletes a Link-only App after a plain confirm, without a Plan", async () => {
+  const calls = await open("app:00aa11bb22cc33dd");
 
   fireEvent.click(within(pane()).getByRole("button", { name: "Delete…" }));
-  await settle();
-  const dialog = within(screen.getByRole("dialog", { name: "Delete pfSense" }));
-  expect(dialog.getByText("Delete the App pfSense and its Check")).toBeTruthy();
-  fireEvent.click(dialog.getByRole("button", { name: "Delete" }));
+  const confirm = screen.getByRole("alertdialog");
+  expect(confirm.textContent).toContain("Delete pfSense and its Check?");
+  fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
   await settle();
 
-  expect(actions(calls)).toEqual([{ method: "RunAction", body: { action: { delete: { id: "app:00aa11bb22cc33dd" } }, plan } }]);
+  expect(calls.filter((c) => c.method === "PlanAction")).toEqual([]);
+  expect(actions(calls)).toEqual([{ method: "DeleteRecord", body: { id: "app:00aa11bb22cc33dd" } }]);
   expect(search).toBe("");
 });

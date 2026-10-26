@@ -47,8 +47,10 @@ service AppsService {
   rpc Reattach(ReattachRequest) returns (ReattachResponse) {
     option (ddash.action) = {};
   }
-  // DeleteOrphan deletes orphaned App settings.
-  rpc DeleteOrphan(DeleteOrphanRequest) returns (DeleteOrphanResponse) {
+  // DeleteRecord deletes an App ddash alone holds, with its Check:
+  // orphaned App settings, or a Link-only App. It writes nowhere else, so
+  // it takes no Plan and no fresh read.
+  rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse) {
     option (ddash.action) = {disruptive: true};
   }
   // PromoteAlias makes one of an App's aliases the hostname of its URL,
@@ -331,7 +333,7 @@ enum FixKind {
   FIX_KIND_MERGE = 12;
   // Reattach the orphaned App settings to an App (Reattach). ddash only.
   FIX_KIND_REATTACH = 13;
-  // Delete the orphaned App settings (DeleteOrphan). ddash only.
+  // Delete the orphaned App settings (DeleteRecord). ddash only.
   FIX_KIND_DELETE_ORPHAN = 14;
 }
 
@@ -461,11 +463,11 @@ message ReattachRequest {
 
 message ReattachResponse {}
 
-message DeleteOrphanRequest {
+message DeleteRecordRequest {
   string id = 1;
 }
 
-message DeleteOrphanResponse {}
+message DeleteRecordResponse {}
 
 message PromoteAliasRequest {
   string id = 1;

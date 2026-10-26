@@ -229,7 +229,7 @@ const (
 	FixKind_FIX_KIND_MERGE FixKind = 12
 	// Reattach the orphaned App settings to an App (Reattach). ddash only.
 	FixKind_FIX_KIND_REATTACH FixKind = 13
-	// Delete the orphaned App settings (DeleteOrphan). ddash only.
+	// Delete the orphaned App settings (DeleteRecord). ddash only.
 	FixKind_FIX_KIND_DELETE_ORPHAN FixKind = 14
 )
 
@@ -2330,27 +2330,27 @@ func (*ReattachResponse) Descriptor() ([]byte, []int) {
 	return file_apps_apps_proto_rawDescGZIP(), []int{26}
 }
 
-type DeleteOrphanRequest struct {
+type DeleteRecordRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteOrphanRequest) Reset() {
-	*x = DeleteOrphanRequest{}
+func (x *DeleteRecordRequest) Reset() {
+	*x = DeleteRecordRequest{}
 	mi := &file_apps_apps_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteOrphanRequest) String() string {
+func (x *DeleteRecordRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteOrphanRequest) ProtoMessage() {}
+func (*DeleteRecordRequest) ProtoMessage() {}
 
-func (x *DeleteOrphanRequest) ProtoReflect() protoreflect.Message {
+func (x *DeleteRecordRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_apps_apps_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2362,38 +2362,38 @@ func (x *DeleteOrphanRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteOrphanRequest.ProtoReflect.Descriptor instead.
-func (*DeleteOrphanRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteRecordRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRecordRequest) Descriptor() ([]byte, []int) {
 	return file_apps_apps_proto_rawDescGZIP(), []int{27}
 }
 
-func (x *DeleteOrphanRequest) GetId() string {
+func (x *DeleteRecordRequest) GetId() string {
 	if x != nil {
 		return x.Id
 	}
 	return ""
 }
 
-type DeleteOrphanResponse struct {
+type DeleteRecordResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DeleteOrphanResponse) Reset() {
-	*x = DeleteOrphanResponse{}
+func (x *DeleteRecordResponse) Reset() {
+	*x = DeleteRecordResponse{}
 	mi := &file_apps_apps_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DeleteOrphanResponse) String() string {
+func (x *DeleteRecordResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DeleteOrphanResponse) ProtoMessage() {}
+func (*DeleteRecordResponse) ProtoMessage() {}
 
-func (x *DeleteOrphanResponse) ProtoReflect() protoreflect.Message {
+func (x *DeleteRecordResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_apps_apps_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -2405,8 +2405,8 @@ func (x *DeleteOrphanResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DeleteOrphanResponse.ProtoReflect.Descriptor instead.
-func (*DeleteOrphanResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use DeleteRecordResponse.ProtoReflect.Descriptor instead.
+func (*DeleteRecordResponse) Descriptor() ([]byte, []int) {
 	return file_apps_apps_proto_rawDescGZIP(), []int{28}
 }
 
@@ -4042,9 +4042,9 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\"\x12\n" +
 	"\x10ReattachResponse\"%\n" +
-	"\x13DeleteOrphanRequest\x12\x0e\n" +
+	"\x13DeleteRecordRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x16\n" +
-	"\x14DeleteOrphanResponse\";\n" +
+	"\x14DeleteRecordResponse\";\n" +
 	"\x13PromoteAliasRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05alias\x18\x02 \x01(\tR\x05alias\"\x16\n" +
@@ -4210,7 +4210,7 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\rIgnoreWarning\x12 .ddash.apps.IgnoreWarningRequest\x1a!.ddash.apps.IgnoreWarningResponse\"\x04\x92\xb5\x18\x00\x12`\n" +
 	"\x0fUnignoreWarning\x12\".ddash.apps.UnignoreWarningRequest\x1a#.ddash.apps.UnignoreWarningResponse\"\x04\x92\xb5\x18\x00\x12K\n" +
 	"\bReattach\x12\x1b.ddash.apps.ReattachRequest\x1a\x1c.ddash.apps.ReattachResponse\"\x04\x92\xb5\x18\x00\x12Y\n" +
-	"\fDeleteOrphan\x12\x1f.ddash.apps.DeleteOrphanRequest\x1a .ddash.apps.DeleteOrphanResponse\"\x06\x92\xb5\x18\x02\b\x01\x12W\n" +
+	"\fDeleteRecord\x12\x1f.ddash.apps.DeleteRecordRequest\x1a .ddash.apps.DeleteRecordResponse\"\x06\x92\xb5\x18\x02\b\x01\x12W\n" +
 	"\fPromoteAlias\x12\x1f.ddash.apps.PromoteAliasRequest\x1a .ddash.apps.PromoteAliasResponse\"\x04\x92\xb5\x18\x00\x12D\n" +
 	"\x05Merge\x12\x18.ddash.apps.MergeRequest\x1a\x19.ddash.apps.MergeResponse\"\x06\x92\xb5\x18\x02\b\x01\x12S\n" +
 	"\n" +
@@ -4267,8 +4267,8 @@ var file_apps_apps_proto_goTypes = []any{
 	(*UnignoreWarningResponse)(nil), // 31: ddash.apps.UnignoreWarningResponse
 	(*ReattachRequest)(nil),         // 32: ddash.apps.ReattachRequest
 	(*ReattachResponse)(nil),        // 33: ddash.apps.ReattachResponse
-	(*DeleteOrphanRequest)(nil),     // 34: ddash.apps.DeleteOrphanRequest
-	(*DeleteOrphanResponse)(nil),    // 35: ddash.apps.DeleteOrphanResponse
+	(*DeleteRecordRequest)(nil),     // 34: ddash.apps.DeleteRecordRequest
+	(*DeleteRecordResponse)(nil),    // 35: ddash.apps.DeleteRecordResponse
 	(*PromoteAliasRequest)(nil),     // 36: ddash.apps.PromoteAliasRequest
 	(*PromoteAliasResponse)(nil),    // 37: ddash.apps.PromoteAliasResponse
 	(*MergeRequest)(nil),            // 38: ddash.apps.MergeRequest
@@ -4353,7 +4353,7 @@ var file_apps_apps_proto_depIdxs = []int32{
 	28, // 54: ddash.apps.AppsService.IgnoreWarning:input_type -> ddash.apps.IgnoreWarningRequest
 	30, // 55: ddash.apps.AppsService.UnignoreWarning:input_type -> ddash.apps.UnignoreWarningRequest
 	32, // 56: ddash.apps.AppsService.Reattach:input_type -> ddash.apps.ReattachRequest
-	34, // 57: ddash.apps.AppsService.DeleteOrphan:input_type -> ddash.apps.DeleteOrphanRequest
+	34, // 57: ddash.apps.AppsService.DeleteRecord:input_type -> ddash.apps.DeleteRecordRequest
 	36, // 58: ddash.apps.AppsService.PromoteAlias:input_type -> ddash.apps.PromoteAliasRequest
 	38, // 59: ddash.apps.AppsService.Merge:input_type -> ddash.apps.MergeRequest
 	53, // 60: ddash.apps.AppsService.PlanAction:input_type -> ddash.apps.PlanActionRequest
@@ -4365,7 +4365,7 @@ var file_apps_apps_proto_depIdxs = []int32{
 	29, // 66: ddash.apps.AppsService.IgnoreWarning:output_type -> ddash.apps.IgnoreWarningResponse
 	31, // 67: ddash.apps.AppsService.UnignoreWarning:output_type -> ddash.apps.UnignoreWarningResponse
 	33, // 68: ddash.apps.AppsService.Reattach:output_type -> ddash.apps.ReattachResponse
-	35, // 69: ddash.apps.AppsService.DeleteOrphan:output_type -> ddash.apps.DeleteOrphanResponse
+	35, // 69: ddash.apps.AppsService.DeleteRecord:output_type -> ddash.apps.DeleteRecordResponse
 	37, // 70: ddash.apps.AppsService.PromoteAlias:output_type -> ddash.apps.PromoteAliasResponse
 	39, // 71: ddash.apps.AppsService.Merge:output_type -> ddash.apps.MergeResponse
 	54, // 72: ddash.apps.AppsService.PlanAction:output_type -> ddash.apps.PlanActionResponse

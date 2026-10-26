@@ -86,7 +86,7 @@ function WarningBox({ app, apps, warning: w, handlers, onGone }: { app: App; app
   const unignore = useAction(AppsService.method.unignoreWarning);
   const promote = useAction(AppsService.method.promoteAlias);
   const merge = useAction(AppsService.method.merge);
-  const remove = useAction(AppsService.method.deleteOrphan);
+  const remove = useAction(AppsService.method.deleteRecord);
   const title = warningText[w.kind];
   const error = ignore.error ?? unignore.error ?? promote.error ?? merge.error ?? remove.error;
 

@@ -30,7 +30,7 @@ const (
 	AppsService_IgnoreWarning_FullMethodName   = "/ddash.apps.AppsService/IgnoreWarning"
 	AppsService_UnignoreWarning_FullMethodName = "/ddash.apps.AppsService/UnignoreWarning"
 	AppsService_Reattach_FullMethodName        = "/ddash.apps.AppsService/Reattach"
-	AppsService_DeleteOrphan_FullMethodName    = "/ddash.apps.AppsService/DeleteOrphan"
+	AppsService_DeleteRecord_FullMethodName    = "/ddash.apps.AppsService/DeleteRecord"
 	AppsService_PromoteAlias_FullMethodName    = "/ddash.apps.AppsService/PromoteAlias"
 	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
 	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
@@ -61,8 +61,10 @@ type AppsServiceClient interface {
 	// settings and Ignores, with the other App's sources and URL. The other
 	// App's record goes.
 	Reattach(ctx context.Context, in *ReattachRequest, opts ...grpc.CallOption) (*ReattachResponse, error)
-	// DeleteOrphan deletes orphaned App settings.
-	DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error)
+	// DeleteRecord deletes an App ddash alone holds, with its Check:
+	// orphaned App settings, or a Link-only App. It writes nowhere else, so
+	// it takes no Plan and no fresh read.
+	DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*DeleteRecordResponse, error)
 	// PromoteAlias makes one of an App's aliases the hostname of its URL,
 	// keeping the scheme and port. It changes nothing outside ddash. It is
 	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
@@ -164,10 +166,10 @@ func (c *appsServiceClient) Reattach(ctx context.Context, in *ReattachRequest, o
 	return out, nil
 }
 
-func (c *appsServiceClient) DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error) {
+func (c *appsServiceClient) DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*DeleteRecordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteOrphanResponse)
-	err := c.cc.Invoke(ctx, AppsService_DeleteOrphan_FullMethodName, in, out, cOpts...)
+	out := new(DeleteRecordResponse)
+	err := c.cc.Invoke(ctx, AppsService_DeleteRecord_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -247,8 +249,10 @@ type AppsServiceServer interface {
 	// settings and Ignores, with the other App's sources and URL. The other
 	// App's record goes.
 	Reattach(context.Context, *ReattachRequest) (*ReattachResponse, error)
-	// DeleteOrphan deletes orphaned App settings.
-	DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error)
+	// DeleteRecord deletes an App ddash alone holds, with its Check:
+	// orphaned App settings, or a Link-only App. It writes nowhere else, so
+	// it takes no Plan and no fresh read.
+	DeleteRecord(context.Context, *DeleteRecordRequest) (*DeleteRecordResponse, error)
 	// PromoteAlias makes one of an App's aliases the hostname of its URL,
 	// keeping the scheme and port. It changes nothing outside ddash. It is
 	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
@@ -308,8 +312,8 @@ func (UnimplementedAppsServiceServer) UnignoreWarning(context.Context, *Unignore
 func (UnimplementedAppsServiceServer) Reattach(context.Context, *ReattachRequest) (*ReattachResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Reattach not implemented")
 }
-func (UnimplementedAppsServiceServer) DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteOrphan not implemented")
+func (UnimplementedAppsServiceServer) DeleteRecord(context.Context, *DeleteRecordRequest) (*DeleteRecordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteRecord not implemented")
 }
 func (UnimplementedAppsServiceServer) PromoteAlias(context.Context, *PromoteAliasRequest) (*PromoteAliasResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PromoteAlias not implemented")
@@ -455,20 +459,20 @@ func _AppsService_Reattach_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_DeleteOrphan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteOrphanRequest)
+func _AppsService_DeleteRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRecordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppsServiceServer).DeleteOrphan(ctx, in)
+		return srv.(AppsServiceServer).DeleteRecord(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AppsService_DeleteOrphan_FullMethodName,
+		FullMethod: AppsService_DeleteRecord_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).DeleteOrphan(ctx, req.(*DeleteOrphanRequest))
+		return srv.(AppsServiceServer).DeleteRecord(ctx, req.(*DeleteRecordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -595,8 +599,8 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AppsService_Reattach_Handler,
 		},
 		{
-			MethodName: "DeleteOrphan",
-			Handler:    _AppsService_DeleteOrphan_Handler,
+			MethodName: "DeleteRecord",
+			Handler:    _AppsService_DeleteRecord_Handler,
 		},
 		{
 			MethodName: "PromoteAlias",

@@ -17,7 +17,8 @@ const removing: ReadonlySet<FixKind> = new Set([FixKind.REMOVE_NAME, FixKind.DEL
  * The selected App on the right: its header with Delete…, its Warning
  * boxes, then the Panels Display, Address and DNS, Reverse proxy,
  * Workload and Check, and Network. One Panel edits at a time; external
- * writes, Delete and the external fixes open their Plan in a Dialog.
+ * writes, Delete and the external fixes open their Plan in a Dialog; a
+ * Link-only App's Delete is a plain confirm.
  * Orphaned App settings get their own pane.
  */
 export function AppPane({
@@ -39,7 +40,13 @@ export function AppPane({
   const title = useId();
   const slot: DialogSlot = { open: setDialog, close: () => setDialog(undefined) };
   const editing: Editing = { now, start: setNow, done: () => setNow(undefined) };
-  const remove = () =>
+  const deleteRecord = useAction(AppsService.method.deleteRecord);
+  // A Link-only App is ddash's alone: deleted after a plain confirm, without a Plan.
+  const remove = async () => {
+    if (app.reach === Reach.LINK_ONLY) {
+      if (await deleteRecord.run({ id: app.id }, { confirm: { text: `Delete ${app.name} and its Check?`, action: "Delete" } })) onGone();
+      return;
+    }
     slot.open(
       <PlanDialog
         title={`Delete ${app.name}`}
@@ -53,6 +60,7 @@ export function AppPane({
         }}
       />,
     );
+  };
   const fix = (_: Warning, f: Fix) => {
     const label = fixLabel(f, list.apps);
     slot.open(
@@ -71,12 +79,13 @@ export function AppPane({
     editProxy: () => setNow("proxy"),
     addProxy: () => setNow("proxy"),
     reattach: () => slot.open(<Reattach orphan={app} apps={list.apps} onClose={slot.close} />),
-    remove,
+    remove: () => void remove(),
     external: fix,
   };
   return (
     <article aria-labelledby={title} className="flex flex-col gap-4">
-      <Header id={title} app={app} check={check} onDelete={remove} />
+      <Header id={title} app={app} check={check} onDelete={() => void remove()} />
+      {deleteRecord.error && <Notice tone="down">{deleteRecord.error.rawMessage}</Notice>}
       <WarningBoxes app={app} apps={list.apps} showIgnored={showIgnored} handlers={handlers} onGone={onGone} />
       {app.orphaned ? (
         <Kept app={app} />
