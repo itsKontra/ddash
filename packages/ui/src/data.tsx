@@ -3,7 +3,6 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNod
 import { useSearchParams } from "react-router";
 import { Pill, StatusDot } from "./atoms";
 import { Icon } from "./icon";
-import { Menu, type MenuItem } from "./overlays";
 import { Leaving, shows, usePresence } from "./presence";
 import { useOnHero } from "./surface";
 import { cx, type Tone } from "./tone";
@@ -211,8 +210,6 @@ interface TableProps<R> {
   columns: readonly Column<R>[];
   /** Makes each row clickable and keyboard-operable, e.g. to open its detail Sheet. */
   onRowClick?: (row: R) => void;
-  /** The row's Actions, in its ⋯ Menu. */
-  actions?: (row: R) => readonly MenuItem[];
   /** Shown in place of the rows when there are none. Default "Nothing here yet". */
   empty?: ReactNode;
   /** Draws skeleton rows instead of rows (and instead of empty). */
@@ -293,7 +290,7 @@ const compare = (a: string | number, b: string | number) =>
 const stickyCell = "z-1 bg-card group-hover:bg-linear-to-r group-hover:from-primary-tint group-hover:to-primary-tint";
 
 function Table<R>(props: DataTableProps<R> & { sort: string; onSort: (sort: string) => void }) {
-  const { rows, rowKey, columns, onRowClick, actions, empty, loading, density = "comfortable", sort, onSort } = props;
+  const { rows, rowKey, columns, onRowClick, empty, loading, density = "comfortable", sort, onSort } = props;
   const strips = props.strip && { strip: props.strip, rowLabel: props.rowLabel, busy: props.busy };
   const [openKey, setOpenKey] = useState<string>();
   if (openKey !== undefined && !rows.some((r) => rowKey(r) === openKey)) setOpenKey(undefined);
@@ -307,8 +304,7 @@ function Table<R>(props: DataTableProps<R> & { sort: string; onSort: (sort: stri
     return [...rows].sort((a, b) => sign * compare(value(a), value(b)));
   }, [rows, sortColumn, by.descending]);
   const pad = cx("px-3 first:pl-4 last:pr-4", density === "compact" ? "py-1.5" : "py-2.5");
-  const end = !!(actions || strips);
-  const span = columns.length + (end ? 1 : 0);
+  const span = columns.length + (strips ? 1 : 0);
   const place = (c: Column<R>, i: number) =>
     cx(
       pad,
@@ -347,8 +343,8 @@ function Table<R>(props: DataTableProps<R> & { sort: string; onSort: (sort: stri
                 </th>
               );
             })}
-            {end && (
-              <th scope="col" className={cx(pad, "w-px", strips && "sticky right-0 z-1 bg-card")}>
+            {strips && (
+              <th scope="col" className={cx(pad, "sticky right-0 z-1 w-px bg-card")}>
                 <span className="sr-only">Actions</span>
               </th>
             )}
@@ -365,7 +361,7 @@ function Table<R>(props: DataTableProps<R> & { sort: string; onSort: (sort: stri
                     </span>
                   </td>
                 ))}
-                {end && <td className={pad} />}
+                {strips && <td className={pad} />}
               </tr>
             ))
           ) : shown.length === 0 ? (
@@ -399,7 +395,6 @@ function Table<R>(props: DataTableProps<R> & { sort: string; onSort: (sort: stri
                       </Cell>
                     );
                   })}
-                  menu={actions && <Menu label={`Actions for ${key}`} items={actions(row)} />}
                   strip={
                     strips && {
                       render: (close) => strips.strip(row, close),
@@ -447,20 +442,18 @@ interface RowStrip {
 }
 
 /**
- * One row of a DataTable: its cells, then its end cell with the ⋯ Menu or
- * the strip's arrow, and with a strip, the strip's own row under it.
+ * One row of a DataTable: its cells, and with a strip, an end cell with
+ * the strip's arrow and the strip's own row under it.
  */
 function BodyRow({
   onOpen,
   cells,
-  menu,
   strip,
   pad,
   span,
 }: {
   onOpen?: () => void;
   cells: ReactNode;
-  menu?: ReactNode;
   strip?: RowStrip;
   pad: string;
   span: number;
@@ -493,46 +486,38 @@ function BodyRow({
         className={cx("group border-b border-border transition-colors last:border-b-0 hover:bg-primary-tint", onOpen && "cursor-pointer")}
       >
         {cells}
-        {(menu || strip) && (
-          <td
-            className={cx(pad, "text-right", strip && cx("sticky right-0", stickyCell))}
-            onClick={(e) => e.stopPropagation()}
-            // The arrow's own keys don't reach the row anyway; only the Menu's are stopped.
-            onKeyDown={strip ? undefined : (e) => e.stopPropagation()}
-          >
-            {menu}
-            {strip && (
-              <span className="inline-flex items-center justify-end gap-2">
-                {strip.busy !== undefined && (
-                  <span id={`${id}-busy`} className="flex">
-                    <Pill tone="maint">{strip.busy}</Pill>
+        {strip && (
+          <td className={cx(pad, "sticky right-0 text-right", stickyCell)} onClick={(e) => e.stopPropagation()}>
+            <span className="inline-flex items-center justify-end gap-2">
+              {strip.busy !== undefined && (
+                <span id={`${id}-busy`} className="flex">
+                  <Pill tone="maint">{strip.busy}</Pill>
+                </span>
+              )}
+              {content !== null && (
+                <button
+                  ref={arrow}
+                  id={`${id}-arrow`}
+                  type="button"
+                  aria-label={`Actions for ${strip.label}`}
+                  aria-expanded={open}
+                  aria-controls={`${id}-strip`}
+                  aria-disabled={held || undefined}
+                  aria-describedby={strip.busy !== undefined ? `${id}-busy` : undefined}
+                  onClick={() => held || strip.onOpen(!open)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Escape" || !open) return;
+                    e.stopPropagation();
+                    close();
+                  }}
+                  className="inline-grid size-7 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-expanded:text-foreground"
+                >
+                  <span className={cx("flex motion-safe:transition-transform motion-safe:duration-(--motion-slide)", open && "rotate-180")}>
+                    <Icon name="chevron-down" size="sm" />
                   </span>
-                )}
-                {content !== null && (
-                  <button
-                    ref={arrow}
-                    id={`${id}-arrow`}
-                    type="button"
-                    aria-label={`Actions for ${strip.label}`}
-                    aria-expanded={open}
-                    aria-controls={`${id}-strip`}
-                    aria-disabled={held || undefined}
-                    aria-describedby={strip.busy !== undefined ? `${id}-busy` : undefined}
-                    onClick={() => held || strip.onOpen(!open)}
-                    onKeyDown={(e) => {
-                      if (e.key !== "Escape" || !open) return;
-                      e.stopPropagation();
-                      close();
-                    }}
-                    className="inline-grid size-7 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-expanded:text-foreground"
-                  >
-                    <span className={cx("flex motion-safe:transition-transform motion-safe:duration-(--motion-slide)", open && "rotate-180")}>
-                      <Icon name="chevron-down" size="sm" />
-                    </span>
-                  </button>
-                )}
-              </span>
-            )}
+                </button>
+              )}
+            </span>
           </td>
         )}
       </tr>

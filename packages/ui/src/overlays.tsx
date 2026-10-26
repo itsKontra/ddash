@@ -246,7 +246,7 @@ export interface MenuItem {
 }
 
 /**
- * A row's menu, e.g. a Workload's power Actions: a "⋯" button named by
+ * A menu of Actions, e.g. a Plugin card's Uninstall: a "⋯" button named by
  * label that opens the items under it. Picking one, Escape or a click
  * outside closes it. It wraps its own Presence, so it animates out too.
  */

@@ -241,25 +241,6 @@ it("DataTable rows open on a click, or on Enter or Space once focused", () => {
   expect(opened).toEqual(["nas", "router", "dns"]);
 });
 
-it("DataTable actions put each row's Actions in its ⋯ Menu, without opening the row", () => {
-  const done: string[] = [];
-  render(
-    <DataTable
-      rows={checks}
-      rowKey={(c) => c.name}
-      columns={columns}
-      onRowClick={(c) => done.push(`open ${c.name}`)}
-      actions={(c) => [{ label: "Run now", onSelect: () => done.push(`run ${c.name}`) }]}
-    />,
-  );
-
-  expect(screen.getAllByRole("columnheader")).toHaveLength(4);
-  fireEvent.click(screen.getByRole("button", { name: "Actions for router" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "Run now" }));
-
-  expect(done).toEqual(["run router"]);
-});
-
 it("DataTable leaves Enter on a link in the row header to the link, not the row", () => {
   const opened: string[] = [];
   const linked: Column<Check>[] = [{ ...columns[0], cell: (c) => <a href={`/checks/${c.name}`}>{c.name}</a> }, columns[2]];
