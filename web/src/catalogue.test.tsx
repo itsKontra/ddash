@@ -217,14 +217,16 @@ it("offers Restart, after confirming, for a Component held down after repeated c
   expect(actions()).toEqual([{ method: "Restart", body: { component: "docker-api" } }]);
 });
 
-it("tables orphaned DB files below, each deleted from its menu after confirming", async () => {
+it("tables orphaned DB files below, each deleted from its strip after confirming", async () => {
   catalogue.orphans = ["relay", "unifi-api"];
   await boot();
 
   const orphans = within(screen.getByRole("region", { name: "Orphaned data" }));
   expect(orphans.getAllByRole("rowheader").map((c) => c.textContent)).toEqual(["relay.db", "unifi-api.db"]);
-  fireEvent.click(orphans.getByRole("button", { name: "Actions for unifi-api" }));
-  fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+  fireEvent.click(orphans.getByRole("button", { name: "Actions for unifi-api.db" }));
+  const strip = within(orphans.getByRole("group", { name: "Actions for unifi-api.db" }));
+  expect(strip.getByRole("status").textContent).toBe("unifi-api.db, kept after an uninstall");
+  fireEvent.click(strip.getByRole("button", { name: "Delete" }));
   await settle();
   expect(screen.getByRole("alertdialog").textContent).toMatch(/Delete unifi-api's data\?/);
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
