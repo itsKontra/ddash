@@ -53,7 +53,7 @@ The list of Plugins available in the Release ddash is running, from which the Op
 _Avoid_: Store, marketplace, registry
 
 **Theme**:
-A named set of look-and-feel values (colours for light and dark, corner radius, font family) the operator picks for the whole UI. Defined by the core only, and applied to every Plugin alike.
+A named set of look-and-feel values (colours for light and dark, including the surfaces such as the navigation and cards, elevation, corner radius, font family) the operator picks for the whole UI. Defined by the core only, and applied to every Plugin alike.
 _Avoid_: Skin, style
 
 ### Apps and what runs them
