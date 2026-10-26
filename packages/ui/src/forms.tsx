@@ -180,7 +180,8 @@ const arrowStep: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLe
  * Picks one of a few options, e.g. a Widget's size: a radio group drawn like
  * Tabs. It takes one tab stop; the arrow keys move along it and pick.
  * Inside a Field it takes the Field's label and hint. While busy (a pick
- * that acts at once is applying) no option can be picked.
+ * that acts at once is applying) no option can be picked; the disabled
+ * options never can, and the arrow keys skip them.
  */
 export function Segmented<T extends string>({
   label,
@@ -188,12 +189,14 @@ export function Segmented<T extends string>({
   options,
   onChange,
   busy,
+  disabled = [],
 }: {
   label: string;
   value: T;
   options: readonly T[];
   onChange: (value: T) => void;
   busy?: boolean;
+  disabled?: readonly T[];
 }) {
   const field = useContext(FieldGroup);
   const { "aria-describedby": describedBy } = useWiring();
@@ -214,13 +217,15 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={o === value}
           tabIndex={o === value ? 0 : -1}
-          disabled={busy}
+          disabled={busy || disabled.includes(o)}
           onClick={() => onChange(o)}
           onKeyDown={(e) => {
             const step = arrowStep[e.key];
             if (step === undefined || busy) return;
             e.preventDefault();
-            const next = (i + step + options.length) % options.length;
+            let next = (i + step + options.length) % options.length;
+            while (disabled.includes(options[next]) && next !== i) next = (next + step + options.length) % options.length;
+            if (next === i) return;
             (e.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus();
             onChange(options[next]);
           }}

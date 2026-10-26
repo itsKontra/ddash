@@ -126,15 +126,14 @@ func TestAProxiedAppsWorkloadIsMatchedAtItsUpstream(t *testing.T) {
 // of having no Workload.
 func TestALinkOnlyAppIsMatchedOnItsURL(t *testing.T) {
 	l := workloadLab(t)
-	var a, b appspb.CreateAppResponse
-	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Jellyfin", Url: "http://198.18.2.10:8096"}}, &a)
-	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Printer", Url: "https://198.18.1.60"}}, &b)
+	a := l.addLinkOnly("Jellyfin", "http://198.18.2.10:8096")
+	b := l.addLinkOnly("Printer", "https://198.18.1.60")
 
-	want := map[string]*appspb.Workload{a.GetApp().GetId(): docker("jellyfin"), b.GetApp().GetId(): nil}
+	want := map[string]*appspb.Workload{a: docker("jellyfin"), b: nil}
 	if d := diff(want, l.workloads()); d != "" {
 		t.Errorf("Workloads (-want +got):\n%s", d)
 	}
-	if w := l.app(b.GetApp().GetId()).GetWarnings(); len(w) != 0 {
+	if w := l.app(b).GetWarnings(); len(w) != 0 {
 		t.Errorf("Printer's Warnings = %v, want none", w)
 	}
 }

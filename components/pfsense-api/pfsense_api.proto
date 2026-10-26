@@ -370,6 +370,9 @@ message DhcpServer {
   repeated AddressRange pools = 3;
   // Its reserved addresses.
   repeated StaticMapping static_mappings = 4;
+  // The domain it hands out, e.g. "home.example"; empty for the
+  // firewall's own.
+  string domain = 5;
 }
 
 // Two addresses, low to high, both included.

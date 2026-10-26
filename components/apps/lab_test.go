@@ -2,6 +2,7 @@ package apps_test
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -73,8 +74,12 @@ type lab struct {
 	// failPfSense makes pfSense answer every read of its Host Overrides
 	// with a 500.
 	failPfSense *atomic.Bool
-	proxmox     *proxmoxFake
-	docker      *dockerFake
+	// stallPfSense makes pfSense answer each read of its Host Overrides
+	// after its next DNS Resolver apply a second late.
+	stallPfSense atomic.Bool
+	applied      atomic.Bool
+	proxmox      *proxmoxFake
+	docker       *dockerFake
 }
 
 type labOptions struct {
@@ -99,6 +104,9 @@ type labOptions struct {
 	npmUnconfigured bool
 	// networkUnconfigured leaves network without config.
 	networkUnconfigured bool
+	// resync bounds the sync ending an App Action; apps.ResyncTimeout
+	// when 0.
+	resync time.Duration
 }
 
 const npmEmail = "ddash@home.example"
@@ -142,7 +150,13 @@ func newLab(t *testing.T, o labOptions) *lab {
 			_, _ = w.Write([]byte(`{"code":500,"status":"server error","response_id":"SERVER_ERROR","message":"Internal Error","data":[]}`))
 			return
 		}
+		if r.Method == http.MethodGet && r.URL.Path == "/api/v2/services/dns_resolver/host_overrides" && l.stallPfSense.Load() && l.applied.Load() {
+			time.Sleep(time.Second)
+		}
 		l.fw.ServeHTTP(w, r)
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v2/services/dns_resolver/apply" {
+			l.applied.Store(true)
+		}
 	}))
 	t.Cleanup(fwSrv.Close)
 
@@ -156,6 +170,9 @@ func newLab(t *testing.T, o labOptions) *lab {
 	components := []sdk.Definition{
 		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), network.Definition(), adguardapi.Definition(),
 		ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
+	}
+	if o.resync != 0 {
+		components[len(components)-1] = apps.DefinitionResyncingWithin(o.resync)
 	}
 	if o.fixtureWorkloads {
 		components = append(components, proxmoxapi.Definition(), dockerapi.Definition())
@@ -289,11 +306,31 @@ func (l *lab) call(method string, req, out proto.Message) {
 	}
 }
 
-// callError is an Action's or getter's failure: its Connect code and
-// message.
-type callError struct{ code, message string }
+// callError is an Action's or getter's failure: its Connect code, message
+// and details.
+type callError struct {
+	code, message string
+	details       []detail
+}
+
+// detail is a Connect error detail: a message's full name and bytes.
+type detail struct {
+	typ   string
+	value []byte
+}
 
 func (e *callError) Error() string { return e.code + ": " + e.message }
+
+// detail decodes the error's detail of out's type into out, reporting
+// whether it has one.
+func (e *callError) detail(out proto.Message) bool {
+	for _, d := range e.details {
+		if d.typ == string(out.ProtoReflect().Descriptor().FullName()) {
+			return proto.Unmarshal(d.value, out) == nil
+		}
+	}
+	return false
+}
 
 // try calls apps' method, returning its failure.
 func (l *lab) try(method string, req, out proto.Message) *callError {
@@ -304,9 +341,20 @@ func (l *lab) try(method string, req, out proto.Message) *callError {
 	}
 	res := l.h.Call("apps", "apps", method, string(body))
 	if res.Code != http.StatusOK {
-		var e struct{ Code, Message string }
+		var e struct {
+			Code, Message string
+			Details       []struct{ Type, Value string }
+		}
 		_ = json.Unmarshal(res.Body.Bytes(), &e)
-		return &callError{e.Code, e.Message}
+		out := &callError{code: e.Code, message: e.Message}
+		for _, d := range e.Details {
+			b, err := base64.RawStdEncoding.DecodeString(d.Value)
+			if err != nil {
+				l.t.Fatalf("%s's detail %s: %v", method, d.Type, err)
+			}
+			out.details = append(out.details, detail{d.Type, b})
+		}
+		return out
 	}
 	if out != nil {
 		if err := protojson.Unmarshal(res.Body.Bytes(), out); err != nil {

@@ -167,9 +167,7 @@ func TestNoneOrTwoHostOverridesAtTheReverseProxyRaiseTheNotice(t *testing.T) {
 // proxied from then on, under its id.
 func TestALinkOnlyAppAbsorbsAHostOverrideForItsHostname(t *testing.T) {
 	l := newLab(t, labOptions{})
-	var created appspb.CreateAppResponse
-	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Printer", Url: "https://printer.home.example"}}, &created)
-	id := created.GetApp().GetId()
+	id := l.addLinkOnly("Printer", "https://printer.home.example")
 	before := len(l.list().GetApps())
 
 	l.addOverride("printer", "198.18.1.60", "scan")

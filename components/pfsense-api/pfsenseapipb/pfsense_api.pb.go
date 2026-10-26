@@ -1904,8 +1904,11 @@ type DhcpServer struct {
 	Pools []*AddressRange `protobuf:"bytes,3,rep,name=pools,proto3" json:"pools,omitempty"`
 	// Its reserved addresses.
 	StaticMappings []*StaticMapping `protobuf:"bytes,4,rep,name=static_mappings,json=staticMappings,proto3" json:"static_mappings,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// The domain it hands out, e.g. "home.example"; empty for the
+	// firewall's own.
+	Domain        string `protobuf:"bytes,5,opt,name=domain,proto3" json:"domain,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DhcpServer) Reset() {
@@ -1964,6 +1967,13 @@ func (x *DhcpServer) GetStaticMappings() []*StaticMapping {
 		return x.StaticMappings
 	}
 	return nil
+}
+
+func (x *DhcpServer) GetDomain() string {
+	if x != nil {
+		return x.Domain
+	}
+	return ""
 }
 
 // Two addresses, low to high, both included.
@@ -3091,13 +3101,14 @@ const file_pfsense_api_pfsense_api_proto_rawDesc = "" +
 	"\vdescription\x18\t \x01(\tR\vdescription\"\x18\n" +
 	"\x16ListDhcpServersRequest\"Q\n" +
 	"\x17ListDhcpServersResponse\x126\n" +
-	"\aservers\x18\x01 \x03(\v2\x1c.ddash.pfsenseapi.DhcpServerR\aservers\"\xc4\x01\n" +
+	"\aservers\x18\x01 \x03(\v2\x1c.ddash.pfsenseapi.DhcpServerR\aservers\"\xdc\x01\n" +
 	"\n" +
 	"DhcpServer\x12\x1c\n" +
 	"\tinterface\x18\x01 \x01(\tR\tinterface\x12\x18\n" +
 	"\aenabled\x18\x02 \x01(\bR\aenabled\x124\n" +
 	"\x05pools\x18\x03 \x03(\v2\x1e.ddash.pfsenseapi.AddressRangeR\x05pools\x12H\n" +
-	"\x0fstatic_mappings\x18\x04 \x03(\v2\x1f.ddash.pfsenseapi.StaticMappingR\x0estaticMappings\"2\n" +
+	"\x0fstatic_mappings\x18\x04 \x03(\v2\x1f.ddash.pfsenseapi.StaticMappingR\x0estaticMappings\x12\x16\n" +
+	"\x06domain\x18\x05 \x01(\tR\x06domain\"2\n" +
 	"\fAddressRange\x12\x12\n" +
 	"\x04from\x18\x01 \x01(\tR\x04from\x12\x0e\n" +
 	"\x02to\x18\x02 \x01(\tR\x02to\"\x8d\x01\n" +

@@ -33,7 +33,8 @@ const (
 	AppsService_DeleteOrphan_FullMethodName    = "/ddash.apps.AppsService/DeleteOrphan"
 	AppsService_PromoteAlias_FullMethodName    = "/ddash.apps.AppsService/PromoteAlias"
 	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
-	AppsService_CreateApp_FullMethodName       = "/ddash.apps.AppsService/CreateApp"
+	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
+	AppsService_RunAction_FullMethodName       = "/ddash.apps.AppsService/RunAction"
 	AppsService_DeleteApp_FullMethodName       = "/ddash.apps.AppsService/DeleteApp"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
 )
@@ -74,8 +75,22 @@ type AppsServiceClient interface {
 	// Apps", and changes nothing outside ddash. Two Apps that both have a
 	// Proxy Host, or both a Host Override of their own, can't be merged.
 	Merge(ctx context.Context, in *MergeRequest, opts ...grpc.CallOption) (*MergeResponse, error)
-	// CreateApp adds a Link-only App.
-	CreateApp(ctx context.Context, in *CreateAppRequest, opts ...grpc.CallOption) (*CreateAppResponse, error)
+	// PlanAction builds an App Action's Plan from the last reads, through
+	// the sources' caches, and changes nothing: what Add App's "ddash will"
+	// shows as the Operator types. A Plan that can't run says why.
+	PlanAction(ctx context.Context, in *PlanActionRequest, opts ...grpc.CallOption) (*PlanActionResponse, error)
+	// RunAction runs an App Action whose Plan the Operator confirmed, one at
+	// a time with every other App Action and sync. It reads both sources
+	// afresh and builds the Plan again: when that differs from the one
+	// confirmed, it refuses before any write with "changed since you looked"
+	// (ABORTED, the new Plan in the error's details). Otherwise it writes to
+	// Nginx Proxy Manager, then pfSense in one batch applied once, then the
+	// App record, and stops at the first failed step: the error names it and
+	// what was done, nothing is rolled back, and its details carry a
+	// RunActionResponse saying how many steps were done. Success or failure,
+	// it ends with a sync bounded to 10 s, which may report that it couldn't
+	// re-read a source.
+	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error)
 	// DeleteApp deletes a Link-only App.
 	DeleteApp(ctx context.Context, in *DeleteAppRequest, opts ...grpc.CallOption) (*DeleteAppResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
@@ -182,10 +197,20 @@ func (c *appsServiceClient) Merge(ctx context.Context, in *MergeRequest, opts ..
 	return out, nil
 }
 
-func (c *appsServiceClient) CreateApp(ctx context.Context, in *CreateAppRequest, opts ...grpc.CallOption) (*CreateAppResponse, error) {
+func (c *appsServiceClient) PlanAction(ctx context.Context, in *PlanActionRequest, opts ...grpc.CallOption) (*PlanActionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateAppResponse)
-	err := c.cc.Invoke(ctx, AppsService_CreateApp_FullMethodName, in, out, cOpts...)
+	out := new(PlanActionResponse)
+	err := c.cc.Invoke(ctx, AppsService_PlanAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *appsServiceClient) RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunActionResponse)
+	err := c.cc.Invoke(ctx, AppsService_RunAction_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +273,22 @@ type AppsServiceServer interface {
 	// Apps", and changes nothing outside ddash. Two Apps that both have a
 	// Proxy Host, or both a Host Override of their own, can't be merged.
 	Merge(context.Context, *MergeRequest) (*MergeResponse, error)
-	// CreateApp adds a Link-only App.
-	CreateApp(context.Context, *CreateAppRequest) (*CreateAppResponse, error)
+	// PlanAction builds an App Action's Plan from the last reads, through
+	// the sources' caches, and changes nothing: what Add App's "ddash will"
+	// shows as the Operator types. A Plan that can't run says why.
+	PlanAction(context.Context, *PlanActionRequest) (*PlanActionResponse, error)
+	// RunAction runs an App Action whose Plan the Operator confirmed, one at
+	// a time with every other App Action and sync. It reads both sources
+	// afresh and builds the Plan again: when that differs from the one
+	// confirmed, it refuses before any write with "changed since you looked"
+	// (ABORTED, the new Plan in the error's details). Otherwise it writes to
+	// Nginx Proxy Manager, then pfSense in one batch applied once, then the
+	// App record, and stops at the first failed step: the error names it and
+	// what was done, nothing is rolled back, and its details carry a
+	// RunActionResponse saying how many steps were done. Success or failure,
+	// it ends with a sync bounded to 10 s, which may report that it couldn't
+	// re-read a source.
+	RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error)
 	// DeleteApp deletes a Link-only App.
 	DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
@@ -293,8 +332,11 @@ func (UnimplementedAppsServiceServer) PromoteAlias(context.Context, *PromoteAlia
 func (UnimplementedAppsServiceServer) Merge(context.Context, *MergeRequest) (*MergeResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Merge not implemented")
 }
-func (UnimplementedAppsServiceServer) CreateApp(context.Context, *CreateAppRequest) (*CreateAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CreateApp not implemented")
+func (UnimplementedAppsServiceServer) PlanAction(context.Context, *PlanActionRequest) (*PlanActionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PlanAction not implemented")
+}
+func (UnimplementedAppsServiceServer) RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunAction not implemented")
 }
 func (UnimplementedAppsServiceServer) DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteApp not implemented")
@@ -485,20 +527,38 @@ func _AppsService_Merge_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_CreateApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateAppRequest)
+func _AppsService_PlanAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlanActionRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppsServiceServer).CreateApp(ctx, in)
+		return srv.(AppsServiceServer).PlanAction(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AppsService_CreateApp_FullMethodName,
+		FullMethod: AppsService_PlanAction_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).CreateApp(ctx, req.(*CreateAppRequest))
+		return srv.(AppsServiceServer).PlanAction(ctx, req.(*PlanActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AppsService_RunAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).RunAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_RunAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).RunAction(ctx, req.(*RunActionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -583,8 +643,12 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AppsService_Merge_Handler,
 		},
 		{
-			MethodName: "CreateApp",
-			Handler:    _AppsService_CreateApp_Handler,
+			MethodName: "PlanAction",
+			Handler:    _AppsService_PlanAction_Handler,
+		},
+		{
+			MethodName: "RunAction",
+			Handler:    _AppsService_RunAction_Handler,
 		},
 		{
 			MethodName: "DeleteApp",

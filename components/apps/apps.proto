@@ -66,8 +66,24 @@ service AppsService {
   rpc Merge(MergeRequest) returns (MergeResponse) {
     option (ddash.action) = {disruptive: true};
   }
-  // CreateApp adds a Link-only App.
-  rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {
+  // PlanAction builds an App Action's Plan from the last reads, through
+  // the sources' caches, and changes nothing: what Add App's "ddash will"
+  // shows as the Operator types. A Plan that can't run says why.
+  rpc PlanAction(PlanActionRequest) returns (PlanActionResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // RunAction runs an App Action whose Plan the Operator confirmed, one at
+  // a time with every other App Action and sync. It reads both sources
+  // afresh and builds the Plan again: when that differs from the one
+  // confirmed, it refuses before any write with "changed since you looked"
+  // (ABORTED, the new Plan in the error's details). Otherwise it writes to
+  // Nginx Proxy Manager, then pfSense in one batch applied once, then the
+  // App record, and stops at the first failed step: the error names it and
+  // what was done, nothing is rolled back, and its details carry a
+  // RunActionResponse saying how many steps were done. Success or failure,
+  // it ends with a sync bounded to 10 s, which may report that it couldn't
+  // re-read a source.
+  rpc RunAction(RunActionRequest) returns (RunActionResponse) {
     option (ddash.action) = {};
   }
   // DeleteApp deletes a Link-only App.
@@ -438,15 +454,6 @@ message PromoteAliasRequest {
 
 message PromoteAliasResponse {}
 
-// What the Operator gives a Link-only App.
-message LinkOnlyApp {
-  string name = 1;
-  // An http or https URL.
-  string url = 2;
-  string icon = 3;
-  string group = 4;
-}
-
 message MergeRequest {
   // The App that stays, with its id and settings.
   string id = 1;
@@ -456,12 +463,159 @@ message MergeRequest {
 
 message MergeResponse {}
 
-message CreateAppRequest {
-  LinkOnlyApp app = 1;
+// A change to an App that writes to Nginx Proxy Manager or pfSense, or
+// adds an App: it runs through a Plan (PlanAction, RunAction).
+message AppAction {
+  oneof action {
+    AddApp add = 1;
+  }
 }
 
-message CreateAppResponse {
-  App app = 1;
+// Add App: an App and, by its Reach, its Proxy Host and DNS.
+message AddApp {
+  // Where it opens: an http or https URL. Proxied and Not proxied, its
+  // host is a hostname in the home domain (the Reverse Proxy's Host
+  // Override's).
+  string url = 1;
+  // The ddash-only settings; empty for the defaults.
+  string name = 2;
+  string icon = 3;
+  string group = 4;
+  // PROXIED: a Proxy Host serving the URL's hostname, and the hostname as
+  // an alias of the Reverse Proxy's Host Override. NOT_PROXIED: a Host
+  // Override for the hostname at address. LINK_ONLY: nothing outside
+  // ddash.
+  Reach reach = 5;
+  // PROXIED: the new Proxy Host's fields.
+  ProxyHostFields proxy_host = 6;
+  // NOT_PROXIED: the address the Host Override resolves to.
+  string address = 7;
+}
+
+// The fields of a Proxy Host ddash manages but its domain names, which are
+// the App's hostnames. Nginx Proxy Manager turns Force SSL and HTTP/2 off
+// without a certificate, HSTS off without Force SSL, and HSTS for
+// subdomains off without HSTS; a Plan shows them so.
+message ProxyHostFields {
+  // "http" or "https".
+  string forward_scheme = 1;
+  string forward_host = 2;
+  int32 forward_port = 3;
+  // One of Nginx Proxy Manager's certificates; 0 for none (plain HTTP).
+  int64 certificate_id = 4;
+  bool block_exploits = 5;
+  bool websockets = 6;
+  bool force_ssl = 7;
+  bool http2 = 8;
+  bool hsts = 9;
+  bool hsts_subdomains = 10;
+}
+
+// An App Action's Plan: its steps in the order they run, the "name is
+// free" notes on the hostnames it adds, and why it can't run, if it can't.
+message Plan {
+  repeated PlanStep steps = 1;
+  // One note for each hostname that is taken, or that reattaches orphaned
+  // App settings; empty when every name is free.
+  repeated NameNote names = 2;
+  // Why it can't run now, each as the Operator reads it, e.g. the Reverse
+  // Proxy's Host Override problem; empty when it can. A taken name blocks
+  // it too, by its note alone.
+  repeated string blocked = 3;
+}
+
+// One step of a Plan: a write to one system, with the values it expects
+// to find there and those it writes.
+message PlanStep {
+  System system = 1;
+  // What it does, e.g. "Create Proxy Host grafana.home.example".
+  string title = 2;
+  repeated PlanValue values = 3;
+}
+
+// The systems a Plan's steps write to.
+enum System {
+  SYSTEM_UNSPECIFIED = 0;
+  // ddash's own App records.
+  SYSTEM_DDASH = 1;
+  SYSTEM_NGINX_PROXY_MANAGER = 2;
+  SYSTEM_PFSENSE = 3;
+}
+
+// A value a step expects to find and the one it writes.
+message PlanValue {
+  // e.g. "Upstream".
+  string label = 1;
+  // What the step expects to find; empty for nothing.
+  string before = 2;
+  // What it writes; empty for nothing (removed).
+  string after = 3;
+}
+
+// Why a hostname an Action adds isn't free, or that it reattaches
+// orphaned App settings.
+message NameNote {
+  string hostname = 1;
+  NameNoteKind kind = 2;
+  // The note as the Operator reads it, e.g. "grafana.home.example is taken
+  // by Grafana."
+  string text = 3;
+  // APP and REATTACH: the App's id.
+  string app_id = 4;
+  // APP, REATTACH and DEVICE: the App's or Device's name.
+  string name = 5;
+  // APP: the App is Hidden.
+  bool hidden = 6;
+  // DEVICE: the Device's MAC.
+  string device_mac = 7;
+}
+
+enum NameNoteKind {
+  NAME_NOTE_KIND_UNSPECIFIED = 0;
+  // The URL has no hostname a Proxy Host or Host Override can have.
+  NAME_NOTE_KIND_NOT_A_HOSTNAME = 1;
+  // An App has it as its URL's hostname or an alias.
+  NAME_NOTE_KIND_APP = 2;
+  // It is the Reverse Proxy's own name.
+  NAME_NOTE_KIND_REVERSE_PROXY = 3;
+  // A Host Override or alias no App has yet registers it.
+  NAME_NOTE_KIND_HOST_OVERRIDE = 4;
+  // A Proxy Host no App has yet serves it.
+  NAME_NOTE_KIND_PROXY_HOST = 5;
+  // It is a Device's reservation hostname in its DHCP domain: taken for
+  // Reverse proxy and Host Override, free for Link only.
+  NAME_NOTE_KIND_DEVICE = 6;
+  // Orphaned App settings were kept for it: adding it reattaches them.
+  // It doesn't block.
+  NAME_NOTE_KIND_REATTACH = 7;
+}
+
+message PlanActionRequest {
+  AppAction action = 1;
+}
+
+message PlanActionResponse {
+  Plan plan = 1;
+}
+
+message RunActionRequest {
+  AppAction action = 1;
+  // The Plan the Operator confirmed, as PlanAction gave it.
+  Plan plan = 2;
+}
+
+// What an App Action did; also the details of the error of one that
+// stopped at a failed step.
+message RunActionResponse {
+  // The App it added or changed.
+  string app_id = 1;
+  // How many of the Plan's steps were done, from the first: all of them,
+  // or those before the failed one.
+  int32 done = 2;
+  // Why the sync ending it couldn't re-read the sources, e.g. "couldn't
+  // re-read: pfsense-api: timeout"; empty when it could. What it wrote
+  // stands either way.
+  string reread = 3;
 }
 
 message DeleteAppRequest {

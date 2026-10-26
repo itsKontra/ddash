@@ -106,12 +106,10 @@ func TestAProxyHostWithANewIdAttachesByHostname(t *testing.T) {
 // proxied from then on, under its id.
 func TestALinkOnlyAppAbsorbsAProxyHostForItsHostname(t *testing.T) {
 	l := newLab(t, labOptions{})
-	var created appspb.CreateAppResponse
-	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Wiki", Url: "https://wiki.home.example"}}, &created)
-	id := created.GetApp().GetId()
+	id := l.addLinkOnly("Wiki", "https://wiki.home.example")
 	before := len(l.list().GetApps())
-	if created.GetApp().GetReach() != appspb.Reach_REACH_LINK_ONLY {
-		t.Fatalf("created %v, want Link only", created.GetApp())
+	if a := l.app(id); a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
+		t.Fatalf("added %v, want Link only", a)
 	}
 
 	host := l.npm.AddProxyHost(proxyHost("http://198.18.2.11:3000", "wiki.home.example", "docs.home.example"))

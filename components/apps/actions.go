@@ -2,7 +2,6 @@ package apps
 
 import (
 	"context"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -234,45 +233,6 @@ func (c *component) PromoteAlias(ctx context.Context, req *appspb.PromoteAliasRe
 		return nil, err
 	}
 	return &appspb.PromoteAliasResponse{}, nil
-}
-
-func (c *component) CreateApp(ctx context.Context, req *appspb.CreateAppRequest) (*appspb.CreateAppResponse, error) {
-	m := req.GetApp()
-	s := &appspb.AppSettings{
-		Name:  strings.TrimSpace(m.GetName()),
-		Icon:  strings.ToLower(strings.TrimSpace(m.GetIcon())),
-		Group: strings.TrimSpace(m.GetGroup()),
-	}
-	raw := strings.TrimSpace(m.GetUrl())
-	if s.GetName() == "" {
-		return nil, status.Error(codes.InvalidArgument, "name is required")
-	}
-	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		return nil, status.Error(codes.InvalidArgument, "url must be an http or https URL, e.g. https://198.18.0.1")
-	}
-	if err := checkIcon(s.GetIcon()); err != nil {
-		return nil, err
-	}
-	if err := c.waitSynced(ctx); err != nil {
-		return nil, err
-	}
-	c.turn.Lock()
-	defer c.turn.Unlock()
-	recs, err := c.store.records(ctx)
-	if err != nil {
-		return nil, err
-	}
-	taken := map[string]bool{}
-	for _, r := range recs {
-		taken[r.id] = true
-	}
-	r := &record{id: newID("", taken), url: raw, settings: s, linkOnly: true, touched: true}
-	if err := c.store.save(ctx, []*record{r}, nil); err != nil {
-		return nil, err
-	}
-	c.syncChecks(ctx)
-	return &appspb.CreateAppResponse{App: derive([]*record{r}, c.view())[0]}, nil
 }
 
 func (c *component) DeleteApp(ctx context.Context, req *appspb.DeleteAppRequest) (*appspb.DeleteAppResponse, error) {

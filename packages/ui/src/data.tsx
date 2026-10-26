@@ -134,9 +134,10 @@ export interface StatusItem {
 /**
  * A list of statuses, e.g. a config's warnings or the Overview's problems,
  * each led by its StatusDot. timeline makes it an ordered list joined by a
- * rail, e.g. an Action's hops.
+ * rail, e.g. an Action's hops. Titles take one line, truncated, unless
+ * wrap lets them wrap, e.g. a Plan's steps.
  */
-export function StatusList({ items, timeline }: { items: readonly StatusItem[]; timeline?: boolean }) {
+export function StatusList({ items, timeline, wrap }: { items: readonly StatusItem[]; timeline?: boolean; wrap?: boolean }) {
   const List = timeline ? "ol" : "ul";
   // On the hero the details take the caption's colour (Theme rule: hero text reuses the nav set).
   const hero = useOnHero();
@@ -156,7 +157,7 @@ export function StatusList({ items, timeline }: { items: readonly StatusItem[]; 
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-baseline justify-between gap-3">
-              <div className={cx("min-w-0 truncate text-sm font-semibold", hero && "text-nav-strong")}>{it.title}</div>
+              <div className={cx("min-w-0 text-sm font-semibold", wrap ? "break-words" : "truncate", hero && "text-nav-strong")}>{it.title}</div>
               {it.aside !== undefined && <div className={cx("shrink-0 text-xs tabular-nums", quiet)}>{it.aside}</div>}
             </div>
             {it.meta !== undefined && <div className={cx("mt-0.5 text-xs", quiet)}>{it.meta}</div>}
