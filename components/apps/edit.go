@@ -514,8 +514,9 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 		if rp == nil {
 			break
 		}
-		// Its Host Override goes with its aliases: those that are the
-		// App's names move too.
+		// A bypassing alias moves alone. A bypassing Host Override goes
+		// with its aliases, which move too: unless one isn't only the
+		// App's name, which the Operator removes or moves first.
 		moved := []string{n}
 		for _, e := range p.dns.entries[n] {
 			if p.dns.atReverseProxy(e.GetIps()) {
@@ -528,6 +529,11 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 				continue
 			}
 			o := p.dns.named(hostName{e.GetHost(), e.GetDomain()})
+			if others := p.notOnlyOf(a, overrideNames(o)[1:]); len(others) > 0 {
+				out.block(fmt.Sprintf("Pointing %s at the Reverse Proxy deletes its Host Override, and with it %s, which %s only %s's: remove or move %s in pfSense first.",
+					n, strings.Join(others, ", "), plural(len(others), "isn't", "aren't"), a.GetName(), plural(len(others), "it", "them")))
+				continue
+			}
 			out.addDNS(deleteOverride(o))
 			for _, m := range overrideNames(o)[1:] {
 				if slices.Contains(appHostnames(a), m) && !slices.Contains(moved, m) {
@@ -562,6 +568,29 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 		out.block("That fix doesn't write to pfSense or Nginx Proxy Manager: run it from its Warning.")
 	}
 	return out
+}
+
+// notOnlyOf are the hostnames of names that aren't the App a's alone:
+// not its names, or another App's too.
+func (p planning) notOnlyOf(a *appspb.App, names []string) []string {
+	var out []string
+	for _, n := range names {
+		other := slices.ContainsFunc(p.apps, func(x *appspb.App) bool {
+			return x.GetId() != a.GetId() && !x.GetOrphaned() && slices.Contains(appHostnames(x), n)
+		})
+		if other || !slices.Contains(appHostnames(a), n) {
+			out = append(out, n)
+		}
+	}
+	return out
+}
+
+// plural is one for n == 1, else many.
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 // removeProxied removes the hostname n's aliases at the Reverse Proxy's

@@ -208,3 +208,45 @@ func TestOnlyAnOfferedExternalFixPlans(t *testing.T) {
 		t.Errorf("Plan = %v, want it blocked", p)
 	}
 }
+
+// Point at Reverse Proxy moves only the App's names: a bypassing alias
+// goes alone, and a Host Override with an alias another App has too isn't
+// deleted from under it.
+func TestPointAtReverseProxyMovesOnlyTheAppsNames(t *testing.T) {
+	t.Run("an alias", func(t *testing.T) {
+		l := newLab(t, labOptions{})
+		l.addOverride("storage", "198.18.2.12", "files", "media")
+		l.npm.AddProxyHost(proxyHost("http://198.18.2.12:8080", "files.home.example"))
+		l.refresh()
+		files := l.byURL("https://files.home.example").GetId()
+
+		l.runFix(files, dnsBypasses, appspb.FixKind_FIX_KIND_POINT_AT_REVERSE_PROXY,
+			"SYSTEM_PFSENSE: Remove alias files.home.example from storage.home.example",
+			"SYSTEM_PFSENSE: Add alias files.home.example to nginx.home.example",
+		)
+		if got := l.dnsOf("media.home.example"); len(got) != 1 {
+			t.Errorf("media.home.example = %q, want it left as storage.home.example's alias", got)
+		}
+	})
+	t.Run("a Host Override with another App's name", func(t *testing.T) {
+		l, nas := dnsBypass(t)
+		l.editDNS(func(all []pfsensefake.HostOverride) []pfsensefake.HostOverride {
+			for i := range all {
+				if all[i].Host == "nas" {
+					all[i].Aliases = append(all[i].Aliases, pfsensefake.HostOverrideAlias{Host: "files", Domain: "home.example"})
+				}
+			}
+			return all
+		})
+		l.npm.AddProxyHost(proxyHost("http://198.18.2.10:8080", "files.home.example"))
+		l.refresh()
+		w := warningOf(l.app(nas), dnsBypasses)
+		i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetKind() == appspb.FixKind_FIX_KIND_POINT_AT_REVERSE_PROXY })
+
+		p := l.plan(fixAction(nas, w.GetFixes()[i]))
+		want := "Pointing nas.home.example at the Reverse Proxy deletes its Host Override, and with it files.home.example, which isn't only " + l.app(nas).GetName() + "'s: remove or move it in pfSense first."
+		if !blockedBy(p, want) {
+			t.Errorf("Plan = %v, want it blocked: %q", p, want)
+		}
+	})
+}
