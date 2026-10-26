@@ -196,6 +196,12 @@ export interface DataTableProps<R> {
   density?: "comfortable" | "compact";
   /** Keeps the sort in this URL search param (via useQueryState) instead of in the table. */
   sortKey?: string;
+  /**
+   * The sort while none is chosen, e.g. "name" or "-when" (see parseSort).
+   * With sortKey the URL keeps no param for it, so it stays clean until a
+   * header is clicked.
+   */
+  defaultSort?: string;
 }
 
 const skeletonRows = 3;
@@ -212,18 +218,20 @@ export function DataTable<R>(props: DataTableProps<R>) {
 }
 
 function LocalSort<R>(props: DataTableProps<R>) {
-  const [sort, setSort] = useState("");
-  return <Table {...props} sort={sort} onSort={setSort} />;
+  const [sort, setSort] = useState<string>();
+  return <Table {...props} sort={sort ?? props.defaultSort ?? ""} onSort={setSort} />;
 }
 
 function UrlSort<R>(props: DataTableProps<R> & { sortKey: string }) {
-  const [sort, setSort] = useQueryState(props.sortKey, "");
+  const [sort, setSort] = useQueryState(props.sortKey, props.defaultSort ?? "");
   return <Table {...props} sort={sort} onSort={setSort} />;
 }
 
 /**
- * A sort as one string, as it sits in the URL: "" unsorted, "<column id>"
- * ascending, "-<column id>" descending.
+ * A sort as one string, as it sits in the URL: "<column id>" ascending,
+ * "-<column id>" descending. "" is the rows' own order, only until a
+ * header is clicked when there's no defaultSort: a click flips between
+ * ascending and descending, never back.
  */
 function parseSort(sort: string): { id: string; descending: boolean } {
   return sort.startsWith("-") ? { id: sort.slice(1), descending: true } : { id: sort, descending: false };

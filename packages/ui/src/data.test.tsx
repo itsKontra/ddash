@@ -266,10 +266,11 @@ it("DataTable leaves Enter on a link in the row header to the link, not the row"
   expect(opened).toEqual([]);
 });
 
-it("DataTable sorts by a sortable column's header, ascending then descending, and marks it with aria-sort", () => {
+const header = (name: string) => screen.getByRole("columnheader", { name: new RegExp(name) });
+const names = () => bodyRows().map((r) => r[0]);
+
+it("DataTable sorts by a sortable column's header, toggling ascending and descending, and marks it with aria-sort", () => {
   render(<DataTable rows={checks} rowKey={(c) => c.name} columns={columns} />);
-  const header = (name: string) => screen.getByRole("columnheader", { name: new RegExp(name) });
-  const names = () => bodyRows().map((r) => r[0]);
 
   expect(within(header("Target")).queryByRole("button")).toBeNull();
   expect(header("Latency").getAttribute("aria-sort")).toBeNull();
@@ -282,33 +283,85 @@ it("DataTable sorts by a sortable column's header, ascending then descending, an
   expect(header("Latency").getAttribute("aria-sort")).toBe("descending");
   expect(names()).toEqual(["nas", "dns", "router"]);
 
+  // A third click goes back to ascending: once sorted, never unsorted.
+  fireEvent.click(within(header("Latency")).getByRole("button"));
+  expect(header("Latency").getAttribute("aria-sort")).toBe("ascending");
+  expect(names()).toEqual(["router", "dns", "nas"]);
+
   fireEvent.click(within(header("Name")).getByRole("button"));
   expect(header("Name").getAttribute("aria-sort")).toBe("ascending");
   expect(header("Latency").getAttribute("aria-sort")).toBeNull();
   expect(names()).toEqual(["dns", "nas", "router"]);
 });
 
-it("DataTable with sortKey keeps its sort in the URL, so a reload or link starts sorted", () => {
+function UrlSorted({ url, defaultSort }: { url: string; defaultSort?: string }) {
   function Sorted() {
     const location = useLocation();
     return (
       <>
-        <DataTable rows={checks} rowKey={(c) => c.name} columns={columns} sortKey="sort" />
+        <DataTable rows={checks} rowKey={(c) => c.name} columns={columns} sortKey="sort" defaultSort={defaultSort} />
         <output aria-label="URL">{location.search}</output>
       </>
     );
   }
-  render(
-    <MemoryRouter initialEntries={["/checks?sort=-latency"]}>
+  return (
+    <MemoryRouter initialEntries={[url]}>
       <Sorted />
-    </MemoryRouter>,
+    </MemoryRouter>
   );
-  const header = (name: string) => screen.getByRole("columnheader", { name: new RegExp(name) });
+}
+
+it("DataTable with sortKey keeps its sort in the URL, so a reload or link starts sorted", () => {
+  render(<UrlSorted url="/checks?sort=-latency" />);
 
   expect(header("Latency").getAttribute("aria-sort")).toBe("descending");
-  expect(bodyRows().map((r) => r[0])).toEqual(["nas", "dns", "router"]);
+  expect(names()).toEqual(["nas", "dns", "router"]);
+
+  fireEvent.click(within(header("Latency")).getByRole("button"));
+  expect(url()).toBe("?sort=latency");
+  expect(names()).toEqual(["router", "dns", "nas"]);
 
   fireEvent.click(within(header("Name")).getByRole("button"));
   expect(url()).toBe("?sort=name");
-  expect(bodyRows().map((r) => r[0])).toEqual(["dns", "nas", "router"]);
+  expect(names()).toEqual(["dns", "nas", "router"]);
+});
+
+it("DataTable with defaultSort starts sorted by it, its header marked, until a header is clicked", () => {
+  render(<DataTable rows={checks} rowKey={(c) => c.name} columns={columns} defaultSort="-latency" />);
+
+  expect(header("Latency").getAttribute("aria-sort")).toBe("descending");
+  expect(names()).toEqual(["nas", "dns", "router"]);
+
+  fireEvent.click(within(header("Latency")).getByRole("button"));
+  expect(header("Latency").getAttribute("aria-sort")).toBe("ascending");
+  expect(names()).toEqual(["router", "dns", "nas"]);
+
+  fireEvent.click(within(header("Name")).getByRole("button"));
+  expect(header("Name").getAttribute("aria-sort")).toBe("ascending");
+  expect(header("Latency").getAttribute("aria-sort")).toBeNull();
+});
+
+it("DataTable with sortKey and defaultSort sorts by the default while the URL has no sort, the URL staying clean", () => {
+  render(<UrlSorted url="/checks" defaultSort="name" />);
+
+  expect(header("Name").getAttribute("aria-sort")).toBe("ascending");
+  expect(names()).toEqual(["dns", "nas", "router"]);
+  expect(url()).toBe("");
+
+  fireEvent.click(within(header("Name")).getByRole("button"));
+  expect(header("Name").getAttribute("aria-sort")).toBe("descending");
+  expect(url()).toBe("?sort=-name");
+  expect(names()).toEqual(["router", "nas", "dns"]);
+
+  fireEvent.click(within(header("Name")).getByRole("button"));
+  expect(header("Name").getAttribute("aria-sort")).toBe("ascending");
+  expect(names()).toEqual(["dns", "nas", "router"]);
+});
+
+it("DataTable with sortKey follows the URL's sort over its defaultSort", () => {
+  render(<UrlSorted url="/checks?sort=latency" defaultSort="name" />);
+
+  expect(header("Latency").getAttribute("aria-sort")).toBe("ascending");
+  expect(header("Name").getAttribute("aria-sort")).toBeNull();
+  expect(names()).toEqual(["router", "dns", "nas"]);
 });
