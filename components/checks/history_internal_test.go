@@ -30,7 +30,7 @@ func TestUptimeLeavesOutBeatsInMaintenance(t *testing.T) {
 			{result{reason: "timeout"}, true},
 			{result{reason: "timeout"}, true},
 			{result{up: true, latency: 90 * time.Millisecond}, true},
-			{result{reason: "timeout"}, false},
+			{result{reason: "timeout"}, false}, // pending
 		} {
 			time.Sleep(Interval)
 			next := st.after(b.r, now())
@@ -44,8 +44,8 @@ func TestUptimeLeavesOutBeatsInMaintenance(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if u.GetUp() != 1 || u.GetDown() != 1 || u.GetMaintenance() != 3 || u.GetRatio() != 0.5 {
-			t.Errorf("up %d, down %d, maintenance %d, ratio %v; want 1, 1, 3 and 0.5", u.GetUp(), u.GetDown(), u.GetMaintenance(), u.GetRatio())
+		if u.GetUp() != 1 || u.GetPending() != 1 || u.GetMaintenance() != 3 || u.GetRatio() != 1 {
+			t.Errorf("up %d, pending %d, maintenance %d, ratio %v; want 1, 1, 3 and 1", u.GetUp(), u.GetPending(), u.GetMaintenance(), u.GetRatio())
 		}
 		if l := u.GetLatency(); l.GetAvgMs() != 10 || l.GetMaxMs() != 10 {
 			t.Errorf("latency %v, want only the counted up beat's 10 ms", l)

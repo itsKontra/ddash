@@ -53,6 +53,7 @@ type Comp = { name: string; state?: string; message?: string; configurable?: boo
 let components: Comp[];
 let forms: Record<string, ReturnType<typeof ntfyForm> | ReturnType<typeof dockerForm>>;
 let saves: Record<string, unknown>[];
+let formReads: number;
 let saveAnswer: () => Response;
 let installAnswer: Record<string, unknown>;
 let testRuns: Record<string, unknown>[];
@@ -60,6 +61,7 @@ let testAnswer: () => Response;
 
 beforeEach(() => {
   saves = [];
+  formReads = 0;
   components = [
     { name: "ntfy-api", state: "ok", configurable: true },
     { name: "docker-api", state: "ok", configurable: true },
@@ -88,6 +90,7 @@ const fetchFake = async (input: RequestInfo | URL, init?: RequestInit) => {
         ],
       });
     case "GetConfigForm":
+      formReads++;
       return Response.json(forms[body.owner]);
     case "SaveConfig":
       saves.push(body);
@@ -127,14 +130,33 @@ const save = async (form: HTMLElement) => {
 
 const input = (form: HTMLElement, label: string) => within(form).getByLabelText(label) as HTMLInputElement;
 
-it("opens a Component's form in a dialog titled by it, saying that saving restarts it", async () => {
+it("opens a Component's form in a Sheet from the right, titled by it, saying that saving restarts it", async () => {
   await boot();
 
   const form = await configure("ntfy-api");
 
+  expect(form.parentElement!.className.split(" ")).toContain("justify-end");
   expect(within(form).getByText("Configure")).toBeTruthy();
   const note = document.getElementById(form.getAttribute("aria-describedby")!);
   expect(note?.textContent).toMatch(/Saving restarts ntfy-api/);
+  // Cancel and Save sit in the footer, outside the body that scrolls.
+  const body = input(form, "Topic").closest("[data-scrolls]")!;
+  for (const name of ["Cancel", "Save and restart"]) expect(body.contains(within(form).getByRole("button", { name }))).toBe(false);
+});
+
+it("keeps unsaved edits when the form is read again", async () => {
+  forms["ntfy-api"] = { ...ntfyForm(), testAction: { method: "SendTest", label: "Send test" } } as ReturnType<typeof ntfyForm>;
+  await boot();
+  const form = await configure("ntfy-api");
+  const before = formReads;
+
+  fireEvent.change(input(form, "Topic"), { target: { value: "other" } });
+  // A successful Action, the form's own Test included, reads the form again.
+  fireEvent.click(within(form).getByRole("button", { name: "Send test" }));
+  await settle();
+
+  expect(formReads).toBeGreaterThan(before);
+  expect(input(form, "Topic").value).toBe("other");
 });
 
 it("closes the form on Cancel without saving", async () => {
@@ -286,7 +308,7 @@ it("opens the forms of the unconfigured Components an install adds, in turn", as
   await settle();
   await settle();
 
-  expect(screen.getByRole("dialog", { name: "ntfy-api" })).toBeTruthy();
+  expect(screen.getByRole("dialog", { name: "ntfy-api" }).parentElement!.className.split(" ")).toContain("justify-end");
   fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Close" }));
   await settle();
   expect(screen.getByRole("dialog", { name: "docker-api" })).toBeTruthy();

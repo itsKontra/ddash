@@ -179,8 +179,8 @@ func (s *store) setNotified(ctx context.Context, item string, n notified) error 
 }
 
 // recordBeat adds a beat to check_event and its minute, hour and day
-// buckets in check_stat (as maint when in Maintenance), and stores the
-// standing after it, together.
+// buckets in check_stat (as maint when in Maintenance, as pending when it
+// left the Check pending), and stores the standing after it, together.
 func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing, changed, maint bool) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -197,7 +197,7 @@ func (s *store) recordBeat(ctx context.Context, id int64, r result, st standing,
 		id, ms(st.lastBeat), r.up, states[st.state], changed, latency, r.reason, maint); err != nil {
 		return err
 	}
-	if err := addToBuckets(ctx, tx, id, st.lastBeat, r, maint); err != nil {
+	if err := addToBuckets(ctx, tx, id, st.lastBeat, r, st.state, maint); err != nil {
 		return err
 	}
 	if _, err := tx.ExecContext(ctx, `

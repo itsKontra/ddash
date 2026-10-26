@@ -184,7 +184,7 @@ function Overlay({
   );
 }
 
-/** A centred dialog, e.g. a Component's config form; a bottom sheet on phones. */
+/** A centred dialog, e.g. re-attaching an Apps setting; a bottom sheet on phones. */
 export function Dialog(props: OverlayProps) {
   return <Overlay {...dialogLook} {...props} />;
 }
