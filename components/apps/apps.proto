@@ -1,46 +1,67 @@
 syntax = "proto3";
 
-// apps turns every nginx Proxy Host into an App, adds the Operator's manual
-// Apps, and keeps the Operator's display settings (the overlay) for both.
+// apps keeps a record per App, discovered from Nginx Proxy Manager's Proxy
+// Hosts or added as Link only, with the Operator's settings and Ignores,
+// and derives each App's Warnings on every sync.
 package ddash.apps;
 
 import "ddash/options.proto";
 import "ddash/workload/workload.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/apps/appspb;appspb";
 
-// apps has nothing to configure: Apps come from nginx-config's snapshot.
+// apps has nothing to configure: Apps come from its sources.
 message AppsConfig {}
 
 service AppsService {
-  // ListApps returns every App, discovered and manual, with its overlay
-  // applied, and the overlays that match no App.
+  // ListApps returns every App: discovered, Link only and orphaned App
+  // settings, each with its Warnings, and how the sources were last read.
   rpc ListApps(ListAppsRequest) returns (ListAppsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
-  // SetOverlay sets a discovered App's display settings, keyed by its first
-  // server_name. An overlay with every field empty is removed.
-  rpc SetOverlay(SetOverlayRequest) returns (SetOverlayResponse) {
+  // Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
+  // the Apps are current.
+  rpc Refresh(RefreshRequest) returns (RefreshResponse) {
     option (ddash.action) = {};
   }
-  // AttachOverlay moves an overlay onto another App, e.g. after a rename
-  // left it unmatched.
-  rpc AttachOverlay(AttachOverlayRequest) returns (AttachOverlayResponse) {
+  // SetSettings sets an App's ddash-only settings: name, icon, group,
+  // Hidden and Workload override. They take effect at once.
+  rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse) {
     option (ddash.action) = {};
   }
-  // DeleteOverlay drops an overlay: its App falls back to the defaults.
-  rpc DeleteOverlay(DeleteOverlayRequest) returns (DeleteOverlayResponse) {
+  // IgnoreWarning Ignores one kind of Warning on an App until it is
+  // un-ignored: it is still listed, flagged, but doesn't count.
+  rpc IgnoreWarning(IgnoreWarningRequest) returns (IgnoreWarningResponse) {
+    option (ddash.action) = {};
+  }
+  // UnignoreWarning ends an Ignore.
+  rpc UnignoreWarning(UnignoreWarningRequest) returns (UnignoreWarningResponse) {
+    option (ddash.action) = {};
+  }
+  // Reattach moves orphaned App settings onto an App without settings of
+  // its own: the App keeps the orphan's id (and so its Check's history),
+  // settings and Ignores, with the other App's sources and URL. The other
+  // App's record goes.
+  rpc Reattach(ReattachRequest) returns (ReattachResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteOrphan deletes orphaned App settings.
+  rpc DeleteOrphan(DeleteOrphanRequest) returns (DeleteOrphanResponse) {
     option (ddash.action) = {disruptive: true};
   }
-  // CreateApp adds a manual App.
+  // PromoteAlias makes one of an App's aliases the hostname of its URL,
+  // keeping the scheme and port. It changes nothing outside ddash. It is
+  // also the fix for "URL not on the Proxy Host", whose Proxy Host's
+  // names are then the App's aliases.
+  rpc PromoteAlias(PromoteAliasRequest) returns (PromoteAliasResponse) {
+    option (ddash.action) = {};
+  }
+  // CreateApp adds a Link-only App.
   rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {
     option (ddash.action) = {};
   }
-  // UpdateApp replaces a manual App's details.
-  rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse) {
-    option (ddash.action) = {};
-  }
-  // DeleteApp removes a manual App.
+  // DeleteApp deletes a Link-only App.
   rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {
     option (ddash.action) = {disruptive: true};
   }
@@ -50,43 +71,125 @@ service AppsService {
   rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
-  // ListProxyHosts returns every server block in nginx-config's snapshot
-  // that forwards to an upstream (some location has a proxy_pass), by first
-  // server_name, each with the App it yields and what looks wrong with it.
-  rpc ListProxyHosts(ListProxyHostsRequest) returns (ListProxyHostsResponse) {
-    option (ddash.getter) = {refresh: SLOW};
-  }
 }
 
 // An App, as the Operator sees it.
 message App {
-  // "proxy:<first server_name>" for a discovered App, "manual:<generated>"
-  // for a manual one.
+  // Opaque and kept for the App's life, whatever its URL: Checks key on
+  // it.
   string id = 1;
-  // A discovered App's first server_name, the key of its overlay; empty for
-  // a manual App.
-  string server_name = 2;
-  // The display name: the overlay's, else derived from the first label of
-  // the server_name (e.g. "Grafana"); a manual App's own.
-  string name = 3;
+  // The display name: the settings', else derived from the first label
+  // of the URL's hostname (e.g. "Grafana").
+  string name = 2;
   // Where the App opens, e.g. "https://grafana.home.example".
-  string url = 4;
-  // The Proxy Host's other server_names.
-  repeated string aliases = 5;
-  // A homarr-labs/dashboard-icons name, e.g. "jellyfin"; empty to match one
-  // by name.
-  string icon = 6;
-  // The group the App shows under; empty for the default section.
-  string group = 7;
-  bool hidden = 8;
-  bool manual = 9;
-  // A discovered App's overlay as set; unset without one.
-  Overlay overlay = 10;
-  // The Workload behind the App: the overlay's override, else the
+  string url = 3;
+  // Its further hostnames: its Proxy Host's other domain names.
+  repeated string aliases = 4;
+  // The settings' icon, group and Hidden.
+  string icon = 5;
+  string group = 6;
+  bool hidden = 7;
+  // How it is reached, derived on every sync; unspecified while that
+  // can't be told (an orphan, or before its source was first read).
+  Reach reach = 8;
+  // Orphaned App settings: a touched App whose sources are gone. It has
+  // no Check while orphaned.
+  bool orphaned = 9;
+  // The Operator ever set a setting or an Ignore on it: such an App is
+  // kept as orphaned App settings when its sources disappear.
+  bool touched = 10;
+  // The settings as set; empty fields keep the defaults.
+  AppSettings settings = 11;
+  // The sources it is linked to.
+  Links links = 12;
+  // Its Proxy Host as last read; unset without one.
+  ProxyHost proxy_host = 13;
+  // The Workload behind the App: the settings' override, else the
   // container publishing the upstream's port on a Docker host, else the
   // Proxmox guest with the upstream's address. Unset for none, or while
   // the source that would list it is unavailable.
-  Workload workload = 11;
+  Workload workload = 14;
+  // What looks wrong, in WarningKind order, Ignored ones included.
+  repeated Warning warnings = 15;
+}
+
+enum Reach {
+  REACH_UNSPECIFIED = 0;
+  // A Proxy Host serves it.
+  REACH_PROXIED = 1;
+  // It has no source: the Operator added it by hand.
+  REACH_LINK_ONLY = 2;
+}
+
+// The Operator's ddash-only settings for an App.
+message AppSettings {
+  // Empty for the name derived from the URL.
+  string name = 1;
+  // A homarr-labs/dashboard-icons name, e.g. "jellyfin"; empty to match
+  // one by name.
+  string icon = 2;
+  // The group the App shows under; empty for the default section.
+  string group = 3;
+  bool hidden = 4;
+  // The Workload the App runs on, overriding the match; unset to match.
+  ddash.workload.WorkloadRef workload = 5;
+}
+
+// The sources an App's record is linked to, kept across their renames.
+message Links {
+  // Nginx Proxy Manager's id of its Proxy Host; 0 for none.
+  int64 proxy_host_id = 1;
+}
+
+// A Proxy Host as apps last read it from nginx-proxy-manager-api.
+message ProxyHost {
+  int64 id = 1;
+  // Its hostnames, sorted.
+  repeated string domain_names = 2;
+  // The upstream.
+  string forward_scheme = 3;
+  string forward_host = 4;
+  int32 forward_port = 5;
+  // The certificate's id; 0 for none.
+  int64 certificate_id = 6;
+  bool block_exploits = 7;
+  bool websockets = 8;
+  bool force_ssl = 9;
+  bool http2 = 10;
+  bool hsts = 11;
+  bool hsts_subdomains = 12;
+  // Disabled in Nginx Proxy Manager: saved but not served. A label, no
+  // Warning.
+  bool enabled = 13;
+  // Offline: nginx rejected its config when it was last saved.
+  bool offline = 14;
+  string nginx_error = 15;
+}
+
+// Something about an App the Operator should fix or Ignore.
+message Warning {
+  WarningKind kind = 1;
+  // Ignored on this App: listed, but doesn't count.
+  bool ignored = 2;
+  // What the kind needs said, e.g. nginx's error for an Offline Proxy
+  // Host; empty for most.
+  string detail = 3;
+}
+
+enum WarningKind {
+  WARNING_KIND_UNSPECIFIED = 0;
+  // A proxied App matched no Workload and has no override. Never while a
+  // Workload source can't be read.
+  WARNING_KIND_NO_WORKLOAD = 1;
+  // Its Proxy Host has no certificate.
+  WARNING_KIND_NO_TLS = 2;
+  // Its Proxy Host is Offline; the detail is nginx's error.
+  WARNING_KIND_PROXY_HOST_OFFLINE = 3;
+  // Its URL's hostname is no longer among its Proxy Host's domain names
+  // (renamed in Nginx Proxy Manager).
+  WARNING_KIND_URL_NOT_ON_PROXY_HOST = 4;
+  // Orphaned App settings: a touched App lost its sources.
+  WARNING_KIND_ORPHANED = 5;
 }
 
 // A Workload as apps last read it.
@@ -98,26 +201,82 @@ message Workload {
   // Docker's state (running, exited, ...) or Proxmox's status (running,
   // stopped); empty when not known.
   string state = 3;
-  // Set by the overlay rather than matched.
+  // Set by the settings rather than matched.
   bool override = 4;
 }
 
-// The Operator's display settings for a discovered App, kept when its
-// Proxy Host disappears and re-applied when it returns.
-message Overlay {
-  // The first server_name of the App it applies to.
-  string server_name = 1;
-  // Empty fields keep the App's defaults.
-  string name = 2;
-  string icon = 3;
-  string group = 4;
-  bool hidden = 5;
-  // The Workload the App runs on, overriding the match; unset to match.
-  ddash.workload.WorkloadRef workload = 6;
+// How apps last read one of its sources. While reads fail, Apps keep the
+// last good read: nothing is removed, and before the first good read
+// since apps started no Warning needing the source is derived.
+message SourceRead {
+  // When the last good read was; unset before the first since apps
+  // started.
+  google.protobuf.Timestamp read_at = 1;
+  // Why the last read failed; empty when it worked.
+  string error = 2;
+  // When reads started failing; unset while they work.
+  google.protobuf.Timestamp failing_since = 3;
 }
 
-// What the Operator gives a manual App.
-message ManualApp {
+message ListAppsRequest {}
+
+message ListAppsResponse {
+  // Every App, Hidden and orphaned ones included, by name.
+  repeated App apps = 1;
+  // nginx-proxy-manager-api's Proxy Hosts.
+  SourceRead proxy_hosts = 2;
+}
+
+message RefreshRequest {}
+
+message RefreshResponse {}
+
+message SetSettingsRequest {
+  string id = 1;
+  AppSettings settings = 2;
+}
+
+message SetSettingsResponse {}
+
+message IgnoreWarningRequest {
+  string id = 1;
+  WarningKind kind = 2;
+}
+
+message IgnoreWarningResponse {}
+
+message UnignoreWarningRequest {
+  string id = 1;
+  WarningKind kind = 2;
+}
+
+message UnignoreWarningResponse {}
+
+message ReattachRequest {
+  // The orphaned App settings' id.
+  string id = 1;
+  // The App to reattach them to.
+  string to = 2;
+}
+
+message ReattachResponse {}
+
+message DeleteOrphanRequest {
+  string id = 1;
+}
+
+message DeleteOrphanResponse {}
+
+message PromoteAliasRequest {
+  string id = 1;
+  // One of the App's aliases.
+  string alias = 2;
+}
+
+message PromoteAliasResponse {}
+
+// What the Operator gives a Link-only App.
+message LinkOnlyApp {
   string name = 1;
   // An http or https URL.
   string url = 2;
@@ -125,54 +284,11 @@ message ManualApp {
   string group = 4;
 }
 
-message ListAppsRequest {}
-
-message ListAppsResponse {
-  // Every App, hidden ones included, by name.
-  repeated App apps = 1;
-  // Overlays whose server_name no App has (its Proxy Host is gone or was
-  // renamed), to re-attach or delete.
-  repeated Overlay unmatched = 2;
-  // Why nginx-config couldn't be read; the discovered Apps are then those
-  // of the last read. Empty when it could.
-  string discovery_error = 3;
-}
-
-message SetOverlayRequest {
-  Overlay overlay = 1;
-}
-
-message SetOverlayResponse {}
-
-message AttachOverlayRequest {
-  // The overlay's current key.
-  string server_name = 1;
-  // The first server_name of the App to attach it to.
-  string to = 2;
-}
-
-message AttachOverlayResponse {}
-
-message DeleteOverlayRequest {
-  string server_name = 1;
-}
-
-message DeleteOverlayResponse {}
-
 message CreateAppRequest {
-  ManualApp app = 1;
+  LinkOnlyApp app = 1;
 }
 
 message CreateAppResponse {
-  App app = 1;
-}
-
-message UpdateAppRequest {
-  string id = 1;
-  ManualApp app = 2;
-}
-
-message UpdateAppResponse {
   App app = 1;
 }
 
@@ -186,43 +302,4 @@ message ListWorkloadsRequest {}
 
 message ListWorkloadsResponse {
   repeated Workload workloads = 1;
-}
-
-message ListProxyHostsRequest {}
-
-message ListProxyHostsResponse {
-  // By first server_name; blocks sharing one keep nginx's order.
-  repeated ProxyHost proxy_hosts = 1;
-  // Why nginx-config couldn't be read; the Proxy Hosts are then those of
-  // the last read. Empty when it could.
-  string discovery_error = 2;
-}
-
-// A Proxy Host: an nginx server block that forwards to an upstream.
-message ProxyHost {
-  // Where the block starts.
-  string file = 1;
-  int64 line = 2;
-  // As written; the first is the App's key.
-  repeated string server_names = 3;
-  // The proxy_pass of location "/", else of the first location with one,
-  // as written, e.g. "http://grafana".
-  string upstream = 4;
-  // The servers of the upstream block the proxy_pass names; empty when it
-  // names none.
-  repeated string upstream_servers = 5;
-  // The App the block yields, as ListApps lists it; unset for a block that
-  // yields none (a catch-all, or a wildcard or regex first server_name).
-  App app = 6;
-  // What looks wrong, in this order.
-  repeated ProxyHostWarning warnings = 7;
-}
-
-enum ProxyHostWarning {
-  PROXY_HOST_WARNING_UNSPECIFIED = 0;
-  // The App's upstream matches no Workload. Never while a Workload source
-  // can't be read, or without an App.
-  PROXY_HOST_WARNING_NO_WORKLOAD = 1;
-  // None of the block's listens has ssl.
-  PROXY_HOST_WARNING_NO_TLS = 2;
 }

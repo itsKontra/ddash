@@ -4,7 +4,7 @@ import { afterEach, expect, it } from "vitest";
 import { dashboardIcon } from "@ddash/ui";
 import plugin from "./index";
 import { settle, unavailable } from "@ddash/plugin/testing";
-import { actions, allUp, list, renderScoped } from "./testing";
+import { actions, allUp, list, renderScoped, warned } from "./testing";
 
 afterEach(cleanup);
 
@@ -30,7 +30,7 @@ it("shows the visible Apps as cards by group, ungrouped ones in the default sect
   renderScoped(<Page />);
   await settle();
 
-  expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Unmatched settings"]);
+  expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Orphaned App settings"]);
   const names = (group: string) =>
     within(screen.getByRole("list", { name: group }))
       .getAllByRole("listitem")
@@ -80,13 +80,13 @@ it("searches the cards in every group, Hidden included, by name, domain or group
     ["Hidden", "Old"],
   ]);
   expect(search).toBe("?q=home.example");
-  // A group with no match is gone; Unmatched settings isn't searched.
-  expect(sectionNames()).toEqual(["Monitoring", "Ungrouped", "Hidden", "Unmatched settings"]);
+  // A group with no match is gone; orphaned App settings aren't searched.
+  expect(sectionNames()).toEqual(["Monitoring", "Ungrouped", "Hidden", "Orphaned App settings"]);
   expect(screen.getByRole("rowheader", { name: "paperless.home.example" })).toBeTruthy();
 
   fireEvent.change(searchbox(), { target: { value: "" } });
   expect(search).toBe("");
-  expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Unmatched settings"]);
+  expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Orphaned App settings"]);
 });
 
 it("opens on the search a link carries", async () => {
@@ -103,7 +103,7 @@ it("says so when no App matches the search", async () => {
 
   expect(screen.getByText('No Apps match "nothing-like-it"')).toBeTruthy();
   expect(cards()).toEqual([]);
-  expect(sectionNames()).toEqual(["Unmatched settings"]);
+  expect(sectionNames()).toEqual(["Orphaned App settings"]);
 });
 
 it("shows each card's Check status, and warns of a certificate expiring within 14 days", async () => {
@@ -165,7 +165,7 @@ it("shows each card's icon, name, URL and aliases, and opens the URL on a click"
   expect(pf.querySelector("img")?.getAttribute("src")).toBe(dashboardIcon("pfsense"));
 });
 
-it("sets a discovered App's display settings", async () => {
+it("sets a discovered App's settings", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
@@ -181,24 +181,28 @@ it("sets a discovered App's display settings", async () => {
   await settle();
 
   expect(actions(calls)).toEqual([
-    { method: "SetOverlay", body: { overlay: { serverName: "jellyfin.home.example", name: "Media", icon: "emby", group: "Media", hidden: true } } },
+    { method: "SetSettings", body: { id: "proxy:jellyfin.home.example", settings: { name: "Media", icon: "emby", group: "Media", hidden: true } } },
   ]);
   expect(screen.queryByRole("dialog")).toBeNull();
 });
 
-it("resets a discovered App's settings after a confirm", async () => {
+it("resets a touched App's settings, and offers no Reset on an untouched one", async () => {
   const calls = renderScoped(<Page />);
+  await settle();
+
+  fireEvent.click(screen.getByRole("button", { name: "Edit Jellyfin" }));
+  expect(within(screen.getByRole("dialog", { name: "Jellyfin" })).queryByRole("button", { name: "Reset" })).toBeNull();
+  fireEvent.click(within(screen.getByRole("dialog", { name: "Jellyfin" })).getByRole("button", { name: "Cancel" }));
   await settle();
 
   fireEvent.click(screen.getByRole("button", { name: "Edit Grafana" }));
   fireEvent.click(within(screen.getByRole("dialog", { name: "Grafana" })).getByRole("button", { name: "Reset" }));
-  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Reset" }));
   await settle();
 
-  expect(actions(calls)).toEqual([{ method: "DeleteOverlay", body: { serverName: "grafana.home.example" } }]);
+  expect(actions(calls)).toEqual([{ method: "SetSettings", body: { id: "proxy:grafana.home.example", settings: {} } }]);
 });
 
-it("adds a manual App", async () => {
+it("adds a Link-only App", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
@@ -247,13 +251,15 @@ it("shows why a save was refused and keeps the form open", async () => {
   expect(within(screen.getByRole("dialog", { name: "Add App" })).getByRole("alert").textContent).toMatch(/url must be an http or https URL/);
 });
 
-it("edits and deletes a manual App", async () => {
+it("edits and deletes a Link-only App, its URL fixed", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
   fireEvent.click(screen.getByRole("button", { name: "Edit pfSense" }));
   const dialog = screen.getByRole("dialog", { name: "pfSense" });
-  expect((within(dialog).getByLabelText("URL") as HTMLInputElement).value).toBe("https://198.18.0.1");
+  const url = within(dialog).getByLabelText("URL") as HTMLInputElement;
+  expect(url.value).toBe("https://198.18.0.1");
+  expect(url.readOnly).toBe(true);
   fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Firewall" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
   await settle();
@@ -264,14 +270,14 @@ it("edits and deletes a manual App", async () => {
   await settle();
 
   expect(actions(calls)).toEqual([
-    { method: "UpdateApp", body: { id: "manual:00aa11bb22cc33dd", app: { name: "Firewall", url: "https://198.18.0.1", icon: "pfsense", group: "Network" } } },
-    { method: "DeleteApp", body: { id: "manual:00aa11bb22cc33dd" } },
+    { method: "SetSettings", body: { id: "app:00aa11bb22cc33dd", settings: { name: "Firewall", icon: "pfsense", group: "Network" } } },
+    { method: "DeleteApp", body: { id: "app:00aa11bb22cc33dd" } },
   ]);
 });
 
-/** An unmatched setting's row in the Unmatched settings table, by its server name. */
+/** Orphaned App settings' row in their table, by the hostname they were kept for. */
 const unmatched = (serverName: string) =>
-  within(within(screen.getByRole("region", { name: "Unmatched settings" })).getByRole("table")).getByRole("rowheader", { name: serverName }).closest("tr")!;
+  within(within(screen.getByRole("region", { name: "Orphaned App settings" })).getByRole("table")).getByRole("rowheader", { name: serverName }).closest("tr")!;
 
 /** Opens the strip of the unmatched setting serverName and returns it. */
 function openUnmatched(serverName: string) {
@@ -282,25 +288,25 @@ function openUnmatched(serverName: string) {
 /** Presses button in the strip of the unmatched setting serverName. */
 const chooseUnmatched = (serverName: string, button: string) => fireEvent.click(within(openUnmatched(serverName)).getByRole("button", { name: button }));
 
-it("tables the unmatched settings, each with what it sets", async () => {
+it("tables the orphaned App settings, each with what it keeps", async () => {
   renderScoped(<Page />);
   await settle();
 
   expect(unmatched("paperless.home.example").textContent).toContain("Documents · group Office");
 });
 
-it("puts an unmatched setting's Actions in its strip, with no ⋯ Menu", async () => {
+it("puts orphaned App settings' Actions in their strip, with no ⋯ Menu", async () => {
   renderScoped(<Page />);
   await settle();
 
-  const table = within(screen.getByRole("region", { name: "Unmatched settings" })).getByRole("table");
+  const table = within(screen.getByRole("region", { name: "Orphaned App settings" })).getByRole("table");
   expect(table.querySelector('[aria-haspopup="menu"]')).toBeNull();
   const strip = openUnmatched("paperless.home.example");
   expect(within(strip).getByRole("status").textContent).toBe("Kept for paperless.home.example");
   expect(within(strip).getAllByRole("button").map((b) => b.textContent)).toEqual(["Re-attach…", "Delete"]);
 });
 
-it("re-attaches unmatched settings to an App without any, from the row's strip", async () => {
+it("re-attaches orphaned App settings to an App without any, from the row's strip", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
@@ -308,17 +314,17 @@ it("re-attaches unmatched settings to an App without any, from the row's strip",
   const dialog = screen.getByRole("dialog", { name: "Re-attach paperless.home.example" });
   const target = within(dialog).getByRole("combobox", { name: "Re-attach to" });
   // Only Apps without settings of their own.
-  expect(within(target).getAllByRole("option").map((o) => o.getAttribute("value"))).toEqual(["", "jellyfin.home.example", "printer.home.example"]);
+  expect(within(target).getAllByRole("option").map((o) => o.getAttribute("value"))).toEqual(["", "proxy:jellyfin.home.example", "proxy:printer.home.example"]);
   expect((within(dialog).getByRole("button", { name: "Re-attach" }) as HTMLButtonElement).disabled).toBe(true);
-  fireEvent.change(target, { target: { value: "jellyfin.home.example" } });
+  fireEvent.change(target, { target: { value: "proxy:jellyfin.home.example" } });
   fireEvent.click(within(dialog).getByRole("button", { name: "Re-attach" }));
   await settle();
 
-  expect(actions(calls)).toEqual([{ method: "AttachOverlay", body: { serverName: "paperless.home.example", to: "jellyfin.home.example" } }]);
+  expect(actions(calls)).toEqual([{ method: "Reattach", body: { id: "proxy:paperless.home.example", to: "proxy:jellyfin.home.example" } }]);
   expect(screen.queryByRole("dialog", { name: "Re-attach paperless.home.example" })).toBeNull();
 });
 
-it("deletes unmatched settings from the row's strip after a confirm", async () => {
+it("deletes orphaned App settings from the row's strip after a confirm", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
@@ -328,7 +334,7 @@ it("deletes unmatched settings from the row's strip after a confirm", async () =
   fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
   await settle();
 
-  expect(actions(calls)).toEqual([{ method: "DeleteOverlay", body: { serverName: "paperless.home.example" } }]);
+  expect(actions(calls)).toEqual([{ method: "DeleteOrphan", body: { id: "proxy:paperless.home.example" } }]);
 });
 
 it("shows a skeleton while apps answers, and no loading text", async () => {
@@ -348,11 +354,11 @@ it("shows apps being unavailable as a failure", async () => {
   expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
 });
 
-it("says when nginx-config couldn't be read", async () => {
-  renderScoped(<Page />, { ListApps: () => Response.json({ apps: [], discoveryError: "nginx-config is not configured" }) });
+it("says when Nginx Proxy Manager couldn't be read", async () => {
+  renderScoped(<Page />, { ListApps: () => Response.json({ apps: [], proxyHosts: { error: "nginx-proxy-manager-api is not configured" } }) });
   await settle();
 
-  expect(screen.getByRole("status").textContent).toMatch(/nginx-config is not configured/);
+  expect(screen.getByRole("status").textContent).toMatch(/Nginx Proxy Manager: nginx-proxy-manager-api is not configured/);
   expect(screen.getByText("No Apps yet")).toBeTruthy();
   // The empty state offers adding one, as the Page title does.
   expect(screen.getAllByRole("button", { name: "Add App" })).toHaveLength(2);
@@ -402,10 +408,7 @@ it("overrides a discovered App's Workload with one the sources list", async () =
   await settle();
 
   expect(actions(calls)).toEqual([
-    {
-      method: "SetOverlay",
-      body: { overlay: { serverName: "jellyfin.home.example", workload: { kind: "KIND_LXC", host: "pve", id: "102" } } },
-    },
+    { method: "SetSettings", body: { id: "proxy:jellyfin.home.example", settings: { workload: { kind: "KIND_LXC", host: "pve", id: "102" } } } },
   ]);
 });
 
@@ -423,10 +426,7 @@ it("sets an external host as a discovered App's Workload", async () => {
   await settle();
 
   expect(actions(calls)).toEqual([
-    {
-      method: "SetOverlay",
-      body: { overlay: { serverName: "printer.home.example", workload: { kind: "KIND_EXTERNAL", host: "198.18.1.40" } } },
-    },
+    { method: "SetSettings", body: { id: "proxy:printer.home.example", settings: { workload: { kind: "KIND_EXTERNAL", host: "198.18.1.40" } } } },
   ]);
 });
 
@@ -435,7 +435,7 @@ it("keeps an override no source lists on offer", async () => {
   const overridden = {
     ...list,
     apps: list.apps.map((a) =>
-      a.name === "Printer" ? { ...a, overlay: { serverName: "printer.home.example", workload: lost.ref }, workload: { ...lost, override: true } } : a,
+      a.name === "Printer" ? { ...a, settings: { workload: lost.ref }, workload: { ...lost, override: true } } : a,
     ),
   };
   const calls = renderScoped(<Page />, { ListApps: () => Response.json(overridden) });
@@ -451,6 +451,23 @@ it("keeps an override no source lists on offer", async () => {
   await settle();
 
   expect(actions(calls)).toEqual([
-    { method: "SetOverlay", body: { overlay: { serverName: "printer.home.example", workload: { kind: "KIND_LXC", host: "pve", id: "130" } } } },
+    { method: "SetSettings", body: { id: "proxy:printer.home.example", settings: { workload: { kind: "KIND_LXC", host: "pve", id: "130" } } } },
   ]);
+});
+
+it("shows each card's Warnings that count, and a disabled Proxy Host", async () => {
+  const disabled = {
+    ...warned,
+    apps: warned.apps.map((a) => (a.name === "Grafana" ? { ...a, proxyHost: { id: "3", enabled: false } } : a)),
+  };
+  renderScoped(<Page />, { ListApps: () => Response.json(disabled) });
+  await settle();
+
+  const warnings = (name: string) => within(screen.getByRole("listitem", { name })).queryByLabelText("Warnings")?.textContent;
+  expect(warnings("Jellyfin")).toBe("No Workload · Proxy Host offline");
+  // Printer's No TLS is Ignored; Old is Hidden.
+  expect(warnings("Printer")).toBe("No Workload");
+  expect(warnings("Old")).toBeUndefined();
+  expect(warnings("Grafana")).toBeUndefined();
+  expect(screen.getByRole("listitem", { name: "Grafana" }).textContent).toContain("Proxy Host disabled");
 });

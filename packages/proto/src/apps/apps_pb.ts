@@ -2,24 +2,27 @@
 // @generated from file apps/apps.proto (package ddash.apps, syntax proto3)
 /* eslint-disable */
 
-// apps turns every nginx Proxy Host into an App, adds the Operator's manual
-// Apps, and keeps the Operator's display settings (the overlay) for both.
+// apps keeps a record per App, discovered from Nginx Proxy Manager's Proxy
+// Hosts or added as Link only, with the Operator's settings and Ignores,
+// and derives each App's Warnings on every sync.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { WorkloadRef } from "../ddash/workload/workload_pb";
 import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
+import type { Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file apps/apps.proto.
  */
 export const file_apps_apps: GenFile = /*@__PURE__*/
-  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLdAQoDQXBwEgoKAmlkGAEgASgJEhMKC3NlcnZlcl9uYW1lGAIgASgJEgwKBG5hbWUYAyABKAkSCwoDdXJsGAQgASgJEg8KB2FsaWFzZXMYBSADKAkSDAoEaWNvbhgGIAEoCRINCgVncm91cBgHIAEoCRIOCgZoaWRkZW4YCCABKAgSDgoGbWFudWFsGAkgASgIEiQKB292ZXJsYXkYCiABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSJgoId29ya2xvYWQYCyABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkImMKCFdvcmtsb2FkEigKA3JlZhgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIb3ZlcnJpZGUYBCABKAgiiAEKB092ZXJsYXkSEwoLc2VydmVyX25hbWUYASABKAkSDAoEbmFtZRgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJEg4KBmhpZGRlbhgFIAEoCBItCgh3b3JrbG9hZBgGIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIkMKCU1hbnVhbEFwcBIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJIhEKD0xpc3RBcHBzUmVxdWVzdCJyChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBImCgl1bm1hdGNoZWQYAiADKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkSFwoPZGlzY292ZXJ5X2Vycm9yGAMgASgJIjkKEVNldE92ZXJsYXlSZXF1ZXN0EiQKB292ZXJsYXkYASABKAsyEy5kZGFzaC5hcHBzLk92ZXJsYXkiFAoSU2V0T3ZlcmxheVJlc3BvbnNlIjcKFEF0dGFjaE92ZXJsYXlSZXF1ZXN0EhMKC3NlcnZlcl9uYW1lGAEgASgJEgoKAnRvGAIgASgJIhcKFUF0dGFjaE92ZXJsYXlSZXNwb25zZSIrChREZWxldGVPdmVybGF5UmVxdWVzdBITCgtzZXJ2ZXJfbmFtZRgBIAEoCSIXChVEZWxldGVPdmVybGF5UmVzcG9uc2UiNgoQQ3JlYXRlQXBwUmVxdWVzdBIiCgNhcHAYASABKAsyFS5kZGFzaC5hcHBzLk1hbnVhbEFwcCIxChFDcmVhdGVBcHBSZXNwb25zZRIcCgNhcHAYASABKAsyDy5kZGFzaC5hcHBzLkFwcCJCChBVcGRhdGVBcHBSZXF1ZXN0EgoKAmlkGAEgASgJEiIKA2FwcBgCIAEoCzIVLmRkYXNoLmFwcHMuTWFudWFsQXBwIjEKEVVwZGF0ZUFwcFJlc3BvbnNlEhwKA2FwcBgBIAEoCzIPLmRkYXNoLmFwcHMuQXBwIh4KEERlbGV0ZUFwcFJlcXVlc3QSCgoCaWQYASABKAkiEwoRRGVsZXRlQXBwUmVzcG9uc2UiFgoUTGlzdFdvcmtsb2Fkc1JlcXVlc3QiQAoVTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlEicKCXdvcmtsb2FkcxgBIAMoCzIULmRkYXNoLmFwcHMuV29ya2xvYWQiFwoVTGlzdFByb3h5SG9zdHNSZXF1ZXN0Il0KFkxpc3RQcm94eUhvc3RzUmVzcG9uc2USKgoLcHJveHlfaG9zdHMYASADKAsyFS5kZGFzaC5hcHBzLlByb3h5SG9zdBIXCg9kaXNjb3ZlcnlfZXJyb3IYAiABKAkitwEKCVByb3h5SG9zdBIMCgRmaWxlGAEgASgJEgwKBGxpbmUYAiABKAMSFAoMc2VydmVyX25hbWVzGAMgAygJEhAKCHVwc3RyZWFtGAQgASgJEhgKEHVwc3RyZWFtX3NlcnZlcnMYBSADKAkSHAoDYXBwGAYgASgLMg8uZGRhc2guYXBwcy5BcHASLgoId2FybmluZ3MYByADKA4yHC5kZGFzaC5hcHBzLlByb3h5SG9zdFdhcm5pbmcqeQoQUHJveHlIb3N0V2FybmluZxIiCh5QUk9YWV9IT1NUX1dBUk5JTkdfVU5TUEVDSUZJRUQQABIiCh5QUk9YWV9IT1NUX1dBUk5JTkdfTk9fV09SS0xPQUQQARIdChlQUk9YWV9IT1NUX1dBUk5JTkdfTk9fVExTEAIylAYKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASUQoKU2V0T3ZlcmxheRIdLmRkYXNoLmFwcHMuU2V0T3ZlcmxheVJlcXVlc3QaHi5kZGFzaC5hcHBzLlNldE92ZXJsYXlSZXNwb25zZSIEkrUYABJaCg1BdHRhY2hPdmVybGF5EiAuZGRhc2guYXBwcy5BdHRhY2hPdmVybGF5UmVxdWVzdBohLmRkYXNoLmFwcHMuQXR0YWNoT3ZlcmxheVJlc3BvbnNlIgSStRgAElwKDURlbGV0ZU92ZXJsYXkSIC5kZGFzaC5hcHBzLkRlbGV0ZU92ZXJsYXlSZXF1ZXN0GiEuZGRhc2guYXBwcy5EZWxldGVPdmVybGF5UmVzcG9uc2UiBpK1GAIIARJOCglDcmVhdGVBcHASHC5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlcXVlc3QaHS5kZGFzaC5hcHBzLkNyZWF0ZUFwcFJlc3BvbnNlIgSStRgAEk4KCVVwZGF0ZUFwcBIcLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVxdWVzdBodLmRkYXNoLmFwcHMuVXBkYXRlQXBwUmVzcG9uc2UiBJK1GAASUAoJRGVsZXRlQXBwEhwuZGRhc2guYXBwcy5EZWxldGVBcHBSZXF1ZXN0Gh0uZGRhc2guYXBwcy5EZWxldGVBcHBSZXNwb25zZSIGkrUYAggBEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GAASXQoOTGlzdFByb3h5SG9zdHMSIS5kZGFzaC5hcHBzLkxpc3RQcm94eUhvc3RzUmVxdWVzdBoiLmRkYXNoLmFwcHMuTGlzdFByb3h5SG9zdHNSZXNwb25zZSIEirUYAEI6WjhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FwcHMvYXBwc3BiO2FwcHNwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload]);
+  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyL2AgoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nIncKC0FwcFNldHRpbmdzEgwKBG5hbWUYASABKAkSDAoEaWNvbhgCIAEoCRINCgVncm91cBgDIAEoCRIOCgZoaWRkZW4YBCABKAgSLQoId29ya2xvYWQYBSABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiIeCgVMaW5rcxIVCg1wcm94eV9ob3N0X2lkGAEgASgDIrUCCglQcm94eUhvc3QSCgoCaWQYASABKAMSFAoMZG9tYWluX25hbWVzGAIgAygJEhYKDmZvcndhcmRfc2NoZW1lGAMgASgJEhQKDGZvcndhcmRfaG9zdBgEIAEoCRIUCgxmb3J3YXJkX3BvcnQYBSABKAUSFgoOY2VydGlmaWNhdGVfaWQYBiABKAMSFgoOYmxvY2tfZXhwbG9pdHMYByABKAgSEgoKd2Vic29ja2V0cxgIIAEoCBIRCglmb3JjZV9zc2wYCSABKAgSDQoFaHR0cDIYCiABKAgSDAoEaHN0cxgLIAEoCBIXCg9oc3RzX3N1YmRvbWFpbnMYDCABKAgSDwoHZW5hYmxlZBgNIAEoCBIPCgdvZmZsaW5lGA4gASgIEhMKC25naW54X2Vycm9yGA8gASgJIlEKB1dhcm5pbmcSJQoEa2luZBgBIAEoDjIXLmRkYXNoLmFwcHMuV2FybmluZ0tpbmQSDwoHaWdub3JlZBgCIAEoCBIOCgZkZXRhaWwYAyABKAkiYwoIV29ya2xvYWQSKAoDcmVmGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghvdmVycmlkZRgEIAEoCCJ7CgpTb3VyY2VSZWFkEisKB3JlYWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBWVycm9yGAIgASgJEjEKDWZhaWxpbmdfc2luY2UYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhEKD0xpc3RBcHBzUmVxdWVzdCJeChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBIrCgtwcm94eV9ob3N0cxgCIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZCIQCg5SZWZyZXNoUmVxdWVzdCIRCg9SZWZyZXNoUmVzcG9uc2UiSwoSU2V0U2V0dGluZ3NSZXF1ZXN0EgoKAmlkGAEgASgJEikKCHNldHRpbmdzGAIgASgLMhcuZGRhc2guYXBwcy5BcHBTZXR0aW5ncyIVChNTZXRTZXR0aW5nc1Jlc3BvbnNlIkkKFElnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhcKFUlnbm9yZVdhcm5pbmdSZXNwb25zZSJLChZVbmlnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhkKF1VuaWdub3JlV2FybmluZ1Jlc3BvbnNlIikKD1JlYXR0YWNoUmVxdWVzdBIKCgJpZBgBIAEoCRIKCgJ0bxgCIAEoCSISChBSZWF0dGFjaFJlc3BvbnNlIiEKE0RlbGV0ZU9ycGhhblJlcXVlc3QSCgoCaWQYASABKAkiFgoURGVsZXRlT3JwaGFuUmVzcG9uc2UiMAoTUHJvbW90ZUFsaWFzUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVhbGlhcxgCIAEoCSIWChRQcm9tb3RlQWxpYXNSZXNwb25zZSJFCgtMaW5rT25seUFwcBIMCgRuYW1lGAEgASgJEgsKA3VybBgCIAEoCRIMCgRpY29uGAMgASgJEg0KBWdyb3VwGAQgASgJIjgKEENyZWF0ZUFwcFJlcXVlc3QSJAoDYXBwGAEgASgLMhcuZGRhc2guYXBwcy5MaW5rT25seUFwcCIxChFDcmVhdGVBcHBSZXNwb25zZRIcCgNhcHAYASABKAsyDy5kZGFzaC5hcHBzLkFwcCIeChBEZWxldGVBcHBSZXF1ZXN0EgoKAmlkGAEgASgJIhMKEURlbGV0ZUFwcFJlc3BvbnNlIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkAKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRInCgl3b3JrbG9hZHMYASADKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkKkYKBVJlYWNoEhUKEVJFQUNIX1VOU1BFQ0lGSUVEEAASEQoNUkVBQ0hfUFJPWElFRBABEhMKD1JFQUNIX0xJTktfT05MWRACKsoBCgtXYXJuaW5nS2luZBIcChhXQVJOSU5HX0tJTkRfVU5TUEVDSUZJRUQQABIcChhXQVJOSU5HX0tJTkRfTk9fV09SS0xPQUQQARIXChNXQVJOSU5HX0tJTkRfTk9fVExTEAISIwofV0FSTklOR19LSU5EX1BST1hZX0hPU1RfT0ZGTElORRADEiYKIldBUk5JTkdfS0lORF9VUkxfTk9UX09OX1BST1hZX0hPU1QQBBIZChVXQVJOSU5HX0tJTkRfT1JQSEFORUQQBTK3BwoLQXBwc1NlcnZpY2USSwoITGlzdEFwcHMSGy5kZGFzaC5hcHBzLkxpc3RBcHBzUmVxdWVzdBocLmRkYXNoLmFwcHMuTGlzdEFwcHNSZXNwb25zZSIEirUYABJICgdSZWZyZXNoEhouZGRhc2guYXBwcy5SZWZyZXNoUmVxdWVzdBobLmRkYXNoLmFwcHMuUmVmcmVzaFJlc3BvbnNlIgSStRgAElQKC1NldFNldHRpbmdzEh4uZGRhc2guYXBwcy5TZXRTZXR0aW5nc1JlcXVlc3QaHy5kZGFzaC5hcHBzLlNldFNldHRpbmdzUmVzcG9uc2UiBJK1GAASWgoNSWdub3JlV2FybmluZxIgLmRkYXNoLmFwcHMuSWdub3JlV2FybmluZ1JlcXVlc3QaIS5kZGFzaC5hcHBzLklnbm9yZVdhcm5pbmdSZXNwb25zZSIEkrUYABJgCg9Vbmlnbm9yZVdhcm5pbmcSIi5kZGFzaC5hcHBzLlVuaWdub3JlV2FybmluZ1JlcXVlc3QaIy5kZGFzaC5hcHBzLlVuaWdub3JlV2FybmluZ1Jlc3BvbnNlIgSStRgAEksKCFJlYXR0YWNoEhsuZGRhc2guYXBwcy5SZWF0dGFjaFJlcXVlc3QaHC5kZGFzaC5hcHBzLlJlYXR0YWNoUmVzcG9uc2UiBJK1GAASWQoMRGVsZXRlT3JwaGFuEh8uZGRhc2guYXBwcy5EZWxldGVPcnBoYW5SZXF1ZXN0GiAuZGRhc2guYXBwcy5EZWxldGVPcnBoYW5SZXNwb25zZSIGkrUYAggBElcKDFByb21vdGVBbGlhcxIfLmRkYXNoLmFwcHMuUHJvbW90ZUFsaWFzUmVxdWVzdBogLmRkYXNoLmFwcHMuUHJvbW90ZUFsaWFzUmVzcG9uc2UiBJK1GAASTgoJQ3JlYXRlQXBwEhwuZGRhc2guYXBwcy5DcmVhdGVBcHBSZXF1ZXN0Gh0uZGRhc2guYXBwcy5DcmVhdGVBcHBSZXNwb25zZSIEkrUYABJQCglEZWxldGVBcHASHC5kZGFzaC5hcHBzLkRlbGV0ZUFwcFJlcXVlc3QaHS5kZGFzaC5hcHBzLkRlbGV0ZUFwcFJlc3BvbnNlIgaStRgCCAESWgoNTGlzdFdvcmtsb2FkcxIgLmRkYXNoLmFwcHMuTGlzdFdvcmtsb2Fkc1JlcXVlc3QaIS5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXNwb25zZSIEirUYAEI6WjhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FwcHMvYXBwc3BiO2FwcHNwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_timestamp]);
 
 /**
- * apps has nothing to configure: Apps come from nginx-config's snapshot.
+ * apps has nothing to configure: Apps come from its sources.
  *
  * @generated from message ddash.apps.AppsConfig
  */
@@ -40,84 +43,113 @@ export const AppsConfigSchema: GenMessage<AppsConfig> = /*@__PURE__*/
  */
 export type App = Message<"ddash.apps.App"> & {
   /**
-   * "proxy:<first server_name>" for a discovered App, "manual:<generated>"
-   * for a manual one.
+   * Opaque and kept for the App's life, whatever its URL: Checks key on
+   * it.
    *
    * @generated from field: string id = 1;
    */
   id: string;
 
   /**
-   * A discovered App's first server_name, the key of its overlay; empty for
-   * a manual App.
+   * The display name: the settings', else derived from the first label
+   * of the URL's hostname (e.g. "Grafana").
    *
-   * @generated from field: string server_name = 2;
-   */
-  serverName: string;
-
-  /**
-   * The display name: the overlay's, else derived from the first label of
-   * the server_name (e.g. "Grafana"); a manual App's own.
-   *
-   * @generated from field: string name = 3;
+   * @generated from field: string name = 2;
    */
   name: string;
 
   /**
    * Where the App opens, e.g. "https://grafana.home.example".
    *
-   * @generated from field: string url = 4;
+   * @generated from field: string url = 3;
    */
   url: string;
 
   /**
-   * The Proxy Host's other server_names.
+   * Its further hostnames: its Proxy Host's other domain names.
    *
-   * @generated from field: repeated string aliases = 5;
+   * @generated from field: repeated string aliases = 4;
    */
   aliases: string[];
 
   /**
-   * A homarr-labs/dashboard-icons name, e.g. "jellyfin"; empty to match one
-   * by name.
+   * The settings' icon, group and Hidden.
    *
-   * @generated from field: string icon = 6;
+   * @generated from field: string icon = 5;
    */
   icon: string;
 
   /**
-   * The group the App shows under; empty for the default section.
-   *
-   * @generated from field: string group = 7;
+   * @generated from field: string group = 6;
    */
   group: string;
 
   /**
-   * @generated from field: bool hidden = 8;
+   * @generated from field: bool hidden = 7;
    */
   hidden: boolean;
 
   /**
-   * @generated from field: bool manual = 9;
-   */
-  manual: boolean;
-
-  /**
-   * A discovered App's overlay as set; unset without one.
+   * How it is reached, derived on every sync; unspecified while that
+   * can't be told (an orphan, or before its source was first read).
    *
-   * @generated from field: ddash.apps.Overlay overlay = 10;
+   * @generated from field: ddash.apps.Reach reach = 8;
    */
-  overlay?: Overlay | undefined;
+  reach: Reach;
 
   /**
-   * The Workload behind the App: the overlay's override, else the
+   * Orphaned App settings: a touched App whose sources are gone. It has
+   * no Check while orphaned.
+   *
+   * @generated from field: bool orphaned = 9;
+   */
+  orphaned: boolean;
+
+  /**
+   * The Operator ever set a setting or an Ignore on it: such an App is
+   * kept as orphaned App settings when its sources disappear.
+   *
+   * @generated from field: bool touched = 10;
+   */
+  touched: boolean;
+
+  /**
+   * The settings as set; empty fields keep the defaults.
+   *
+   * @generated from field: ddash.apps.AppSettings settings = 11;
+   */
+  settings?: AppSettings | undefined;
+
+  /**
+   * The sources it is linked to.
+   *
+   * @generated from field: ddash.apps.Links links = 12;
+   */
+  links?: Links | undefined;
+
+  /**
+   * Its Proxy Host as last read; unset without one.
+   *
+   * @generated from field: ddash.apps.ProxyHost proxy_host = 13;
+   */
+  proxyHost?: ProxyHost | undefined;
+
+  /**
+   * The Workload behind the App: the settings' override, else the
    * container publishing the upstream's port on a Docker host, else the
    * Proxmox guest with the upstream's address. Unset for none, or while
    * the source that would list it is unavailable.
    *
-   * @generated from field: ddash.apps.Workload workload = 11;
+   * @generated from field: ddash.apps.Workload workload = 14;
    */
   workload?: Workload | undefined;
+
+  /**
+   * What looks wrong, in WarningKind order, Ignored ones included.
+   *
+   * @generated from field: repeated ddash.apps.Warning warnings = 15;
+   */
+  warnings: Warning[];
 };
 
 /**
@@ -126,6 +158,209 @@ export type App = Message<"ddash.apps.App"> & {
  */
 export const AppSchema: GenMessage<App> = /*@__PURE__*/
   messageDesc(file_apps_apps, 1);
+
+/**
+ * The Operator's ddash-only settings for an App.
+ *
+ * @generated from message ddash.apps.AppSettings
+ */
+export type AppSettings = Message<"ddash.apps.AppSettings"> & {
+  /**
+   * Empty for the name derived from the URL.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * A homarr-labs/dashboard-icons name, e.g. "jellyfin"; empty to match
+   * one by name.
+   *
+   * @generated from field: string icon = 2;
+   */
+  icon: string;
+
+  /**
+   * The group the App shows under; empty for the default section.
+   *
+   * @generated from field: string group = 3;
+   */
+  group: string;
+
+  /**
+   * @generated from field: bool hidden = 4;
+   */
+  hidden: boolean;
+
+  /**
+   * The Workload the App runs on, overriding the match; unset to match.
+   *
+   * @generated from field: ddash.workload.WorkloadRef workload = 5;
+   */
+  workload?: WorkloadRef | undefined;
+};
+
+/**
+ * Describes the message ddash.apps.AppSettings.
+ * Use `create(AppSettingsSchema)` to create a new message.
+ */
+export const AppSettingsSchema: GenMessage<AppSettings> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 2);
+
+/**
+ * The sources an App's record is linked to, kept across their renames.
+ *
+ * @generated from message ddash.apps.Links
+ */
+export type Links = Message<"ddash.apps.Links"> & {
+  /**
+   * Nginx Proxy Manager's id of its Proxy Host; 0 for none.
+   *
+   * @generated from field: int64 proxy_host_id = 1;
+   */
+  proxyHostId: bigint;
+};
+
+/**
+ * Describes the message ddash.apps.Links.
+ * Use `create(LinksSchema)` to create a new message.
+ */
+export const LinksSchema: GenMessage<Links> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 3);
+
+/**
+ * A Proxy Host as apps last read it from nginx-proxy-manager-api.
+ *
+ * @generated from message ddash.apps.ProxyHost
+ */
+export type ProxyHost = Message<"ddash.apps.ProxyHost"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * Its hostnames, sorted.
+   *
+   * @generated from field: repeated string domain_names = 2;
+   */
+  domainNames: string[];
+
+  /**
+   * The upstream.
+   *
+   * @generated from field: string forward_scheme = 3;
+   */
+  forwardScheme: string;
+
+  /**
+   * @generated from field: string forward_host = 4;
+   */
+  forwardHost: string;
+
+  /**
+   * @generated from field: int32 forward_port = 5;
+   */
+  forwardPort: number;
+
+  /**
+   * The certificate's id; 0 for none.
+   *
+   * @generated from field: int64 certificate_id = 6;
+   */
+  certificateId: bigint;
+
+  /**
+   * @generated from field: bool block_exploits = 7;
+   */
+  blockExploits: boolean;
+
+  /**
+   * @generated from field: bool websockets = 8;
+   */
+  websockets: boolean;
+
+  /**
+   * @generated from field: bool force_ssl = 9;
+   */
+  forceSsl: boolean;
+
+  /**
+   * @generated from field: bool http2 = 10;
+   */
+  http2: boolean;
+
+  /**
+   * @generated from field: bool hsts = 11;
+   */
+  hsts: boolean;
+
+  /**
+   * @generated from field: bool hsts_subdomains = 12;
+   */
+  hstsSubdomains: boolean;
+
+  /**
+   * Disabled in Nginx Proxy Manager: saved but not served. A label, no
+   * Warning.
+   *
+   * @generated from field: bool enabled = 13;
+   */
+  enabled: boolean;
+
+  /**
+   * Offline: nginx rejected its config when it was last saved.
+   *
+   * @generated from field: bool offline = 14;
+   */
+  offline: boolean;
+
+  /**
+   * @generated from field: string nginx_error = 15;
+   */
+  nginxError: string;
+};
+
+/**
+ * Describes the message ddash.apps.ProxyHost.
+ * Use `create(ProxyHostSchema)` to create a new message.
+ */
+export const ProxyHostSchema: GenMessage<ProxyHost> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 4);
+
+/**
+ * Something about an App the Operator should fix or Ignore.
+ *
+ * @generated from message ddash.apps.Warning
+ */
+export type Warning = Message<"ddash.apps.Warning"> & {
+  /**
+   * @generated from field: ddash.apps.WarningKind kind = 1;
+   */
+  kind: WarningKind;
+
+  /**
+   * Ignored on this App: listed, but doesn't count.
+   *
+   * @generated from field: bool ignored = 2;
+   */
+  ignored: boolean;
+
+  /**
+   * What the kind needs said, e.g. nginx's error for an Offline Proxy
+   * Host; empty for most.
+   *
+   * @generated from field: string detail = 3;
+   */
+  detail: string;
+};
+
+/**
+ * Describes the message ddash.apps.Warning.
+ * Use `create(WarningSchema)` to create a new message.
+ */
+export const WarningSchema: GenMessage<Warning> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 5);
 
 /**
  * A Workload as apps last read it.
@@ -155,7 +390,7 @@ export type Workload = Message<"ddash.apps.Workload"> & {
   state: string;
 
   /**
-   * Set by the overlay rather than matched.
+   * Set by the settings rather than matched.
    *
    * @generated from field: bool override = 4;
    */
@@ -167,65 +402,328 @@ export type Workload = Message<"ddash.apps.Workload"> & {
  * Use `create(WorkloadSchema)` to create a new message.
  */
 export const WorkloadSchema: GenMessage<Workload> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 2);
+  messageDesc(file_apps_apps, 6);
 
 /**
- * The Operator's display settings for a discovered App, kept when its
- * Proxy Host disappears and re-applied when it returns.
+ * How apps last read one of its sources. While reads fail, Apps keep the
+ * last good read: nothing is removed, and before the first good read
+ * since apps started no Warning needing the source is derived.
  *
- * @generated from message ddash.apps.Overlay
+ * @generated from message ddash.apps.SourceRead
  */
-export type Overlay = Message<"ddash.apps.Overlay"> & {
+export type SourceRead = Message<"ddash.apps.SourceRead"> & {
   /**
-   * The first server_name of the App it applies to.
+   * When the last good read was; unset before the first since apps
+   * started.
    *
-   * @generated from field: string server_name = 1;
+   * @generated from field: google.protobuf.Timestamp read_at = 1;
    */
-  serverName: string;
+  readAt?: Timestamp | undefined;
 
   /**
-   * Empty fields keep the App's defaults.
+   * Why the last read failed; empty when it worked.
    *
-   * @generated from field: string name = 2;
+   * @generated from field: string error = 2;
    */
-  name: string;
+  error: string;
 
   /**
-   * @generated from field: string icon = 3;
-   */
-  icon: string;
-
-  /**
-   * @generated from field: string group = 4;
-   */
-  group: string;
-
-  /**
-   * @generated from field: bool hidden = 5;
-   */
-  hidden: boolean;
-
-  /**
-   * The Workload the App runs on, overriding the match; unset to match.
+   * When reads started failing; unset while they work.
    *
-   * @generated from field: ddash.workload.WorkloadRef workload = 6;
+   * @generated from field: google.protobuf.Timestamp failing_since = 3;
    */
-  workload?: WorkloadRef | undefined;
+  failingSince?: Timestamp | undefined;
 };
 
 /**
- * Describes the message ddash.apps.Overlay.
- * Use `create(OverlaySchema)` to create a new message.
+ * Describes the message ddash.apps.SourceRead.
+ * Use `create(SourceReadSchema)` to create a new message.
  */
-export const OverlaySchema: GenMessage<Overlay> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 3);
+export const SourceReadSchema: GenMessage<SourceRead> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 7);
 
 /**
- * What the Operator gives a manual App.
- *
- * @generated from message ddash.apps.ManualApp
+ * @generated from message ddash.apps.ListAppsRequest
  */
-export type ManualApp = Message<"ddash.apps.ManualApp"> & {
+export type ListAppsRequest = Message<"ddash.apps.ListAppsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.apps.ListAppsRequest.
+ * Use `create(ListAppsRequestSchema)` to create a new message.
+ */
+export const ListAppsRequestSchema: GenMessage<ListAppsRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 8);
+
+/**
+ * @generated from message ddash.apps.ListAppsResponse
+ */
+export type ListAppsResponse = Message<"ddash.apps.ListAppsResponse"> & {
+  /**
+   * Every App, Hidden and orphaned ones included, by name.
+   *
+   * @generated from field: repeated ddash.apps.App apps = 1;
+   */
+  apps: App[];
+
+  /**
+   * nginx-proxy-manager-api's Proxy Hosts.
+   *
+   * @generated from field: ddash.apps.SourceRead proxy_hosts = 2;
+   */
+  proxyHosts?: SourceRead | undefined;
+};
+
+/**
+ * Describes the message ddash.apps.ListAppsResponse.
+ * Use `create(ListAppsResponseSchema)` to create a new message.
+ */
+export const ListAppsResponseSchema: GenMessage<ListAppsResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 9);
+
+/**
+ * @generated from message ddash.apps.RefreshRequest
+ */
+export type RefreshRequest = Message<"ddash.apps.RefreshRequest"> & {
+};
+
+/**
+ * Describes the message ddash.apps.RefreshRequest.
+ * Use `create(RefreshRequestSchema)` to create a new message.
+ */
+export const RefreshRequestSchema: GenMessage<RefreshRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 10);
+
+/**
+ * @generated from message ddash.apps.RefreshResponse
+ */
+export type RefreshResponse = Message<"ddash.apps.RefreshResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.RefreshResponse.
+ * Use `create(RefreshResponseSchema)` to create a new message.
+ */
+export const RefreshResponseSchema: GenMessage<RefreshResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 11);
+
+/**
+ * @generated from message ddash.apps.SetSettingsRequest
+ */
+export type SetSettingsRequest = Message<"ddash.apps.SetSettingsRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: ddash.apps.AppSettings settings = 2;
+   */
+  settings?: AppSettings | undefined;
+};
+
+/**
+ * Describes the message ddash.apps.SetSettingsRequest.
+ * Use `create(SetSettingsRequestSchema)` to create a new message.
+ */
+export const SetSettingsRequestSchema: GenMessage<SetSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 12);
+
+/**
+ * @generated from message ddash.apps.SetSettingsResponse
+ */
+export type SetSettingsResponse = Message<"ddash.apps.SetSettingsResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.SetSettingsResponse.
+ * Use `create(SetSettingsResponseSchema)` to create a new message.
+ */
+export const SetSettingsResponseSchema: GenMessage<SetSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 13);
+
+/**
+ * @generated from message ddash.apps.IgnoreWarningRequest
+ */
+export type IgnoreWarningRequest = Message<"ddash.apps.IgnoreWarningRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: ddash.apps.WarningKind kind = 2;
+   */
+  kind: WarningKind;
+};
+
+/**
+ * Describes the message ddash.apps.IgnoreWarningRequest.
+ * Use `create(IgnoreWarningRequestSchema)` to create a new message.
+ */
+export const IgnoreWarningRequestSchema: GenMessage<IgnoreWarningRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 14);
+
+/**
+ * @generated from message ddash.apps.IgnoreWarningResponse
+ */
+export type IgnoreWarningResponse = Message<"ddash.apps.IgnoreWarningResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.IgnoreWarningResponse.
+ * Use `create(IgnoreWarningResponseSchema)` to create a new message.
+ */
+export const IgnoreWarningResponseSchema: GenMessage<IgnoreWarningResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 15);
+
+/**
+ * @generated from message ddash.apps.UnignoreWarningRequest
+ */
+export type UnignoreWarningRequest = Message<"ddash.apps.UnignoreWarningRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: ddash.apps.WarningKind kind = 2;
+   */
+  kind: WarningKind;
+};
+
+/**
+ * Describes the message ddash.apps.UnignoreWarningRequest.
+ * Use `create(UnignoreWarningRequestSchema)` to create a new message.
+ */
+export const UnignoreWarningRequestSchema: GenMessage<UnignoreWarningRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 16);
+
+/**
+ * @generated from message ddash.apps.UnignoreWarningResponse
+ */
+export type UnignoreWarningResponse = Message<"ddash.apps.UnignoreWarningResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.UnignoreWarningResponse.
+ * Use `create(UnignoreWarningResponseSchema)` to create a new message.
+ */
+export const UnignoreWarningResponseSchema: GenMessage<UnignoreWarningResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 17);
+
+/**
+ * @generated from message ddash.apps.ReattachRequest
+ */
+export type ReattachRequest = Message<"ddash.apps.ReattachRequest"> & {
+  /**
+   * The orphaned App settings' id.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The App to reattach them to.
+   *
+   * @generated from field: string to = 2;
+   */
+  to: string;
+};
+
+/**
+ * Describes the message ddash.apps.ReattachRequest.
+ * Use `create(ReattachRequestSchema)` to create a new message.
+ */
+export const ReattachRequestSchema: GenMessage<ReattachRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 18);
+
+/**
+ * @generated from message ddash.apps.ReattachResponse
+ */
+export type ReattachResponse = Message<"ddash.apps.ReattachResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.ReattachResponse.
+ * Use `create(ReattachResponseSchema)` to create a new message.
+ */
+export const ReattachResponseSchema: GenMessage<ReattachResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 19);
+
+/**
+ * @generated from message ddash.apps.DeleteOrphanRequest
+ */
+export type DeleteOrphanRequest = Message<"ddash.apps.DeleteOrphanRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message ddash.apps.DeleteOrphanRequest.
+ * Use `create(DeleteOrphanRequestSchema)` to create a new message.
+ */
+export const DeleteOrphanRequestSchema: GenMessage<DeleteOrphanRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 20);
+
+/**
+ * @generated from message ddash.apps.DeleteOrphanResponse
+ */
+export type DeleteOrphanResponse = Message<"ddash.apps.DeleteOrphanResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.DeleteOrphanResponse.
+ * Use `create(DeleteOrphanResponseSchema)` to create a new message.
+ */
+export const DeleteOrphanResponseSchema: GenMessage<DeleteOrphanResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 21);
+
+/**
+ * @generated from message ddash.apps.PromoteAliasRequest
+ */
+export type PromoteAliasRequest = Message<"ddash.apps.PromoteAliasRequest"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * One of the App's aliases.
+   *
+   * @generated from field: string alias = 2;
+   */
+  alias: string;
+};
+
+/**
+ * Describes the message ddash.apps.PromoteAliasRequest.
+ * Use `create(PromoteAliasRequestSchema)` to create a new message.
+ */
+export const PromoteAliasRequestSchema: GenMessage<PromoteAliasRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 22);
+
+/**
+ * @generated from message ddash.apps.PromoteAliasResponse
+ */
+export type PromoteAliasResponse = Message<"ddash.apps.PromoteAliasResponse"> & {
+};
+
+/**
+ * Describes the message ddash.apps.PromoteAliasResponse.
+ * Use `create(PromoteAliasResponseSchema)` to create a new message.
+ */
+export const PromoteAliasResponseSchema: GenMessage<PromoteAliasResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 23);
+
+/**
+ * What the Operator gives a Link-only App.
+ *
+ * @generated from message ddash.apps.LinkOnlyApp
+ */
+export type LinkOnlyApp = Message<"ddash.apps.LinkOnlyApp"> & {
   /**
    * @generated from field: string name = 1;
    */
@@ -250,167 +748,20 @@ export type ManualApp = Message<"ddash.apps.ManualApp"> & {
 };
 
 /**
- * Describes the message ddash.apps.ManualApp.
- * Use `create(ManualAppSchema)` to create a new message.
+ * Describes the message ddash.apps.LinkOnlyApp.
+ * Use `create(LinkOnlyAppSchema)` to create a new message.
  */
-export const ManualAppSchema: GenMessage<ManualApp> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 4);
-
-/**
- * @generated from message ddash.apps.ListAppsRequest
- */
-export type ListAppsRequest = Message<"ddash.apps.ListAppsRequest"> & {
-};
-
-/**
- * Describes the message ddash.apps.ListAppsRequest.
- * Use `create(ListAppsRequestSchema)` to create a new message.
- */
-export const ListAppsRequestSchema: GenMessage<ListAppsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 5);
-
-/**
- * @generated from message ddash.apps.ListAppsResponse
- */
-export type ListAppsResponse = Message<"ddash.apps.ListAppsResponse"> & {
-  /**
-   * Every App, hidden ones included, by name.
-   *
-   * @generated from field: repeated ddash.apps.App apps = 1;
-   */
-  apps: App[];
-
-  /**
-   * Overlays whose server_name no App has (its Proxy Host is gone or was
-   * renamed), to re-attach or delete.
-   *
-   * @generated from field: repeated ddash.apps.Overlay unmatched = 2;
-   */
-  unmatched: Overlay[];
-
-  /**
-   * Why nginx-config couldn't be read; the discovered Apps are then those
-   * of the last read. Empty when it could.
-   *
-   * @generated from field: string discovery_error = 3;
-   */
-  discoveryError: string;
-};
-
-/**
- * Describes the message ddash.apps.ListAppsResponse.
- * Use `create(ListAppsResponseSchema)` to create a new message.
- */
-export const ListAppsResponseSchema: GenMessage<ListAppsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 6);
-
-/**
- * @generated from message ddash.apps.SetOverlayRequest
- */
-export type SetOverlayRequest = Message<"ddash.apps.SetOverlayRequest"> & {
-  /**
-   * @generated from field: ddash.apps.Overlay overlay = 1;
-   */
-  overlay?: Overlay | undefined;
-};
-
-/**
- * Describes the message ddash.apps.SetOverlayRequest.
- * Use `create(SetOverlayRequestSchema)` to create a new message.
- */
-export const SetOverlayRequestSchema: GenMessage<SetOverlayRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 7);
-
-/**
- * @generated from message ddash.apps.SetOverlayResponse
- */
-export type SetOverlayResponse = Message<"ddash.apps.SetOverlayResponse"> & {
-};
-
-/**
- * Describes the message ddash.apps.SetOverlayResponse.
- * Use `create(SetOverlayResponseSchema)` to create a new message.
- */
-export const SetOverlayResponseSchema: GenMessage<SetOverlayResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 8);
-
-/**
- * @generated from message ddash.apps.AttachOverlayRequest
- */
-export type AttachOverlayRequest = Message<"ddash.apps.AttachOverlayRequest"> & {
-  /**
-   * The overlay's current key.
-   *
-   * @generated from field: string server_name = 1;
-   */
-  serverName: string;
-
-  /**
-   * The first server_name of the App to attach it to.
-   *
-   * @generated from field: string to = 2;
-   */
-  to: string;
-};
-
-/**
- * Describes the message ddash.apps.AttachOverlayRequest.
- * Use `create(AttachOverlayRequestSchema)` to create a new message.
- */
-export const AttachOverlayRequestSchema: GenMessage<AttachOverlayRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 9);
-
-/**
- * @generated from message ddash.apps.AttachOverlayResponse
- */
-export type AttachOverlayResponse = Message<"ddash.apps.AttachOverlayResponse"> & {
-};
-
-/**
- * Describes the message ddash.apps.AttachOverlayResponse.
- * Use `create(AttachOverlayResponseSchema)` to create a new message.
- */
-export const AttachOverlayResponseSchema: GenMessage<AttachOverlayResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 10);
-
-/**
- * @generated from message ddash.apps.DeleteOverlayRequest
- */
-export type DeleteOverlayRequest = Message<"ddash.apps.DeleteOverlayRequest"> & {
-  /**
-   * @generated from field: string server_name = 1;
-   */
-  serverName: string;
-};
-
-/**
- * Describes the message ddash.apps.DeleteOverlayRequest.
- * Use `create(DeleteOverlayRequestSchema)` to create a new message.
- */
-export const DeleteOverlayRequestSchema: GenMessage<DeleteOverlayRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 11);
-
-/**
- * @generated from message ddash.apps.DeleteOverlayResponse
- */
-export type DeleteOverlayResponse = Message<"ddash.apps.DeleteOverlayResponse"> & {
-};
-
-/**
- * Describes the message ddash.apps.DeleteOverlayResponse.
- * Use `create(DeleteOverlayResponseSchema)` to create a new message.
- */
-export const DeleteOverlayResponseSchema: GenMessage<DeleteOverlayResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 12);
+export const LinkOnlyAppSchema: GenMessage<LinkOnlyApp> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 24);
 
 /**
  * @generated from message ddash.apps.CreateAppRequest
  */
 export type CreateAppRequest = Message<"ddash.apps.CreateAppRequest"> & {
   /**
-   * @generated from field: ddash.apps.ManualApp app = 1;
+   * @generated from field: ddash.apps.LinkOnlyApp app = 1;
    */
-  app?: ManualApp | undefined;
+  app?: LinkOnlyApp | undefined;
 };
 
 /**
@@ -418,7 +769,7 @@ export type CreateAppRequest = Message<"ddash.apps.CreateAppRequest"> & {
  * Use `create(CreateAppRequestSchema)` to create a new message.
  */
 export const CreateAppRequestSchema: GenMessage<CreateAppRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 13);
+  messageDesc(file_apps_apps, 25);
 
 /**
  * @generated from message ddash.apps.CreateAppResponse
@@ -435,46 +786,7 @@ export type CreateAppResponse = Message<"ddash.apps.CreateAppResponse"> & {
  * Use `create(CreateAppResponseSchema)` to create a new message.
  */
 export const CreateAppResponseSchema: GenMessage<CreateAppResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 14);
-
-/**
- * @generated from message ddash.apps.UpdateAppRequest
- */
-export type UpdateAppRequest = Message<"ddash.apps.UpdateAppRequest"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: ddash.apps.ManualApp app = 2;
-   */
-  app?: ManualApp | undefined;
-};
-
-/**
- * Describes the message ddash.apps.UpdateAppRequest.
- * Use `create(UpdateAppRequestSchema)` to create a new message.
- */
-export const UpdateAppRequestSchema: GenMessage<UpdateAppRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 15);
-
-/**
- * @generated from message ddash.apps.UpdateAppResponse
- */
-export type UpdateAppResponse = Message<"ddash.apps.UpdateAppResponse"> & {
-  /**
-   * @generated from field: ddash.apps.App app = 1;
-   */
-  app?: App | undefined;
-};
-
-/**
- * Describes the message ddash.apps.UpdateAppResponse.
- * Use `create(UpdateAppResponseSchema)` to create a new message.
- */
-export const UpdateAppResponseSchema: GenMessage<UpdateAppResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 16);
+  messageDesc(file_apps_apps, 26);
 
 /**
  * @generated from message ddash.apps.DeleteAppRequest
@@ -491,7 +803,7 @@ export type DeleteAppRequest = Message<"ddash.apps.DeleteAppRequest"> & {
  * Use `create(DeleteAppRequestSchema)` to create a new message.
  */
 export const DeleteAppRequestSchema: GenMessage<DeleteAppRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 17);
+  messageDesc(file_apps_apps, 27);
 
 /**
  * @generated from message ddash.apps.DeleteAppResponse
@@ -504,7 +816,7 @@ export type DeleteAppResponse = Message<"ddash.apps.DeleteAppResponse"> & {
  * Use `create(DeleteAppResponseSchema)` to create a new message.
  */
 export const DeleteAppResponseSchema: GenMessage<DeleteAppResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 18);
+  messageDesc(file_apps_apps, 28);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsRequest
@@ -517,7 +829,7 @@ export type ListWorkloadsRequest = Message<"ddash.apps.ListWorkloadsRequest"> & 
  * Use `create(ListWorkloadsRequestSchema)` to create a new message.
  */
 export const ListWorkloadsRequestSchema: GenMessage<ListWorkloadsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 19);
+  messageDesc(file_apps_apps, 29);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsResponse
@@ -534,150 +846,98 @@ export type ListWorkloadsResponse = Message<"ddash.apps.ListWorkloadsResponse"> 
  * Use `create(ListWorkloadsResponseSchema)` to create a new message.
  */
 export const ListWorkloadsResponseSchema: GenMessage<ListWorkloadsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 20);
+  messageDesc(file_apps_apps, 30);
 
 /**
- * @generated from message ddash.apps.ListProxyHostsRequest
+ * @generated from enum ddash.apps.Reach
  */
-export type ListProxyHostsRequest = Message<"ddash.apps.ListProxyHostsRequest"> & {
-};
-
-/**
- * Describes the message ddash.apps.ListProxyHostsRequest.
- * Use `create(ListProxyHostsRequestSchema)` to create a new message.
- */
-export const ListProxyHostsRequestSchema: GenMessage<ListProxyHostsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 21);
-
-/**
- * @generated from message ddash.apps.ListProxyHostsResponse
- */
-export type ListProxyHostsResponse = Message<"ddash.apps.ListProxyHostsResponse"> & {
+export enum Reach {
   /**
-   * By first server_name; blocks sharing one keep nginx's order.
-   *
-   * @generated from field: repeated ddash.apps.ProxyHost proxy_hosts = 1;
-   */
-  proxyHosts: ProxyHost[];
-
-  /**
-   * Why nginx-config couldn't be read; the Proxy Hosts are then those of
-   * the last read. Empty when it could.
-   *
-   * @generated from field: string discovery_error = 2;
-   */
-  discoveryError: string;
-};
-
-/**
- * Describes the message ddash.apps.ListProxyHostsResponse.
- * Use `create(ListProxyHostsResponseSchema)` to create a new message.
- */
-export const ListProxyHostsResponseSchema: GenMessage<ListProxyHostsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 22);
-
-/**
- * A Proxy Host: an nginx server block that forwards to an upstream.
- *
- * @generated from message ddash.apps.ProxyHost
- */
-export type ProxyHost = Message<"ddash.apps.ProxyHost"> & {
-  /**
-   * Where the block starts.
-   *
-   * @generated from field: string file = 1;
-   */
-  file: string;
-
-  /**
-   * @generated from field: int64 line = 2;
-   */
-  line: bigint;
-
-  /**
-   * As written; the first is the App's key.
-   *
-   * @generated from field: repeated string server_names = 3;
-   */
-  serverNames: string[];
-
-  /**
-   * The proxy_pass of location "/", else of the first location with one,
-   * as written, e.g. "http://grafana".
-   *
-   * @generated from field: string upstream = 4;
-   */
-  upstream: string;
-
-  /**
-   * The servers of the upstream block the proxy_pass names; empty when it
-   * names none.
-   *
-   * @generated from field: repeated string upstream_servers = 5;
-   */
-  upstreamServers: string[];
-
-  /**
-   * The App the block yields, as ListApps lists it; unset for a block that
-   * yields none (a catch-all, or a wildcard or regex first server_name).
-   *
-   * @generated from field: ddash.apps.App app = 6;
-   */
-  app?: App | undefined;
-
-  /**
-   * What looks wrong, in this order.
-   *
-   * @generated from field: repeated ddash.apps.ProxyHostWarning warnings = 7;
-   */
-  warnings: ProxyHostWarning[];
-};
-
-/**
- * Describes the message ddash.apps.ProxyHost.
- * Use `create(ProxyHostSchema)` to create a new message.
- */
-export const ProxyHostSchema: GenMessage<ProxyHost> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 23);
-
-/**
- * @generated from enum ddash.apps.ProxyHostWarning
- */
-export enum ProxyHostWarning {
-  /**
-   * @generated from enum value: PROXY_HOST_WARNING_UNSPECIFIED = 0;
+   * @generated from enum value: REACH_UNSPECIFIED = 0;
    */
   UNSPECIFIED = 0,
 
   /**
-   * The App's upstream matches no Workload. Never while a Workload source
-   * can't be read, or without an App.
+   * A Proxy Host serves it.
    *
-   * @generated from enum value: PROXY_HOST_WARNING_NO_WORKLOAD = 1;
+   * @generated from enum value: REACH_PROXIED = 1;
+   */
+  PROXIED = 1,
+
+  /**
+   * It has no source: the Operator added it by hand.
+   *
+   * @generated from enum value: REACH_LINK_ONLY = 2;
+   */
+  LINK_ONLY = 2,
+}
+
+/**
+ * Describes the enum ddash.apps.Reach.
+ */
+export const ReachSchema: GenEnum<Reach> = /*@__PURE__*/
+  enumDesc(file_apps_apps, 0);
+
+/**
+ * @generated from enum ddash.apps.WarningKind
+ */
+export enum WarningKind {
+  /**
+   * @generated from enum value: WARNING_KIND_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A proxied App matched no Workload and has no override. Never while a
+   * Workload source can't be read.
+   *
+   * @generated from enum value: WARNING_KIND_NO_WORKLOAD = 1;
    */
   NO_WORKLOAD = 1,
 
   /**
-   * None of the block's listens has ssl.
+   * Its Proxy Host has no certificate.
    *
-   * @generated from enum value: PROXY_HOST_WARNING_NO_TLS = 2;
+   * @generated from enum value: WARNING_KIND_NO_TLS = 2;
    */
   NO_TLS = 2,
+
+  /**
+   * Its Proxy Host is Offline; the detail is nginx's error.
+   *
+   * @generated from enum value: WARNING_KIND_PROXY_HOST_OFFLINE = 3;
+   */
+  PROXY_HOST_OFFLINE = 3,
+
+  /**
+   * Its URL's hostname is no longer among its Proxy Host's domain names
+   * (renamed in Nginx Proxy Manager).
+   *
+   * @generated from enum value: WARNING_KIND_URL_NOT_ON_PROXY_HOST = 4;
+   */
+  URL_NOT_ON_PROXY_HOST = 4,
+
+  /**
+   * Orphaned App settings: a touched App lost its sources.
+   *
+   * @generated from enum value: WARNING_KIND_ORPHANED = 5;
+   */
+  ORPHANED = 5,
 }
 
 /**
- * Describes the enum ddash.apps.ProxyHostWarning.
+ * Describes the enum ddash.apps.WarningKind.
  */
-export const ProxyHostWarningSchema: GenEnum<ProxyHostWarning> = /*@__PURE__*/
-  enumDesc(file_apps_apps, 0);
+export const WarningKindSchema: GenEnum<WarningKind> = /*@__PURE__*/
+  enumDesc(file_apps_apps, 1);
 
 /**
  * @generated from service ddash.apps.AppsService
  */
 export const AppsService: GenService<{
   /**
-   * ListApps returns every App, discovered and manual, with its overlay
-   * applied, and the overlays that match no App.
+   * ListApps returns every App: discovered, Link only and orphaned App
+   * settings, each with its Warnings, and how the sources were last read.
    *
    * @generated from rpc ddash.apps.AppsService.ListApps
    */
@@ -687,39 +947,86 @@ export const AppsService: GenService<{
     output: typeof ListAppsResponseSchema;
   },
   /**
-   * SetOverlay sets a discovered App's display settings, keyed by its first
-   * server_name. An overlay with every field empty is removed.
+   * Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
+   * the Apps are current.
    *
-   * @generated from rpc ddash.apps.AppsService.SetOverlay
+   * @generated from rpc ddash.apps.AppsService.Refresh
    */
-  setOverlay: {
+  refresh: {
     methodKind: "unary";
-    input: typeof SetOverlayRequestSchema;
-    output: typeof SetOverlayResponseSchema;
+    input: typeof RefreshRequestSchema;
+    output: typeof RefreshResponseSchema;
   },
   /**
-   * AttachOverlay moves an overlay onto another App, e.g. after a rename
-   * left it unmatched.
+   * SetSettings sets an App's ddash-only settings: name, icon, group,
+   * Hidden and Workload override. They take effect at once.
    *
-   * @generated from rpc ddash.apps.AppsService.AttachOverlay
+   * @generated from rpc ddash.apps.AppsService.SetSettings
    */
-  attachOverlay: {
+  setSettings: {
     methodKind: "unary";
-    input: typeof AttachOverlayRequestSchema;
-    output: typeof AttachOverlayResponseSchema;
+    input: typeof SetSettingsRequestSchema;
+    output: typeof SetSettingsResponseSchema;
   },
   /**
-   * DeleteOverlay drops an overlay: its App falls back to the defaults.
+   * IgnoreWarning Ignores one kind of Warning on an App until it is
+   * un-ignored: it is still listed, flagged, but doesn't count.
    *
-   * @generated from rpc ddash.apps.AppsService.DeleteOverlay
+   * @generated from rpc ddash.apps.AppsService.IgnoreWarning
    */
-  deleteOverlay: {
+  ignoreWarning: {
     methodKind: "unary";
-    input: typeof DeleteOverlayRequestSchema;
-    output: typeof DeleteOverlayResponseSchema;
+    input: typeof IgnoreWarningRequestSchema;
+    output: typeof IgnoreWarningResponseSchema;
   },
   /**
-   * CreateApp adds a manual App.
+   * UnignoreWarning ends an Ignore.
+   *
+   * @generated from rpc ddash.apps.AppsService.UnignoreWarning
+   */
+  unignoreWarning: {
+    methodKind: "unary";
+    input: typeof UnignoreWarningRequestSchema;
+    output: typeof UnignoreWarningResponseSchema;
+  },
+  /**
+   * Reattach moves orphaned App settings onto an App without settings of
+   * its own: the App keeps the orphan's id (and so its Check's history),
+   * settings and Ignores, with the other App's sources and URL. The other
+   * App's record goes.
+   *
+   * @generated from rpc ddash.apps.AppsService.Reattach
+   */
+  reattach: {
+    methodKind: "unary";
+    input: typeof ReattachRequestSchema;
+    output: typeof ReattachResponseSchema;
+  },
+  /**
+   * DeleteOrphan deletes orphaned App settings.
+   *
+   * @generated from rpc ddash.apps.AppsService.DeleteOrphan
+   */
+  deleteOrphan: {
+    methodKind: "unary";
+    input: typeof DeleteOrphanRequestSchema;
+    output: typeof DeleteOrphanResponseSchema;
+  },
+  /**
+   * PromoteAlias makes one of an App's aliases the hostname of its URL,
+   * keeping the scheme and port. It changes nothing outside ddash. It is
+   * also the fix for "URL not on the Proxy Host", whose Proxy Host's
+   * names are then the App's aliases.
+   *
+   * @generated from rpc ddash.apps.AppsService.PromoteAlias
+   */
+  promoteAlias: {
+    methodKind: "unary";
+    input: typeof PromoteAliasRequestSchema;
+    output: typeof PromoteAliasResponseSchema;
+  },
+  /**
+   * CreateApp adds a Link-only App.
    *
    * @generated from rpc ddash.apps.AppsService.CreateApp
    */
@@ -729,17 +1036,7 @@ export const AppsService: GenService<{
     output: typeof CreateAppResponseSchema;
   },
   /**
-   * UpdateApp replaces a manual App's details.
-   *
-   * @generated from rpc ddash.apps.AppsService.UpdateApp
-   */
-  updateApp: {
-    methodKind: "unary";
-    input: typeof UpdateAppRequestSchema;
-    output: typeof UpdateAppResponseSchema;
-  },
-  /**
-   * DeleteApp removes a manual App.
+   * DeleteApp deletes a Link-only App.
    *
    * @generated from rpc ddash.apps.AppsService.DeleteApp
    */
@@ -759,18 +1056,6 @@ export const AppsService: GenService<{
     methodKind: "unary";
     input: typeof ListWorkloadsRequestSchema;
     output: typeof ListWorkloadsResponseSchema;
-  },
-  /**
-   * ListProxyHosts returns every server block in nginx-config's snapshot
-   * that forwards to an upstream (some location has a proxy_pass), by first
-   * server_name, each with the App it yields and what looks wrong with it.
-   *
-   * @generated from rpc ddash.apps.AppsService.ListProxyHosts
-   */
-  listProxyHosts: {
-    methodKind: "unary";
-    input: typeof ListProxyHostsRequestSchema;
-    output: typeof ListProxyHostsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_apps_apps, 0);

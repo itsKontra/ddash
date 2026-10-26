@@ -2,6 +2,7 @@ package apps
 
 import (
 	"context"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -12,100 +13,222 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 )
 
+// The ddash-only Actions: they change App records alone, take their turn
+// with the syncs, and take effect at once (App Checks included), with no
+// Plan and no read of the sources.
+
 // iconName is a homarr-labs/dashboard-icons name, e.g. "home-assistant".
 var iconName = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
 
-func (c *component) SetOverlay(ctx context.Context, req *appspb.SetOverlayRequest) (*appspb.SetOverlayResponse, error) {
-	o := req.GetOverlay()
-	o = &appspb.Overlay{
-		ServerName: strings.TrimSpace(o.GetServerName()),
-		Name:       strings.TrimSpace(o.GetName()),
-		Icon:       strings.ToLower(strings.TrimSpace(o.GetIcon())),
-		Group:      strings.TrimSpace(o.GetGroup()),
-		Hidden:     o.GetHidden(),
+// change runs edit on the App id, as derived now, and its record; edit
+// returns the records to put and the ids to drop. It then redeclares the
+// App Checks.
+func (c *component) change(ctx context.Context, id string, edit func(a *appspb.App, r *record, recs []*record) (changes, error)) error {
+	if err := c.waitSynced(ctx); err != nil {
+		return err
 	}
-	if o.GetServerName() == "" {
-		return nil, status.Error(codes.InvalidArgument, "server_name is required")
-	}
-	if err := checkIcon(o.GetIcon()); err != nil {
-		return nil, err
-	}
-	w, err := checkWorkloadRef(req.GetOverlay().GetWorkload())
+	c.turn.Lock()
+	defer c.turn.Unlock()
+	recs, err := c.store.records(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	o.Workload = w
-
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
-	found, err := c.isDiscovered(ctx, o.GetServerName())
+	i := slices.IndexFunc(recs, func(r *record) bool { return r.id == id })
+	if i < 0 {
+		return status.Errorf(codes.NotFound, "no App has the id %q", id)
+	}
+	r := recs[i].clone()
+	ch, err := edit(derive([]*record{r}, c.view())[0], r, recs)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if !found {
-		exists, err := c.store.hasOverlay(ctx, o.GetServerName())
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			return nil, status.Errorf(codes.NotFound, "no App has the server_name %s", o.GetServerName())
-		}
-	}
-	if o.GetName() == "" && o.GetIcon() == "" && o.GetGroup() == "" && !o.GetHidden() && o.GetWorkload() == nil {
-		err = c.store.deleteOverlay(ctx, o.GetServerName())
-	} else {
-		err = c.store.putOverlay(ctx, o)
-	}
-	if err != nil {
-		return nil, err
+	if err := c.store.save(ctx, ch.put, ch.drop); err != nil {
+		return err
 	}
 	c.syncChecks(ctx)
-	return &appspb.SetOverlayResponse{}, nil
+	return nil
 }
 
-func (c *component) AttachOverlay(ctx context.Context, req *appspb.AttachOverlayRequest) (*appspb.AttachOverlayResponse, error) {
-	from, to := req.GetServerName(), req.GetTo()
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
-	exists, err := c.store.hasOverlay(ctx, from)
+func (c *component) SetSettings(ctx context.Context, req *appspb.SetSettingsRequest) (*appspb.SetSettingsResponse, error) {
+	in := req.GetSettings()
+	s := &appspb.AppSettings{
+		Name:   strings.TrimSpace(in.GetName()),
+		Icon:   strings.ToLower(strings.TrimSpace(in.GetIcon())),
+		Group:  strings.TrimSpace(in.GetGroup()),
+		Hidden: in.GetHidden(),
+	}
+	if err := checkIcon(s.GetIcon()); err != nil {
+		return nil, err
+	}
+	w, err := checkWorkloadRef(in.GetWorkload())
 	if err != nil {
 		return nil, err
 	}
-	if !exists {
-		return nil, status.Errorf(codes.NotFound, "no settings are kept for %s", from)
-	}
-	if found, err := c.isDiscovered(ctx, to); err != nil {
-		return nil, err
-	} else if !found {
-		return nil, status.Errorf(codes.NotFound, "no App has the server_name %s", to)
-	}
-	if taken, err := c.store.hasOverlay(ctx, to); err != nil {
-		return nil, err
-	} else if taken && from != to {
-		return nil, status.Errorf(codes.FailedPrecondition, "%s already has settings: delete them first", to)
-	}
-	if err := c.store.moveOverlay(ctx, from, to); err != nil {
+	s.Workload = w
+	err = c.change(ctx, req.GetId(), func(_ *appspb.App, r *record, _ []*record) (changes, error) {
+		r.settings = s
+		r.touched = r.touched || s.GetName() != "" || s.GetIcon() != "" || s.GetGroup() != "" || s.GetHidden() || s.GetWorkload() != nil
+		return changes{put: []*record{r}}, nil
+	})
+	if err != nil {
 		return nil, err
 	}
-	c.syncChecks(ctx)
-	return &appspb.AttachOverlayResponse{}, nil
+	return &appspb.SetSettingsResponse{}, nil
 }
 
-func (c *component) DeleteOverlay(ctx context.Context, req *appspb.DeleteOverlayRequest) (*appspb.DeleteOverlayResponse, error) {
-	c.writeMu.Lock()
-	defer c.writeMu.Unlock()
-	exists, err := c.store.hasOverlay(ctx, req.GetServerName())
+func (c *component) IgnoreWarning(ctx context.Context, req *appspb.IgnoreWarningRequest) (*appspb.IgnoreWarningResponse, error) {
+	if err := c.setIgnored(ctx, req.GetId(), req.GetKind(), true); err != nil {
+		return nil, err
+	}
+	return &appspb.IgnoreWarningResponse{}, nil
+}
+
+func (c *component) UnignoreWarning(ctx context.Context, req *appspb.UnignoreWarningRequest) (*appspb.UnignoreWarningResponse, error) {
+	if err := c.setIgnored(ctx, req.GetId(), req.GetKind(), false); err != nil {
+		return nil, err
+	}
+	return &appspb.UnignoreWarningResponse{}, nil
+}
+
+// setIgnored Ignores a kind of Warning on an App, or ends that Ignore. An
+// Ignore touches the App.
+func (c *component) setIgnored(ctx context.Context, id string, kind appspb.WarningKind, on bool) error {
+	if _, known := appspb.WarningKind_name[int32(kind)]; !known || kind == appspb.WarningKind_WARNING_KIND_UNSPECIFIED {
+		return status.Errorf(codes.InvalidArgument, "unknown Warning kind %d", kind)
+	}
+	return c.change(ctx, id, func(_ *appspb.App, r *record, _ []*record) (changes, error) {
+		if r.ignores == nil {
+			r.ignores = map[appspb.WarningKind]bool{}
+		}
+		if on {
+			r.ignores[kind], r.touched = true, true
+		} else {
+			delete(r.ignores, kind)
+		}
+		return changes{put: []*record{r}}, nil
+	})
+}
+
+func (c *component) Reattach(ctx context.Context, req *appspb.ReattachRequest) (*appspb.ReattachResponse, error) {
+	if req.GetTo() == req.GetId() {
+		return nil, status.Error(codes.InvalidArgument, "orphaned App settings can't be reattached to themselves")
+	}
+	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, recs []*record) (changes, error) {
+		if !a.GetOrphaned() {
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s isn't orphaned App settings", a.GetName())
+		}
+		i := slices.IndexFunc(recs, func(r *record) bool { return r.id == req.GetTo() })
+		if i < 0 {
+			return changes{}, status.Errorf(codes.NotFound, "no App has the id %q", req.GetTo())
+		}
+		to := recs[i]
+		target := derive([]*record{to}, c.view())[0]
+		switch {
+		case target.GetOrphaned():
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s is orphaned App settings too", target.GetName())
+		case to.touched:
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s has settings of its own", target.GetName())
+		}
+		// The orphan's id, settings and Ignores; the other App's sources.
+		r.url, r.aliases, r.proxyHostID, r.linkOnly = to.url, to.aliases, to.proxyHostID, to.linkOnly
+		return changes{put: []*record{r}, drop: []string{to.id}}, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	if !exists {
-		return nil, status.Errorf(codes.NotFound, "no settings are kept for %s", req.GetServerName())
+	return &appspb.ReattachResponse{}, nil
+}
+
+func (c *component) DeleteOrphan(ctx context.Context, req *appspb.DeleteOrphanRequest) (*appspb.DeleteOrphanResponse, error) {
+	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, _ []*record) (changes, error) {
+		if !a.GetOrphaned() {
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s isn't orphaned App settings", a.GetName())
+		}
+		return changes{drop: []string{r.id}}, nil
+	})
+	if err != nil {
+		return nil, err
 	}
-	if err := c.store.deleteOverlay(ctx, req.GetServerName()); err != nil {
+	return &appspb.DeleteOrphanResponse{}, nil
+}
+
+func (c *component) PromoteAlias(ctx context.Context, req *appspb.PromoteAliasRequest) (*appspb.PromoteAliasResponse, error) {
+	alias := canonName(strings.TrimSpace(req.GetAlias()))
+	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, _ []*record) (changes, error) {
+		i := slices.IndexFunc(a.GetAliases(), func(n string) bool { return canonName(n) == alias })
+		if i < 0 {
+			return changes{}, status.Errorf(codes.InvalidArgument, "%s isn't one of %s's aliases", req.GetAlias(), a.GetName())
+		}
+		old := hostname(r.url)
+		r.url = withHostname(r.url, a.GetAliases()[i])
+		// Until the next sync derives them: the URL's old hostname
+		// stays an alias where its source still has it.
+		r.aliases = slices.DeleteFunc(slices.Clone(a.GetAliases()), func(n string) bool { return canonName(n) == alias })
+		if a.GetProxyHost() == nil || slices.ContainsFunc(a.GetProxyHost().GetDomainNames(), func(n string) bool { return canonName(n) == old }) {
+			r.aliases = append(r.aliases, old)
+			slices.Sort(r.aliases)
+		}
+		// The name derived from the old URL stays the App's.
+		r.settings.Name = a.GetName()
+		r.touched = true
+		return changes{put: []*record{r}}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &appspb.PromoteAliasResponse{}, nil
+}
+
+func (c *component) CreateApp(ctx context.Context, req *appspb.CreateAppRequest) (*appspb.CreateAppResponse, error) {
+	m := req.GetApp()
+	s := &appspb.AppSettings{
+		Name:  strings.TrimSpace(m.GetName()),
+		Icon:  strings.ToLower(strings.TrimSpace(m.GetIcon())),
+		Group: strings.TrimSpace(m.GetGroup()),
+	}
+	raw := strings.TrimSpace(m.GetUrl())
+	if s.GetName() == "" {
+		return nil, status.Error(codes.InvalidArgument, "name is required")
+	}
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return nil, status.Error(codes.InvalidArgument, "url must be an http or https URL, e.g. https://198.18.0.1")
+	}
+	if err := checkIcon(s.GetIcon()); err != nil {
+		return nil, err
+	}
+	if err := c.waitSynced(ctx); err != nil {
+		return nil, err
+	}
+	c.turn.Lock()
+	defer c.turn.Unlock()
+	recs, err := c.store.records(ctx)
+	if err != nil {
+		return nil, err
+	}
+	taken := map[string]bool{}
+	for _, r := range recs {
+		taken[r.id] = true
+	}
+	r := &record{id: newID("", taken), url: raw, settings: s, linkOnly: true, touched: true}
+	if err := c.store.save(ctx, []*record{r}, nil); err != nil {
 		return nil, err
 	}
 	c.syncChecks(ctx)
-	return &appspb.DeleteOverlayResponse{}, nil
+	return &appspb.CreateAppResponse{App: derive([]*record{r}, c.view())[0]}, nil
+}
+
+func (c *component) DeleteApp(ctx context.Context, req *appspb.DeleteAppRequest) (*appspb.DeleteAppResponse, error) {
+	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, _ []*record) (changes, error) {
+		if a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s isn't Link only: its sources would bring it back", a.GetName())
+		}
+		return changes{drop: []string{r.id}}, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &appspb.DeleteAppResponse{}, nil
 }
 
 func checkIcon(icon string) error {
@@ -113,10 +236,4 @@ func checkIcon(icon string) error {
 		return status.Error(codes.InvalidArgument, "icon must be a dashboard-icons name, e.g. jellyfin or home-assistant")
 	}
 	return nil
-}
-
-// isDiscovered reports whether a discovered App has this first server_name.
-func (c *component) isDiscovered(ctx context.Context, serverName string) (bool, error) {
-	found, _, err := c.discovered(ctx)
-	return slices.ContainsFunc(found, func(d discovered) bool { return d.serverName == serverName }), err
 }

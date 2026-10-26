@@ -1,5 +1,5 @@
 import { useAction } from "@ddash/plugin";
-import { AppsService, type App } from "@ddash/proto/apps/apps_pb";
+import { AppsService, Reach, type App } from "@ddash/proto/apps/apps_pb";
 import { AppIconPicker, Button, Checkbox, Field, FormActions, Notice, Select, Sheet, TextInput } from "@ddash/ui";
 import { Kind } from "@ddash/proto/ddash/workload/workload_pb";
 import { useId, useState, type FormEvent } from "react";
@@ -66,7 +66,7 @@ function WorkloadField({ app, value, onChange, host, onHost }: { app: App; value
     <>
       <Field label="Workload" hint={hint}>
         <Select value={value} onChange={(e) => onChange(e.target.value)}>
-          <WorkloadOptions matchLabel={matchLabel} current={app.overlay?.workload} listed={workloads ?? []} />
+          <WorkloadOptions matchLabel={matchLabel} current={app.settings?.workload} listed={workloads ?? []} />
         </Select>
       </Field>
       {value === external && <Text label="External host" value={host} onChange={onHost} placeholder="198.18.1.50" />}
@@ -74,11 +74,11 @@ function WorkloadField({ app, value, onChange, host, onHost }: { app: App; value
   );
 }
 
-/** Edits a discovered App's overlay in its sheet: display name, icon, group, hidden, Workload. */
-function OverlaySheet({ app, groups, onClose }: { app: App; groups: readonly string[]; onClose: () => void }) {
-  const set = useAction(AppsService.method.setOverlay);
-  const reset = useAction(AppsService.method.deleteOverlay);
-  const o = app.overlay;
+/** Edits a discovered App's settings in its sheet: display name, icon, group, hidden, Workload. */
+function SettingsSheet({ app, groups, onClose }: { app: App; groups: readonly string[]; onClose: () => void }) {
+  const set = useAction(AppsService.method.setSettings);
+  const reset = useAction(AppsService.method.setSettings);
+  const o = app.settings;
   const [name, setName] = useState(o?.name ?? "");
   const [icon, setIcon] = useState(o?.icon ?? "");
   const [group, setGroup] = useState(o?.group ?? "");
@@ -91,17 +91,17 @@ function OverlaySheet({ app, groups, onClose }: { app: App; groups: readonly str
   const save = async (e: FormEvent) => {
     e.preventDefault();
     const ref = workload === external ? { kind: Kind.EXTERNAL, host, id: "" } : refOf(workload);
-    if (await set.run({ overlay: { serverName: app.serverName, name, icon, group, hidden, workload: ref } })) onClose();
+    if (await set.run({ id: app.id, settings: { name, icon, group, hidden, workload: ref } })) onClose();
   };
+  // Not disruptive, so unconfirmed: the settings are easily set again.
   const drop = async () => {
-    const confirm = { text: `Reset ${app.name} to its defaults? Its display name, icon, group, hidden setting and Workload are dropped.`, action: "Reset" };
-    if (await reset.run({ serverName: app.serverName }, { confirm })) onClose();
+    if (await reset.run({ id: app.id, settings: {} })) onClose();
   };
 
   const footer = (
     <FormActions
       status={
-        o && (
+        app.touched && (
           <Button variant="outline" disabled={reset.pending} onClick={() => void drop()}>
             Reset
           </Button>
@@ -121,7 +121,7 @@ function OverlaySheet({ app, groups, onClose }: { app: App; groups: readonly str
     <Sheet
       title={app.name}
       kicker="Edit App"
-      subtitle={`From the Proxy Host ${app.serverName}. These settings stay with that name, even while the Proxy Host is gone.`}
+      subtitle={`From the Proxy Host ${hostname(app)}. These settings stay with the App, even while its Proxy Host is gone.`}
       footer={footer}
       onClose={onClose}
     >
@@ -138,10 +138,10 @@ function OverlaySheet({ app, groups, onClose }: { app: App; groups: readonly str
   );
 }
 
-/** Adds a manual App in its sheet, or edits or deletes one. */
-function ManualSheet({ app, groups, onClose }: { app?: App; groups: readonly string[]; onClose: () => void }) {
+/** Adds a Link-only App in its sheet, or edits or deletes one; its URL is fixed once added. */
+function LinkOnlySheet({ app, groups, onClose }: { app?: App; groups: readonly string[]; onClose: () => void }) {
   const create = useAction(AppsService.method.createApp);
-  const update = useAction(AppsService.method.updateApp);
+  const update = useAction(AppsService.method.setSettings);
   const remove = useAction(AppsService.method.deleteApp);
   const [name, setName] = useState(app?.name ?? "");
   const [url, setUrl] = useState(app?.url ?? "");
@@ -152,8 +152,9 @@ function ManualSheet({ app, groups, onClose }: { app?: App; groups: readonly str
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    const spec = { name, url, icon, group };
-    const done = app ? await update.run({ id: app.id, app: spec }) : await create.run({ app: spec });
+    const done = app
+      ? await update.run({ id: app.id, settings: { name, icon, group, hidden: app.settings?.hidden, workload: app.settings?.workload } })
+      : await create.run({ app: { name, url, icon, group } });
     if (done) onClose();
   };
   const drop = async () => {
@@ -183,7 +184,13 @@ function ManualSheet({ app, groups, onClose }: { app?: App; groups: readonly str
     <Sheet title={app ? app.name : "Add App"} kicker={app ? "Edit App" : undefined} footer={footer} onClose={onClose}>
       <form id={formId} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
         <Text label="Name" value={name} onChange={setName} />
-        <Text label="URL" value={url} onChange={setUrl} placeholder="https://198.18.0.1" />
+        {app ? (
+          <Field label="URL" hint="Fixed once the App is added.">
+            <TextInput value={url} readOnly />
+          </Field>
+        ) : (
+          <Text label="URL" value={url} onChange={setUrl} placeholder="https://198.18.0.1" />
+        )}
         <IconField value={icon} onChange={setIcon} name={name} url={url} />
         <Text label="Group" value={group} onChange={setGroup} list={listId} placeholder="None" />
         <Groups id={listId} groups={groups} />
@@ -193,7 +200,14 @@ function ManualSheet({ app, groups, onClose }: { app?: App; groups: readonly str
   );
 }
 
-/** The sheet editing an App, or adding a manual one when app is undefined. */
+/** The hostname of an App's URL. */
+const hostname = (app: App) => URL.parse(app.url)?.hostname ?? app.url;
+
+/** The sheet editing an App, or adding a Link-only one when app is undefined. */
 export function EditSheet({ app, groups, onClose }: { app?: App; groups: readonly string[]; onClose: () => void }) {
-  return app && !app.manual ? <OverlaySheet app={app} groups={groups} onClose={onClose} /> : <ManualSheet app={app} groups={groups} onClose={onClose} />;
+  return app && app.reach !== Reach.LINK_ONLY ? (
+    <SettingsSheet app={app} groups={groups} onClose={onClose} />
+  ) : (
+    <LinkOnlySheet app={app} groups={groups} onClose={onClose} />
+  );
 }
