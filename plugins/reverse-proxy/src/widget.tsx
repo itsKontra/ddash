@@ -1,7 +1,8 @@
 import type { Badge, Status, Widget } from "@ddash/plugin";
 import { Status as NpmStatus, type Certificate } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
 import { Skeleton, StatusList, type Tone } from "@ddash/ui";
-import { certificateState, expiry, relative } from "@ddash/display";
+import { expiry, relative } from "@ddash/display";
+import { stateLook } from "./certificates";
 import { notConfigured, Time, useCertificates, useStatus as useNpmStatus } from "./npm";
 
 const severity: Record<Tone, number> = { idle: 0, info: 0, maint: 0, up: 1, warn: 2, down: 3 };
@@ -10,7 +11,7 @@ const severity: Record<Tone, number> = { idle: 0, info: 0, maint: 0, up: 1, warn
 function nearest(certs: readonly Certificate[]): { cert: Certificate; tone: Tone } | undefined {
   if (certs.length === 0) return undefined;
   const cert = certs.reduce((a, b) => (expiry(b) < expiry(a) ? b : a));
-  const tone = certs.map((c) => certificateState(c).tone).reduce((a, b) => (severity[b] > severity[a] ? b : a));
+  const tone = certs.map((c) => stateLook[c.state].tone).reduce((a, b) => (severity[b] > severity[a] ? b : a));
   return { cert, tone };
 }
 

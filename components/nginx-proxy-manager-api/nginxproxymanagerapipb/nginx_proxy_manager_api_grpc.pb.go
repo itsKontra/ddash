@@ -44,7 +44,7 @@ type NginxProxyManagerApiServiceClient interface {
 	ListProxyHosts(ctx context.Context, in *ListProxyHostsRequest, opts ...grpc.CallOption) (*ListProxyHostsResponse, error)
 	// ListCertificates returns every SSL certificate
 	// (GET /api/nginx/certificates), in Nginx Proxy Manager's order: by
-	// nice name.
+	// nice name, each with its state now.
 	ListCertificates(ctx context.Context, in *ListCertificatesRequest, opts ...grpc.CallOption) (*ListCertificatesResponse, error)
 	// GetStatus says whether ddash can read Nginx Proxy Manager, as of its
 	// last read of the Proxy Hosts, with what the last sign-in learned.
@@ -154,7 +154,7 @@ type NginxProxyManagerApiServiceServer interface {
 	ListProxyHosts(context.Context, *ListProxyHostsRequest) (*ListProxyHostsResponse, error)
 	// ListCertificates returns every SSL certificate
 	// (GET /api/nginx/certificates), in Nginx Proxy Manager's order: by
-	// nice name.
+	// nice name, each with its state now.
 	ListCertificates(context.Context, *ListCertificatesRequest) (*ListCertificatesResponse, error)
 	// GetStatus says whether ddash can read Nginx Proxy Manager, as of its
 	// last read of the Proxy Hosts, with what the last sign-in learned.

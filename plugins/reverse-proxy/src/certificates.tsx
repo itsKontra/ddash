@@ -1,15 +1,24 @@
-import { certificateState, expiry, relative } from "@ddash/display";
+import { expiry, relative } from "@ddash/display";
 import { usePluginLink } from "@ddash/plugin";
 import type { App } from "@ddash/proto/apps/apps_pb";
-import type { Certificate } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
-import { DataTable, Notice, Panel, Pill, type Column } from "@ddash/ui";
+import { CertificateState, type Certificate } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
+import { DataTable, Notice, Panel, Pill, type Column, type Tone } from "@ddash/ui";
 import { Fragment } from "react";
 import { Link } from "react-router";
 import { useApps } from "./apps";
 import { Time, useCertificates } from "./npm";
 
+/** Each certificate state's tone and label, as nginx-proxy-manager-api tells the state. */
+export const stateLook: Record<CertificateState, { tone: Tone; label: string }> = {
+  [CertificateState.UNSPECIFIED]: { tone: "idle", label: "Unknown" },
+  [CertificateState.OK]: { tone: "up", label: "OK" },
+  [CertificateState.NOT_RENEWING]: { tone: "warn", label: "Not renewing" },
+  [CertificateState.EXPIRES_SOON]: { tone: "warn", label: "Expires soon" },
+  [CertificateState.EXPIRED]: { tone: "down", label: "Expired" },
+};
+
 /** The Apps whose Proxy Host uses the certificate. */
-const using = (apps: readonly App[], cert: Certificate) => apps.filter((a) => a.proxyHost && a.proxyHost.certificateId !== 0n && a.proxyHost.certificateId === cert.id);
+const using = (apps: readonly App[], cert: Certificate) => apps.filter((a) => cert.id !== 0n && a.proxyHost?.fields?.certificateId === cert.id);
 
 /** The Apps using a certificate, each linked to its pane on the Apps Page when that Plugin is installed. */
 function Apps({ apps }: { apps: readonly App[] }) {
@@ -52,11 +61,11 @@ export function Certificates() {
       id: "state",
       header: "State",
       cell: (c) => {
-        const s = certificateState(c);
+        const s = stateLook[c.state];
         return (
           <span className="flex flex-col items-start gap-1">
             <Pill tone={s.tone}>{s.label}</Pill>
-            {s.message && <span className="text-xs text-muted-foreground">{s.message}</span>}
+            {c.stateMessage && <span className="text-xs text-muted-foreground">{c.stateMessage}</span>}
           </span>
         );
       },

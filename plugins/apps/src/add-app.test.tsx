@@ -64,7 +64,7 @@ const radio = (name: string) => form().getByRole("radio", { name }) as HTMLButto
 const box = (name: string) => form().getByRole("checkbox", { name }) as HTMLInputElement;
 const addButton = () => form().getByRole("button", { name: "Add App" }) as HTMLButtonElement;
 
-/** Waits out the dry-run's debounce, then for its answer. */
+/** Waits out the Plan's debounce, then for its answer. */
 const debounced = async () => {
   await act(() => new Promise((r) => setTimeout(r, planDelay + 50)));
   await settle();
@@ -96,7 +96,7 @@ it("adds a proxied App by default: the debounced Plan beside the form, and Add s
   expect(radio("Reverse proxy").getAttribute("aria-checked")).toBe("true");
   await fill({ URL: "https://wiki.home.example", Name: "Wiki", "Upstream host": "198.18.2.11", Port: "3000" });
 
-  // One dry-run on open, one once the typing stopped.
+  // One Plan on open, one once the typing stopped.
   expect(plans(calls)).toHaveLength(2);
   expect(plans(calls)[1]).toEqual({
     action: {
@@ -119,7 +119,7 @@ it("adds a proxied App by default: the debounced Plan beside the form, and Add s
   await settle();
 
   const [run] = actions(calls);
-  expect(run).toEqual({ method: "RunAction", body: { action: plans(calls)[1].action, plan: wikiPlan } });
+  expect(run).toEqual({ method: "RunAction", body: { action: plans(calls)[1].action, plan: wikiPlan, runId: expect.any(String) } });
   expect(search).toBe("?app=proxy%3Awiki.home.example");
 });
 

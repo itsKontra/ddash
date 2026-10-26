@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	pb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // proxyHostRow is one Proxy Host as Nginx Proxy Manager sends it. Only
@@ -38,7 +39,7 @@ func (r proxyHostRow) offline() bool {
 func (r proxyHostRow) proto() *pb.ProxyHost {
 	p := &pb.ProxyHost{
 		Id: r.ID,
-		Fields: &pb.ProxyHostFields{
+		Fields: &proxyhostpb.ProxyHostFields{
 			DomainNames:    r.DomainNames,
 			ForwardScheme:  r.ForwardScheme,
 			ForwardHost:    r.ForwardHost,

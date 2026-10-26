@@ -98,6 +98,7 @@ func (c *component) ChangeHostOverrides(ctx context.Context, req *pfsenseapipb.C
 		}
 	}
 	var succeeded int
+	var applyFailed bool
 	err := c.write(ctx, func() error {
 		var stepErr error
 		sent := false
@@ -114,6 +115,7 @@ func (c *component) ChangeHostOverrides(ctx context.Context, req *pfsenseapipb.C
 			return stepErr
 		}
 		applyErr := c.applyDNS(ctx)
+		applyFailed = applyErr != nil
 		switch {
 		case stepErr != nil && applyErr != nil:
 			return status.Errorf(status.Code(stepErr), "%s; applying what was written failed too: %s", status.Convert(stepErr).Message(), status.Convert(applyErr).Message())
@@ -124,7 +126,7 @@ func (c *component) ChangeHostOverrides(ctx context.Context, req *pfsenseapipb.C
 		}
 		return nil
 	})
-	out := &pfsenseapipb.ChangeHostOverridesResponse{Succeeded: int32(succeeded)}
+	out := &pfsenseapipb.ChangeHostOverridesResponse{Succeeded: int32(succeeded), ApplyFailed: applyFailed}
 	if err != nil {
 		if st, derr := status.Convert(err).WithDetails(out); derr == nil {
 			return nil, st.Err()

@@ -77,9 +77,11 @@ type Firewall struct {
 	// failDNS counts DNS Resolver writes down to the one that fails (1:
 	// the next); 0 fails none.
 	failDNS int
-	log     []string
-	writing int
-	maxW    int
+	// failDNSApply fails the next DNS Resolver apply.
+	failDNSApply bool
+	log          []string
+	writing      int
+	maxW         int
 }
 
 // New serves the scenario in dir: its services/dhcp_servers.json and

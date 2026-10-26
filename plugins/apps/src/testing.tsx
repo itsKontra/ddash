@@ -10,8 +10,15 @@ export function failing<D extends DescMessage>(code: string, message: string, sc
 
 const day = 86_400_000;
 
-/** The Reverse Proxy's Host Override, as a DnsEntry's parent. */
+/** The Reverse Proxy's Host Override, as an alias's parent. */
 const nginx = { host: "nginx", domain: "home.example" };
+
+/** The wildcard certificate (id 3) as ListApps carries it on a Proxy Host: Not renewing. */
+const wildcard = {
+  name: "*.home.example",
+  state: "CERTIFICATE_STATE_NOT_RENEWING",
+  message: "Nginx Proxy Manager hasn't renewed this: check its Let's Encrypt log.",
+};
 
 /**
  * ListApps' answer (Connect JSON). No Warning counts: Old's is on a
@@ -30,14 +37,17 @@ export const list = {
       links: { proxyHostId: "3" },
       proxyHost: {
         id: "3",
-        domainNames: ["grafana.home.example"],
-        forwardScheme: "http",
-        forwardHost: "198.18.1.204",
-        forwardPort: 3000,
-        certificateId: "3",
-        blockExploits: true,
-        forceSsl: true,
-        http2: true,
+        fields: {
+          domainNames: ["grafana.home.example"],
+          forwardScheme: "http",
+          forwardHost: "198.18.1.204",
+          forwardPort: 3000,
+          certificateId: "3",
+          blockExploits: true,
+          forceSsl: true,
+          http2: true,
+        },
+        certificate: wildcard,
         enabled: true,
       },
       workload: { ref: { kind: "KIND_LXC", host: "pve", id: "120" }, name: "grafana", state: "running" },
@@ -54,12 +64,15 @@ export const list = {
       links: { proxyHostId: "7" },
       proxyHost: {
         id: "7",
-        domainNames: ["jellyfin.home.example", "media.home.example", "tv.home.example"],
-        forwardScheme: "http",
-        forwardHost: "198.18.2.10",
-        forwardPort: 8096,
-        certificateId: "3",
-        websockets: true,
+        fields: {
+          domainNames: ["jellyfin.home.example", "media.home.example", "tv.home.example"],
+          forwardScheme: "http",
+          forwardHost: "198.18.2.10",
+          forwardPort: 8096,
+          certificateId: "3",
+          websockets: true,
+        },
+        certificate: wildcard,
         enabled: true,
       },
       workload: { ref: { kind: "KIND_DOCKER", host: "media", id: "jellyfin" }, name: "jellyfin", state: "exited" },
@@ -98,7 +111,7 @@ export const list = {
       reach: "REACH_PROXIED",
       settings: {},
       links: { proxyHostId: "12" },
-      proxyHost: { id: "12", domainNames: ["printer.home.example"], forwardScheme: "http", forwardHost: "198.18.1.10", forwardPort: 80 },
+      proxyHost: { id: "12", fields: { domainNames: ["printer.home.example"], forwardScheme: "http", forwardHost: "198.18.1.10", forwardPort: 80 } },
       warnings: [{ kind: "WARNING_KIND_NO_TLS", ignored: true, fixes: [{ kind: "FIX_KIND_PICK_CERTIFICATE" }] }],
     },
     {
@@ -256,10 +269,21 @@ export const history = {
   })),
 };
 
-/** ListCertificates' answer: the wildcard (id 3), Let's Encrypt, expiring in 10 days, so Not renewing. */
+/**
+ * ListCertificates' answer, for the certificate pickers: the wildcard (id
+ * 3), Let's Encrypt, OK. The Panels show the state ListApps carries
+ * instead (wildcard, Not renewing).
+ */
 export const certificates = {
   certificates: [
-    { id: "3", provider: "letsencrypt", niceName: "*.home.example", domainNames: ["*.home.example"], expiresOn: new Date(Date.now() + 10 * day).toISOString() },
+    {
+      id: "3",
+      provider: "letsencrypt",
+      niceName: "*.home.example",
+      domainNames: ["*.home.example"],
+      expiresOn: new Date(Date.now() + 60 * day).toISOString(),
+      state: "CERTIFICATE_STATE_OK",
+    },
   ],
 };
 

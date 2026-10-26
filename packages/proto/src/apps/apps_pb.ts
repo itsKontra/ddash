@@ -10,6 +10,8 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
+import type { ProxyHostFields } from "../ddash/proxyhost/proxy_host_pb";
+import { file_ddash_proxyhost_proxy_host } from "../ddash/proxyhost/proxy_host_pb";
 import type { WorkloadRef } from "../ddash/workload/workload_pb";
 import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
@@ -20,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file apps/apps.proto.
  */
 export const file_apps_apps: GenFile = /*@__PURE__*/
-  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLDAwoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nEiEKA2RucxgQIAMoCzIULmRkYXNoLmFwcHMuRG5zRW50cnkSKAoHbmV0d29yaxgRIAEoCzIXLmRkYXNoLmFwcHMuTmV0d29ya0luZm8ijwEKC05ldHdvcmtJbmZvEg8KB2FkZHJlc3MYASABKAkSLwoNaW50ZXJuZXRfcGF0aBgCIAEoDjIYLmRkYXNoLmFwcHMuSW50ZXJuZXRQYXRoEhMKC2Fkc19hbGxvd2VkGAMgASgIEikKBmRldmljZRgEIAEoCzIZLmRkYXNoLmFwcHMuTmV0d29ya0RldmljZSIqCg1OZXR3b3JrRGV2aWNlEgsKA21hYxgBIAEoCRIMCgRuYW1lGAIgASgJIncKC0FwcFNldHRpbmdzEgwKBG5hbWUYASABKAkSDAoEaWNvbhgCIAEoCRINCgVncm91cBgDIAEoCRIOCgZoaWRkZW4YBCABKAgSLQoId29ya2xvYWQYBSABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiJTCgVMaW5rcxIVCg1wcm94eV9ob3N0X2lkGAEgASgDEjMKDWhvc3Rfb3ZlcnJpZGUYAiABKAsyHC5kZGFzaC5hcHBzLkhvc3RPdmVycmlkZU5hbWUiMAoQSG9zdE92ZXJyaWRlTmFtZRIMCgRob3N0GAEgASgJEg4KBmRvbWFpbhgCIAEoCSJjCghEbnNFbnRyeRIMCgRob3N0GAEgASgJEg4KBmRvbWFpbhgCIAEoCRIsCgZwYXJlbnQYAyABKAsyHC5kZGFzaC5hcHBzLkhvc3RPdmVycmlkZU5hbWUSCwoDaXBzGAQgAygJIrUCCglQcm94eUhvc3QSCgoCaWQYASABKAMSFAoMZG9tYWluX25hbWVzGAIgAygJEhYKDmZvcndhcmRfc2NoZW1lGAMgASgJEhQKDGZvcndhcmRfaG9zdBgEIAEoCRIUCgxmb3J3YXJkX3BvcnQYBSABKAUSFgoOY2VydGlmaWNhdGVfaWQYBiABKAMSFgoOYmxvY2tfZXhwbG9pdHMYByABKAgSEgoKd2Vic29ja2V0cxgIIAEoCBIRCglmb3JjZV9zc2wYCSABKAgSDQoFaHR0cDIYCiABKAgSDAoEaHN0cxgLIAEoCBIXCg9oc3RzX3N1YmRvbWFpbnMYDCABKAgSDwoHZW5hYmxlZBgNIAEoCBIPCgdvZmZsaW5lGA4gASgIEhMKC25naW54X2Vycm9yGA8gASgJIoQBCgdXYXJuaW5nEiUKBGtpbmQYASABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kEg8KB2lnbm9yZWQYAiABKAgSDgoGZGV0YWlsGAMgASgJEhEKCWhvc3RuYW1lcxgEIAMoCRIeCgVmaXhlcxgFIAMoCzIPLmRkYXNoLmFwcHMuRml4IoYBCgNGaXgSIQoEa2luZBgBIAEoDjITLmRkYXNoLmFwcHMuRml4S2luZBIQCghob3N0bmFtZRgCIAEoCRIjCgVlbnRyeRgDIAEoCzIULmRkYXNoLmFwcHMuRG5zRW50cnkSDgoGYXBwX2lkGAQgASgJEhUKDXByb3h5X2hvc3RfaWQYBSABKAMiYwoIV29ya2xvYWQSKAoDcmVmGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghvdmVycmlkZRgEIAEoCCKmAQoKU291cmNlUmVhZBIrCgdyZWFkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgCIAEoCRIxCg1mYWlsaW5nX3NpbmNlGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5ub3RfY29uZmlndXJlZBgEIAEoCBIRCglyZWFkX29ubHkYBSABKAgiEQoPTGlzdEFwcHNSZXF1ZXN0Iu0BChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBIrCgtwcm94eV9ob3N0cxgCIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIuCg5ob3N0X292ZXJyaWRlcxgDIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIvCg1yZXZlcnNlX3Byb3h5GAQgASgLMhguZGRhc2guYXBwcy5SZXZlcnNlUHJveHkSFQoNbmV0d29ya19lcnJvchgFIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAYgASgJIkcKDFJldmVyc2VQcm94eRIPCgdhZGRyZXNzGAEgASgJEhYKDmhvc3Rfb3ZlcnJpZGVzGAIgAygJEg4KBm5vdGljZRgDIAEoCSIQCg5SZWZyZXNoUmVxdWVzdCIRCg9SZWZyZXNoUmVzcG9uc2UiSwoSU2V0U2V0dGluZ3NSZXF1ZXN0EgoKAmlkGAEgASgJEikKCHNldHRpbmdzGAIgASgLMhcuZGRhc2guYXBwcy5BcHBTZXR0aW5ncyIVChNTZXRTZXR0aW5nc1Jlc3BvbnNlIkkKFElnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhcKFUlnbm9yZVdhcm5pbmdSZXNwb25zZSJLChZVbmlnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhkKF1VuaWdub3JlV2FybmluZ1Jlc3BvbnNlIikKD1JlYXR0YWNoUmVxdWVzdBIKCgJpZBgBIAEoCRIKCgJ0bxgCIAEoCSISChBSZWF0dGFjaFJlc3BvbnNlIiEKE0RlbGV0ZU9ycGhhblJlcXVlc3QSCgoCaWQYASABKAkiFgoURGVsZXRlT3JwaGFuUmVzcG9uc2UiMAoTUHJvbW90ZUFsaWFzUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVhbGlhcxgCIAEoCSIWChRQcm9tb3RlQWxpYXNSZXNwb25zZSIoCgxNZXJnZVJlcXVlc3QSCgoCaWQYASABKAkSDAoEZnJvbRgCIAEoCSIPCg1NZXJnZVJlc3BvbnNlIvECCglBcHBBY3Rpb24SIQoDYWRkGAEgASgLMhIuZGRhc2guYXBwcy5BZGRBcHBIABIzCg5jaGFuZ2VfYWRkcmVzcxgCIAEoCzIZLmRkYXNoLmFwcHMuQ2hhbmdlQWRkcmVzc0gAEjgKEWNoYW5nZV9wcm94eV9ob3N0GAMgASgLMhsuZGRhc2guYXBwcy5DaGFuZ2VQcm94eUhvc3RIABI4ChFhZGRfcmV2ZXJzZV9wcm94eRgEIAEoCzIbLmRkYXNoLmFwcHMuQWRkUmV2ZXJzZVByb3h5SAASPgoUcmVtb3ZlX3JldmVyc2VfcHJveHkYBSABKAsyHi5kZGFzaC5hcHBzLlJlbW92ZVJldmVyc2VQcm94eUgAEicKBmRlbGV0ZRgGIAEoCzIVLmRkYXNoLmFwcHMuRGVsZXRlQXBwSAASJQoDZml4GAcgASgLMhYuZGRhc2guYXBwcy5GaXhXYXJuaW5nSABCCAoGYWN0aW9uIjkKDUNoYW5nZUFkZHJlc3MSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg8KB2FsaWFzZXMYAyADKAkiTgoPQ2hhbmdlUHJveHlIb3N0EgoKAmlkGAEgASgJEi8KCnByb3h5X2hvc3QYAiABKAsyGy5kZGFzaC5hcHBzLlByb3h5SG9zdEZpZWxkcyJOCg9BZGRSZXZlcnNlUHJveHkSCgoCaWQYASABKAkSLwoKcHJveHlfaG9zdBgCIAEoCzIbLmRkYXNoLmFwcHMuUHJveHlIb3N0RmllbGRzIjEKElJlbW92ZVJldmVyc2VQcm94eRIKCgJpZBgBIAEoCRIPCgdhZGRyZXNzGAIgASgJIhcKCURlbGV0ZUFwcBIKCgJpZBgBIAEoCSI2CgpGaXhXYXJuaW5nEgoKAmlkGAEgASgJEhwKA2ZpeBgCIAEoCzIPLmRkYXNoLmFwcHMuRml4IqQBCgZBZGRBcHASCwoDdXJsGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEaWNvbhgDIAEoCRINCgVncm91cBgEIAEoCRIgCgVyZWFjaBgFIAEoDjIRLmRkYXNoLmFwcHMuUmVhY2gSLwoKcHJveHlfaG9zdBgGIAEoCzIbLmRkYXNoLmFwcHMuUHJveHlIb3N0RmllbGRzEg8KB2FkZHJlc3MYByABKAki4gEKD1Byb3h5SG9zdEZpZWxkcxIWCg5mb3J3YXJkX3NjaGVtZRgBIAEoCRIUCgxmb3J3YXJkX2hvc3QYAiABKAkSFAoMZm9yd2FyZF9wb3J0GAMgASgFEhYKDmNlcnRpZmljYXRlX2lkGAQgASgDEhYKDmJsb2NrX2V4cGxvaXRzGAUgASgIEhIKCndlYnNvY2tldHMYBiABKAgSEQoJZm9yY2Vfc3NsGAcgASgIEg0KBWh0dHAyGAggASgIEgwKBGhzdHMYCSABKAgSFwoPaHN0c19zdWJkb21haW5zGAogASgIImEKBFBsYW4SIwoFc3RlcHMYASADKAsyFC5kZGFzaC5hcHBzLlBsYW5TdGVwEiMKBW5hbWVzGAIgAygLMhQuZGRhc2guYXBwcy5OYW1lTm90ZRIPCgdibG9ja2VkGAMgAygJImQKCFBsYW5TdGVwEiIKBnN5c3RlbRgBIAEoDjISLmRkYXNoLmFwcHMuU3lzdGVtEg0KBXRpdGxlGAIgASgJEiUKBnZhbHVlcxgDIAMoCzIVLmRkYXNoLmFwcHMuUGxhblZhbHVlIjkKCVBsYW5WYWx1ZRINCgVsYWJlbBgBIAEoCRIOCgZiZWZvcmUYAiABKAkSDQoFYWZ0ZXIYAyABKAkilAEKCE5hbWVOb3RlEhAKCGhvc3RuYW1lGAEgASgJEiYKBGtpbmQYAiABKA4yGC5kZGFzaC5hcHBzLk5hbWVOb3RlS2luZBIMCgR0ZXh0GAMgASgJEg4KBmFwcF9pZBgEIAEoCRIMCgRuYW1lGAUgASgJEg4KBmhpZGRlbhgGIAEoCBISCgpkZXZpY2VfbWFjGAcgASgJIjoKEVBsYW5BY3Rpb25SZXF1ZXN0EiUKBmFjdGlvbhgBIAEoCzIVLmRkYXNoLmFwcHMuQXBwQWN0aW9uIjQKElBsYW5BY3Rpb25SZXNwb25zZRIeCgRwbGFuGAEgASgLMhAuZGRhc2guYXBwcy5QbGFuIlkKEFJ1bkFjdGlvblJlcXVlc3QSJQoGYWN0aW9uGAEgASgLMhUuZGRhc2guYXBwcy5BcHBBY3Rpb24SHgoEcGxhbhgCIAEoCzIQLmRkYXNoLmFwcHMuUGxhbiJBChFSdW5BY3Rpb25SZXNwb25zZRIOCgZhcHBfaWQYASABKAkSDAoEZG9uZRgCIAEoBRIOCgZyZXJlYWQYAyABKAkiFgoUTGlzdFdvcmtsb2Fkc1JlcXVlc3QiQAoVTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlEicKCXdvcmtsb2FkcxgBIAMoCzIULmRkYXNoLmFwcHMuV29ya2xvYWQqgwEKDEludGVybmV0UGF0aBIdChlJTlRFUk5FVF9QQVRIX1VOU1BFQ0lGSUVEEAASGwoXSU5URVJORVRfUEFUSF9UVU5ORUxMRUQQARIYChRJTlRFUk5FVF9QQVRIX0RJUkVDVBACEh0KGUlOVEVSTkVUX1BBVEhfTk9fSU5URVJORVQQAypdCgVSZWFjaBIVChFSRUFDSF9VTlNQRUNJRklFRBAAEhEKDVJFQUNIX1BST1hJRUQQARITCg9SRUFDSF9MSU5LX09OTFkQAhIVChFSRUFDSF9OT1RfUFJPWElFRBADKqkDCgdGaXhLaW5kEhgKFEZJWF9LSU5EX1VOU1BFQ0lGSUVEEAASFQoRRklYX0tJTkRfUkVHSVNURVIQARIXChNGSVhfS0lORF9ERUxFVEVfQVBQEAISHgoaRklYX0tJTkRfQUREX1JFVkVSU0VfUFJPWFkQAxIYChRGSVhfS0lORF9SRU1PVkVfTkFNRRAEEiIKHkZJWF9LSU5EX1NFVF9XT1JLTE9BRF9PVkVSUklERRAFEh0KGUZJWF9LSU5EX1BJQ0tfQ0VSVElGSUNBVEUQBhIXChNGSVhfS0lORF9TQVZFX0FHQUlOEAcSFwoTRklYX0tJTkRfVVNFX0FTX1VSTBAIEiMKH0ZJWF9LSU5EX1BPSU5UX0FUX1JFVkVSU0VfUFJPWFkQCRIeChpGSVhfS0lORF9ERUxFVEVfUFJPWFlfSE9TVBAKEhkKFUZJWF9LSU5EX0RFTEVURV9FTlRSWRALEhIKDkZJWF9LSU5EX01FUkdFEAwSFQoRRklYX0tJTkRfUkVBVFRBQ0gQDRIaChZGSVhfS0lORF9ERUxFVEVfT1JQSEFOEA4q9AIKC1dhcm5pbmdLaW5kEhwKGFdBUk5JTkdfS0lORF9VTlNQRUNJRklFRBAAEhwKGFdBUk5JTkdfS0lORF9OT19XT1JLTE9BRBABEhcKE1dBUk5JTkdfS0lORF9OT19UTFMQAhIjCh9XQVJOSU5HX0tJTkRfUFJPWFlfSE9TVF9PRkZMSU5FEAMSJgoiV0FSTklOR19LSU5EX1VSTF9OT1RfT05fUFJPWFlfSE9TVBAEEhkKFVdBUk5JTkdfS0lORF9PUlBIQU5FRBAFEh8KG1dBUk5JTkdfS0lORF9OT1RfUkVHSVNURVJFRBAGEh4KGldBUk5JTkdfS0lORF9OT19QUk9YWV9IT1NUEAcSHQoZV0FSTklOR19LSU5EX0ROU19CWVBBU1NFUxAIEiEKHVdBUk5JTkdfS0lORF9SRUdJU1RFUkVEX1RXSUNFEAkSJQohV0FSTklOR19LSU5EX0hPU1ROQU1FX09OX1RXT19BUFBTEAoqZgoGU3lzdGVtEhYKElNZU1RFTV9VTlNQRUNJRklFRBAAEhAKDFNZU1RFTV9EREFTSBABEh4KGlNZU1RFTV9OR0lOWF9QUk9YWV9NQU5BR0VSEAISEgoOU1lTVEVNX1BGU0VOU0UQAyqfAgoMTmFtZU5vdGVLaW5kEh4KGk5BTUVfTk9URV9LSU5EX1VOU1BFQ0lGSUVEEAASIQodTkFNRV9OT1RFX0tJTkRfTk9UX0FfSE9TVE5BTUUQARIWChJOQU1FX05PVEVfS0lORF9BUFAQAhIgChxOQU1FX05PVEVfS0lORF9SRVZFUlNFX1BST1hZEAMSIAocTkFNRV9OT1RFX0tJTkRfSE9TVF9PVkVSUklERRAEEh0KGU5BTUVfTk9URV9LSU5EX1BST1hZX0hPU1QQBRIZChVOQU1FX05PVEVfS0lORF9ERVZJQ0UQBhIbChdOQU1FX05PVEVfS0lORF9SRUFUVEFDSBAHEhkKFU5BTUVfTk9URV9LSU5EX09SUEhBThAIMoAICgtBcHBzU2VydmljZRJLCghMaXN0QXBwcxIbLmRkYXNoLmFwcHMuTGlzdEFwcHNSZXF1ZXN0GhwuZGRhc2guYXBwcy5MaXN0QXBwc1Jlc3BvbnNlIgSKtRgAEkgKB1JlZnJlc2gSGi5kZGFzaC5hcHBzLlJlZnJlc2hSZXF1ZXN0GhsuZGRhc2guYXBwcy5SZWZyZXNoUmVzcG9uc2UiBJK1GAASVAoLU2V0U2V0dGluZ3MSHi5kZGFzaC5hcHBzLlNldFNldHRpbmdzUmVxdWVzdBofLmRkYXNoLmFwcHMuU2V0U2V0dGluZ3NSZXNwb25zZSIEkrUYABJaCg1JZ25vcmVXYXJuaW5nEiAuZGRhc2guYXBwcy5JZ25vcmVXYXJuaW5nUmVxdWVzdBohLmRkYXNoLmFwcHMuSWdub3JlV2FybmluZ1Jlc3BvbnNlIgSStRgAEmAKD1VuaWdub3JlV2FybmluZxIiLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVxdWVzdBojLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVzcG9uc2UiBJK1GAASSwoIUmVhdHRhY2gSGy5kZGFzaC5hcHBzLlJlYXR0YWNoUmVxdWVzdBocLmRkYXNoLmFwcHMuUmVhdHRhY2hSZXNwb25zZSIEkrUYABJZCgxEZWxldGVPcnBoYW4SHy5kZGFzaC5hcHBzLkRlbGV0ZU9ycGhhblJlcXVlc3QaIC5kZGFzaC5hcHBzLkRlbGV0ZU9ycGhhblJlc3BvbnNlIgaStRgCCAESVwoMUHJvbW90ZUFsaWFzEh8uZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXF1ZXN0GiAuZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXNwb25zZSIEkrUYABJECgVNZXJnZRIYLmRkYXNoLmFwcHMuTWVyZ2VSZXF1ZXN0GhkuZGRhc2guYXBwcy5NZXJnZVJlc3BvbnNlIgaStRgCCAESUwoKUGxhbkFjdGlvbhIdLmRkYXNoLmFwcHMuUGxhbkFjdGlvblJlcXVlc3QaHi5kZGFzaC5hcHBzLlBsYW5BY3Rpb25SZXNwb25zZSIGirUYAggDEk4KCVJ1bkFjdGlvbhIcLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVxdWVzdBodLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVzcG9uc2UiBJK1GAASWgoNTGlzdFdvcmtsb2FkcxIgLmRkYXNoLmFwcHMuTGlzdFdvcmtsb2Fkc1JlcXVlc3QaIS5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXNwb25zZSIEirUYAEI6WjhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FwcHMvYXBwc3BiO2FwcHNwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_timestamp]);
+  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLOAwoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nEiwKA2RucxgQIAMoCzIfLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlT3JBbGlhcxIoCgduZXR3b3JrGBEgASgLMhcuZGRhc2guYXBwcy5OZXR3b3JrSW5mbyKPAQoLTmV0d29ya0luZm8SDwoHYWRkcmVzcxgBIAEoCRIvCg1pbnRlcm5ldF9wYXRoGAIgASgOMhguZGRhc2guYXBwcy5JbnRlcm5ldFBhdGgSEwoLYWRzX2FsbG93ZWQYAyABKAgSKQoGZGV2aWNlGAQgASgLMhkuZGRhc2guYXBwcy5OZXR3b3JrRGV2aWNlIioKDU5ldHdvcmtEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkidwoLQXBwU2V0dGluZ3MSDAoEbmFtZRgBIAEoCRIMCgRpY29uGAIgASgJEg0KBWdyb3VwGAMgASgJEg4KBmhpZGRlbhgEIAEoCBItCgh3b3JrbG9hZBgFIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIlMKBUxpbmtzEhUKDXByb3h5X2hvc3RfaWQYASABKAMSMwoNaG9zdF9vdmVycmlkZRgCIAEoCzIcLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlTmFtZSIwChBIb3N0T3ZlcnJpZGVOYW1lEgwKBGhvc3QYASABKAkSDgoGZG9tYWluGAIgASgJIm4KE0hvc3RPdmVycmlkZU9yQWxpYXMSDAoEaG9zdBgBIAEoCRIOCgZkb21haW4YAiABKAkSLAoGcGFyZW50GAMgASgLMhwuZGRhc2guYXBwcy5Ib3N0T3ZlcnJpZGVOYW1lEgsKA2lwcxgEIAMoCSKuAQoJUHJveHlIb3N0EgoKAmlkGAEgASgDEjAKBmZpZWxkcxgCIAEoCzIgLmRkYXNoLnByb3h5aG9zdC5Qcm94eUhvc3RGaWVsZHMSDwoHZW5hYmxlZBgDIAEoCBIPCgdvZmZsaW5lGAQgASgIEhMKC25naW54X2Vycm9yGAUgASgJEiwKC2NlcnRpZmljYXRlGAYgASgLMhcuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZSJZCgtDZXJ0aWZpY2F0ZRIMCgRuYW1lGAEgASgJEisKBXN0YXRlGAIgASgOMhwuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZVN0YXRlEg8KB21lc3NhZ2UYAyABKAkihAEKB1dhcm5pbmcSJQoEa2luZBgBIAEoDjIXLmRkYXNoLmFwcHMuV2FybmluZ0tpbmQSDwoHaWdub3JlZBgCIAEoCBIOCgZkZXRhaWwYAyABKAkSEQoJaG9zdG5hbWVzGAQgAygJEh4KBWZpeGVzGAUgAygLMg8uZGRhc2guYXBwcy5GaXgimQEKA0ZpeBIhCgRraW5kGAEgASgOMhMuZGRhc2guYXBwcy5GaXhLaW5kEhAKCGhvc3RuYW1lGAIgASgJEjYKDWhvc3Rfb3ZlcnJpZGUYAyABKAsyHy5kZGFzaC5hcHBzLkhvc3RPdmVycmlkZU9yQWxpYXMSDgoGYXBwX2lkGAQgASgJEhUKDXByb3h5X2hvc3RfaWQYBSABKAMiYwoIV29ya2xvYWQSKAoDcmVmGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghvdmVycmlkZRgEIAEoCCKmAQoKU291cmNlUmVhZBIrCgdyZWFkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgCIAEoCRIxCg1mYWlsaW5nX3NpbmNlGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5ub3RfY29uZmlndXJlZBgEIAEoCBIRCglyZWFkX29ubHkYBSABKAgiEQoPTGlzdEFwcHNSZXF1ZXN0Iu0BChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBIrCgtwcm94eV9ob3N0cxgCIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIuCg5ob3N0X292ZXJyaWRlcxgDIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIvCg1yZXZlcnNlX3Byb3h5GAQgASgLMhguZGRhc2guYXBwcy5SZXZlcnNlUHJveHkSFQoNbmV0d29ya19lcnJvchgFIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAYgASgJIkcKDFJldmVyc2VQcm94eRIPCgdhZGRyZXNzGAEgASgJEhYKDmhvc3Rfb3ZlcnJpZGVzGAIgAygJEg4KBm5vdGljZRgDIAEoCSIQCg5SZWZyZXNoUmVxdWVzdCIRCg9SZWZyZXNoUmVzcG9uc2UiSwoSU2V0U2V0dGluZ3NSZXF1ZXN0EgoKAmlkGAEgASgJEikKCHNldHRpbmdzGAIgASgLMhcuZGRhc2guYXBwcy5BcHBTZXR0aW5ncyIVChNTZXRTZXR0aW5nc1Jlc3BvbnNlIkkKFElnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhcKFUlnbm9yZVdhcm5pbmdSZXNwb25zZSJLChZVbmlnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhkKF1VuaWdub3JlV2FybmluZ1Jlc3BvbnNlIikKD1JlYXR0YWNoUmVxdWVzdBIKCgJpZBgBIAEoCRIKCgJ0bxgCIAEoCSISChBSZWF0dGFjaFJlc3BvbnNlIiEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSCgoCaWQYASABKAkiFgoURGVsZXRlUmVjb3JkUmVzcG9uc2UiMAoTUHJvbW90ZUFsaWFzUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVhbGlhcxgCIAEoCSIWChRQcm9tb3RlQWxpYXNSZXNwb25zZSIoCgxNZXJnZVJlcXVlc3QSCgoCaWQYASABKAkSDAoEZnJvbRgCIAEoCSIPCg1NZXJnZVJlc3BvbnNlIvECCglBcHBBY3Rpb24SIQoDYWRkGAEgASgLMhIuZGRhc2guYXBwcy5BZGRBcHBIABIzCg5jaGFuZ2VfYWRkcmVzcxgCIAEoCzIZLmRkYXNoLmFwcHMuQ2hhbmdlQWRkcmVzc0gAEjgKEWNoYW5nZV9wcm94eV9ob3N0GAMgASgLMhsuZGRhc2guYXBwcy5DaGFuZ2VQcm94eUhvc3RIABI4ChFhZGRfcmV2ZXJzZV9wcm94eRgEIAEoCzIbLmRkYXNoLmFwcHMuQWRkUmV2ZXJzZVByb3h5SAASPgoUcmVtb3ZlX3JldmVyc2VfcHJveHkYBSABKAsyHi5kZGFzaC5hcHBzLlJlbW92ZVJldmVyc2VQcm94eUgAEicKBmRlbGV0ZRgGIAEoCzIVLmRkYXNoLmFwcHMuRGVsZXRlQXBwSAASJQoDZml4GAcgASgLMhYuZGRhc2guYXBwcy5GaXhXYXJuaW5nSABCCAoGYWN0aW9uIjkKDUNoYW5nZUFkZHJlc3MSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg8KB2FsaWFzZXMYAyADKAkiUwoPQ2hhbmdlUHJveHlIb3N0EgoKAmlkGAEgASgJEjQKCnByb3h5X2hvc3QYAiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzIlMKD0FkZFJldmVyc2VQcm94eRIKCgJpZBgBIAEoCRI0Cgpwcm94eV9ob3N0GAIgASgLMiAuZGRhc2gucHJveHlob3N0LlByb3h5SG9zdEZpZWxkcyIxChJSZW1vdmVSZXZlcnNlUHJveHkSCgoCaWQYASABKAkSDwoHYWRkcmVzcxgCIAEoCSIXCglEZWxldGVBcHASCgoCaWQYASABKAkiNgoKRml4V2FybmluZxIKCgJpZBgBIAEoCRIcCgNmaXgYAiABKAsyDy5kZGFzaC5hcHBzLkZpeCKpAQoGQWRkQXBwEgsKA3VybBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSIAoFcmVhY2gYBSABKA4yES5kZGFzaC5hcHBzLlJlYWNoEjQKCnByb3h5X2hvc3QYBiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzEg8KB2FkZHJlc3MYByABKAkicAoEUGxhbhIjCgVzdGVwcxgBIAMoCzIULmRkYXNoLmFwcHMuUGxhblN0ZXASIwoFbmFtZXMYAiADKAsyFC5kZGFzaC5hcHBzLk5hbWVOb3RlEg8KB2Jsb2NrZWQYAyADKAkSDQoFbm90ZXMYBCADKAkiZAoIUGxhblN0ZXASIgoGc3lzdGVtGAEgASgOMhIuZGRhc2guYXBwcy5TeXN0ZW0SDQoFdGl0bGUYAiABKAkSJQoGdmFsdWVzGAMgAygLMhUuZGRhc2guYXBwcy5QbGFuVmFsdWUiOQoJUGxhblZhbHVlEg0KBWxhYmVsGAEgASgJEg4KBmJlZm9yZRgCIAEoCRINCgVhZnRlchgDIAEoCSKUAQoITmFtZU5vdGUSEAoIaG9zdG5hbWUYASABKAkSJgoEa2luZBgCIAEoDjIYLmRkYXNoLmFwcHMuTmFtZU5vdGVLaW5kEgwKBHRleHQYAyABKAkSDgoGYXBwX2lkGAQgASgJEgwKBG5hbWUYBSABKAkSDgoGaGlkZGVuGAYgASgIEhIKCmRldmljZV9tYWMYByABKAkiOgoRUGxhbkFjdGlvblJlcXVlc3QSJQoGYWN0aW9uGAEgASgLMhUuZGRhc2guYXBwcy5BcHBBY3Rpb24iNAoSUGxhbkFjdGlvblJlc3BvbnNlEh4KBHBsYW4YASABKAsyEC5kZGFzaC5hcHBzLlBsYW4iaQoQUnVuQWN0aW9uUmVxdWVzdBIlCgZhY3Rpb24YASABKAsyFS5kZGFzaC5hcHBzLkFwcEFjdGlvbhIeCgRwbGFuGAIgASgLMhAuZGRhc2guYXBwcy5QbGFuEg4KBnJ1bl9pZBgDIAEoCSIfCg1HZXRSdW5SZXF1ZXN0Eg4KBnJ1bl9pZBgBIAEoCSI2Cg5HZXRSdW5SZXNwb25zZRIkCgVzdGVwcxgBIAMoDjIVLmRkYXNoLmFwcHMuU3RlcFN0YXRlIkEKEVJ1bkFjdGlvblJlc3BvbnNlEg4KBmFwcF9pZBgBIAEoCRIMCgRkb25lGAIgASgFEg4KBnJlcmVhZBgDIAEoCSIWChRMaXN0V29ya2xvYWRzUmVxdWVzdCJAChVMaXN0V29ya2xvYWRzUmVzcG9uc2USJwoJd29ya2xvYWRzGAEgAygLMhQuZGRhc2guYXBwcy5Xb3JrbG9hZCqDAQoMSW50ZXJuZXRQYXRoEh0KGUlOVEVSTkVUX1BBVEhfVU5TUEVDSUZJRUQQABIbChdJTlRFUk5FVF9QQVRIX1RVTk5FTExFRBABEhgKFElOVEVSTkVUX1BBVEhfRElSRUNUEAISHQoZSU5URVJORVRfUEFUSF9OT19JTlRFUk5FVBADKl0KBVJlYWNoEhUKEVJFQUNIX1VOU1BFQ0lGSUVEEAASEQoNUkVBQ0hfUFJPWElFRBABEhMKD1JFQUNIX0xJTktfT05MWRACEhUKEVJFQUNIX05PVF9QUk9YSUVEEAMqtgEKEENlcnRpZmljYXRlU3RhdGUSIQodQ0VSVElGSUNBVEVfU1RBVEVfVU5TUEVDSUZJRUQQABIYChRDRVJUSUZJQ0FURV9TVEFURV9PSxABEiIKHkNFUlRJRklDQVRFX1NUQVRFX05PVF9SRU5FV0lORxACEiIKHkNFUlRJRklDQVRFX1NUQVRFX0VYUElSRVNfU09PThADEh0KGUNFUlRJRklDQVRFX1NUQVRFX0VYUElSRUQQBCqpAwoHRml4S2luZBIYChRGSVhfS0lORF9VTlNQRUNJRklFRBAAEhUKEUZJWF9LSU5EX1JFR0lTVEVSEAESFwoTRklYX0tJTkRfREVMRVRFX0FQUBACEh4KGkZJWF9LSU5EX0FERF9SRVZFUlNFX1BST1hZEAMSGAoURklYX0tJTkRfUkVNT1ZFX05BTUUQBBIiCh5GSVhfS0lORF9TRVRfV09SS0xPQURfT1ZFUlJJREUQBRIdChlGSVhfS0lORF9QSUNLX0NFUlRJRklDQVRFEAYSFwoTRklYX0tJTkRfU0FWRV9BR0FJThAHEhcKE0ZJWF9LSU5EX1VTRV9BU19VUkwQCBIjCh9GSVhfS0lORF9QT0lOVF9BVF9SRVZFUlNFX1BST1hZEAkSHgoaRklYX0tJTkRfREVMRVRFX1BST1hZX0hPU1QQChIZChVGSVhfS0lORF9ERUxFVEVfRU5UUlkQCxISCg5GSVhfS0lORF9NRVJHRRAMEhUKEUZJWF9LSU5EX1JFQVRUQUNIEA0SGgoWRklYX0tJTkRfREVMRVRFX09SUEhBThAOKvQCCgtXYXJuaW5nS2luZBIcChhXQVJOSU5HX0tJTkRfVU5TUEVDSUZJRUQQABIcChhXQVJOSU5HX0tJTkRfTk9fV09SS0xPQUQQARIXChNXQVJOSU5HX0tJTkRfTk9fVExTEAISIwofV0FSTklOR19LSU5EX1BST1hZX0hPU1RfT0ZGTElORRADEiYKIldBUk5JTkdfS0lORF9VUkxfTk9UX09OX1BST1hZX0hPU1QQBBIZChVXQVJOSU5HX0tJTkRfT1JQSEFORUQQBRIfChtXQVJOSU5HX0tJTkRfTk9UX1JFR0lTVEVSRUQQBhIeChpXQVJOSU5HX0tJTkRfTk9fUFJPWFlfSE9TVBAHEh0KGVdBUk5JTkdfS0lORF9ETlNfQllQQVNTRVMQCBIhCh1XQVJOSU5HX0tJTkRfUkVHSVNURVJFRF9UV0lDRRAJEiUKIVdBUk5JTkdfS0lORF9IT1NUTkFNRV9PTl9UV09fQVBQUxAKKmYKBlN5c3RlbRIWChJTWVNURU1fVU5TUEVDSUZJRUQQABIQCgxTWVNURU1fRERBU0gQARIeChpTWVNURU1fTkdJTlhfUFJPWFlfTUFOQUdFUhACEhIKDlNZU1RFTV9QRlNFTlNFEAMqnwIKDE5hbWVOb3RlS2luZBIeChpOQU1FX05PVEVfS0lORF9VTlNQRUNJRklFRBAAEiEKHU5BTUVfTk9URV9LSU5EX05PVF9BX0hPU1ROQU1FEAESFgoSTkFNRV9OT1RFX0tJTkRfQVBQEAISIAocTkFNRV9OT1RFX0tJTkRfUkVWRVJTRV9QUk9YWRADEiAKHE5BTUVfTk9URV9LSU5EX0hPU1RfT1ZFUlJJREUQBBIdChlOQU1FX05PVEVfS0lORF9QUk9YWV9IT1NUEAUSGQoVTkFNRV9OT1RFX0tJTkRfREVWSUNFEAYSGwoXTkFNRV9OT1RFX0tJTkRfUkVBVFRBQ0gQBxIZChVOQU1FX05PVEVfS0lORF9PUlBIQU4QCCqDAQoJU3RlcFN0YXRlEhoKFlNURVBfU1RBVEVfVU5TUEVDSUZJRUQQABIWChJTVEVQX1NUQVRFX1BFTkRJTkcQARIWChJTVEVQX1NUQVRFX1JVTk5JTkcQAhITCg9TVEVQX1NUQVRFX0RPTkUQAxIVChFTVEVQX1NUQVRFX0ZBSUxFRBAEMskICgtBcHBzU2VydmljZRJLCghMaXN0QXBwcxIbLmRkYXNoLmFwcHMuTGlzdEFwcHNSZXF1ZXN0GhwuZGRhc2guYXBwcy5MaXN0QXBwc1Jlc3BvbnNlIgSKtRgAEkgKB1JlZnJlc2gSGi5kZGFzaC5hcHBzLlJlZnJlc2hSZXF1ZXN0GhsuZGRhc2guYXBwcy5SZWZyZXNoUmVzcG9uc2UiBJK1GAASVAoLU2V0U2V0dGluZ3MSHi5kZGFzaC5hcHBzLlNldFNldHRpbmdzUmVxdWVzdBofLmRkYXNoLmFwcHMuU2V0U2V0dGluZ3NSZXNwb25zZSIEkrUYABJaCg1JZ25vcmVXYXJuaW5nEiAuZGRhc2guYXBwcy5JZ25vcmVXYXJuaW5nUmVxdWVzdBohLmRkYXNoLmFwcHMuSWdub3JlV2FybmluZ1Jlc3BvbnNlIgSStRgAEmAKD1VuaWdub3JlV2FybmluZxIiLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVxdWVzdBojLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVzcG9uc2UiBJK1GAASSwoIUmVhdHRhY2gSGy5kZGFzaC5hcHBzLlJlYXR0YWNoUmVxdWVzdBocLmRkYXNoLmFwcHMuUmVhdHRhY2hSZXNwb25zZSIEkrUYABJZCgxEZWxldGVSZWNvcmQSHy5kZGFzaC5hcHBzLkRlbGV0ZVJlY29yZFJlcXVlc3QaIC5kZGFzaC5hcHBzLkRlbGV0ZVJlY29yZFJlc3BvbnNlIgaStRgCCAESVwoMUHJvbW90ZUFsaWFzEh8uZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXF1ZXN0GiAuZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXNwb25zZSIEkrUYABJECgVNZXJnZRIYLmRkYXNoLmFwcHMuTWVyZ2VSZXF1ZXN0GhkuZGRhc2guYXBwcy5NZXJnZVJlc3BvbnNlIgaStRgCCAESUwoKUGxhbkFjdGlvbhIdLmRkYXNoLmFwcHMuUGxhbkFjdGlvblJlcXVlc3QaHi5kZGFzaC5hcHBzLlBsYW5BY3Rpb25SZXNwb25zZSIGirUYAggDEk4KCVJ1bkFjdGlvbhIcLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVxdWVzdBodLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVzcG9uc2UiBJK1GAASRwoGR2V0UnVuEhkuZGRhc2guYXBwcy5HZXRSdW5SZXF1ZXN0GhouZGRhc2guYXBwcy5HZXRSdW5SZXNwb25zZSIGirUYAggDEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GABCOlo4Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9hcHBzL2FwcHNwYjthcHBzcGJiBnByb3RvMw", [file_ddash_options, file_ddash_proxyhost_proxy_host, file_ddash_workload_workload, file_google_protobuf_timestamp]);
 
 /**
  * apps has nothing to configure: Apps come from its sources.
@@ -157,9 +159,9 @@ export type App = Message<"ddash.apps.App"> & {
    * Every Host Override and alias registering one of its hostnames, in
    * pfSense's order; empty before pfSense was first read.
    *
-   * @generated from field: repeated ddash.apps.DnsEntry dns = 16;
+   * @generated from field: repeated ddash.apps.HostOverrideOrAlias dns = 16;
    */
-  dns: DnsEntry[];
+  dns: HostOverrideOrAlias[];
 
   /**
    * How its Workload reaches the internet, from network by the Workload's
@@ -348,9 +350,9 @@ export const HostOverrideNameSchema: GenMessage<HostOverrideName> = /*@__PURE__*
 /**
  * A Host Override or one of its aliases, as pfSense lists it.
  *
- * @generated from message ddash.apps.DnsEntry
+ * @generated from message ddash.apps.HostOverrideOrAlias
  */
-export type DnsEntry = Message<"ddash.apps.DnsEntry"> & {
+export type HostOverrideOrAlias = Message<"ddash.apps.HostOverrideOrAlias"> & {
   /**
    * @generated from field: string host = 1;
    */
@@ -377,10 +379,10 @@ export type DnsEntry = Message<"ddash.apps.DnsEntry"> & {
 };
 
 /**
- * Describes the message ddash.apps.DnsEntry.
- * Use `create(DnsEntrySchema)` to create a new message.
+ * Describes the message ddash.apps.HostOverrideOrAlias.
+ * Use `create(HostOverrideOrAliasSchema)` to create a new message.
  */
-export const DnsEntrySchema: GenMessage<DnsEntry> = /*@__PURE__*/
+export const HostOverrideOrAliasSchema: GenMessage<HostOverrideOrAlias> = /*@__PURE__*/
   messageDesc(file_apps_apps, 7);
 
 /**
@@ -395,85 +397,40 @@ export type ProxyHost = Message<"ddash.apps.ProxyHost"> & {
   id: bigint;
 
   /**
-   * Its hostnames, sorted.
+   * Its fields, its hostnames sorted.
    *
-   * @generated from field: repeated string domain_names = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields fields = 2;
    */
-  domainNames: string[];
-
-  /**
-   * The upstream.
-   *
-   * @generated from field: string forward_scheme = 3;
-   */
-  forwardScheme: string;
-
-  /**
-   * @generated from field: string forward_host = 4;
-   */
-  forwardHost: string;
-
-  /**
-   * @generated from field: int32 forward_port = 5;
-   */
-  forwardPort: number;
-
-  /**
-   * The certificate's id; 0 for none.
-   *
-   * @generated from field: int64 certificate_id = 6;
-   */
-  certificateId: bigint;
-
-  /**
-   * @generated from field: bool block_exploits = 7;
-   */
-  blockExploits: boolean;
-
-  /**
-   * @generated from field: bool websockets = 8;
-   */
-  websockets: boolean;
-
-  /**
-   * @generated from field: bool force_ssl = 9;
-   */
-  forceSsl: boolean;
-
-  /**
-   * @generated from field: bool http2 = 10;
-   */
-  http2: boolean;
-
-  /**
-   * @generated from field: bool hsts = 11;
-   */
-  hsts: boolean;
-
-  /**
-   * @generated from field: bool hsts_subdomains = 12;
-   */
-  hstsSubdomains: boolean;
+  fields?: ProxyHostFields | undefined;
 
   /**
    * Disabled in Nginx Proxy Manager: saved but not served. A label, no
    * Warning.
    *
-   * @generated from field: bool enabled = 13;
+   * @generated from field: bool enabled = 3;
    */
   enabled: boolean;
 
   /**
    * Offline: nginx rejected its config when it was last saved.
    *
-   * @generated from field: bool offline = 14;
+   * @generated from field: bool offline = 4;
    */
   offline: boolean;
 
   /**
-   * @generated from field: string nginx_error = 15;
+   * @generated from field: string nginx_error = 5;
    */
   nginxError: string;
+
+  /**
+   * The certificate fields.certificate_id names, as Nginx Proxy Manager's
+   * last good read of its certificates lists it; unset for none, or
+   * before that read.
+   *
+   * @generated from field: ddash.apps.Certificate certificate = 6;
+   */
+  certificate?: Certificate | undefined;
 };
 
 /**
@@ -482,6 +439,39 @@ export type ProxyHost = Message<"ddash.apps.ProxyHost"> & {
  */
 export const ProxyHostSchema: GenMessage<ProxyHost> = /*@__PURE__*/
   messageDesc(file_apps_apps, 8);
+
+/**
+ * A Proxy Host's certificate and its state.
+ *
+ * @generated from message ddash.apps.Certificate
+ */
+export type Certificate = Message<"ddash.apps.Certificate"> & {
+  /**
+   * Its nice name, e.g. "*.home.example".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: ddash.apps.CertificateState state = 2;
+   */
+  state: CertificateState;
+
+  /**
+   * What the Operator does about it; empty when OK.
+   *
+   * @generated from field: string message = 3;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message ddash.apps.Certificate.
+ * Use `create(CertificateSchema)` to create a new message.
+ */
+export const CertificateSchema: GenMessage<Certificate> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 9);
 
 /**
  * Something about an App the Operator should fix or Ignore.
@@ -531,7 +521,7 @@ export type Warning = Message<"ddash.apps.Warning"> & {
  * Use `create(WarningSchema)` to create a new message.
  */
 export const WarningSchema: GenMessage<Warning> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 9);
+  messageDesc(file_apps_apps, 10);
 
 /**
  * One way to fix a Warning, with what it acts on. External fixes run as
@@ -555,11 +545,11 @@ export type Fix = Message<"ddash.apps.Fix"> & {
   hostname: string;
 
   /**
-   * Delete an entry: the Host Override or alias to delete.
+   * Delete either entry: the Host Override or alias to delete.
    *
-   * @generated from field: ddash.apps.DnsEntry entry = 3;
+   * @generated from field: ddash.apps.HostOverrideOrAlias host_override = 3;
    */
-  entry?: DnsEntry | undefined;
+  hostOverride?: HostOverrideOrAlias | undefined;
 
   /**
    * Merge: the other App sharing the hostname.
@@ -581,7 +571,7 @@ export type Fix = Message<"ddash.apps.Fix"> & {
  * Use `create(FixSchema)` to create a new message.
  */
 export const FixSchema: GenMessage<Fix> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 10);
+  messageDesc(file_apps_apps, 11);
 
 /**
  * A Workload as apps last read it.
@@ -623,7 +613,7 @@ export type Workload = Message<"ddash.apps.Workload"> & {
  * Use `create(WorkloadSchema)` to create a new message.
  */
 export const WorkloadSchema: GenMessage<Workload> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 11);
+  messageDesc(file_apps_apps, 12);
 
 /**
  * How apps last read one of its sources. While reads fail, Apps keep the
@@ -676,7 +666,7 @@ export type SourceRead = Message<"ddash.apps.SourceRead"> & {
  * Use `create(SourceReadSchema)` to create a new message.
  */
 export const SourceReadSchema: GenMessage<SourceRead> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 12);
+  messageDesc(file_apps_apps, 13);
 
 /**
  * @generated from message ddash.apps.ListAppsRequest
@@ -689,7 +679,7 @@ export type ListAppsRequest = Message<"ddash.apps.ListAppsRequest"> & {
  * Use `create(ListAppsRequestSchema)` to create a new message.
  */
 export const ListAppsRequestSchema: GenMessage<ListAppsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 13);
+  messageDesc(file_apps_apps, 14);
 
 /**
  * @generated from message ddash.apps.ListAppsResponse
@@ -745,7 +735,7 @@ export type ListAppsResponse = Message<"ddash.apps.ListAppsResponse"> & {
  * Use `create(ListAppsResponseSchema)` to create a new message.
  */
 export const ListAppsResponseSchema: GenMessage<ListAppsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 14);
+  messageDesc(file_apps_apps, 15);
 
 /**
  * The Reverse Proxy as Apps see it: its address, and the Host Overrides
@@ -785,7 +775,7 @@ export type ReverseProxy = Message<"ddash.apps.ReverseProxy"> & {
  * Use `create(ReverseProxySchema)` to create a new message.
  */
 export const ReverseProxySchema: GenMessage<ReverseProxy> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 15);
+  messageDesc(file_apps_apps, 16);
 
 /**
  * @generated from message ddash.apps.RefreshRequest
@@ -798,7 +788,7 @@ export type RefreshRequest = Message<"ddash.apps.RefreshRequest"> & {
  * Use `create(RefreshRequestSchema)` to create a new message.
  */
 export const RefreshRequestSchema: GenMessage<RefreshRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 16);
+  messageDesc(file_apps_apps, 17);
 
 /**
  * @generated from message ddash.apps.RefreshResponse
@@ -811,7 +801,7 @@ export type RefreshResponse = Message<"ddash.apps.RefreshResponse"> & {
  * Use `create(RefreshResponseSchema)` to create a new message.
  */
 export const RefreshResponseSchema: GenMessage<RefreshResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 17);
+  messageDesc(file_apps_apps, 18);
 
 /**
  * @generated from message ddash.apps.SetSettingsRequest
@@ -833,7 +823,7 @@ export type SetSettingsRequest = Message<"ddash.apps.SetSettingsRequest"> & {
  * Use `create(SetSettingsRequestSchema)` to create a new message.
  */
 export const SetSettingsRequestSchema: GenMessage<SetSettingsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 18);
+  messageDesc(file_apps_apps, 19);
 
 /**
  * @generated from message ddash.apps.SetSettingsResponse
@@ -846,7 +836,7 @@ export type SetSettingsResponse = Message<"ddash.apps.SetSettingsResponse"> & {
  * Use `create(SetSettingsResponseSchema)` to create a new message.
  */
 export const SetSettingsResponseSchema: GenMessage<SetSettingsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 19);
+  messageDesc(file_apps_apps, 20);
 
 /**
  * @generated from message ddash.apps.IgnoreWarningRequest
@@ -868,7 +858,7 @@ export type IgnoreWarningRequest = Message<"ddash.apps.IgnoreWarningRequest"> & 
  * Use `create(IgnoreWarningRequestSchema)` to create a new message.
  */
 export const IgnoreWarningRequestSchema: GenMessage<IgnoreWarningRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 20);
+  messageDesc(file_apps_apps, 21);
 
 /**
  * @generated from message ddash.apps.IgnoreWarningResponse
@@ -881,7 +871,7 @@ export type IgnoreWarningResponse = Message<"ddash.apps.IgnoreWarningResponse"> 
  * Use `create(IgnoreWarningResponseSchema)` to create a new message.
  */
 export const IgnoreWarningResponseSchema: GenMessage<IgnoreWarningResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 21);
+  messageDesc(file_apps_apps, 22);
 
 /**
  * @generated from message ddash.apps.UnignoreWarningRequest
@@ -903,7 +893,7 @@ export type UnignoreWarningRequest = Message<"ddash.apps.UnignoreWarningRequest"
  * Use `create(UnignoreWarningRequestSchema)` to create a new message.
  */
 export const UnignoreWarningRequestSchema: GenMessage<UnignoreWarningRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 22);
+  messageDesc(file_apps_apps, 23);
 
 /**
  * @generated from message ddash.apps.UnignoreWarningResponse
@@ -916,7 +906,7 @@ export type UnignoreWarningResponse = Message<"ddash.apps.UnignoreWarningRespons
  * Use `create(UnignoreWarningResponseSchema)` to create a new message.
  */
 export const UnignoreWarningResponseSchema: GenMessage<UnignoreWarningResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 23);
+  messageDesc(file_apps_apps, 24);
 
 /**
  * @generated from message ddash.apps.ReattachRequest
@@ -942,7 +932,7 @@ export type ReattachRequest = Message<"ddash.apps.ReattachRequest"> & {
  * Use `create(ReattachRequestSchema)` to create a new message.
  */
 export const ReattachRequestSchema: GenMessage<ReattachRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 24);
+  messageDesc(file_apps_apps, 25);
 
 /**
  * @generated from message ddash.apps.ReattachResponse
@@ -955,12 +945,12 @@ export type ReattachResponse = Message<"ddash.apps.ReattachResponse"> & {
  * Use `create(ReattachResponseSchema)` to create a new message.
  */
 export const ReattachResponseSchema: GenMessage<ReattachResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 25);
+  messageDesc(file_apps_apps, 26);
 
 /**
- * @generated from message ddash.apps.DeleteOrphanRequest
+ * @generated from message ddash.apps.DeleteRecordRequest
  */
-export type DeleteOrphanRequest = Message<"ddash.apps.DeleteOrphanRequest"> & {
+export type DeleteRecordRequest = Message<"ddash.apps.DeleteRecordRequest"> & {
   /**
    * @generated from field: string id = 1;
    */
@@ -968,24 +958,24 @@ export type DeleteOrphanRequest = Message<"ddash.apps.DeleteOrphanRequest"> & {
 };
 
 /**
- * Describes the message ddash.apps.DeleteOrphanRequest.
- * Use `create(DeleteOrphanRequestSchema)` to create a new message.
+ * Describes the message ddash.apps.DeleteRecordRequest.
+ * Use `create(DeleteRecordRequestSchema)` to create a new message.
  */
-export const DeleteOrphanRequestSchema: GenMessage<DeleteOrphanRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 26);
+export const DeleteRecordRequestSchema: GenMessage<DeleteRecordRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 27);
 
 /**
- * @generated from message ddash.apps.DeleteOrphanResponse
+ * @generated from message ddash.apps.DeleteRecordResponse
  */
-export type DeleteOrphanResponse = Message<"ddash.apps.DeleteOrphanResponse"> & {
+export type DeleteRecordResponse = Message<"ddash.apps.DeleteRecordResponse"> & {
 };
 
 /**
- * Describes the message ddash.apps.DeleteOrphanResponse.
- * Use `create(DeleteOrphanResponseSchema)` to create a new message.
+ * Describes the message ddash.apps.DeleteRecordResponse.
+ * Use `create(DeleteRecordResponseSchema)` to create a new message.
  */
-export const DeleteOrphanResponseSchema: GenMessage<DeleteOrphanResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 27);
+export const DeleteRecordResponseSchema: GenMessage<DeleteRecordResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 28);
 
 /**
  * @generated from message ddash.apps.PromoteAliasRequest
@@ -1009,7 +999,7 @@ export type PromoteAliasRequest = Message<"ddash.apps.PromoteAliasRequest"> & {
  * Use `create(PromoteAliasRequestSchema)` to create a new message.
  */
 export const PromoteAliasRequestSchema: GenMessage<PromoteAliasRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 28);
+  messageDesc(file_apps_apps, 29);
 
 /**
  * @generated from message ddash.apps.PromoteAliasResponse
@@ -1022,7 +1012,7 @@ export type PromoteAliasResponse = Message<"ddash.apps.PromoteAliasResponse"> & 
  * Use `create(PromoteAliasResponseSchema)` to create a new message.
  */
 export const PromoteAliasResponseSchema: GenMessage<PromoteAliasResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 29);
+  messageDesc(file_apps_apps, 30);
 
 /**
  * @generated from message ddash.apps.MergeRequest
@@ -1048,7 +1038,7 @@ export type MergeRequest = Message<"ddash.apps.MergeRequest"> & {
  * Use `create(MergeRequestSchema)` to create a new message.
  */
 export const MergeRequestSchema: GenMessage<MergeRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 30);
+  messageDesc(file_apps_apps, 31);
 
 /**
  * @generated from message ddash.apps.MergeResponse
@@ -1061,7 +1051,7 @@ export type MergeResponse = Message<"ddash.apps.MergeResponse"> & {
  * Use `create(MergeResponseSchema)` to create a new message.
  */
 export const MergeResponseSchema: GenMessage<MergeResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 31);
+  messageDesc(file_apps_apps, 32);
 
 /**
  * A change to an App that writes to Nginx Proxy Manager or pfSense, adds
@@ -1127,7 +1117,7 @@ export type AppAction = Message<"ddash.apps.AppAction"> & {
  * Use `create(AppActionSchema)` to create a new message.
  */
 export const AppActionSchema: GenMessage<AppAction> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 32);
+  messageDesc(file_apps_apps, 33);
 
 /**
  * Change an App's URL and aliases. Each hostname added must be free; one
@@ -1165,7 +1155,7 @@ export type ChangeAddress = Message<"ddash.apps.ChangeAddress"> & {
  * Use `create(ChangeAddressSchema)` to create a new message.
  */
 export const ChangeAddressSchema: GenMessage<ChangeAddress> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 33);
+  messageDesc(file_apps_apps, 34);
 
 /**
  * Change the fields of an App's Proxy Host but its domain names. Any
@@ -1181,7 +1171,7 @@ export type ChangeProxyHost = Message<"ddash.apps.ChangeProxyHost"> & {
   id: string;
 
   /**
-   * @generated from field: ddash.apps.ProxyHostFields proxy_host = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields proxy_host = 2;
    */
   proxyHost?: ProxyHostFields | undefined;
 };
@@ -1191,7 +1181,7 @@ export type ChangeProxyHost = Message<"ddash.apps.ChangeProxyHost"> & {
  * Use `create(ChangeProxyHostSchema)` to create a new message.
  */
 export const ChangeProxyHostSchema: GenMessage<ChangeProxyHost> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 34);
+  messageDesc(file_apps_apps, 35);
 
 /**
  * Put an App without a Proxy Host behind the Reverse Proxy: a Proxy Host
@@ -1207,7 +1197,7 @@ export type AddReverseProxy = Message<"ddash.apps.AddReverseProxy"> & {
   id: string;
 
   /**
-   * @generated from field: ddash.apps.ProxyHostFields proxy_host = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields proxy_host = 2;
    */
   proxyHost?: ProxyHostFields | undefined;
 };
@@ -1217,7 +1207,7 @@ export type AddReverseProxy = Message<"ddash.apps.AddReverseProxy"> & {
  * Use `create(AddReverseProxySchema)` to create a new message.
  */
 export const AddReverseProxySchema: GenMessage<AddReverseProxy> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 35);
+  messageDesc(file_apps_apps, 36);
 
 /**
  * Take an App from behind the Reverse Proxy: delete its Proxy Host, and
@@ -1245,7 +1235,7 @@ export type RemoveReverseProxy = Message<"ddash.apps.RemoveReverseProxy"> & {
  * Use `create(RemoveReverseProxySchema)` to create a new message.
  */
 export const RemoveReverseProxySchema: GenMessage<RemoveReverseProxy> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 36);
+  messageDesc(file_apps_apps, 37);
 
 /**
  * Delete an App: its Proxy Host, its Host Override or the Reverse Proxy's
@@ -1266,7 +1256,7 @@ export type DeleteApp = Message<"ddash.apps.DeleteApp"> & {
  * Use `create(DeleteAppSchema)` to create a new message.
  */
 export const DeleteAppSchema: GenMessage<DeleteApp> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 37);
+  messageDesc(file_apps_apps, 38);
 
 /**
  * Run one of the fixes an App's Warning offers, as ListApps gave it.
@@ -1290,7 +1280,7 @@ export type FixWarning = Message<"ddash.apps.FixWarning"> & {
  * Use `create(FixWarningSchema)` to create a new message.
  */
 export const FixWarningSchema: GenMessage<FixWarning> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 38);
+  messageDesc(file_apps_apps, 39);
 
 /**
  * Add App: an App and, by its Reach, its Proxy Host and DNS.
@@ -1337,7 +1327,7 @@ export type AddApp = Message<"ddash.apps.AddApp"> & {
   /**
    * PROXIED: the new Proxy Host's fields.
    *
-   * @generated from field: ddash.apps.ProxyHostFields proxy_host = 6;
+   * @generated from field: ddash.proxyhost.ProxyHostFields proxy_host = 6;
    */
   proxyHost?: ProxyHostFields | undefined;
 
@@ -1354,77 +1344,6 @@ export type AddApp = Message<"ddash.apps.AddApp"> & {
  * Use `create(AddAppSchema)` to create a new message.
  */
 export const AddAppSchema: GenMessage<AddApp> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 39);
-
-/**
- * The fields of a Proxy Host ddash manages but its domain names, which are
- * the App's hostnames. Nginx Proxy Manager turns Force SSL and HTTP/2 off
- * without a certificate, HSTS off without Force SSL, and HSTS for
- * subdomains off without HSTS; a Plan shows them so.
- *
- * @generated from message ddash.apps.ProxyHostFields
- */
-export type ProxyHostFields = Message<"ddash.apps.ProxyHostFields"> & {
-  /**
-   * "http" or "https".
-   *
-   * @generated from field: string forward_scheme = 1;
-   */
-  forwardScheme: string;
-
-  /**
-   * @generated from field: string forward_host = 2;
-   */
-  forwardHost: string;
-
-  /**
-   * @generated from field: int32 forward_port = 3;
-   */
-  forwardPort: number;
-
-  /**
-   * One of Nginx Proxy Manager's certificates; 0 for none (plain HTTP).
-   *
-   * @generated from field: int64 certificate_id = 4;
-   */
-  certificateId: bigint;
-
-  /**
-   * @generated from field: bool block_exploits = 5;
-   */
-  blockExploits: boolean;
-
-  /**
-   * @generated from field: bool websockets = 6;
-   */
-  websockets: boolean;
-
-  /**
-   * @generated from field: bool force_ssl = 7;
-   */
-  forceSsl: boolean;
-
-  /**
-   * @generated from field: bool http2 = 8;
-   */
-  http2: boolean;
-
-  /**
-   * @generated from field: bool hsts = 9;
-   */
-  hsts: boolean;
-
-  /**
-   * @generated from field: bool hsts_subdomains = 10;
-   */
-  hstsSubdomains: boolean;
-};
-
-/**
- * Describes the message ddash.apps.ProxyHostFields.
- * Use `create(ProxyHostFieldsSchema)` to create a new message.
- */
-export const ProxyHostFieldsSchema: GenMessage<ProxyHostFields> = /*@__PURE__*/
   messageDesc(file_apps_apps, 40);
 
 /**
@@ -1455,6 +1374,14 @@ export type Plan = Message<"ddash.apps.Plan"> & {
    * @generated from field: repeated string blocked = 3;
    */
   blocked: string[];
+
+  /**
+   * What the Operator should know before confirming that doesn't keep it
+   * from running, e.g. names a deleted Proxy Host leaves registered.
+   *
+   * @generated from field: repeated string notes = 4;
+   */
+  notes: string[];
 };
 
 /**
@@ -1641,6 +1568,14 @@ export type RunActionRequest = Message<"ddash.apps.RunActionRequest"> & {
    * @generated from field: ddash.apps.Plan plan = 2;
    */
   plan?: Plan | undefined;
+
+  /**
+   * Names the run for GetRun, e.g. a random id the Plugin made; empty
+   * for a run nobody follows.
+   *
+   * @generated from field: string run_id = 3;
+   */
+  runId: string;
 };
 
 /**
@@ -1649,6 +1584,42 @@ export type RunActionRequest = Message<"ddash.apps.RunActionRequest"> & {
  */
 export const RunActionRequestSchema: GenMessage<RunActionRequest> = /*@__PURE__*/
   messageDesc(file_apps_apps, 47);
+
+/**
+ * @generated from message ddash.apps.GetRunRequest
+ */
+export type GetRunRequest = Message<"ddash.apps.GetRunRequest"> & {
+  /**
+   * @generated from field: string run_id = 1;
+   */
+  runId: string;
+};
+
+/**
+ * Describes the message ddash.apps.GetRunRequest.
+ * Use `create(GetRunRequestSchema)` to create a new message.
+ */
+export const GetRunRequestSchema: GenMessage<GetRunRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 48);
+
+/**
+ * @generated from message ddash.apps.GetRunResponse
+ */
+export type GetRunResponse = Message<"ddash.apps.GetRunResponse"> & {
+  /**
+   * Each Plan step's state, in the Plan's order.
+   *
+   * @generated from field: repeated ddash.apps.StepState steps = 1;
+   */
+  steps: StepState[];
+};
+
+/**
+ * Describes the message ddash.apps.GetRunResponse.
+ * Use `create(GetRunResponseSchema)` to create a new message.
+ */
+export const GetRunResponseSchema: GenMessage<GetRunResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 49);
 
 /**
  * What an App Action did; also the details of the error of one that
@@ -1687,7 +1658,7 @@ export type RunActionResponse = Message<"ddash.apps.RunActionResponse"> & {
  * Use `create(RunActionResponseSchema)` to create a new message.
  */
 export const RunActionResponseSchema: GenMessage<RunActionResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 48);
+  messageDesc(file_apps_apps, 50);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsRequest
@@ -1700,7 +1671,7 @@ export type ListWorkloadsRequest = Message<"ddash.apps.ListWorkloadsRequest"> & 
  * Use `create(ListWorkloadsRequestSchema)` to create a new message.
  */
 export const ListWorkloadsRequestSchema: GenMessage<ListWorkloadsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 49);
+  messageDesc(file_apps_apps, 51);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsResponse
@@ -1717,7 +1688,7 @@ export type ListWorkloadsResponse = Message<"ddash.apps.ListWorkloadsResponse"> 
  * Use `create(ListWorkloadsResponseSchema)` to create a new message.
  */
 export const ListWorkloadsResponseSchema: GenMessage<ListWorkloadsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 50);
+  messageDesc(file_apps_apps, 52);
 
 /**
  * The internet path, as network names it.
@@ -1790,6 +1761,48 @@ export enum Reach {
  */
 export const ReachSchema: GenEnum<Reach> = /*@__PURE__*/
   enumDesc(file_apps_apps, 1);
+
+/**
+ * A certificate's state, as nginx-proxy-manager-api tells it.
+ *
+ * @generated from enum ddash.apps.CertificateState
+ */
+export enum CertificateState {
+  /**
+   * @generated from enum value: CERTIFICATE_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: CERTIFICATE_STATE_OK = 1;
+   */
+  OK = 1,
+
+  /**
+   * Let's Encrypt with 20 days or less left.
+   *
+   * @generated from enum value: CERTIFICATE_STATE_NOT_RENEWING = 2;
+   */
+  NOT_RENEWING = 2,
+
+  /**
+   * Uploaded, with 30 days or less left.
+   *
+   * @generated from enum value: CERTIFICATE_STATE_EXPIRES_SOON = 3;
+   */
+  EXPIRES_SOON = 3,
+
+  /**
+   * @generated from enum value: CERTIFICATE_STATE_EXPIRED = 4;
+   */
+  EXPIRED = 4,
+}
+
+/**
+ * Describes the enum ddash.apps.CertificateState.
+ */
+export const CertificateStateSchema: GenEnum<CertificateState> = /*@__PURE__*/
+  enumDesc(file_apps_apps, 2);
 
 /**
  * @generated from enum ddash.apps.FixKind
@@ -1894,7 +1907,7 @@ export enum FixKind {
   REATTACH = 13,
 
   /**
-   * Delete the orphaned App settings (DeleteOrphan). ddash only.
+   * Delete the orphaned App settings (DeleteRecord). ddash only.
    *
    * @generated from enum value: FIX_KIND_DELETE_ORPHAN = 14;
    */
@@ -1905,7 +1918,7 @@ export enum FixKind {
  * Describes the enum ddash.apps.FixKind.
  */
 export const FixKindSchema: GenEnum<FixKind> = /*@__PURE__*/
-  enumDesc(file_apps_apps, 2);
+  enumDesc(file_apps_apps, 3);
 
 /**
  * @generated from enum ddash.apps.WarningKind
@@ -1976,7 +1989,7 @@ export enum WarningKind {
 
   /**
    * A hostname is both a Host Override and an alias, or an alias under
-   * two Host Overrides; each entry has its Delete fix.
+   * two Host Overrides; each has its Delete fix.
    *
    * @generated from enum value: WARNING_KIND_REGISTERED_TWICE = 9;
    */
@@ -1994,7 +2007,7 @@ export enum WarningKind {
  * Describes the enum ddash.apps.WarningKind.
  */
 export const WarningKindSchema: GenEnum<WarningKind> = /*@__PURE__*/
-  enumDesc(file_apps_apps, 3);
+  enumDesc(file_apps_apps, 4);
 
 /**
  * The systems a Plan's steps write to.
@@ -2029,7 +2042,7 @@ export enum System {
  * Describes the enum ddash.apps.System.
  */
 export const SystemSchema: GenEnum<System> = /*@__PURE__*/
-  enumDesc(file_apps_apps, 4);
+  enumDesc(file_apps_apps, 5);
 
 /**
  * @generated from enum ddash.apps.NameNoteKind
@@ -2104,7 +2117,51 @@ export enum NameNoteKind {
  * Describes the enum ddash.apps.NameNoteKind.
  */
 export const NameNoteKindSchema: GenEnum<NameNoteKind> = /*@__PURE__*/
-  enumDesc(file_apps_apps, 5);
+  enumDesc(file_apps_apps, 6);
+
+/**
+ * Where a Plan step of a running App Action is.
+ *
+ * @generated from enum ddash.apps.StepState
+ */
+export enum StepState {
+  /**
+   * @generated from enum value: STEP_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * Not started.
+   *
+   * @generated from enum value: STEP_STATE_PENDING = 1;
+   */
+  PENDING = 1,
+
+  /**
+   * Being written: pfSense's steps run together, as one batch.
+   *
+   * @generated from enum value: STEP_STATE_RUNNING = 2;
+   */
+  RUNNING = 2,
+
+  /**
+   * @generated from enum value: STEP_STATE_DONE = 3;
+   */
+  DONE = 3,
+
+  /**
+   * It failed: the run stops there.
+   *
+   * @generated from enum value: STEP_STATE_FAILED = 4;
+   */
+  FAILED = 4,
+}
+
+/**
+ * Describes the enum ddash.apps.StepState.
+ */
+export const StepStateSchema: GenEnum<StepState> = /*@__PURE__*/
+  enumDesc(file_apps_apps, 7);
 
 /**
  * @generated from service ddash.apps.AppsService
@@ -2178,14 +2235,16 @@ export const AppsService: GenService<{
     output: typeof ReattachResponseSchema;
   },
   /**
-   * DeleteOrphan deletes orphaned App settings.
+   * DeleteRecord deletes an App ddash alone holds, with its Check:
+   * orphaned App settings, or a Link-only App. It writes nowhere else, so
+   * it takes no Plan and no fresh read.
    *
-   * @generated from rpc ddash.apps.AppsService.DeleteOrphan
+   * @generated from rpc ddash.apps.AppsService.DeleteRecord
    */
-  deleteOrphan: {
+  deleteRecord: {
     methodKind: "unary";
-    input: typeof DeleteOrphanRequestSchema;
-    output: typeof DeleteOrphanResponseSchema;
+    input: typeof DeleteRecordRequestSchema;
+    output: typeof DeleteRecordResponseSchema;
   },
   /**
    * PromoteAlias makes one of an App's aliases the hostname of its URL,
@@ -2237,7 +2296,8 @@ export const AppsService: GenService<{
    * what was done, nothing is rolled back, and its details carry a
    * RunActionResponse saying how many steps were done. Success or failure,
    * it ends with a sync bounded to 10 s, which may report that it couldn't
-   * re-read a source.
+   * re-read a source. While it runs, GetRun tells each step's state under
+   * its run_id.
    *
    * @generated from rpc ddash.apps.AppsService.RunAction
    */
@@ -2245,6 +2305,19 @@ export const AppsService: GenService<{
     methodKind: "unary";
     input: typeof RunActionRequestSchema;
     output: typeof RunActionResponseSchema;
+  },
+  /**
+   * GetRun returns how far the App Action RunAction runs under run_id
+   * has got: each Plan step's state, polled by the Plan Dialog while it
+   * waits for RunAction. Empty before the run's first write and once
+   * RunAction answered, which says how it ended.
+   *
+   * @generated from rpc ddash.apps.AppsService.GetRun
+   */
+  getRun: {
+    methodKind: "unary";
+    input: typeof GetRunRequestSchema;
+    output: typeof GetRunResponseSchema;
   },
   /**
    * ListWorkloads returns every Workload proxmox-api and docker-api list

@@ -30,11 +30,12 @@ const (
 	AppsService_IgnoreWarning_FullMethodName   = "/ddash.apps.AppsService/IgnoreWarning"
 	AppsService_UnignoreWarning_FullMethodName = "/ddash.apps.AppsService/UnignoreWarning"
 	AppsService_Reattach_FullMethodName        = "/ddash.apps.AppsService/Reattach"
-	AppsService_DeleteOrphan_FullMethodName    = "/ddash.apps.AppsService/DeleteOrphan"
+	AppsService_DeleteRecord_FullMethodName    = "/ddash.apps.AppsService/DeleteRecord"
 	AppsService_PromoteAlias_FullMethodName    = "/ddash.apps.AppsService/PromoteAlias"
 	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
 	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
 	AppsService_RunAction_FullMethodName       = "/ddash.apps.AppsService/RunAction"
+	AppsService_GetRun_FullMethodName          = "/ddash.apps.AppsService/GetRun"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
 )
 
@@ -61,8 +62,10 @@ type AppsServiceClient interface {
 	// settings and Ignores, with the other App's sources and URL. The other
 	// App's record goes.
 	Reattach(ctx context.Context, in *ReattachRequest, opts ...grpc.CallOption) (*ReattachResponse, error)
-	// DeleteOrphan deletes orphaned App settings.
-	DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error)
+	// DeleteRecord deletes an App ddash alone holds, with its Check:
+	// orphaned App settings, or a Link-only App. It writes nowhere else, so
+	// it takes no Plan and no fresh read.
+	DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*DeleteRecordResponse, error)
 	// PromoteAlias makes one of an App's aliases the hostname of its URL,
 	// keeping the scheme and port. It changes nothing outside ddash. It is
 	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
@@ -88,8 +91,14 @@ type AppsServiceClient interface {
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
-	// re-read a source.
+	// re-read a source. While it runs, GetRun tells each step's state under
+	// its run_id.
 	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error)
+	// GetRun returns how far the App Action RunAction runs under run_id
+	// has got: each Plan step's state, polled by the Plan Dialog while it
+	// waits for RunAction. Empty before the run's first write and once
+	// RunAction answered, which says how it ended.
+	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -164,10 +173,10 @@ func (c *appsServiceClient) Reattach(ctx context.Context, in *ReattachRequest, o
 	return out, nil
 }
 
-func (c *appsServiceClient) DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error) {
+func (c *appsServiceClient) DeleteRecord(ctx context.Context, in *DeleteRecordRequest, opts ...grpc.CallOption) (*DeleteRecordResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteOrphanResponse)
-	err := c.cc.Invoke(ctx, AppsService_DeleteOrphan_FullMethodName, in, out, cOpts...)
+	out := new(DeleteRecordResponse)
+	err := c.cc.Invoke(ctx, AppsService_DeleteRecord_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +223,16 @@ func (c *appsServiceClient) RunAction(ctx context.Context, in *RunActionRequest,
 	return out, nil
 }
 
+func (c *appsServiceClient) GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRunResponse)
+	err := c.cc.Invoke(ctx, AppsService_GetRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListWorkloadsResponse)
@@ -247,8 +266,10 @@ type AppsServiceServer interface {
 	// settings and Ignores, with the other App's sources and URL. The other
 	// App's record goes.
 	Reattach(context.Context, *ReattachRequest) (*ReattachResponse, error)
-	// DeleteOrphan deletes orphaned App settings.
-	DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error)
+	// DeleteRecord deletes an App ddash alone holds, with its Check:
+	// orphaned App settings, or a Link-only App. It writes nowhere else, so
+	// it takes no Plan and no fresh read.
+	DeleteRecord(context.Context, *DeleteRecordRequest) (*DeleteRecordResponse, error)
 	// PromoteAlias makes one of an App's aliases the hostname of its URL,
 	// keeping the scheme and port. It changes nothing outside ddash. It is
 	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
@@ -274,8 +295,14 @@ type AppsServiceServer interface {
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
-	// re-read a source.
+	// re-read a source. While it runs, GetRun tells each step's state under
+	// its run_id.
 	RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error)
+	// GetRun returns how far the App Action RunAction runs under run_id
+	// has got: each Plan step's state, polled by the Plan Dialog while it
+	// waits for RunAction. Empty before the run's first write and once
+	// RunAction answered, which says how it ended.
+	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -308,8 +335,8 @@ func (UnimplementedAppsServiceServer) UnignoreWarning(context.Context, *Unignore
 func (UnimplementedAppsServiceServer) Reattach(context.Context, *ReattachRequest) (*ReattachResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Reattach not implemented")
 }
-func (UnimplementedAppsServiceServer) DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteOrphan not implemented")
+func (UnimplementedAppsServiceServer) DeleteRecord(context.Context, *DeleteRecordRequest) (*DeleteRecordResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteRecord not implemented")
 }
 func (UnimplementedAppsServiceServer) PromoteAlias(context.Context, *PromoteAliasRequest) (*PromoteAliasResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PromoteAlias not implemented")
@@ -322,6 +349,9 @@ func (UnimplementedAppsServiceServer) PlanAction(context.Context, *PlanActionReq
 }
 func (UnimplementedAppsServiceServer) RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RunAction not implemented")
+}
+func (UnimplementedAppsServiceServer) GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRun not implemented")
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
@@ -455,20 +485,20 @@ func _AppsService_Reattach_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_DeleteOrphan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteOrphanRequest)
+func _AppsService_DeleteRecord_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRecordRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppsServiceServer).DeleteOrphan(ctx, in)
+		return srv.(AppsServiceServer).DeleteRecord(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AppsService_DeleteOrphan_FullMethodName,
+		FullMethod: AppsService_DeleteRecord_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).DeleteOrphan(ctx, req.(*DeleteOrphanRequest))
+		return srv.(AppsServiceServer).DeleteRecord(ctx, req.(*DeleteRecordRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -545,6 +575,24 @@ func _AppsService_RunAction_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AppsService_GetRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).GetRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_GetRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).GetRun(ctx, req.(*GetRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListWorkloadsRequest)
 	if err := dec(in); err != nil {
@@ -595,8 +643,8 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AppsService_Reattach_Handler,
 		},
 		{
-			MethodName: "DeleteOrphan",
-			Handler:    _AppsService_DeleteOrphan_Handler,
+			MethodName: "DeleteRecord",
+			Handler:    _AppsService_DeleteRecord_Handler,
 		},
 		{
 			MethodName: "PromoteAlias",
@@ -613,6 +661,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RunAction",
 			Handler:    _AppsService_RunAction_Handler,
+		},
+		{
+			MethodName: "GetRun",
+			Handler:    _AppsService_GetRun_Handler,
 		},
 		{
 			MethodName: "ListWorkloads",

@@ -82,15 +82,15 @@ func TestATouchedAppBecomesOrphanedAppSettings(t *testing.T) {
 	}
 
 	// Deleted, influxdb's settings are gone for good.
-	l.call("DeleteOrphan", &appspb.DeleteOrphanRequest{Id: "proxy:influxdb.home.example"}, nil)
+	l.call("DeleteRecord", &appspb.DeleteRecordRequest{Id: "proxy:influxdb.home.example"}, nil)
 	if l.has("proxy:influxdb.home.example") {
 		t.Error("influxdb's orphaned App settings are still listed after their delete")
 	}
 }
 
-// Only orphaned App settings are reattached or deleted as such, and only
-// onto an App without settings of its own.
-func TestReattachAndDeleteOrphanTakeOrphanedAppSettings(t *testing.T) {
+// Only orphaned App settings are reattached, and only onto an App without
+// settings of its own; DeleteRecord takes them or a Link-only App alone.
+func TestReattachAndDeleteRecordTakeOrphanedAppSettings(t *testing.T) {
 	l := newLab(t, labOptions{})
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:grafana.home.example", Settings: &appspb.AppSettings{Name: "Graphs"}}, nil)
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:ha.home.example", Settings: &appspb.AppSettings{Hidden: true}}, nil)
@@ -103,11 +103,11 @@ func TestReattachAndDeleteOrphanTakeOrphanedAppSettings(t *testing.T) {
 		req    proto.Message
 		code   string
 	}{
-		{"DeleteOrphan", &appspb.DeleteOrphanRequest{Id: "proxy:ha.home.example"}, "failed_precondition"},
+		{"DeleteRecord", &appspb.DeleteRecordRequest{Id: "proxy:ha.home.example"}, "failed_precondition"},
 		{"Reattach", &appspb.ReattachRequest{Id: "proxy:ha.home.example", To: "proxy:md.home.example"}, "failed_precondition"},
 		{"Reattach", &appspb.ReattachRequest{Id: "proxy:grafana.home.example", To: "proxy:ha.home.example"}, "failed_precondition"},
 		{"Reattach", &appspb.ReattachRequest{Id: "proxy:grafana.home.example", To: "proxy:nowhere"}, "not_found"},
-		{"DeleteOrphan", &appspb.DeleteOrphanRequest{Id: "proxy:nowhere"}, "not_found"},
+		{"DeleteRecord", &appspb.DeleteRecordRequest{Id: "proxy:nowhere"}, "not_found"},
 	} {
 		err := l.try(tc.method, tc.req, nil)
 		if err == nil || err.code != tc.code {

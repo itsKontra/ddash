@@ -64,7 +64,7 @@ func TestEveryProxyHostIsAnApp(t *testing.T) {
 	}
 
 	grafana := l.app("proxy:grafana.home.example")
-	if grafana.GetReach() != appspb.Reach_REACH_PROXIED || grafana.GetLinks().GetProxyHostId() != 3 || grafana.GetProxyHost().GetForwardHost() != "198.18.1.204" {
+	if grafana.GetReach() != appspb.Reach_REACH_PROXIED || grafana.GetLinks().GetProxyHostId() != 3 || grafana.GetProxyHost().GetFields().GetForwardHost() != "198.18.1.204" {
 		t.Errorf("Grafana = %v, want proxied by Proxy Host 3 at 198.18.1.204", grafana)
 	}
 	if got := grafana.GetWorkload().GetRef(); got.GetKind() != workloadpb.Kind_KIND_LXC || got.GetId() != "204" {

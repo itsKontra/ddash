@@ -1,14 +1,14 @@
-import type { MessageInitShape } from "@bufbuild/protobuf";
-import { certificateState, checkStatus, historyBars } from "@ddash/display";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
+import { checkStatus, historyBars } from "@ddash/display";
 import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
-import { AppsService, InternetPath, Reach, type App, type ListAppsResponse, type ProxyHost } from "@ddash/proto/apps/apps_pb";
+import { AppsService, CertificateState, InternetPath, Reach, type App, type ListAppsResponse, type ProxyHost } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, Window, type Check } from "@ddash/proto/checks/checks_pb";
 import { Kind, type WorkloadRefSchema } from "@ddash/proto/ddash/workload/workload_pb";
-import { NginxProxyManagerApiService } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
+import { ProxyHostFieldsSchema, type ProxyHostFields } from "@ddash/proto/ddash/proxyhost/proxy_host_pb";
 import { Button, Checkbox, Facts, FormActions, Panel, Pill, UptimeBars, type Fact, type Tone } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
-import { hostOf } from "./apps";
+import { fqdn, hostOf } from "./apps";
 import { Failed, GroupField, IconField, Text, WorkloadField } from "./fields";
 import { PlanDialog, type DialogSlot } from "./plan";
 import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";
@@ -108,14 +108,14 @@ function DisplayForm({ app, groups, onDone }: { app: App; groups: readonly strin
   );
 }
 
-/** How one DNS entry registers a hostname. */
+/** How the Host Overrides and aliases registering a hostname do. */
 function dnsLine(app: App, list: ListAppsResponse, name: string): ReactNode {
-  const entries = app.dns.filter((e) => `${e.host ? `${e.host}.` : ""}${e.domain}`.toLowerCase() === name.toLowerCase());
-  if (entries.length === 0) return list.hostOverrides?.readAt ? <span className="text-warn-text">not registered</span> : "not read yet";
-  return entries
+  const registering = app.dns.filter((e) => fqdn(e).toLowerCase() === name.toLowerCase());
+  if (registering.length === 0) return list.hostOverrides?.readAt ? <span className="text-warn-text">not registered</span> : "not read yet";
+  return registering
     .map((e) => {
       if (!e.parent) return `Host Override → ${e.ips.join(", ")}`;
-      const parent = `${e.parent.host ? `${e.parent.host}.` : ""}${e.parent.domain}`;
+      const parent = fqdn(e.parent);
       const rp = list.reverseProxy?.hostOverrides.includes(parent);
       return `alias of ${parent}${rp ? " (the Reverse Proxy)" : ` → ${e.ips.join(", ")}`}`;
     })
@@ -234,21 +234,30 @@ function AddressForm({ app, slot, onDone }: { app: App; slot: DialogSlot; onDone
   );
 }
 
-const flags = (p: ProxyHost) =>
+const flags = (p: ProxyHostFields) =>
   [p.blockExploits && "Block Common Exploits", p.websockets && "Websockets", p.forceSsl && "Force SSL", p.http2 && "HTTP/2", p.hsts && "HSTS", p.hstsSubdomains && "HSTS subdomains"].filter(Boolean).join(" · ");
 
-/** The certificate a Proxy Host uses, with its state linking to the Reverse Proxy page. */
-function CertificateLine({ id }: { id: bigint }) {
-  const { data, error } = useQuery(NginxProxyManagerApiService.method.listCertificates, {});
+/** Each certificate state's tone and label. */
+const certificateLook: Record<CertificateState, { tone: Tone; label: string }> = {
+  [CertificateState.UNSPECIFIED]: { tone: "idle", label: "Unknown" },
+  [CertificateState.OK]: { tone: "up", label: "OK" },
+  [CertificateState.NOT_RENEWING]: { tone: "warn", label: "Not renewing" },
+  [CertificateState.EXPIRES_SOON]: { tone: "warn", label: "Expires soon" },
+  [CertificateState.EXPIRED]: { tone: "down", label: "Expired" },
+};
+
+/** The certificate a Proxy Host uses, with its state (as ListApps carries it) linking to the Reverse Proxy page. */
+function CertificateLine({ p }: { p: ProxyHost }) {
   const page = usePluginLink("reverse-proxy");
+  const id = p.fields?.certificateId ?? 0n;
   if (id === 0n) return <>None: plain HTTP</>;
-  const cert = data?.certificates.find((c) => c.id === id);
-  if (!cert) return <>{data || error ? `#${id}, not listed now` : `#${id}`}</>;
-  const s = certificateState(cert);
+  const cert = p.certificate;
+  if (!cert) return <>#{String(id)}, not listed now</>;
+  const s = certificateLook[cert.state];
   const pill = <Pill tone={s.tone}>{s.label}</Pill>;
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <span>{cert.niceName}</span>
+      <span>{cert.name}</span>
       {page ? (
         <Link to={page} aria-label={`${s.label}: see the Reverse Proxy`}>
           {pill}
@@ -256,7 +265,7 @@ function CertificateLine({ id }: { id: bigint }) {
       ) : (
         pill
       )}
-      {s.message && <span className="text-xs text-muted-foreground">{s.message}</span>}
+      {cert.message && <span className="text-xs text-muted-foreground">{cert.message}</span>}
     </span>
   );
 }
@@ -285,6 +294,7 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
   if (editing.now === "proxy" && p) body = <ProxyForm app={app} p={p} slot={slot} onDone={editing.done} />;
   else if (editing.now === "proxy" && canAdd) body = <AddProxyForm app={app} slot={slot} onDone={editing.done} />;
   else if (p) {
+    const f = fieldsOf(p);
     body = (
       <div className="flex flex-col gap-3">
         {(!p.enabled || p.offline) && (
@@ -295,9 +305,9 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
         )}
         <Facts
           items={[
-            { label: "Upstream", value: `${p.forwardScheme}://${p.forwardHost}:${p.forwardPort}`, mono: true },
-            { label: "Certificate", value: <CertificateLine id={p.certificateId} /> },
-            { label: "Options", value: flags(p) || "None" },
+            { label: "Upstream", value: `${f.forwardScheme}://${f.forwardHost}:${f.forwardPort}`, mono: true },
+            { label: "Certificate", value: <CertificateLine p={p} /> },
+            { label: "Options", value: flags(f) || "None" },
             { label: "Proxy Host", value: `#${p.id} in Nginx Proxy Manager` },
           ]}
         />
@@ -326,8 +336,11 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
 /** An IP address rather than a hostname. */
 const isIP = (s: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) || s.includes(":");
 
+/** A Proxy Host's fields; empty when ListApps sent none. */
+const fieldsOf = (p: ProxyHost): ProxyHostFields => p.fields ?? create(ProxyHostFieldsSchema);
+
 /** A Proxy Host's fields as the form edits them. */
-const draftOf = (p: ProxyHost): ProxyDraft => ({
+const draftOf = (p: ProxyHostFields): ProxyDraft => ({
   scheme: p.forwardScheme === "https" ? "https" : "http",
   host: p.forwardHost,
   port: String(p.forwardPort),
@@ -343,8 +356,9 @@ const draftOf = (p: ProxyHost): ProxyDraft => ({
 /** The Reverse proxy Panel's Edit: the Proxy Host's fields, saved through a Plan, and Remove reverse proxy for a proxied App. */
 function ProxyForm({ app, p, slot, onDone }: { app: App; p: ProxyHost; slot: DialogSlot; onDone: () => void }) {
   const certificates = useCertificates();
-  const [draft, setDraft] = useState(() => draftOf(p));
-  const [address, setAddress] = useState(isIP(p.forwardHost) ? p.forwardHost : (app.network?.address ?? ""));
+  const [draft, setDraft] = useState(() => draftOf(fieldsOf(p)));
+  const upstream = fieldsOf(p).forwardHost;
+  const [address, setAddress] = useState(isIP(upstream) ? upstream : (app.network?.address ?? ""));
   const host = hostOf(app);
   const done = () => {
     slot.close();

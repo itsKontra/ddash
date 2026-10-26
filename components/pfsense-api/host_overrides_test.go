@@ -387,3 +387,29 @@ func TestABatchDropsTheCacheAndFreshReadsPastIt(t *testing.T) {
 		t.Errorf("ListHostOverrides after a fresh one = %v, want the cache refilled", got)
 	}
 }
+
+// A failed apply after every step was written says so: all the steps
+// succeeded, but what they wrote isn't applied.
+func TestAFailedApplyIsReportedAsSuch(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+	fw.FailDNSApply()
+
+	_, err := c.ChangeHostOverrides(t.Context(), change(create("dns", "198.18.1.53"), addAlias("nginx", "jellyfin")))
+
+	if err == nil || !strings.Contains(err.Error(), "every step was written, but applying them failed") {
+		t.Fatalf("err = %v, want the apply failed", err)
+	}
+	var resp *pfsenseapipb.ChangeHostOverridesResponse
+	for _, d := range status.Convert(err).Details() {
+		if r, ok := d.(*pfsenseapipb.ChangeHostOverridesResponse); ok {
+			resp = r
+		}
+	}
+	if resp.GetSucceeded() != 2 || !resp.GetApplyFailed() {
+		t.Errorf("details = %v, want 2 steps succeeded and the apply failed", resp)
+	}
+	if !fw.DNSPending() {
+		t.Error("nothing pending, want the written steps waiting for an apply")
+	}
+}

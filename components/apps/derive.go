@@ -7,9 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
-	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 )
 
 // view is what the Apps are derived from besides their records: the last
@@ -54,7 +55,7 @@ func (v view) app(r *record) *appspb.App {
 		Links:    &appspb.Links{ProxyHostId: r.proxyHostID, HostOverride: r.hostOverride.proto()},
 	}
 	h := v.hosts[r.proxyHostID]
-	o := v.dns.overrideOf(r.hostOverride)
+	o := v.dns.override(r.hostOverride)
 	if h != nil || o != nil {
 		a.Aliases = sourceAliases(h, o, hostname(r.url))
 	}
@@ -91,7 +92,7 @@ func (v view) app(r *record) *appspb.App {
 	names := append([]string{hostname(r.url)}, canonNames(a.Aliases)...)
 	if v.dns != nil {
 		for _, n := range names {
-			a.Dns = append(a.Dns, v.dns.entries[n]...)
+			a.Dns = append(a.Dns, v.dns.registering[n]...)
 		}
 	}
 
@@ -111,7 +112,7 @@ func (v view) app(r *record) *appspb.App {
 		}
 		if !serves(h, hostname(r.url)) {
 			var fixes []*appspb.Fix
-			for _, n := range a.GetProxyHost().GetDomainNames() {
+			for _, n := range a.GetProxyHost().GetFields().GetDomainNames() {
 				fixes = append(fixes, &appspb.Fix{Kind: appspb.FixKind_FIX_KIND_USE_AS_URL, Hostname: n})
 			}
 			warn(appspb.WarningKind_WARNING_KIND_URL_NOT_ON_PROXY_HOST, "", nil, fixes...)
@@ -135,7 +136,7 @@ func (v view) dnsWarnings(a *appspb.App, h *npmpb.ProxyHost, names []string, war
 		// has its own Warning.
 		var missing []string
 		for _, n := range canonNames(h.GetFields().GetDomainNames()) {
-			if len(d.entries[n]) == 0 {
+			if len(d.registering[n]) == 0 {
 				missing = append(missing, n)
 			}
 		}
@@ -181,10 +182,10 @@ func (v view) dnsWarnings(a *appspb.App, h *npmpb.ProxyHost, names []string, war
 	var twice []string
 	var fixes []*appspb.Fix
 	for _, n := range sorted(names) {
-		if entries := d.entries[n]; len(entries) > 1 {
+		if entries := d.registering[n]; len(entries) > 1 {
 			twice = append(twice, n)
 			for _, e := range entries {
-				fixes = append(fixes, &appspb.Fix{Kind: appspb.FixKind_FIX_KIND_DELETE_ENTRY, Entry: e})
+				fixes = append(fixes, &appspb.Fix{Kind: appspb.FixKind_FIX_KIND_DELETE_ENTRY, HostOverride: e})
 			}
 		}
 	}
@@ -262,15 +263,6 @@ func canonNames(names []string) []string {
 	return out
 }
 
-// overrideOf is the Not-proxied Host Override n names; nil for none, or
-// when d is nil (not read).
-func (d *dns) overrideOf(n hostName) *pfpb.HostOverride {
-	if d == nil || n.isZero() {
-		return nil
-	}
-	return d.override(n)
-}
-
 // overrideTarget is where a Not-proxied App's traffic goes: its Host
 // Override's address and its URL's port, explicit or by scheme.
 func overrideTarget(ips []string, raw string) hostPort {
@@ -282,22 +274,7 @@ func overrideTarget(ips []string, raw string) hostPort {
 }
 
 func proxyHostOf(h *npmpb.ProxyHost) *appspb.ProxyHost {
-	f := h.GetFields()
-	return &appspb.ProxyHost{
-		Id:             h.GetId(),
-		DomainNames:    slices.Sorted(slices.Values(f.GetDomainNames())),
-		ForwardScheme:  f.GetForwardScheme(),
-		ForwardHost:    f.GetForwardHost(),
-		ForwardPort:    f.GetForwardPort(),
-		CertificateId:  f.GetCertificateId(),
-		BlockExploits:  f.GetBlockExploits(),
-		Websockets:     f.GetWebsockets(),
-		ForceSsl:       f.GetForceSsl(),
-		Http2:          f.GetHttp2(),
-		Hsts:           f.GetHsts(),
-		HstsSubdomains: f.GetHstsSubdomains(),
-		Enabled:        h.GetEnabled(),
-		Offline:        h.GetOffline(),
-		NginxError:     h.GetNginxError(),
-	}
+	f := proto.CloneOf(h.GetFields())
+	slices.Sort(f.DomainNames)
+	return &appspb.ProxyHost{Id: h.GetId(), Fields: f, Enabled: h.GetEnabled(), Offline: h.GetOffline(), NginxError: h.GetNginxError()}
 }

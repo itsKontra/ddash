@@ -17,6 +17,7 @@ import (
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	pb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
@@ -94,7 +95,7 @@ func TestListsTheProxyHostsSignedInAsDdashsUser(t *testing.T) {
 	// v2.10's flags read 0/1.
 	want := &pb.ProxyHost{
 		Id: 1,
-		Fields: &pb.ProxyHostFields{
+		Fields: &proxyhostpb.ProxyHostFields{
 			DomainNames:   []string{"home.example", "nginx.home.example"},
 			ForwardScheme: "http", ForwardHost: "198.18.1.210", ForwardPort: 81,
 			BlockExploits: true, CertificateId: 3, ForceSsl: true, Http2: true,
@@ -128,8 +129,8 @@ func TestReadsTheFlagsLaterVersionsSendAsTrueAndFalse(t *testing.T) {
 	}
 
 	want := &pb.ListProxyHostsResponse{ProxyHosts: []*pb.ProxyHost{
-		{Id: 13, Fields: &pb.ProxyHostFields{DomainNames: []string{"fullstack.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.1.201", ForwardPort: 3080}},
-		{Id: 3, Fields: &pb.ProxyHostFields{
+		{Id: 13, Fields: &proxyhostpb.ProxyHostFields{DomainNames: []string{"fullstack.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.1.201", ForwardPort: 3080}},
+		{Id: 3, Fields: &proxyhostpb.ProxyHostFields{
 			DomainNames: []string{"grafana.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.1.204", ForwardPort: 3000,
 			BlockExploits: true, Websockets: true, CertificateId: 3, ForceSsl: true, Http2: true, Hsts: true,
 		}, Enabled: true},
@@ -178,8 +179,48 @@ func TestListsTheCertificatesWithTheirExpiry(t *testing.T) {
 		{Id: 3, Provider: "letsencrypt", NiceName: "*.home.example", DomainNames: []string{"*.home.example", "home.example"}, ExpiresOn: timestamppb.New(time.Date(2026, 12, 29, 2, 0, 13, 0, time.UTC))},
 		{Id: 1, Provider: "other", NiceName: "NAS (uploaded)", DomainNames: []string{"nas.home.example"}, ExpiresOn: timestamppb.New(time.Date(2025, 5, 2, 19, 20, 0, 0, time.UTC))},
 	}}
-	if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+	// Their states depend on the day: TestEachCertificateHasAState.
+	if diff := cmp.Diff(want, got, protocmp.Transform(), protocmp.IgnoreFields(&pb.Certificate{}, "state", "state_message")); diff != "" {
 		t.Errorf("ListCertificates (-want +got):\n%s", diff)
+	}
+}
+
+// Each certificate's state, by its provider and the days it has left: a
+// Let's Encrypt one is Not renewing at 20 days or less, an uploaded one
+// Expires soon at 30 or less, either Expired past its expiry.
+func TestEachCertificateHasAState(t *testing.T) {
+	const (
+		ok, notRenewing, expiresSoon, expired = pb.CertificateState_CERTIFICATE_STATE_OK, pb.CertificateState_CERTIFICATE_STATE_NOT_RENEWING, pb.CertificateState_CERTIFICATE_STATE_EXPIRES_SOON, pb.CertificateState_CERTIFICATE_STATE_EXPIRED
+		renewLog                              = "Nginx Proxy Manager hasn't renewed this: check its Let's Encrypt log."
+		upload                                = "Upload a new certificate in Nginx Proxy Manager."
+	)
+	// The baseline's wildcard (Let's Encrypt) expires 2026-12-29 02:00:13,
+	// the NAS's (uploaded) 2025-05-02 19:20:00.
+	for _, tc := range []struct {
+		now                 time.Time
+		wildcard, nas       pb.CertificateState
+		wildcardMsg, nasMsg string
+	}{
+		{time.Date(2025, 3, 1, 0, 0, 0, 0, time.UTC), ok, ok, "", ""},
+		{time.Date(2025, 4, 10, 0, 0, 0, 0, time.UTC), ok, expiresSoon, "", upload},
+		{time.Date(2026, 12, 8, 0, 0, 0, 0, time.UTC), ok, expired, "", upload},
+		{time.Date(2026, 12, 10, 0, 0, 0, 0, time.UTC), notRenewing, expired, renewLog, upload},
+		{time.Date(2026, 12, 30, 0, 0, 0, 0, time.UTC), expired, expired, renewLog, upload},
+	} {
+		f := npm(t, "baseline")
+		h := sdktest.New(t, nginxproxymanagerapi.DefinitionAt(func() time.Time { return tc.now }))
+		h.MustStart(&pb.NginxProxyManagerApiConfig{Url: f.URL, Email: email, Password: password})
+		c := pb.NewNginxProxyManagerApiServiceClient(h.Conn)
+
+		got, err := c.ListCertificates(t.Context(), &pb.ListCertificatesRequest{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		certs := got.GetCertificates()
+		if certs[0].GetState() != tc.wildcard || certs[0].GetStateMessage() != tc.wildcardMsg || certs[1].GetState() != tc.nas || certs[1].GetStateMessage() != tc.nasMsg {
+			t.Errorf("at %s: wildcard %v %q, NAS %v %q; want %v %q, %v %q", tc.now.Format(time.DateOnly),
+				certs[0].GetState(), certs[0].GetStateMessage(), certs[1].GetState(), certs[1].GetStateMessage(), tc.wildcard, tc.wildcardMsg, tc.nas, tc.nasMsg)
+		}
 	}
 }
 

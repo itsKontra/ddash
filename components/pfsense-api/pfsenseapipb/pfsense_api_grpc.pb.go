@@ -105,7 +105,8 @@ type PfsenseApiServiceClient interface {
 	// Override or as any Host Override's alias, is refused before it is
 	// sent. The first failing step ends the batch; what the steps before it
 	// wrote is still applied, and the error's status details carry a
-	// ChangeHostOverridesResponse saying how many steps succeeded.
+	// ChangeHostOverridesResponse saying how many steps succeeded and
+	// whether the apply failed.
 	ChangeHostOverrides(ctx context.Context, in *ChangeHostOverridesRequest, opts ...grpc.CallOption) (*ChangeHostOverridesResponse, error)
 }
 
@@ -333,7 +334,8 @@ type PfsenseApiServiceServer interface {
 	// Override or as any Host Override's alias, is refused before it is
 	// sent. The first failing step ends the batch; what the steps before it
 	// wrote is still applied, and the error's status details carry a
-	// ChangeHostOverridesResponse saying how many steps succeeded.
+	// ChangeHostOverridesResponse saying how many steps succeeded and
+	// whether the apply failed.
 	ChangeHostOverrides(context.Context, *ChangeHostOverridesRequest) (*ChangeHostOverridesResponse, error)
 	mustEmbedUnimplementedPfsenseApiServiceServer()
 }

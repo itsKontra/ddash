@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+// The Proxy Host fields shared by nginx-proxy-manager-api and apps: what
+// ddash reads and writes of a Proxy Host, as Nginx Proxy Manager v2.10
+// saves it.
+package ddash.proxyhost;
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/proxyhost;proxyhostpb";
+
+// The fields of a Proxy Host ddash manages. Nginx Proxy Manager turns
+// Force SSL and HTTP/2 off without a certificate, HSTS off without Force
+// SSL, and HSTS for subdomains off without HSTS.
+message ProxyHostFields {
+  // Its hostnames, sorted as Nginx Proxy Manager stores them. apps' App
+  // Actions set them from the App's hostnames, ignoring what is sent.
+  repeated string domain_names = 1;
+  // The upstream: "http" or "https", a host and a port.
+  string forward_scheme = 2;
+  string forward_host = 3;
+  int32 forward_port = 4;
+  // Block Common Exploits.
+  bool block_exploits = 5;
+  // Websockets Support.
+  bool websockets = 6;
+  // One of Nginx Proxy Manager's certificates; 0 for none (plain HTTP).
+  int64 certificate_id = 7;
+  bool force_ssl = 8;
+  bool http2 = 9;
+  bool hsts = 10;
+  // HSTS for subdomains too.
+  bool hsts_subdomains = 11;
+}

@@ -5,8 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // addApp is the App Action adding a.
@@ -80,7 +84,7 @@ const (
 // wiki is a Proxy Host's fields for wiki.home.example: an upstream with
 // the wildcard certificate (3), and Block Common Exploits, Force SSL and
 // HTTP/2.
-var wiki = &appspb.ProxyHostFields{
+var wiki = &proxyhostpb.ProxyHostFields{
 	ForwardScheme: "http", ForwardHost: "198.18.2.11", ForwardPort: 3000,
 	CertificateId: 3, BlockExploits: true, ForceSsl: true, Http2: true,
 }
@@ -138,13 +142,16 @@ func TestAddAProxiedApp(t *testing.T) {
 		t.Errorf("App = %v, want proxied Wiki in Docs, linked to its Proxy Host", a)
 	}
 	wantHost := &appspb.ProxyHost{
-		Id: ph.GetId(), DomainNames: []string{"wiki.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.2.11", ForwardPort: 3000,
-		CertificateId: 3, BlockExploits: true, ForceSsl: true, Http2: true, Enabled: true,
+		Id: ph.GetId(), Enabled: true, Fields: &proxyhostpb.ProxyHostFields{
+			DomainNames: []string{"wiki.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.2.11", ForwardPort: 3000,
+			CertificateId: 3, BlockExploits: true, ForceSsl: true, Http2: true,
+		},
 	}
-	if d := diff(wantHost, ph); d != "" {
+	// The wildcard's state depends on the day.
+	if d := cmp.Diff(wantHost, ph, protocmp.Transform(), protocmp.IgnoreFields(&appspb.ProxyHost{}, "certificate")); d != "" {
 		t.Errorf("Proxy Host (-want +got):\n%s", d)
 	}
-	if d := diff([]*appspb.DnsEntry{{Host: "wiki", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}}, a.GetDns()); d != "" {
+	if d := diff([]*appspb.HostOverrideOrAlias{{Host: "wiki", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}}, a.GetDns()); d != "" {
 		t.Errorf("DNS (-want +got):\n%s", d)
 	}
 	if _, ok := l.appChecks()[a.GetId()]; !ok {
@@ -183,7 +190,7 @@ func TestAddANotProxiedApp(t *testing.T) {
 		a.GetLinks().GetHostOverride().GetHost() != "printer" || a.GetLinks().GetHostOverride().GetDomain() != "home.example" {
 		t.Errorf("App = %v, want Not-proxied Printer linked to its Host Override", a)
 	}
-	if d := diff([]*appspb.DnsEntry{{Host: "printer", Domain: "home.example", Ips: []string{"198.18.1.60"}}}, a.GetDns()); d != "" {
+	if d := diff([]*appspb.HostOverrideOrAlias{{Host: "printer", Domain: "home.example", Ips: []string{"198.18.1.60"}}}, a.GetDns()); d != "" {
 		t.Errorf("DNS (-want +got):\n%s", d)
 	}
 }
@@ -192,7 +199,7 @@ func TestAddANotProxiedApp(t *testing.T) {
 // certificate turns Force SSL and HTTP/2 off, no Force SSL turns HSTS off.
 func TestAProxiedAddsPlanFollowsNginxProxyManagersToggleRules(t *testing.T) {
 	l := newLab(t, labOptions{})
-	plain := &appspb.ProxyHostFields{ForwardScheme: "http", ForwardHost: "198.18.2.11", ForwardPort: 3000, Websockets: true, ForceSsl: true, Http2: true, Hsts: true, HstsSubdomains: true}
+	plain := &proxyhostpb.ProxyHostFields{ForwardScheme: "http", ForwardHost: "198.18.2.11", ForwardPort: 3000, Websockets: true, ForceSsl: true, Http2: true, Hsts: true, HstsSubdomains: true}
 
 	p := l.plan(addApp(&appspb.AddApp{Url: "http://wiki.home.example", Reach: appspb.Reach_REACH_PROXIED, ProxyHost: plain}))
 	want := []*appspb.PlanValue{

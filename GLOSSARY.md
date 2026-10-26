@@ -66,6 +66,22 @@ _Avoid_: Skin, style
 Something the operator opens in a browser at its URL (e.g. Jellyfin, Grafana). Keeps its identity, settings and Check history when its URL changes. Discovered from a Proxy Host or a Host Override (one App when both name the same hostname), or added manually. Backed by zero or one Workload.
 _Avoid_: Service, container, link
 
+**Reach**:
+How an App is reached, derived from its sources: proxied, Not proxied or Link only.
+_Avoid_: Mode, type, access
+
+**Not proxied**:
+Said of an App whose own Host Override points at an address other than the Reverse Proxy's, so browsers reach it without going through the Reverse Proxy.
+_Avoid_: Direct (a Device's internet path), unproxied, bypassed
+
+**Link only**:
+Said of an App with neither a Proxy Host nor a Host Override: a URL ddash only links to and Checks, and writes nowhere for.
+_Avoid_: Manual App, bookmark, external App
+
+**Orphaned App settings**:
+What ddash keeps of an App the Operator gave a setting or an Ignore once its sources are gone: its identity, settings, Ignores and Check history, until they are reattached to an App or deleted.
+_Avoid_: Orphan App, stale App, overlay
+
 **Workload**:
 A unit of compute that runs software: a Docker container, a Proxmox LXC, a Proxmox VM, or an external host. One Workload can back zero or many Apps.
 _Avoid_: Container (when the kind is not specifically Docker), guest, instance
@@ -89,6 +105,18 @@ _Avoid_: nginx (as the defined term), NPM
 **Warning**:
 Something about an App the Operator should fix or Ignore, such as a Proxy Host without a Host Override or an App with no Workload.
 _Avoid_: App check, issue, problem
+
+**Fix**:
+One way to resolve a Warning that the Warning offers, such as Register or Delete Proxy Host. A Fix that writes to another system runs through a Plan.
+_Avoid_: Remedy, quick fix, solution
+
+**Notice**:
+A message on a Page saying why something can't be read or done right now and what to do about it, such as "Set up Nginx Proxy Manager". Unlike a Warning, it is about no single App.
+_Avoid_: Banner, alert, toast
+
+**Panel**:
+One titled part of an App's details, such as Display or Reverse proxy, which the Operator edits on its own.
+_Avoid_: Card, section, tab
 
 **Host Override**:
 A hostname the firewall's DNS resolver answers with an address of the Operator's choosing, together with its aliases: further hostnames answered with the same address. An App is DNS-registered when each of its hostnames is a Host Override or one of its aliases.

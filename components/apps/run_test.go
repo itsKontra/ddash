@@ -231,3 +231,83 @@ func TestAnAddsWritesAreOnItsChainInTheAuditLog(t *testing.T) {
 		}
 	}
 }
+
+// pfSense failing to apply what every step wrote stops the Action after
+// its last pfSense step, before the App record is written.
+func TestAnAddStopsWhenPfSenseFailsToApply(t *testing.T) {
+	l := newLab(t, labOptions{})
+	l.fw.FailDNSApply()
+
+	err, resp := l.failedRun()
+	if !strings.HasPrefix(err.message, "Stopped after step 2 of 3, applying the Host Override changes in pfSense: ") ||
+		!strings.HasSuffix(err.message, "Done: Create Proxy Host wiki.home.example; Add alias wiki.home.example to nginx.home.example. Nothing was rolled back.") ||
+		resp.GetDone() != 2 {
+		t.Errorf("RunAction = %v (%v), want it stopped applying, after step 2", err, resp)
+	}
+	if a := l.byURL("https://wiki.home.example"); a.GetSettings().GetName() != "" {
+		t.Errorf("Wiki = %v, want the App record unwritten", a)
+	}
+}
+
+// An Action whose last step is a pfSense step names the failed apply too.
+func TestAFixStopsWhenPfSenseFailsToApply(t *testing.T) {
+	l := newLab(t, labOptions{})
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.11:3000", "wiki.home.example"))
+	l.refresh()
+	const id = "proxy:wiki.home.example"
+	w := warningOf(l.app(id), notRegisteredKind)
+	i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetKind() == appspb.FixKind_FIX_KIND_REGISTER })
+	action := fixAction(id, w.GetFixes()[i])
+	l.fw.FailDNSApply()
+
+	_, err := l.tryRun(action, l.plan(action))
+	want := "Stopped after step 1 of 1, applying the Host Override changes in pfSense: "
+	if err == nil || !strings.HasPrefix(err.message, want) || !strings.HasSuffix(err.message, "Done: Add alias wiki.home.example to nginx.home.example. Nothing was rolled back.") {
+		t.Errorf("RunAction = %v, want %q…", err, want)
+	}
+}
+
+// progress is the steps' states GetRun gives the run id.
+func (l *lab) progress(id string) []appspb.StepState {
+	l.t.Helper()
+	resp := &appspb.GetRunResponse{}
+	l.call("GetRun", &appspb.GetRunRequest{RunId: id}, resp)
+	return resp.GetSteps()
+}
+
+// While an Action runs, GetRun gives each of its Plan's steps' states
+// under the run id the Plugin sent: here Nginx Proxy Manager's step done
+// and pfSense's running while pfSense applies. Once RunAction answered,
+// the run is forgotten.
+func TestGetRunShowsEachStepAsItRuns(t *testing.T) {
+	l := newLab(t, labOptions{})
+	release := make(chan struct{})
+	l.holdApply.Store(&release)
+	plan := l.plan(addWiki)
+	const id = "run-1"
+	ran := make(chan *callError, 1)
+	go func() {
+		ran <- l.try("RunAction", &appspb.RunActionRequest{Action: addWiki, Plan: plan, RunId: id}, nil)
+	}()
+
+	const (
+		pending = appspb.StepState_STEP_STATE_PENDING
+		running = appspb.StepState_STEP_STATE_RUNNING
+		done    = appspb.StepState_STEP_STATE_DONE
+	)
+	want := []appspb.StepState{done, running, pending}
+	var got []appspb.StepState
+	for deadline := time.Now().Add(5 * time.Second); !slices.Equal(got, want) && time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		got = l.progress(id)
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("GetRun while pfSense applies = %v, want %v", got, want)
+	}
+	close(release)
+	if err := <-ran; err != nil {
+		t.Fatalf("RunAction: %v", err)
+	}
+	if got := l.progress(id); len(got) != 0 {
+		t.Errorf("GetRun once RunAction answered = %v, want nothing", got)
+	}
+}

@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"sync"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -59,42 +60,107 @@ func (c *component) RunAction(ctx context.Context, req *appspb.RunActionRequest)
 		return nil, status.Error(codes.FailedPrecondition, strings.Join(blocked, " "))
 	}
 
+	// Each step's state, for GetRun, until RunAction answers.
+	run := c.runs.start(req.GetRunId(), len(pl.plan.GetSteps()))
+	defer c.runs.forget(run)
 	done := 0
 	var written *npmpb.ProxyHost
 	if pl.npm != nil {
+		c.runs.mark(run, done, done+1, appspb.StepState_STEP_STATE_RUNNING)
 		if written, err = pl.npm(ctx, c.npm); err != nil {
-			return nil, c.stopped(ctx, pl, done, err)
+			return nil, c.stopped(ctx, pl, run, done, err)
 		}
 		if pl.deletes != 0 {
 			c.deletedProxyHost(pl.deletes)
 		} else {
 			c.wroteProxyHost(written)
 		}
+		c.runs.mark(run, done, done+1, appspb.StepState_STEP_STATE_DONE)
 		done++
 	}
 	if len(pl.dns) > 0 {
+		c.runs.mark(run, done, done+len(pl.dns), appspb.StepState_STEP_STATE_RUNNING)
 		if _, err := c.pfsense.ChangeHostOverrides(ctx, &pfpb.ChangeHostOverridesRequest{Steps: pl.dns}); err != nil {
-			n := succeeded(err)
+			r := batchResult(err)
+			n := int(r.GetSucceeded())
 			c.wroteDNS(pl.dns[:n])
-			return nil, c.stopped(ctx, pl, done+n, err)
+			c.runs.mark(run, done, done+n, appspb.StepState_STEP_STATE_DONE)
+			if r.GetApplyFailed() && n == len(pl.dns) {
+				return nil, c.stoppedApplying(ctx, pl, run, done+n, err)
+			}
+			return nil, c.stopped(ctx, pl, run, done+n, err)
 		}
 		c.wroteDNS(pl.dns)
+		c.runs.mark(run, done, done+len(pl.dns), appspb.StepState_STEP_STATE_DONE)
 		done += len(pl.dns)
 	}
 	id := pl.id
 	if pl.record != nil {
+		c.runs.mark(run, done, done+1, appspb.StepState_STEP_STATE_RUNNING)
 		recs, err := c.store.records(ctx)
 		if err != nil {
-			return nil, c.stopped(ctx, pl, done, err)
+			return nil, c.stopped(ctx, pl, run, done, err)
 		}
 		var ch changes
 		ch, id = pl.record(recs, written)
 		if err := c.store.save(ctx, ch.put, ch.drop); err != nil {
-			return nil, c.stopped(ctx, pl, done, err)
+			return nil, c.stopped(ctx, pl, run, done, err)
 		}
+		c.runs.mark(run, done, done+1, appspb.StepState_STEP_STATE_DONE)
 		done++
 	}
 	return &appspb.RunActionResponse{AppId: id, Done: int32(done), Reread: c.resyncLocked(ctx)}, nil
+}
+
+func (c *component) GetRun(_ context.Context, req *appspb.GetRunRequest) (*appspb.GetRunResponse, error) {
+	return &appspb.GetRunResponse{Steps: c.runs.get(req.GetRunId())}, nil
+}
+
+// runs is the progress of the App Actions running now, by run id: each
+// Plan step's state, for GetRun. A run without an id isn't kept.
+type runs struct {
+	mu   sync.Mutex
+	byID map[string][]appspb.StepState
+}
+
+// start keeps run id's progress, n steps pending, and returns id.
+func (r *runs) start(id string, n int) string {
+	if id == "" {
+		return id
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.byID == nil {
+		r.byID = map[string][]appspb.StepState{}
+	}
+	steps := make([]appspb.StepState, n)
+	for i := range steps {
+		steps[i] = appspb.StepState_STEP_STATE_PENDING
+	}
+	r.byID[id] = steps
+	return id
+}
+
+// mark sets the steps from (counting from 0) up to to of run id to s.
+func (r *runs) mark(id string, from, to int, s appspb.StepState) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	steps := r.byID[id]
+	for i := from; i < to && i < len(steps); i++ {
+		steps[i] = s
+	}
+}
+
+func (r *runs) get(id string) []appspb.StepState {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return slices.Clone(r.byID[id])
+}
+
+func (r *runs) forget(id string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.byID, id)
 }
 
 // deletedProxyHost drops a Proxy Host an App Action deleted from the last
@@ -143,7 +209,7 @@ func applySteps(overrides []*pfpb.HostOverride, steps []*pfpb.HostOverrideStep) 
 		out[i] = proto.CloneOf(o)
 	}
 	named := func(n *pfpb.HostName) int {
-		return slices.IndexFunc(out, func(o *pfpb.HostOverride) bool { return nameOf(o).same(hostName{n.GetHost(), n.GetDomain()}) })
+		return slices.IndexFunc(out, func(o *pfpb.HostOverride) bool { return nameOf(o).same(nameOf(n)) })
 	}
 	for _, s := range steps {
 		switch ch := s.GetChange().(type) {
@@ -165,7 +231,7 @@ func applySteps(overrides []*pfpb.HostOverride, steps []*pfpb.HostOverrideStep) 
 			if i := named(ch.RemoveAlias.GetParent()); i >= 0 {
 				a := ch.RemoveAlias.GetAlias()
 				out[i].Aliases = slices.DeleteFunc(out[i].Aliases, func(x *pfpb.HostOverrideAlias) bool {
-					return hostName{x.GetHost(), x.GetDomain()}.same(hostName{a.GetHost(), a.GetDomain()})
+					return nameOf(x).same(nameOf(a))
 				})
 			}
 		}
@@ -173,24 +239,43 @@ func applySteps(overrides []*pfpb.HostOverride, steps []*pfpb.HostOverrideStep) 
 	return out
 }
 
-// succeeded is how many steps of a failed ChangeHostOverrides batch were
-// written, from its error's details.
-func succeeded(err error) int {
+// batchResult is what a failed ChangeHostOverrides batch wrote, from its
+// error's details: nothing when they don't say.
+func batchResult(err error) *pfpb.ChangeHostOverridesResponse {
 	for _, d := range status.Convert(err).Details() {
 		if r, ok := d.(*pfpb.ChangeHostOverridesResponse); ok {
-			return int(r.GetSucceeded())
+			return r
 		}
 	}
-	return 0
+	return &pfpb.ChangeHostOverridesResponse{}
 }
 
 // stopped is the error of an App Action that stopped at its step done
 // (counting from 0) on err: it names the step and what was done before,
 // and carries a RunActionResponse. The Action still ends with a sync.
-func (c *component) stopped(ctx context.Context, pl *planned, done int, err error) error {
+func (c *component) stopped(ctx context.Context, pl *planned, run string, done int, err error) error {
+	steps := pl.plan.GetSteps()
+	if done >= len(steps) {
+		return c.stoppedAt(ctx, pl, done, fmt.Sprintf("Stopped after step %d of %d", done, len(steps)), err)
+	}
+	c.runs.mark(run, done, done+1, appspb.StepState_STEP_STATE_FAILED)
+	c.runs.mark(run, done+1, len(steps), appspb.StepState_STEP_STATE_PENDING)
+	return c.stoppedAt(ctx, pl, done, fmt.Sprintf("Stopped at step %d of %d, %s", done+1, len(steps), steps[done].GetTitle()), err)
+}
+
+// stoppedApplying is the error of an App Action whose pfSense steps, up to
+// its step done, were all written but pfSense failed to apply them.
+func (c *component) stoppedApplying(ctx context.Context, pl *planned, run string, done int, err error) error {
+	c.runs.mark(run, done-1, done, appspb.StepState_STEP_STATE_FAILED)
+	at := fmt.Sprintf("Stopped after step %d of %d, applying the Host Override changes in pfSense", done, len(pl.plan.GetSteps()))
+	return c.stoppedAt(ctx, pl, done, at, err)
+}
+
+// stoppedAt is stopped's error, saying where the Action stopped with at.
+func (c *component) stoppedAt(ctx context.Context, pl *planned, done int, at string, err error) error {
 	reread := c.resyncLocked(ctx)
 	steps := pl.plan.GetSteps()
-	msg := fmt.Sprintf("Stopped at step %d of %d, %s: %s.", done+1, len(steps), steps[done].GetTitle(), why(err))
+	msg := fmt.Sprintf("%s: %s.", at, why(err))
 	if done > 0 {
 		var titles []string
 		for _, s := range steps[:done] {

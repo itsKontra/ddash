@@ -89,6 +89,14 @@ func (f *Firewall) FailDNSWrite(n int) {
 	f.failDNS = n
 }
 
+// FailDNSApply makes the next DNS Resolver apply fail with a 500 and
+// leave the changes pending.
+func (f *Firewall) FailDNSApply() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.failDNSApply = true
+}
+
 // serveDNSResolver answers the DNS Resolver's Host Override endpoints,
 // reporting whether r was one.
 func (f *Firewall) serveDNSResolver(w http.ResponseWriter, r *http.Request) bool {
@@ -110,6 +118,12 @@ func (f *Firewall) serveDNSResolver(w http.ResponseWriter, r *http.Request) bool
 	case "POST " + dnsApplyPath:
 		time.Sleep(f.opts.ApplyDelay)
 		f.mu.Lock()
+		if f.failDNSApply {
+			f.failDNSApply = false
+			f.mu.Unlock()
+			reply(w, http.StatusInternalServerError, "PFSENSEFAKE_INJECTED", "pfsensefake failed this apply as told.", nil)
+			return true
+		}
 		f.applyDNS()
 		f.mu.Unlock()
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": true})

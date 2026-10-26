@@ -1,5 +1,5 @@
 import { PlanSchema, RunActionResponseSchema, System } from "@ddash/proto/apps/apps_pb";
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { useLocation } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
 import { pending, settle, type Call } from "@ddash/plugin/testing";
@@ -141,7 +141,7 @@ describe.each(ways)("$name", (way) => {
     fireEvent.click(dialog().getByRole("button", { name: way.confirm }));
     await settle();
 
-    expect(runs(calls)).toEqual([{ method: "RunAction", body: { action: way.action, plan } }]);
+    expect(runs(calls)).toEqual([{ method: "RunAction", body: { action: way.action, plan, runId: expect.any(String) } }]);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -193,6 +193,35 @@ describe.each(ways)("$name", (way) => {
     expect(dialog().getByText(blocked)).toBeTruthy();
     expect((dialog().getByRole("button", { name: way.confirm }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("shows the Plan's notes, and still lets it run", async () => {
+    const note = "nasui.home.example stays an alias of the Reverse Proxy's Host Override, with no Proxy Host to serve it: remove it there, or add a reverse proxy again.";
+    await open(way.app, { PlanAction: () => Response.json({ plan: { ...plan, notes: [note] } }) });
+    await way.open();
+    await settle();
+
+    expect(dialog().getByText(note)).toBeTruthy();
+    expect((dialog().getByRole("button", { name: way.confirm }) as HTMLButtonElement).disabled).toBe(false);
+  });
+});
+
+it("shows each step's progress while the run goes on, polling GetRun under its run id", async () => {
+  const calls = await open("proxy:grafana.home.example", {
+    RunAction: () => pending(),
+    GetRun: () => Response.json({ steps: ["STEP_STATE_DONE", "STEP_STATE_RUNNING"] }),
+  });
+  fireEvent.click(within(pane()).getByRole("button", { name: "Delete…" }));
+  await settle();
+  fireEvent.click(dialog().getByRole("button", { name: "Delete" }));
+  await settle();
+  expect(steps().map(state)).toEqual(["running…", "running…"]);
+
+  await act(() => new Promise((r) => setTimeout(r, 600)));
+  await settle();
+  expect(steps().map(state)).toEqual(["done", "running…"]);
+  const runId = (runs(calls)[0].body as { runId: string }).runId;
+  expect(runId).not.toBe("");
+  expect(calls.filter((c) => c.method === "GetRun").map((c) => c.body)).toContainEqual({ runId });
 });
 
 it("empties the pane once the App is deleted", async () => {

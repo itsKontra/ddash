@@ -47,11 +47,12 @@ func (c *component) startDevices(ctx context.Context, env *sdk.Env, cfg *network
 	if aliases, err := c.pfsense.ListAliases(ctx, &pfsenseapipb.ListAliasesRequest{}); err != nil {
 		env.Log.Warn("can't check the bypass alias", "err", status.Convert(err).Message())
 	} else {
-		if msg := checkAlias(aliases.GetAliases(), c.bypassAlias); msg != "" {
-			errs.Add("bypass_alias", "%s", msg)
+		bypass, block := c.aliasProblems(aliases.GetAliases())
+		if bypass != "" {
+			errs.Add("bypass_alias", "%s", bypass)
 		}
-		if msg := checkAlias(aliases.GetAliases(), c.blockAlias); c.blockAlias != "" && msg != "" {
-			errs.Add("block_alias", "%s", msg)
+		if block != "" {
+			errs.Add("block_alias", "%s", block)
 		}
 	}
 	if servers, err := c.pfsense.ListDhcpServers(ctx, &pfsenseapipb.ListDhcpServersRequest{}); err != nil {
@@ -168,14 +169,26 @@ func (c *component) readSnapshot(ctx context.Context) (*snapshot, error) {
 	return s, nil
 }
 
+// aliasProblems are what is wrong with the bypass alias and with the
+// block alias when there is one: missing or no alias of addresses; ""
+// for nothing.
+func (c *component) aliasProblems(aliases []*pfsenseapipb.Alias) (bypass, block string) {
+	bypass = checkAlias(aliases, c.bypassAlias)
+	if c.blockAlias != "" {
+		block = checkAlias(aliases, c.blockAlias)
+	}
+	return bypass, block
+}
+
 // checkAliases fails when the bypass alias, or the block alias when there
 // is one, is missing or no alias of addresses.
 func (c *component) checkAliases(aliases []*pfsenseapipb.Alias) error {
-	if msg := checkAlias(aliases, c.bypassAlias); msg != "" {
-		return status.Errorf(codes.FailedPrecondition, "bypass alias: %s; pick another in network's config", msg)
+	bypass, block := c.aliasProblems(aliases)
+	if bypass != "" {
+		return status.Errorf(codes.FailedPrecondition, "bypass alias: %s; pick another in network's config", bypass)
 	}
-	if msg := checkAlias(aliases, c.blockAlias); c.blockAlias != "" && msg != "" {
-		return status.Errorf(codes.FailedPrecondition, "No Internet alias: %s; pick another in network's config", msg)
+	if block != "" {
+		return status.Errorf(codes.FailedPrecondition, "No Internet alias: %s; pick another in network's config", block)
 	}
 	return nil
 }

@@ -10,12 +10,15 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
-// The one Plan builder: every App Action, dry-run (PlanAction) or run
+// The one Plan builder: every App Action, shown (PlanAction) or run
 // (RunAction), gets its Plan from planning.build. A planned Action holds
 // its Plan as the Operator sees it and how each of its steps runs, in the
 // one order every App Action has: the Nginx Proxy Manager write, then one
@@ -152,7 +155,6 @@ func (p planning) build(action *appspb.AppAction) *planned {
 // for the hostname.
 func (p planning) add(a *appspb.AddApp) *planned {
 	out := &planned{plan: &appspb.Plan{}}
-	block := func(why string) { out.plan.Blocked = append(out.plan.Blocked, why) }
 	reach := a.GetReach()
 	s := &appspb.AppSettings{
 		Name:  strings.TrimSpace(a.GetName()),
@@ -161,26 +163,25 @@ func (p planning) add(a *appspb.AddApp) *planned {
 	}
 
 	raw := strings.TrimSpace(a.GetUrl())
-	var host string
-	if u, err := url.Parse(raw); raw == "" {
-		block("Give the App's URL.")
-	} else if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		block("The URL must be an http or https URL, e.g. https://jellyfin.home.example.")
-	} else {
-		host = canonName(u.Hostname())
+	host := urlHost(raw)
+	switch {
+	case raw == "":
+		out.block("Give the App's URL.")
+	case host == "":
+		out.block(badURL)
 	}
 	if checkIcon(s.GetIcon()) != nil {
-		block("The icon must be a dashboard-icons name, e.g. jellyfin or home-assistant.")
+		out.block("The icon must be a dashboard-icons name, e.g. jellyfin or home-assistant.")
 	}
 	writes := reach == appspb.Reach_REACH_PROXIED || reach == appspb.Reach_REACH_NOT_PROXIED
 	if !writes && reach != appspb.Reach_REACH_LINK_ONLY {
-		block("Choose how the App is reached.")
+		out.block("Choose how the App is reached.")
 	}
 	if reach == appspb.Reach_REACH_PROXIED && !p.npmRead {
-		block(cantCheck("Nginx Proxy Manager"))
+		out.block(cantCheck("Nginx Proxy Manager"))
 	}
 	if writes && !p.pfRead {
-		block(cantCheck("pfSense"))
+		out.block(cantCheck("pfSense"))
 	}
 
 	// "The name is free".
@@ -190,7 +191,7 @@ func (p planning) add(a *appspb.AddApp) *planned {
 	case writes && !isHostname(host):
 		out.plan.Names = append(out.plan.Names, &appspb.NameNote{Hostname: host, Kind: appspb.NameNoteKind_NAME_NOTE_KIND_NOT_A_HOSTNAME, Text: "Not a hostname."})
 	case writes && home != "" && host != home && !strings.HasSuffix(host, "."+home):
-		block(fmt.Sprintf("%s isn't in %s, the home domain: choose Link only.", host, home))
+		out.block(fmt.Sprintf("%s isn't in %s, the home domain: choose Link only.", host, home))
 	default:
 		if n := p.nameNote(host, reach, ""); n != nil {
 			out.plan.Names = append(out.plan.Names, n)
@@ -204,34 +205,26 @@ func (p planning) add(a *appspb.AddApp) *planned {
 	case appspb.Reach_REACH_PROXIED:
 		f, why := proxyHostFields(a.GetProxyHost())
 		if why != "" {
-			block(why)
+			out.block(why)
 		}
 		if p.readOnly {
-			block("ddash's user in Nginx Proxy Manager can only view Proxy Hosts: set them to Manage to add proxied Apps.")
+			out.block("ddash's user in Nginx Proxy Manager can only view Proxy Hosts: set them to Manage to add proxied Apps.")
 		}
-		rp := p.reverseProxy(block)
+		rp := p.reverseProxy(out.block)
 		f.DomainNames = []string{host}
-		out.plan.Steps = append(out.plan.Steps, &appspb.PlanStep{
-			System: appspb.System_SYSTEM_NGINX_PROXY_MANAGER,
-			Title:  "Create Proxy Host " + host,
-			Values: proxyHostValues(nil, f),
-		})
-		out.npm = func(ctx context.Context, c npmpb.NginxProxyManagerApiServiceClient) (*npmpb.ProxyHost, error) {
-			resp, err := c.CreateProxyHost(ctx, &npmpb.CreateProxyHostRequest{Fields: f})
-			return resp.GetProxyHost(), err
-		}
+		out.createProxyHost(host, f)
 		if rp != nil {
 			out.addDNS(addAlias(rp, host))
 		}
 	case appspb.Reach_REACH_NOT_PROXIED:
-		ip, err := netip.ParseAddr(strings.TrimSpace(a.GetAddress()))
+		ip, ok, atRP := p.ownAddress(a.GetAddress())
 		switch {
-		case err != nil:
-			block("Give the address the Host Override resolves to, e.g. 198.18.1.60.")
-		case p.rpAddress != "" && ip.String() == canonHost(p.rpAddress):
-			block(fmt.Sprintf("%s is the Reverse Proxy's address: choose Reverse proxy.", ip))
+		case !ok:
+			out.block("Give the address the Host Override resolves to, e.g. 198.18.1.60.")
+		case atRP:
+			out.block(fmt.Sprintf("%s is the Reverse Proxy's address: choose Reverse proxy.", ip))
 		case host != "":
-			out.addDNS(createOverride(splitName(host), []string{ip.String()}))
+			out.createOwnOverride(splitName(host), []string{ip.String()}, nil)
 		}
 	}
 
@@ -277,6 +270,54 @@ func (p planning) add(a *appspb.AddApp) *planned {
 		return changes{put: []*record{r}}, r.id
 	}
 	return out
+}
+
+// badURL is why an App's URL can't be used.
+const badURL = "The URL must be an http or https URL, e.g. https://jellyfin.home.example."
+
+// urlHost is the hostname of raw, an App's URL, canonical; "" when raw
+// isn't an http or https URL with a host.
+func urlHost(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return ""
+	}
+	return canonName(u.Hostname())
+}
+
+// ownAddress is raw as the address an App's own Host Override resolves
+// to: ok when it is an IP address, atRP when it is the Reverse Proxy's,
+// which only the Reverse Proxy's Host Override has.
+func (p planning) ownAddress(raw string) (ip netip.Addr, ok, atRP bool) {
+	ip, err := netip.ParseAddr(strings.TrimSpace(raw))
+	if err != nil {
+		return ip, false, false
+	}
+	return ip, true, p.rpAddress != "" && ip.String() == canonHost(p.rpAddress)
+}
+
+// createProxyHost adds the step creating a Proxy Host with the fields f,
+// titled by its hostname name.
+func (out *planned) createProxyHost(name string, f *proxyhostpb.ProxyHostFields) {
+	out.plan.Steps = append(out.plan.Steps, &appspb.PlanStep{
+		System: appspb.System_SYSTEM_NGINX_PROXY_MANAGER,
+		Title:  "Create Proxy Host " + name,
+		Values: proxyHostValues(nil, f),
+	})
+	out.npm = func(ctx context.Context, c npmpb.NginxProxyManagerApiServiceClient) (*npmpb.ProxyHost, error) {
+		resp, err := c.CreateProxyHost(ctx, &npmpb.CreateProxyHostRequest{Fields: f})
+		return resp.GetProxyHost(), err
+	}
+}
+
+// createOwnOverride adds the steps creating an App's own Host Override n
+// at ips, and each of aliases (canonical hostnames) as its alias.
+func (out *planned) createOwnOverride(n hostName, ips, aliases []string) {
+	out.addDNS(createOverride(n, ips))
+	created := &pfpb.HostOverride{Host: n.host, Domain: n.domain, Ips: ips}
+	for _, a := range aliases {
+		out.addDNS(addAlias(created, a))
+	}
 }
 
 // addDNS adds a step to the pfSense batch, and to the Plan.
@@ -385,7 +426,7 @@ func (p planning) nameNote(n string, reach appspb.Reach, self string) *appspb.Na
 					return note(appspb.NameNoteKind_NAME_NOTE_KIND_REVERSE_PROXY, "%s is the Reverse Proxy's own name.", n)
 				}
 			}
-			if len(p.dns.entries[n]) > 0 {
+			if len(p.dns.registering[n]) > 0 {
 				return note(appspb.NameNoteKind_NAME_NOTE_KIND_HOST_OVERRIDE, "%s is already registered in pfSense.", n)
 			}
 		}
@@ -429,19 +470,15 @@ func isHostname(n string) bool {
 // proxyHostFields are the Proxy Host fields as Nginx Proxy Manager will
 // save them, with its toggle rules applied, and why they can't be saved
 // ("" when they can).
-func proxyHostFields(in *appspb.ProxyHostFields) (*npmpb.ProxyHostFields, string) {
-	f := &npmpb.ProxyHostFields{
-		ForwardScheme:  strings.ToLower(strings.TrimSpace(in.GetForwardScheme())),
-		ForwardHost:    strings.TrimSpace(in.GetForwardHost()),
-		ForwardPort:    in.GetForwardPort(),
-		CertificateId:  in.GetCertificateId(),
-		BlockExploits:  in.GetBlockExploits(),
-		Websockets:     in.GetWebsockets(),
-		ForceSsl:       in.GetForceSsl(),
-		Http2:          in.GetHttp2(),
-		Hsts:           in.GetHsts(),
-		HstsSubdomains: in.GetHstsSubdomains(),
+func proxyHostFields(in *proxyhostpb.ProxyHostFields) (*proxyhostpb.ProxyHostFields, string) {
+	f := &proxyhostpb.ProxyHostFields{}
+	if in != nil {
+		f = proto.CloneOf(in)
 	}
+	// The domain names are the App's hostnames, which the caller sets.
+	f.DomainNames = nil
+	f.ForwardScheme = strings.ToLower(strings.TrimSpace(f.GetForwardScheme()))
+	f.ForwardHost = strings.TrimSpace(f.GetForwardHost())
 	if f.GetCertificateId() == 0 {
 		f.ForceSsl, f.Http2 = false, false
 	}
@@ -466,8 +503,8 @@ func proxyHostFields(in *appspb.ProxyHostFields) (*npmpb.ProxyHostFields, string
 
 // proxyHostValues are a Proxy Host's managed fields as a step expects them
 // (before; nil for no Proxy Host) and writes them (after).
-func proxyHostValues(before, after *npmpb.ProxyHostFields) []*appspb.PlanValue {
-	texts := func(f *npmpb.ProxyHostFields) []string {
+func proxyHostValues(before, after *proxyhostpb.ProxyHostFields) []*appspb.PlanValue {
+	texts := func(f *proxyhostpb.ProxyHostFields) []string {
 		if f == nil {
 			return make([]string, 4)
 		}

@@ -195,17 +195,17 @@ func mergedAliases(r, from *record) []string {
 	return out
 }
 
-func (c *component) DeleteOrphan(ctx context.Context, req *appspb.DeleteOrphanRequest) (*appspb.DeleteOrphanResponse, error) {
+func (c *component) DeleteRecord(ctx context.Context, req *appspb.DeleteRecordRequest) (*appspb.DeleteRecordResponse, error) {
 	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, _ []*record) (changes, error) {
-		if !a.GetOrphaned() {
-			return changes{}, status.Errorf(codes.FailedPrecondition, "%s isn't orphaned App settings", a.GetName())
+		if !a.GetOrphaned() && a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
+			return changes{}, status.Errorf(codes.FailedPrecondition, "%s isn't orphaned App settings or Link only: delete it through its Plan", a.GetName())
 		}
 		return changes{drop: []string{r.id}}, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	return &appspb.DeleteOrphanResponse{}, nil
+	return &appspb.DeleteRecordResponse{}, nil
 }
 
 func (c *component) PromoteAlias(ctx context.Context, req *appspb.PromoteAliasRequest) (*appspb.PromoteAliasResponse, error) {
@@ -220,7 +220,7 @@ func (c *component) PromoteAlias(ctx context.Context, req *appspb.PromoteAliasRe
 		// Until the next sync derives them: the URL's old hostname
 		// stays an alias where its source still has it.
 		r.aliases = slices.DeleteFunc(slices.Clone(a.GetAliases()), func(n string) bool { return canonName(n) == alias })
-		if a.GetProxyHost() == nil || slices.ContainsFunc(a.GetProxyHost().GetDomainNames(), func(n string) bool { return canonName(n) == old }) {
+		if a.GetProxyHost() == nil || slices.ContainsFunc(a.GetProxyHost().GetFields().GetDomainNames(), func(n string) bool { return canonName(n) == old }) {
 			r.aliases = append(r.aliases, old)
 			slices.Sort(r.aliases)
 		}

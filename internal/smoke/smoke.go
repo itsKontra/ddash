@@ -1,6 +1,7 @@
-// Package smoke runs every system Component's getters against real systems
-// (`make smoke`) and, with a Record, also writes what they answered as
-// scrubbed fixtures (`make record`). It is run by hand from a dev machine on
+// Package smoke runs every system Component's getters against real systems,
+// then network's info by address over them (`make smoke`) and, with a
+// Record, also writes what the system Components answered as scrubbed
+// fixtures (`make record`). It is run by hand from a dev machine on
 // the LAN, never in CI or on a schedule: cmd/smoke reads the gitignored
 // smoke.env and scrub.map.
 //
@@ -69,13 +70,14 @@ type Record struct {
 	Scrubber *scrub.Scrubber
 }
 
-// Components lists the system Components smoke runs, in order.
+// Components lists the Components smoke runs, in order: the system
+// Components, then network.
 func Components() []string {
 	var out []string
 	for _, s := range systems {
 		out = append(out, s.def.Name())
 	}
-	return out
+	return append(out, networkName)
 }
 
 // EnvVar is the smoke.env variable holding component's config:
@@ -97,6 +99,7 @@ func Run(ctx context.Context, opts Options) error {
 	for _, s := range systems {
 		errs = append(errs, runSystem(ctx, s, opts)...)
 	}
+	errs = append(errs, runNetwork(ctx, opts)...)
 	if len(errs) > 0 {
 		fmt.Fprintf(opts.Log, "FAILED: %d problem(s)\n", len(errs))
 	}
@@ -219,13 +222,14 @@ func configOf(s system, env map[string]string) (proto.Message, error) {
 	return cfg, nil
 }
 
-// launch runs def in-process with its DB at dbPath and starts it with cfg.
-// stop stops it.
-func launch(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath string, log io.Writer) (conn *grpc.ClientConn, stop func(), err error) {
+// launch runs def in-process with its DB at dbPath and starts it with cfg,
+// its required Components answered by clients. stop stops it.
+func launch(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath string, log io.Writer, clients ...any) (conn *grpc.ClientConn, stop func(), err error) {
 	name := def.Name()
 	inst := sdk.NewInstance(def, sdk.InstanceOptions{
-		DBPath: dbPath,
-		Logger: slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
+		DBPath:  dbPath,
+		Logger:  slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
+		Clients: clients,
 	})
 	conn, stopServe, err := inmem.Serve(name, inst.Register)
 	if err != nil {

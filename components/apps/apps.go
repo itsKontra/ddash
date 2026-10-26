@@ -23,6 +23,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
@@ -91,6 +92,9 @@ type component struct {
 	// and writes them and the App Checks, alone.
 	turn sync.Mutex
 
+	// runs is the progress of the App Actions running now, for GetRun.
+	runs runs
+
 	mu sync.Mutex
 	// hosts is the last good read of the Proxy Hosts, by id; nil before
 	// the first since Start.
@@ -106,6 +110,9 @@ type component struct {
 	// hostsReadOnly is whether Nginx Proxy Manager refuses ddash's
 	// Proxy Host writes, as last read.
 	hostsReadOnly bool
+	// certs is the last good read of the certificates, by id, as apps
+	// names them; nil before the first.
+	certs map[int64]*appspb.Certificate
 	// src is the last read of the Workload sources.
 	src sources
 	// checksErr is why the last SetAppChecks failed; empty once one worked.
@@ -307,6 +314,7 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 	v := c.view()
 	apps := derive(recs, v)
 	networkErr, adguardErr := c.fillNetwork(ctx, apps, v.src)
+	c.fillCertificates(ctx, apps)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	hosts := c.hostsRead.proto()
@@ -319,6 +327,36 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 		NetworkError:  networkErr,
 		AdguardError:  adguardErr,
 	}, nil
+}
+
+// certificateStates are nginx-proxy-manager-api's certificate states as
+// apps names them.
+var certificateStates = map[npmpb.CertificateState]appspb.CertificateState{
+	npmpb.CertificateState_CERTIFICATE_STATE_OK:           appspb.CertificateState_CERTIFICATE_STATE_OK,
+	npmpb.CertificateState_CERTIFICATE_STATE_NOT_RENEWING: appspb.CertificateState_CERTIFICATE_STATE_NOT_RENEWING,
+	npmpb.CertificateState_CERTIFICATE_STATE_EXPIRES_SOON: appspb.CertificateState_CERTIFICATE_STATE_EXPIRES_SOON,
+	npmpb.CertificateState_CERTIFICATE_STATE_EXPIRED:      appspb.CertificateState_CERTIFICATE_STATE_EXPIRED,
+}
+
+// fillCertificates gives each App's Proxy Host its certificate, as Nginx
+// Proxy Manager's (cached) certificates list it now, or as last read while
+// they can't be read.
+func (c *component) fillCertificates(ctx context.Context, apps []*appspb.App) {
+	resp, err := c.npm.ListCertificates(ctx, &npmpb.ListCertificatesRequest{})
+	c.mu.Lock()
+	if err == nil {
+		c.certs = map[int64]*appspb.Certificate{}
+		for _, x := range resp.GetCertificates() {
+			c.certs[x.GetId()] = &appspb.Certificate{Name: x.GetNiceName(), State: certificateStates[x.GetState()], Message: x.GetStateMessage()}
+		}
+	}
+	certs := c.certs
+	c.mu.Unlock()
+	for _, a := range apps {
+		if p := a.GetProxyHost(); p != nil {
+			p.Certificate = proto.CloneOf(certs[p.GetFields().GetCertificateId()])
+		}
+	}
 }
 
 func (c *component) Refresh(ctx context.Context, _ *appspb.RefreshRequest) (*appspb.RefreshResponse, error) {

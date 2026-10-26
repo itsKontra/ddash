@@ -75,6 +75,7 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok nginx-proxy-manager-api ListCertificates",
 		"ok nginx-proxy-manager-api GetStatus",
 		"ok nginx-proxy-manager-api health",
+		"ok network GetNetworkInfo",
 	} {
 		if !strings.Contains(log, want+"\n") {
 			t.Errorf("log lacks %q:\n%s", want, log)

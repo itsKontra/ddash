@@ -22,7 +22,7 @@ const (
 )
 
 // dnsOf is how pfSense registers the hostname n now: "Host Override →
-// 198.18.1.60", "alias of nginx.home.example → 127.0.0.1", each entry.
+// 198.18.1.60", "alias of nginx.home.example → 127.0.0.1", each Host Override or alias.
 func (l *lab) dnsOf(n string) []string {
 	var out []string
 	for _, o := range l.fw.HostOverrides() {
@@ -121,24 +121,25 @@ func TestDeleteANotProxiedApp(t *testing.T) {
 	}
 }
 
-// A Link-only App's Delete changes ddash alone.
+// A Link-only App's Delete changes ddash alone: no Plan, and no fresh
+// read of Nginx Proxy Manager or pfSense.
 func TestDeleteALinkOnlyApp(t *testing.T) {
 	l := newLab(t, labOptions{})
 	id := l.addLinkOnly("pfSense", "https://198.18.0.1")
+	if p := l.plan(deleteAction(id)); !blockedBy(p, "pfSense is Link only: delete it at once, without a Plan.") {
+		t.Errorf("Plan = %v, want it blocked", p)
+	}
 	npmLog, fwLog := len(l.npm.Log()), len(l.fw.Log())
 
-	if got, want := titles(l.plan(deleteAction(id))), []string{"SYSTEM_DDASH: Delete the App pfSense and its Check"}; !slices.Equal(got, want) {
-		t.Errorf("steps = %q, want %q", got, want)
+	l.call("DeleteRecord", &appspb.DeleteRecordRequest{Id: id}, nil)
+	if got := append(l.npm.Log()[npmLog:], l.fw.Log()[fwLog:]...); len(got) != 0 {
+		t.Errorf("requests = %q, want none", got)
 	}
-	l.run(deleteAction(id))
 	if l.has(id) {
 		t.Error("pfSense is still listed")
 	}
 	if _, ok := l.appChecks()[id]; ok {
 		t.Error("its Check is left")
-	}
-	if w := append(writes(l.npm.Log(), npmLog), writes(l.fw.Log(), fwLog)...); len(w) != 0 {
-		t.Errorf("writes = %q, want none", w)
 	}
 }
 

@@ -7,17 +7,18 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // changeProxyHost is the App Action setting the App id's Proxy Host
 // fields to f.
-func changeProxyHost(id string, f *appspb.ProxyHostFields) *appspb.AppAction {
+func changeProxyHost(id string, f *proxyhostpb.ProxyHostFields) *appspb.AppAction {
 	return &appspb.AppAction{Action: &appspb.AppAction_ChangeProxyHost{ChangeProxyHost: &appspb.ChangeProxyHost{Id: id, ProxyHost: f}}}
 }
 
 // grafanaMoved is Grafana's Proxy Host fields (Proxy Host 3) with a new
 // upstream, and HTTP/2 off.
-var grafanaMoved = &appspb.ProxyHostFields{
+var grafanaMoved = &proxyhostpb.ProxyHostFields{
 	ForwardScheme: "http", ForwardHost: "198.18.2.30", ForwardPort: 3001,
 	CertificateId: 3, BlockExploits: true, Websockets: true, ForceSsl: true,
 }
@@ -98,13 +99,13 @@ func TestADriftedProxyHostFieldRefusesTheSave(t *testing.T) {
 // change blocks.
 func TestAProxyHostChangeFollowsTheToggleRules(t *testing.T) {
 	l := newLab(t, labOptions{})
-	plain := &appspb.ProxyHostFields{ForwardScheme: "http", ForwardHost: "198.18.1.204", ForwardPort: 3000, BlockExploits: true, Websockets: true, ForceSsl: true, Http2: true}
+	plain := &proxyhostpb.ProxyHostFields{ForwardScheme: "http", ForwardHost: "198.18.1.204", ForwardPort: 3000, BlockExploits: true, Websockets: true, ForceSsl: true, Http2: true}
 	p := l.plan(changeProxyHost("proxy:grafana.home.example", plain))
 	if v := p.GetSteps()[0].GetValues()[2:]; v[0].GetAfter() != "None: plain HTTP" || v[1].GetAfter() != "Block Common Exploits · Websockets" {
 		t.Errorf("values = %v, want no certificate, Force SSL and HTTP/2 off", v)
 	}
 
-	same := &appspb.ProxyHostFields{ForwardScheme: "http", ForwardHost: "198.18.1.204", ForwardPort: 3000, CertificateId: 3, BlockExploits: true, Websockets: true, ForceSsl: true, Http2: true}
+	same := &proxyhostpb.ProxyHostFields{ForwardScheme: "http", ForwardHost: "198.18.1.204", ForwardPort: 3000, CertificateId: 3, BlockExploits: true, Websockets: true, ForceSsl: true, Http2: true}
 	if p := l.plan(changeProxyHost("proxy:grafana.home.example", same)); !blockedBy(p, "Nothing to change.") {
 		t.Errorf("Plan = %v, want it blocked: nothing to change", p)
 	}

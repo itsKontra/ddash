@@ -7,9 +7,10 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
-func addReverseProxy(id string, f *appspb.ProxyHostFields) *appspb.AppAction {
+func addReverseProxy(id string, f *proxyhostpb.ProxyHostFields) *appspb.AppAction {
 	return &appspb.AppAction{Action: &appspb.AppAction_AddReverseProxy{AddReverseProxy: &appspb.AddReverseProxy{Id: id, ProxyHost: f}}}
 }
 
@@ -18,7 +19,7 @@ func removeReverseProxy(id, address string) *appspb.AppAction {
 }
 
 // nasProxy is a Proxy Host's fields for the NAS's web UI.
-var nasProxy = &appspb.ProxyHostFields{ForwardScheme: "https", ForwardHost: "198.18.2.10", ForwardPort: 5001, CertificateId: 3, BlockExploits: true, ForceSsl: true}
+var nasProxy = &proxyhostpb.ProxyHostFields{ForwardScheme: "https", ForwardHost: "198.18.2.10", ForwardPort: 5001, CertificateId: 3, BlockExploits: true, ForceSsl: true}
 
 // Add reverse proxy puts a Not-proxied App behind the Reverse Proxy: a
 // Proxy Host for its hostname, and its own Host Override replaced by an
@@ -106,5 +107,22 @@ func TestAddReverseProxyFixesNoProxyHost(t *testing.T) {
 	l.refresh()
 	if a := l.app(wikiID); a.GetLinks().GetProxyHostId() == 0 || slices.Contains(kinds(a), noProxyHost) {
 		t.Errorf("Wiki = %v, want it linked to its Proxy Host, without No Proxy Host", a)
+	}
+}
+
+// An App's Proxy Host carries its certificate's name and state as Nginx
+// Proxy Manager lists them: the NAS's uploaded one expired in 2025.
+func TestAProxyHostCarriesItsCertificatesState(t *testing.T) {
+	l := newLab(t, labOptions{})
+	l.npm.AddProxyHost(func(row map[string]any) {
+		proxyHost("http://198.18.2.10:5000", "files.home.example")(row)
+		row["certificate_id"] = 1
+	})
+	l.refresh()
+
+	got := l.byURL("https://files.home.example").GetProxyHost().GetCertificate()
+	want := &appspb.Certificate{Name: "NAS (uploaded)", State: appspb.CertificateState_CERTIFICATE_STATE_EXPIRED, Message: "Upload a new certificate in Nginx Proxy Manager."}
+	if d := diff(want, got); d != "" {
+		t.Errorf("certificate (-want +got):\n%s", d)
 	}
 }
