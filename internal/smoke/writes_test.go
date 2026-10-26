@@ -26,6 +26,10 @@ import (
 // mapping or AdGuard client.
 const unused = "198.18.1.60"
 
+// smokeHost is a hostname no Host Override or alias in the lab's fixtures
+// holds, in their domain.
+const smokeHost = "ddash-smoke.home.example"
+
 // smokeProxyHost is a hostname no Proxy Host, Redirection Host or 404
 // Host in the lab's fixtures holds.
 const smokeProxyHost = "ddash-smoke.home.example"
@@ -39,6 +43,7 @@ func writesLab(t *testing.T) (*fakelab.Lab, map[string]string) {
 	l := lab(t, repoRoot, "smoke-writes", "protected")
 	env := envFor(t, l)
 	env[smoke.UnusedAddressVar] = unused
+	env[smoke.HostOverrideVar] = smokeHost
 	env[smoke.ProxyHostVar] = smokeProxyHost
 	return l, env
 }
@@ -54,7 +59,9 @@ func runWrites(t *testing.T, env map[string]string) (string, error) {
 type labState struct {
 	Aliases                  []pfsensefake.Alias
 	Mappings                 []pfsensefake.Mapping
+	HostOverrides            []pfsensefake.HostOverride
 	DHCPPending, FWPending   bool
+	DNSPending               bool
 	Clients                  []map[string]any
 	Smoke, Protected, OtherV string
 	ProxyHosts               []map[string]any
@@ -65,8 +72,8 @@ func stateOf(l *fakelab.Lab) labState {
 	ag := l.Handler("adguard-api").(*adguardfake.AdGuard)
 	px := l.Handler("proxmox-api").(*proxmoxfake.Proxmox)
 	return labState{
-		Aliases: fw.Aliases(), Mappings: fw.StaticMappings("lan"),
-		DHCPPending: fw.Pending(), FWPending: fw.FirewallPending(),
+		Aliases: fw.Aliases(), Mappings: fw.StaticMappings("lan"), HostOverrides: fw.HostOverrides(),
+		DHCPPending: fw.Pending(), FWPending: fw.FirewallPending(), DNSPending: fw.DNSPending(),
 		Clients: ag.Clients(),
 		Smoke:   px.Status(211), Protected: px.Status(100), OtherV: px.Status(210),
 		ProxyHosts: l.Handler("nginx-proxy-manager-api").(*npmfake.NPM).ProxyHosts(),
@@ -113,6 +120,7 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 	for _, want := range []string{
 		"ok pfsense-api alias DDASH_SMOKE round trip",
 		"ok pfsense-api static mapping round trip",
+		"ok pfsense-api Host Override round trip (" + smokeHost + ")",
 		"ok adguard-api SetClientFiltering round trip",
 		"ok proxmox-api ddash-smoke start and shutdown",
 		"ok proxmox-api Protected refusal (VM 100 pfSense)",
@@ -145,6 +153,22 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 	}
 	if n := count(fw, pfsensefake.Applied); n != 3 {
 		t.Errorf("DHCP applied %d times, want 3 (create, rename, delete)", n)
+	}
+	// Two batches: create with the alias; readdress, remove the alias, delete.
+	for _, want := range []struct {
+		request string
+		n       int
+	}{
+		{"POST /api/v2/services/dns_resolver/host_override", 1},
+		{"POST /api/v2/services/dns_resolver/host_override/alias", 1},
+		{"PATCH /api/v2/services/dns_resolver/host_override", 1},
+		{"DELETE /api/v2/services/dns_resolver/host_override/alias", 1},
+		{"DELETE /api/v2/services/dns_resolver/host_override", 1},
+		{pfsensefake.AppliedDNS, 2},
+	} {
+		if n := count(fw, want.request); n != want.n {
+			t.Errorf("%d of %q, want %d:\n%v", n, want.request, want.n, fw)
+		}
 	}
 	for _, want := range []string{"POST /control/clients/add", "POST /control/clients/delete"} {
 		if count(ag, want) != 1 {
@@ -206,7 +230,10 @@ func TestWritesCleanUpWhenAStepFails(t *testing.T) {
 	l, env := writesLab(t)
 	before := stateOf(l)
 	// Each round trip fails after its first write.
-	pointAt(t, env, "pfsense-api", failOnce(failOnce(l.Handler("pfsense-api"), func(r *http.Request) bool {
+	pointAt(t, env, "pfsense-api", failOnce(failOnce(failOnce(l.Handler("pfsense-api"), func(r *http.Request) bool {
+		// The alias, after the Host Override was created.
+		return r.Method == http.MethodPost && r.URL.Path == "/api/v2/services/dns_resolver/host_override/alias"
+	}), func(r *http.Request) bool {
 		// The rename.
 		return r.Method == http.MethodPatch && r.URL.Path == "/api/v2/services/dhcp_server/static_mapping"
 	}), func(r *http.Request) bool {
@@ -243,6 +270,7 @@ func TestWritesCleanUpWhenAStepFails(t *testing.T) {
 	for _, want := range []string{
 		"pfsense-api alias DDASH_SMOKE round trip",
 		"pfsense-api static mapping round trip",
+		"pfsense-api Host Override round trip",
 		"adguard-api SetClientFiltering round trip",
 		"proxmox-api ddash-smoke start and shutdown",
 		"nginx-proxy-manager-api Proxy Host round trip",
@@ -270,15 +298,18 @@ func TestWritesRemoveWhatAnInterruptedRunLeftFirst(t *testing.T) {
 	leftover := httptest.NewRequest(http.MethodPost, "/api/v2/services/dhcp_server/static_mapping",
 		strings.NewReader(`{"parent_id": "lan", "mac": "`+smoke.SmokeMAC+`", "ipaddr": "`+unused+`", "descr": "ddash smoke-writes", "apply": true}`))
 	fw.ServeHTTP(httptest.NewRecorder(), leftover)
+	leftoverHost := httptest.NewRequest(http.MethodPost, "/api/v2/services/dns_resolver/host_override",
+		strings.NewReader(`{"host": "ddash-smoke", "domain": "home.example", "ip": ["`+smoke.PlaceholderAddress+`"], "aliases": [{"host": "ddash-smoke-alias", "domain": "home.example"}], "apply": true}`))
+	fw.ServeHTTP(httptest.NewRecorder(), leftoverHost)
 	npm := l.Handler("nginx-proxy-manager-api").(*npmfake.NPM)
 	signIn := httptest.NewRecorder()
 	npm.ServeHTTP(signIn, httptest.NewRequest(http.MethodPost, "/api/tokens", strings.NewReader(`{"identity": "ddash@home.example", "secret": "fakelab"}`)))
 	var token struct{ Token string }
 	_ = json.Unmarshal(signIn.Body.Bytes(), &token)
-	leftoverHost := httptest.NewRequest(http.MethodPost, "/api/nginx/proxy-hosts",
+	leftoverProxyHost := httptest.NewRequest(http.MethodPost, "/api/nginx/proxy-hosts",
 		strings.NewReader(`{"domain_names": ["`+smokeProxyHost+`"], "forward_scheme": "http", "forward_host": "`+unused+`", "forward_port": 80}`))
-	leftoverHost.Header.Set("Authorization", "Bearer "+token.Token)
-	npm.ServeHTTP(httptest.NewRecorder(), leftoverHost)
+	leftoverProxyHost.Header.Set("Authorization", "Bearer "+token.Token)
+	npm.ServeHTTP(httptest.NewRecorder(), leftoverProxyHost)
 	if len(npm.ProxyHosts()) != len(before.ProxyHosts)+1 {
 		t.Fatal("the leftover Proxy Host wasn't created")
 	}
@@ -290,6 +321,7 @@ func TestWritesRemoveWhatAnInterruptedRunLeftFirst(t *testing.T) {
 	}
 	for _, want := range []string{
 		"cleanup before pfsense-api static mapping round trip: deleted the static mapping of " + smoke.SmokeMAC + " on lan (left by an earlier run)\n",
+		"cleanup before pfsense-api Host Override round trip: deleted the Host Override " + smokeHost + " (left by an earlier run)\n",
 		"cleanup before nginx-proxy-manager-api Proxy Host round trip: deleted Proxy Host 39 " + smokeProxyHost + " (left by an earlier run)\n",
 	} {
 		if !strings.Contains(log, want) {

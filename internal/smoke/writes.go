@@ -31,9 +31,10 @@ import (
 // Actions of pfsense-api, adguard-api, proxmox-api and
 // nginx-proxy-manager-api, and touch only the smoke targets: the
 // DDASH_SMOKE alias, a static mapping and an AdGuard client for
-// SMOKE_UNUSED_IP made with the smoke MAC and name, the stopped
-// ddash-smoke LXC, and a Proxy Host for SMOKE_PROXY_HOST forwarding to
-// SMOKE_UNUSED_IP. What no Action can undo (deleting the static
+// SMOKE_UNUSED_IP made with the smoke MAC and name, the Host Override
+// SMOKE_HOST_OVERRIDE with its alias, the stopped ddash-smoke LXC, and a
+// Proxy Host for SMOKE_PROXY_HOST forwarding to SMOKE_UNUSED_IP. What no
+// Action can undo (deleting the static
 // mapping and the client) goes to the system as a raw call. Each round
 // trip's cleanup runs before it, removing what an interrupted run left,
 // and after it, whether it passed or not.
@@ -54,6 +55,13 @@ const (
 	// Device holds (no lease, static mapping or AdGuard client), which the
 	// static mapping and the AdGuard client borrow.
 	UnusedAddressVar = "SMOKE_UNUSED_IP"
+	// HostOverrideVar is the smoke.env variable holding a hostname no Host
+	// Override or alias holds, e.g. ddash-smoke.home.example: the round
+	// trip creates it as a Host Override at PlaceholderAddress, with the
+	// alias ddash-smoke-alias in its domain, and deletes both again.
+	HostOverrideVar = "SMOKE_HOST_OVERRIDE"
+	// ReaddressedAddress is where the Host Override moves (TEST-NET-3).
+	ReaddressedAddress = "203.0.113.64"
 	// ProxyHostVar is the smoke.env variable holding a hostname no Proxy
 	// Host, Redirection Host or 404 Host holds: the Proxy Host round trip
 	// creates one for it, forwarding to UnusedAddressVar's address.
@@ -86,6 +94,7 @@ type roundTrip struct {
 var roundTrips = []roundTrip{
 	{component: "pfsense-api", name: "alias " + SmokeAlias + " round trip", run: (*writes).aliasRoundTrip, undo: (*writes).removePlaceholder},
 	{component: "pfsense-api", name: "static mapping round trip", run: (*writes).staticMappingRoundTrip, undo: (*writes).deleteStaticMapping},
+	{component: "pfsense-api", name: "Host Override round trip", run: (*writes).hostOverrideRoundTrip, undo: (*writes).deleteHostOverride},
 	{component: "adguard-api", name: "SetClientFiltering round trip", run: (*writes).clientRoundTrip, undo: (*writes).deleteClient},
 	{component: "proxmox-api", name: SmokeLXC + " start and shutdown", run: (*writes).powerRoundTrip, undo: (*writes).forceSmokeDown},
 	{component: "proxmox-api", name: "Protected refusal", run: (*writes).protectedRefusal},
@@ -97,6 +106,8 @@ var roundTrips = []roundTrip{
 type writes struct {
 	ip   netip.Addr
 	http *http.Client
+	// host is HostOverrideVar's hostname, "" when smoke.env has none.
+	host string
 
 	pf    pfsenseapipb.PfsenseApiServiceClient
 	pfCfg *pfsenseapipb.PfsenseApiConfig
@@ -132,7 +143,11 @@ func RunWrites(ctx context.Context, opts Options) error {
 		return err
 	}
 
-	w := &writes{ip: ip, http: &http.Client{Timeout: CallTimeout}, proxyHost: strings.TrimSpace(opts.Env[ProxyHostVar])}
+	w := &writes{
+		ip: ip, http: &http.Client{Timeout: CallTimeout},
+		host:      strings.ToLower(strings.TrimSpace(opts.Env[HostOverrideVar])),
+		proxyHost: strings.TrimSpace(opts.Env[ProxyHostVar]),
+	}
 	var errs []error
 	fail := func(err error) {
 		fmt.Fprintf(opts.Log, "FAIL %v\n", err)
@@ -505,6 +520,120 @@ func (w *writes) pfsense(ctx context.Context, method, path string, query url.Val
 		}
 	}
 	return nil
+}
+
+// pfSense: the Host Override.
+
+// smokeNames are the smoke Host Override's and its alias's names.
+func (w *writes) smokeNames() (override, alias *pfsenseapipb.HostName, err error) {
+	host, domain, ok := strings.Cut(w.host, ".")
+	if !ok || host == "" || domain == "" {
+		return nil, nil, fmt.Errorf("set %s in smoke.env to a hostname no Host Override or alias holds, like ddash-smoke.home.example", HostOverrideVar)
+	}
+	return &pfsenseapipb.HostName{Host: host, Domain: domain}, &pfsenseapipb.HostName{Host: host + "-alias", Domain: domain}, nil
+}
+
+func (w *writes) hostOverrideRoundTrip(ctx context.Context) (string, error) {
+	override, alias, err := w.smokeNames()
+	if err != nil {
+		return "", err
+	}
+	aliasChange := &pfsenseapipb.AliasChange{Parent: override, Alias: &pfsenseapipb.HostOverrideAlias{Host: alias.GetHost(), Domain: alias.GetDomain()}}
+	created, err := w.pf.ChangeHostOverrides(ctx, &pfsenseapipb.ChangeHostOverridesRequest{Steps: []*pfsenseapipb.HostOverrideStep{
+		{Change: &pfsenseapipb.HostOverrideStep_Create{Create: &pfsenseapipb.HostOverride{
+			Host: override.GetHost(), Domain: override.GetDomain(), Ips: []string{PlaceholderAddress}, Description: "make smoke-writes",
+		}}},
+		{Change: &pfsenseapipb.HostOverrideStep_AddAlias{AddAlias: aliasChange}},
+	}})
+	if err != nil {
+		return "", fmt.Errorf("ChangeHostOverrides (create with an alias): %w", err)
+	}
+	if created.GetSucceeded() != 2 {
+		return "", fmt.Errorf("ChangeHostOverrides (create with an alias) says %d of 2 steps succeeded", created.GetSucceeded())
+	}
+	if err := w.dnsApplied(ctx); err != nil {
+		return "", err
+	}
+	h, err := w.smokeOverride(ctx, override)
+	if err != nil {
+		return "", err
+	}
+	if h == nil || !slices.Equal(h.GetIps(), []string{PlaceholderAddress}) || len(h.GetAliases()) != 1 || h.GetAliases()[0].GetHost() != alias.GetHost() {
+		return "", fmt.Errorf("after the create ListHostOverrides lists %v, want %s at %s with the alias %s", h, w.host, PlaceholderAddress, alias.GetHost())
+	}
+	removed, err := w.pf.ChangeHostOverrides(ctx, &pfsenseapipb.ChangeHostOverridesRequest{Steps: []*pfsenseapipb.HostOverrideStep{
+		{Change: &pfsenseapipb.HostOverrideStep_Readdress{Readdress: &pfsenseapipb.Readdress{HostOverride: override, Ips: []string{ReaddressedAddress}}}},
+		{Change: &pfsenseapipb.HostOverrideStep_RemoveAlias{RemoveAlias: aliasChange}},
+		{Change: &pfsenseapipb.HostOverrideStep_Delete{Delete: override}},
+	}})
+	if err != nil {
+		return "", fmt.Errorf("ChangeHostOverrides (readdress, remove the alias, delete): %w", err)
+	}
+	if removed.GetSucceeded() != 3 {
+		return "", fmt.Errorf("ChangeHostOverrides (readdress, remove the alias, delete) says %d of 3 steps succeeded", removed.GetSucceeded())
+	}
+	if err := w.dnsApplied(ctx); err != nil {
+		return "", err
+	}
+	if h, err = w.smokeOverride(ctx, override); err != nil {
+		return "", err
+	} else if h != nil {
+		return "", fmt.Errorf("ListHostOverrides still lists %s after its delete", w.host)
+	}
+	return w.host, nil
+}
+
+// smokeOverride reads the smoke Host Override through ListHostOverrides
+// (every batch drops its cache); nil when there is none.
+func (w *writes) smokeOverride(ctx context.Context, name *pfsenseapipb.HostName) (*pfsenseapipb.HostOverride, error) {
+	r, err := w.pf.ListHostOverrides(ctx, &pfsenseapipb.ListHostOverridesRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("ListHostOverrides: %w", err)
+	}
+	for _, h := range r.GetHostOverrides() {
+		if strings.EqualFold(h.GetHost(), name.GetHost()) && strings.EqualFold(h.GetDomain(), name.GetDomain()) {
+			return h, nil
+		}
+	}
+	return nil, nil
+}
+
+// dnsApplied checks that no DNS Resolver change waits for an apply.
+func (w *writes) dnsApplied(ctx context.Context) error {
+	var state struct {
+		Applied bool `json:"applied"`
+	}
+	if err := w.pfsense(ctx, http.MethodGet, "/api/v2/services/dns_resolver/apply", nil, &state); err != nil {
+		return err
+	}
+	if !state.Applied {
+		return errors.New("pfSense has DNS Resolver changes pending after the batch: it wasn't applied")
+	}
+	return nil
+}
+
+// deleteHostOverride deletes the smoke Host Override, its alias with it,
+// reading it fresh past ListHostOverrides' cache.
+func (w *writes) deleteHostOverride(ctx context.Context) (string, error) {
+	override, _, err := w.smokeNames()
+	if err != nil {
+		return "", nil // the round trip says what's missing
+	}
+	r, err := w.pf.ListHostOverrides(ctx, &pfsenseapipb.ListHostOverridesRequest{Fresh: true})
+	if err != nil {
+		return "", fmt.Errorf("ListHostOverrides: %w", err)
+	}
+	if !slices.ContainsFunc(r.GetHostOverrides(), func(h *pfsenseapipb.HostOverride) bool {
+		return strings.EqualFold(h.GetHost(), override.GetHost()) && strings.EqualFold(h.GetDomain(), override.GetDomain())
+	}) {
+		return "", nil
+	}
+	if _, err := w.pf.ChangeHostOverrides(ctx, &pfsenseapipb.ChangeHostOverridesRequest{Steps: []*pfsenseapipb.HostOverrideStep{
+		{Change: &pfsenseapipb.HostOverrideStep_Delete{Delete: override}},
+	}}); err != nil {
+		return "", fmt.Errorf("ChangeHostOverrides (delete): %w", err)
+	}
+	return "deleted the Host Override " + w.host, nil
 }
 
 // AdGuard Home: the client.

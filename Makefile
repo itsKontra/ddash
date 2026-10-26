@@ -129,8 +129,9 @@ record:
 # Actions of pfsense-api, adguard-api, proxmox-api and
 # nginx-proxy-manager-api round-trip on the smoke targets only (the
 # DDASH_SMOKE alias, a fake-MAC static map and an AdGuard client on
-# smoke.env's SMOKE_UNUSED_IP, the stopped ddash-smoke LXC, a Proxy Host
-# for SMOKE_PROXY_HOST) plus a refused start on a Protected Workload.
-# Cleanup always runs.
+# smoke.env's SMOKE_UNUSED_IP, a Host Override and its alias on
+# smoke.env's SMOKE_HOST_OVERRIDE, the stopped ddash-smoke LXC, a Proxy
+# Host for SMOKE_PROXY_HOST) plus a refused start on a Protected
+# Workload. Cleanup always runs.
 smoke-writes:
 	go run ./cmd/smoke -writes -env smoke.env -data .smoke
