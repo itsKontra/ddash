@@ -115,7 +115,7 @@ func (c *component) reread(ctx context.Context, mac string) (*networkpb.Device, 
 	if err != nil {
 		return nil, err
 	}
-	d := find(all.GetDevices(), mac)
+	d := find(all.list.GetDevices(), mac)
 	if d == nil {
 		return nil, status.Errorf(codes.Unavailable, "the firewall doesn't list %s after the write", mac)
 	}

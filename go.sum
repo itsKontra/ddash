@@ -137,8 +137,6 @@ github.com/jhump/protoreflect/v2 v2.0.0 h1:dBg0utH2witLqXfczkVVrHFrFQc8SN1rvaKkO
 github.com/jhump/protoreflect/v2 v2.0.0/go.mod h1:Sz8TB0WtuTKOF4eYj2iZovXSSU3tqZ5Ii8Oeg9k9vKY=
 github.com/jinzhu/copier v0.3.4 h1:mfU6jI9PtCeUjkjQ322dlff9ELjGDu975C2p/nrubVI=
 github.com/jinzhu/copier v0.3.4/go.mod h1:DfbEm0FYsaqBcKcFuvmOZb218JkPGtvSHsKg8S8hyyg=
-github.com/jstemmer/go-junit-report v1.0.0 h1:8X1gzZpR+nVQLAht+L/foqOeX2l9DTZoaIPbEQHxsds=
-github.com/jstemmer/go-junit-report v1.0.0/go.mod h1:Brl9GWCQeLvo8nXZwPNNblvFj/XSXhF0NWZEnDohbsk=
 github.com/klauspost/compress v1.20.3 h1:zWNoFqq/lSuYQRim3dUXlXeA0IqwuZGicdG5ZTfY5j4=
 github.com/klauspost/compress v1.20.3/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/klauspost/pgzip v1.2.7 h1:02QB3Ttao6zOWDnSsv3bIvjN24bX0eGjWniQ8vuBfkA=
@@ -167,8 +165,6 @@ github.com/moby/moby/client v0.6.2 h1:ekSPlMccrZGcw6Scb8T9D39qE0mB+XupU/yS0zNw9N
 github.com/moby/moby/client v0.6.2/go.mod h1:DGcnO7qmPJrqobx/ggQgQ/AUk+2wgVdQv7uxB0/mEsc=
 github.com/ncruces/go-strftime v1.0.0 h1:HMFp8mLCTPp341M/ZnA4qaf7ZlsbTc+miZjCLOFAw7w=
 github.com/ncruces/go-strftime v1.0.0/go.mod h1:Fwc5htZGVVkseilnfgOVb9mKy6w1naJmn9CehxcKcls=
-github.com/nginxinc/nginx-go-crossplane v0.4.89 h1:ISWwck/oFJkOVYJOxJlf1dBXGsFjZLbMIECuZC7ZoG4=
-github.com/nginxinc/nginx-go-crossplane v0.4.89/go.mod h1:YW/lk3F6/HUSQyfB6bFPnL9TkLcyfRXWfBNgirZmFfI=
 github.com/oklog/run v1.1.0 h1:GEenZ1cK0+q0+wsJew9qUg/DyD8k3JzYsZAi5gYi2mA=
 github.com/oklog/run v1.1.0/go.mod h1:sVPdnTZT1zYwAJeCMu2Th4T21pA3FPOQRfWjQlk7DVU=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=

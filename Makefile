@@ -112,12 +112,13 @@ dev: build
 
 # By hand only, never in CI or on a schedule: every system Component's
 # getters against the real homelab systems in the gitignored smoke.env
-# (copy smoke.env.example), checking that they decode and that their
-# invariants hold. Component DBs (nginx-config's key) stay in .smoke/.
+# (copy smoke.env.example), then network's info by address over them,
+# checking that they decode and that their invariants hold. Component
+# DBs stay in .smoke/ between runs.
 smoke:
 	go run ./cmd/smoke -env smoke.env -data .smoke
 
-# The same run, also writing every answer and `nginx -T` as fixtures,
+# The same run, also writing every answer as fixtures,
 # scrubbed (SCRUB_* in smoke.env plus the gitignored scrub.map), into
 # components/<name>/testdata/$(SCENARIO)/. Review them, then move what you
 # need into baseline in a PR of its own.
@@ -126,9 +127,12 @@ record:
 	go run ./cmd/smoke -env smoke.env -data .smoke -record -scenario $(SCENARIO) -map scrub.map
 
 # Opt-in, by hand only, for a Release that changes an Action: the real
-# Actions of pfsense-api, adguard-api and proxmox-api round-trip on the
-# smoke targets only (the DDASH_SMOKE alias, a fake-MAC static map and an
-# AdGuard client on smoke.env's SMOKE_UNUSED_IP, the stopped ddash-smoke
-# LXC) plus a refused start on a Protected Workload. Cleanup always runs.
+# Actions of pfsense-api, adguard-api, proxmox-api and
+# nginx-proxy-manager-api round-trip on the smoke targets only (the
+# DDASH_SMOKE alias, a fake-MAC static map and an AdGuard client on
+# smoke.env's SMOKE_UNUSED_IP, a Host Override and its alias on
+# smoke.env's SMOKE_HOST_OVERRIDE, the stopped ddash-smoke LXC, a Proxy
+# Host for SMOKE_PROXY_HOST) plus a refused start on a Protected
+# Workload. Cleanup always runs.
 smoke-writes:
 	go run ./cmd/smoke -writes -env smoke.env -data .smoke

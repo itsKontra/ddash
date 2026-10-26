@@ -1,0 +1,702 @@
+[
+  {
+    "id": 11,
+    "created_on": "2024-03-12 18:11:11",
+    "modified_on": "2025-06-12 09:17:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "backup.home.example"
+    ],
+    "forward_host": "198.18.1.51",
+    "forward_port": 8007,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 38,
+    "created_on": "2024-03-11 18:38:11",
+    "modified_on": "2025-06-11 09:26:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "download.home.example"
+    ],
+    "forward_host": "198.18.1.212",
+    "forward_port": 8282,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 2,
+    "created_on": "2024-03-03 18:02:11",
+    "modified_on": "2025-06-03 09:14:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "fritz.home.example"
+    ],
+    "forward_host": "203.0.113.100",
+    "forward_port": 80,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 13,
+    "created_on": "2024-03-14 18:13:11",
+    "modified_on": "2025-06-14 09:31:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "fullstack.home.example"
+    ],
+    "forward_host": "198.18.1.201",
+    "forward_port": 3080,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 0,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 3,
+    "created_on": "2024-03-04 18:03:11",
+    "modified_on": "2025-06-04 09:21:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "grafana.home.example"
+    ],
+    "forward_host": "198.18.1.204",
+    "forward_port": 3000,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 27,
+    "created_on": "2024-03-28 18:27:11",
+    "modified_on": "2025-06-28 09:09:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "ha.home.example"
+    ],
+    "forward_host": "198.18.1.101",
+    "forward_port": 8123,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 1,
+    "created_on": "2024-03-02 18:01:11",
+    "modified_on": "2025-06-02 09:07:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "home.example",
+      "nginx.home.example"
+    ],
+    "forward_host": "198.18.1.210",
+    "forward_port": 81,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 4,
+    "created_on": "2024-03-05 18:04:11",
+    "modified_on": "2025-06-05 09:28:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "home.home.example"
+    ],
+    "forward_host": "198.18.1.201",
+    "forward_port": 3000,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 37,
+    "created_on": "2024-03-10 18:37:11",
+    "modified_on": "2025-06-10 09:19:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "indexer.home.example"
+    ],
+    "forward_host": "198.18.1.212",
+    "forward_port": 9696,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 5,
+    "created_on": "2024-03-06 18:05:11",
+    "modified_on": "2025-06-06 09:35:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "influxdb.home.example"
+    ],
+    "forward_host": "198.18.1.203",
+    "forward_port": 8086,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 6,
+    "created_on": "2024-03-07 18:06:11",
+    "modified_on": "2025-06-07 09:42:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "keycloak.home.example",
+      "local.home.example"
+    ],
+    "forward_host": "198.18.1.201",
+    "forward_port": 8443,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 25,
+    "created_on": "2024-03-26 18:25:11",
+    "modified_on": "2025-06-26 09:55:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "md.home.example"
+    ],
+    "forward_host": "198.18.1.201",
+    "forward_port": 3077,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 1,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 35,
+    "created_on": "2024-03-08 18:35:11",
+    "modified_on": "2025-06-08 09:05:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "movie.home.example"
+    ],
+    "forward_host": "198.18.1.212",
+    "forward_port": 7878,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 21,
+    "created_on": "2024-03-22 18:21:11",
+    "modified_on": "2025-06-22 09:27:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "n8n.home.example"
+    ],
+    "forward_host": "198.18.1.206",
+    "forward_port": 5678,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [
+      {
+        "path": "/aichat",
+        "advanced_config": "",
+        "forward_scheme": "http",
+        "forward_host": "198.18.1.206",
+        "forward_port": 5678
+      }
+    ],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 29,
+    "created_on": "2024-03-02 18:29:11",
+    "modified_on": "2025-06-02 09:23:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "nodered.home.example"
+    ],
+    "forward_host": "198.18.1.7",
+    "forward_port": 1881,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 0,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 7,
+    "created_on": "2024-03-08 18:07:11",
+    "modified_on": "2025-06-08 09:49:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "portainer.home.example"
+    ],
+    "forward_host": "198.18.1.201",
+    "forward_port": 9000,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 28,
+    "created_on": "2024-03-01 18:28:11",
+    "modified_on": "2025-06-01 09:16:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "pv.home.example"
+    ],
+    "forward_host": "198.18.1.7",
+    "forward_port": 443,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 8,
+    "created_on": "2024-03-09 18:08:11",
+    "modified_on": "2025-06-09 09:56:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "pve.home.example"
+    ],
+    "forward_host": "198.18.1.200",
+    "forward_port": 8006,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 33,
+    "created_on": "2024-03-06 18:33:11",
+    "modified_on": "2025-06-06 09:51:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "request.home.example"
+    ],
+    "forward_host": "198.18.1.212",
+    "forward_port": 5055,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 36,
+    "created_on": "2024-03-09 18:36:11",
+    "modified_on": "2025-06-09 09:12:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "series.home.example"
+    ],
+    "forward_host": "198.18.1.212",
+    "forward_port": 8989,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 34,
+    "created_on": "2024-03-07 18:34:11",
+    "modified_on": "2025-06-07 09:58:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "video.home.example"
+    ],
+    "forward_host": "198.18.1.212",
+    "forward_port": 8096,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 0,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 1,
+    "http2_support": 1,
+    "forward_scheme": "http",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 10,
+    "created_on": "2024-03-11 18:10:11",
+    "modified_on": "2025-06-11 09:10:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "wlan0.home.example"
+    ],
+    "forward_host": "198.18.1.2",
+    "forward_port": 443,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  },
+  {
+    "id": 9,
+    "created_on": "2024-03-10 18:09:11",
+    "modified_on": "2025-06-10 09:03:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "wlan1.home.example"
+    ],
+    "forward_host": "198.18.1.3",
+    "forward_port": 443,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": 1,
+    "caching_enabled": 0,
+    "block_exploits": 1,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": 0,
+    "http2_support": 1,
+    "forward_scheme": "https",
+    "enabled": 1,
+    "locations": [],
+    "hsts_enabled": 0,
+    "hsts_subdomains": 0
+  }
+]

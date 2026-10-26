@@ -1,6 +1,8 @@
 package core_test
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
 	"maps"
 	"net/http"
@@ -9,6 +11,8 @@ import (
 	"testing/synctest"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/core/coretest"
@@ -222,5 +226,40 @@ func TestAPluginReachesOnlyTheComponentsItRequiresDirectly(t *testing.T) {
 		if status, code, msg := connectError(t, res); status != http.StatusForbidden || code != "permission_denied" {
 			t.Errorf("%q → %s (%s): %d %s %q, want 403 permission_denied", c.plugin, c.component, c.why, status, code, msg)
 		}
+	}
+}
+
+// An error's status details reach the Plugin as Connect error details
+// ({type, value} with the message's full name and its unpadded base64
+// bytes), also when a Component relays another's error.
+func TestAnErrorsDetailsReachThePluginAsConnectDetails(t *testing.T) {
+	refuse := sample.Hooks{Act: func(context.Context, *sdk.Env, *samplepb.ActRequest) (*samplepb.ActResponse, error) {
+		st, err := status.New(codes.Aborted, "changed since you looked").WithDetails(&samplepb.ActResponse{Actor: "the new plan"})
+		if err != nil {
+			return nil, err
+		}
+		return nil, st.Err()
+	}}
+	h := newRelay(t, relayTo("hi"), refuse)
+
+	res := h.Call("relayer", "relay", "Act", `{}`)
+
+	var e struct {
+		Code, Message string
+		Details       []struct{ Type, Value string }
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &e); err != nil {
+		t.Fatal(err)
+	}
+	if e.Code != "aborted" || e.Message != "changed since you looked" || len(e.Details) != 1 || e.Details[0].Type != "ddash.sample.ActResponse" {
+		t.Fatalf("error = %s, want aborted with one ddash.sample.ActResponse detail", res.Body)
+	}
+	b, err := base64.RawStdEncoding.DecodeString(e.Details[0].Value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got samplepb.ActResponse
+	if err := proto.Unmarshal(b, &got); err != nil || got.GetActor() != "the new plan" {
+		t.Errorf("detail = %v (%v), want the ActResponse sent", &got, err)
 	}
 }

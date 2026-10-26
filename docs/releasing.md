@@ -22,9 +22,9 @@ which produces one artifact set:
    ```
 
    It calls every system Component's getters against the real systems and
-   prints `ok <component> <getter>` or `FAIL …` per line. On the first run
-   nginx-config fails with its setup hint: add that authorized_keys line on
-   the nginx host once (its key is kept in `.smoke/`).
+   prints `ok <component> <getter>` or `FAIL …` per line. A Component that
+   offers a setup hint fails with it until you've done what it says; its
+   DB is kept in `.smoke/` between runs.
 
    **Cut the Release only if it passes.** If it fails, fix the Component (and
    re-record its fixtures, one PR) first. `make smoke` never runs in CI.
@@ -57,26 +57,34 @@ which produces one artifact set:
    - Proxmox: starts `ddash-smoke`, waits for the task, shuts it down
      gracefully; then tries to start a running Protected Workload and
      passes only if Proxmox refuses the token (were it not refused, the
-     Workload is running already, so nothing changes).
+     Workload is running already, so nothing changes);
+   - Nginx Proxy Manager: creates a Proxy Host for `SMOKE_PROXY_HOST`
+     forwarding to `SMOKE_UNUSED_IP`, changes its port, then deletes it.
+     Cleanup deletes only a Proxy Host with that one hostname forwarding to
+     that address.
 
    Each round trip's cleanup runs after it whether it passed or not (and on
    Ctrl-C), and before it, removing what an interrupted run left. It refuses
    to start when `SMOKE_UNUSED_IP` has a lease, a static map or an AdGuard
-   client, or when `ddash-smoke` isn't stopped. Each line is `ok …`,
+   client, when a Proxy Host holds `SMOKE_PROXY_HOST`, or when `ddash-smoke`
+   isn't stopped. Each line is `ok …`,
    `FAIL …` or `cleanup …`.
-4. Tag and push:
+4. Write the Release's notes: move what [`release-notes.md`](release-notes.md)
+   lists under **Unreleased** under a heading for the tag, and paste it at
+   the top of the GitHub release once the workflow created it.
+5. Tag and push:
 
    ```sh
    git tag -a v1.2.3 -m v1.2.3
    git push origin v1.2.3
    ```
 
-5. Watch the Release workflow. It runs `make check`, builds the Release dir
+6. Watch the Release workflow. It runs `make check`, builds the Release dir
    (`make release-dir RELEASE=<tag> PLATFORM=linux/amd64`) and the image
    (`make image RELEASE=<tag>`), pushes the image, then creates the GitHub
    release. A failed run can be re-run as a whole until the GitHub release
    exists; the image push is idempotent.
-6. Only once the GitHub release is there, deploy it: bump the image tag in
+7. Only once the GitHub release is there, deploy it: bump the image tag in
    the LXC's `compose.yaml` and `docker compose pull && docker compose up -d`
    ([deployment](deployment.md#updating)).
 

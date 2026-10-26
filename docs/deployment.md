@@ -80,8 +80,6 @@ Do these by hand, in order, before first use.
       read-only (`POST=0`, `CONTAINERS=1`) published on the host's LAN
       address, port 2375 (`tcp://<docker-env-ip>:2375`,
       `tcp://<media-stack-ip>:2375`).
-- [ ] nginx: paste the key line ddash shows (for `nginx -T` only, restricted
-      to `<ddash-ip>`) into root's `authorized_keys` on the nginx LXC.
 - [ ] pfSense: a dedicated `ddash` user holding only these `api-v2-*`
       privileges (System > User Manager > Effective Privileges), then
       generate its API key:
@@ -90,20 +88,38 @@ Do these by hand, in order, before first use.
         `api-v2-status-dhcp-server-leases-get`,
         `api-v2-services-dhcp-servers-get`, `api-v2-firewall-aliases-get`,
         `api-v2-status-interfaces-get`,
-        `api-v2-status-wireguard-tunnels-get`, `api-v2-firewall-rules-get`;
+        `api-v2-status-wireguard-tunnels-get`, `api-v2-firewall-rules-get`,
+        `api-v2-services-dns-resolver-host-overrides-get`;
       - Adopt and rename: `api-v2-services-dhcp-server-static-mapping-post`,
         `api-v2-services-dhcp-server-static-mapping-patch`;
-      - Direct: `api-v2-firewall-alias-patch` (each write applies itself
-        with `"apply": true`);
+      - the internet path (Tunnelled, Direct, No Internet):
+        `api-v2-firewall-alias-patch`, `api-v2-firewall-apply-post` (a
+        move writes both aliases, then applies once);
+      - Host Overrides (a batch writes without applying, then applies
+        once): `api-v2-services-dns-resolver-host-override-post`,
+        `api-v2-services-dns-resolver-host-override-patch`,
+        `api-v2-services-dns-resolver-host-override-delete`,
+        `api-v2-services-dns-resolver-host-override-alias-post`,
+        `api-v2-services-dns-resolver-host-override-alias-delete`,
+        `api-v2-services-dns-resolver-apply-post`;
       - `make smoke-writes` only (its cleanup and pending checks):
         `api-v2-services-dhcp-server-static-mapping-delete`,
         `api-v2-services-dhcp-server-apply-get`,
         `api-v2-services-dhcp-server-apply-post`,
-        `api-v2-firewall-apply-get`.
+        `api-v2-firewall-apply-get`,
+        `api-v2-services-dns-resolver-apply-get`.
 
       A privilege covers its endpoint for every object: ddash itself keeps
-      to the bypass alias and the Devices' static mappings.
+      to the bypass and No Internet aliases and the Devices' static
+      mappings.
+- [ ] pfSense, for No Internet (optional): a host alias for the No Internet
+      Devices and a rule blocking its members from the internet, then pick
+      the alias as network's **No Internet alias**. ddash never creates
+      either.
 - [ ] Proxmox: the role and token, plus the **Protected ACLs** below.
+- [ ] Nginx Proxy Manager: a dedicated user for ddash (Users). Permissions:
+      Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
+      everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
@@ -149,6 +165,14 @@ them once:
 - [ ] A free LAN address (no lease, no static mapping, no AdGuard client),
       outside the DHCP pools, as `SMOKE_UNUSED_IP` in the dev machine's
       `smoke.env`.
+- [ ] A hostname no Host Override or alias holds, like
+      `ddash-smoke.<domain>`, as `SMOKE_HOST_OVERRIDE` in `smoke.env`. The
+      round trip creates it as a Host Override with the alias
+      `ddash-smoke-alias.<domain>`, and deletes both. Each batch restarts
+      Unbound once.
+- [ ] A hostname no Proxy Host, Redirection Host or 404 Host holds (e.g.
+      `ddash-smoke.<domain>`) as `SMOKE_PROXY_HOST`. It needs no DNS record:
+      the round trip only creates and deletes its Proxy Host.
 
 ## Updating
 

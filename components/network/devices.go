@@ -22,10 +22,11 @@ import (
 const checkTimeout = 10 * time.Second
 
 // startDevices takes the Device join's config. It refuses a reserved range
-// that is no range, and, when the firewall answers, a bypass alias it
-// doesn't have and a reserved range overlapping a DHCP pool. A firewall
-// that can't be read skips those checks: network must start at boot while
-// the firewall is still coming up.
+// that is no range and a block alias that is the bypass alias, and, when
+// the firewall answers, a bypass or block alias it doesn't have and a
+// reserved range overlapping a DHCP pool. A firewall that can't be read
+// skips those checks: network must start at boot while the firewall is
+// still coming up.
 func (c *component) startDevices(ctx context.Context, env *sdk.Env, cfg *networkpb.NetworkConfig) error {
 	var errs sdk.FieldErrors
 	lo, hi, ok := parseRange(cfg.GetReservedRange())
@@ -33,16 +34,26 @@ func (c *component) startDevices(ctx context.Context, env *sdk.Env, cfg *network
 		errs.Add("reserved_range", "must be two addresses, low to high, like 198.18.1.20-198.18.1.49")
 		return errs.Err()
 	}
-	c.bypassAlias = cfg.GetBypassAlias()
+	c.bypassAlias, c.blockAlias = cfg.GetBypassAlias(), cfg.GetBlockAlias()
+	if c.blockAlias != "" && c.blockAlias == c.bypassAlias {
+		errs.Add("block_alias", "is the bypass alias; pick the alias of your block rule")
+		return errs.Err()
+	}
 	c.reservedRange, c.reservedLo, c.reservedHi = cfg.GetReservedRange(), lo, hi
-	c.devices = sdk.Cached(sdk.TTLSlow, c.readDevices)
+	c.devices = sdk.Cached(sdk.TTLSlow, c.readSnapshot)
 
 	ctx, cancel := context.WithTimeout(ctx, checkTimeout)
 	defer cancel()
 	if aliases, err := c.pfsense.ListAliases(ctx, &pfsenseapipb.ListAliasesRequest{}); err != nil {
 		env.Log.Warn("can't check the bypass alias", "err", status.Convert(err).Message())
-	} else if msg := checkAlias(aliases.GetAliases(), c.bypassAlias); msg != "" {
-		errs.Add("bypass_alias", "%s", msg)
+	} else {
+		bypass, block := c.aliasProblems(aliases.GetAliases())
+		if bypass != "" {
+			errs.Add("bypass_alias", "%s", bypass)
+		}
+		if block != "" {
+			errs.Add("block_alias", "%s", block)
+		}
 	}
 	if servers, err := c.pfsense.ListDhcpServers(ctx, &pfsenseapipb.ListDhcpServersRequest{}); err != nil {
 		env.Log.Warn("can't check the reserved range", "err", status.Convert(err).Message())
@@ -52,7 +63,7 @@ func (c *component) startDevices(ctx context.Context, env *sdk.Env, cfg *network
 	return errs.Err()
 }
 
-// checkAlias says what is wrong with name as the bypass alias, or "".
+// checkAlias says what is wrong with name as the bypass or block alias, or "".
 func checkAlias(aliases []*pfsenseapipb.Alias, name string) string {
 	i := slices.IndexFunc(aliases, func(a *pfsenseapipb.Alias) bool { return a.GetName() == name })
 	switch {
@@ -95,12 +106,34 @@ func parseRange(s string) (lo, hi netip.Addr, ok bool) {
 }
 
 func (c *component) ListDevices(ctx context.Context, _ *networkpb.ListDevicesRequest) (*networkpb.ListDevicesResponse, error) {
-	return c.devices.Get(ctx)
+	s, err := c.devices.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.list, nil
+}
+
+// snapshot is one read of the firewall and AdGuard: the Devices, and what
+// tells any address's internet path and Ads Allowed.
+type snapshot struct {
+	list    *networkpb.ListDevicesResponse
+	aliases map[string]*pfsenseapipb.Alias
+	// adsAllowed holds the addresses AdGuard has a persistent client for
+	// that doesn't filter.
+	adsAllowed map[netip.Addr]bool
 }
 
 // readDevices joins the firewall's leases, static mappings and aliases
-// into Devices.
+// into Devices, uncached.
 func (c *component) readDevices(ctx context.Context) (*networkpb.ListDevicesResponse, error) {
+	s, err := c.readSnapshot(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return s.list, nil
+}
+
+func (c *component) readSnapshot(ctx context.Context) (*snapshot, error) {
 	leases, err := c.pfsense.ListLeases(ctx, &pfsenseapipb.ListLeasesRequest{})
 	if err != nil {
 		return nil, status.Errorf(codes.Unavailable, "can't read the DHCP leases: %s", status.Convert(err).Message())
@@ -113,27 +146,93 @@ func (c *component) readDevices(ctx context.Context) (*networkpb.ListDevicesResp
 	if err != nil {
 		return nil, status.Errorf(codes.Unavailable, "can't read the aliases: %s", status.Convert(err).Message())
 	}
-	if msg := checkAlias(aliases.GetAliases(), c.bypassAlias); msg != "" {
-		return nil, status.Errorf(codes.FailedPrecondition, "bypass alias: %s; pick another in network's config", msg)
+	if err := c.checkAliases(aliases.GetAliases()); err != nil {
+		return nil, err
 	}
-	out := &networkpb.ListDevicesResponse{
-		Devices:     join(leases.GetLeases(), servers.GetServers(), aliases.GetAliases(), c.bypassAlias),
+	s := &snapshot{aliases: byName(aliases.GetAliases()), adsAllowed: map[netip.Addr]bool{}}
+	s.list = &networkpb.ListDevicesResponse{
+		Devices:     join(leases.GetLeases(), servers.GetServers(), aliases.GetAliases(), c.paths(s.aliases)),
 		BypassAlias: c.bypassAlias,
+		BlockAlias:  c.blockAlias,
 	}
 	// The Devices list without AdGuard: only their ad-blocking is unknown.
 	if clients, err := c.adguard.ListClients(ctx, &adguardapipb.ListClientsRequest{}); err != nil {
-		out.AdguardError = "can't read AdGuard's clients: " + status.Convert(err).Message()
+		s.list.AdguardError = "can't read AdGuard's clients: " + status.Convert(err).Message()
 	} else {
-		joinAdGuard(out.GetDevices(), clients.GetClients())
+		s.adsAllowed = adsAllowed(clients.GetClients())
+		for _, d := range s.list.GetDevices() {
+			if ip, err := netip.ParseAddr(d.GetIp()); err == nil {
+				d.AdBlockingOff = s.adsAllowed[ip]
+			}
+		}
 	}
-	return out, nil
+	return s, nil
+}
+
+// aliasProblems are what is wrong with the bypass alias and with the
+// block alias when there is one: missing or no alias of addresses; ""
+// for nothing.
+func (c *component) aliasProblems(aliases []*pfsenseapipb.Alias) (bypass, block string) {
+	bypass = checkAlias(aliases, c.bypassAlias)
+	if c.blockAlias != "" {
+		block = checkAlias(aliases, c.blockAlias)
+	}
+	return bypass, block
+}
+
+// checkAliases fails when the bypass alias, or the block alias when there
+// is one, is missing or no alias of addresses.
+func (c *component) checkAliases(aliases []*pfsenseapipb.Alias) error {
+	bypass, block := c.aliasProblems(aliases)
+	if bypass != "" {
+		return status.Errorf(codes.FailedPrecondition, "bypass alias: %s; pick another in network's config", bypass)
+	}
+	if block != "" {
+		return status.Errorf(codes.FailedPrecondition, "No Internet alias: %s; pick another in network's config", block)
+	}
+	return nil
+}
+
+func byName(aliases []*pfsenseapipb.Alias) map[string]*pfsenseapipb.Alias {
+	out := map[string]*pfsenseapipb.Alias{}
+	for _, a := range aliases {
+		out[a.GetName()] = a
+	}
+	return out
+}
+
+// pathOf tells an address's internet path from the aliases holding it.
+type pathOf struct {
+	aliases       map[string]*pfsenseapipb.Alias
+	bypass, block string
+}
+
+func (c *component) paths(aliases map[string]*pfsenseapipb.Alias) pathOf {
+	return pathOf{aliases, c.bypassAlias, c.blockAlias}
+}
+
+// managed reports whether network moves addresses in and out of the alias.
+func (p pathOf) managed(name string) bool {
+	return name == p.bypass || (p.block != "" && name == p.block)
+}
+
+// of is ip's path: No Internet in the block alias (whether or not it is in
+// the bypass alias too), Direct in the bypass alias, else Tunnelled.
+func (p pathOf) of(ip netip.Addr) networkpb.InternetPath {
+	switch {
+	case p.block != "" && contains(p.aliases, p.block, ip, map[string]bool{}):
+		return networkpb.InternetPath_INTERNET_PATH_NO_INTERNET
+	case contains(p.aliases, p.bypass, ip, map[string]bool{}):
+		return networkpb.InternetPath_INTERNET_PATH_DIRECT
+	}
+	return networkpb.InternetPath_INTERNET_PATH_TUNNELLED
 }
 
 // join makes a Device of every MAC the firewall's DHCP knows: a static
 // mapping (Adopted) or a lease (New without a mapping). Hardware that set
 // its own address has neither, so it is no Device, and alias members only
 // ever show as a Device's memberships.
-func join(leases []*pfsenseapipb.Lease, servers []*pfsenseapipb.DhcpServer, aliases []*pfsenseapipb.Alias, bypass string) []*networkpb.Device {
+func join(leases []*pfsenseapipb.Lease, servers []*pfsenseapipb.DhcpServer, aliases []*pfsenseapipb.Alias, paths pathOf) []*networkpb.Device {
 	byMAC := map[string]*networkpb.Device{}
 	device := func(mac string) *networkpb.Device {
 		mac = strings.ToLower(mac)
@@ -170,10 +269,6 @@ func join(leases []*pfsenseapipb.Lease, servers []*pfsenseapipb.DhcpServer, alia
 		}
 	}
 
-	byName := map[string]*pfsenseapipb.Alias{}
-	for _, a := range aliases {
-		byName[a.GetName()] = a
-	}
 	out := make([]*networkpb.Device, 0, len(byMAC))
 	for _, d := range byMAC {
 		d.Ip = d.GetLease().GetIp()
@@ -181,14 +276,11 @@ func join(leases []*pfsenseapipb.Lease, servers []*pfsenseapipb.DhcpServer, alia
 			d.Ip = d.GetReservation().GetIp()
 		}
 		d.Name = cmp.Or(d.GetReservation().GetDescription(), d.GetReservation().GetHostname(), d.GetLease().GetHostname())
+		d.InternetPath = networkpb.InternetPath_INTERNET_PATH_TUNNELLED
 		if ip, err := netip.ParseAddr(d.GetIp()); err == nil {
+			d.InternetPath = paths.of(ip)
 			for _, a := range aliases {
-				if !contains(byName, a.GetName(), ip, map[string]bool{}) {
-					continue
-				}
-				if a.GetName() == bypass {
-					d.Direct = true
-				} else {
+				if !paths.managed(a.GetName()) && contains(paths.aliases, a.GetName(), ip, map[string]bool{}) {
 					d.Aliases = append(d.Aliases, &networkpb.DeviceAlias{Name: a.GetName(), Description: a.GetDescription()})
 				}
 			}

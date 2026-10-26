@@ -50,10 +50,9 @@ func (c *component) adopted(ctx context.Context, mac string) (*networkpb.Device,
 	return c.adopt(ctx, mac, nameOrMAC(d), "")
 }
 
-// joinAdGuard marks the Devices whose address has a persistent client of
-// its own that doesn't filter. A client for a network holding the address
-// is not the Device's.
-func joinAdGuard(devices []*networkpb.Device, clients []*adguardapipb.Client) {
+// adsAllowed is the addresses with a persistent client of their own that
+// doesn't filter. A client for a network holding an address is not its.
+func adsAllowed(clients []*adguardapipb.Client) map[netip.Addr]bool {
 	off := map[netip.Addr]bool{}
 	for _, cl := range clients {
 		for _, id := range cl.GetIds() {
@@ -62,9 +61,5 @@ func joinAdGuard(devices []*networkpb.Device, clients []*adguardapipb.Client) {
 			}
 		}
 	}
-	for _, d := range devices {
-		if ip, err := netip.ParseAddr(d.GetIp()); err == nil {
-			d.AdBlockingOff = off[ip]
-		}
-	}
+	return off
 }

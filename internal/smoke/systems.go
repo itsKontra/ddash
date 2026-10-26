@@ -1,7 +1,6 @@
 package smoke
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -14,14 +13,13 @@ import (
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
-	nginxconfig "github.com/itsKontra/ddash/components/nginx-config"
-	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk"
-	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
 // system is one system Component smoke runs.
@@ -40,9 +38,6 @@ type system struct {
 	// the real system's URL and the name its TLS certificate is checked
 	// as. Nil: the Component reaches its system some other way.
 	proxy func(cfg proto.Message, addr string) (upstream, tlsName string, err error)
-	// capture runs what the Component runs over SSH, for the fixtures,
-	// with the Component's DB at dbPath.
-	capture func(ctx context.Context, dbPath string, cfg proto.Message) (command string, out fixture.Output, err error)
 }
 
 // A new system Component (one that talks to an external system) belongs
@@ -128,6 +123,7 @@ var systems = []system{
 				return nil
 			},
 			"ListFirewallRules": atLeastOne("firewall rule", func(m proto.Message) int { return len(m.(*pfsenseapipb.ListFirewallRulesResponse).GetRules()) }),
+			"ListHostOverrides": atLeastOne("Host Override", func(m proto.Message) int { return len(m.(*pfsenseapipb.ListHostOverridesResponse).GetHostOverrides()) }),
 		},
 		proxy: func(m proto.Message, addr string) (string, string, error) {
 			cfg := m.(*pfsenseapipb.PfsenseApiConfig)
@@ -194,24 +190,34 @@ var systems = []system{
 		},
 	},
 	{
-		def:     nginxconfig.Definition(),
-		service: nginxconfigpb.NginxConfigService_ServiceDesc.ServiceName,
-		config:  func() proto.Message { return &nginxconfigpb.NginxConfigConfig{} },
+		def:     nginxproxymanagerapi.Definition(),
+		service: nginxproxymanagerapipb.NginxProxyManagerApiService_ServiceDesc.ServiceName,
+		config:  func() proto.Message { return &nginxproxymanagerapipb.NginxProxyManagerApiConfig{} },
 		checks: map[string]func(proto.Message) error{
-			"GetSnapshot": func(m proto.Message) error {
-				s := m.(*nginxconfigpb.GetSnapshotResponse).GetSnapshot()
-				if s.GetError() != "" {
-					return fmt.Errorf("nginx -T failed: %s", s.GetError())
-				}
-				if len(s.GetServers()) == 0 {
-					return errors.New("no server block")
+			"ListProxyHosts": atLeastOne("Proxy Host", func(m proto.Message) int {
+				return len(m.(*nginxproxymanagerapipb.ListProxyHostsResponse).GetProxyHosts())
+			}),
+			"ListCertificates": atLeastOne("certificate", func(m proto.Message) int {
+				return len(m.(*nginxproxymanagerapipb.ListCertificatesResponse).GetCertificates())
+			}),
+			"GetStatus": func(m proto.Message) error {
+				s := m.(*nginxproxymanagerapipb.GetStatusResponse)
+				switch {
+				case s.GetStatus() != nginxproxymanagerapipb.Status_STATUS_UP:
+					return fmt.Errorf("status %s: %s", s.GetStatus(), s.GetError())
+				case s.GetAddress() == "":
+					return errors.New("no Reverse Proxy address: the URL's host doesn't resolve")
+				case s.GetProxyHostsReadOnly():
+					return errors.New("ddash's user has Proxy Hosts on View: set them to Manage")
 				}
 				return nil
 			},
 		},
-		capture: func(ctx context.Context, dbPath string, m proto.Message) (string, fixture.Output, error) {
-			out, err := nginxconfig.Capture(ctx, dbPath, m.(*nginxconfigpb.NginxConfigConfig))
-			return "nginx -T", fixture.Output{Stdout: []byte(out.Stdout), Stderr: []byte(out.Stderr), Exit: out.Exit}, err
+		proxy: func(m proto.Message, addr string) (string, string, error) {
+			cfg := m.(*nginxproxymanagerapipb.NginxProxyManagerApiConfig)
+			upstream := cfg.GetUrl()
+			cfg.Url = "http://" + addr
+			return upstream, "", nil
 		},
 	},
 }

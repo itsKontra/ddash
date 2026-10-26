@@ -1,0 +1,192 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "id": 0,
+      "name": "DNS_SERVERS",
+      "type": "host",
+      "descr": "",
+      "address": [
+        "203.0.113.146",
+        "203.0.113.52",
+        "203.0.113.11",
+        "203.0.113.250",
+        "203.0.113.91",
+        "203.0.113.179",
+        "203.0.113.76",
+        "203.0.113.233",
+        "203.0.113.206",
+        "203.0.113.98",
+        "203.0.113.131",
+        "203.0.113.234",
+        "203.0.113.160",
+        "203.0.113.216",
+        "203.0.113.90",
+        "203.0.113.83"
+      ],
+      "detail": [
+        "Cloudflare",
+        "Cloudflare",
+        "Cloudflare",
+        "Cloudflare",
+        "Cloudflare",
+        "Cloudflare",
+        "Google",
+        "Google",
+        "Quad9",
+        "Quad9",
+        "OpenDns",
+        "OpenDns",
+        "Cleanbrowsing",
+        "Cleanbrowsing",
+        "Comodo Secure DNS",
+        "Comodo Secure DNS"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "FRITZBOX_IP6",
+      "type": "network",
+      "descr": "",
+      "address": [
+        "2001:db8:30c:4464:841b:8e42:354c:1efb/128"
+      ],
+      "detail": [
+        "Entry added Fri, 29 Dec 2023 21:53:55 +0100"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "DNS_SERVER",
+      "type": "host",
+      "descr": "",
+      "address": [
+        "198.18.1.202",
+        "198.18.1.1",
+        "198.18.30.1"
+      ],
+      "detail": [
+        "Adguard DNS Server",
+        "pfsense DNS Server",
+        "KILL_SWITCH DNS"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "RFC1918",
+      "type": "network",
+      "descr": "RFC1918",
+      "address": [
+        "203.0.113.95/16",
+        "203.0.113.11/12",
+        "203.0.113.111/8"
+      ],
+      "detail": [
+        "Entry added Sat, 23 Dec 2023 23:46:03 +0100",
+        "Entry added Sat, 23 Dec 2023 23:46:03 +0100",
+        "Entry added Sun, 24 Dec 2023 10:38:49 +0100"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "VPN_BYPASS",
+      "type": "host",
+      "descr": "",
+      "address": [
+        "198.18.1.208",
+        "198.18.1.1",
+        "198.18.1.6",
+        "198.18.1.10",
+        "198.18.1.102",
+        "198.18.1.16",
+        "198.18.1.12",
+        "198.18.1.122",
+        "198.18.1.54"
+      ],
+      "detail": [
+        "Cloudflare Tunnel",
+        "pfSense",
+        "AndroidTV",
+        "Drucker",
+        "ArbeitsLaptop",
+        "ArchLinux",
+        "operator PC",
+        "devSetup",
+        "member Handy"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "WAN_SUBNETWORK",
+      "type": "network",
+      "descr": "",
+      "address": [
+        "203.0.113.100/32",
+        "203.0.113.106/32",
+        "203.0.113.112/32"
+      ],
+      "detail": [
+        "Entry added Mon, 25 Dec 2023 17:49:33 +0100",
+        "Entry added Tue, 26 Dec 2023 00:55:08 +0100",
+        "Entry added Thu, 14 May 2026 10:30:48 +0200"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "VictronAllow",
+      "type": "host",
+      "descr": "",
+      "address": [
+        "198.18.1.202",
+        "198.18.1.1",
+        "198.18.1.207",
+        "198.18.1.7",
+        "198.18.1.4"
+      ],
+      "detail": [
+        "Entry added Mon, 04 May 2026 14:09:38 +0200",
+        "Entry added Mon, 04 May 2026 14:09:38 +0200",
+        "Entry added Mon, 04 May 2026 14:09:38 +0200",
+        "Entry added Mon, 04 May 2026 14:09:38 +0200",
+        "Entry added Mon, 04 May 2026 14:09:38 +0200"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "KILL_SWITCH",
+      "type": "host",
+      "descr": "",
+      "address": [
+        "198.18.1.212"
+      ],
+      "detail": [
+        "Entry added Sat, 17 Oct 2026 19:15:47 +0200"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "DDASH_SMOKE",
+      "type": "host",
+      "descr": "TEST",
+      "address": [],
+      "detail": []
+    },
+    {
+      "id": 9,
+      "name": "NO_INTERNET",
+      "type": "host",
+      "descr": "No Internet Devices",
+      "address": [
+        "198.18.1.5",
+        "198.18.1.102"
+      ],
+      "detail": [
+        "Amazon Alexa",
+        "laptop-2"
+      ]
+    }
+  ]
+}

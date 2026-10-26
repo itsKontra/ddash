@@ -1,4 +1,4 @@
-import type { Device } from "@ddash/proto/network/network_pb";
+import type { Device, ListDevicesResponse } from "@ddash/proto/network/network_pb";
 import { EmptyState, Facts, Notice, PageTitle, Panel, Skeleton, StatusDot, type Fact } from "@ddash/ui";
 import { useState } from "react";
 import { useParams } from "react-router";
@@ -6,13 +6,13 @@ import { AdBlockingToggle } from "./adblocking";
 import { DeviceAction, RenameForm } from "./adopt";
 import { nameOf, useDevices } from "./devices";
 import { Adoption } from "./devices-table";
-import { DirectToggle } from "./direct";
+import { InternetPathField } from "./internet-path";
 import { DeviceQueries } from "./queries";
 
 // The detail is the route devices/:mac under the Network Page's.
 const back = { href: "..", label: "Network" };
 
-/** A Device's detail (/network/devices/:mac): Adopt or rename in place, the Direct and ad-blocking toggles, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
+/** A Device's detail (/network/devices/:mac): Adopt or rename in place, the internet path picker and the ad-blocking toggle, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
@@ -41,7 +41,7 @@ export function DeviceDetail() {
     <div>
       <PageTitle kicker="Device" title={nameOf(d)} subtitle={d.name ? d.mac : undefined} back={back} />
       <div className="flex flex-col gap-6">
-        <Summary device={d} bypassAlias={data.bypassAlias} adguardError={data.adguardError} />
+        <Summary device={d} list={data} />
         <Lease device={d} />
         <Reservation device={d} />
         <OtherAliases device={d} />
@@ -56,7 +56,7 @@ function DeviceFacts({ items }: { items: Fact[] }) {
   return <Facts items={items.map((f) => (f.value === "" || f.value === undefined ? { ...f, value: "—" } : f))} />;
 }
 
-function Summary({ device: d, bypassAlias, adguardError }: { device: Device; bypassAlias: string; adguardError: string }) {
+function Summary({ device: d, list }: { device: Device; list: ListDevicesResponse }) {
   const [renaming, setRenaming] = useState(false);
   // After a rename the focus goes back to Rename.
   const [renamed, setRenamed] = useState(false);
@@ -87,8 +87,8 @@ function Summary({ device: d, bypassAlias, adguardError }: { device: Device; byp
             ),
           },
           { label: "Address", value: <Adoption device={d} /> },
-          { label: "Routing", value: <DirectToggle device={d} bypassAlias={bypassAlias} /> },
-          { label: "Ad-blocking", value: <AdBlockingToggle device={d} adguardError={adguardError} /> },
+          { label: "Internet path", value: <InternetPathField device={d} aliases={list} /> },
+          { label: "Ad-blocking", value: <AdBlockingToggle device={d} adguardError={list.adguardError} /> },
         ]}
       />
     </Panel>
@@ -140,7 +140,7 @@ function Reservation({ device: d }: { device: Device }) {
 
 function OtherAliases({ device: d }: { device: Device }) {
   return (
-    <Panel title="Other aliases" description="Read-only: ddash changes only the bypass alias.">
+    <Panel title="Other aliases" description="Read-only: ddash changes only the bypass and No Internet aliases.">
       {d.aliases.length ? (
         <ul className="flex flex-col gap-1 text-sm">
           {d.aliases.map((a) => (

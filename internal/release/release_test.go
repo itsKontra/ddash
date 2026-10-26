@@ -126,9 +126,10 @@ func TestTheReposCatalogueChecks(t *testing.T) {
 	}
 }
 
-// The reverse-proxy Page joins nginx-config's Proxy Hosts with apps' Apps
-// and their Checks, so the Plugin requires all three.
-func TestReverseProxyRequiresNginxConfigAppsAndChecks(t *testing.T) {
+// The reverse-proxy Page reads Nginx Proxy Manager's status and
+// certificates, and the Apps using each certificate: it has no Component
+// of its own.
+func TestReverseProxyRequiresNginxProxyManagerAndApps(t *testing.T) {
 	cat, err := release.Catalogue("../..", "dev")
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +139,7 @@ func TestReverseProxyRequiresNginxConfigAppsAndChecks(t *testing.T) {
 			continue
 		}
 		got := slices.Sorted(slices.Values(p.Requires))
-		if want := []string{"apps", "checks", "nginx-config"}; !slices.Equal(got, want) {
+		if want := []string{"apps", "nginx-proxy-manager-api"}; !slices.Equal(got, want) {
 			t.Errorf("reverse-proxy requires %v, want %v", p.Requires, want)
 		}
 		return

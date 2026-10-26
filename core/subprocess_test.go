@@ -43,12 +43,12 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 		t.Errorf("ListContainers: status %d: %s; want baseline's portainer-portainer-1", res.Code, res.Body)
 	}
 
-	// nginx-config reads `nginx -T` from fakelab's SSH server.
+	// nginx-proxy-manager-api signs in to fakelab's Nginx Proxy Manager.
 	h.Install("reverse-proxy")
-	h.WaitState("nginx-config", runtime.OK)
-	res = h.Call("reverse-proxy", "nginx-config", "GetSnapshot", `{}`)
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"grafana.home.example"`) {
-		t.Errorf("GetSnapshot: status %d: %s; want baseline's grafana server block", res.Code, res.Body)
+	h.WaitState("nginx-proxy-manager-api", runtime.OK)
+	res = h.Call("reverse-proxy", "nginx-proxy-manager-api", "GetStatus", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"status":"STATUS_UP"`) {
+		t.Errorf("GetStatus: status %d: %s; want up", res.Code, res.Body)
 	}
 
 	// network reaches pfsense-api through the host over go-plugin's broker.
@@ -73,7 +73,7 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 		t.Errorf("ListPowerTasks: status %d: %s", res.Code, res.Body)
 	}
 
-	// apps reads nginx-config's snapshot through the host (GRPCBroker).
+	// apps reads nginx-proxy-manager-api's Proxy Hosts through the host (GRPCBroker).
 	h.Install("apps")
 	h.WaitState("apps", runtime.OK)
 	res = h.Call("apps", "apps", "ListApps", `{}`)
@@ -83,13 +83,6 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	// apps links it to its container through proxmox-api and docker-api.
 	if !strings.Contains(res.Body.String(), `"KIND_DOCKER"`) {
 		t.Errorf("ListApps: %s; want home.home.example linked to its container", res.Body)
-	}
-
-	// The reverse-proxy Page joins Proxy Hosts with apps' Apps and their Checks.
-	for component, method := range map[string]string{"apps": "ListApps", "checks": "ListChecks"} {
-		if res := h.Call("reverse-proxy", component, method, `{}`); res.Code != http.StatusOK {
-			t.Errorf("reverse-proxy → %s %s: status %d: %s", component, method, res.Code, res.Body)
-		}
 	}
 }
 

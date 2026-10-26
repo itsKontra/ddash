@@ -2,7 +2,6 @@ package apps
 
 import (
 	"context"
-	"net"
 	"net/netip"
 	"net/url"
 	"strconv"
@@ -13,13 +12,12 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
-	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 )
 
-// hostPort is where an App's traffic goes: a proxy_pass target or a manual
-// App's URL. The zero value is nowhere ddash can match.
+// hostPort is where an App's traffic goes: its Proxy Host's upstream or a
+// Link-only App's URL. The zero value is nowhere ddash can match.
 type hostPort struct {
 	host string // canonical: see canonHost
 	port int
@@ -35,55 +33,7 @@ func canonHost(h string) string {
 	return strings.ToLower(h)
 }
 
-// upstreamOf reads where a proxy_pass forwards: its host and port, or an
-// upstream block's first server when it names one. Unix sockets and a
-// variable in the scheme, host or port go nowhere ddash can match; one
-// right after an explicit port ("http://198.18.2.10:8096$request_uri") is
-// only the path.
-func upstreamOf(proxyPass string, upstreams map[string][]string) hostPort {
-	scheme, rest, ok := strings.Cut(proxyPass, "://")
-	if !ok || strings.Contains(scheme, "$") || strings.HasPrefix(rest, "unix:") {
-		return hostPort{}
-	}
-	authority := rest
-	if i := strings.IndexAny(rest, "/?"); i >= 0 {
-		authority = rest[:i]
-	}
-	if i := strings.Index(authority, "$"); i >= 0 {
-		host, port, err := net.SplitHostPort(authority[:i])
-		if err != nil || host == "" || port == "" {
-			return hostPort{}
-		}
-		return withPort(host, port, scheme)
-	}
-	u, err := url.Parse(scheme + "://" + authority)
-	if err != nil || u.Hostname() == "" {
-		return hostPort{}
-	}
-	if u.Port() == "" {
-		if servers, named := upstreams[u.Hostname()]; named {
-			if len(servers) == 0 {
-				return hostPort{}
-			}
-			return serverAddr(servers[0])
-		}
-	}
-	return withPort(u.Hostname(), u.Port(), scheme)
-}
-
-// serverAddr reads an upstream server's address ("198.18.2.20:3000",
-// "198.18.2.20" for port 80).
-func serverAddr(addr string) hostPort {
-	if strings.HasPrefix(addr, "unix:") {
-		return hostPort{}
-	}
-	if host, port, err := net.SplitHostPort(addr); err == nil {
-		return withPort(host, port, "http")
-	}
-	return withPort(addr, "", "http")
-}
-
-// urlTarget reads a manual App's URL host and port.
+// urlTarget reads a Link-only App's URL host and port.
 func urlTarget(raw string) hostPort {
 	u, err := url.Parse(raw)
 	if err != nil || u.Hostname() == "" {
@@ -142,11 +92,17 @@ func (c *component) readSources(ctx context.Context) sources {
 }
 
 func sourceProblem(name string, err error) string {
-	st := status.Convert(err)
-	if st.Code() == codes.FailedPrecondition && st.Message() == "not configured" {
+	if notConfigured(err) {
 		return name + " not configured"
 	}
-	return name + " unavailable: " + st.Message()
+	return name + " unavailable: " + status.Convert(err).Message()
+}
+
+// notConfigured reports whether err is the host's answer for a Component
+// without config.
+func notConfigured(err error) bool {
+	st := status.Convert(err)
+	return st.Code() == codes.FailedPrecondition && st.Message() == "not configured"
 }
 
 // workloadFor is an App's Workload: the override when there is one, else
@@ -295,17 +251,6 @@ func checkWorkloadRef(r *workloadpb.WorkloadRef) (*workloadpb.WorkloadRef, error
 		return nil, status.Errorf(codes.InvalidArgument, "unknown Workload kind %d", r.GetKind())
 	}
 	return r, nil
-}
-
-// upstreamsOf maps each upstream block's name to its servers.
-func upstreamsOf(snap *nginxconfigpb.Snapshot) map[string][]string {
-	out := map[string][]string{}
-	for _, u := range snap.GetUpstreams() {
-		if _, dup := out[u.GetName()]; !dup {
-			out[u.GetName()] = u.GetServers()
-		}
-	}
-	return out
 }
 
 func (c *component) ListWorkloads(ctx context.Context, _ *appspb.ListWorkloadsRequest) (*appspb.ListWorkloadsResponse, error) {

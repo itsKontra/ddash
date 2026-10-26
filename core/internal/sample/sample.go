@@ -16,6 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/itsKontra/ddash/core/internal/sample/samplepb"
+	configpb "github.com/itsKontra/ddash/proto/ddash/config"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -32,6 +33,9 @@ type Hooks struct {
 	// Migrations replace the sample's own (see Migrations), as another
 	// Release of it would.
 	Migrations fs.FS
+	// SetupHint is its setup hint, given the config it started with. Nil:
+	// it offers none.
+	SetupHint func(cfg *samplepb.SampleConfig) *configpb.SetupHint
 }
 
 // migrations give every sample a DB file of its own.
@@ -113,6 +117,13 @@ func (c *component) Greet(_ context.Context, req *samplepb.GreetRequest) (*sampl
 func (c *component) Wait(ctx context.Context, _ *samplepb.WaitRequest) (*samplepb.WaitResponse, error) {
 	<-ctx.Done()
 	return nil, status.FromContextError(ctx.Err()).Err()
+}
+
+func (c *component) GetSetupHint(context.Context, *samplepb.GetSetupHintRequest) (*samplepb.GetSetupHintResponse, error) {
+	if c.hooks.SetupHint == nil {
+		return nil, status.Error(codes.Unimplemented, "no setup hint")
+	}
+	return &samplepb.GetSetupHintResponse{Hint: c.hooks.SetupHint(c.cfg)}, nil
 }
 
 func (c *component) Act(ctx context.Context, req *samplepb.ActRequest) (*samplepb.ActResponse, error) {

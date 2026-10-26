@@ -1,13 +1,16 @@
 // Package pfsensefake is a stateful fake of pfSense's REST API v2 for
 // pfsense-api's Actions and `make smoke-writes`. It keeps the DHCP servers
 // with their static mappings (create, update and delete), the firewall
-// aliases, each area's pending-changes flag and its apply, and records
-// every request in order; anything else is served from a scenario's
-// fixtures (fixture.Scenario). pfsense-api's tests and fakelab serve it.
+// aliases, the DNS Resolver's Host Overrides with their aliases, each
+// area's pending-changes flag and its apply, and records every request in
+// order; anything else is served from a scenario's fixtures
+// (fixture.Scenario). pfsense-api's tests and fakelab serve it.
 //
 // Like pfSense, a write without "apply": true only marks its area pending
 // until that area's POST .../apply; ids are positions in a server's
-// staticmap array and in the alias list.
+// staticmap array, in the alias list and in the Host Override list (and a
+// Host Override's aliases), which every Host Override write re-sorts by
+// host.
 package pfsensefake
 
 import (
@@ -54,6 +57,9 @@ type Options struct {
 	// WriteDelay holds every write this long before it takes effect, so
 	// writes that overlap show in MaxConcurrentWrites.
 	WriteDelay time.Duration
+	// ApplyDelay holds POST services/dns_resolver/apply this long, as
+	// Unbound's restart does.
+	ApplyDelay time.Duration
 }
 
 // Firewall is the fake, an http.Handler.
@@ -66,14 +72,21 @@ type Firewall struct {
 	pending         bool
 	aliases         []map[string]any
 	firewallPending bool
-	log             []string
-	writing         int
-	maxW            int
+	overrides       []map[string]any
+	dnsPending      bool
+	// failDNS counts DNS Resolver writes down to the one that fails (1:
+	// the next); 0 fails none.
+	failDNS int
+	// failDNSApply fails the next DNS Resolver apply.
+	failDNSApply bool
+	log          []string
+	writing      int
+	maxW         int
 }
 
 // New serves the scenario in dir: its services/dhcp_servers.json and
-// firewall/aliases.json (each else its sibling baseline's) are the
-// starting state.
+// firewall/aliases.json and services/dns_resolver/host_overrides.json
+// (each else its sibling baseline's) are the starting state.
 func New(dir string, opts Options) (*Firewall, error) {
 	f := &Firewall{fixtures: fixture.Scenario(dir, opts.Miss), opts: opts}
 	var err error
@@ -81,6 +94,9 @@ func New(dir string, opts Options) (*Firewall, error) {
 		return nil, err
 	}
 	if f.aliases, err = seed(dir, aliasesPath); err != nil {
+		return nil, err
+	}
+	if f.overrides, err = seed(dir, hostOverridesPath); err != nil {
 		return nil, err
 	}
 	return f, nil
@@ -241,7 +257,9 @@ func (f *Firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.mu.Unlock()
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": true, "pending_subsystems": []string{}})
 	default:
-		f.fixtures.ServeHTTP(w, r)
+		if !f.serveDNSResolver(w, r) {
+			f.fixtures.ServeHTTP(w, r)
+		}
 	}
 }
 

@@ -22,15 +22,20 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // The round trips of `make smoke-writes` (RunWrites). They run the real
-// Actions of pfsense-api, adguard-api and proxmox-api, and touch only the
-// smoke targets: the DDASH_SMOKE alias, a static mapping and an AdGuard
-// client for SMOKE_UNUSED_IP made with the smoke MAC and name, and the
-// stopped ddash-smoke LXC. What no Action can undo (deleting the static
+// Actions of pfsense-api, adguard-api, proxmox-api and
+// nginx-proxy-manager-api, and touch only the smoke targets: the
+// DDASH_SMOKE alias, a static mapping and an AdGuard client for
+// SMOKE_UNUSED_IP made with the smoke MAC and name, the Host Override
+// SMOKE_HOST_OVERRIDE with its alias, the stopped ddash-smoke LXC, and a
+// Proxy Host for SMOKE_PROXY_HOST forwarding to SMOKE_UNUSED_IP. What no
+// Action can undo (deleting the static
 // mapping and the client) goes to the system as a raw call. Each round
 // trip's cleanup runs before it, removing what an interrupted run left,
 // and after it, whether it passed or not.
@@ -51,6 +56,17 @@ const (
 	// Device holds (no lease, static mapping or AdGuard client), which the
 	// static mapping and the AdGuard client borrow.
 	UnusedAddressVar = "SMOKE_UNUSED_IP"
+	// HostOverrideVar is the smoke.env variable holding a hostname no Host
+	// Override or alias holds, e.g. ddash-smoke.home.example: the round
+	// trip creates it as a Host Override at PlaceholderAddress, with the
+	// alias ddash-smoke-alias in its domain, and deletes both again.
+	HostOverrideVar = "SMOKE_HOST_OVERRIDE"
+	// ReaddressedAddress is where the Host Override moves (TEST-NET-3).
+	ReaddressedAddress = "203.0.113.64"
+	// ProxyHostVar is the smoke.env variable holding a hostname no Proxy
+	// Host, Redirection Host or 404 Host holds: the Proxy Host round trip
+	// creates one for it, forwarding to UnusedAddressVar's address.
+	ProxyHostVar = "SMOKE_PROXY_HOST"
 	// TripTimeout bounds one round trip, CleanupTimeout its cleanup (which
 	// runs on even after the run is interrupted).
 	TripTimeout    = 5 * time.Minute
@@ -62,7 +78,7 @@ const (
 )
 
 // writeSystems are the system Components the round trips use.
-var writeSystems = []string{"pfsense-api", "adguard-api", "proxmox-api"}
+var writeSystems = []string{"pfsense-api", "adguard-api", "proxmox-api", "nginx-proxy-manager-api"}
 
 // roundTrip is one reversible exercise of a system's Actions.
 type roundTrip struct {
@@ -79,9 +95,11 @@ type roundTrip struct {
 var roundTrips = []roundTrip{
 	{component: "pfsense-api", name: "alias " + SmokeAlias + " round trip", run: (*writes).aliasRoundTrip, undo: (*writes).removePlaceholder},
 	{component: "pfsense-api", name: "static mapping round trip", run: (*writes).staticMappingRoundTrip, undo: (*writes).deleteStaticMapping},
+	{component: "pfsense-api", name: "Host Override round trip", run: (*writes).hostOverrideRoundTrip, undo: (*writes).deleteHostOverride},
 	{component: "adguard-api", name: "SetClientFiltering round trip", run: (*writes).clientRoundTrip, undo: (*writes).deleteClient},
 	{component: "proxmox-api", name: SmokeLXC + " start and shutdown", run: (*writes).powerRoundTrip, undo: (*writes).forceSmokeDown},
 	{component: "proxmox-api", name: "Protected refusal", run: (*writes).protectedRefusal},
+	{component: "nginx-proxy-manager-api", name: "Proxy Host round trip", run: (*writes).proxyHostRoundTrip, undo: (*writes).deleteSmokeProxyHosts},
 }
 
 // writes is what the round trips share: the started Components and what
@@ -89,12 +107,17 @@ var roundTrips = []roundTrip{
 type writes struct {
 	ip   netip.Addr
 	http *http.Client
+	// host is HostOverrideVar's hostname, "" when smoke.env has none.
+	host string
 
 	pf    pfsenseapipb.PfsenseApiServiceClient
 	pfCfg *pfsenseapipb.PfsenseApiConfig
 	ag    adguardapipb.AdguardApiServiceClient
 	agCfg *adguardapipb.AdguardApiConfig
 	px    proxmoxapipb.ProxmoxApiServiceClient
+	npm   nginxproxymanagerapipb.NginxProxyManagerApiServiceClient
+	// proxyHost is ProxyHostVar's hostname; empty when unset.
+	proxyHost string
 
 	// smoke is ddash-smoke once a start was sent to it: only then does
 	// cleanup shut it down.
@@ -121,7 +144,11 @@ func RunWrites(ctx context.Context, opts Options) error {
 		return err
 	}
 
-	w := &writes{ip: ip, http: &http.Client{Timeout: CallTimeout}}
+	w := &writes{
+		ip: ip, http: &http.Client{Timeout: CallTimeout},
+		host:      strings.ToLower(strings.TrimSpace(opts.Env[HostOverrideVar])),
+		proxyHost: strings.TrimSpace(opts.Env[ProxyHostVar]),
+	}
 	var errs []error
 	fail := func(err error) {
 		fmt.Fprintf(opts.Log, "FAIL %v\n", err)
@@ -143,6 +170,8 @@ func RunWrites(ctx context.Context, opts Options) error {
 					w.ag, w.agCfg = adguardapipb.NewAdguardApiServiceClient(conn), c
 				case *proxmoxapipb.ProxmoxApiConfig:
 					w.px = proxmoxapipb.NewProxmoxApiServiceClient(conn)
+				case *nginxproxymanagerapipb.NginxProxyManagerApiConfig:
+					w.npm = nginxproxymanagerapipb.NewNginxProxyManagerApiServiceClient(conn)
 				}
 			}
 		}
@@ -235,6 +264,24 @@ func (w *writes) aliasRoundTrip(ctx context.Context) (string, error) {
 	}
 	if slices.Contains(alias.GetAddresses(), PlaceholderAddress) {
 		return "", fmt.Errorf("%s still holds %s after RemoveAliasAddress", SmokeAlias, PlaceholderAddress)
+	}
+	// The same round trip as one move in and one move out, each applied once.
+	for _, move := range []*pfsenseapipb.MoveAliasAddressRequest{
+		{Address: PlaceholderAddress, To: SmokeAlias, Detail: "make smoke-writes"},
+		{Address: PlaceholderAddress, From: []string{SmokeAlias}},
+	} {
+		if _, err := w.pf.MoveAliasAddress(ctx, move); err != nil {
+			return "", fmt.Errorf("MoveAliasAddress: %w", err)
+		}
+		if err := w.firewallApplied(ctx); err != nil {
+			return "", err
+		}
+		if alias, err = w.smokeAlias(ctx); err != nil {
+			return "", err
+		}
+		if slices.Contains(alias.GetAddresses(), PlaceholderAddress) != (move.GetTo() != "") {
+			return "", fmt.Errorf("%s = %v after MoveAliasAddress %v", SmokeAlias, alias.GetAddresses(), move)
+		}
 	}
 	return "", nil
 }
@@ -494,6 +541,120 @@ func (w *writes) pfsense(ctx context.Context, method, path string, query url.Val
 	return nil
 }
 
+// pfSense: the Host Override.
+
+// smokeNames are the smoke Host Override's and its alias's names.
+func (w *writes) smokeNames() (override, alias *pfsenseapipb.HostName, err error) {
+	host, domain, ok := strings.Cut(w.host, ".")
+	if !ok || host == "" || domain == "" {
+		return nil, nil, fmt.Errorf("set %s in smoke.env to a hostname no Host Override or alias holds, like ddash-smoke.home.example", HostOverrideVar)
+	}
+	return &pfsenseapipb.HostName{Host: host, Domain: domain}, &pfsenseapipb.HostName{Host: host + "-alias", Domain: domain}, nil
+}
+
+func (w *writes) hostOverrideRoundTrip(ctx context.Context) (string, error) {
+	override, alias, err := w.smokeNames()
+	if err != nil {
+		return "", err
+	}
+	aliasChange := &pfsenseapipb.AliasChange{Parent: override, Alias: &pfsenseapipb.HostOverrideAlias{Host: alias.GetHost(), Domain: alias.GetDomain()}}
+	created, err := w.pf.ChangeHostOverrides(ctx, &pfsenseapipb.ChangeHostOverridesRequest{Steps: []*pfsenseapipb.HostOverrideStep{
+		{Change: &pfsenseapipb.HostOverrideStep_Create{Create: &pfsenseapipb.HostOverride{
+			Host: override.GetHost(), Domain: override.GetDomain(), Ips: []string{PlaceholderAddress}, Description: "make smoke-writes",
+		}}},
+		{Change: &pfsenseapipb.HostOverrideStep_AddAlias{AddAlias: aliasChange}},
+	}})
+	if err != nil {
+		return "", fmt.Errorf("ChangeHostOverrides (create with an alias): %w", err)
+	}
+	if created.GetSucceeded() != 2 {
+		return "", fmt.Errorf("ChangeHostOverrides (create with an alias) says %d of 2 steps succeeded", created.GetSucceeded())
+	}
+	if err := w.dnsApplied(ctx); err != nil {
+		return "", err
+	}
+	h, err := w.smokeOverride(ctx, override)
+	if err != nil {
+		return "", err
+	}
+	if h == nil || !slices.Equal(h.GetIps(), []string{PlaceholderAddress}) || len(h.GetAliases()) != 1 || h.GetAliases()[0].GetHost() != alias.GetHost() {
+		return "", fmt.Errorf("after the create ListHostOverrides lists %v, want %s at %s with the alias %s", h, w.host, PlaceholderAddress, alias.GetHost())
+	}
+	removed, err := w.pf.ChangeHostOverrides(ctx, &pfsenseapipb.ChangeHostOverridesRequest{Steps: []*pfsenseapipb.HostOverrideStep{
+		{Change: &pfsenseapipb.HostOverrideStep_Readdress{Readdress: &pfsenseapipb.Readdress{HostOverride: override, Ips: []string{ReaddressedAddress}}}},
+		{Change: &pfsenseapipb.HostOverrideStep_RemoveAlias{RemoveAlias: aliasChange}},
+		{Change: &pfsenseapipb.HostOverrideStep_Delete{Delete: override}},
+	}})
+	if err != nil {
+		return "", fmt.Errorf("ChangeHostOverrides (readdress, remove the alias, delete): %w", err)
+	}
+	if removed.GetSucceeded() != 3 {
+		return "", fmt.Errorf("ChangeHostOverrides (readdress, remove the alias, delete) says %d of 3 steps succeeded", removed.GetSucceeded())
+	}
+	if err := w.dnsApplied(ctx); err != nil {
+		return "", err
+	}
+	if h, err = w.smokeOverride(ctx, override); err != nil {
+		return "", err
+	} else if h != nil {
+		return "", fmt.Errorf("ListHostOverrides still lists %s after its delete", w.host)
+	}
+	return w.host, nil
+}
+
+// smokeOverride reads the smoke Host Override through ListHostOverrides
+// (every batch drops its cache); nil when there is none.
+func (w *writes) smokeOverride(ctx context.Context, name *pfsenseapipb.HostName) (*pfsenseapipb.HostOverride, error) {
+	r, err := w.pf.ListHostOverrides(ctx, &pfsenseapipb.ListHostOverridesRequest{})
+	if err != nil {
+		return nil, fmt.Errorf("ListHostOverrides: %w", err)
+	}
+	for _, h := range r.GetHostOverrides() {
+		if strings.EqualFold(h.GetHost(), name.GetHost()) && strings.EqualFold(h.GetDomain(), name.GetDomain()) {
+			return h, nil
+		}
+	}
+	return nil, nil
+}
+
+// dnsApplied checks that no DNS Resolver change waits for an apply.
+func (w *writes) dnsApplied(ctx context.Context) error {
+	var state struct {
+		Applied bool `json:"applied"`
+	}
+	if err := w.pfsense(ctx, http.MethodGet, "/api/v2/services/dns_resolver/apply", nil, &state); err != nil {
+		return err
+	}
+	if !state.Applied {
+		return errors.New("pfSense has DNS Resolver changes pending after the batch: it wasn't applied")
+	}
+	return nil
+}
+
+// deleteHostOverride deletes the smoke Host Override, its alias with it,
+// reading it fresh past ListHostOverrides' cache.
+func (w *writes) deleteHostOverride(ctx context.Context) (string, error) {
+	override, _, err := w.smokeNames()
+	if err != nil {
+		return "", nil // the round trip says what's missing
+	}
+	r, err := w.pf.ListHostOverrides(ctx, &pfsenseapipb.ListHostOverridesRequest{Fresh: true})
+	if err != nil {
+		return "", fmt.Errorf("ListHostOverrides: %w", err)
+	}
+	if !slices.ContainsFunc(r.GetHostOverrides(), func(h *pfsenseapipb.HostOverride) bool {
+		return strings.EqualFold(h.GetHost(), override.GetHost()) && strings.EqualFold(h.GetDomain(), override.GetDomain())
+	}) {
+		return "", nil
+	}
+	if _, err := w.pf.ChangeHostOverrides(ctx, &pfsenseapipb.ChangeHostOverridesRequest{Steps: []*pfsenseapipb.HostOverrideStep{
+		{Change: &pfsenseapipb.HostOverrideStep_Delete{Delete: override}},
+	}}); err != nil {
+		return "", fmt.Errorf("ChangeHostOverrides (delete): %w", err)
+	}
+	return "deleted the Host Override " + w.host, nil
+}
+
 // AdGuard Home: the client.
 
 func (w *writes) clientRoundTrip(ctx context.Context) (string, error) {
@@ -625,6 +786,99 @@ func (w *writes) do(req *http.Request) ([]byte, int, error) {
 	defer resp.Body.Close()
 	b, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	return b, resp.StatusCode, err
+}
+
+// Nginx Proxy Manager: a Proxy Host for SMOKE_PROXY_HOST, forwarding to
+// the unused address. That pair marks it as the smoke target: cleanup
+// deletes only a Proxy Host with exactly that hostname forwarding there.
+
+func (w *writes) proxyHostRoundTrip(ctx context.Context) (string, error) {
+	if w.proxyHost == "" {
+		return "", fmt.Errorf("set %s in smoke.env: a hostname no Proxy Host, Redirection Host or 404 Host holds", ProxyHostVar)
+	}
+	hosts, err := w.proxyHosts(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, h := range hosts {
+		for _, name := range h.GetFields().GetDomainNames() {
+			if strings.EqualFold(name, w.proxyHost) {
+				return "", fmt.Errorf("%s is held by Proxy Host %d (pick another %s)", name, h.GetId(), ProxyHostVar)
+			}
+		}
+	}
+	fields := &proxyhostpb.ProxyHostFields{
+		DomainNames: []string{w.proxyHost}, ForwardScheme: "http", ForwardHost: w.ip.String(), ForwardPort: 80, BlockExploits: true,
+	}
+	created, err := w.npm.CreateProxyHost(ctx, &nginxproxymanagerapipb.CreateProxyHostRequest{Fields: fields})
+	if err != nil {
+		return "", fmt.Errorf("CreateProxyHost: %w", err)
+	}
+	id := created.GetProxyHost().GetId()
+	if got := created.GetProxyHost().GetFields(); got.GetForwardPort() != 80 || !got.GetBlockExploits() || !slices.Equal(got.GetDomainNames(), fields.GetDomainNames()) {
+		return "", fmt.Errorf("CreateProxyHost answered %v, want %v", got, fields)
+	}
+	fields.ForwardPort, fields.Websockets = 8080, true
+	updated, err := w.npm.UpdateProxyHost(ctx, &nginxproxymanagerapipb.UpdateProxyHostRequest{Id: id, Fields: fields})
+	if err != nil {
+		return "", fmt.Errorf("UpdateProxyHost: %w", err)
+	}
+	if got := updated.GetProxyHost().GetFields(); got.GetForwardPort() != 8080 || !got.GetWebsockets() {
+		return "", fmt.Errorf("UpdateProxyHost answered %v, want port 8080 with Websockets", got)
+	}
+	if hosts, err = w.proxyHosts(ctx); err != nil {
+		return "", err
+	}
+	i := slices.IndexFunc(hosts, func(h *nginxproxymanagerapipb.ProxyHost) bool { return h.GetId() == id })
+	if i < 0 || hosts[i].GetFields().GetForwardPort() != 8080 {
+		return "", fmt.Errorf("ListProxyHosts doesn't list Proxy Host %d as updated", id)
+	}
+	if _, err := w.npm.DeleteProxyHost(ctx, &nginxproxymanagerapipb.DeleteProxyHostRequest{Id: id}); err != nil {
+		return "", fmt.Errorf("DeleteProxyHost: %w", err)
+	}
+	if hosts, err = w.proxyHosts(ctx); err != nil {
+		return "", err
+	}
+	if slices.ContainsFunc(hosts, func(h *nginxproxymanagerapipb.ProxyHost) bool { return h.GetId() == id }) {
+		return "", fmt.Errorf("ListProxyHosts still lists Proxy Host %d after its delete", id)
+	}
+	return w.proxyHost, nil
+}
+
+// deleteSmokeProxyHosts deletes every Proxy Host for SMOKE_PROXY_HOST
+// alone that forwards to the unused address.
+func (w *writes) deleteSmokeProxyHosts(ctx context.Context) (string, error) {
+	if w.proxyHost == "" {
+		return "", nil
+	}
+	hosts, err := w.proxyHosts(ctx)
+	if err != nil {
+		return "", err
+	}
+	var deleted []string
+	for _, h := range hosts {
+		f := h.GetFields()
+		if len(f.GetDomainNames()) != 1 || !strings.EqualFold(f.GetDomainNames()[0], w.proxyHost) || f.GetForwardHost() != w.ip.String() {
+			continue
+		}
+		if _, err := w.npm.DeleteProxyHost(ctx, &nginxproxymanagerapipb.DeleteProxyHostRequest{Id: h.GetId()}); err != nil {
+			return "", fmt.Errorf("DeleteProxyHost %d: %w", h.GetId(), err)
+		}
+		deleted = append(deleted, fmt.Sprintf("Proxy Host %d %s", h.GetId(), f.GetDomainNames()[0]))
+	}
+	if len(deleted) == 0 {
+		return "", nil
+	}
+	return "deleted " + strings.Join(deleted, ", "), nil
+}
+
+// proxyHosts reads every Proxy Host fresh.
+func (w *writes) proxyHosts(ctx context.Context) ([]*nginxproxymanagerapipb.ProxyHost, error) {
+	r, err := w.npm.ListProxyHosts(ctx, &nginxproxymanagerapipb.ListProxyHostsRequest{Fresh: true})
+	if err != nil {
+		return nil, fmt.Errorf("ListProxyHosts: %w", err)
+	}
+	return r.GetProxyHosts(), nil
 }
 
 // Proxmox: ddash-smoke and a Protected Workload.

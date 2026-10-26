@@ -253,7 +253,7 @@ func TestSecretLikeFieldsBecomeRedacted(t *testing.T) {
 func TestSecretsInTextBecomeRedacted(t *testing.T) {
 	s := scrubber(t, scrub.Config{})
 
-	_, got := fixture(t, s, "nginx_-T.stdout", "proxy_set_header Authorization \"Basic dXNlcjpwYXNz\";\nenv DB_PASSWORD=hunter2;\nssl_session_tickets off;\n")
+	_, got := fixture(t, s, "notes.txt", "proxy_set_header Authorization \"Basic dXNlcjpwYXNz\";\nenv DB_PASSWORD=hunter2;\nssl_session_tickets off;\n")
 
 	if want := "proxy_set_header Authorization \"Basic REDACTED\";\nenv DB_PASSWORD=REDACTED;\nssl_session_tickets off;\n"; got != want {
 		t.Errorf("got  %q\nwant %q", got, want)

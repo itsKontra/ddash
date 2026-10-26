@@ -1,48 +1,101 @@
 syntax = "proto3";
 
-// apps turns every nginx Proxy Host into an App, adds the Operator's manual
-// Apps, and keeps the Operator's display settings (the overlay) for both.
+// apps keeps a record per App, discovered from Nginx Proxy Manager's Proxy
+// Hosts and pfSense's Host Overrides or added as Link only, with the
+// Operator's settings and Ignores, and derives each App's Warnings on every
+// sync.
 package ddash.apps;
 
 import "ddash/options.proto";
+import "ddash/proxyhost/proxy_host.proto";
 import "ddash/workload/workload.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/apps/appspb;appspb";
 
-// apps has nothing to configure: Apps come from nginx-config's snapshot.
+// apps has nothing to configure: Apps come from its sources.
 message AppsConfig {}
 
 service AppsService {
-  // ListApps returns every App, discovered and manual, with its overlay
-  // applied, and the overlays that match no App.
+  // ListApps returns every App: discovered, Link only and orphaned App
+  // settings, each with its Warnings, and how the sources were last read.
   rpc ListApps(ListAppsRequest) returns (ListAppsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
-  // SetOverlay sets a discovered App's display settings, keyed by its first
-  // server_name. An overlay with every field empty is removed.
-  rpc SetOverlay(SetOverlayRequest) returns (SetOverlayResponse) {
+  // Refresh drops Nginx Proxy Manager's caches and pfSense's Host
+  // Override cache, syncs, and returns once the Apps are current.
+  rpc Refresh(RefreshRequest) returns (RefreshResponse) {
     option (ddash.action) = {};
   }
-  // AttachOverlay moves an overlay onto another App, e.g. after a rename
-  // left it unmatched.
-  rpc AttachOverlay(AttachOverlayRequest) returns (AttachOverlayResponse) {
+  // SetSettings sets an App's ddash-only settings: name, icon, group,
+  // Hidden and Workload override. They take effect at once.
+  rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse) {
     option (ddash.action) = {};
   }
-  // DeleteOverlay drops an overlay: its App falls back to the defaults.
-  rpc DeleteOverlay(DeleteOverlayRequest) returns (DeleteOverlayResponse) {
+  // IgnoreWarning Ignores one kind of Warning on an App until it is
+  // un-ignored: it is still listed, flagged, but doesn't count.
+  rpc IgnoreWarning(IgnoreWarningRequest) returns (IgnoreWarningResponse) {
+    option (ddash.action) = {};
+  }
+  // UnignoreWarning ends an Ignore.
+  rpc UnignoreWarning(UnignoreWarningRequest) returns (UnignoreWarningResponse) {
+    option (ddash.action) = {};
+  }
+  // Reattach moves orphaned App settings onto an App without settings of
+  // its own: the App keeps the orphan's id (and so its Check's history),
+  // settings and Ignores, with the other App's sources and URL. The other
+  // App's record goes.
+  rpc Reattach(ReattachRequest) returns (ReattachResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteRecord deletes an App ddash alone holds, with its Check:
+  // orphaned App settings, or a Link-only App. It writes nowhere else, so
+  // it takes no Plan and no fresh read.
+  rpc DeleteRecord(DeleteRecordRequest) returns (DeleteRecordResponse) {
     option (ddash.action) = {disruptive: true};
   }
-  // CreateApp adds a manual App.
-  rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {
+  // PromoteAlias makes one of an App's aliases the hostname of its URL,
+  // keeping the scheme and port. It changes nothing outside ddash. It is
+  // also the fix for "URL not on the Proxy Host", whose Proxy Host's
+  // names are then the App's aliases.
+  rpc PromoteAlias(PromoteAliasRequest) returns (PromoteAliasResponse) {
     option (ddash.action) = {};
   }
-  // UpdateApp replaces a manual App's details.
-  rpc UpdateApp(UpdateAppRequest) returns (UpdateAppResponse) {
-    option (ddash.action) = {};
-  }
-  // DeleteApp removes a manual App.
-  rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {
+  // Merge makes two Apps sharing a hostname one: the App id keeps its id,
+  // settings and Ignores and gains the other's sources; the other App's
+  // record goes, its Check with it. It is the fix for "Hostname on two
+  // Apps", and changes nothing outside ddash. Two Apps that both have a
+  // Proxy Host, or both a Host Override of their own, can't be merged.
+  rpc Merge(MergeRequest) returns (MergeResponse) {
     option (ddash.action) = {disruptive: true};
+  }
+  // PlanAction builds an App Action's Plan from the last reads, through
+  // the sources' caches, and changes nothing: what Add App's "ddash will"
+  // shows as the Operator types. A Plan that can't run says why.
+  rpc PlanAction(PlanActionRequest) returns (PlanActionResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // RunAction runs an App Action whose Plan the Operator confirmed, one at
+  // a time with every other App Action and sync. It reads both sources
+  // afresh and builds the Plan again: when that differs from the one
+  // confirmed, it refuses before any write with "changed since you looked"
+  // (ABORTED, the new Plan in the error's details). Otherwise it writes to
+  // Nginx Proxy Manager, then pfSense in one batch applied once, then the
+  // App record, and stops at the first failed step: the error names it and
+  // what was done, nothing is rolled back, and its details carry a
+  // RunActionResponse saying how many steps were done. Success or failure,
+  // it ends with a sync bounded to 10 s, which may report that it couldn't
+  // re-read a source. While it runs, GetRun tells each step's state under
+  // its run_id.
+  rpc RunAction(RunActionRequest) returns (RunActionResponse) {
+    option (ddash.action) = {};
+  }
+  // GetRun returns how far the App Action RunAction runs under run_id
+  // has got: each Plan step's state, polled by the Plan Dialog while it
+  // waits for RunAction. Empty before the run's first write and once
+  // RunAction answered, which says how it ended.
+  rpc GetRun(GetRunRequest) returns (GetRunResponse) {
+    option (ddash.getter) = {refresh: NONE};
   }
   // ListWorkloads returns every Workload proxmox-api and docker-api list
   // now, to pick a Workload override from: containers by host, then
@@ -50,43 +103,262 @@ service AppsService {
   rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
-  // ListProxyHosts returns every server block in nginx-config's snapshot
-  // that forwards to an upstream (some location has a proxy_pass), by first
-  // server_name, each with the App it yields and what looks wrong with it.
-  rpc ListProxyHosts(ListProxyHostsRequest) returns (ListProxyHostsResponse) {
-    option (ddash.getter) = {refresh: SLOW};
-  }
 }
 
 // An App, as the Operator sees it.
 message App {
-  // "proxy:<first server_name>" for a discovered App, "manual:<generated>"
-  // for a manual one.
+  // Opaque and kept for the App's life, whatever its URL: Checks key on
+  // it.
   string id = 1;
-  // A discovered App's first server_name, the key of its overlay; empty for
-  // a manual App.
-  string server_name = 2;
-  // The display name: the overlay's, else derived from the first label of
-  // the server_name (e.g. "Grafana"); a manual App's own.
-  string name = 3;
+  // The display name: the settings', else derived from the first label
+  // of the URL's hostname (e.g. "Grafana").
+  string name = 2;
   // Where the App opens, e.g. "https://grafana.home.example".
-  string url = 4;
-  // The Proxy Host's other server_names.
-  repeated string aliases = 5;
-  // A homarr-labs/dashboard-icons name, e.g. "jellyfin"; empty to match one
-  // by name.
-  string icon = 6;
-  // The group the App shows under; empty for the default section.
-  string group = 7;
-  bool hidden = 8;
-  bool manual = 9;
-  // A discovered App's overlay as set; unset without one.
-  Overlay overlay = 10;
-  // The Workload behind the App: the overlay's override, else the
+  string url = 3;
+  // Its further hostnames: its Proxy Host's other domain names and its
+  // Host Override's own name and aliases, sorted.
+  repeated string aliases = 4;
+  // The settings' icon, group and Hidden.
+  string icon = 5;
+  string group = 6;
+  bool hidden = 7;
+  // How it is reached, derived on every sync; unspecified while that
+  // can't be told (an orphan, or before its source was first read).
+  Reach reach = 8;
+  // Orphaned App settings: a touched App whose sources are gone. It has
+  // no Check while orphaned.
+  bool orphaned = 9;
+  // The Operator ever set a setting or an Ignore on it: such an App is
+  // kept as orphaned App settings when its sources disappear.
+  bool touched = 10;
+  // The settings as set; empty fields keep the defaults.
+  AppSettings settings = 11;
+  // The sources it is linked to.
+  Links links = 12;
+  // Its Proxy Host as last read; unset without one.
+  ProxyHost proxy_host = 13;
+  // The Workload behind the App: the settings' override, else the
   // container publishing the upstream's port on a Docker host, else the
   // Proxmox guest with the upstream's address. Unset for none, or while
   // the source that would list it is unavailable.
-  Workload workload = 11;
+  Workload workload = 14;
+  // What looks wrong, in WarningKind order, Ignored ones included.
+  repeated Warning warnings = 15;
+  // Every Host Override and alias registering one of its hostnames, in
+  // pfSense's order; empty before pfSense was first read.
+  repeated HostOverrideOrAlias dns = 16;
+  // How its Workload reaches the internet, from network by the Workload's
+  // address (a container's Docker host's); unset without a Workload with
+  // an IP address, or while network can't answer.
+  NetworkInfo network = 17;
+}
+
+// An App's network info: read only, changed on the Network Page.
+message NetworkInfo {
+  // The address it was read at: the Docker host's for a container, the
+  // guest's first IP, an external host's IP.
+  string address = 1;
+  InternetPath internet_path = 2;
+  // Ads Allowed: AdGuard doesn't filter the address.
+  bool ads_allowed = 3;
+  // The Device holding the address; unset for none (servers with fixed
+  // addresses aren't Devices).
+  NetworkDevice device = 4;
+}
+
+// The internet path, as network names it.
+enum InternetPath {
+  INTERNET_PATH_UNSPECIFIED = 0;
+  INTERNET_PATH_TUNNELLED = 1;
+  INTERNET_PATH_DIRECT = 2;
+  INTERNET_PATH_NO_INTERNET = 3;
+}
+
+// A Device, enough to link to it on the Network Page.
+message NetworkDevice {
+  string mac = 1;
+  string name = 2;
+}
+
+enum Reach {
+  REACH_UNSPECIFIED = 0;
+  // A Proxy Host serves it, or a hostname of it resolves to the Reverse
+  // Proxy's address.
+  REACH_PROXIED = 1;
+  // It has no source: the Operator added it by hand.
+  REACH_LINK_ONLY = 2;
+  // Its own Host Override points elsewhere than the Reverse Proxy, with
+  // or without a Proxy Host ("DNS bypasses the Reverse Proxy" with one).
+  REACH_NOT_PROXIED = 3;
+}
+
+// The Operator's ddash-only settings for an App.
+message AppSettings {
+  // Empty for the name derived from the URL.
+  string name = 1;
+  // A homarr-labs/dashboard-icons name, e.g. "jellyfin"; empty to match
+  // one by name.
+  string icon = 2;
+  // The group the App shows under; empty for the default section.
+  string group = 3;
+  bool hidden = 4;
+  // The Workload the App runs on, overriding the match; unset to match.
+  ddash.workload.WorkloadRef workload = 5;
+}
+
+// The sources an App's record is linked to, kept across their renames.
+message Links {
+  // Nginx Proxy Manager's id of its Proxy Host; 0 for none.
+  int64 proxy_host_id = 1;
+  // A Not-proxied App's own Host Override (pfSense has no stable id);
+  // unset for none.
+  HostOverrideName host_override = 2;
+}
+
+// A Host Override's name: host may be empty, naming the domain itself.
+message HostOverrideName {
+  string host = 1;
+  string domain = 2;
+}
+
+// A Host Override or one of its aliases, as pfSense lists it.
+message HostOverrideOrAlias {
+  string host = 1;
+  string domain = 2;
+  // An alias's Host Override; unset for a Host Override.
+  HostOverrideName parent = 3;
+  // The addresses it resolves to: its own, or its Host Override's.
+  repeated string ips = 4;
+}
+
+// A Proxy Host as apps last read it from nginx-proxy-manager-api.
+message ProxyHost {
+  int64 id = 1;
+  // Its fields, its hostnames sorted.
+  ddash.proxyhost.ProxyHostFields fields = 2;
+  // Disabled in Nginx Proxy Manager: saved but not served. A label, no
+  // Warning.
+  bool enabled = 3;
+  // Offline: nginx rejected its config when it was last saved.
+  bool offline = 4;
+  string nginx_error = 5;
+  // The certificate fields.certificate_id names, as Nginx Proxy Manager's
+  // last good read of its certificates lists it; unset for none, or
+  // before that read.
+  Certificate certificate = 6;
+}
+
+// A Proxy Host's certificate and its state.
+message Certificate {
+  // Its nice name, e.g. "*.home.example".
+  string name = 1;
+  CertificateState state = 2;
+  // What the Operator does about it; empty when OK.
+  string message = 3;
+}
+
+// A certificate's state, as nginx-proxy-manager-api tells it.
+enum CertificateState {
+  CERTIFICATE_STATE_UNSPECIFIED = 0;
+  CERTIFICATE_STATE_OK = 1;
+  // Let's Encrypt with 20 days or less left.
+  CERTIFICATE_STATE_NOT_RENEWING = 2;
+  // Uploaded, with 30 days or less left.
+  CERTIFICATE_STATE_EXPIRES_SOON = 3;
+  CERTIFICATE_STATE_EXPIRED = 4;
+}
+
+// Something about an App the Operator should fix or Ignore.
+message Warning {
+  WarningKind kind = 1;
+  // Ignored on this App: listed, but doesn't count.
+  bool ignored = 2;
+  // What the kind needs said, e.g. nginx's error for an Offline Proxy
+  // Host; empty for most.
+  string detail = 3;
+  // The hostnames it is about, sorted, for the kinds about names: Not
+  // registered, No Proxy Host, DNS bypasses the Reverse Proxy, Registered
+  // twice, Hostname on two Apps.
+  repeated string hostnames = 4;
+  // What fixes it, in the order offered.
+  repeated Fix fixes = 5;
+}
+
+// One way to fix a Warning, with what it acts on. External fixes run as
+// App Actions with a Plan: Delete App and Add reverse proxy as their own,
+// the others as FixWarning. ddash-only ones change the App at once.
+message Fix {
+  FixKind kind = 1;
+  // The hostname it acts on: Register, Remove the name, Point at Reverse
+  // Proxy, Use as URL.
+  string hostname = 2;
+  // Delete either entry: the Host Override or alias to delete.
+  HostOverrideOrAlias host_override = 3;
+  // Merge: the other App sharing the hostname.
+  string app_id = 4;
+  // Save again, Delete Proxy Host: the Proxy Host's id.
+  int64 proxy_host_id = 5;
+}
+
+enum FixKind {
+  FIX_KIND_UNSPECIFIED = 0;
+  // Register the hostname as an alias of the Reverse Proxy's Host
+  // Override. External.
+  FIX_KIND_REGISTER = 1;
+  // Delete the App, its Proxy Host and DNS with it. External.
+  FIX_KIND_DELETE_APP = 2;
+  // Put the App behind the Reverse Proxy with a new Proxy Host. External.
+  FIX_KIND_ADD_REVERSE_PROXY = 3;
+  // Remove the hostname from pfSense. External.
+  FIX_KIND_REMOVE_NAME = 4;
+  // Set a Workload override (SetSettings). ddash only.
+  FIX_KIND_SET_WORKLOAD_OVERRIDE = 5;
+  // Pick a certificate in the Reverse proxy Panel. External.
+  FIX_KIND_PICK_CERTIFICATE = 6;
+  // Send the Proxy Host to Nginx Proxy Manager again. External.
+  FIX_KIND_SAVE_AGAIN = 7;
+  // Make the hostname the URL's (PromoteAlias). ddash only.
+  FIX_KIND_USE_AS_URL = 8;
+  // Replace the hostname's Host Override with an alias of the Reverse
+  // Proxy's Host Override. External.
+  FIX_KIND_POINT_AT_REVERSE_PROXY = 9;
+  // Delete the Proxy Host. External.
+  FIX_KIND_DELETE_PROXY_HOST = 10;
+  // Delete the entry from pfSense. External.
+  FIX_KIND_DELETE_ENTRY = 11;
+  // Merge the other App into this one (Merge). ddash only.
+  FIX_KIND_MERGE = 12;
+  // Reattach the orphaned App settings to an App (Reattach). ddash only.
+  FIX_KIND_REATTACH = 13;
+  // Delete the orphaned App settings (DeleteRecord). ddash only.
+  FIX_KIND_DELETE_ORPHAN = 14;
+}
+
+enum WarningKind {
+  WARNING_KIND_UNSPECIFIED = 0;
+  // A proxied App matched no Workload and has no override. Never while a
+  // Workload source can't be read.
+  WARNING_KIND_NO_WORKLOAD = 1;
+  // Its Proxy Host has no certificate.
+  WARNING_KIND_NO_TLS = 2;
+  // Its Proxy Host is Offline; the detail is nginx's error.
+  WARNING_KIND_PROXY_HOST_OFFLINE = 3;
+  // Its URL's hostname is no longer among its Proxy Host's domain names
+  // (renamed in Nginx Proxy Manager).
+  WARNING_KIND_URL_NOT_ON_PROXY_HOST = 4;
+  // Orphaned App settings: a touched App lost its sources.
+  WARNING_KIND_ORPHANED = 5;
+  // A proxied App's hostname is no Host Override or alias.
+  WARNING_KIND_NOT_REGISTERED = 6;
+  // A hostname at the Reverse Proxy's address that no Proxy Host serves.
+  WARNING_KIND_NO_PROXY_HOST = 7;
+  // A Proxy Host's hostname resolves elsewhere than the Reverse Proxy.
+  WARNING_KIND_DNS_BYPASSES = 8;
+  // A hostname is both a Host Override and an alias, or an alias under
+  // two Host Overrides; each has its Delete fix.
+  WARNING_KIND_REGISTERED_TWICE = 9;
+  // Another App has the hostname too; Merge makes them one.
+  WARNING_KIND_HOSTNAME_ON_TWO_APPS = 10;
 }
 
 // A Workload as apps last read it.
@@ -98,131 +370,348 @@ message Workload {
   // Docker's state (running, exited, ...) or Proxmox's status (running,
   // stopped); empty when not known.
   string state = 3;
-  // Set by the overlay rather than matched.
+  // Set by the settings rather than matched.
   bool override = 4;
 }
 
-// The Operator's display settings for a discovered App, kept when its
-// Proxy Host disappears and re-applied when it returns.
-message Overlay {
-  // The first server_name of the App it applies to.
-  string server_name = 1;
-  // Empty fields keep the App's defaults.
-  string name = 2;
-  string icon = 3;
-  string group = 4;
-  bool hidden = 5;
-  // The Workload the App runs on, overriding the match; unset to match.
-  ddash.workload.WorkloadRef workload = 6;
-}
-
-// What the Operator gives a manual App.
-message ManualApp {
-  string name = 1;
-  // An http or https URL.
-  string url = 2;
-  string icon = 3;
-  string group = 4;
+// How apps last read one of its sources. While reads fail, Apps keep the
+// last good read: nothing is removed, and before the first good read
+// since apps started no Warning needing the source is derived.
+message SourceRead {
+  // When the last good read was; unset before the first since apps
+  // started.
+  google.protobuf.Timestamp read_at = 1;
+  // Why the last read failed; empty when it worked.
+  string error = 2;
+  // When reads started failing; unset while they work.
+  google.protobuf.Timestamp failing_since = 3;
+  // The source's Component has no config yet: the Operator sets it up.
+  bool not_configured = 4;
+  // The source reads, but refuses ddash's writes (Nginx Proxy Manager's
+  // Proxy Hosts set to View for ddash's user).
+  bool read_only = 5;
 }
 
 message ListAppsRequest {}
 
 message ListAppsResponse {
-  // Every App, hidden ones included, by name.
+  // Every App, Hidden and orphaned ones included, by name.
   repeated App apps = 1;
-  // Overlays whose server_name no App has (its Proxy Host is gone or was
-  // renamed), to re-attach or delete.
-  repeated Overlay unmatched = 2;
-  // Why nginx-config couldn't be read; the discovered Apps are then those
-  // of the last read. Empty when it could.
-  string discovery_error = 3;
+  // nginx-proxy-manager-api's Proxy Hosts.
+  SourceRead proxy_hosts = 2;
+  // pfsense-api's Host Overrides.
+  SourceRead host_overrides = 3;
+  // The Reverse Proxy's Host Override, as the last reads found it.
+  ReverseProxy reverse_proxy = 4;
+  // Why network couldn't give the Apps' network info; empty when it
+  // could.
+  string network_error = 5;
+  // Why AdGuard couldn't be read, so no App shows Ads Allowed; empty when
+  // it could.
+  string adguard_error = 6;
 }
 
-message SetOverlayRequest {
-  Overlay overlay = 1;
+// The Reverse Proxy as Apps see it: its address, and the Host Overrides
+// at it. Exactly one is the Reverse Proxy's Host Override; with none or
+// several, reads still work, but the writes that create or move proxied
+// hostnames are blocked with the notice.
+message ReverseProxy {
+  // nginx-proxy-manager-api's GetStatus address; empty while unknown.
+  string address = 1;
+  // Every Host Override at that address, host.domain, in pfSense's order.
+  repeated string host_overrides = 2;
+  // Why proxied writes are blocked, to show as a Notice; empty when
+  // exactly one Host Override is the Reverse Proxy's, and before the
+  // address and the Host Overrides were first read.
+  string notice = 3;
 }
 
-message SetOverlayResponse {}
+message RefreshRequest {}
 
-message AttachOverlayRequest {
-  // The overlay's current key.
-  string server_name = 1;
-  // The first server_name of the App to attach it to.
+message RefreshResponse {}
+
+message SetSettingsRequest {
+  string id = 1;
+  AppSettings settings = 2;
+}
+
+message SetSettingsResponse {}
+
+message IgnoreWarningRequest {
+  string id = 1;
+  WarningKind kind = 2;
+}
+
+message IgnoreWarningResponse {}
+
+message UnignoreWarningRequest {
+  string id = 1;
+  WarningKind kind = 2;
+}
+
+message UnignoreWarningResponse {}
+
+message ReattachRequest {
+  // The orphaned App settings' id.
+  string id = 1;
+  // The App to reattach them to.
   string to = 2;
 }
 
-message AttachOverlayResponse {}
+message ReattachResponse {}
 
-message DeleteOverlayRequest {
-  string server_name = 1;
-}
-
-message DeleteOverlayResponse {}
-
-message CreateAppRequest {
-  ManualApp app = 1;
-}
-
-message CreateAppResponse {
-  App app = 1;
-}
-
-message UpdateAppRequest {
-  string id = 1;
-  ManualApp app = 2;
-}
-
-message UpdateAppResponse {
-  App app = 1;
-}
-
-message DeleteAppRequest {
+message DeleteRecordRequest {
   string id = 1;
 }
 
-message DeleteAppResponse {}
+message DeleteRecordResponse {}
+
+message PromoteAliasRequest {
+  string id = 1;
+  // One of the App's aliases.
+  string alias = 2;
+}
+
+message PromoteAliasResponse {}
+
+message MergeRequest {
+  // The App that stays, with its id and settings.
+  string id = 1;
+  // The App merged into it, whose record goes.
+  string from = 2;
+}
+
+message MergeResponse {}
+
+// A change to an App that writes to Nginx Proxy Manager or pfSense, adds
+// an App or deletes one: it runs through a Plan (PlanAction, RunAction).
+message AppAction {
+  oneof action {
+    AddApp add = 1;
+    ChangeAddress change_address = 2;
+    ChangeProxyHost change_proxy_host = 3;
+    AddReverseProxy add_reverse_proxy = 4;
+    RemoveReverseProxy remove_reverse_proxy = 5;
+    DeleteApp delete = 6;
+    // An external fix of one of the App's Warnings: Register, Remove the
+    // name, Save again, Point at Reverse Proxy, Delete Proxy Host and
+    // Delete an entry.
+    FixWarning fix = 7;
+  }
+}
+
+// Change an App's URL and aliases. Each hostname added must be free; one
+// kept for orphaned App settings is refused, naming them. A proxied App's
+// Proxy Host serves the new names and the Reverse Proxy's Host Override
+// registers them as aliases; a Not-proxied App's own Host Override
+// registers them, renamed when its own name goes. The App keeps its id,
+// settings and Check history.
+message ChangeAddress {
+  string id = 1;
+  // The new URL: an http or https URL.
+  string url = 2;
+  // The new aliases: its hostnames but the URL's.
+  repeated string aliases = 3;
+}
+
+// Change the fields of an App's Proxy Host but its domain names. Any
+// managed field changed in Nginx Proxy Manager since the Plan refuses it,
+// touched or not; the fields ddash doesn't manage are kept.
+message ChangeProxyHost {
+  string id = 1;
+  ddash.proxyhost.ProxyHostFields proxy_host = 2;
+}
+
+// Put an App without a Proxy Host behind the Reverse Proxy: a Proxy Host
+// serving its hostnames, each of them an alias of the Reverse Proxy's
+// Host Override in place of the App's own Host Override.
+message AddReverseProxy {
+  string id = 1;
+  ddash.proxyhost.ProxyHostFields proxy_host = 2;
+}
+
+// Take an App from behind the Reverse Proxy: delete its Proxy Host, and
+// register its hostnames as a Host Override of its own at address in
+// place of the Reverse Proxy's aliases.
+message RemoveReverseProxy {
+  string id = 1;
+  // The address its Host Override resolves to, e.g. its upstream's.
+  string address = 2;
+}
+
+// Delete an App: its Proxy Host, its Host Override or the Reverse Proxy's
+// aliases for it, then its record and Check. A Link-only App's Plan
+// changes ddash alone.
+message DeleteApp {
+  string id = 1;
+}
+
+// Run one of the fixes an App's Warning offers, as ListApps gave it.
+message FixWarning {
+  string id = 1;
+  Fix fix = 2;
+}
+
+// Add App: an App and, by its Reach, its Proxy Host and DNS.
+message AddApp {
+  // Where it opens: an http or https URL. Proxied and Not proxied, its
+  // host is a hostname in the home domain (the Reverse Proxy's Host
+  // Override's).
+  string url = 1;
+  // The ddash-only settings; empty for the defaults.
+  string name = 2;
+  string icon = 3;
+  string group = 4;
+  // PROXIED: a Proxy Host serving the URL's hostname, and the hostname as
+  // an alias of the Reverse Proxy's Host Override. NOT_PROXIED: a Host
+  // Override for the hostname at address. LINK_ONLY: nothing outside
+  // ddash.
+  Reach reach = 5;
+  // PROXIED: the new Proxy Host's fields.
+  ddash.proxyhost.ProxyHostFields proxy_host = 6;
+  // NOT_PROXIED: the address the Host Override resolves to.
+  string address = 7;
+}
+
+// An App Action's Plan: its steps in the order they run, the "name is
+// free" notes on the hostnames it adds, and why it can't run, if it can't.
+message Plan {
+  repeated PlanStep steps = 1;
+  // One note for each hostname that is taken, or that reattaches orphaned
+  // App settings; empty when every name is free.
+  repeated NameNote names = 2;
+  // Why it can't run now, each as the Operator reads it, e.g. the Reverse
+  // Proxy's Host Override problem; empty when it can. A taken name blocks
+  // it too, by its note alone.
+  repeated string blocked = 3;
+  // What the Operator should know before confirming that doesn't keep it
+  // from running, e.g. names a deleted Proxy Host leaves registered.
+  repeated string notes = 4;
+}
+
+// One step of a Plan: a write to one system, with the values it expects
+// to find there and those it writes.
+message PlanStep {
+  System system = 1;
+  // What it does, e.g. "Create Proxy Host grafana.home.example".
+  string title = 2;
+  repeated PlanValue values = 3;
+}
+
+// The systems a Plan's steps write to.
+enum System {
+  SYSTEM_UNSPECIFIED = 0;
+  // ddash's own App records.
+  SYSTEM_DDASH = 1;
+  SYSTEM_NGINX_PROXY_MANAGER = 2;
+  SYSTEM_PFSENSE = 3;
+}
+
+// A value a step expects to find and the one it writes.
+message PlanValue {
+  // e.g. "Upstream".
+  string label = 1;
+  // What the step expects to find; empty for nothing.
+  string before = 2;
+  // What it writes; empty for nothing (removed).
+  string after = 3;
+}
+
+// Why a hostname an Action adds isn't free, or that it reattaches
+// orphaned App settings.
+message NameNote {
+  string hostname = 1;
+  NameNoteKind kind = 2;
+  // The note as the Operator reads it, e.g. "grafana.home.example is taken
+  // by Grafana."
+  string text = 3;
+  // APP, REATTACH and ORPHAN: the App's id.
+  string app_id = 4;
+  // APP, REATTACH, ORPHAN and DEVICE: the App's or Device's name.
+  string name = 5;
+  // APP: the App is Hidden.
+  bool hidden = 6;
+  // DEVICE: the Device's MAC.
+  string device_mac = 7;
+}
+
+enum NameNoteKind {
+  NAME_NOTE_KIND_UNSPECIFIED = 0;
+  // The URL has no hostname a Proxy Host or Host Override can have.
+  NAME_NOTE_KIND_NOT_A_HOSTNAME = 1;
+  // An App has it as its URL's hostname or an alias.
+  NAME_NOTE_KIND_APP = 2;
+  // It is the Reverse Proxy's own name.
+  NAME_NOTE_KIND_REVERSE_PROXY = 3;
+  // A Host Override or alias no App has yet registers it.
+  NAME_NOTE_KIND_HOST_OVERRIDE = 4;
+  // A Proxy Host no App has yet serves it.
+  NAME_NOTE_KIND_PROXY_HOST = 5;
+  // It is a Device's reservation hostname in its DHCP domain: taken for
+  // Reverse proxy and Host Override, free for Link only.
+  NAME_NOTE_KIND_DEVICE = 6;
+  // Orphaned App settings were kept for it: adding it reattaches them.
+  // It doesn't block.
+  NAME_NOTE_KIND_REATTACH = 7;
+  // Orphaned App settings were kept for it: an App's new URL or alias
+  // can't have it until they are reattached or deleted.
+  NAME_NOTE_KIND_ORPHAN = 8;
+}
+
+message PlanActionRequest {
+  AppAction action = 1;
+}
+
+message PlanActionResponse {
+  Plan plan = 1;
+}
+
+message RunActionRequest {
+  AppAction action = 1;
+  // The Plan the Operator confirmed, as PlanAction gave it.
+  Plan plan = 2;
+  // Names the run for GetRun, e.g. a random id the Plugin made; empty
+  // for a run nobody follows.
+  string run_id = 3;
+}
+
+message GetRunRequest {
+  string run_id = 1;
+}
+
+message GetRunResponse {
+  // Each Plan step's state, in the Plan's order.
+  repeated StepState steps = 1;
+}
+
+// Where a Plan step of a running App Action is.
+enum StepState {
+  STEP_STATE_UNSPECIFIED = 0;
+  // Not started.
+  STEP_STATE_PENDING = 1;
+  // Being written: pfSense's steps run together, as one batch.
+  STEP_STATE_RUNNING = 2;
+  STEP_STATE_DONE = 3;
+  // It failed: the run stops there.
+  STEP_STATE_FAILED = 4;
+}
+
+// What an App Action did; also the details of the error of one that
+// stopped at a failed step.
+message RunActionResponse {
+  // The App it added, changed or deleted.
+  string app_id = 1;
+  // How many of the Plan's steps were done, from the first: all of them,
+  // or those before the failed one.
+  int32 done = 2;
+  // Why the sync ending it couldn't re-read the sources, e.g. "couldn't
+  // re-read: pfsense-api: timeout"; empty when it could. What it wrote
+  // stands either way.
+  string reread = 3;
+}
 
 message ListWorkloadsRequest {}
 
 message ListWorkloadsResponse {
   repeated Workload workloads = 1;
-}
-
-message ListProxyHostsRequest {}
-
-message ListProxyHostsResponse {
-  // By first server_name; blocks sharing one keep nginx's order.
-  repeated ProxyHost proxy_hosts = 1;
-  // Why nginx-config couldn't be read; the Proxy Hosts are then those of
-  // the last read. Empty when it could.
-  string discovery_error = 2;
-}
-
-// A Proxy Host: an nginx server block that forwards to an upstream.
-message ProxyHost {
-  // Where the block starts.
-  string file = 1;
-  int64 line = 2;
-  // As written; the first is the App's key.
-  repeated string server_names = 3;
-  // The proxy_pass of location "/", else of the first location with one,
-  // as written, e.g. "http://grafana".
-  string upstream = 4;
-  // The servers of the upstream block the proxy_pass names; empty when it
-  // names none.
-  repeated string upstream_servers = 5;
-  // The App the block yields, as ListApps lists it; unset for a block that
-  // yields none (a catch-all, or a wildcard or regex first server_name).
-  App app = 6;
-  // What looks wrong, in this order.
-  repeated ProxyHostWarning warnings = 7;
-}
-
-enum ProxyHostWarning {
-  PROXY_HOST_WARNING_UNSPECIFIED = 0;
-  // The App's upstream matches no Workload. Never while a Workload source
-  // can't be read, or without an App.
-  PROXY_HOST_WARNING_NO_WORKLOAD = 1;
-  // None of the block's listens has ssl.
-  PROXY_HOST_WARNING_NO_TLS = 2;
 }

@@ -1,7 +1,7 @@
 import type { Status, Widget, WidgetSize } from "@ddash/plugin";
 import { State } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, EmptyState, Skeleton, StatusDot } from "@ddash/ui";
-import { useApps, visible } from "./apps";
+import { useApps, visible, warned } from "./apps";
 import { checkStatus } from "@ddash/display";
 import { useAppChecks, worst } from "./checks";
 
@@ -9,11 +9,12 @@ import { useAppChecks, worst } from "./checks";
 const fits: Record<WidgetSize, number> = { S: 4, M: 6, L: 16 };
 
 /**
- * The worst of the visible Apps' Checks: down names the Apps that are
- * down, warn those up but Flapping or with a certificate expiring within
- * 14 days, then Maintenance, else up with how many are. A pending Check
- * counts for nothing. Idle without Apps or before any Check is up or down;
- * warn while apps or checks is unavailable.
+ * The worst of the visible Apps' Checks and the Warnings that count: down
+ * names the Apps that are down; warn those up but Flapping or with a
+ * certificate expiring within 14 days, and how many Warnings count on
+ * which Apps; then Maintenance, else up with how many are. A pending
+ * Check counts for nothing. Idle without Apps or before any Check is up or
+ * down; warn while apps or checks is unavailable.
  */
 function useStatus(): Status | undefined {
   const { list, error } = useApps();
@@ -24,6 +25,13 @@ function useStatus(): Status | undefined {
   if (checksError) return { tone: "warn", summary: `checks unavailable: ${checksError.rawMessage}` };
   if (!byApp) return undefined;
   const w = worst(apps, byApp);
+  const flagged = warned(list.apps);
+  if (w?.tone !== "down" && flagged.length > 0) {
+    const n = flagged.reduce((sum, f) => sum + f.warnings.length, 0);
+    const checkWarnings = w?.tone === "warn" ? w.hit.map((h) => `${h.app.name}: ${h.status.label}`) : [];
+    const summary = `${n} ${n === 1 ? "Warning" : "Warnings"}: ${flagged.map((f) => f.app.name).join(", ")}`;
+    return { tone: "warn", summary: [...checkWarnings, summary].join("; ") };
+  }
   if (!w) {
     const pending = apps.some((a) => {
       const c = byApp.get(a.id);
@@ -51,7 +59,7 @@ function Body({ size }: { size: WidgetSize }) {
   // While apps is unavailable, the Widget's status says so.
   if (!list) return error ? null : <Skeleton height={size === "L" ? "lg" : "md"} />;
   const apps = visible(list.apps);
-  if (apps.length === 0) return <EmptyState icon="layout-grid" title="No Apps yet">Proxy Hosts show here once nginx-config reads them.</EmptyState>;
+  if (apps.length === 0) return <EmptyState icon="layout-grid" title="No Apps yet">Proxy Hosts show here once ddash reads them from Nginx Proxy Manager.</EmptyState>;
   const shown = apps.slice(0, fits[size]);
   const more = apps.length - shown.length;
   return (

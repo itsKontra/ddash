@@ -18,8 +18,7 @@
 // Record mode (Recorder, Record) is the other direction: a reverse proxy to
 // the real system writing each response's body, never its headers, into a
 // scenario in this layout after a Scrub (internal/scrub) rewrote it.
-// WriteCommand does the same for a command an SSH fake answers. `make
-// record` (internal/smoke) uses both.
+// `make record` (internal/smoke) uses it.
 package fixture
 
 import (
@@ -99,6 +98,16 @@ func Scenario(dir string, miss func(request string, err error)) http.Handler {
 		miss(request, fmt.Errorf("no file for %s in %v", request, dirs))
 		http.NotFound(w, r)
 	})
+}
+
+// scenarioDirs is where a scenario's files are looked for: in dir, then in
+// its sibling baseline.
+func scenarioDirs(dir string) []string {
+	dirs := []string{dir}
+	if baseline := filepath.Join(filepath.Dir(dir), "baseline"); filepath.Clean(dir) != baseline {
+		dirs = append(dirs, baseline)
+	}
+	return dirs
 }
 
 // Read returns the body a GET of urlPath answers with in the scenario in

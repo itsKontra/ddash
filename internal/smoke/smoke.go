@@ -1,16 +1,16 @@
-// Package smoke runs every system Component's getters against real systems
-// (`make smoke`) and, with a Record, also writes what they answered as
-// scrubbed fixtures (`make record`). It is run by hand from a dev machine on
+// Package smoke runs every system Component's getters against real systems,
+// then network's info by address over them (`make smoke`) and, with a
+// Record, also writes what the system Components answered as scrubbed
+// fixtures (`make record`). It is run by hand from a dev machine on
 // the LAN, never in CI or on a schedule: cmd/smoke reads the gitignored
 // smoke.env and scrub.map.
 //
 // Each Component runs in-process with its config from smoke.env (variable
-// EnvVar(name), the config as protojson) and its DB in DataDir, so
-// nginx-config's key survives between runs and is authorized once. Every
-// getter must answer, its invariants must hold and the Component must be
-// healthy. Recording puts a fixture.Recorder between an HTTP Component and
-// its system and captures `nginx -T` with nginx-config's key afterwards;
-// every file goes through the Scrubber, and a file it refuses fails the run.
+// EnvVar(name), the config as protojson) and its DB in DataDir, kept
+// between runs. Every getter must answer, its invariants must hold and the
+// Component must be healthy. Recording puts a fixture.Recorder between an
+// HTTP Component and its system; every file goes through the Scrubber, and
+// a file it refuses fails the run.
 //
 // RunWrites (`make smoke-writes`, opt-in) runs the real Actions instead, as
 // reversible round trips on the smoke targets only; see writes.go.
@@ -70,13 +70,14 @@ type Record struct {
 	Scrubber *scrub.Scrubber
 }
 
-// Components lists the system Components smoke runs, in order.
+// Components lists the Components smoke runs, in order: the system
+// Components, then network.
 func Components() []string {
 	var out []string
 	for _, s := range systems {
 		out = append(out, s.def.Name())
 	}
-	return out
+	return append(out, networkName)
 }
 
 // EnvVar is the smoke.env variable holding component's config:
@@ -98,6 +99,7 @@ func Run(ctx context.Context, opts Options) error {
 	for _, s := range systems {
 		errs = append(errs, runSystem(ctx, s, opts)...)
 	}
+	errs = append(errs, runNetwork(ctx, opts)...)
 	if len(errs) > 0 {
 		fmt.Fprintf(opts.Log, "FAILED: %d problem(s)\n", len(errs))
 	}
@@ -135,18 +137,6 @@ func runSystem(ctx context.Context, s system, opts Options) []error {
 
 	dbPath := filepath.Join(opts.DataDir, name+".db")
 	errs = append(errs, exercise(ctx, s, startCfg, dbPath, opts.Log, fail)...)
-
-	if opts.Record != nil && s.capture != nil {
-		command, out, err := s.capture(ctx, dbPath, cfg)
-		if err == nil {
-			err = fixture.WriteCommand(dir, command, out, opts.Record.Scrubber.Fixture)
-		}
-		if err != nil {
-			errs = append(errs, fail("recording %s: %v", command, err))
-		} else {
-			fmt.Fprintf(opts.Log, "recorded %s %s\n", name, command)
-		}
-	}
 	return errs
 }
 
@@ -232,13 +222,14 @@ func configOf(s system, env map[string]string) (proto.Message, error) {
 	return cfg, nil
 }
 
-// launch runs def in-process with its DB at dbPath and starts it with cfg.
-// stop stops it.
-func launch(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath string, log io.Writer) (conn *grpc.ClientConn, stop func(), err error) {
+// launch runs def in-process with its DB at dbPath and starts it with cfg,
+// its required Components answered by clients. stop stops it.
+func launch(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath string, log io.Writer, clients ...any) (conn *grpc.ClientConn, stop func(), err error) {
 	name := def.Name()
 	inst := sdk.NewInstance(def, sdk.InstanceOptions{
-		DBPath: dbPath,
-		Logger: slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
+		DBPath:  dbPath,
+		Logger:  slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
+		Clients: clients,
 	})
 	conn, stopServe, err := inmem.Serve(name, inst.Register)
 	if err != nil {
@@ -323,7 +314,7 @@ func messages(m protoreflect.MethodDescriptor) (req, resp proto.Message, err err
 }
 
 // setupHint is the block of the setup hint the Component offers (its
-// config's setup_from getter), such as nginx-config's authorized_keys line.
+// config's setup_from getter), such as an authorized_keys line.
 func setupHint(cfg proto.Message, answers map[string]proto.Message) string {
 	form, _ := proto.GetExtension(cfg.ProtoReflect().Descriptor().Options(), configpb.E_Form).(*configpb.Form)
 	answer := answers[form.GetSetupFrom()]

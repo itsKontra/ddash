@@ -1,0 +1,24 @@
+{
+  "id": 2,
+  "created_on": "2026-10-20 08:41:17",
+  "modified_on": "2026-10-20 08:43:05",
+  "is_disabled": 0,
+  "email": "ddash@home.example",
+  "name": "ddash",
+  "nickname": "ddash",
+  "avatar": "",
+  "roles": [],
+  "permissions": {
+    "id": 2,
+    "created_on": "2026-10-20 08:41:17",
+    "modified_on": "2026-10-20 08:43:05",
+    "user_id": 2,
+    "visibility": "all",
+    "proxy_hosts": "manage",
+    "redirection_hosts": "hidden",
+    "dead_hosts": "hidden",
+    "streams": "hidden",
+    "access_lists": "hidden",
+    "certificates": "view"
+  }
+}

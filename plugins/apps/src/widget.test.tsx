@@ -1,9 +1,9 @@
 import { cleanup, screen, within } from "@testing-library/react";
-import type { Status, WidgetSize } from "@ddash/plugin";
+import type { Badge, Status, WidgetSize } from "@ddash/plugin";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { settle, unavailable } from "@ddash/plugin/testing";
-import { allUp, checks, renderScoped } from "./testing";
+import { allUp, checks, renderScoped, warned } from "./testing";
 
 afterEach(cleanup);
 
@@ -25,6 +25,44 @@ it("is up with the visible Apps' count when all their Checks are up", async () =
   await settle();
 
   expect(seen).toEqual({ tone: "up", summary: "4 of 4 Apps up" });
+});
+
+it("warns of the Warnings that count, naming their Apps", async () => {
+  renderScoped(<Probe />, { ListApps: () => Response.json(warned), ListChecks: () => Response.json(allUp) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "warn", summary: "3 Warnings: Jellyfin, Printer" });
+});
+
+it("counts no Ignored Warning and none on a Hidden App", async () => {
+  // list's Warnings are all Ignored or on the Hidden Old.
+  renderScoped(<Probe />, { ListChecks: () => Response.json(allUp) });
+  await settle();
+
+  expect(seen?.tone).toBe("up");
+});
+
+it("stays down while a Check is down, Warnings or not", async () => {
+  renderScoped(<Probe />, { ListApps: () => Response.json(warned) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "down", summary: "1 down: Jellyfin" });
+});
+
+it("badges the Nav Entry with how many Warnings count", async () => {
+  let badge: Badge | null = null;
+  function Badged() {
+    badge = plugin.nav!.useBadge!();
+    return null;
+  }
+  renderScoped(<Badged />, { ListApps: () => Response.json(warned) });
+  await settle();
+  expect(badge).toEqual({ count: 3, tone: "warn" });
+  cleanup();
+
+  renderScoped(<Badged />);
+  await settle();
+  expect(badge).toBeNull();
 });
 
 it("is down, naming the Apps whose Check is down, the worst of their Checks", async () => {

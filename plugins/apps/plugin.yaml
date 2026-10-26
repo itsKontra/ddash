@@ -1,6 +1,6 @@
 name: apps
 title: Apps
-description: Every nginx Proxy Host as an App, plus manual ones, as cards by group.
+description: Every Nginx Proxy Manager Proxy Host and pfSense Host Override as an App, plus Link-only ones, in a list beside the selected App with its Warnings, Workload, Check and network info.
 icon: layout-grid
 author: itsKontra
-requires: [apps, checks]
+requires: [apps, checks, nginx-proxy-manager-api]

@@ -2,7 +2,7 @@
   "name": "@ddash/plugin-apps",
   "private": true,
   "type": "module",
-  "description": "The apps Plugin's UI: App cards by group, display settings and manual Apps.",
+  "description": "The apps Plugin's UI: the split view of the Apps and the selected App, with ddash-only edits.",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",

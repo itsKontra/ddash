@@ -118,6 +118,28 @@ it("Segmented is a named radio group with the picked option checked, picking on 
   expect(picked).toEqual(["L"]);
 });
 
+it("Segmented while busy disables every option and says so, picking nothing", () => {
+  const picked: string[] = [];
+  render(<Segmented label="Size" value="M" options={["S", "M", "L"]} onChange={(v) => picked.push(v)} busy />);
+
+  expect(screen.getByRole("radiogroup", { name: "Size" }).getAttribute("aria-busy")).toBe("true");
+  for (const radio of screen.getAllByRole("radio")) expect((radio as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("radio", { name: "L" }));
+  fireEvent.keyDown(screen.getByRole("radio", { name: "M" }), { key: "ArrowRight" });
+  expect(picked).toEqual([]);
+});
+
+it("Segmented's disabled options can't be picked, by click or arrow key, which skips them", () => {
+  const picked: string[] = [];
+  render(<Segmented label="Reach" value="A" options={["A", "B", "C"]} disabled={["B"]} onChange={(v) => picked.push(v)} />);
+
+  expect((screen.getByRole("radio", { name: "B" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((screen.getByRole("radio", { name: "C" }) as HTMLButtonElement).disabled).toBe(false);
+  fireEvent.click(screen.getByRole("radio", { name: "B" }));
+  fireEvent.keyDown(screen.getByRole("radio", { name: "A" }), { key: "ArrowRight" });
+  expect(picked).toEqual(["C"]);
+});
+
 it("Segmented in a Field is named by the Field's label and described by its hint, leaving no label pointing nowhere", () => {
   const { container } = render(
     <Field label="Maintenance length" hint="Ends on its own">

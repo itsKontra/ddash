@@ -380,6 +380,7 @@ func TestListsDHCPServersWithTheirRangesAndStaticMappings(t *testing.T) {
 		{
 			Interface: "lan",
 			Enabled:   true,
+			Domain:    "home.example",
 			Pools:     []*pfsenseapipb.AddressRange{{From: "198.18.1.20", To: "198.18.1.99"}},
 			StaticMappings: []*pfsenseapipb.StaticMapping{
 				{Interface: "lan", Mac: "02:5e:92:9d:f0:a6", Ip: "198.18.1.2", Hostname: "w0"},
@@ -419,6 +420,7 @@ func TestListsDHCPServersWithTheirPoolsAndStaticMappings(t *testing.T) {
 		{
 			Interface: "lan",
 			Enabled:   true,
+			Domain:    "home.example",
 			Pools: []*pfsenseapipb.AddressRange{
 				{From: "198.18.1.100", To: "198.18.1.199"},
 				{From: "198.18.1.230", To: "198.18.1.239"},

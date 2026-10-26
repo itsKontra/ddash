@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -40,6 +41,12 @@ func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 
 // bootNetworkLab is bootNetwork, also returning the lab.
 func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fakelab.Lab) {
+	return bootNetworkLabWith(t, nil, scenarios...)
+}
+
+// bootNetworkLabWith is bootNetworkLab with network's config changed by
+// configure first (when set).
+func bootNetworkLabWith(t *testing.T, configure func(*networkpb.NetworkConfig), scenarios ...string) (*coretest.Harness, *fakelab.Lab) {
 	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
 		t.Fatal(err)
@@ -50,6 +57,9 @@ func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fake
 		Plugins:    []coretest.Plugin{{Name: "network", Requires: []string{"network", "pfsense-api", "adguard-api"}}},
 	})
 	for component, cfg := range lab.Config() {
+		if cfg, ok := cfg.(*networkpb.NetworkConfig); ok && configure != nil {
+			configure(cfg)
+		}
 		if component == "pfsense-api" || component == "network" || component == "adguard-api" || component == "ntfy-api" {
 			h.SeedConfig(component, cfg)
 		}
@@ -60,6 +70,27 @@ func bootNetworkLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fake
 	h.WaitState("network", runtime.OK)
 	vpnReport(t, h)
 	return h, lab
+}
+
+// The lab's Reverse Proxy is Nginx Proxy Manager's fake: the Reverse
+// Proxy's Host Override points where it answers, so Apps sees the
+// Operator's layout in `make dev`.
+func TestTheReverseProxysHostOverridePointsAtTheLab(t *testing.T) {
+	lab, err := fakelab.Start(repoRoot, "127.0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(lab.Close)
+
+	var at []string
+	for _, o := range lab.Handler("pfsense-api").(*pfsensefake.Firewall).HostOverrides() {
+		if slices.Contains(o.IPs, "127.0.0.1") {
+			at = append(at, o.Host)
+		}
+	}
+	if !slices.Equal(at, []string{"nginx"}) {
+		t.Errorf("Host Overrides at 127.0.0.1: %v, want nginx alone", at)
+	}
 }
 
 // vpnReport waits for network's report of the VPN Tunnel item to checks,
@@ -126,10 +157,11 @@ func TestTheBaselineFirewallHasAdoptedNewDirectAndTunnelledDevices(t *testing.T)
 	body := networkCall(t, "ListDevices")
 	var got struct {
 		Devices []struct {
-			Mac, Name, IP   string
-			Adopted, Direct bool
-			Online          bool
-			Aliases         []struct{ Name string }
+			Mac, Name, IP string
+			Adopted       bool
+			InternetPath  string
+			Online        bool
+			Aliases       []struct{ Name string }
 		}
 	}
 	if err := json.Unmarshal([]byte(body), &got); err != nil {
@@ -137,30 +169,30 @@ func TestTheBaselineFirewallHasAdoptedNewDirectAndTunnelledDevices(t *testing.T)
 	}
 	var lines []string
 	for _, d := range got.Devices {
-		line := fmt.Sprintf("%s %s %q adopted=%v direct=%v online=%v", d.IP, d.Mac, d.Name, d.Adopted, d.Direct, d.Online)
+		line := fmt.Sprintf("%s %s %q adopted=%v %s online=%v", d.IP, d.Mac, d.Name, d.Adopted, strings.TrimPrefix(d.InternetPath, "INTERNET_PATH_"), d.Online)
 		for _, a := range d.Aliases {
 			line += " " + a.Name
 		}
 		lines = append(lines, line)
 	}
 	// Adopted (static mappings) and New (dynamic leases) Devices, Direct
-	// through VPN_BYPASS or tunnelled, online or not, with the other
+	// through VPN_BYPASS or Tunnelled, online or not, with the other
 	// aliases holding their address.
 	want := []string{
-		`198.18.1.2 02:5e:92:9d:f0:a6 "w0" adopted=true direct=false online=true`,
-		`198.18.1.3 02:56:74:bd:32:5b "Access Point (OpenWrt)" adopted=true direct=false online=true`,
-		`198.18.1.4 02:eb:2f:cc:08:07 "lwip" adopted=true direct=false online=true VictronAllow`,
-		`198.18.1.5 02:08:c2:85:3d:a1 "Amazon Alexa" adopted=true direct=false online=true`,
-		`198.18.1.6 02:4a:a6:ab:ab:d4 "AndroidTV" adopted=true direct=true online=true`,
-		`198.18.1.7 02:ff:c4:52:c5:c3 "einstein" adopted=true direct=false online=true VictronAllow`,
-		`198.18.1.10 02:1c:d5:5e:3d:e5 "LexmarkCX317dn" adopted=true direct=true online=true`,
-		`198.18.1.11 02:b9:d2:5c:b9:9f "s22-von-operator" adopted=true direct=false online=true`,
-		`198.18.1.12 02:75:79:44:12:e3 "operator-pc" adopted=true direct=true online=true`,
-		`198.18.1.22 02:aa:97:4f:49:e7 "" adopted=false direct=false online=true`,
-		`198.18.1.25 02:2f:c2:65:95:10 "" adopted=false direct=false online=false`,
-		`198.18.1.26 02:2d:14:a9:09:b6 "a25-von-member" adopted=false direct=false online=true`,
-		`198.18.1.101 02:61:c0:a3:8a:16 "homeassistant" adopted=true direct=false online=true`,
-		`198.18.1.102 02:e6:29:fa:fc:39 "laptop-2" adopted=true direct=true online=false`,
+		`198.18.1.2 02:5e:92:9d:f0:a6 "w0" adopted=true TUNNELLED online=true`,
+		`198.18.1.3 02:56:74:bd:32:5b "Access Point (OpenWrt)" adopted=true TUNNELLED online=true`,
+		`198.18.1.4 02:eb:2f:cc:08:07 "lwip" adopted=true TUNNELLED online=true VictronAllow`,
+		`198.18.1.5 02:08:c2:85:3d:a1 "Amazon Alexa" adopted=true TUNNELLED online=true`,
+		`198.18.1.6 02:4a:a6:ab:ab:d4 "AndroidTV" adopted=true DIRECT online=true`,
+		`198.18.1.7 02:ff:c4:52:c5:c3 "einstein" adopted=true TUNNELLED online=true VictronAllow`,
+		`198.18.1.10 02:1c:d5:5e:3d:e5 "LexmarkCX317dn" adopted=true DIRECT online=true`,
+		`198.18.1.11 02:b9:d2:5c:b9:9f "s22-von-operator" adopted=true TUNNELLED online=true`,
+		`198.18.1.12 02:75:79:44:12:e3 "operator-pc" adopted=true DIRECT online=true`,
+		`198.18.1.22 02:aa:97:4f:49:e7 "" adopted=false TUNNELLED online=true`,
+		`198.18.1.25 02:2f:c2:65:95:10 "" adopted=false TUNNELLED online=false`,
+		`198.18.1.26 02:2d:14:a9:09:b6 "a25-von-member" adopted=false TUNNELLED online=true`,
+		`198.18.1.101 02:61:c0:a3:8a:16 "homeassistant" adopted=true TUNNELLED online=true`,
+		`198.18.1.102 02:e6:29:fa:fc:39 "laptop-2" adopted=true DIRECT online=false`,
 	}
 	if diff := cmp.Diff(want, lines); diff != "" {
 		t.Errorf("Devices (-want +got):\n%s", diff)
@@ -253,16 +285,16 @@ func TestAdoptAndRenameAreAuditedWithTheirHopsInOneChain(t *testing.T) {
 func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t *testing.T) {
 	h, lab := bootNetworkLab(t)
 
-	// The Device page's toggle on the New Device with no hostname.
-	res := h.Call("network", "network", "SetDirect", `{"mac":"02:2f:c2:65:95:10","direct":true}`)
+	// The Device page's picker on the New Device with no hostname.
+	res := h.Call("network", "network", "SetInternetPath", `{"mac":"02:2f:c2:65:95:10","path":"INTERNET_PATH_DIRECT"}`)
 	if res.Code != http.StatusOK {
-		t.Fatalf("SetDirect: status %d: %s", res.Code, res.Body)
+		t.Fatalf("SetInternetPath: status %d: %s", res.Code, res.Body)
 	}
-	var got networkpb.SetDirectResponse
+	var got networkpb.SetInternetPathResponse
 	if err := protojson.Unmarshal(res.Body.Bytes(), &got); err != nil {
 		t.Fatal(err)
 	}
-	if d := got.GetDevice(); !d.GetAdopted() || !d.GetDirect() || d.GetIp() != "198.18.1.150" {
+	if d := got.GetDevice(); !d.GetAdopted() || d.GetInternetPath() != networkpb.InternetPath_INTERNET_PATH_DIRECT || d.GetIp() != "198.18.1.150" {
 		t.Errorf("Device after Direct on = %v, want Adopted at 198.18.1.150 and Direct", d)
 	}
 
@@ -296,9 +328,9 @@ func TestDirectOnANewDeviceIsOneAuditChainEndingWithItsAddressInTheBypassAlias(t
 		chains[e.Chain] = true
 	}
 	wantHops := []string{
-		"pfsense-api AddAliasAddress ok test",
+		"pfsense-api MoveAliasAddress ok test",
 		"pfsense-api CreateStaticMapping ok test",
-		"network SetDirect ok test",
+		"network SetInternetPath ok test",
 	}
 	if diff := cmp.Diff(wantHops, hops); diff != "" {
 		t.Errorf("Audit Log (-want +got):\n%s", diff)
