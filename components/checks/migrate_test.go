@@ -82,3 +82,73 @@ func TestAnUpgradeKeepsManualChecksAndTheirHistory(t *testing.T) {
 		t.Errorf("new Check id %d, want 3", id)
 	}
 }
+
+// dbBefore lays out a checks DB with the migrations before number n, then
+// runs the statements on it.
+func dbBefore(t *testing.T, n int, statements ...string) string {
+	t.Helper()
+	entries, err := os.ReadDir("migrations")
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := fstest.MapFS{}
+	for _, e := range entries[:n-1] {
+		body, err := os.ReadFile(filepath.Join("migrations", e.Name()))
+		if err != nil {
+			t.Fatal(err)
+		}
+		old[e.Name()] = &fstest.MapFile{Data: body}
+	}
+	path := filepath.Join(t.TempDir(), "checks.db")
+	db, err := migrate.Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if err := migrate.Apply(t.Context(), db, old); err != nil {
+		t.Fatal(err)
+	}
+	for _, q := range statements {
+		if _, err := db.ExecContext(t.Context(), q); err != nil {
+			t.Fatalf("%s: %v", q, err)
+		}
+	}
+	return path
+}
+
+func TestAnUpgradeMovesTheKeptPendingBeatsOutOfDown(t *testing.T) {
+	// Two failed beats that left the Check pending, then one that took it
+	// down, counted in down by their buckets as before; and an hour bucket
+	// from 2 days ago whose beats were swept, so it can't be split.
+	now := time.Now()
+	at := func(ago time.Duration) int64 { return now.Add(-ago).UnixMilli() }
+	path := dbBefore(t, 8,
+		fmt.Sprintf(`INSERT INTO checks (id, kind, name, type, target, state, since, last_beat, latency_ms)
+		 VALUES (1, 'manual', 'nas', 'tcp', '127.0.0.1:1', 'down', %d, %d, 0)`, at(3*time.Minute), at(3*time.Minute)),
+		fmt.Sprintf(`INSERT INTO check_event (check_id, at, up, state, changed, reason)
+		 VALUES (1, %d, 0, 'pending', 1, 'refused'), (1, %d, 0, 'pending', 0, 'refused'), (1, %d, 0, 'down', 1, 'refused')`,
+			at(5*time.Minute), at(4*time.Minute), at(3*time.Minute)),
+		`INSERT INTO check_stat (check_id, period, bucket, down)
+		 SELECT check_id, p.period, at - at % p.size, COUNT(*) FROM check_event
+		 CROSS JOIN (SELECT 'minute' AS period, 60000 AS size UNION ALL SELECT 'hour', 3600000 UNION ALL SELECT 'day', 86400000) p
+		 GROUP BY check_id, p.period, at - at % p.size`,
+		fmt.Sprintf(`INSERT INTO check_stat (check_id, period, bucket, down) VALUES (1, 'hour', %d, 5)`,
+			now.Add(-48*time.Hour).Truncate(time.Hour).UnixMilli()),
+	)
+	l := newLab()
+	l.set("127.0.0.1:1", "hang")
+	_, c := startIn(t, l, sdktest.WithDB(path))
+
+	h, err := c.GetHistory(t.Context(), &checkspb.GetHistoryRequest{Id: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, u := range h.GetUptime() {
+		got = append(got, fmt.Sprintf("%s down %d pending %d", u.GetWindow(), u.GetDown(), u.GetPending()))
+	}
+	want := []string{"WINDOW_24H down 1 pending 2", "WINDOW_30D down 6 pending 2", "WINDOW_365D down 1 pending 2"}
+	if !equal(got, want) {
+		t.Errorf("uptime %v, want %v", got, want)
+	}
+}
