@@ -12,6 +12,7 @@ import {
   PageTitle,
   Panel,
   Pill,
+  Presence,
   SectionHeading,
   Skeleton,
   StatusDot,
@@ -78,11 +79,14 @@ export function Catalogue() {
           {data.orphans.length > 0 && <Orphans orphans={data.orphans} />}
         </>
       )}
-      {configuring ? (
-        <ConfigDialog owner={configuring} onClose={() => setConfiguring(undefined)} />
-      ) : (
-        queue.length > 0 && <FormQueue key={queue[0]} next={queue[0]} onDone={done} />
-      )}
+      {/* Around the queue too, so its last form animates out. */}
+      <Presence>
+        {configuring ? (
+          <ConfigDialog owner={configuring} onClose={() => setConfiguring(undefined)} />
+        ) : (
+          queue.length > 0 && <FormQueue key={queue[0]} next={queue[0]} onDone={done} />
+        )}
+      </Presence>
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import type { Device } from "@ddash/proto/network/network_pb";
-import { DataTable, EmptyState, Notice, Panel, Pill, StatusDot, type Column } from "@ddash/ui";
+import { DataTable, EmptyState, Notice, Panel, Pill, Presence, StatusDot, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { AdBlocking } from "./adblocking";
@@ -64,7 +64,7 @@ export function DevicesTable({ aside }: { aside?: ReactNode }) {
           actions={(d) => [{ label: d.adopted ? "Rename" : "Adopt", onSelect: () => setSheet(d) }]}
         />
       )}
-      {sheet && <DeviceSheet device={sheet} onClose={() => setSheet(undefined)} />}
+      <Presence>{sheet && <DeviceSheet device={sheet} onClose={() => setSheet(undefined)} />}</Presence>
     </Panel>
   );
 }

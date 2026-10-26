@@ -1,7 +1,7 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App, type Overlay, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
-import { AppIcon, Button, DataTable, Dialog, EmptyState, Field, FormActions, Notice, PageTitle, Panel, Pill, SectionHeading, Select, Skeleton, type Column } from "@ddash/ui";
+import { AppIcon, Button, DataTable, Dialog, EmptyState, Field, FormActions, Notice, PageTitle, Panel, Pill, Presence, SectionHeading, Select, Skeleton, type Column } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { sections, useApps } from "./apps";
 import { checkStatus } from "@ddash/display";
@@ -61,7 +61,7 @@ export function AppsPage() {
           </Section>
         )}
       </div>
-      {editing && <EditSheet app={editing === "new" ? undefined : editing} groups={groups} onClose={() => setEditing(undefined)} />}
+      <Presence>{editing && <EditSheet app={editing === "new" ? undefined : editing} groups={groups} onClose={() => setEditing(undefined)} />}</Presence>
     </div>
   );
 }
@@ -177,7 +177,7 @@ function UnmatchedSettings({ overlays, targets }: { overlays: readonly Overlay[]
           ]}
         />
       </Panel>
-      {reattaching && <Reattach overlay={reattaching} targets={targets} onClose={() => setReattaching(undefined)} />}
+      <Presence>{reattaching && <Reattach overlay={reattaching} targets={targets} onClose={() => setReattaching(undefined)} />}</Presence>
     </>
   );
 }

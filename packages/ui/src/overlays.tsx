@@ -1,11 +1,62 @@
 // The overlays family: what opens over the Page.
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { Button } from "./atoms";
 import { Checkbox } from "./forms";
 import { Icon } from "./icon";
 import { Kicker } from "./kicker";
 import { InFlush } from "./surface";
 import { cx, toneTint } from "./tone";
+
+/**
+ * Lets an overlay animate out as well as in: wrap the condition that
+ * mounts it, <Presence>{x && <Sheet …/>}</Presence>. When the child turns
+ * falsy, Presence keeps the last one mounted with its old props, closed
+ * (data-state="closed", which the overlays' exit transitions key on) and
+ * inert, and unmounts it once its animations finish: at once with none
+ * (reduced motion). A child that turns truthy again mid-exit cancels the
+ * exit, and one that changes while open replaces it in place.
+ */
+export function Presence({ children }: { children?: ReactNode }) {
+  const open = shows(children);
+  const [kept, setKept] = useState<ReactNode>(open ? children : null);
+  if (open && children !== kept) setKept(children);
+  const leaving = !open && shows(kept);
+  const box = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!leaving) return;
+    // An infinite one (a pulsing Skeleton inside) never finishes.
+    const running = (box.current?.getAnimations?.({ subtree: true }) ?? []).filter((a) => a.effect?.getComputedTiming().endTime !== Infinity);
+    if (running.length === 0) return setKept(null);
+    let cancelled = false;
+    void Promise.allSettled(running.map((a) => a.finished)).then(() => cancelled || setKept(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [leaving]);
+  const shown = open ? children : kept;
+  if (!shows(shown)) return null;
+  return (
+    <div ref={box} data-state={leaving ? "closed" : "open"} inert={leaving} className="contents">
+      <Leaving value={leaving}>{shown}</Leaving>
+    </div>
+  );
+}
+
+const shows = (node: ReactNode) => node !== null && node !== undefined && node !== false && node !== "";
+
+/** True inside a Presence whose child is leaving: its Overlay hands the focus back and ignores closes. */
+const Leaving = createContext(false);
 
 /** What a confirm dialog asks. */
 export interface ConfirmRequest {
@@ -77,18 +128,20 @@ const focusable = 'a[href], button:not(:disabled), input:not(:disabled), select:
 /**
  * Keeps the focus inside panel while it's open: it moves in on open (unless
  * an autoFocus child already took it), Tab wraps at either end, and the
- * focus goes back to where it was on close.
+ * focus goes back to where it was on close, or as the exit starts when
+ * it's leaving.
  */
-function useFocusTrap(panel: RefObject<HTMLElement | null>) {
+function useFocusTrap(panel: RefObject<HTMLElement | null>, leaving: boolean) {
   // Read during the first render, before an autoFocus child moves the focus.
   const [opener] = useState(() => (typeof document === "undefined" ? null : (document.activeElement as HTMLElement | null)));
   useEffect(() => {
+    if (leaving) return;
     const el = panel.current;
     if (el && !el.contains(document.activeElement)) (el.querySelector<HTMLElement>(focusable) ?? el).focus();
     return () => {
       if (opener?.isConnected) opener.focus();
     };
-  }, [panel, opener]);
+  }, [panel, opener, leaving]);
   return (e: KeyboardEvent) => {
     const el = panel.current;
     if (e.key !== "Tab" || !el) return;
@@ -125,15 +178,18 @@ function Overlay({
 }: OverlayProps & { role?: "dialog" | "alertdialog"; placement: string; panelClassName: string; icon?: ReactNode }) {
   const id = useId();
   const panel = useRef<HTMLDivElement>(null);
-  const trap = useFocusTrap(panel);
+  const leaving = useContext(Leaving);
+  const trap = useFocusTrap(panel, leaving);
+  // inert already stops a second close in a browser.
+  const close = leaving ? () => {} : onClose;
   return (
     // An overlay is its own surface, even when a flush Panel opened it.
     <InFlush value={false}>
       <div
         // A confirm sits over the Sheet or Dialog whose Action asked it.
-        className={cx("fixed inset-0 flex bg-foreground/40 backdrop-blur-xs", role === "alertdialog" ? "z-60" : "z-50", placement)}
-        onClick={onClose}
-        onKeyDown={(e) => e.key === "Escape" && onClose()}
+        className={cx("fixed inset-0 flex bg-foreground/40 backdrop-blur-xs", backdropMotion, role === "alertdialog" ? "z-60" : "z-50", placement)}
+        onClick={close}
+        onKeyDown={(e) => e.key === "Escape" && close()}
       >
         <div
           ref={panel}
@@ -166,7 +222,7 @@ function Overlay({
             <button
               type="button"
               aria-label="Close"
-              onClick={onClose}
+              onClick={close}
               className="-mt-1 -mr-2 grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground hover:bg-muted hover:text-foreground"
             >
               <Icon name="x" />
@@ -189,9 +245,23 @@ export function Dialog(props: OverlayProps) {
   return <Overlay {...dialogLook} {...props} />;
 }
 
+/*
+ * The overlays' motion (tokens.css): each enters from (starting:) and leaves
+ * to (in-data-[state=closed]:, set by Presence) the same values, so an exit
+ * is the exact reverse and reopening mid-exit turns it around.
+ */
+const backdropMotion =
+  "starting:bg-foreground/0 starting:backdrop-blur-none in-data-[state=closed]:bg-foreground/0 in-data-[state=closed]:backdrop-blur-none motion-safe:transition-[background-color,backdrop-filter] motion-safe:duration-(--motion-fade)";
+const dialogMotion =
+  "starting:opacity-(--motion-dialog-opacity) starting:[transform:var(--motion-dialog-from)] in-data-[state=closed]:opacity-(--motion-dialog-opacity) in-data-[state=closed]:[transform:var(--motion-dialog-from)] motion-safe:transition-[opacity,transform] motion-safe:duration-(--motion-fade)";
+const sheetMotion =
+  "starting:[transform:var(--motion-sheet-from)] in-data-[state=closed]:[transform:var(--motion-sheet-from)] motion-safe:transition-transform motion-safe:duration-(--motion-slide) motion-safe:ease-(--motion-slide-ease)";
+const menuMotion =
+  "origin-top-right starting:opacity-0 starting:[transform:var(--motion-menu-from)] in-data-[state=closed]:opacity-0 in-data-[state=closed]:[transform:var(--motion-menu-from)] motion-safe:transition-[opacity,transform] motion-safe:duration-(--motion-pop)";
+
 const dialogLook = {
   placement: "items-end justify-center sm:items-center sm:p-6",
-  panelClassName: "max-h-[92vh] rounded-t-ui-lg border sm:max-h-[86vh] sm:max-w-xl sm:rounded-ui-lg",
+  panelClassName: cx("max-h-[92vh] rounded-t-ui-lg border sm:max-h-[86vh] sm:max-w-xl sm:rounded-ui-lg", dialogMotion),
 };
 
 /**
@@ -206,6 +276,7 @@ export function Sheet({ wide, ...props }: OverlayProps & { children: ReactNode; 
       panelClassName={cx(
         "max-h-[92vh] rounded-t-ui-lg border-t sm:h-full sm:max-h-none sm:rounded-none sm:border-t-0 sm:border-l",
         wide ? "sm:max-w-2xl" : "sm:max-w-lg",
+        sheetMotion,
       )}
     />
   );
@@ -222,7 +293,7 @@ export interface MenuItem {
 /**
  * A row's menu, e.g. a Workload's power Actions: a "⋯" button named by
  * label that opens the items under it. Picking one, Escape or a click
- * outside closes it.
+ * outside closes it. It wraps its own Presence, so it animates out too.
  */
 export function Menu({ label, items, disabled }: { label: string; items: readonly MenuItem[]; disabled?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -231,37 +302,42 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
       <Button variant="ghost" size="sm" aria-label={label} aria-haspopup="menu" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
         <Icon name="ellipsis" />
       </Button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
-          <div
-            role="menu"
-            aria-label={label}
-            className="absolute right-0 z-40 mt-1 flex min-w-40 flex-col rounded-ui-lg border border-border bg-card p-1.5 shadow-elevation-raised"
-            onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
-          >
-            {items.map((item, i) => (
-              <button
-                key={item.label}
-                type="button"
-                role="menuitem"
-                autoFocus={i === 0}
-                disabled={item.disabled}
-                onClick={() => {
-                  setOpen(false);
-                  item.onSelect();
-                }}
-                className={cx(
-                  "cursor-pointer rounded-ui-sm px-2.5 py-1.5 text-left text-sm font-medium focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-40",
-                  item.danger ? "text-down-text hover:bg-down-tint" : "hover:bg-muted",
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      <Presence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+            <div
+              role="menu"
+              aria-label={label}
+              className={cx(
+                "absolute right-0 z-40 mt-1 flex min-w-40 flex-col rounded-ui-lg border border-border bg-card p-1.5 shadow-elevation-raised",
+                menuMotion,
+              )}
+              onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+            >
+              {items.map((item, i) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  role="menuitem"
+                  autoFocus={i === 0}
+                  disabled={item.disabled}
+                  onClick={() => {
+                    setOpen(false);
+                    item.onSelect();
+                  }}
+                  className={cx(
+                    "cursor-pointer rounded-ui-sm px-2.5 py-1.5 text-left text-sm font-medium focus-visible:outline-offset-0 disabled:pointer-events-none disabled:opacity-40",
+                    item.danger ? "text-down-text hover:bg-down-tint" : "hover:bg-muted",
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </Presence>
     </div>
   );
 }
