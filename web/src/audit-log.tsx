@@ -12,6 +12,7 @@ import {
   Panel,
   Pill,
   Presence,
+  SearchField,
   Select,
   Sheet,
   StatusList,
@@ -22,11 +23,14 @@ import {
 } from "@ddash/ui";
 import { useEffect, useEffectEvent, useState } from "react";
 
-/** What the Audit Log is filtered by; empty means any. */
+/** What the Audit Log is filtered by, empty meaning any, and its order. */
 interface Filter {
   actorKind: string;
   target: string;
   outcome: string;
+  query: string;
+  /** "oldest" first, or "" for newest. */
+  order: string;
 }
 
 /** The actor tabs; "anyone" asks for every actor kind. */
@@ -48,21 +52,26 @@ const outcomes: [string, string][] = [
 /**
  * The Audit Log Page under Settings: every Action as one chain, newest
  * first, rooted in what the actor started; a row opens its hops in a Sheet.
- * It starts on the Operator's own Actions and loads older chains a page at
- * a time. The filters and the sort sit in the URL. Read at the NONE tier:
- * on mount and after Actions.
+ * It starts on the Operator's own Actions and loads further chains a page
+ * at a time, so the core searches and sorts them. The search, the filters
+ * and the sort sit in the URL. Read at the NONE tier: on mount and after
+ * Actions.
  */
 export function AuditLog() {
   const [actor, setActor] = useQueryState("actor", "operator");
   const [target, setTarget] = useQueryState("target", "");
   const [outcome, setOutcome] = useQueryState("outcome", "");
+  const [q, setQ] = useQueryState("q", "");
+  // The DataTable's sort, by When alone: it picks the core's order.
+  const [sort] = useQueryState("sort", defaultSort);
   const [targets, setTargets] = useState<string[]>([]);
-  const filter: Filter = { actorKind: actor === "anyone" ? "" : actor, target, outcome };
+  const filter: Filter = { actorKind: actor === "anyone" ? "" : actor, target, outcome, query: q, order: sort === "when" ? "oldest" : "" };
   const toolbar = (
     <>
       <div className="overflow-x-auto">
         <Tabs label="Actor" value={actor} onChange={setActor} options={actorKinds} />
       </div>
+      <SearchField label="Search Actions" value={q} onChange={setQ} placeholder="Search by Action, target or actor" />
       <div className="flex flex-wrap gap-2 sm:ml-auto">
         <Select label="Target" value={target} onChange={(e) => setTarget(e.target.value)}>
           <option value="">Any target</option>
@@ -85,13 +94,16 @@ export function AuditLog() {
   return (
     <div>
       <PageTitle title="Audit Log" subtitle="Every Action ddash took, kept for a year." back={{ href: "/settings", label: "Settings" }} />
-      {/* A new filter starts again from the newest page. */}
+      {/* A new search, filter or order starts again from the first page. */}
       <Panel flush toolbar={toolbar}>
         <Pages key={JSON.stringify(filter)} filter={filter} onTargets={setTargets} />
       </Panel>
     </div>
   );
 }
+
+/** Newest first, as the core reads the Audit Log by default. */
+const defaultSort = "-when";
 
 /** targets, keeping the selected one listed while a reload is on its way. */
 const withSelected = (targets: string[], selected: string) =>
@@ -130,9 +142,10 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
           columns={columns}
           onRowClick={setShown}
           sortKey="sort"
+          defaultSort={defaultSort}
           loading={!pages[0].chains}
           empty={
-            <EmptyState icon="scroll-text" title="No Actions match">
+            <EmptyState icon="scroll-text" title={filter.query ? `No Actions match "${filter.query}"` : "No Actions match"}>
               Try Anyone, or another target or outcome.
             </EmptyState>
           }
@@ -141,7 +154,7 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
       {last.next && (
         <div className="flex justify-center border-t border-border p-4">
           <Button variant="outline" onClick={() => setPages((ps) => [...ps, { token: last.next! }])}>
-            Load older Actions
+            {filter.order === "oldest" ? "Load newer Actions" : "Load older Actions"}
           </Button>
         </div>
       )}
