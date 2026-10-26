@@ -57,6 +57,7 @@ it("exports exactly the spec's component set, plus cx, matches and the AppIcon h
       "Menu",
       "Dialog",
       "ConfirmDialog",
+      "Presence",
       "cx",
     ].sort(),
   );
