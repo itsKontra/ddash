@@ -9,7 +9,6 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
-	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 )
 
 // view is what the Apps are derived from besides their records: the last
@@ -54,7 +53,7 @@ func (v view) app(r *record) *appspb.App {
 		Links:    &appspb.Links{ProxyHostId: r.proxyHostID, HostOverride: r.hostOverride.proto()},
 	}
 	h := v.hosts[r.proxyHostID]
-	o := v.dns.overrideOf(r.hostOverride)
+	o := v.dns.override(r.hostOverride)
 	if h != nil || o != nil {
 		a.Aliases = sourceAliases(h, o, hostname(r.url))
 	}
@@ -260,15 +259,6 @@ func canonNames(names []string) []string {
 		out[i] = canonName(n)
 	}
 	return out
-}
-
-// overrideOf is the Not-proxied Host Override n names; nil for none, or
-// when d is nil (not read).
-func (d *dns) overrideOf(n hostName) *pfpb.HostOverride {
-	if d == nil || n.isZero() {
-		return nil
-	}
-	return d.override(n)
 }
 
 // overrideTarget is where a Not-proxied App's traffic goes: its Host

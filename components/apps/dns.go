@@ -35,7 +35,15 @@ func (n hostName) proto() *appspb.HostOverrideName {
 	return &appspb.HostOverrideName{Host: n.host, Domain: n.domain}
 }
 
-func nameOf(o *pfpb.HostOverride) hostName { return hostName{o.GetHost(), o.GetDomain()} }
+// hostAndDomain is what pfSense names by host and domain: a Host Override,
+// an alias, a step's name.
+type hostAndDomain interface {
+	GetHost() string
+	GetDomain() string
+}
+
+// nameOf is x's name; zero for nil.
+func nameOf(x hostAndDomain) hostName { return hostName{x.GetHost(), x.GetDomain()} }
 
 // dns is a good read of pfSense's Host Overrides, seen from the Reverse
 // Proxy's address.
@@ -56,7 +64,7 @@ func newDNS(overrides []*pfpb.HostOverride, rpAddress string) *dns {
 		own := nameOf(o)
 		d.registering[own.fqdn()] = append(d.registering[own.fqdn()], &appspb.HostOverrideOrAlias{Host: o.GetHost(), Domain: o.GetDomain(), Ips: o.GetIps()})
 		for _, a := range o.GetAliases() {
-			n := hostName{a.GetHost(), a.GetDomain()}.fqdn()
+			n := nameOf(a).fqdn()
 			d.registering[n] = append(d.registering[n], &appspb.HostOverrideOrAlias{Host: a.GetHost(), Domain: a.GetDomain(), Parent: own.proto(), Ips: o.GetIps()})
 		}
 	}
@@ -93,22 +101,24 @@ func (d *dns) notProxied() []*pfpb.HostOverride {
 	return out
 }
 
-// override is the Not-proxied Host Override n names; nil for none.
-func (d *dns) override(n hostName) *pfpb.HostOverride {
-	for _, o := range d.notProxied() {
-		if nameOf(o).same(n) {
-			return o
-		}
+// named is the Host Override n names, wherever it points; nil for none,
+// or when d is nil (not read yet).
+func (d *dns) named(n hostName) *pfpb.HostOverride {
+	if d == nil {
+		return nil
 	}
-	return nil
+	i := slices.IndexFunc(d.overrides, func(o *pfpb.HostOverride) bool { return nameOf(o).same(n) })
+	if i < 0 {
+		return nil
+	}
+	return d.overrides[i]
 }
 
-// named is the Host Override n names, wherever it points; nil for none.
-func (d *dns) named(n hostName) *pfpb.HostOverride {
-	for _, o := range d.overrides {
-		if nameOf(o).same(n) {
-			return o
-		}
+// override is the Not-proxied Host Override n names; nil for none, or
+// when d is nil.
+func (d *dns) override(n hostName) *pfpb.HostOverride {
+	if o := d.named(n); o != nil && !d.atReverseProxy(o.GetIps()) {
+		return o
 	}
 	return nil
 }
@@ -119,7 +129,7 @@ func (d *dns) proxiedNames() []string {
 	var out []string
 	for _, o := range d.reverseProxy() {
 		for _, a := range o.GetAliases() {
-			if n := (hostName{a.GetHost(), a.GetDomain()}).fqdn(); !slices.Contains(out, n) {
+			if n := nameOf(a).fqdn(); !slices.Contains(out, n) {
 				out = append(out, n)
 			}
 		}
@@ -144,7 +154,7 @@ func (d *dns) elsewhere(n string) bool {
 func overrideNames(o *pfpb.HostOverride) []string {
 	out := []string{nameOf(o).fqdn()}
 	for _, a := range o.GetAliases() {
-		out = append(out, hostName{a.GetHost(), a.GetDomain()}.fqdn())
+		out = append(out, nameOf(a).fqdn())
 	}
 	return out
 }

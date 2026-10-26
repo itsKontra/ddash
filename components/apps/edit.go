@@ -3,8 +3,6 @@ package apps
 import (
 	"context"
 	"fmt"
-	"net/netip"
-	"net/url"
 	"slices"
 	"strings"
 
@@ -106,13 +104,24 @@ func (p planning) unregister(out *planned, a *appspb.App, r *record) {
 		out.addDNS(deleteOverride(own))
 	}
 	for _, e := range a.GetDns() {
-		parent := e.GetParent()
-		if parent == nil || !p.dns.atReverseProxy(e.GetIps()) || (own != nil && nameOf(own).same(hostName{parent.GetHost(), parent.GetDomain()})) {
+		if e.GetParent() == nil || !p.dns.atReverseProxy(e.GetIps()) || (own != nil && nameOf(own).same(nameOf(e.GetParent()))) {
 			continue
 		}
-		if o := p.dns.named(hostName{parent.GetHost(), parent.GetDomain()}); o != nil {
+		p.remove(out, e)
+	}
+}
+
+// remove removes e from pfSense: an alias from its Host Override, a Host
+// Override with its aliases.
+func (p planning) remove(out *planned, e *appspb.HostOverrideOrAlias) {
+	if parent := e.GetParent(); parent != nil {
+		if o := p.dns.named(nameOf(parent)); o != nil {
 			out.addDNS(removeAlias(o, e))
 		}
+		return
+	}
+	if o := p.dns.named(nameOf(e)); o != nil {
+		out.addDNS(deleteOverride(o))
 	}
 }
 
@@ -145,7 +154,7 @@ func deleteOverride(o *pfpb.HostOverride) (*pfpb.HostOverrideStep, string, []*ap
 
 // removeAlias removes the alias e from its Host Override o.
 func removeAlias(o *pfpb.HostOverride, e *appspb.HostOverrideOrAlias) (*pfpb.HostOverrideStep, string, []*appspb.PlanValue) {
-	parent, n := nameOf(o), hostName{e.GetHost(), e.GetDomain()}
+	parent, n := nameOf(o), nameOf(e)
 	step := &pfpb.HostOverrideStep{Change: &pfpb.HostOverrideStep_RemoveAlias{RemoveAlias: &pfpb.AliasChange{
 		Parent: &pfpb.HostName{Host: parent.host, Domain: parent.domain},
 		Alias:  &pfpb.HostOverrideAlias{Host: n.host, Domain: n.domain},
@@ -171,12 +180,11 @@ func (p planning) changeAddress(c *appspb.ChangeAddress) *planned {
 		return out
 	}
 	raw := strings.TrimSpace(c.GetUrl())
-	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		out.block("The URL must be an http or https URL, e.g. https://jellyfin.home.example.")
+	host := urlHost(raw)
+	if host == "" {
+		out.block(badURL)
 		return out
 	}
-	host := canonName(u.Hostname())
 	names := []string{host}
 	var aliases []string
 	for _, n := range c.GetAliases() {
@@ -259,7 +267,7 @@ func (p planning) changeAddress(c *appspb.ChangeAddress) *planned {
 			}
 			for _, n := range removed {
 				for _, e := range p.dns.registering[n] {
-					if e.GetParent() != nil && nameOf(own).same(hostName{e.GetParent().GetHost(), e.GetParent().GetDomain()}) {
+					if e.GetParent() != nil && nameOf(own).same(nameOf(e.GetParent())) {
 						out.addDNS(removeAlias(own, e))
 					}
 				}
@@ -267,12 +275,8 @@ func (p planning) changeAddress(c *appspb.ChangeAddress) *planned {
 			break
 		}
 		renamed = splitName(host)
-		created := &pfpb.HostOverride{Host: renamed.host, Domain: renamed.domain, Ips: own.GetIps()}
 		out.addDNS(deleteOverride(own))
-		out.addDNS(createOverride(renamed, own.GetIps()))
-		for _, n := range aliases {
-			out.addDNS(addAlias(created, n))
-		}
+		out.createOwnOverride(renamed, own.GetIps(), aliases)
 	}
 
 	var values []*appspb.PlanValue
@@ -390,15 +394,7 @@ func (p planning) addReverseProxy(c *appspb.AddReverseProxy) *planned {
 	}
 	rp := p.reverseProxy(out.block)
 	f.DomainNames = sorted(names)
-	out.plan.Steps = append(out.plan.Steps, &appspb.PlanStep{
-		System: appspb.System_SYSTEM_NGINX_PROXY_MANAGER,
-		Title:  "Create Proxy Host " + names[0],
-		Values: proxyHostValues(nil, f),
-	})
-	out.npm = func(ctx context.Context, c npmpb.NginxProxyManagerApiServiceClient) (*npmpb.ProxyHost, error) {
-		resp, err := c.CreateProxyHost(ctx, &npmpb.CreateProxyHostRequest{Fields: f})
-		return resp.GetProxyHost(), err
-	}
+	out.createProxyHost(names[0], f)
 	if p.dns != nil {
 		if own := p.dns.override(r.hostOverride); own != nil {
 			out.addDNS(deleteOverride(own))
@@ -450,26 +446,21 @@ func (p planning) removeReverseProxy(c *appspb.RemoveReverseProxy) *planned {
 	}
 	p.npmWritable(out.block)
 	p.pfWritable(out.block)
-	ip, err := netip.ParseAddr(strings.TrimSpace(c.GetAddress()))
+	ip, ok, atRP := p.ownAddress(c.GetAddress())
 	switch {
-	case err != nil:
+	case !ok:
 		out.block("Give the address its Host Override resolves to, e.g. 198.18.1.60.")
-	case p.rpAddress != "" && ip.String() == canonHost(p.rpAddress):
+	case atRP:
 		out.block(fmt.Sprintf("%s is the Reverse Proxy's address: give the App's own.", ip))
 	}
 	out.deleteProxyHost(h)
 	names := appHostnames(a)
 	own := splitName(names[0])
-	if p.dns != nil && err == nil {
+	if p.dns != nil && ok {
 		for _, n := range names {
 			p.removeProxied(out, n)
 		}
-		ips := []string{ip.String()}
-		out.addDNS(createOverride(own, ips))
-		created := &pfpb.HostOverride{Host: own.host, Domain: own.domain, Ips: ips}
-		for _, n := range names[1:] {
-			out.addDNS(addAlias(created, n))
-		}
+		out.createOwnOverride(own, []string{ip.String()}, names[1:])
 	}
 	out.plan.Steps = append(out.plan.Steps, &appspb.PlanStep{
 		System: appspb.System_SYSTEM_DDASH,
@@ -527,13 +518,11 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 			if p.dns.atReverseProxy(e.GetIps()) {
 				continue
 			}
-			if parent := e.GetParent(); parent != nil {
-				if o := p.dns.named(hostName{parent.GetHost(), parent.GetDomain()}); o != nil {
-					out.addDNS(removeAlias(o, e))
-				}
+			if e.GetParent() != nil {
+				p.remove(out, e)
 				continue
 			}
-			o := p.dns.named(hostName{e.GetHost(), e.GetDomain()})
+			o := p.dns.named(nameOf(e))
 			if others := p.notOnlyOf(a, overrideNames(o)[1:]); len(others) > 0 {
 				out.block(fmt.Sprintf("Pointing %s at the Reverse Proxy deletes its Host Override, and with it %s, which %s only %s's: remove or move %s in pfSense first.",
 					n, strings.Join(others, ", "), plural(len(others), "isn't", "aren't"), a.GetName(), plural(len(others), "it", "them")))
@@ -569,14 +558,7 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 		if p.dns == nil {
 			break
 		}
-		e := f.GetHostOverride()
-		if parent := e.GetParent(); parent != nil {
-			if o := p.dns.named(hostName{parent.GetHost(), parent.GetDomain()}); o != nil {
-				out.addDNS(removeAlias(o, e))
-			}
-		} else if o := p.dns.named(hostName{e.GetHost(), e.GetDomain()}); o != nil {
-			out.addDNS(deleteOverride(o))
-		}
+		p.remove(out, f.GetHostOverride())
 	default:
 		out.block("That fix doesn't write to pfSense or Nginx Proxy Manager: run it from its Warning.")
 	}
@@ -613,10 +595,8 @@ func (p planning) removeProxied(out *planned, n string) {
 		return
 	}
 	for _, e := range p.dns.registering[n] {
-		if parent := e.GetParent(); parent != nil && p.dns.atReverseProxy(e.GetIps()) {
-			if o := p.dns.named(hostName{parent.GetHost(), parent.GetDomain()}); o != nil {
-				out.addDNS(removeAlias(o, e))
-			}
+		if e.GetParent() != nil && p.dns.atReverseProxy(e.GetIps()) {
+			p.remove(out, e)
 		}
 	}
 }

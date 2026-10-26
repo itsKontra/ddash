@@ -26,7 +26,9 @@ func notRegistered(n string) *appspb.Warning {
 	return named(warning(notRegisteredKind, false, "", fixed(appspb.FixKind_FIX_KIND_REGISTER, onName(n)), deleteApp), n)
 }
 
-func onOverrideOrAlias(e *appspb.HostOverrideOrAlias) func(*appspb.Fix) { return func(f *appspb.Fix) { f.HostOverride = e } }
+func onOverrideOrAlias(e *appspb.HostOverrideOrAlias) func(*appspb.Fix) {
+	return func(f *appspb.Fix) { f.HostOverride = e }
+}
 
 // addOverride adds a Host Override in pfSense's web UI.
 func (l *lab) addOverride(host, ip string, aliases ...string) {

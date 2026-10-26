@@ -147,7 +147,7 @@ func applySteps(overrides []*pfpb.HostOverride, steps []*pfpb.HostOverrideStep) 
 		out[i] = proto.CloneOf(o)
 	}
 	named := func(n *pfpb.HostName) int {
-		return slices.IndexFunc(out, func(o *pfpb.HostOverride) bool { return nameOf(o).same(hostName{n.GetHost(), n.GetDomain()}) })
+		return slices.IndexFunc(out, func(o *pfpb.HostOverride) bool { return nameOf(o).same(nameOf(n)) })
 	}
 	for _, s := range steps {
 		switch ch := s.GetChange().(type) {
@@ -169,7 +169,7 @@ func applySteps(overrides []*pfpb.HostOverride, steps []*pfpb.HostOverrideStep) 
 			if i := named(ch.RemoveAlias.GetParent()); i >= 0 {
 				a := ch.RemoveAlias.GetAlias()
 				out[i].Aliases = slices.DeleteFunc(out[i].Aliases, func(x *pfpb.HostOverrideAlias) bool {
-					return hostName{x.GetHost(), x.GetDomain()}.same(hostName{a.GetHost(), a.GetDomain()})
+					return nameOf(x).same(nameOf(a))
 				})
 			}
 		}
