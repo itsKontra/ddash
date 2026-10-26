@@ -799,7 +799,9 @@ type SourceRead struct {
 	// Why the last read failed; empty when it worked.
 	Error string `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
 	// When reads started failing; unset while they work.
-	FailingSince  *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
+	FailingSince *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=failing_since,json=failingSince,proto3" json:"failing_since,omitempty"`
+	// The source's Component has no config yet: the Operator sets it up.
+	NotConfigured bool `protobuf:"varint,4,opt,name=not_configured,json=notConfigured,proto3" json:"not_configured,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -853,6 +855,13 @@ func (x *SourceRead) GetFailingSince() *timestamppb.Timestamp {
 		return x.FailingSince
 	}
 	return nil
+}
+
+func (x *SourceRead) GetNotConfigured() bool {
+	if x != nil {
+		return x.NotConfigured
+	}
+	return false
 }
 
 type ListAppsRequest struct {
@@ -1920,12 +1929,13 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\x03ref\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\x03ref\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
 	"\x05state\x18\x03 \x01(\tR\x05state\x12\x1a\n" +
-	"\boverride\x18\x04 \x01(\bR\boverride\"\x98\x01\n" +
+	"\boverride\x18\x04 \x01(\bR\boverride\"\xbf\x01\n" +
 	"\n" +
 	"SourceRead\x123\n" +
 	"\aread_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x06readAt\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\x12?\n" +
-	"\rfailing_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ffailingSince\"\x11\n" +
+	"\rfailing_since\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ffailingSince\x12%\n" +
+	"\x0enot_configured\x18\x04 \x01(\bR\rnotConfigured\"\x11\n" +
 	"\x0fListAppsRequest\"p\n" +
 	"\x10ListAppsResponse\x12#\n" +
 	"\x04apps\x18\x01 \x03(\v2\x0f.ddash.apps.AppR\x04apps\x127\n" +

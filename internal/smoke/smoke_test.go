@@ -71,8 +71,6 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok pfsense-api ListHostOverrides",
 		"ok adguard-api ListQueries",
 		"ok proxmox-api ListWorkloads",
-		"ok nginx-config GetSnapshot",
-		"ok nginx-config health",
 		"ok nginx-proxy-manager-api ListProxyHosts",
 		"ok nginx-proxy-manager-api ListCertificates",
 		"ok nginx-proxy-manager-api GetStatus",
@@ -150,7 +148,6 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 		"components/adguard-api/testdata/baseline/control/querylog.json",
 		"components/proxmox-api/testdata/baseline/api2/json/cluster/resources.json",
 		"components/docker-api/testdata/baseline/v1.44/containers/json.json",
-		"components/nginx-config/testdata/baseline/nginx_-T.stdout",
 		"components/nginx-proxy-manager-api/testdata/baseline/api/nginx/proxy-hosts.json",
 		"components/nginx-proxy-manager-api/testdata/baseline/api/users/me.json",
 	} {

@@ -10,7 +10,7 @@ package samplepb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
-	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	config "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -657,11 +657,91 @@ func (*WaitActionResponse) Descriptor() ([]byte, []int) {
 	return file_sample_sample_proto_rawDescGZIP(), []int{10}
 }
 
+type GetSetupHintRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSetupHintRequest) Reset() {
+	*x = GetSetupHintRequest{}
+	mi := &file_sample_sample_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSetupHintRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSetupHintRequest) ProtoMessage() {}
+
+func (x *GetSetupHintRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_sample_sample_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSetupHintRequest.ProtoReflect.Descriptor instead.
+func (*GetSetupHintRequest) Descriptor() ([]byte, []int) {
+	return file_sample_sample_proto_rawDescGZIP(), []int{11}
+}
+
+type GetSetupHintResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Hint          *config.SetupHint      `protobuf:"bytes,1,opt,name=hint,proto3" json:"hint,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSetupHintResponse) Reset() {
+	*x = GetSetupHintResponse{}
+	mi := &file_sample_sample_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSetupHintResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSetupHintResponse) ProtoMessage() {}
+
+func (x *GetSetupHintResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_sample_sample_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSetupHintResponse.ProtoReflect.Descriptor instead.
+func (*GetSetupHintResponse) Descriptor() ([]byte, []int) {
+	return file_sample_sample_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetSetupHintResponse) GetHint() *config.SetupHint {
+	if x != nil {
+		return x.Hint
+	}
+	return nil
+}
+
 var File_sample_sample_proto protoreflect.FileDescriptor
 
 const file_sample_sample_proto_rawDesc = "" +
 	"\n" +
-	"\x13sample/sample.proto\x12\fddash.sample\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xab\x03\n" +
+	"\x13sample/sample.proto\x12\fddash.sample\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xbf\x03\n" +
 	"\fSampleConfig\x12=\n" +
 	"\x06target\x18\x01 \x01(\tB%\x9a\xb5\x18!\x1a\x06Target\"\x0eWhom to greet.*\x05world0\x01R\x06target\x12,\n" +
 	"\bgreeting\x18\x02 \x01(\tB\v\x9a\xb5\x18\a\n" +
@@ -677,7 +757,8 @@ const file_sample_sample_proto_rawDesc = "" +
 	"\x05token\x18\x06 \x01(\tB\x06\x9a\xb5\x18\x02\x10\x01R\x05token\x12\x1e\n" +
 	"\x06server\x18\a \x01(\tB\x06\x9a\xb5\x18\x028\x01R\x06server\x12\x12\n" +
 	"\x04tags\x18\b \x03(\tR\x04tags\x12(\n" +
-	"\x05peers\x18\t \x03(\v2\x12.ddash.sample.PeerR\x05peersB\v\n" +
+	"\x05peers\x18\t \x03(\v2\x12.ddash.sample.PeerR\x05peers:\x12\xaa\xb5\x18\x0e\n" +
+	"\fGetSetupHintB\v\n" +
 	"\t_greetingB\b\n" +
 	"\x06_timesB\a\n" +
 	"\x05_loudB\a\n" +
@@ -709,17 +790,21 @@ const file_sample_sample_proto_rawDesc = "" +
 	"\vWaitRequest\"\x0e\n" +
 	"\fWaitResponse\"\x13\n" +
 	"\x11WaitActionRequest\"\x14\n" +
-	"\x12WaitActionResponse*O\n" +
+	"\x12WaitActionResponse\"\x15\n" +
+	"\x13GetSetupHintRequest\"C\n" +
+	"\x14GetSetupHintResponse\x12+\n" +
+	"\x04hint\x18\x01 \x01(\v2\x17.ddash.config.SetupHintR\x04hint*O\n" +
 	"\x04Tone\x12\x14\n" +
 	"\x10TONE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\tTONE_WARM\x10\x01\x1a\x13\xa2\xb5\x18\x0f\n" +
 	"\rWarm and kind\x12\r\n" +
-	"\tTONE_COLD\x10\x022\xb9\x02\n" +
+	"\tTONE_COLD\x10\x022\x96\x03\n" +
 	"\rSampleService\x12F\n" +
 	"\x05Greet\x12\x1a.ddash.sample.GreetRequest\x1a\x1b.ddash.sample.GreetResponse\"\x04\x8a\xb5\x18\x00\x12E\n" +
 	"\x04Wait\x12\x19.ddash.sample.WaitRequest\x1a\x1a.ddash.sample.WaitResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12U\n" +
 	"\n" +
-	"WaitAction\x12\x1f.ddash.sample.WaitActionRequest\x1a .ddash.sample.WaitActionResponse\"\x04\x92\xb5\x18\x00\x12B\n" +
+	"WaitAction\x12\x1f.ddash.sample.WaitActionRequest\x1a .ddash.sample.WaitActionResponse\"\x04\x92\xb5\x18\x00\x12[\n" +
+	"\fGetSetupHint\x12!.ddash.sample.GetSetupHintRequest\x1a\".ddash.sample.GetSetupHintResponse\"\x04\x8a\xb5\x18\x00\x12B\n" +
 	"\x03Act\x12\x18.ddash.sample.ActRequest\x1a\x19.ddash.sample.ActResponse\"\x06\x92\xb5\x18\x02\b\x01BCZAgithub.com/itsKontra/ddash/core/internal/sample/samplepb;samplepbb\x06proto3"
 
 var (
@@ -735,20 +820,23 @@ func file_sample_sample_proto_rawDescGZIP() []byte {
 }
 
 var file_sample_sample_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_sample_sample_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_sample_sample_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_sample_sample_proto_goTypes = []any{
-	(Tone)(0),                  // 0: ddash.sample.Tone
-	(*SampleConfig)(nil),       // 1: ddash.sample.SampleConfig
-	(*Peer)(nil),               // 2: ddash.sample.Peer
-	(*ActRequest)(nil),         // 3: ddash.sample.ActRequest
-	(*Credentials)(nil),        // 4: ddash.sample.Credentials
-	(*ActResponse)(nil),        // 5: ddash.sample.ActResponse
-	(*GreetRequest)(nil),       // 6: ddash.sample.GreetRequest
-	(*GreetResponse)(nil),      // 7: ddash.sample.GreetResponse
-	(*WaitRequest)(nil),        // 8: ddash.sample.WaitRequest
-	(*WaitResponse)(nil),       // 9: ddash.sample.WaitResponse
-	(*WaitActionRequest)(nil),  // 10: ddash.sample.WaitActionRequest
-	(*WaitActionResponse)(nil), // 11: ddash.sample.WaitActionResponse
+	(Tone)(0),                    // 0: ddash.sample.Tone
+	(*SampleConfig)(nil),         // 1: ddash.sample.SampleConfig
+	(*Peer)(nil),                 // 2: ddash.sample.Peer
+	(*ActRequest)(nil),           // 3: ddash.sample.ActRequest
+	(*Credentials)(nil),          // 4: ddash.sample.Credentials
+	(*ActResponse)(nil),          // 5: ddash.sample.ActResponse
+	(*GreetRequest)(nil),         // 6: ddash.sample.GreetRequest
+	(*GreetResponse)(nil),        // 7: ddash.sample.GreetResponse
+	(*WaitRequest)(nil),          // 8: ddash.sample.WaitRequest
+	(*WaitResponse)(nil),         // 9: ddash.sample.WaitResponse
+	(*WaitActionRequest)(nil),    // 10: ddash.sample.WaitActionRequest
+	(*WaitActionResponse)(nil),   // 11: ddash.sample.WaitActionResponse
+	(*GetSetupHintRequest)(nil),  // 12: ddash.sample.GetSetupHintRequest
+	(*GetSetupHintResponse)(nil), // 13: ddash.sample.GetSetupHintResponse
+	(*config.SetupHint)(nil),     // 14: ddash.config.SetupHint
 }
 var file_sample_sample_proto_depIdxs = []int32{
 	0,  // 0: ddash.sample.SampleConfig.tone:type_name -> ddash.sample.Tone
@@ -756,19 +844,22 @@ var file_sample_sample_proto_depIdxs = []int32{
 	4,  // 2: ddash.sample.ActRequest.credentials:type_name -> ddash.sample.Credentials
 	4,  // 3: ddash.sample.ActRequest.more:type_name -> ddash.sample.Credentials
 	1,  // 4: ddash.sample.GreetResponse.config:type_name -> ddash.sample.SampleConfig
-	6,  // 5: ddash.sample.SampleService.Greet:input_type -> ddash.sample.GreetRequest
-	8,  // 6: ddash.sample.SampleService.Wait:input_type -> ddash.sample.WaitRequest
-	10, // 7: ddash.sample.SampleService.WaitAction:input_type -> ddash.sample.WaitActionRequest
-	3,  // 8: ddash.sample.SampleService.Act:input_type -> ddash.sample.ActRequest
-	7,  // 9: ddash.sample.SampleService.Greet:output_type -> ddash.sample.GreetResponse
-	9,  // 10: ddash.sample.SampleService.Wait:output_type -> ddash.sample.WaitResponse
-	11, // 11: ddash.sample.SampleService.WaitAction:output_type -> ddash.sample.WaitActionResponse
-	5,  // 12: ddash.sample.SampleService.Act:output_type -> ddash.sample.ActResponse
-	9,  // [9:13] is the sub-list for method output_type
-	5,  // [5:9] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	14, // 5: ddash.sample.GetSetupHintResponse.hint:type_name -> ddash.config.SetupHint
+	6,  // 6: ddash.sample.SampleService.Greet:input_type -> ddash.sample.GreetRequest
+	8,  // 7: ddash.sample.SampleService.Wait:input_type -> ddash.sample.WaitRequest
+	10, // 8: ddash.sample.SampleService.WaitAction:input_type -> ddash.sample.WaitActionRequest
+	12, // 9: ddash.sample.SampleService.GetSetupHint:input_type -> ddash.sample.GetSetupHintRequest
+	3,  // 10: ddash.sample.SampleService.Act:input_type -> ddash.sample.ActRequest
+	7,  // 11: ddash.sample.SampleService.Greet:output_type -> ddash.sample.GreetResponse
+	9,  // 12: ddash.sample.SampleService.Wait:output_type -> ddash.sample.WaitResponse
+	11, // 13: ddash.sample.SampleService.WaitAction:output_type -> ddash.sample.WaitActionResponse
+	13, // 14: ddash.sample.SampleService.GetSetupHint:output_type -> ddash.sample.GetSetupHintResponse
+	5,  // 15: ddash.sample.SampleService.Act:output_type -> ddash.sample.ActResponse
+	11, // [11:16] is the sub-list for method output_type
+	6,  // [6:11] is the sub-list for method input_type
+	6,  // [6:6] is the sub-list for extension type_name
+	6,  // [6:6] is the sub-list for extension extendee
+	0,  // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_sample_sample_proto_init() }
@@ -784,7 +875,7 @@ func file_sample_sample_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sample_sample_proto_rawDesc), len(file_sample_sample_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   13,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -80,8 +80,6 @@ Do these by hand, in order, before first use.
       read-only (`POST=0`, `CONTAINERS=1`) published on the host's LAN
       address, port 2375 (`tcp://<docker-env-ip>:2375`,
       `tcp://<media-stack-ip>:2375`).
-- [ ] nginx: paste the key line ddash shows (for `nginx -T` only, restricted
-      to `<ddash-ip>`) into root's `authorized_keys` on the nginx LXC.
 - [ ] pfSense: a dedicated `ddash` user holding only these `api-v2-*`
       privileges (System > User Manager > Effective Privileges), then
       generate its API key:

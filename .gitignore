@@ -13,7 +13,7 @@ node_modules/
 translate.md
 
 # make smoke / make record: the real systems, the names to scrub, and the
-# Components' DBs (nginx-config's authorized key) between runs
+# Components' DBs between runs
 smoke.env
 scrub.map
 /.smoke/

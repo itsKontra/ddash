@@ -25,6 +25,7 @@ import {
   type Column,
 } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { counting, sections, useApps, warningText } from "./apps";
 import { checkStatus } from "@ddash/display";
 import { useAppChecks } from "./checks";
@@ -70,7 +71,16 @@ export function AppsPage() {
       <div className="flex flex-col gap-6">
         {!list && !error && <Skeleton height="lg" />}
         {!list && error && <Notice tone="down">apps unavailable: {error.rawMessage}</Notice>}
-        {readError && <Notice tone="warn">Couldn't read the Proxy Hosts from Nginx Proxy Manager: {readError}. Showing those of the last read.</Notice>}
+        {list?.proxyHosts?.notConfigured ? (
+          <Notice tone="info" title="Set up Nginx Proxy Manager">
+            ddash reads the Proxy Hosts once nginx-proxy-manager-api has Nginx Proxy Manager's address and ddash's user there.{" "}
+            <Link to="/plugins" className="font-semibold text-primary hover:underline">
+              Configure it in Plugins
+            </Link>
+          </Notice>
+        ) : (
+          readError && <Notice tone="warn">Couldn't read the Proxy Hosts from Nginx Proxy Manager: {readError}. Showing those of the last read.</Notice>
+        )}
         {list && apps.length > 0 && checksError && <Notice tone="warn">Check status unavailable: {checksError.rawMessage}</Notice>}
         {list && apps.length === 0 && (
           <Panel>

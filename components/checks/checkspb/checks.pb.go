@@ -2348,14 +2348,14 @@ func (x *ListMaintenanceResponse) GetMaintenance() []*Maintenance {
 
 type ReportStateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The caller's identity for the item, e.g. "nginx-config"; one state per
+	// The caller's identity for the item, e.g. "vpn-tunnel"; one state per
 	// item.
 	Item string `protobuf:"bytes,1,opt,name=item,proto3" json:"item,omitempty"`
-	// What Notifications call it, e.g. "nginx config".
+	// What Notifications call it, e.g. "VPN Tunnel".
 	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// STATE_UP or STATE_DOWN.
 	State State `protobuf:"varint,3,opt,name=state,proto3,enum=ddash.checks.State" json:"state,omitempty"`
-	// Why it is down, e.g. nginx's error; empty when up.
+	// Why it is down, e.g. the tunnel's handshake error; empty when up.
 	Reason string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
 	// Where a Notification's Click leads, a path of ddash's UI such as
 	// "/reverse-proxy"; empty for none.

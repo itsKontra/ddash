@@ -70,6 +70,8 @@ type labOptions struct {
 	// a host restart.
 	npm     *npmfake.NPM
 	failNPM *atomic.Bool
+	// npmUnconfigured leaves nginx-proxy-manager-api without config.
+	npmUnconfigured bool
 }
 
 const npmEmail = "ddash@home.example"
@@ -115,7 +117,9 @@ func newLab(t *testing.T, o labOptions) *lab {
 		Plugins:    []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 		DataDir:    o.dataDir,
 	})
-	l.h.SeedConfig("nginx-proxy-manager-api", &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: srv.URL, Email: npmEmail, Password: npmfake.DefaultPassword})
+	if !o.npmUnconfigured {
+		l.h.SeedConfig("nginx-proxy-manager-api", &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: srv.URL, Email: npmEmail, Password: npmfake.DefaultPassword})
+	}
 	if o.fixtureWorkloads {
 		pve := fixture.Server(t, "../proxmox-api/testdata/baseline")
 		media := fixture.Server(t, "../docker-api/testdata/published-on-lan")

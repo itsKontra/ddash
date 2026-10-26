@@ -10,6 +10,9 @@ option go_package = "github.com/itsKontra/ddash/core/internal/sample/samplepb;sa
 
 // SampleConfig has a field of every kind a config form supports.
 message SampleConfig {
+  // Its setup hint is the Hooks.SetupHint's; none without the hook.
+  option (ddash.config.form) = {setup_from: "GetSetupHint"};
+
   // A sample without config is unconfigured. Start refuses "nowhere",
   // which the host's rules can't know.
   string target = 1 [(ddash.config.field) = {
@@ -62,6 +65,11 @@ service SampleService {
   rpc WaitAction(WaitActionRequest) returns (WaitActionResponse) {
     option (ddash.action) = {};
   }
+  // GetSetupHint answers with its hook's setup hint; Unimplemented
+  // without the hook.
+  rpc GetSetupHint(GetSetupHintRequest) returns (GetSetupHintResponse) {
+    option (ddash.getter) = {};
+  }
   // Act answers with the actor it ran for, unless its hook replaces it.
   rpc Act(ActRequest) returns (ActResponse) {
     option (ddash.action) = {disruptive: true};
@@ -101,3 +109,9 @@ message WaitResponse {}
 message WaitActionRequest {}
 
 message WaitActionResponse {}
+
+message GetSetupHintRequest {}
+
+message GetSetupHintResponse {
+  ddash.config.SetupHint hint = 1;
+}

@@ -1,6 +1,6 @@
 // Package scrub rewrites what a real homelab system answered into a fixture
-// that is safe to commit. Recording (`make record`) runs every body, and the
-// captured `nginx -T`, through a Scrubber:
+// that is safe to commit. Recording (`make record`) runs every body through
+// a Scrubber:
 //
 //   - each real subnet becomes its own 198.18.N.0/24, keeping host octets;
 //   - any other IPv4 address becomes one in 203.0.113.0/24, and IPv6 one in
@@ -184,9 +184,6 @@ func (s *Scrubber) Fixture(file string, body []byte) (string, []byte, error) {
 	}
 	return name, out, nil
 }
-
-// Text scrubs free text, such as `nginx -T`'s output, without refusing.
-func (s *Scrubber) Text(t string) string { return s.text(t) }
 
 // check refuses a scrubbed fixture that still holds a scrub.map literal,
 // the real domain or an address a fixture may not hold, also behind

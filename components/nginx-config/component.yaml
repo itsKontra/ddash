@@ -1,3 +1,0 @@
-name: nginx-config
-description: Reads nginx's effective config over SSH with a key that can only run `nginx -T`.
-requires: []

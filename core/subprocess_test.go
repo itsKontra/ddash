@@ -43,12 +43,12 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 		t.Errorf("ListContainers: status %d: %s; want baseline's portainer-portainer-1", res.Code, res.Body)
 	}
 
-	// nginx-config reads `nginx -T` from fakelab's SSH server.
+	// nginx-proxy-manager-api signs in to fakelab's Nginx Proxy Manager.
 	h.Install("reverse-proxy")
-	h.WaitState("nginx-config", runtime.OK)
-	res = h.Call("reverse-proxy", "nginx-config", "GetSnapshot", `{}`)
-	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"grafana.home.example"`) {
-		t.Errorf("GetSnapshot: status %d: %s; want baseline's grafana server block", res.Code, res.Body)
+	h.WaitState("nginx-proxy-manager-api", runtime.OK)
+	res = h.Call("reverse-proxy", "nginx-proxy-manager-api", "GetStatus", `{}`)
+	if res.Code != http.StatusOK || !strings.Contains(res.Body.String(), `"status":"STATUS_UP"`) {
+		t.Errorf("GetStatus: status %d: %s; want up", res.Code, res.Body)
 	}
 
 	// network reaches pfsense-api through the host over go-plugin's broker.

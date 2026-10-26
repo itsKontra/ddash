@@ -189,6 +189,7 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 		if err := r.useCatalogue(ctx, cat); err != nil {
 			return nil, err
 		}
+		r.dropRetired(ctx)
 	case errors.Is(err, ErrDownload):
 		r.log.Warn("the Release's catalogue can't be downloaded yet", "release", r.release, "err", err)
 		r.cat = Catalogue{Release: r.release}
