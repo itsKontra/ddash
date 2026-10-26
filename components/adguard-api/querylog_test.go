@@ -202,7 +202,12 @@ func TestATextOrTypeSearchMatchesEveryWordInTheDomainOrRule(t *testing.T) {
 	words := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", Text: "  SITE1   ^ "})
 	aaaa := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", Type: "AAAA"})
 	blockedA := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", Mode: blocked, Type: "A", Text: "site1"})
+	// As in matches(), a word matches without its : and - too.
+	bare := queries(t, c, &adguardapipb.ListQueriesRequest{Client: "198.18.1.150", Text: "site-16"})
 
+	if domains(bare) != "site16.example" {
+		t.Errorf(`"site-16" = %s, want site16`, domains(bare))
+	}
 	if domains(words) != "site16.example site19.example" {
 		t.Errorf(`"site1 ^" = %s, want site16 and site19`, domains(words))
 	}

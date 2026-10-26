@@ -173,14 +173,20 @@ func (f filter) keeps(q *adguardapipb.Query) bool {
 	if f.qtype != "" && !strings.EqualFold(q.GetType(), f.qtype) {
 		return false
 	}
-	domain, rule := strings.ToLower(q.GetDomain()), strings.ToLower(q.GetRule())
+	fields := []string{strings.ToLower(q.GetDomain()), strings.ToLower(q.GetRule())}
 	for _, w := range f.words {
-		if !strings.Contains(domain, w) && !strings.Contains(rule, w) {
+		// Like matches(), a word also matches without : and - (for a MAC).
+		bare := separators.Replace(w)
+		if !slices.ContainsFunc(fields, func(s string) bool {
+			return strings.Contains(s, w) || bare != "" && strings.Contains(s, bare)
+		}) {
 			return false
 		}
 	}
 	return true
 }
+
+var separators = strings.NewReplacer(":", "", "-", "")
 
 // logEntry is one entry of GET /control/querylog's data.
 type logEntry struct {
