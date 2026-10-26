@@ -33,11 +33,18 @@ type fakeAdGuard struct {
 }
 
 func adguard(t *testing.T, scenario string) *fakeAdGuard {
-	fake, err := adguardfake.New("testdata/"+scenario, adguardfake.Options{
-		Miss:     func(request string, err error) { t.Errorf("fixture: %v", err) },
-		Username: username,
-		Password: password,
-	})
+	return serve(t, scenario, adguardfake.Options{})
+}
+
+// adguardWith is baseline shaped by opts, e.g. its own query log.
+func adguardWith(t *testing.T, opts adguardfake.Options) *fakeAdGuard {
+	return serve(t, "baseline", opts)
+}
+
+func serve(t *testing.T, scenario string, opts adguardfake.Options) *fakeAdGuard {
+	opts.Miss = func(request string, err error) { t.Errorf("fixture: %v", err) }
+	opts.Username, opts.Password = username, password
+	fake, err := adguardfake.New("testdata/"+scenario, opts)
 	if err != nil {
 		t.Fatal(err)
 	}

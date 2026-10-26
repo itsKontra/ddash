@@ -1,5 +1,5 @@
 import { useQuery } from "@ddash/plugin";
-import { AdguardApiService, type Query } from "@ddash/proto/adguard-api/adguard_api_pb";
+import { AdguardApiService, QueryMode, type Query } from "@ddash/proto/adguard-api/adguard_api_pb";
 import { Checkbox, DataTable, Notice, Panel, Pill, type Column } from "@ddash/ui";
 import { useState } from "react";
 
@@ -37,7 +37,11 @@ const columns: Column<Query>[] = [
 /** The Queries Panel: a Device's last 100 AdGuard queries by its address, newest first, with a "Blocked only" filter. */
 export function DeviceQueries({ ip }: { ip: string }) {
   const [blockedOnly, setBlockedOnly] = useState(false);
-  const { data, error } = useQuery(AdguardApiService.method.listQueries, { client: ip, limit: QueryLimit, blockedOnly });
+  const { data, error } = useQuery(AdguardApiService.method.listQueries, {
+    client: ip,
+    limit: QueryLimit,
+    mode: blockedOnly ? QueryMode.BLOCKED : QueryMode.UNSPECIFIED,
+  });
   const failed = error && !data;
   return (
     <Panel
