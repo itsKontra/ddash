@@ -1,11 +1,12 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { metricValue, pending, renderScoped, settle, unavailable, type Answer } from "@ddash/plugin/testing";
 import { useLocation } from "react-router";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import plugin from "./index";
 import { check, checks } from "./testing";
 
 afterEach(cleanup);
+afterEach(() => vi.useRealTimers());
 
 // What checks answers ListChecks with (Connect JSON).
 const listed = {
@@ -90,22 +91,28 @@ async function open(at = "/") {
   await settle();
 }
 
-/** Picks item from the ⋯ Menu of the Check named name. */
-function chooseAction(name: string, item: string) {
+/** The row of the Check named name (not its strip's row). */
+const row = (name: string) => screen.getByRole("rowheader", { name: new RegExp(name) }).closest("tr")!;
+
+/** Opens the strip of the Check named name by its row's arrow. */
+function openStrip(name: string) {
   fireEvent.click(within(row(name)).getByRole("button", { name: `Actions for ${name}` }));
-  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+  return screen.getByRole("group", { name: `Actions for ${name}` });
 }
 
-/** The items of the ⋯ Menu of the Check named name; the Menu is closed again after. */
-function actionItems(name: string) {
-  const opener = within(row(name)).getByRole("button", { name: `Actions for ${name}` });
-  fireEvent.click(opener);
-  const items = screen.getAllByRole("menuitem").map((i) => i.textContent);
-  fireEvent.click(opener);
-  return items;
-}
+/** The controls in a strip, by name, a ToggleButton's pressed state after it. */
+const controls = (strip: HTMLElement) =>
+  within(strip)
+    .getAllByRole("button")
+    .map((b) => b.textContent + (b.hasAttribute("aria-pressed") ? ` ${b.getAttribute("aria-pressed")}` : ""));
 
-const row = (name: string) => screen.getByRole("row", { name: new RegExp(name) });
+/** Clicks a strip's control with the focus on it first, as a browser does. */
+function press(strip: HTMLElement, name: string) {
+  const b = within(strip).getByRole("button", { name });
+  b.focus();
+  fireEvent.click(b);
+  return b;
+}
 
 it("is the Checks Nav Entry at order 20 with a badge (its icon, activity, is in plugin.yaml)", () => {
   expect(plugin.nav?.order).toBe(20);
@@ -145,12 +152,57 @@ it("searches the Checks by name or target, kept in the URL", async () => {
   expect(search).toBe("?q=jellyfin");
 });
 
+it("matches every word of the search, in the name or the target", async () => {
+  await open("/?q=HTTPS%20jellyfin");
+
+  // adguard resolves jellyfin.home.example, but nothing of it says https.
+  expect(checkNames()).toEqual(["Jellyfin"]);
+});
+
+it("sorts by State, Down first, while the URL names no sort", async () => {
+  await open();
+
+  // Down, then warn (pending, Flapping), Maintenance, up, then disabled.
+  expect(checkNames()).toEqual(["router", "adguard", "camera", "Sonarr", "Radarr", "nas", "Jellyfin", "nvr"]);
+  expect(screen.getByRole("columnheader", { name: /State/ }).getAttribute("aria-sort")).toBe("ascending");
+  expect(search).toBe("");
+});
+
+it("sorts by Target, kept in the URL, and opens on the sort a link carries", async () => {
+  await open();
+
+  fireEvent.click(within(screen.getByRole("columnheader", { name: /Target/ })).getByRole("button"));
+
+  expect(checkNames()).toEqual(["camera", "Jellyfin", "Radarr", "Sonarr", "adguard", "nas", "nvr", "router"]);
+  expect(search).toBe("?sort=target");
+
+  cleanup();
+  await open("/?sort=-state");
+  expect(checkNames()).toEqual(["nvr", "nas", "Jellyfin", "Sonarr", "Radarr", "adguard", "camera", "router"]);
+});
+
+it("sorts by the tone the State Pill draws: pending with warn, an up Check with an expiring certificate with up", async () => {
+  listAnswer = () =>
+    Response.json({
+      checks: [
+        check(1, "expiring", "STATE_UP", { certExpires: "2026-10-30T00:00:00Z", certExpiring: true }),
+        check(2, "steady", "STATE_UP"),
+        check(3, "waiting", "STATE_PENDING"),
+        check(4, "flaky", "STATE_UP", { flapping: true }),
+        check(5, "paused", "STATE_UP", { maintenance: true }),
+      ],
+    });
+  await open();
+
+  expect(checkNames()).toEqual(["waiting", "flaky", "paused", "expiring", "steady"]);
+});
+
 it("filters the Checks by type, kept in the URL", async () => {
   await open();
 
   fireEvent.change(screen.getByRole("combobox", { name: "Type" }), { target: { value: "HTTP" } });
 
-  expect(checkNames()).toEqual(["Jellyfin", "Sonarr", "Radarr"]);
+  expect(checkNames()).toEqual(["Sonarr", "Radarr", "Jellyfin"]);
   expect(search).toBe("?type=HTTP");
 });
 
@@ -161,7 +213,7 @@ it("splits the Checks into tabs with counts, the tab kept in the URL", async () 
   expect(tabs.map((t) => t.textContent)).toEqual(["All8", "Down1", "Attention3", "Maintenance2", "Muted1"]);
   fireEvent.click(screen.getByRole("tab", { name: /Attention/ }));
 
-  expect(checkNames()).toEqual(["adguard", "Jellyfin", "camera"]);
+  expect(checkNames()).toEqual(["adguard", "camera", "Jellyfin"]);
   expect(search).toBe("?tab=attention");
 });
 
@@ -176,7 +228,7 @@ it("says so when no Check matches", async () => {
   await open("/?q=nothing-like-it");
 
   expect(checkNames()).toEqual([]);
-  expect(screen.getByText("No Check matches.")).toBeTruthy();
+  expect(screen.getByText('No Checks match "nothing-like-it"')).toBeTruthy();
 });
 
 it("marks a Flapping Check, warn while it is up", async () => {
@@ -195,7 +247,9 @@ it("lists App Checks, marks an expiring certificate, and leaves their editing to
   expect(within(jellyfin).getByText("HTTP")).toBeTruthy();
   expect(within(jellyfin).getByText("https://jellyfin.home.example")).toBeTruthy();
   expect(within(jellyfin).getByText("certificate expiring")).toBeTruthy();
-  expect(actionItems("Jellyfin")).toEqual(["Maintenance", "Mute", "Disable"]);
+  const strip = openStrip("Jellyfin");
+  expect(controls(strip)).toEqual(["Maintenance", "Muted false", "Disabled false"]);
+  expect(within(strip).getByRole("status").textContent).toMatch(/· Edited with its App$/);
 });
 
 it("adds a Check from the form", async () => {
@@ -247,7 +301,7 @@ it("keeps the form open with checks' refusal", async () => {
 it("edits a Check from its row, filled in", async () => {
   await open();
 
-  chooseAction("adguard", "Edit");
+  press(openStrip("adguard"), "Edit");
   const form = screen.getByRole("dialog", { name: "Edit adguard" });
   expect((within(form).getByLabelText("Name to resolve") as HTMLInputElement).value).toBe("jellyfin.home.example");
   fireEvent.change(within(form).getByLabelText("DNS server"), { target: { value: "198.18.1.3" } });
@@ -262,19 +316,44 @@ it("edits a Check from its row, filled in", async () => {
   ]);
 });
 
-it("keeps a Check's Actions in its row's ⋯ Menu, never inline", async () => {
+it("keeps a Check's Actions in its row's strip, with no ⋯ Menu", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime("2026-10-20T08:02:30Z");
   await open();
 
-  expect(actionItems("nas")).toEqual(["Edit", "Maintenance", "Mute", "Disable", "Delete"]);
   const buttons = within(row("nas")).getAllByRole("button");
   expect(buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual(["nas", "Actions for nas"]);
+  expect(buttons[1].getAttribute("aria-haspopup")).toBeNull();
+
+  const strip = openStrip("nas");
+  expect(within(strip).getByRole("status").textContent).toBe("up · 12 ms · checked 2 min ago");
+  expect(controls(strip)).toEqual(["Edit", "Maintenance", "Muted false", "Disabled false", "Delete"]);
+  expect(controls(openStrip("router"))).toEqual(["Edit", "Maintenance", "Muted true", "Disabled false", "Delete"]);
+  expect(screen.queryByRole("group", { name: "Actions for nas" })).toBeNull();
 });
 
-it("mutes, unmutes, disables and enables from the row's Menu", async () => {
+it("sums up a down Check by its reason, and one not probed yet", async () => {
   await open();
 
-  for (const [check, item] of [["nas", "Mute"], ["router", "Unmute"], ["nas", "Disable"], ["nvr", "Enable"]]) {
-    chooseAction(check, item);
+  expect(within(openStrip("router")).getByRole("status").textContent).toBe("down · connection refused · not checked yet");
+  expect(within(openStrip("nvr")).getByRole("status").textContent).toBe("disabled · not checked yet");
+});
+
+it("opens a Check's detail on a click of its row, beside its arrow", async () => {
+  await open();
+
+  openStrip("nas");
+  expect(screen.queryByRole("dialog")).toBeNull();
+  fireEvent.click(within(row("nas")).getByText("nas.home.example:22"));
+
+  expect(screen.getByRole("dialog", { name: "nas" })).toBeTruthy();
+});
+
+it("mutes, unmutes, disables and enables from the row's strip", async () => {
+  await open();
+
+  for (const [check, item] of [["nas", "Muted"], ["router", "Muted"], ["nas", "Disabled"], ["nvr", "Disabled"]]) {
+    press(openStrip(check), item);
     await settle();
   }
 
@@ -289,7 +368,7 @@ it("mutes, unmutes, disables and enables from the row's Menu", async () => {
 it("deletes a Check only once confirmed", async () => {
   await open();
 
-  chooseAction("router", "Delete");
+  press(openStrip("router"), "Delete");
   await settle();
   const ask = screen.getByRole("alertdialog");
   expect(ask.textContent).toContain("Delete the Check router? Its history goes with it.");
@@ -409,7 +488,7 @@ it("starts Maintenance on a Workload its App Checks run on, until ended", async 
 it("starts Maintenance for one Check from its row", async () => {
   await open();
 
-  chooseAction("nas", "Maintenance");
+  press(openStrip("nas"), "Maintenance");
   const sheet = screen.getByRole("dialog", { name: "Maintenance for nas" });
   expect(within(sheet).queryByRole("radio", { name: "Everything" })).toBeNull();
   fireEvent.click(within(sheet).getByRole("radio", { name: "30 min" }));
@@ -417,4 +496,21 @@ it("starts Maintenance for one Check from its row", async () => {
   await settle();
 
   expect(actions).toEqual([{ method: "StartMaintenance", body: { scope: { checkId: "1" }, duration: "1800s" } }]);
+});
+
+it("leaves the strip open under a Sheet it opened, and gives the focus back to its Button", async () => {
+  await open();
+
+  for (const [name, title] of [["Edit", "Edit nas"], ["Maintenance", "Maintenance for nas"]]) {
+    const strip = screen.queryByRole("group", { name: "Actions for nas" }) ?? openStrip("nas");
+    const opener = press(strip, name);
+    const sheet = screen.getByRole("dialog", { name: title });
+    expect(screen.getByRole("group", { name: "Actions for nas" })).toBe(strip);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Cancel" }));
+    await settle();
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("group", { name: "Actions for nas" })).toBe(strip);
+    expect(document.activeElement).toBe(opener);
+  }
 });

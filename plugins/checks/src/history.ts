@@ -21,16 +21,20 @@ export function useHistory(id: bigint, name: WindowName) {
   return useQuery(ChecksService.method.getHistory, { id, window: windows[name].window });
 }
 
-/** An uptime ratio as people read it, floored so 99.999 % never shows as 100 %. */
+/**
+ * An uptime ratio as people read it, floored so 99.999 % never shows as 100 %.
+ * checks answers exactly 1 for a window without down beats.
+ */
 export function percent(ratio: number | undefined): string {
   if (ratio === undefined) return "no data";
   return `${Number((Math.floor(ratio * 10_000) / 100).toFixed(2))} %`;
 }
 
-/** How a bucket reads: down if any beat failed, else up, else Maintenance; idle without beats. */
+/** How a bucket reads: down if any beat was down, else warn if one left the Check pending, else up, else Maintenance; idle without beats. */
 function toneOf(b: Bucket | undefined): UptimeBar["tone"] {
   if (!b) return "idle";
   if (b.down > 0n) return "down";
+  if (b.pending > 0n) return "warn";
   if (b.up > 0n) return "up";
   if (b.maintenance > 0n) return "maint";
   return "idle";
@@ -51,6 +55,7 @@ export function bars(h: GetHistoryResponse, name: WindowName): UptimeBar[] {
 
 function summary(b: Bucket): string {
   const parts = [`${b.up} up`, `${b.down} down`];
+  if (b.pending > 0n) parts.push(`${b.pending} pending`);
   if (b.maintenance > 0n) parts.push(`${b.maintenance} in Maintenance`);
   return parts.join(", ");
 }

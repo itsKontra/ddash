@@ -2,8 +2,9 @@ import { useAction, useQuery } from "@ddash/plugin";
 import { Kind as RefKind } from "@ddash/proto/ddash/workload/workload_pb";
 import { Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { PowerAction, ProxmoxService, type PowerTask } from "@ddash/proto/proxmox/proxmox_pb";
-import { Button, Menu, Notice, Pill, Skeleton } from "@ddash/ui";
+import { ActionStrip, Button, Notice, Pill, Skeleton } from "@ddash/ui";
 import { kindLabel } from "@ddash/display";
+import { uptime } from "./format";
 
 /** The privilege ddash needs on a Workload to start, stop or restart it. */
 export const powerMgmt = "VM.PowerMgmt";
@@ -20,6 +21,12 @@ const running: Record<PowerAction, string> = {
   [PowerAction.STOP]: "stopping",
   [PowerAction.RESTART]: "restarting",
 };
+
+/** What the power task running on a Workload reads as, e.g. "restarting", or undefined while none runs. */
+export function taskOf(tasks: readonly PowerTask[] | undefined, w: Workload): string | undefined {
+  const task = tasks?.find((t) => t.workload?.id === String(w.vmid));
+  return task && running[task.action];
+}
 
 /** One power Action offered on a Workload. */
 interface Item {
@@ -42,7 +49,7 @@ export function usePower(w: Workload) {
   const restart = useAction(ProxmoxService.method.restartWorkload);
 
   const privileges = perms.data?.workloads.find((p) => p.vmid === w.vmid)?.privileges;
-  const task: PowerTask | undefined = tasks.data?.tasks.find((t) => t.workload?.id === String(w.vmid));
+  const task = taskOf(tasks.data?.tasks, w);
   const label = workloadLabel(w);
   const request = { workload: refOf(w) };
   const items: Item[] = [];
@@ -64,15 +71,17 @@ export function usePower(w: Workload) {
     protected: privileges !== undefined && !privileges.includes(powerMgmt),
     items,
     busy: task !== undefined || start.pending || stop.pending || restart.pending,
-    task: task && running[task.action],
+    task,
     error: start.error ?? stop.error ?? restart.error,
   };
 }
 
+const lockedWhy = "ddash doesn't hold VM.PowerMgmt on it. Start, stop or restart it in Proxmox.";
+
 /** The lock a Protected Workload shows in place of its power Actions. */
 export function ProtectedLock() {
   return (
-    <span title="ddash doesn't hold VM.PowerMgmt on it. Start, stop or restart it in Proxmox.">
+    <span title={lockedWhy}>
       <Pill>protected in Proxmox</Pill>
     </span>
   );
@@ -82,21 +91,36 @@ function Failure({ message }: { message?: string }) {
   return message ? <Notice tone="down">{message}</Notice> : null;
 }
 
-/** A row's power Actions: its menu, or the lock. */
-export function PowerMenu({ workload: w }: { workload: Workload }) {
+/** "No power Actions for a paused Workload." */
+const noActions = (w: Workload) => `No power Actions for a ${w.template ? "template" : w.status} Workload.`;
+
+/**
+ * A Workloads row's action strip: its status ("running, up 3 d"), or the
+ * task while one runs ("Proxmox is restarting it"), with its power Actions
+ * as Buttons and why the last one failed; or the lock and why.
+ */
+export function PowerStrip({ workload: w }: { workload: Workload }) {
   const p = usePower(w);
-  if (!p.known) return null;
-  if (p.protected) return <ProtectedLock />;
+  if (!p.known) return <Skeleton height="sm" />;
+  if (p.protected)
+    return (
+      <ActionStrip summary={lockedWhy}>
+        <ProtectedLock />
+      </ActionStrip>
+    );
+  const summary = p.task ? `Proxmox is ${p.task} it` : w.status === "running" ? `running, up ${uptime(w.uptimeSeconds)}` : w.status;
   return (
-    <div className="flex flex-col items-end gap-1">
-      <div className="flex items-center gap-1.5">
-        {p.task && <Pill tone="maint">{p.task}</Pill>}
-        {p.items.length > 0 && (
-          <Menu label={`Power for ${w.name}`} disabled={p.busy} items={p.items.map((i) => ({ label: i.label, danger: i.danger, onSelect: i.run }))} />
-        )}
-      </div>
-      <Failure message={p.error?.rawMessage} />
-    </div>
+    <ActionStrip summary={summary} notice={<Failure message={p.error?.rawMessage} />}>
+      {p.items.length > 0 ? (
+        p.items.map((i) => (
+          <Button key={i.label} size="sm" variant={i.danger ? "danger" : "default"} disabled={p.busy} onClick={i.run}>
+            {i.label}
+          </Button>
+        ))
+      ) : (
+        <span className="text-xs text-muted-foreground">{noActions(w)}</span>
+      )}
+    </ActionStrip>
   );
 }
 
@@ -113,7 +137,7 @@ export function PowerButtons({ workload: w }: { workload: Workload }) {
             {i.label}
           </Button>
         ))}
-        {p.items.length === 0 && <span className="text-sm text-muted-foreground">No power Actions for a {w.template ? "template" : w.status} Workload.</span>}
+        {p.items.length === 0 && <span className="text-sm text-muted-foreground">{noActions(w)}</span>}
         {p.task && <Pill tone="maint">{p.task}</Pill>}
       </div>
       <Failure message={p.error?.rawMessage} />

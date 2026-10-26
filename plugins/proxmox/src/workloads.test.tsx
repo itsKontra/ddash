@@ -1,8 +1,8 @@
-import { cleanup, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { pending, unavailable } from "@ddash/plugin/testing";
-import { show } from "./testing";
+import { back, search, show } from "./testing";
 
 afterEach(cleanup);
 
@@ -84,4 +84,110 @@ it("says proxmox-api isn't configured yet, with a way to configure it", async ()
   expect(screen.getByText("proxmox-api isn't configured")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Configure it in Plugins" }).getAttribute("href")).toBe("/plugins");
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+const names = () => screen.getAllByRole("rowheader").map((h) => h.textContent);
+const sortBy = (header: string) => fireEvent.click(within(screen.getByRole("table")).getByRole("button", { name: header }));
+const searchbox = () => screen.getByRole("searchbox", { name: "Search Workloads" });
+const kind = () => screen.getByRole("combobox", { name: "Kind" });
+const tab = (name: RegExp) => screen.getByRole("tab", { name });
+
+it("has a column for each detail and none for power, which sits in each row's strip", async () => {
+  await show("/proxmox");
+
+  const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
+  expect(headers).toEqual(["Name", "Status", "ID", "Kind", "Tags", "CPU", "Memory", "Disk", "Network", "Uptime", "IPs", "Actions"]);
+});
+
+it("sorts by ID until another sort is chosen; Tags, Network and IPs don't sort", async () => {
+  await show("/proxmox");
+
+  expect(names()).toEqual(["nginx", "media-stack", "dhcp-box", "win-test", "locked-out", "debian-template"]);
+  expect(screen.getByRole("columnheader", { name: /^ID/ }).getAttribute("aria-sort")).toBe("ascending");
+  const table = within(screen.getByRole("table"));
+  expect(table.getAllByRole("button", { name: /^(Name|Status|ID|Kind|CPU|Memory|Disk|Uptime)$/ })).toHaveLength(8);
+  for (const header of ["Tags", "Network", "IPs"]) expect(table.queryByRole("button", { name: header })).toBeNull();
+
+  sortBy("Name");
+  expect(names()).toEqual(["debian-template", "dhcp-box", "locked-out", "media-stack", "nginx", "win-test"]);
+  expect(search).toBe("?sort=name");
+  sortBy("Kind");
+  expect(names().slice(0, 3)).toEqual(["nginx", "media-stack", "dhcp-box"]);
+});
+
+it("sorts CPU, Memory, Disk and Uptime by value, a stopped Workload using none", async () => {
+  await show("/proxmox");
+
+  sortBy("Memory");
+  sortBy("Memory");
+  // 3.0 GiB in use before 256 MiB, though 256 reads as the larger number.
+  expect(names().slice(0, 2)).toEqual(["media-stack", "nginx"]);
+  expect(search).toBe("?sort=-memory");
+
+  sortBy("CPU");
+  expect(names().slice(-2)).toEqual(["nginx", "media-stack"]);
+  sortBy("Disk");
+  sortBy("Disk");
+  expect(names().slice(0, 2)).toEqual(["media-stack", "nginx"]);
+  sortBy("Uptime");
+  expect(names().slice(-2)).toEqual(["nginx", "media-stack"]);
+});
+
+it("searches the Workloads by name, ID, tag or IP, kept in the URL", async () => {
+  await show("/proxmox");
+
+  const find = (q: string) => {
+    fireEvent.change(searchbox(), { target: { value: q } });
+    return names();
+  };
+  expect(find("media")).toEqual(["media-stack"]);
+  expect(find("111")).toEqual(["win-test"]);
+  expect(find("lab")).toEqual(["win-test"]);
+  expect(find("198.18.1.1")).toEqual(["nginx", "win-test"]);
+  expect(find("web 198.18.1.11")).toEqual(["nginx"]);
+  expect(search).toBe("?q=web+198.18.1.11");
+});
+
+it("says so when no Workload matches the search", async () => {
+  await show("/proxmox?q=nothing-like-it");
+
+  expect(screen.getByRole("table").textContent).toMatch(/No Workloads match "nothing-like-it"/);
+});
+
+it("shows All, Running or Stopped Workloads, counted, and filters them by kind", async () => {
+  await show("/proxmox");
+
+  expect(tab(/All/).textContent).toBe("All6");
+  expect(tab(/Running/).textContent).toBe("Running2");
+  expect(tab(/Stopped/).textContent).toBe("Stopped4");
+
+  fireEvent.click(tab(/Stopped/));
+  expect(names()).toEqual(["dhcp-box", "win-test", "locked-out", "debian-template"]);
+  expect(search).toBe("?tab=stopped");
+
+  fireEvent.change(kind(), { target: { value: "vm" } });
+  expect(names()).toEqual(["win-test", "locked-out", "debian-template"]);
+  // The counts follow the kind.
+  expect(tab(/Running/).textContent).toBe("Running0");
+  expect(search).toBe("?tab=stopped&kind=vm");
+
+  fireEvent.click(tab(/Running/));
+  expect(screen.getByRole("table").textContent).toMatch(/No Workloads match the filters/);
+});
+
+it("opens on the search, sort, tab and kind a link carries, and keeps them through a Workload's detail and Back", async () => {
+  await show("/proxmox?q=198.18&sort=-name&tab=running&kind=lxc");
+
+  expect(searchbox()).toHaveProperty("value", "198.18");
+  expect(kind()).toHaveProperty("value", "lxc");
+  expect(tab(/Running/).getAttribute("aria-selected")).toBe("true");
+  expect(names()).toEqual(["nginx", "media-stack"]);
+
+  fireEvent.click(screen.getByRole("link", { name: "media-stack" }));
+  expect(screen.getByRole("heading", { level: 1, name: "media-stack" })).toBeTruthy();
+  act(() => back());
+
+  expect(searchbox()).toHaveProperty("value", "198.18");
+  expect(names()).toEqual(["nginx", "media-stack"]);
+  expect(search).toBe("?q=198.18&sort=-name&tab=running&kind=lxc");
 });

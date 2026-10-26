@@ -561,7 +561,7 @@ it("Add Widget's search narrows the list by Widget or Plugin, and says when noth
 
   fireEvent.change(search, { target: { value: "zzz" } });
   expect(groups(sheet)).toEqual([]);
-  expect(within(sheet).getByText("No Widget matches “zzz”")).toBeTruthy();
+  expect(within(sheet).getByText('No Widgets match "zzz"')).toBeTruthy();
 });
 
 it("Add Widget says so when no installed Plugin offers a Widget", async () => {

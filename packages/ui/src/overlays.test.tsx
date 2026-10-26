@@ -1,9 +1,14 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
-import { afterEach, expect, it } from "vitest";
-import { Button, ConfirmDialog, Dialog, Menu, Sheet } from "./index";
+import { afterEach, expect, it, vi } from "vitest";
+import { Button, ConfirmDialog, Dialog, Menu, Presence, Sheet } from "./index";
+import { stubAnimations, unstubAnimations } from "./test-animations";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  unstubAnimations();
+});
 
 it("Menu opens its items from a labelled button and closes once one is picked", () => {
   const picked: string[] = [];
@@ -174,4 +179,105 @@ it.each(["Dialog", "Sheet"] as const)("%s traps the focus inside and hands it ba
   fireEvent.keyDown(save, { key: "Escape" });
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.activeElement).toBe(opener);
+});
+
+function Toggle({ initial = true }: { initial?: boolean }) {
+  const [open, setOpen] = useState(initial);
+  const [closes, setCloses] = useState(0);
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(!open)}>
+        Toggle
+      </button>
+      <output aria-label="Closes">{closes}</output>
+      <Presence>
+        {open && (
+          <Sheet
+            title="Rename"
+            onClose={() => {
+              setCloses((n) => n + 1);
+              setOpen(false);
+            }}
+          >
+            <input aria-label="Name" />
+          </Sheet>
+        )}
+      </Presence>
+    </>
+  );
+}
+
+it("Presence keeps a closed Sheet mounted, closed and inert, until its exit finishes, with the focus back on the opener", async () => {
+  const exits = stubAnimations();
+  render(<Toggle initial={false} />);
+  const toggle = screen.getByRole("button", { name: "Toggle" });
+  toggle.focus();
+  fireEvent.click(toggle);
+  const dialog = screen.getByRole("dialog", { name: "Rename" });
+  expect(dialog.contains(document.activeElement)).toBe(true);
+
+  fireEvent.keyDown(within(dialog).getByRole("textbox"), { key: "Escape" });
+
+  expect(dialog.isConnected).toBe(true);
+  const leaving = dialog.closest("[data-state]")!;
+  expect(leaving.getAttribute("data-state")).toBe("closed");
+  expect(leaving.hasAttribute("inert")).toBe(true);
+  expect(document.activeElement).toBe(toggle);
+
+  // A second close during the exit does nothing.
+  fireEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+  expect(screen.getByRole("status", { name: "Closes" }).textContent).toBe("1");
+
+  await act(async () => exits.at(-1)!.finish());
+  expect(dialog.isConnected).toBe(false);
+});
+
+it("Presence cancels the exit when its child returns mid-exit, keeping the same Sheet open", async () => {
+  const exits = stubAnimations();
+  render(<Toggle />);
+  const dialog = screen.getByRole("dialog", { name: "Rename" });
+  fireEvent.change(within(dialog).getByRole("textbox"), { target: { value: "plex" } });
+  const toggle = screen.getByRole("button", { name: "Toggle" });
+
+  fireEvent.click(toggle);
+  fireEvent.click(toggle);
+
+  const box = dialog.closest("[data-state]")!;
+  expect(box.getAttribute("data-state")).toBe("open");
+  expect(box.hasAttribute("inert")).toBe(false);
+  // The reversed transition aborts the exit's animation.
+  await act(async () => exits.at(-1)!.cancel());
+  expect(dialog.isConnected).toBe(true);
+  expect((within(dialog).getByRole("textbox") as HTMLInputElement).value).toBe("plex");
+});
+
+it("Presence swaps a child that changes while open in place, with no exit", () => {
+  const exits = stubAnimations();
+  const sheet = (check: string) => (
+    <Presence>
+      <Sheet title={check} onClose={() => {}}>
+        <p>Detail</p>
+      </Sheet>
+    </Presence>
+  );
+  const { rerender } = render(sheet("Check A"));
+  const dialog = screen.getByRole("dialog", { name: "Check A" });
+
+  rerender(sheet("Check B"));
+
+  expect(screen.getByRole("dialog", { name: "Check B" })).toBe(dialog);
+  expect(screen.queryByRole("dialog", { name: "Check A" })).toBeNull();
+  expect(exits).toHaveLength(0);
+});
+
+it("Presence unmounts at once when nothing animates the exit", () => {
+  const { rerender } = render(
+    <Presence>
+      <Dialog title="Edit" onClose={() => {}} />
+    </Presence>,
+  );
+
+  rerender(<Presence>{false}</Presence>);
+
+  expect(screen.queryByRole("dialog")).toBeNull();
 });

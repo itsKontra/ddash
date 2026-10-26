@@ -1,4 +1,5 @@
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { useLocation } from "react-router";
 import { afterEach, expect, it } from "vitest";
 import { pending, settle, unavailable, type Answers } from "@ddash/plugin/testing";
 import { Page, renderScoped } from "./testing";
@@ -11,7 +12,8 @@ const in60Days = "2027-01-10T12:00:00Z";
 
 // ListProxyHosts' answer (Connect JSON): three Proxy Hosts, by domain, as
 // apps joins them with their Apps: Grafana on an LXC behind an upstream
-// block, Jellyfin on a container, the Printer on nothing and without TLS.
+// block, Jellyfin on a container, the Office printer on nothing and
+// without TLS.
 const proxyHosts = {
   proxyHosts: [
     {
@@ -47,7 +49,7 @@ const proxyHosts = {
       line: "1",
       serverNames: ["printer.home.example"],
       upstream: "http://198.18.2.99",
-      app: { id: "proxy:printer.home.example", serverName: "printer.home.example", name: "Printer", url: "http://printer.home.example:8080" },
+      app: { id: "proxy:printer.home.example", serverName: "printer.home.example", name: "Office printer", url: "http://printer.home.example:8080" },
       warnings: ["PROXY_HOST_WARNING_NO_WORKLOAD", "PROXY_HOST_WARNING_NO_TLS"],
     },
   ],
@@ -81,8 +83,24 @@ const answers: Answers = {
   ListChecks: () => Response.json(checks),
 };
 
-async function show(over: Answers = {}, installed?: string[]) {
-  const calls = renderScoped(<Page />, { ...answers, ...over }, installed);
+// The Page's URL search, as the table last wrote it.
+let search = "";
+
+function Where() {
+  search = useLocation().search;
+  return null;
+}
+
+async function show(over: Answers = {}, installed?: string[], path?: string) {
+  const calls = renderScoped(
+    <>
+      <Page />
+      <Where />
+    </>,
+    { ...answers, ...over },
+    installed,
+    path,
+  );
   await settle();
   return calls;
 }
@@ -98,10 +116,86 @@ const cell = (r: HTMLElement, header: string) =>
   r.children[within(table()).getAllByRole("columnheader").findIndex((h) => h.textContent === header)] as HTMLElement;
 const datetime = (el: HTMLElement) => within(el).getByText((_, e) => e?.tagName === "TIME").getAttribute("datetime");
 
-it("lists the Proxy Hosts apps finds, by domain", async () => {
+/** The rows' first domains, in order. */
+const domains = () => rows().map(domainOf);
+const sortBy = (header: string) => fireEvent.click(within(table()).getByRole("button", { name: header }));
+const searchbox = () => within(panel()).getByRole("searchbox", { name: "Search Proxy Hosts" });
+
+it("lists the Proxy Hosts apps finds by their first domain until another sort is chosen", async () => {
+  await show({ ListProxyHosts: () => Response.json({ proxyHosts: [...proxyHosts.proxyHosts].reverse() }) });
+
+  expect(domains()).toEqual(["grafana.home.example", "jellyfin.home.example", "printer.home.example"]);
+  expect(within(table()).getByRole("columnheader", { name: "Domains" }).getAttribute("aria-sort")).toBe("ascending");
+  expect(search).toBe("");
+});
+
+it("sorts by Check, Down first, kept in the URL", async () => {
   await show();
 
-  expect(rows().map(domainOf)).toEqual(["grafana.home.example", "jellyfin.home.example", "printer.home.example"]);
+  sortBy("Check");
+
+  // The Printer is down, Jellyfin's certificate warns, Grafana is up.
+  expect(domains()).toEqual(["printer.home.example", "jellyfin.home.example", "grafana.home.example"]);
+  expect(search).toBe("?sort=check");
+});
+
+it("sorts by Certificate, soonest expiry first and none last", async () => {
+  await show();
+
+  sortBy("Certificate");
+
+  expect(domains()).toEqual(["jellyfin.home.example", "grafana.home.example", "printer.home.example"]);
+  expect(search).toBe("?sort=certificate");
+});
+
+it("sorts by Upstream, App and Workload, a host without one last", async () => {
+  await show({
+    ListProxyHosts: () =>
+      Response.json({
+        proxyHosts: [
+          ...proxyHosts.proxyHosts,
+          { file: "/etc/nginx/conf.d/wild.conf", line: "1", serverNames: ["wild.home.example"], upstream: "http://198.18.2.1" },
+        ],
+      }),
+  });
+
+  sortBy("Upstream");
+  // By the address's value: 198.18.2.1, .20, .99, then a name.
+  expect(domains()).toEqual(["wild.home.example", "jellyfin.home.example", "printer.home.example", "grafana.home.example"]);
+  sortBy("App");
+  expect(domains()).toEqual(["grafana.home.example", "jellyfin.home.example", "printer.home.example", "wild.home.example"]);
+  sortBy("Workload");
+  expect(domains()).toEqual(["jellyfin.home.example", "grafana.home.example", "printer.home.example", "wild.home.example"]);
+});
+
+it("searches the Proxy Hosts by any domain, the upstream, a server, the App or the Workload, kept in the URL", async () => {
+  await show();
+
+  const find = (q: string) => {
+    fireEvent.change(searchbox(), { target: { value: q } });
+    return domains();
+  };
+  expect(find("media")).toEqual(["jellyfin.home.example"]);
+  expect(find("http://198.18.2.99")).toEqual(["printer.home.example"]);
+  expect(find("198.18.2.31")).toEqual(["grafana.home.example"]);
+  expect(find("office")).toEqual(["printer.home.example"]);
+  expect(find("docker")).toEqual(["jellyfin.home.example"]);
+  expect(search).toBe("?q=docker");
+  // Warnings has its own Panel, which the search leaves alone.
+  expect(screen.getByRole("region", { name: "Warnings" })).toBeTruthy();
+});
+
+it("opens on the search and sort a link carries", async () => {
+  await show({}, undefined, "/?q=home&sort=-domains");
+
+  expect(searchbox()).toHaveProperty("value", "home");
+  expect(domains()).toEqual(["printer.home.example", "jellyfin.home.example", "grafana.home.example"]);
+});
+
+it("says so when no Proxy Host matches the search", async () => {
+  await show({}, undefined, "/?q=nothing-like-it");
+
+  expect(table().textContent).toMatch(/No Proxy Hosts match "nothing-like-it"/);
 });
 
 it("shows a Proxy Host's domains, upstream, App with its Check status, Workload and certificate expiry", async () => {
@@ -131,6 +225,26 @@ it("shows an upstream block's servers next to its name", async () => {
   await show();
 
   expect(cell(row("grafana.home.example"), "Upstream").textContent).toBe("http://grafana → 198.18.2.30:3000, 198.18.2.31:3000");
+});
+
+it("shows an upstream without its nginx variables, keeping its literal path", async () => {
+  await show({
+    ListProxyHosts: () =>
+      Response.json({
+        proxyHosts: [
+          { serverNames: ["jellyfin.home.example"], upstream: "http://jellyfin:8096$request_uri" },
+          { serverNames: ["app.home.example"], upstream: "http://app$uri$is_args$args" },
+          { serverNames: ["api.home.example"], upstream: "http://198.18.2.40:8080/api${uri}", warnings: ["PROXY_HOST_WARNING_NO_WORKLOAD"] },
+        ],
+      }),
+  });
+
+  expect(cell(row("jellyfin.home.example"), "Upstream").textContent).toBe("http://jellyfin:8096");
+  expect(cell(row("app.home.example"), "Upstream").textContent).toBe("http://app");
+  expect(cell(row("api.home.example"), "Upstream").textContent).toBe("http://198.18.2.40:8080/api");
+  // The Warnings list names the upstream as nginx's config writes it.
+  const warnings = screen.getByRole("region", { name: "Warnings" });
+  expect(within(warnings).getByRole("listitem").textContent).toBe("api.home.exampleupstream http://198.18.2.40:8080/api${uri} matches no Workload");
 });
 
 it("links the App to the apps Page and the Workload to its Proxmox detail or Docker Page when they are installed", async () => {

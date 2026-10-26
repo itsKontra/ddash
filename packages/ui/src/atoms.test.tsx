@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { AppIcon, Button, Pill, Skeleton, StatusDot } from "./index";
+import { AppIcon, Button, Pill, Skeleton, StatusDot, ToggleButton } from "./index";
 import { dashboardIconsCommit } from "./dashboard-icons";
 
 // Where the pinned dashboard-icons logos load from.
@@ -71,6 +71,43 @@ it("Button danger is the down tint with down text, never a solid fill", () => {
   expect(classes).toEqual(expect.arrayContaining(["bg-down-tint", "text-down-text"]));
   expect(classes).not.toContain("bg-down");
   expect(classes).not.toContain("text-primary-foreground");
+});
+
+it("ToggleButton is a button named by its text, pressed while on, asking for the other state", () => {
+  const changes: boolean[] = [];
+  const { rerender } = render(
+    <ToggleButton pressed={false} onChange={(v) => changes.push(v)}>
+      Tunnelled
+    </ToggleButton>,
+  );
+
+  const button = screen.getByRole("button", { name: "Tunnelled" });
+  expect(button.getAttribute("aria-pressed")).toBe("false");
+  fireEvent.click(button);
+  expect(changes).toEqual([true]);
+
+  rerender(
+    <ToggleButton pressed onChange={(v) => changes.push(v)}>
+      Tunnelled
+    </ToggleButton>,
+  );
+  expect(button.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(button);
+  expect(changes).toEqual([true, false]);
+});
+
+it("ToggleButton disabled ignores clicks", () => {
+  const changes: boolean[] = [];
+  render(
+    <ToggleButton pressed={false} disabled onChange={(v) => changes.push(v)}>
+      Ads blocked
+    </ToggleButton>,
+  );
+
+  const button = screen.getByRole("button", { name: "Ads blocked" }) as HTMLButtonElement;
+  expect(button.disabled).toBe(true);
+  fireEvent.click(button);
+  expect(changes).toEqual([]);
 });
 
 it("Skeleton tells screen readers something is loading and draws the lines it is asked for", () => {

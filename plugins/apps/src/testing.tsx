@@ -75,9 +75,9 @@ export const apps = { name: "apps", requires: ["apps", "checks"] };
  * Renders children in the apps Plugin's scope against apps answering by
  * method name (ListApps defaults to list, ListChecks to checks,
  * ListWorkloads to workloads; Actions answer {}), with the installed
- * Plugins named, and returns the calls made.
+ * Plugins named, at path (e.g. "/?q=media"), and returns the calls made.
  */
-export const renderScoped = (children: React.ReactNode, answers: Answers = {}, installed: string[] = ["apps"]) =>
+export const renderScoped = (children: React.ReactNode, answers: Answers = {}, installed: string[] = ["apps"], path?: string) =>
   render(apps, children, {
     answers: {
       ListApps: () => Response.json(list),
@@ -86,6 +86,7 @@ export const renderScoped = (children: React.ReactNode, answers: Answers = {}, i
       ...answers,
     },
     installed,
+    path,
   });
 
 const getters = new Set(["ListApps", "ListChecks", "ListWorkloads"]);

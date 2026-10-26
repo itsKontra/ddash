@@ -28,6 +28,60 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Which queries ListQueries returns, by AdGuard's reason.
+type QueryMode int32
+
+const (
+	// All queries.
+	QueryMode_QUERY_MODE_UNSPECIFIED QueryMode = 0
+	// Blocked by a filter list, safe browsing, parental control or a
+	// blocked service.
+	QueryMode_QUERY_MODE_BLOCKED QueryMode = 1
+	// Every other reason, safe search and rewrites too.
+	QueryMode_QUERY_MODE_ALLOWED QueryMode = 2
+)
+
+// Enum value maps for QueryMode.
+var (
+	QueryMode_name = map[int32]string{
+		0: "QUERY_MODE_UNSPECIFIED",
+		1: "QUERY_MODE_BLOCKED",
+		2: "QUERY_MODE_ALLOWED",
+	}
+	QueryMode_value = map[string]int32{
+		"QUERY_MODE_UNSPECIFIED": 0,
+		"QUERY_MODE_BLOCKED":     1,
+		"QUERY_MODE_ALLOWED":     2,
+	}
+)
+
+func (x QueryMode) Enum() *QueryMode {
+	p := new(QueryMode)
+	*p = x
+	return p
+}
+
+func (x QueryMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (QueryMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_adguard_api_adguard_api_proto_enumTypes[0].Descriptor()
+}
+
+func (QueryMode) Type() protoreflect.EnumType {
+	return &file_adguard_api_adguard_api_proto_enumTypes[0]
+}
+
+func (x QueryMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use QueryMode.Descriptor instead.
+func (QueryMode) EnumDescriptor() ([]byte, []int) {
+	return file_adguard_api_adguard_api_proto_rawDescGZIP(), []int{0}
+}
+
 type AdguardApiConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// AdGuard Home's web address, e.g. "https://198.18.1.3".
@@ -435,14 +489,25 @@ type ListQueriesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The client's address; matched exactly.
 	Client string `protobuf:"bytes,1,opt,name=client,proto3" json:"client,omitempty"`
-	// Only queries older than this cursor: a previous page's oldest. Empty
-	// for the newest page.
+	// Only queries older than this cursor: a previous answer's oldest. Empty
+	// for the newest.
 	OlderThan string `protobuf:"bytes,2,opt,name=older_than,json=olderThan,proto3" json:"older_than,omitempty"`
-	// Page size; 0 means 100, at most 500.
+	// How many queries; 0 means 100, at most 500. With text or type, 0
+	// means 50 and 50 is the most.
 	Limit int32 `protobuf:"varint,3,opt,name=limit,proto3" json:"limit,omitempty"`
-	// Only blocked queries (filter lists, safe browsing, parental control,
-	// blocked services).
-	BlockedOnly   bool `protobuf:"varint,4,opt,name=blocked_only,json=blockedOnly,proto3" json:"blocked_only,omitempty"`
+	// Blocked, allowed or all queries. AdGuard filters on its side, so
+	// without text or type the answer holds limit queries when the log has
+	// that many.
+	Mode QueryMode `protobuf:"varint,4,opt,name=mode,proto3,enum=ddash.adguardapi.QueryMode" json:"mode,omitempty"`
+	// Only queries whose domain or rule hold every word of text (split on
+	// whitespace), ignoring case. ddash applies text and type itself: it
+	// reads at most 2,000 of the client's log lines in mode and stops at
+	// limit matches, so the answer can hold fewer than the log has; oldest
+	// resumes the search where it stopped.
+	Text string `protobuf:"bytes,5,opt,name=text,proto3" json:"text,omitempty"`
+	// Only queries of this record type, e.g. "AAAA", ignoring case; empty
+	// for any.
+	Type          string `protobuf:"bytes,6,opt,name=type,proto3" json:"type,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -498,21 +563,46 @@ func (x *ListQueriesRequest) GetLimit() int32 {
 	return 0
 }
 
-func (x *ListQueriesRequest) GetBlockedOnly() bool {
+func (x *ListQueriesRequest) GetMode() QueryMode {
 	if x != nil {
-		return x.BlockedOnly
+		return x.Mode
 	}
-	return false
+	return QueryMode_QUERY_MODE_UNSPECIFIED
+}
+
+func (x *ListQueriesRequest) GetText() string {
+	if x != nil {
+		return x.Text
+	}
+	return ""
+}
+
+func (x *ListQueriesRequest) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
 }
 
 type ListQueriesResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Newest first.
 	Queries []*Query `protobuf:"bytes,1,rep,name=queries,proto3" json:"queries,omitempty"`
-	// The cursor for the next, older page; empty when there is none.
-	Oldest        string `protobuf:"bytes,2,opt,name=oldest,proto3" json:"oldest,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// The cursor to read on from, older_than for the next answer; empty
+	// once the log ended. The last queries can still carry one, and the
+	// answer after them has none.
+	Oldest string `protobuf:"bytes,2,opt,name=oldest,proto3" json:"oldest,omitempty"`
+	// How many of the client's log lines in mode ddash read for this
+	// answer: with text or type at most 2,000, else at most limit.
+	LinesRead int32 `protobuf:"varint,3,opt,name=lines_read,json=linesRead,proto3" json:"lines_read,omitempty"`
+	// The time of the oldest of them; unset when it read none.
+	Reached *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=reached,proto3" json:"reached,omitempty"`
+	// Whether AdGuard anonymizes client addresses before logging them
+	// ("Anonymize client IP"). Then no log line holds the client's full
+	// address, so no query matches it.
+	AnonymizeClientIp bool `protobuf:"varint,5,opt,name=anonymize_client_ip,json=anonymizeClientIp,proto3" json:"anonymize_client_ip,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *ListQueriesResponse) Reset() {
@@ -557,6 +647,27 @@ func (x *ListQueriesResponse) GetOldest() string {
 		return x.Oldest
 	}
 	return ""
+}
+
+func (x *ListQueriesResponse) GetLinesRead() int32 {
+	if x != nil {
+		return x.LinesRead
+	}
+	return 0
+}
+
+func (x *ListQueriesResponse) GetReached() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Reached
+	}
+	return nil
+}
+
+func (x *ListQueriesResponse) GetAnonymizeClientIp() bool {
+	if x != nil {
+		return x.AnonymizeClientIp
+	}
+	return false
 }
 
 type Query struct {
@@ -1007,16 +1118,22 @@ const file_adguard_api_adguard_api_proto_rawDesc = "" +
 	"topClients\"4\n" +
 	"\bTopEntry\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x03R\x05count\"\x84\x01\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count\"\xba\x01\n" +
 	"\x12ListQueriesRequest\x12\x16\n" +
 	"\x06client\x18\x01 \x01(\tR\x06client\x12\x1d\n" +
 	"\n" +
 	"older_than\x18\x02 \x01(\tR\tolderThan\x12\x14\n" +
-	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12!\n" +
-	"\fblocked_only\x18\x04 \x01(\bR\vblockedOnly\"`\n" +
+	"\x05limit\x18\x03 \x01(\x05R\x05limit\x12/\n" +
+	"\x04mode\x18\x04 \x01(\x0e2\x1b.ddash.adguardapi.QueryModeR\x04mode\x12\x12\n" +
+	"\x04text\x18\x05 \x01(\tR\x04text\x12\x12\n" +
+	"\x04type\x18\x06 \x01(\tR\x04type\"\xe5\x01\n" +
 	"\x13ListQueriesResponse\x121\n" +
 	"\aqueries\x18\x01 \x03(\v2\x17.ddash.adguardapi.QueryR\aqueries\x12\x16\n" +
-	"\x06oldest\x18\x02 \x01(\tR\x06oldest\"\xcd\x02\n" +
+	"\x06oldest\x18\x02 \x01(\tR\x06oldest\x12\x1d\n" +
+	"\n" +
+	"lines_read\x18\x03 \x01(\x05R\tlinesRead\x124\n" +
+	"\areached\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\areached\x12.\n" +
+	"\x13anonymize_client_ip\x18\x05 \x01(\bR\x11anonymizeClientIp\"\xcd\x02\n" +
 	"\x05Query\x12.\n" +
 	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x12\x12\n" +
@@ -1047,7 +1164,11 @@ const file_adguard_api_adguard_api_proto_rawDesc = "" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\"h\n" +
 	"\x1aSetClientFilteringResponse\x120\n" +
 	"\x06client\x18\x01 \x01(\v2\x18.ddash.adguardapi.ClientR\x06client\x12\x18\n" +
-	"\acreated\x18\x02 \x01(\bR\acreated2\x87\x04\n" +
+	"\acreated\x18\x02 \x01(\bR\acreated*W\n" +
+	"\tQueryMode\x12\x1a\n" +
+	"\x16QUERY_MODE_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12QUERY_MODE_BLOCKED\x10\x01\x12\x16\n" +
+	"\x12QUERY_MODE_ALLOWED\x10\x022\x87\x04\n" +
 	"\x11AdguardApiService\x12\\\n" +
 	"\tGetStatus\x12\".ddash.adguardapi.GetStatusRequest\x1a#.ddash.adguardapi.GetStatusResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12W\n" +
 	"\bGetStats\x12!.ddash.adguardapi.GetStatsRequest\x1a\".ddash.adguardapi.GetStatsResponse\"\x04\x8a\xb5\x18\x00\x12b\n" +
@@ -1067,49 +1188,53 @@ func file_adguard_api_adguard_api_proto_rawDescGZIP() []byte {
 	return file_adguard_api_adguard_api_proto_rawDescData
 }
 
+var file_adguard_api_adguard_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_adguard_api_adguard_api_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_adguard_api_adguard_api_proto_goTypes = []any{
-	(*AdguardApiConfig)(nil),           // 0: ddash.adguardapi.AdguardApiConfig
-	(*GetStatusRequest)(nil),           // 1: ddash.adguardapi.GetStatusRequest
-	(*GetStatusResponse)(nil),          // 2: ddash.adguardapi.GetStatusResponse
-	(*GetStatsRequest)(nil),            // 3: ddash.adguardapi.GetStatsRequest
-	(*GetStatsResponse)(nil),           // 4: ddash.adguardapi.GetStatsResponse
-	(*TopEntry)(nil),                   // 5: ddash.adguardapi.TopEntry
-	(*ListQueriesRequest)(nil),         // 6: ddash.adguardapi.ListQueriesRequest
-	(*ListQueriesResponse)(nil),        // 7: ddash.adguardapi.ListQueriesResponse
-	(*Query)(nil),                      // 8: ddash.adguardapi.Query
-	(*ListClientsRequest)(nil),         // 9: ddash.adguardapi.ListClientsRequest
-	(*ListClientsResponse)(nil),        // 10: ddash.adguardapi.ListClientsResponse
-	(*Client)(nil),                     // 11: ddash.adguardapi.Client
-	(*SetClientFilteringRequest)(nil),  // 12: ddash.adguardapi.SetClientFilteringRequest
-	(*SetClientFilteringResponse)(nil), // 13: ddash.adguardapi.SetClientFilteringResponse
-	(*durationpb.Duration)(nil),        // 14: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),      // 15: google.protobuf.Timestamp
+	(QueryMode)(0),                     // 0: ddash.adguardapi.QueryMode
+	(*AdguardApiConfig)(nil),           // 1: ddash.adguardapi.AdguardApiConfig
+	(*GetStatusRequest)(nil),           // 2: ddash.adguardapi.GetStatusRequest
+	(*GetStatusResponse)(nil),          // 3: ddash.adguardapi.GetStatusResponse
+	(*GetStatsRequest)(nil),            // 4: ddash.adguardapi.GetStatsRequest
+	(*GetStatsResponse)(nil),           // 5: ddash.adguardapi.GetStatsResponse
+	(*TopEntry)(nil),                   // 6: ddash.adguardapi.TopEntry
+	(*ListQueriesRequest)(nil),         // 7: ddash.adguardapi.ListQueriesRequest
+	(*ListQueriesResponse)(nil),        // 8: ddash.adguardapi.ListQueriesResponse
+	(*Query)(nil),                      // 9: ddash.adguardapi.Query
+	(*ListClientsRequest)(nil),         // 10: ddash.adguardapi.ListClientsRequest
+	(*ListClientsResponse)(nil),        // 11: ddash.adguardapi.ListClientsResponse
+	(*Client)(nil),                     // 12: ddash.adguardapi.Client
+	(*SetClientFilteringRequest)(nil),  // 13: ddash.adguardapi.SetClientFilteringRequest
+	(*SetClientFilteringResponse)(nil), // 14: ddash.adguardapi.SetClientFilteringResponse
+	(*durationpb.Duration)(nil),        // 15: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),      // 16: google.protobuf.Timestamp
 }
 var file_adguard_api_adguard_api_proto_depIdxs = []int32{
-	14, // 0: ddash.adguardapi.GetStatusResponse.protection_paused_for:type_name -> google.protobuf.Duration
-	5,  // 1: ddash.adguardapi.GetStatsResponse.top_queried_domains:type_name -> ddash.adguardapi.TopEntry
-	5,  // 2: ddash.adguardapi.GetStatsResponse.top_blocked_domains:type_name -> ddash.adguardapi.TopEntry
-	5,  // 3: ddash.adguardapi.GetStatsResponse.top_clients:type_name -> ddash.adguardapi.TopEntry
-	8,  // 4: ddash.adguardapi.ListQueriesResponse.queries:type_name -> ddash.adguardapi.Query
-	15, // 5: ddash.adguardapi.Query.time:type_name -> google.protobuf.Timestamp
-	11, // 6: ddash.adguardapi.ListClientsResponse.clients:type_name -> ddash.adguardapi.Client
-	11, // 7: ddash.adguardapi.SetClientFilteringResponse.client:type_name -> ddash.adguardapi.Client
-	1,  // 8: ddash.adguardapi.AdguardApiService.GetStatus:input_type -> ddash.adguardapi.GetStatusRequest
-	3,  // 9: ddash.adguardapi.AdguardApiService.GetStats:input_type -> ddash.adguardapi.GetStatsRequest
-	6,  // 10: ddash.adguardapi.AdguardApiService.ListQueries:input_type -> ddash.adguardapi.ListQueriesRequest
-	9,  // 11: ddash.adguardapi.AdguardApiService.ListClients:input_type -> ddash.adguardapi.ListClientsRequest
-	12, // 12: ddash.adguardapi.AdguardApiService.SetClientFiltering:input_type -> ddash.adguardapi.SetClientFilteringRequest
-	2,  // 13: ddash.adguardapi.AdguardApiService.GetStatus:output_type -> ddash.adguardapi.GetStatusResponse
-	4,  // 14: ddash.adguardapi.AdguardApiService.GetStats:output_type -> ddash.adguardapi.GetStatsResponse
-	7,  // 15: ddash.adguardapi.AdguardApiService.ListQueries:output_type -> ddash.adguardapi.ListQueriesResponse
-	10, // 16: ddash.adguardapi.AdguardApiService.ListClients:output_type -> ddash.adguardapi.ListClientsResponse
-	13, // 17: ddash.adguardapi.AdguardApiService.SetClientFiltering:output_type -> ddash.adguardapi.SetClientFilteringResponse
-	13, // [13:18] is the sub-list for method output_type
-	8,  // [8:13] is the sub-list for method input_type
-	8,  // [8:8] is the sub-list for extension type_name
-	8,  // [8:8] is the sub-list for extension extendee
-	0,  // [0:8] is the sub-list for field type_name
+	15, // 0: ddash.adguardapi.GetStatusResponse.protection_paused_for:type_name -> google.protobuf.Duration
+	6,  // 1: ddash.adguardapi.GetStatsResponse.top_queried_domains:type_name -> ddash.adguardapi.TopEntry
+	6,  // 2: ddash.adguardapi.GetStatsResponse.top_blocked_domains:type_name -> ddash.adguardapi.TopEntry
+	6,  // 3: ddash.adguardapi.GetStatsResponse.top_clients:type_name -> ddash.adguardapi.TopEntry
+	0,  // 4: ddash.adguardapi.ListQueriesRequest.mode:type_name -> ddash.adguardapi.QueryMode
+	9,  // 5: ddash.adguardapi.ListQueriesResponse.queries:type_name -> ddash.adguardapi.Query
+	16, // 6: ddash.adguardapi.ListQueriesResponse.reached:type_name -> google.protobuf.Timestamp
+	16, // 7: ddash.adguardapi.Query.time:type_name -> google.protobuf.Timestamp
+	12, // 8: ddash.adguardapi.ListClientsResponse.clients:type_name -> ddash.adguardapi.Client
+	12, // 9: ddash.adguardapi.SetClientFilteringResponse.client:type_name -> ddash.adguardapi.Client
+	2,  // 10: ddash.adguardapi.AdguardApiService.GetStatus:input_type -> ddash.adguardapi.GetStatusRequest
+	4,  // 11: ddash.adguardapi.AdguardApiService.GetStats:input_type -> ddash.adguardapi.GetStatsRequest
+	7,  // 12: ddash.adguardapi.AdguardApiService.ListQueries:input_type -> ddash.adguardapi.ListQueriesRequest
+	10, // 13: ddash.adguardapi.AdguardApiService.ListClients:input_type -> ddash.adguardapi.ListClientsRequest
+	13, // 14: ddash.adguardapi.AdguardApiService.SetClientFiltering:input_type -> ddash.adguardapi.SetClientFilteringRequest
+	3,  // 15: ddash.adguardapi.AdguardApiService.GetStatus:output_type -> ddash.adguardapi.GetStatusResponse
+	5,  // 16: ddash.adguardapi.AdguardApiService.GetStats:output_type -> ddash.adguardapi.GetStatsResponse
+	8,  // 17: ddash.adguardapi.AdguardApiService.ListQueries:output_type -> ddash.adguardapi.ListQueriesResponse
+	11, // 18: ddash.adguardapi.AdguardApiService.ListClients:output_type -> ddash.adguardapi.ListClientsResponse
+	14, // 19: ddash.adguardapi.AdguardApiService.SetClientFiltering:output_type -> ddash.adguardapi.SetClientFilteringResponse
+	15, // [15:20] is the sub-list for method output_type
+	10, // [10:15] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_adguard_api_adguard_api_proto_init() }
@@ -1122,13 +1247,14 @@ func file_adguard_api_adguard_api_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_adguard_api_adguard_api_proto_rawDesc), len(file_adguard_api_adguard_api_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_adguard_api_adguard_api_proto_goTypes,
 		DependencyIndexes: file_adguard_api_adguard_api_proto_depIdxs,
+		EnumInfos:         file_adguard_api_adguard_api_proto_enumTypes,
 		MessageInfos:      file_adguard_api_adguard_api_proto_msgTypes,
 	}.Build()
 	File_adguard_api_adguard_api_proto = out.File

@@ -1,6 +1,8 @@
+import { ago, toneRank } from "@ddash/display";
 import { useAction } from "@ddash/plugin";
 import { CheckType, ChecksService, RecordType, State, type Check } from "@ddash/proto/checks/checks_pb";
 import {
+  ActionStrip,
   Button,
   DataTable,
   EmptyState,
@@ -12,16 +14,19 @@ import {
   PageTitle,
   Panel,
   Pill,
+  Presence,
   SearchField,
   Segmented,
   Select,
   Sheet,
   Tabs,
   TextInput,
+  ToggleButton,
+  matches,
+  noMatch,
   useQueryState,
   type Column,
   type IconName,
-  type MenuItem,
   type Tone,
 } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
@@ -32,7 +37,7 @@ import { MaintenanceList, MaintenancePill, MaintenanceSheet } from "./maintenanc
 
 /** The checks Page: every Check with its state and latency, and their editing. */
 export function ChecksPage() {
-  const { data, error } = useChecks();
+  const { data, error, dataUpdatedAt } = useChecks();
   // undefined: no form; null: adding; a Check: editing it.
   const [editing, setEditing] = useState<Check | null | undefined>(undefined);
   // undefined: no Maintenance sheet; null: for everything or a Workload; a Check: for it.
@@ -97,14 +102,16 @@ export function ChecksPage() {
             </EmptyState>
           </Panel>
         ) : (
-          <Explorer checks={data?.checks} onEdit={setEditing} onShow={(c) => setShown(c.id)} onMaintain={setMaintaining} />
+          <Explorer checks={data?.checks} now={dataUpdatedAt} onEdit={setEditing} onShow={(c) => setShown(c.id)} onMaintain={setMaintaining} />
         )}
       </div>
-      {editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}
-      {maintaining !== undefined && data && (
-        <MaintenanceSheet check={maintaining ?? undefined} checks={data.checks} onClose={() => setMaintaining(undefined)} />
-      )}
-      {detail && <CheckDetail check={detail} onClose={() => setShown(undefined)} />}
+      <Presence>{editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}</Presence>
+      <Presence>
+        {maintaining !== undefined && data && (
+          <MaintenanceSheet check={maintaining ?? undefined} checks={data.checks} onClose={() => setMaintaining(undefined)} />
+        )}
+      </Presence>
+      <Presence>{detail && <CheckDetail check={detail} onClose={() => setShown(undefined)} />}</Presence>
     </div>
   );
 }
@@ -139,10 +146,7 @@ function StateIcon({ check: c }: { check: Check }) {
   return <Icon name={stateIcon[tone]} size="sm" tone={tone} label={stateLabel(c)} />;
 }
 
-/**
- * Each Check's row key, which also names its ⋯ Menu: its shown name, with
- * its id after it when two Checks share the name.
- */
+/** Each Check's row key: its shown name, with its id after it when two Checks share the name. */
 function keysOf(checks: readonly Check[]): (c: Check) => string {
   const count = new Map<string, number>();
   for (const c of checks) count.set(shownName(c), (count.get(shownName(c)) ?? 0) + 1);
@@ -150,47 +154,26 @@ function keysOf(checks: readonly Check[]): (c: Check) => string {
 }
 
 /**
- * The Checks explorer: search, type and tab (each kept in the URL) over a
- * table with one row per Check, its Actions in the row's ⋯ Menu. Without
- * checks it is still loading.
+ * The Checks explorer: search, type, tab and sort (each kept in the URL)
+ * over a table with one row per Check, its Actions in the row's strip.
+ * Without checks it is still loading.
  */
 function Explorer({
   checks: listed,
+  now,
   onEdit,
   onShow,
   onMaintain,
 }: {
   checks?: readonly Check[];
+  /** When checks last answered, which a strip's "checked 2 min ago" counts from. */
+  now: number;
   onEdit: (c: Check) => void;
   onShow: (c: Check) => void;
   onMaintain: (c: Check) => void;
 }) {
   const loading = !listed;
   const checks = listed ?? [];
-  const mute = useAction(ChecksService.method.setMuted);
-  const disable = useAction(ChecksService.method.setDisabled);
-  const remove = useAction(ChecksService.method.deleteCheck);
-  const failure = mute.error ?? disable.error ?? remove.error;
-  const busy = mute.pending || disable.pending || remove.pending;
-
-  const actions = (c: Check): MenuItem[] => [
-    // An App Check follows its App: it is edited and removed in apps.
-    ...(c.appId ? [] : [{ label: "Edit", onSelect: () => onEdit(c), disabled: busy }]),
-    { label: "Maintenance", onSelect: () => onMaintain(c), disabled: busy },
-    { label: c.muted ? "Unmute" : "Mute", onSelect: () => void mute.run({ id: c.id, muted: !c.muted }), disabled: busy },
-    { label: c.disabled ? "Enable" : "Disable", onSelect: () => void disable.run({ id: c.id, disabled: !c.disabled }), disabled: busy },
-    ...(c.appId
-      ? []
-      : [
-          {
-            label: "Delete",
-            danger: true,
-            disabled: busy,
-            onSelect: () =>
-              void remove.run({ id: c.id }, { confirm: { text: `Delete the Check ${shownName(c)}? Its history goes with it.`, action: "Delete" } }),
-          },
-        ]),
-  ];
 
   const columns: Column<Check>[] = [
     {
@@ -216,7 +199,8 @@ function Explorer({
       id: "state",
       header: "State",
       sortable: true,
-      sortValue: stateLabel,
+      // By the tone the Pill draws, Down first, as the Proxy Hosts' Check column sorts.
+      sortValue: (c) => toneRank[toneOf(c)],
       cell: (c) => (
         <Pill tone={toneOf(c)} dot>
           {stateLabel(c)}
@@ -224,14 +208,22 @@ function Explorer({
       ),
     },
     { id: "type", header: "Type", sortable: true, sortValue: typeOf, cell: (c) => <Pill>{typeOf(c)}</Pill> },
-    { id: "target", header: "Target", mono: true, cell: target },
+    { id: "target", header: "Target", mono: true, sortable: true, sortValue: target, cell: target },
     {
       id: "latency",
       header: "Latency",
       align: "right",
       sortable: true,
       sortValue: (c) => (showsLatency(c) ? c.latencyMs : Number.MAX_SAFE_INTEGER),
-      cell: (c) => (showsLatency(c) ? latency(c.latencyMs) : !c.disabled && c.reason ? <span className="text-down-text">{c.reason}</span> : null),
+      // A long reason truncates, so it doesn't widen the column past a phone's width.
+      cell: (c) =>
+        showsLatency(c) ? (
+          latency(c.latencyMs)
+        ) : !c.disabled && c.reason ? (
+          <span title={c.reason} className="inline-block max-w-48 truncate align-bottom text-down-text">
+            {c.reason}
+          </span>
+        ) : null,
     },
   ];
 
@@ -239,45 +231,106 @@ function Explorer({
   const [type, setType] = useQueryState("type", "");
   const [tab, setTab] = useQueryState("tab", "all");
   const shown = tabOf(tab);
-  const needle = query.trim().toLowerCase();
-  const searched = checks.filter(
-    (c) => (!type || typeOf(c) === type) && (!needle || `${shownName(c)} ${target(c)}`.toLowerCase().includes(needle)),
-  );
+  const searched = checks.filter((c) => (!type || typeOf(c) === type) && matches(query, shownName(c), target(c)));
   const tabs = tabNames.map((t) => ({ ...t, count: searched.filter(t.has).length }));
 
   return (
-    <div className="flex flex-col gap-4">
-      {failure && <Notice tone="down">{failure.rawMessage}</Notice>}
-      <Panel
-        flush
-        toolbar={
-          <>
-            <SearchField label="Search Checks" value={query} onChange={setQuery} placeholder="Search by name or target" />
-            <Select label="Type" value={type} onChange={(e) => setType(e.target.value)}>
-              <option value="">Any type</option>
-              {typeFilters.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </Select>
-            <Tabs label="Show" value={shown.id} options={tabs} onChange={setTab} />
-          </>
-        }
-      >
-        <DataTable
-          rows={searched.filter(shown.has)}
-          rowKey={keysOf(checks)}
-          columns={columns}
-          actions={actions}
-          onRowClick={onShow}
-          sortKey="sort"
-          empty="No Check matches."
-          loading={loading}
-        />
-      </Panel>
-    </div>
+    <Panel
+      flush
+      toolbar={
+        <>
+          <SearchField label="Search Checks" value={query} onChange={setQuery} placeholder="Search by name or target" />
+          <Select label="Type" value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="">Any type</option>
+            {typeFilters.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </Select>
+          <Tabs label="Show" value={shown.id} options={tabs} onChange={setTab} />
+        </>
+      }
+    >
+      <DataTable
+        rows={searched.filter(shown.has)}
+        rowKey={keysOf(checks)}
+        columns={columns}
+        strip={(c) => <CheckStrip check={c} now={now} onEdit={onEdit} onMaintain={onMaintain} />}
+        rowLabel={shownName}
+        onRowClick={onShow}
+        sortKey="sort"
+        defaultSort="state"
+        empty={query.trim() ? noMatch("Checks", query) : "No Checks match these filters."}
+        loading={loading}
+      />
+    </Panel>
   );
+}
+
+/**
+ * A Check's row strip: its summary and its Actions, each Action's error
+ * under them. Edit and Maintenance open their Sheets on the Page, so the
+ * strip stays open under them. An App Check follows its App: it is edited
+ * and removed in apps.
+ */
+function CheckStrip({
+  check: c,
+  now,
+  onEdit,
+  onMaintain,
+}: {
+  check: Check;
+  now: number;
+  onEdit: (c: Check) => void;
+  onMaintain: (c: Check) => void;
+}) {
+  const mute = useAction(ChecksService.method.setMuted);
+  const disable = useAction(ChecksService.method.setDisabled);
+  const remove = useAction(ChecksService.method.deleteCheck);
+  const failure = mute.error ?? disable.error ?? remove.error;
+  const busy = mute.pending || disable.pending || remove.pending;
+  return (
+    <ActionStrip summary={summary(c, now)} notice={failure && <Notice tone="down">{failure.rawMessage}</Notice>}>
+      {!c.appId && (
+        <Button variant="outline" size="sm" disabled={busy} onClick={() => onEdit(c)}>
+          Edit
+        </Button>
+      )}
+      <Button variant="outline" size="sm" disabled={busy} onClick={() => onMaintain(c)}>
+        Maintenance
+      </Button>
+      <ToggleButton size="sm" pressed={c.muted} disabled={busy} onChange={(muted) => void mute.run({ id: c.id, muted })}>
+        Muted
+      </ToggleButton>
+      <ToggleButton size="sm" pressed={c.disabled} disabled={busy} onChange={(disabled) => void disable.run({ id: c.id, disabled })}>
+        Disabled
+      </ToggleButton>
+      {!c.appId && (
+        <Button
+          variant="danger"
+          size="sm"
+          disabled={busy}
+          onClick={() =>
+            void remove.run({ id: c.id }, { confirm: { text: `Delete the Check ${shownName(c)}? Its history goes with it.`, action: "Delete" } })
+          }
+        >
+          Delete
+        </Button>
+      )}
+    </ActionStrip>
+  );
+}
+
+/**
+ * What a Check's strip sums up, as of now: "up · 12 ms · checked 2 min ago",
+ * its reason in place of the latency while it fails, and "Edited with its
+ * App" after it for an App Check.
+ */
+function summary(c: Check, now: number): string {
+  const reading = showsLatency(c) ? latency(c.latencyMs) : !c.disabled && c.reason ? c.reason : undefined;
+  const beat = c.lastBeat ? `checked ${ago(c.lastBeat, now)}` : "not checked yet";
+  return [stateLabel(c), reading, beat, c.appId && "Edited with its App"].filter(Boolean).join(" · ");
 }
 
 type TabId = "all" | "down" | "attention" | "maint" | "muted";

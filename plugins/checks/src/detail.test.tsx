@@ -95,6 +95,7 @@ it("draws skeletons, not text, until the history comes", async () => {
   const detail = await openDetail();
 
   expect(metricValue("24 h", detail)).toBeUndefined();
+  expect(metricValue("average", detail)).toBeUndefined();
   expect(within(detail).queryByText("…")).toBeNull();
 });
 
@@ -139,4 +140,36 @@ it("switches to 30 d of hour buckets", async () => {
   expect(got).toHaveLength(720);
   expect(got.at(-2)).toBe("down");
   expect(within(detail).getByText("No state changes in the last 30 d.")).toBeTruthy();
+});
+
+it("reads 100 % for a window that was never down, whatever its pending or Maintenance beats", async () => {
+  history = () =>
+    Response.json({
+      ...(histories.WINDOW_24H as object),
+      uptime: [
+        { window: "WINDOW_24H", ratio: 1, up: "1438", pending: "2", maintenance: "5" },
+        { window: "WINDOW_30D", ratio: 0.99999, up: "99999", down: "1" },
+        { window: "WINDOW_365D", up: "0", down: "0" },
+      ],
+    });
+  const detail = await openDetail();
+
+  expect(metricValue("24 h", detail)).toBe("100 %");
+  expect(metricValue("30 d", detail)).toBe("99.99 %");
+});
+
+it("draws a bucket whose failed beats all left the Check pending as a warning, not down", async () => {
+  history = () =>
+    Response.json({
+      uptime,
+      window: "WINDOW_24H",
+      bucket: "60s",
+      from: "2026-10-19T08:01:00Z",
+      buckets: [{ start: "2026-10-20T08:00:00Z", pending: "1" }],
+    });
+  const detail = await openDetail();
+
+  const bars = within(detail).getByRole("img", { name: "Uptime, last 24 h" });
+  expect(tones(bars).at(-1)).toBe("warn");
+  expect(bars.querySelector("[data-tone=warn] title")?.textContent).toMatch(/0 up, 0 down, 1 pending$/);
 });

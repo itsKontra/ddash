@@ -3,7 +3,8 @@
 // generating any CSS for them.
 //
 // This is the package's only entry: Plugins and the shell import from it,
-// never from a family module.
+// never from a family module. (The shell also takes the backdrop's motion
+// from @ddash/ui/motion, which Plugins can't import.)
 export { cx, type Tone } from "./tone";
 export * from "./atoms";
 export * from "./layout";

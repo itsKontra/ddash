@@ -9,9 +9,11 @@ import {
   HeroCard,
   Icon,
   MetricTile,
+  noMatch,
   Notice,
   PageTitle,
   Pill,
+  Presence,
   Ring,
   SearchField,
   Segmented,
@@ -244,19 +246,21 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
           );
         })}
       </ul>
-      {draft && adding && (
-        <AddWidget
-          plugins={plugins}
-          placed={draft.entries}
-          onClose={() => setAdding(false)}
-          onAdd={(key, w) => {
-            edit((l) => ({
-              entries: [...l.entries, { widget: key, size: w.defaultSize }],
-              seen: l.seen.includes(key) ? l.seen : [...l.seen, key],
-            }));
-          }}
-        />
-      )}
+      <Presence>
+        {draft && adding && (
+          <AddWidget
+            plugins={plugins}
+            placed={draft.entries}
+            onClose={() => setAdding(false)}
+            onAdd={(key, w) => {
+              edit((l) => ({
+                entries: [...l.entries, { widget: key, size: w.defaultSize }],
+                seen: l.seen.includes(key) ? l.seen : [...l.seen, key],
+              }));
+            }}
+          />
+        )}
+      </Presence>
     </div>
   );
 }
@@ -486,7 +490,7 @@ function AddWidget({
               </ul>
             </div>
           ))}
-          {groups.length === 0 && <EmptyState icon="search-x" title={`No Widget matches “${q}”`} />}
+          {groups.length === 0 && <EmptyState icon="search-x" title={noMatch("Widgets", q)} />}
         </div>
       )}
     </Sheet>

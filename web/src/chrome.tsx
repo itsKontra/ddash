@@ -3,7 +3,8 @@
 // Plugins never reach the nav.
 import { useQuery } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { cx, Icon, type IconName } from "@ddash/ui";
+import { cx, Icon, Presence, type IconName } from "@ddash/ui";
+import { backdropMotion } from "@ddash/ui/motion";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router";
 import { useScheme } from "./appearance";
@@ -68,7 +69,7 @@ export function Chrome({ items, aside, banner, children }: ChromeProps) {
           <Sidebar sections={all} />
         </div>
       </aside>
-      {open && <Drawer sections={all} onClose={close} />}
+      <Presence>{open && <Drawer sections={all} onClose={close} />}</Presence>
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex items-center justify-between bg-nav px-4 py-3 lg:hidden">
           <Brand sub={false} />
@@ -242,7 +243,8 @@ function Drawer({ sections, onClose }: { sections: Sections; onClose: () => void
     }
   };
   return (
-    <div className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm lg:hidden" onClick={onClose}>
+    // It slides in from the left and back out, as @ddash/ui's overlays move (tokens.css).
+    <div className={cx("fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm lg:hidden", backdropMotion)} onClick={onClose}>
       <div
         ref={panel}
         role="dialog"
@@ -250,7 +252,7 @@ function Drawer({ sections, onClose }: { sections: Sections; onClose: () => void
         aria-label="Navigation"
         onKeyDown={onKeyDown}
         onClick={(e) => e.stopPropagation()}
-        className="relative h-full w-72 max-w-[85vw] bg-nav shadow-elevation-raised"
+        className="relative h-full w-72 max-w-[85vw] bg-nav shadow-elevation-raised starting:[transform:var(--motion-drawer-from)] in-data-[state=closed]:[transform:var(--motion-drawer-from)] motion-safe:transition-transform motion-safe:duration-(--motion-slide) motion-safe:ease-(--motion-slide-ease)"
       >
         <button
           type="button"

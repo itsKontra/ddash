@@ -1,4 +1,6 @@
-import { showPlugin, type Answers, type Call } from "@ddash/plugin/testing";
+import { renderScoped, settle, type Answers, type Call } from "@ddash/plugin/testing";
+import { useEffect } from "react";
+import { Route, Routes, useLocation, useNavigate, useRoutes } from "react-router";
 import plugin from "./index";
 
 /** The proxmox Plugin's scope in tests. */
@@ -90,19 +92,52 @@ export const permissions = {
   ],
 };
 
-/**
- * Shows the proxmox Plugin at path (e.g. "/proxmox") with its Components
- * answering by method name (Actions {} unless given), and returns the calls.
- */
-export const show = (path: string, answers: Answers = {}) =>
-  showPlugin(plugin, proxmox, path, {
-    answers: {
-      ListWorkloads: () => Response.json(listed),
-      ListPermissions: () => Response.json(permissions),
-      ListPowerTasks: () => Response.json({}),
-      ...answers,
-    },
+/** The URL search show's router is at, as the Page last wrote it. */
+export let search = "";
+/** Goes Back in show's router. */
+export let back = () => {};
+
+function Where() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    search = location.search;
+    back = () => void navigate(-1);
   });
+  return null;
+}
+
+function Pages() {
+  return useRoutes(plugin.pages ?? []);
+}
+
+/**
+ * Shows the proxmox Plugin at path (e.g. "/proxmox"), as the shell mounts
+ * it, with its Components answering by method name (Actions {} unless
+ * given), settles, and returns the calls. at follows the router.
+ */
+export async function show(path: string, answers: Answers = {}) {
+  const calls = renderScoped(
+    proxmox,
+    <>
+      <Routes>
+        <Route path="/proxmox/*" element={<Pages />} />
+      </Routes>
+      <Where />
+    </>,
+    {
+      path,
+      answers: {
+        ListWorkloads: () => Response.json(listed),
+        ListPermissions: () => Response.json(permissions),
+        ListPowerTasks: () => Response.json({}),
+        ...answers,
+      },
+    },
+  );
+  await settle();
+  return calls;
+}
 
 /** The bodies of the calls to method. */
 export const bodies = (calls: Call[], method: string) => calls.filter((c) => c.method === method).map((c) => c.body);

@@ -49,3 +49,32 @@
   --color-chart-5: var(--chart-5);
   --color-chart-6: var(--chart-6);
 }
+
+/*
+ * The overlays' motion, @ddash/ui's own (a Plugin animates only through its
+ * keyframes). Each overlay enters from these values and leaves back to
+ * them, through Presence; under reduced motion it doesn't move at all.
+ * Phones get a bottom sheet for a Sheet and a Dialog, so both slide up.
+ */
+:root {
+  /* The backdrop's fade and blur, and a Dialog's. */
+  --motion-fade: 0.2s;
+  /* A Sheet's and the phone Drawer's slide, and a DataTable strip's height. */
+  --motion-slide: 0.26s;
+  --motion-slide-ease: ease;
+  /* A Menu's fade and scale from its top-right corner. */
+  --motion-pop: 0.12s;
+  --motion-sheet-from: translateY(100%);
+  --motion-dialog-from: translateY(100%);
+  --motion-dialog-opacity: 1;
+  --motion-menu-from: scale(0.96);
+  --motion-drawer-from: translateX(-104%);
+}
+
+@media (width >= 40rem) {
+  :root {
+    --motion-sheet-from: translateX(104%);
+    --motion-dialog-from: scale(0.96);
+    --motion-dialog-opacity: 0;
+  }
+}

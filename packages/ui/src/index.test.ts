@@ -1,13 +1,14 @@
 import { expect, it } from "vitest";
 import * as ui from "./index";
 
-it("exports exactly the spec's component set, plus cx and the AppIcon helpers", () => {
+it("exports exactly the spec's component set, plus cx, matches, noMatch and the AppIcon helpers", () => {
   expect(Object.keys(ui).sort()).toEqual(
     [
       // atoms
       "Pill",
       "StatusDot",
       "Button",
+      "ToggleButton",
       "Icon",
       "Skeleton",
       "AppIcon",
@@ -19,6 +20,7 @@ it("exports exactly the spec's component set, plus cx and the AppIcon helpers", 
       "SectionHeading",
       "HeroCard",
       "MetricTile",
+      "StatRow",
       "WidgetCard",
       // forms
       "Field",
@@ -34,10 +36,13 @@ it("exports exactly the spec's component set, plus cx and the AppIcon helpers", 
       "FormActions",
       // data
       "DataTable",
+      "ActionStrip",
       "Tabs",
       "StatusList",
       "Facts",
       "useQueryState",
+      "matches",
+      "noMatch",
       // feedback
       "EmptyState",
       "Notice",
@@ -55,6 +60,7 @@ it("exports exactly the spec's component set, plus cx and the AppIcon helpers", 
       "Menu",
       "Dialog",
       "ConfirmDialog",
+      "Presence",
       "cx",
     ].sort(),
   );

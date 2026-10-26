@@ -1,8 +1,9 @@
 import type { Device } from "@ddash/proto/network/network_pb";
 import { EmptyState, Facts, Notice, PageTitle, Panel, Skeleton, StatusDot, type Fact } from "@ddash/ui";
+import { useState } from "react";
 import { useParams } from "react-router";
 import { AdBlockingToggle } from "./adblocking";
-import { DeviceAction } from "./adopt";
+import { DeviceAction, RenameForm } from "./adopt";
 import { nameOf, useDevices } from "./devices";
 import { Adoption } from "./devices-table";
 import { DirectToggle } from "./direct";
@@ -11,7 +12,7 @@ import { DeviceQueries } from "./queries";
 // The detail is the route devices/:mac under the Network Page's.
 const back = { href: "..", label: "Network" };
 
-/** A Device's detail (/network/devices/:mac): Adopt or rename, the Direct and ad-blocking toggles, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
+/** A Device's detail (/network/devices/:mac): Adopt or rename in place, the Direct and ad-blocking toggles, the lease and reservation facts, the other aliases holding it (read-only) and its last AdGuard queries. */
 export function DeviceDetail() {
   const { mac = "" } = useParams();
   const { data, error } = useDevices();
@@ -56,8 +57,22 @@ function DeviceFacts({ items }: { items: Fact[] }) {
 }
 
 function Summary({ device: d, bypassAlias, adguardError }: { device: Device; bypassAlias: string; adguardError: string }) {
+  const [renaming, setRenaming] = useState(false);
+  // After a rename the focus goes back to Rename.
+  const [renamed, setRenamed] = useState(false);
   return (
-    <Panel title="Device" actions={<DeviceAction device={d} />}>
+    <Panel title="Device" actions={!renaming && <DeviceAction device={d} onRename={() => setRenaming(true)} focus={renamed} />}>
+      {renaming && (
+        <div className="mb-4">
+          <RenameForm
+            device={d}
+            onDone={() => {
+              setRenaming(false);
+              setRenamed(true);
+            }}
+          />
+        </div>
+      )}
       <DeviceFacts
         items={[
           { label: "IP", value: d.ip, mono: true },

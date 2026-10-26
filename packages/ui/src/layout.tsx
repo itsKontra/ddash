@@ -184,6 +184,46 @@ export function MetricTile({
   );
 }
 
+/** One figure in a StatRow: its label and value; an undefined value is still loading. */
+export interface StatRowItem {
+  label: string;
+  value: ReactNode;
+}
+
+/**
+ * A few related figures side by side in one card, e.g. a Check's uptime
+ * over 24 h, 30 d and 365 d: smaller than MetricTiles, so a Sheet or a
+ * phone shows each value in full ("99.99 %", "999 ms"), never truncated.
+ * Each figure is a group named by its label.
+ */
+export function StatRow({ items }: { items: readonly StatRowItem[] }) {
+  return (
+    <div className="grid auto-cols-fr grid-flow-col divide-x divide-border rounded-ui border border-border bg-card">
+      {items.map((s) => (
+        <StatCell key={s.label} {...s} />
+      ))}
+    </div>
+  );
+}
+
+function StatCell({ label, value }: StatRowItem) {
+  const id = useId();
+  return (
+    <div role="group" aria-labelledby={id} className="px-3 py-2.5">
+      <div id={id} className="text-xs font-bold text-muted-foreground">
+        {label}
+      </div>
+      {value === undefined ? (
+        <div className="mt-0.5 flex h-6 items-center">
+          <Skeleton />
+        </div>
+      ) : (
+        <div className="mt-0.5 text-lg leading-6 font-extrabold tracking-tight whitespace-nowrap tabular-nums">{value}</div>
+      )}
+    </div>
+  );
+}
+
 /**
  * The dark gradient card at the top of the Overview, the only way onto the
  * hero surface: a kicker, the title (the status headline), a caption
@@ -210,16 +250,13 @@ export function HeroCard({
       aria-labelledby={id}
       className="relative flex flex-col gap-6 overflow-hidden rounded-ui-lg bg-linear-to-br from-hero-from to-hero-to p-7 text-nav-foreground shadow-elevation-raised sm:flex-row sm:items-center sm:p-9"
     >
-      {/* Two glows, mid-right and from the corner, and the ring with two halos. */}
+      {/* Two glows, mid-right and from the corner. */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_64%_50%,color-mix(in_srgb,var(--nav-accent)_14%,transparent),transparent_49%),radial-gradient(circle_at_100%_0%,color-mix(in_srgb,var(--nav-accent)_12%,transparent),transparent_45%)]"
       />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-20 -right-16 size-90 rounded-full border border-nav-accent/10 shadow-[0_0_0_44px_color-mix(in_srgb,var(--nav-accent)_1.8%,transparent),0_0_0_87px_color-mix(in_srgb,var(--nav-accent)_1.4%,transparent)]"
-      />
-      <div className="relative min-w-0 flex-1">
+      {/* Raised so the aside's halo, later in the DOM, stays behind the text. */}
+      <div className="relative z-1 min-w-0 flex-1">
         <div className="mb-3">
           <OnHero value={true}>
             <Kicker>{kicker}</Kicker>
@@ -236,7 +273,14 @@ export function HeroCard({
         {foot && <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px]">{foot}</div>}
       </div>
       {aside && (
-        <div className="relative">
+        // w-fit: as wide as the aside even in the phone's column, so the halo centres on it.
+        <div className="relative w-fit">
+          {/* The ring with two halos, centred on the aside whatever the card's height. */}
+          <div
+            aria-hidden="true"
+            data-halo=""
+            className="pointer-events-none absolute top-1/2 left-1/2 size-90 -translate-1/2 rounded-full border border-nav-accent/10 shadow-[0_0_0_44px_color-mix(in_srgb,var(--nav-accent)_1.8%,transparent),0_0_0_87px_color-mix(in_srgb,var(--nav-accent)_1.4%,transparent)]"
+          />
           <OnHero value={true}>{aside}</OnHero>
         </div>
       )}

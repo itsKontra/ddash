@@ -31,23 +31,6 @@ const phone = {
 };
 const devices = { bypassAlias: "VPN_BYPASS", devices: [tv, laptop, phone] };
 
-const query = (domain: string, extra: Record<string, unknown> = {}) => ({
-  time: "2026-10-20T09:59:50.123456Z",
-  domain,
-  type: "A",
-  client: "198.18.1.20",
-  reason: "NotFilteredNotFound",
-  status: "NOERROR",
-  elapsedMs: 4.5,
-  ...extra,
-});
-const queries = {
-  queries: [query("site1.example"), query("site2.example", { blocked: true, reason: "FilteredBlackList", rule: "||site2.example^" }), query("site3.example")],
-  oldest: "2026-10-20T09:50:20.123456Z",
-};
-const blocked = { queries: [queries.queries[1]], oldest: "" };
-
-
 // Shows the network Plugin at path, answering by method name ({} unless
 // given), and returns the calls with their JSON bodies.
 const show = (path: string, answers: Answers = {}) =>
@@ -55,7 +38,6 @@ const show = (path: string, answers: Answers = {}) =>
     path,
     {
       ListDevices: () => Response.json(devices),
-      ListQueries: (b) => Response.json((b as { blockedOnly?: boolean }).blockedOnly ? blocked : queries),
       ...answers,
     },
     withAdguard,
@@ -69,6 +51,68 @@ it("shows the Devices table's ad-blocking, off where the Operator turned it off"
   const table = within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
   expect(within(within(table).getByRole("row", { name: /Living room TV/ })).getByText("Ads allowed")).toBeTruthy();
   expect(within(within(table).getByRole("row", { name: /Work laptop/ })).queryByText("Ads allowed")).toBeNull();
+});
+
+const table = () => within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
+/** Opens a Device's strip in the Devices table and returns it. */
+function open(device: string) {
+  fireEvent.click(within(table()).getByRole("button", { name: `Actions for ${device}` }));
+  return within(table()).getByRole("group", { name: `Actions for ${device}` });
+}
+
+it("turns ad-blocking off from the Devices table's strip, pressing Ads blocked off at once", async () => {
+  const calls = await show("/network");
+
+  const strip = open("Work laptop");
+  expect(within(strip).getByRole("status").textContent).toBe("Tunnelled via the VPN Tunnel · ads blocked");
+  const toggle = within(strip).getByRole("button", { name: "Ads blocked" });
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(toggle);
+  await settle();
+
+  expect(screen.queryByRole("alertdialog")).toBeNull();
+  expect(calls.filter((c) => c.method === "SetAdBlocking").map((c) => c.body)).toEqual([{ mac: "02:5e:00:00:10:02" }]);
+});
+
+it("turns ad-blocking back on from the strip", async () => {
+  const calls = await show("/network");
+
+  const strip = open("Living room TV");
+  expect(within(strip).getByRole("status").textContent).toBe("Tunnelled via the VPN Tunnel · ads allowed");
+  fireEvent.click(within(strip).getByRole("button", { name: "Ads blocked", pressed: false }));
+  await settle();
+
+  expect(calls.filter((c) => c.method === "SetAdBlocking").map((c) => c.body)).toEqual([{ mac: "02:5e:00:00:10:01", enabled: true }]);
+});
+
+it("shows why the strip's toggle failed", async () => {
+  await show("/network", { SetAdBlocking: () => unavailable("AdGuard Home unreachable: connection refused") });
+
+  const strip = open("Work laptop");
+  fireEvent.click(within(strip).getByRole("button", { name: "Ads blocked" }));
+  await settle();
+
+  expect(within(strip).getByRole("alert").textContent).toContain("AdGuard Home unreachable");
+});
+
+it("disables the strip's Ads blocked while AdGuard's clients can't be read, saying why", async () => {
+  await show("/network", {
+    ListDevices: () => Response.json({ ...devices, adguardError: "can't read AdGuard's clients: AdGuard Home unreachable" }),
+  });
+
+  const strip = open("Work laptop");
+  expect((within(strip).getByRole("button", { name: "Ads blocked" }) as HTMLButtonElement).disabled).toBe(true);
+  // The summary doesn't guess.
+  expect(within(strip).getByText("Tunnelled via the VPN Tunnel")).toBeTruthy();
+  expect(within(strip).getByText(/can't read AdGuard's clients/)).toBeTruthy();
+});
+
+it("has no Ads blocked in the strip without AdGuard", async () => {
+  await showNetwork("/network", { ListDevices: () => Response.json(devices) });
+
+  const strip = open("Work laptop");
+  expect(within(strip).queryByRole("button", { name: "Ads blocked" })).toBeNull();
+  expect(within(strip).getByRole("status").textContent).toBe("Tunnelled via the VPN Tunnel");
 });
 
 it("turns ad-blocking off for a Device at once, without confirming", async () => {
@@ -122,32 +166,4 @@ it("disables the toggle while AdGuard's clients can't be read, saying why", asyn
 
   expect((within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / }) as HTMLButtonElement).disabled).toBe(true);
   expect(within(deviceRegion()).getByRole("status").textContent).toMatch(/can't read AdGuard's clients/);
-});
-
-it("shows the Device's last 100 queries, and only the blocked ones when asked", async () => {
-  const calls = await show("/network/devices/02:5e:00:00:10:01");
-
-  expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toEqual([{ client: "198.18.1.20", limit: 100 }]);
-  const region = screen.getByRole("region", { name: "Queries" });
-  const table = within(region).getByRole("table");
-  expect(within(table).getAllByRole("row").slice(1).map((r) => within(r).getByRole("rowheader").textContent)).toEqual([
-    "site1.example",
-    "site2.example",
-    "site3.example",
-  ]);
-  const site2 = within(table).getByRole("row", { name: /site2\.example/ });
-  expect(within(site2).getByText("Blocked")).toBeTruthy();
-  expect(within(site2).getByText("||site2.example^")).toBeTruthy();
-
-  fireEvent.click(within(region).getByRole("checkbox", { name: "Blocked only" }));
-  await settle();
-
-  expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toContainEqual({ client: "198.18.1.20", limit: 100, blockedOnly: true });
-  expect(within(within(region).getByRole("table")).getAllByRole("row")).toHaveLength(2);
-});
-
-it("says when the Device made no queries", async () => {
-  await show("/network/devices/02:5e:00:00:10:01", { ListQueries: () => Response.json({ queries: [] }) });
-
-  expect(within(screen.getByRole("region", { name: "Queries" })).getByText(/No queries/)).toBeTruthy();
 });

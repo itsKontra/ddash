@@ -13,12 +13,12 @@ import type { SetupHint as SetupHintMessage } from "@ddash/proto/ddash/config/co
 import {
   Button,
   CodeBlock,
-  Dialog,
   Field,
   FormActions,
   Notice,
   Pill,
   Select,
+  Sheet,
   Skeleton,
   StatusDot,
   Switch,
@@ -38,7 +38,7 @@ type Secret = { mode: "keep" } | { mode: "replace"; value: string } | { mode: "c
  * A Component's config form (or the core's, owner "core"), generated from
  * its config message. It saves through SaveConfig, which restarts the
  * Component, and shows the health polled right after its Start. The form
- * has no submit of its own: a button outside it (a Dialog's footer) names
+ * has no submit of its own: a button outside it (a Sheet's footer) names
  * it by formId. onSaving hears whether a save is under way.
  */
 export function ConfigForm({ owner, formId, onSaving }: { owner: string; formId: string; onSaving?: (pending: boolean) => void }) {
@@ -484,14 +484,15 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
 }
 
 /**
- * The config form in a centred Dialog, titled by the Component, with
- * Cancel and Save and restart pinned in its footer.
+ * The config form in a wide Sheet, titled by the Component, with Cancel
+ * and Save and restart pinned in its footer.
  */
-export function ConfigDialog({ owner, onClose }: { owner: string; onClose: () => void }) {
+export function ConfigSheet({ owner, onClose }: { owner: string; onClose: () => void }) {
   const formId = useId();
   const [saving, setSaving] = useState(false);
   return (
-    <Dialog
+    <Sheet
+      wide
       kicker="Configure"
       title={owner}
       subtitle={`Saving restarts ${owner} with the new config. Unset fields take their defaults.`}
@@ -508,6 +509,6 @@ export function ConfigDialog({ owner, onClose }: { owner: string; onClose: () =>
       }
     >
       <ConfigForm owner={owner} formId={formId} onSaving={setSaving} />
-    </Dialog>
+    </Sheet>
   );
 }

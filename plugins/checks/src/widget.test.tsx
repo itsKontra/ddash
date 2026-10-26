@@ -102,12 +102,20 @@ it("is idle without Checks", async () => {
   expect(reported.status).toEqual({ tone: "idle", summary: "No Checks yet" });
 });
 
-it("lists what isn't up at M", async () => {
-  await show(listed(check(1, "nas", "STATE_DOWN", { reason: "connection refused" }), check(2, "router", "STATE_UP")), "M");
+it("lists what isn't up at M, with its reason or its latency", async () => {
+  await show(
+    listed(
+      check(1, "nas", "STATE_DOWN", { reason: "connection refused" }),
+      check(2, "router", "STATE_UP"),
+      check(3, "nvr", "STATE_UP", { flapping: true, latencyMs: 999 }),
+    ),
+    "M",
+  );
 
-  const nas = within(screen.getByRole("region", { name: "widget" })).getByRole("listitem");
+  const [nas, nvr] = within(screen.getByRole("region", { name: "widget" })).getAllByRole("listitem");
   expect(within(nas).getByRole("img").getAttribute("aria-label")).toBe("down");
   expect(nas.textContent).toMatch(/nas.*connection refused/);
+  expect(nvr.textContent).toBe("nvr999 ms");
 });
 
 it("reports warn when checks is unavailable", async () => {

@@ -13,6 +13,7 @@ import {
   type TextareaHTMLAttributes,
 } from "react";
 import { AppIcon, iconName } from "./atoms";
+import { noMatch } from "./data";
 import { Icon, type IconName } from "./icon";
 import { cx } from "./tone";
 
@@ -572,7 +573,7 @@ function IconSearch({ label, spec, onPick, onClose }: { label: string; spec: Sea
       </div>
       {shown && names.length === 0 && (
         <p className="px-1 py-2 text-xs text-muted-foreground">
-          {"failed" in shown ? "Couldn't search the icons. Try again." : `No icons match “${shown.q}”.`}
+          {"failed" in shown ? "Couldn't search the icons. Try again." : `${noMatch("icons", shown.q)}.`}
         </p>
       )}
       {query === "" && <p className="px-1 py-2 text-xs text-muted-foreground">{spec.hint}</p>}

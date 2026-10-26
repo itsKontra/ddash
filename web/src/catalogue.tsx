@@ -2,6 +2,7 @@ import type { DescMethodUnary } from "@bufbuild/protobuf";
 import { Refresh, useAction, useQuery, type Action } from "@ddash/plugin";
 import { CoreService, type CataloguePlugin, type ComponentStatus, type ListCatalogueResponse } from "@ddash/proto/ddash/core/core_pb";
 import {
+  ActionStrip,
   Button,
   cx,
   DataTable,
@@ -12,6 +13,7 @@ import {
   PageTitle,
   Panel,
   Pill,
+  Presence,
   SectionHeading,
   Skeleton,
   StatusDot,
@@ -19,7 +21,7 @@ import {
   type Tone,
 } from "@ddash/ui";
 import { useEffect, useState, type ReactNode } from "react";
-import { ConfigDialog } from "./config-form";
+import { ConfigSheet } from "./config-form";
 
 /**
  * The Plugins page: the Catalogue of the running Release, read at the FAST
@@ -78,11 +80,14 @@ export function Catalogue() {
           {data.orphans.length > 0 && <Orphans orphans={data.orphans} />}
         </>
       )}
-      {configuring ? (
-        <ConfigDialog owner={configuring} onClose={() => setConfiguring(undefined)} />
-      ) : (
-        queue.length > 0 && <FormQueue key={queue[0]} next={queue[0]} onDone={done} />
-      )}
+      {/* Around the queue too, so its last form animates out. */}
+      <Presence>
+        {configuring ? (
+          <ConfigSheet owner={configuring} onClose={() => setConfiguring(undefined)} />
+        ) : (
+          queue.length > 0 && <FormQueue key={queue[0]} next={queue[0]} onDone={done} />
+        )}
+      </Presence>
     </div>
   );
 }
@@ -112,7 +117,7 @@ function FormQueue({ next, onDone }: { next: string; onDone: (name: string) => v
   useEffect(() => {
     if (skip) onDone(next);
   }, [skip, next, onDone]);
-  return needsForm || opened ? <ConfigDialog owner={next} onClose={() => onDone(next)} /> : null;
+  return needsForm || opened ? <ConfigSheet owner={next} onClose={() => onDone(next)} /> : null;
 }
 
 /** A Component's status in the Catalogue, from whichever Plugin runs it. */
@@ -269,9 +274,8 @@ function Health({ component: c, onConfigure }: { component: ComponentStatus; onC
   );
 }
 
-/** The DB files no installed Plugin's Components use, each with Delete in its menu. */
+/** The DB files no installed Plugin's Components use, each with Delete in its strip. */
 function Orphans({ orphans }: { orphans: string[] }) {
-  const del = useAction(CoreService.method.deleteOrphan);
   return (
     <div className="mt-10">
       <Panel flush title="Orphaned data" description="Kept after an uninstall. Reinstalling the Plugin picks its history up again.">
@@ -279,28 +283,42 @@ function Orphans({ orphans }: { orphans: string[] }) {
           density="compact"
           rows={orphans}
           rowKey={(name) => name}
-          columns={[{ id: "file", header: "DB file", rowHeader: true, mono: true, cell: (name) => `${name}.db` }]}
-          actions={(name) => [
-            {
-              label: "Delete",
-              danger: true,
-              onSelect: () =>
-                void del.run(
-                  { component: name },
-                  { confirm: { text: `Delete ${name}'s data? Its DB file and config are deleted for good.`, action: "Delete" } },
-                ),
-            },
-          ]}
+          columns={[{ id: "file", header: "DB file", rowHeader: true, mono: true, cell: fileOf }]}
+          strip={(name) => <OrphanStrip name={name} />}
+          rowLabel={fileOf}
         />
-        {del.error && (
-          <div className="border-t border-border p-4">
-            <Notice tone="down" title="Delete failed">
-              {del.error.rawMessage}
-            </Notice>
-          </div>
-        )}
       </Panel>
     </div>
+  );
+}
+
+const fileOf = (orphan: string) => `${orphan}.db`;
+
+/** An orphaned DB file's row strip: Delete, after confirming, its error under it. */
+function OrphanStrip({ name }: { name: string }) {
+  const del = useAction(CoreService.method.deleteOrphan);
+  return (
+    <ActionStrip
+      summary={`${fileOf(name)}, kept after an uninstall`}
+      notice={
+        del.error && (
+          <Notice tone="down" title="Delete failed">
+            {del.error.rawMessage}
+          </Notice>
+        )
+      }
+    >
+      <Button
+        variant="danger"
+        size="sm"
+        disabled={del.pending}
+        onClick={() =>
+          void del.run({ component: name }, { confirm: { text: `Delete ${name}'s data? Its DB file and config are deleted for good.`, action: "Delete" } })
+        }
+      >
+        Delete
+      </Button>
+    </ActionStrip>
   );
 }
 

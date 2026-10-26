@@ -1,6 +1,6 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
-import { Button, Field, FormActions, Notice, Sheet, TextInput } from "@ddash/ui";
+import { Button, Field, FormActions, Notice, Presence, Sheet, TextInput } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
 import { nameOf } from "./devices";
 
@@ -58,58 +58,72 @@ function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => voi
   );
 }
 
-/** The sheet renaming an Adopted Device: its static mapping's description. */
-function RenameSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
+/**
+ * Renaming an Adopted Device in place, its static mapping's description:
+ * a Name field with Rename and Cancel. Enter renames; Escape in the field
+ * cancels, and goes no further (a row's strip stays open).
+ */
+export function RenameForm({ device: d, onDone }: { device: Device; onDone: () => void }) {
   const rename = useAction(NetworkService.method.renameDevice);
-  const form = useId();
   const [name, setName] = useState(d.name);
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    if (await rename.run({ mac: d.mac, name })) onClose();
+    if (await rename.run({ mac: d.mac, name })) onDone();
   };
 
   return (
-    <Sheet
-      title={`Rename ${nameOf(d)}`}
-      onClose={onClose}
-      footer={
-        <FormActions>
-          <Button type="submit" form={form} disabled={rename.pending}>
+    <form onSubmit={(e) => void save(e)} className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1 basis-56">
+          <Field label="Name" hint={`It keeps its reserved address ${d.reservation?.ip ?? d.ip}; change that in pfSense.`}>
+            <TextInput
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Escape") return;
+                e.preventDefault();
+                onDone();
+              }}
+            />
+          </Field>
+        </div>
+        {/* In line with the field, under its label. */}
+        <div className="flex gap-2 pt-5.5">
+          <Button type="submit" disabled={rename.pending}>
             Rename
           </Button>
-        </FormActions>
-      }
-    >
-      <form id={form} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
-        <Field label="Name">
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <p className="text-sm text-muted-foreground">
-          It keeps its reserved address <span className="tabular-nums">{d.reservation?.ip ?? d.ip}</span>. Change the address or remove the
-          reservation in pfSense.
-        </p>
-        {rename.error && <Notice tone="down">{rename.error.rawMessage}</Notice>}
-      </form>
-    </Sheet>
+          <Button variant="ghost" onClick={onDone}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+      {rename.error && <Notice tone="down">{rename.error.rawMessage}</Notice>}
+    </form>
   );
 }
 
-/** The sheet for a Device: Adopt for a New one, rename for an Adopted one. */
-export function DeviceSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
-  return d.adopted ? <RenameSheet device={d} onClose={onClose} /> : <AdoptSheet device={d} onClose={onClose} />;
-}
-
-/** Adopt for a New Device, Rename for an Adopted one, each opening its sheet. */
-export function DeviceAction({ device: d }: { device: Device }) {
-  const [open, setOpen] = useState(false);
-  const label = `${d.adopted ? "Rename" : "Adopt"} ${nameOf(d)}`;
+/**
+ * A Device's naming Action, the same on its Page and in its Devices row's
+ * strip: Rename for an Adopted Device (onRename turns the caller's view
+ * into a RenameForm), or Adopt… for a New one, opening its Sheet. The
+ * Sheet stays mounted past the Adopt, so it animates out.
+ */
+export function DeviceAction({ device: d, onRename, focus }: { device: Device; onRename: () => void; focus?: boolean }) {
+  const [adopting, setAdopting] = useState(false);
   return (
     <>
-      <Button variant="outline" size="sm" aria-label={label} onClick={() => setOpen(true)}>
-        {d.adopted ? "Rename" : "Adopt"}
-      </Button>
-      {open && <DeviceSheet device={d} onClose={() => setOpen(false)} />}
+      {d.adopted ? (
+        <Button size="sm" variant="ghost" icon="pencil" autoFocus={focus} onClick={onRename}>
+          Rename
+        </Button>
+      ) : (
+        <Button size="sm" icon="badge-check" onClick={() => setAdopting(true)}>
+          Adopt…
+        </Button>
+      )}
+      <Presence>{adopting && <AdoptSheet device={d} onClose={() => setAdopting(false)} />}</Presence>
     </>
   );
 }

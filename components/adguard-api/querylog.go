@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -21,6 +22,10 @@ import (
 const (
 	defaultLimit = 100
 	maxLimit     = 500
+	// A text or type search reads at most searchLines of the client's log
+	// lines and stops at searchMatches matches.
+	searchLines   = 2000
+	searchMatches = 50
 )
 
 // blockedReasons are the filtering reasons that block a query: filter
@@ -28,42 +33,159 @@ const (
 // rewrites and allow rules don't.
 var blockedReasons = []string{"FilteredBlackList", "FilteredSafeBrowsing", "FilteredParental", "FilteredBlockedService"}
 
+// allowedReasons are AdGuard's other reasons (v0.107.79): it refuses a
+// name it doesn't know.
+var allowedReasons = []string{
+	"NotFilteredNotFound", "NotFilteredWhiteList", "NotFilteredError", "FilteredInvalid",
+	"FilteredSafeSearch", "Rewrite", "RewriteEtcHosts", "RewriteRule",
+}
+
+// modeReasons are the reasons each mode keeps, which AdGuard filters on
+// and filter.keeps checks again; nil, for every mode, keeps every line. A
+// mode missing here is unknown.
+var modeReasons = map[adguardapipb.QueryMode][]string{
+	adguardapipb.QueryMode_QUERY_MODE_UNSPECIFIED: nil,
+	adguardapipb.QueryMode_QUERY_MODE_BLOCKED:     blockedReasons,
+	adguardapipb.QueryMode_QUERY_MODE_ALLOWED:     allowedReasons,
+}
+
+// ListQueries asks AdGuard for the client's log lines in the mode, which
+// it filters itself, with offset=0 so it reads past its 50,000-line scan
+// cap until it has limit of them. Without text or type that one page is
+// the answer. With them, ddash matches the lines itself over an older_than
+// loop, until it has the matches, read its budget of lines or the log
+// ended. The cursor is then the last line read, so a resumed search reads
+// on from there.
 func (c *component) ListQueries(ctx context.Context, req *adguardapipb.ListQueriesRequest) (*adguardapipb.ListQueriesResponse, error) {
 	ip, err := netip.ParseAddr(req.GetClient())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "client %q is no address", req.GetClient())
 	}
-	limit := int(req.GetLimit())
-	if limit <= 0 {
-		limit = defaultLimit
+	reasons, known := modeReasons[req.GetMode()]
+	if !known {
+		return nil, status.Errorf(codes.InvalidArgument, "mode %d is unknown", req.GetMode())
 	}
-	limit = min(limit, maxLimit)
-	// Quoted, AdGuard matches the client exactly instead of as a substring.
-	q := url.Values{"search": {`"` + ip.String() + `"`}, "limit": {strconv.Itoa(limit)}}
-	if req.GetOlderThan() != "" {
-		q.Set("older_than", req.GetOlderThan())
+	f := filter{reasons: reasons, words: strings.Fields(strings.ToLower(req.GetText())), qtype: req.GetType()}
+	want := int(req.GetLimit())
+	budget := searchLines
+	if f.searches() {
+		if want <= 0 || want > searchMatches {
+			want = searchMatches
+		}
+	} else {
+		if want <= 0 {
+			want = defaultLimit
+		}
+		want = min(want, maxLimit)
+		budget = want
 	}
-	if req.GetBlockedOnly() {
-		q["reason"] = blockedReasons
+
+	var cfg struct {
+		AnonymizeClientIP bool `json:"anonymize_client_ip"`
 	}
-	var data struct {
-		Oldest string     `json:"oldest"`
-		Data   []logEntry `json:"data"`
-	}
-	if err := c.api.get(ctx, "/control/querylog", q, &data); err != nil {
+	if err := c.api.get(ctx, "/control/querylog/config", nil, &cfg); err != nil {
 		return nil, err
 	}
-	out := &adguardapipb.ListQueriesResponse{Oldest: data.Oldest}
-	for _, e := range data.Data {
-		query := e.query()
-		// An AdGuard too old to filter by reason sends everything.
-		if req.GetBlockedOnly() && !query.GetBlocked() {
-			continue
+	out := &adguardapipb.ListQueriesResponse{AnonymizeClientIp: cfg.AnonymizeClientIP}
+	cursor, read := req.GetOlderThan(), 0
+	for {
+		// Quoted, AdGuard matches the client exactly instead of as a substring.
+		q := url.Values{"search": {`"` + ip.String() + `"`}, "limit": {strconv.Itoa(min(maxLimit, budget-read))}, "offset": {"0"}}
+		if cursor != "" {
+			q.Set("older_than", cursor)
 		}
-		out.Queries = append(out.Queries, query)
+		if reasons != nil {
+			q["reason"] = reasons
+		}
+		var page struct {
+			Oldest string     `json:"oldest"`
+			Data   []logEntry `json:"data"`
+		}
+		if err := c.api.get(ctx, "/control/querylog", q, &page); err != nil {
+			return nil, err
+		}
+		from, full := cursor, false
+		for _, e := range page.Data {
+			read++
+			cursor = e.Time
+			query := e.query()
+			out.Reached = query.GetTime()
+			if f.keeps(query) {
+				out.Queries = append(out.Queries, query)
+				if full = len(out.Queries) == want; full {
+					break
+				}
+			}
+		}
+		if full || read >= budget {
+			break
+		}
+		// The end of the log is an empty cursor, even after a page with
+		// rows; a cursor that doesn't move on ends it too.
+		if !older(page.Oldest, from) {
+			cursor = ""
+			break
+		}
+		cursor = page.Oldest
+		if !f.searches() {
+			break
+		}
 	}
+	out.Oldest = cursor
+	out.LinesRead = int32(read)
 	return out, nil
 }
+
+// older says whether the cursor next is older than from (empty: newest).
+func older(next, from string) bool {
+	n, err := time.Parse(time.RFC3339Nano, next)
+	if err != nil {
+		return false
+	}
+	if from == "" {
+		return true
+	}
+	f, err := time.Parse(time.RFC3339Nano, from)
+	return err == nil && n.Before(f)
+}
+
+// filter is what a ListQueriesRequest keeps of the client's log lines.
+type filter struct {
+	// reasons is the mode's modeReasons: nil keeps every reason.
+	reasons []string
+	words   []string
+	qtype   string
+}
+
+// searches says whether ddash filters on its own side, beyond the mode.
+func (f filter) searches() bool { return len(f.words) > 0 || f.qtype != "" }
+
+// keeps follows @ddash/ui's matches(): every word somewhere in the domain
+// or the rule, ignoring case. It checks the mode's reasons too, since an
+// AdGuard older than v0.107.77 ignores reason and sends every line.
+func (f filter) keeps(q *adguardapipb.Query) bool {
+	if f.reasons != nil && !slices.Contains(f.reasons, q.GetReason()) {
+		return false
+	}
+	if f.qtype != "" && !strings.EqualFold(q.GetType(), f.qtype) {
+		return false
+	}
+	fields := []string{strings.ToLower(q.GetDomain()), strings.ToLower(q.GetRule())}
+	for _, w := range f.words {
+		// matches() also tries a word without its : and -, so a MAC matches
+		// either way. A domain or a rule is never a MAC, yet the rule is the
+		// same here: "ad-server" also finds "adserver.example".
+		bare := separators.Replace(w)
+		if !slices.ContainsFunc(fields, func(s string) bool {
+			return strings.Contains(s, w) || bare != "" && strings.Contains(s, bare)
+		}) {
+			return false
+		}
+	}
+	return true
+}
+
+var separators = strings.NewReplacer(":", "", "-", "")
 
 // logEntry is one entry of GET /control/querylog's data.
 type logEntry struct {
