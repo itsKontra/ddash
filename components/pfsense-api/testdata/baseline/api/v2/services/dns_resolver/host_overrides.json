@@ -1,0 +1,230 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "id": 0,
+      "host": "cloud",
+      "domain": "home.example",
+      "ip": [
+        "198.18.1.209"
+      ],
+      "descr": "",
+      "aliases": []
+    },
+    {
+      "id": 1,
+      "host": "docker",
+      "domain": "home.example",
+      "ip": [
+        "198.18.1.201"
+      ],
+      "descr": "",
+      "aliases": []
+    },
+    {
+      "id": 2,
+      "host": "nas",
+      "domain": "home.example",
+      "ip": [
+        "198.18.2.10"
+      ],
+      "descr": "",
+      "aliases": []
+    },
+    {
+      "id": 3,
+      "host": "nginx",
+      "domain": "home.example",
+      "ip": [
+        "198.18.1.210"
+      ],
+      "descr": "Reverse proxy",
+      "aliases": [
+        {
+          "parent_id": 3,
+          "id": 0,
+          "host": "home",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 1,
+          "host": "pve",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 2,
+          "host": "portainer",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 3,
+          "host": "fritz",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 4,
+          "host": "wlan0",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 5,
+          "host": "wlan1",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 6,
+          "host": "backup",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 7,
+          "host": "fullstack",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 8,
+          "host": "n8n",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 9,
+          "host": "md",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 10,
+          "host": "ha",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 11,
+          "host": "pv",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 12,
+          "host": "nodered",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 13,
+          "host": "grafana",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 14,
+          "host": "request",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 15,
+          "host": "movie",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 16,
+          "host": "series",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 17,
+          "host": "download",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 18,
+          "host": "indexer",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 19,
+          "host": "video",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 20,
+          "host": "influxdb",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 21,
+          "host": "keycloak",
+          "domain": "home.example",
+          "descr": ""
+        },
+        {
+          "parent_id": 3,
+          "id": 22,
+          "host": "local",
+          "domain": "home.example",
+          "descr": ""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "host": "pfsense",
+      "domain": "home.example",
+      "ip": [
+        "198.18.1.1"
+      ],
+      "descr": "",
+      "aliases": []
+    },
+    {
+      "id": 5,
+      "host": "proxmox",
+      "domain": "home.example",
+      "ip": [
+        "198.18.1.200"
+      ],
+      "descr": "",
+      "aliases": []
+    }
+  ]
+}
