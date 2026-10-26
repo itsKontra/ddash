@@ -1,10 +1,9 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { certificateState, checkStatus, historyBars } from "@ddash/display";
+import { checkStatus, historyBars } from "@ddash/display";
 import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
-import { AppsService, InternetPath, Reach, type App, type ListAppsResponse, type ProxyHost } from "@ddash/proto/apps/apps_pb";
+import { AppsService, CertificateState, InternetPath, Reach, type App, type ListAppsResponse, type ProxyHost } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, Window, type Check } from "@ddash/proto/checks/checks_pb";
 import { Kind, type WorkloadRefSchema } from "@ddash/proto/ddash/workload/workload_pb";
-import { NginxProxyManagerApiService } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
 import { Button, Checkbox, Facts, FormActions, Panel, Pill, UptimeBars, type Fact, type Tone } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
@@ -237,18 +236,26 @@ function AddressForm({ app, slot, onDone }: { app: App; slot: DialogSlot; onDone
 const flags = (p: ProxyHost) =>
   [p.blockExploits && "Block Common Exploits", p.websockets && "Websockets", p.forceSsl && "Force SSL", p.http2 && "HTTP/2", p.hsts && "HSTS", p.hstsSubdomains && "HSTS subdomains"].filter(Boolean).join(" · ");
 
-/** The certificate a Proxy Host uses, with its state linking to the Reverse Proxy page. */
-function CertificateLine({ id }: { id: bigint }) {
-  const { data, error } = useQuery(NginxProxyManagerApiService.method.listCertificates, {});
+/** Each certificate state's tone and label. */
+const certificateLook: Record<CertificateState, { tone: Tone; label: string }> = {
+  [CertificateState.UNSPECIFIED]: { tone: "idle", label: "Unknown" },
+  [CertificateState.OK]: { tone: "up", label: "OK" },
+  [CertificateState.NOT_RENEWING]: { tone: "warn", label: "Not renewing" },
+  [CertificateState.EXPIRES_SOON]: { tone: "warn", label: "Expires soon" },
+  [CertificateState.EXPIRED]: { tone: "down", label: "Expired" },
+};
+
+/** The certificate a Proxy Host uses, with its state (as ListApps carries it) linking to the Reverse Proxy page. */
+function CertificateLine({ p }: { p: ProxyHost }) {
   const page = usePluginLink("reverse-proxy");
-  if (id === 0n) return <>None: plain HTTP</>;
-  const cert = data?.certificates.find((c) => c.id === id);
-  if (!cert) return <>{data || error ? `#${id}, not listed now` : `#${id}`}</>;
-  const s = certificateState(cert);
+  if (p.certificateId === 0n) return <>None: plain HTTP</>;
+  const cert = p.certificate;
+  if (!cert) return <>#{String(p.certificateId)}, not listed now</>;
+  const s = certificateLook[cert.state];
   const pill = <Pill tone={s.tone}>{s.label}</Pill>;
   return (
     <span className="flex flex-wrap items-center gap-2">
-      <span>{cert.niceName}</span>
+      <span>{cert.name}</span>
       {page ? (
         <Link to={page} aria-label={`${s.label}: see the Reverse Proxy`}>
           {pill}
@@ -256,7 +263,7 @@ function CertificateLine({ id }: { id: bigint }) {
       ) : (
         pill
       )}
-      {s.message && <span className="text-xs text-muted-foreground">{s.message}</span>}
+      {cert.message && <span className="text-xs text-muted-foreground">{cert.message}</span>}
     </span>
   );
 }
@@ -296,7 +303,7 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
         <Facts
           items={[
             { label: "Upstream", value: `${p.forwardScheme}://${p.forwardHost}:${p.forwardPort}`, mono: true },
-            { label: "Certificate", value: <CertificateLine id={p.certificateId} /> },
+            { label: "Certificate", value: <CertificateLine p={p} /> },
             { label: "Options", value: flags(p) || "None" },
             { label: "Proxy Host", value: `#${p.id} in Nginx Proxy Manager` },
           ]}

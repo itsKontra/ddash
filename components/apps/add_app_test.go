@@ -5,6 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"google.golang.org/protobuf/testing/protocmp"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 )
@@ -141,7 +144,8 @@ func TestAddAProxiedApp(t *testing.T) {
 		Id: ph.GetId(), DomainNames: []string{"wiki.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.2.11", ForwardPort: 3000,
 		CertificateId: 3, BlockExploits: true, ForceSsl: true, Http2: true, Enabled: true,
 	}
-	if d := diff(wantHost, ph); d != "" {
+	// The wildcard's state depends on the day.
+	if d := cmp.Diff(wantHost, ph, protocmp.Transform(), protocmp.IgnoreFields(&appspb.ProxyHost{}, "certificate")); d != "" {
 		t.Errorf("Proxy Host (-want +got):\n%s", d)
 	}
 	if d := diff([]*appspb.DnsEntry{{Host: "wiki", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}}, a.GetDns()); d != "" {

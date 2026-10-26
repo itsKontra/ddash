@@ -38,8 +38,13 @@ it("shows the nearest expiry in up while every certificate is OK", async () => {
 
 it("tones the nearest expiry by the worst state, even when another certificate has it", async () => {
   // near is OK at 25 days; the uploaded far one expires soon at 29.
-  const { status } = await show([certificate(1, "letsencrypt", "near", days(25)), certificate(2, "other", "far", days(29))]);
+  const { status } = await show([certificate(1, "letsencrypt", "near", days(25)), certificate(2, "other", "far", days(29), "EXPIRES_SOON")]);
   expect(status).toEqual({ tone: "warn", summary: "near expires in 25 days" });
+});
+
+it("tones by the state nginx-proxy-manager-api tells, whatever the expiry", async () => {
+  const { status } = await show([certificate(1, "letsencrypt", "near", days(60), "NOT_RENEWING")]);
+  expect(status).toEqual({ tone: "warn", summary: "near expires in 60 days" });
 });
 
 it("is down while a certificate has expired", async () => {

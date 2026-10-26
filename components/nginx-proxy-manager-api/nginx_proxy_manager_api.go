@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -33,16 +34,21 @@ var manifest []byte
 const requestTimeout = 5 * time.Second
 
 // Definition is nginx-proxy-manager-api, ready for sdk.Serve.
-func Definition() sdk.Definition {
+func Definition() sdk.Definition { return define(time.Now) }
+
+// define is nginx-proxy-manager-api telling the certificates' states by
+// now.
+func define(now func() time.Time) sdk.Definition {
 	return sdk.Define(sdk.Spec[*pb.NginxProxyManagerApiConfig]{
 		Manifest: manifest,
 		Service:  &pb.NginxProxyManagerApiService_ServiceDesc,
-		New:      func() sdk.Component[*pb.NginxProxyManagerApiConfig] { return &component{} },
+		New:      func() sdk.Component[*pb.NginxProxyManagerApiConfig] { return &component{now: now} },
 	})
 }
 
 type component struct {
 	pb.UnimplementedNginxProxyManagerApiServiceServer
+	now   func() time.Time
 	api   *api
 	host  string // the URL's host, for the Reverse Proxy's address
 	hosts *sdk.Cache[*pb.ListProxyHostsResponse]
@@ -171,7 +177,45 @@ func (c *component) ListCertificates(ctx context.Context, req *pb.ListCertificat
 	if req.GetFresh() {
 		c.certs.Invalidate()
 	}
-	return c.certs.Get(ctx)
+	read, err := c.certs.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+	out := proto.CloneOf(read)
+	now := c.now()
+	for _, cert := range out.GetCertificates() {
+		cert.State, cert.StateMessage = certificateState(cert, now)
+	}
+	return out, nil
+}
+
+// day is a certificate's day, for the days it has left.
+const day = 24 * time.Hour
+
+// certificateState is a certificate's state at now and what the Operator
+// does about it: Expired past its expiry (or without one); Not renewing
+// for Let's Encrypt at 20 days or less, which Nginx Proxy Manager should
+// have renewed by then; Expires soon for an uploaded one at 30 days or
+// less; else OK.
+func certificateState(cert *pb.Certificate, now time.Time) (pb.CertificateState, string) {
+	left := time.Duration(-1)
+	if cert.GetExpiresOn() != nil {
+		left = cert.GetExpiresOn().AsTime().Sub(now)
+	}
+	letsEncrypt := cert.GetProvider() == "letsencrypt"
+	msg := "Upload a new certificate in Nginx Proxy Manager."
+	if letsEncrypt {
+		msg = "Nginx Proxy Manager hasn't renewed this: check its Let's Encrypt log."
+	}
+	switch {
+	case left < 0:
+		return pb.CertificateState_CERTIFICATE_STATE_EXPIRED, msg
+	case letsEncrypt && left <= 20*day:
+		return pb.CertificateState_CERTIFICATE_STATE_NOT_RENEWING, msg
+	case !letsEncrypt && left <= 30*day:
+		return pb.CertificateState_CERTIFICATE_STATE_EXPIRES_SOON, msg
+	}
+	return pb.CertificateState_CERTIFICATE_STATE_OK, ""
 }
 
 func (c *component) fetchProxyHosts(ctx context.Context) (*pb.ListProxyHostsResponse, error) {

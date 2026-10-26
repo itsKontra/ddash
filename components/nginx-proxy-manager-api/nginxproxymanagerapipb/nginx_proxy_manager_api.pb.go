@@ -93,6 +93,65 @@ func (ErrorReason) EnumDescriptor() ([]byte, []int) {
 	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{0}
 }
 
+type CertificateState int32
+
+const (
+	CertificateState_CERTIFICATE_STATE_UNSPECIFIED CertificateState = 0
+	CertificateState_CERTIFICATE_STATE_OK          CertificateState = 1
+	// Let's Encrypt with 20 days or less left: Nginx Proxy Manager should
+	// have renewed it by then.
+	CertificateState_CERTIFICATE_STATE_NOT_RENEWING CertificateState = 2
+	// Uploaded, with 30 days or less left.
+	CertificateState_CERTIFICATE_STATE_EXPIRES_SOON CertificateState = 3
+	// Past its expiry, or none is known.
+	CertificateState_CERTIFICATE_STATE_EXPIRED CertificateState = 4
+)
+
+// Enum value maps for CertificateState.
+var (
+	CertificateState_name = map[int32]string{
+		0: "CERTIFICATE_STATE_UNSPECIFIED",
+		1: "CERTIFICATE_STATE_OK",
+		2: "CERTIFICATE_STATE_NOT_RENEWING",
+		3: "CERTIFICATE_STATE_EXPIRES_SOON",
+		4: "CERTIFICATE_STATE_EXPIRED",
+	}
+	CertificateState_value = map[string]int32{
+		"CERTIFICATE_STATE_UNSPECIFIED":  0,
+		"CERTIFICATE_STATE_OK":           1,
+		"CERTIFICATE_STATE_NOT_RENEWING": 2,
+		"CERTIFICATE_STATE_EXPIRES_SOON": 3,
+		"CERTIFICATE_STATE_EXPIRED":      4,
+	}
+)
+
+func (x CertificateState) Enum() *CertificateState {
+	p := new(CertificateState)
+	*p = x
+	return p
+}
+
+func (x CertificateState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CertificateState) Descriptor() protoreflect.EnumDescriptor {
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes[1].Descriptor()
+}
+
+func (CertificateState) Type() protoreflect.EnumType {
+	return &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes[1]
+}
+
+func (x CertificateState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use CertificateState.Descriptor instead.
+func (CertificateState) EnumDescriptor() ([]byte, []int) {
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{1}
+}
+
 type Status int32
 
 const (
@@ -129,11 +188,11 @@ func (x Status) String() string {
 }
 
 func (Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes[1].Descriptor()
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes[2].Descriptor()
 }
 
 func (Status) Type() protoreflect.EnumType {
-	return &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes[1]
+	return &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes[2]
 }
 
 func (x Status) Number() protoreflect.EnumNumber {
@@ -142,7 +201,7 @@ func (x Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Status.Descriptor instead.
 func (Status) EnumDescriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{1}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{2}
 }
 
 type NginxProxyManagerApiConfig struct {
@@ -608,7 +667,11 @@ type Certificate struct {
 	// The names it covers, wildcards like "*.home.example" included.
 	DomainNames []string `protobuf:"bytes,4,rep,name=domain_names,json=domainNames,proto3" json:"domain_names,omitempty"`
 	// When it expires (expires_on, read as UTC).
-	ExpiresOn     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=expires_on,json=expiresOn,proto3" json:"expires_on,omitempty"`
+	ExpiresOn *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=expires_on,json=expiresOn,proto3" json:"expires_on,omitempty"`
+	// Its state now, from its provider and the days it has left.
+	State CertificateState `protobuf:"varint,6,opt,name=state,proto3,enum=ddash.nginxproxymanagerapi.CertificateState" json:"state,omitempty"`
+	// What the Operator does about it; empty when OK.
+	StateMessage  string `protobuf:"bytes,7,opt,name=state_message,json=stateMessage,proto3" json:"state_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -676,6 +739,20 @@ func (x *Certificate) GetExpiresOn() *timestamppb.Timestamp {
 		return x.ExpiresOn
 	}
 	return nil
+}
+
+func (x *Certificate) GetState() CertificateState {
+	if x != nil {
+		return x.State
+	}
+	return CertificateState_CERTIFICATE_STATE_UNSPECIFIED
+}
+
+func (x *Certificate) GetStateMessage() string {
+	if x != nil {
+		return x.StateMessage
+	}
+	return ""
 }
 
 type GetStatusRequest struct {
@@ -1196,14 +1273,16 @@ const file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc = "" +
 	"\x17ListCertificatesRequest\x12\x14\n" +
 	"\x05fresh\x18\x01 \x01(\bR\x05fresh\"g\n" +
 	"\x18ListCertificatesResponse\x12K\n" +
-	"\fcertificates\x18\x01 \x03(\v2'.ddash.nginxproxymanagerapi.CertificateR\fcertificates\"\xb4\x01\n" +
+	"\fcertificates\x18\x01 \x03(\v2'.ddash.nginxproxymanagerapi.CertificateR\fcertificates\"\x9d\x02\n" +
 	"\vCertificate\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1a\n" +
 	"\bprovider\x18\x02 \x01(\tR\bprovider\x12\x1b\n" +
 	"\tnice_name\x18\x03 \x01(\tR\bniceName\x12!\n" +
 	"\fdomain_names\x18\x04 \x03(\tR\vdomainNames\x129\n" +
 	"\n" +
-	"expires_on\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresOn\"\x12\n" +
+	"expires_on\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresOn\x12B\n" +
+	"\x05state\x18\x06 \x01(\x0e2,.ddash.nginxproxymanagerapi.CertificateStateR\x05state\x12#\n" +
+	"\rstate_message\x18\a \x01(\tR\fstateMessage\"\x12\n" +
 	"\x10GetStatusRequest\"\xc8\x02\n" +
 	"\x11GetStatusResponse\x12:\n" +
 	"\x06status\x18\x01 \x01(\x0e2\".ddash.nginxproxymanagerapi.StatusR\x06status\x123\n" +
@@ -1233,7 +1312,13 @@ const file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc = "" +
 	"\x18ERROR_REASON_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aERROR_REASON_DOMAIN_IN_USE\x10\x01\x12#\n" +
 	"\x1fERROR_REASON_PROXY_HOST_OFFLINE\x10\x02\x12&\n" +
-	"\"ERROR_REASON_PROXY_HOSTS_READ_ONLY\x10\x03*Q\n" +
+	"\"ERROR_REASON_PROXY_HOSTS_READ_ONLY\x10\x03*\xb6\x01\n" +
+	"\x10CertificateState\x12!\n" +
+	"\x1dCERTIFICATE_STATE_UNSPECIFIED\x10\x00\x12\x18\n" +
+	"\x14CERTIFICATE_STATE_OK\x10\x01\x12\"\n" +
+	"\x1eCERTIFICATE_STATE_NOT_RENEWING\x10\x02\x12\"\n" +
+	"\x1eCERTIFICATE_STATE_EXPIRES_SOON\x10\x03\x12\x1d\n" +
+	"\x19CERTIFICATE_STATE_EXPIRED\x10\x04*Q\n" +
 	"\x06Status\x12\x16\n" +
 	"\x12STATUS_UNSPECIFIED\x10\x00\x12\r\n" +
 	"\tSTATUS_UP\x10\x01\x12\x0f\n" +
@@ -1260,62 +1345,64 @@ func file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP() []
 	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescData
 }
 
-var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_goTypes = []any{
 	(ErrorReason)(0),                   // 0: ddash.nginxproxymanagerapi.ErrorReason
-	(Status)(0),                        // 1: ddash.nginxproxymanagerapi.Status
-	(*NginxProxyManagerApiConfig)(nil), // 2: ddash.nginxproxymanagerapi.NginxProxyManagerApiConfig
-	(*ListProxyHostsRequest)(nil),      // 3: ddash.nginxproxymanagerapi.ListProxyHostsRequest
-	(*ListProxyHostsResponse)(nil),     // 4: ddash.nginxproxymanagerapi.ListProxyHostsResponse
-	(*ProxyHost)(nil),                  // 5: ddash.nginxproxymanagerapi.ProxyHost
-	(*ProxyHostFields)(nil),            // 6: ddash.nginxproxymanagerapi.ProxyHostFields
-	(*ListCertificatesRequest)(nil),    // 7: ddash.nginxproxymanagerapi.ListCertificatesRequest
-	(*ListCertificatesResponse)(nil),   // 8: ddash.nginxproxymanagerapi.ListCertificatesResponse
-	(*Certificate)(nil),                // 9: ddash.nginxproxymanagerapi.Certificate
-	(*GetStatusRequest)(nil),           // 10: ddash.nginxproxymanagerapi.GetStatusRequest
-	(*GetStatusResponse)(nil),          // 11: ddash.nginxproxymanagerapi.GetStatusResponse
-	(*RefreshRequest)(nil),             // 12: ddash.nginxproxymanagerapi.RefreshRequest
-	(*RefreshResponse)(nil),            // 13: ddash.nginxproxymanagerapi.RefreshResponse
-	(*CreateProxyHostRequest)(nil),     // 14: ddash.nginxproxymanagerapi.CreateProxyHostRequest
-	(*CreateProxyHostResponse)(nil),    // 15: ddash.nginxproxymanagerapi.CreateProxyHostResponse
-	(*UpdateProxyHostRequest)(nil),     // 16: ddash.nginxproxymanagerapi.UpdateProxyHostRequest
-	(*UpdateProxyHostResponse)(nil),    // 17: ddash.nginxproxymanagerapi.UpdateProxyHostResponse
-	(*DeleteProxyHostRequest)(nil),     // 18: ddash.nginxproxymanagerapi.DeleteProxyHostRequest
-	(*DeleteProxyHostResponse)(nil),    // 19: ddash.nginxproxymanagerapi.DeleteProxyHostResponse
-	(*timestamppb.Timestamp)(nil),      // 20: google.protobuf.Timestamp
+	(CertificateState)(0),              // 1: ddash.nginxproxymanagerapi.CertificateState
+	(Status)(0),                        // 2: ddash.nginxproxymanagerapi.Status
+	(*NginxProxyManagerApiConfig)(nil), // 3: ddash.nginxproxymanagerapi.NginxProxyManagerApiConfig
+	(*ListProxyHostsRequest)(nil),      // 4: ddash.nginxproxymanagerapi.ListProxyHostsRequest
+	(*ListProxyHostsResponse)(nil),     // 5: ddash.nginxproxymanagerapi.ListProxyHostsResponse
+	(*ProxyHost)(nil),                  // 6: ddash.nginxproxymanagerapi.ProxyHost
+	(*ProxyHostFields)(nil),            // 7: ddash.nginxproxymanagerapi.ProxyHostFields
+	(*ListCertificatesRequest)(nil),    // 8: ddash.nginxproxymanagerapi.ListCertificatesRequest
+	(*ListCertificatesResponse)(nil),   // 9: ddash.nginxproxymanagerapi.ListCertificatesResponse
+	(*Certificate)(nil),                // 10: ddash.nginxproxymanagerapi.Certificate
+	(*GetStatusRequest)(nil),           // 11: ddash.nginxproxymanagerapi.GetStatusRequest
+	(*GetStatusResponse)(nil),          // 12: ddash.nginxproxymanagerapi.GetStatusResponse
+	(*RefreshRequest)(nil),             // 13: ddash.nginxproxymanagerapi.RefreshRequest
+	(*RefreshResponse)(nil),            // 14: ddash.nginxproxymanagerapi.RefreshResponse
+	(*CreateProxyHostRequest)(nil),     // 15: ddash.nginxproxymanagerapi.CreateProxyHostRequest
+	(*CreateProxyHostResponse)(nil),    // 16: ddash.nginxproxymanagerapi.CreateProxyHostResponse
+	(*UpdateProxyHostRequest)(nil),     // 17: ddash.nginxproxymanagerapi.UpdateProxyHostRequest
+	(*UpdateProxyHostResponse)(nil),    // 18: ddash.nginxproxymanagerapi.UpdateProxyHostResponse
+	(*DeleteProxyHostRequest)(nil),     // 19: ddash.nginxproxymanagerapi.DeleteProxyHostRequest
+	(*DeleteProxyHostResponse)(nil),    // 20: ddash.nginxproxymanagerapi.DeleteProxyHostResponse
+	(*timestamppb.Timestamp)(nil),      // 21: google.protobuf.Timestamp
 }
 var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_depIdxs = []int32{
-	5,  // 0: ddash.nginxproxymanagerapi.ListProxyHostsResponse.proxy_hosts:type_name -> ddash.nginxproxymanagerapi.ProxyHost
-	6,  // 1: ddash.nginxproxymanagerapi.ProxyHost.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
-	9,  // 2: ddash.nginxproxymanagerapi.ListCertificatesResponse.certificates:type_name -> ddash.nginxproxymanagerapi.Certificate
-	20, // 3: ddash.nginxproxymanagerapi.Certificate.expires_on:type_name -> google.protobuf.Timestamp
-	1,  // 4: ddash.nginxproxymanagerapi.GetStatusResponse.status:type_name -> ddash.nginxproxymanagerapi.Status
-	20, // 5: ddash.nginxproxymanagerapi.GetStatusResponse.read_at:type_name -> google.protobuf.Timestamp
-	20, // 6: ddash.nginxproxymanagerapi.GetStatusResponse.last_good_read_at:type_name -> google.protobuf.Timestamp
-	6,  // 7: ddash.nginxproxymanagerapi.CreateProxyHostRequest.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
-	5,  // 8: ddash.nginxproxymanagerapi.CreateProxyHostResponse.proxy_host:type_name -> ddash.nginxproxymanagerapi.ProxyHost
-	6,  // 9: ddash.nginxproxymanagerapi.UpdateProxyHostRequest.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
-	5,  // 10: ddash.nginxproxymanagerapi.UpdateProxyHostResponse.proxy_host:type_name -> ddash.nginxproxymanagerapi.ProxyHost
-	3,  // 11: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListProxyHosts:input_type -> ddash.nginxproxymanagerapi.ListProxyHostsRequest
-	7,  // 12: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:input_type -> ddash.nginxproxymanagerapi.ListCertificatesRequest
-	10, // 13: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:input_type -> ddash.nginxproxymanagerapi.GetStatusRequest
-	12, // 14: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:input_type -> ddash.nginxproxymanagerapi.RefreshRequest
-	14, // 15: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:input_type -> ddash.nginxproxymanagerapi.CreateProxyHostRequest
-	16, // 16: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:input_type -> ddash.nginxproxymanagerapi.UpdateProxyHostRequest
-	18, // 17: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:input_type -> ddash.nginxproxymanagerapi.DeleteProxyHostRequest
-	4,  // 18: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListProxyHosts:output_type -> ddash.nginxproxymanagerapi.ListProxyHostsResponse
-	8,  // 19: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:output_type -> ddash.nginxproxymanagerapi.ListCertificatesResponse
-	11, // 20: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:output_type -> ddash.nginxproxymanagerapi.GetStatusResponse
-	13, // 21: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:output_type -> ddash.nginxproxymanagerapi.RefreshResponse
-	15, // 22: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:output_type -> ddash.nginxproxymanagerapi.CreateProxyHostResponse
-	17, // 23: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:output_type -> ddash.nginxproxymanagerapi.UpdateProxyHostResponse
-	19, // 24: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:output_type -> ddash.nginxproxymanagerapi.DeleteProxyHostResponse
-	18, // [18:25] is the sub-list for method output_type
-	11, // [11:18] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	6,  // 0: ddash.nginxproxymanagerapi.ListProxyHostsResponse.proxy_hosts:type_name -> ddash.nginxproxymanagerapi.ProxyHost
+	7,  // 1: ddash.nginxproxymanagerapi.ProxyHost.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
+	10, // 2: ddash.nginxproxymanagerapi.ListCertificatesResponse.certificates:type_name -> ddash.nginxproxymanagerapi.Certificate
+	21, // 3: ddash.nginxproxymanagerapi.Certificate.expires_on:type_name -> google.protobuf.Timestamp
+	1,  // 4: ddash.nginxproxymanagerapi.Certificate.state:type_name -> ddash.nginxproxymanagerapi.CertificateState
+	2,  // 5: ddash.nginxproxymanagerapi.GetStatusResponse.status:type_name -> ddash.nginxproxymanagerapi.Status
+	21, // 6: ddash.nginxproxymanagerapi.GetStatusResponse.read_at:type_name -> google.protobuf.Timestamp
+	21, // 7: ddash.nginxproxymanagerapi.GetStatusResponse.last_good_read_at:type_name -> google.protobuf.Timestamp
+	7,  // 8: ddash.nginxproxymanagerapi.CreateProxyHostRequest.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
+	6,  // 9: ddash.nginxproxymanagerapi.CreateProxyHostResponse.proxy_host:type_name -> ddash.nginxproxymanagerapi.ProxyHost
+	7,  // 10: ddash.nginxproxymanagerapi.UpdateProxyHostRequest.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
+	6,  // 11: ddash.nginxproxymanagerapi.UpdateProxyHostResponse.proxy_host:type_name -> ddash.nginxproxymanagerapi.ProxyHost
+	4,  // 12: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListProxyHosts:input_type -> ddash.nginxproxymanagerapi.ListProxyHostsRequest
+	8,  // 13: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:input_type -> ddash.nginxproxymanagerapi.ListCertificatesRequest
+	11, // 14: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:input_type -> ddash.nginxproxymanagerapi.GetStatusRequest
+	13, // 15: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:input_type -> ddash.nginxproxymanagerapi.RefreshRequest
+	15, // 16: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:input_type -> ddash.nginxproxymanagerapi.CreateProxyHostRequest
+	17, // 17: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:input_type -> ddash.nginxproxymanagerapi.UpdateProxyHostRequest
+	19, // 18: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:input_type -> ddash.nginxproxymanagerapi.DeleteProxyHostRequest
+	5,  // 19: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListProxyHosts:output_type -> ddash.nginxproxymanagerapi.ListProxyHostsResponse
+	9,  // 20: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:output_type -> ddash.nginxproxymanagerapi.ListCertificatesResponse
+	12, // 21: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:output_type -> ddash.nginxproxymanagerapi.GetStatusResponse
+	14, // 22: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:output_type -> ddash.nginxproxymanagerapi.RefreshResponse
+	16, // 23: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:output_type -> ddash.nginxproxymanagerapi.CreateProxyHostResponse
+	18, // 24: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:output_type -> ddash.nginxproxymanagerapi.UpdateProxyHostResponse
+	20, // 25: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:output_type -> ddash.nginxproxymanagerapi.DeleteProxyHostResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_init() }
@@ -1328,7 +1415,7 @@ func file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc), len(file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,

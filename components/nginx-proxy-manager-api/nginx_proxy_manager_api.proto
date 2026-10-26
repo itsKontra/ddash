@@ -44,7 +44,7 @@ service NginxProxyManagerApiService {
   }
   // ListCertificates returns every SSL certificate
   // (GET /api/nginx/certificates), in Nginx Proxy Manager's order: by
-  // nice name.
+  // nice name, each with its state now.
   rpc ListCertificates(ListCertificatesRequest) returns (ListCertificatesResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
@@ -158,6 +158,22 @@ message Certificate {
   repeated string domain_names = 4;
   // When it expires (expires_on, read as UTC).
   google.protobuf.Timestamp expires_on = 5;
+  // Its state now, from its provider and the days it has left.
+  CertificateState state = 6;
+  // What the Operator does about it; empty when OK.
+  string state_message = 7;
+}
+
+enum CertificateState {
+  CERTIFICATE_STATE_UNSPECIFIED = 0;
+  CERTIFICATE_STATE_OK = 1;
+  // Let's Encrypt with 20 days or less left: Nginx Proxy Manager should
+  // have renewed it by then.
+  CERTIFICATE_STATE_NOT_RENEWING = 2;
+  // Uploaded, with 30 days or less left.
+  CERTIFICATE_STATE_EXPIRES_SOON = 3;
+  // Past its expiry, or none is known.
+  CERTIFICATE_STATE_EXPIRED = 4;
 }
 
 message GetStatusRequest {}

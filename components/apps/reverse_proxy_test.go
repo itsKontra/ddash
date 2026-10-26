@@ -108,3 +108,20 @@ func TestAddReverseProxyFixesNoProxyHost(t *testing.T) {
 		t.Errorf("Wiki = %v, want it linked to its Proxy Host, without No Proxy Host", a)
 	}
 }
+
+// An App's Proxy Host carries its certificate's name and state as Nginx
+// Proxy Manager lists them: the NAS's uploaded one expired in 2025.
+func TestAProxyHostCarriesItsCertificatesState(t *testing.T) {
+	l := newLab(t, labOptions{})
+	l.npm.AddProxyHost(func(row map[string]any) {
+		proxyHost("http://198.18.2.10:5000", "files.home.example")(row)
+		row["certificate_id"] = 1
+	})
+	l.refresh()
+
+	got := l.byURL("https://files.home.example").GetProxyHost().GetCertificate()
+	want := &appspb.Certificate{Name: "NAS (uploaded)", State: appspb.CertificateState_CERTIFICATE_STATE_EXPIRED, Message: "Upload a new certificate in Nginx Proxy Manager."}
+	if d := diff(want, got); d != "" {
+		t.Errorf("certificate (-want +got):\n%s", d)
+	}
+}

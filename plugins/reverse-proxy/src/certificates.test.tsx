@@ -68,25 +68,10 @@ it("says each state's message", async () => {
   expect(cells("old").State).toBe("ExpiredUpload a new certificate in Nginx Proxy Manager.");
 });
 
-it("says a Let's Encrypt certificate isn't renewing at 20 days left, not before", async () => {
-  expect(await stateOf(certificate(1, "letsencrypt", "a", days(20) + 1000))).toBe("OK");
+it("shows the state nginx-proxy-manager-api tells, whatever the expiry", async () => {
+  expect(await stateOf(certificate(1, "letsencrypt", "a", days(60), "EXPIRED"))).toBe("ExpiredNginx Proxy Manager hasn't renewed this: check its Let's Encrypt log.");
   cleanup();
-  expect(await stateOf(certificate(1, "letsencrypt", "a", days(20)))).toMatch(/^Not renewing/);
-});
-
-it("says an uploaded certificate expires soon at 30 days left, not before", async () => {
-  expect(await stateOf(certificate(1, "other", "a", days(30) + 1000))).toBe("OK");
-  cleanup();
-  expect(await stateOf(certificate(1, "other", "a", days(30)))).toMatch(/^Expires soon/);
-  cleanup();
-  // A Let's Encrypt one is still OK there: Nginx Proxy Manager renews it.
-  expect(await stateOf(certificate(1, "letsencrypt", "a", days(30)))).toBe("OK");
-});
-
-it("says a certificate has expired once its expiry is past", async () => {
-  expect(await stateOf(certificate(1, "letsencrypt", "a", 0))).toMatch(/^Not renewing/);
-  cleanup();
-  expect(await stateOf(certificate(1, "letsencrypt", "a", -1000))).toBe("ExpiredNginx Proxy Manager hasn't renewed this: check its Let's Encrypt log.");
+  expect(await stateOf(certificate(1, "other", "a", -days(2)))).toBe("OK");
 });
 
 it("says when Nginx Proxy Manager has no certificates", async () => {

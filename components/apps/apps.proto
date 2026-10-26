@@ -243,6 +243,30 @@ message ProxyHost {
   // Offline: nginx rejected its config when it was last saved.
   bool offline = 14;
   string nginx_error = 15;
+  // The certificate certificate_id names, as Nginx Proxy Manager's last
+  // good read of its certificates lists it; unset for none, or before
+  // that read.
+  Certificate certificate = 16;
+}
+
+// A Proxy Host's certificate and its state.
+message Certificate {
+  // Its nice name, e.g. "*.home.example".
+  string name = 1;
+  CertificateState state = 2;
+  // What the Operator does about it; empty when OK.
+  string message = 3;
+}
+
+// A certificate's state, as nginx-proxy-manager-api tells it.
+enum CertificateState {
+  CERTIFICATE_STATE_UNSPECIFIED = 0;
+  CERTIFICATE_STATE_OK = 1;
+  // Let's Encrypt with 20 days or less left.
+  CERTIFICATE_STATE_NOT_RENEWING = 2;
+  // Uploaded, with 30 days or less left.
+  CERTIFICATE_STATE_EXPIRES_SOON = 3;
+  CERTIFICATE_STATE_EXPIRED = 4;
 }
 
 // Something about an App the Operator should fix or Ignore.

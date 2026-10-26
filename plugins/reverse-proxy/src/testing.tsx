@@ -27,13 +27,24 @@ export const down = { status: "STATUS_DOWN", readAt: "2026-10-26T07:59:00Z", err
 /** Nginx Proxy Manager's answer while it has no config: the core's failed_precondition. */
 export const notConfigured = () => Response.json({ code: "failed_precondition", message: "not configured" }, { status: 400 });
 
-/** A certificate as ListCertificates answers it, expiring ms after now. */
-export const certificate = (id: number, provider: string, niceName: string, ms: number) => ({
+/** A certificate state as nginx-proxy-manager-api names it. */
+export type State = "OK" | "NOT_RENEWING" | "EXPIRES_SOON" | "EXPIRED";
+
+/** What the Operator does about a certificate that isn't OK, by provider. */
+const stateMessages: Record<string, string> = {
+  letsencrypt: "Nginx Proxy Manager hasn't renewed this: check its Let's Encrypt log.",
+  other: "Upload a new certificate in Nginx Proxy Manager.",
+};
+
+/** A certificate as ListCertificates answers it, expiring ms after now, in the state nginx-proxy-manager-api tells. */
+export const certificate = (id: number, provider: string, niceName: string, ms: number, state: State = "OK") => ({
   id: String(id),
   provider,
   niceName,
   domainNames: [`${niceName}.home.example`],
   expiresOn: fromNow(ms),
+  state: `CERTIFICATE_STATE_${state}`,
+  ...(state === "OK" ? {} : { stateMessage: stateMessages[provider] }),
 });
 
 /**
@@ -44,9 +55,9 @@ export const certificate = (id: number, provider: string, niceName: string, ms: 
 export const certificates = {
   certificates: [
     { ...certificate(1, "letsencrypt", "*.home.example", days(60)), domainNames: ["*.home.example", "home.example"] },
-    certificate(2, "other", "printer", days(12)),
-    certificate(3, "letsencrypt", "legacy", days(5)),
-    certificate(4, "other", "old", -days(2)),
+    certificate(2, "other", "printer", days(12), "EXPIRES_SOON"),
+    certificate(3, "letsencrypt", "legacy", days(5), "NOT_RENEWING"),
+    certificate(4, "other", "old", -days(2), "EXPIRED"),
   ],
 };
 
