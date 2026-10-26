@@ -6,7 +6,7 @@ import { DeviceAction } from "./adopt";
 import { nameOf, useDevices } from "./devices";
 import { Adoption } from "./devices-table";
 import { DirectToggle } from "./direct";
-import { DeviceQueries } from "./queries";
+import { ProtoQueries } from "./proto-queries";
 
 // The detail is the route devices/:mac under the Network Page's.
 const back = { href: "..", label: "Network" };
@@ -44,7 +44,8 @@ export function DeviceDetail() {
         <Lease device={d} />
         <Reservation device={d} />
         <OtherAliases device={d} />
-        {d.ip && <DeviceQueries ip={d.ip} />}
+        {/* PROTOTYPE: the Queries Panel variants. */}
+        {d.ip && <ProtoQueries ip={d.ip} />}
       </div>
     </div>
   );

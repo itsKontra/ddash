@@ -66,6 +66,8 @@ export default defineConfig({
     // Pre-transforming would try to load /vendor/dev/*.js from disk; the
     // browser gets them through the proxy.
     preTransformRequests: false,
+    // PROTOTYPE: a second `make dev` beside another one.
+    port: Number(process.env.DDASH_SHELL_PORT ?? 5173),
     proxy: { "/api": core, "/plugins": core, "/vendor": core },
   },
 });
