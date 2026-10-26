@@ -1,4 +1,12 @@
+import { create, toBinary, type DescMessage, type MessageInitShape } from "@bufbuild/protobuf";
+import { base64Encode } from "@bufbuild/protobuf/wire";
 import { renderScoped as render, type Answers, type Call } from "@ddash/plugin/testing";
+
+/** A Connect error answer with a detail, e.g. RunAction's stopped run or its refusal with the new Plan. */
+export function failing<D extends DescMessage>(code: string, message: string, schema: D, detail: MessageInitShape<D>, status = 400) {
+  const value = base64Encode(toBinary(schema, create(schema, detail)), "std_raw");
+  return () => Response.json({ code, message, details: [{ type: schema.typeName, value }] }, { status });
+}
 
 const day = 86_400_000;
 

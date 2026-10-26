@@ -21,7 +21,7 @@ const pane = () => screen.getByRole("article");
 const box = (name: string) => within(pane()).getByRole("region", { name });
 const buttons = (name: string) => within(box(name)).getAllByRole("button").map((b) => [b.textContent, (b as HTMLButtonElement).disabled]);
 
-it("shows the Warnings that count as boxes at the top of the pane, each with its fixes; external ones wait for the write tickets", async () => {
+it("shows the Warnings that count as boxes at the top of the pane, each with its fixes", async () => {
   await open("/?app=proxy:jellyfin.home.example");
 
   const regions = within(pane())
@@ -30,8 +30,8 @@ it("shows the Warnings that count as boxes at the top of the pane, each with its
   expect(regions.slice(0, 3)).toEqual(["Proxy Host offline", "Hostname on two Apps", "Display"]);
   expect(box("Proxy Host offline").textContent).toContain("nginx: [emerg] host not found in upstream");
   expect(buttons("Proxy Host offline")).toEqual([
-    ["Save again", true],
-    ["Delete App…", true],
+    ["Save again", false],
+    ["Delete App…", false],
     ["Ignore", false],
   ]);
   expect(box("Hostname on two Apps").textContent).toContain("media.home.example");

@@ -66,9 +66,9 @@ func TestBadSettingsAreRefused(t *testing.T) {
 	}
 }
 
-// Link-only Apps are added and deleted by hand; an App with a source
-// can't be deleted that way.
-func TestLinkOnlyAppsAreAddedAndDeleted(t *testing.T) {
+// Link-only Apps are added by hand; a URL that is no http or https URL,
+// or an icon that is no dashboard-icons name, is refused.
+func TestLinkOnlyAppsAreAdded(t *testing.T) {
 	l := newLab(t, labOptions{})
 	for _, bad := range []*appspb.AddApp{
 		{Name: "pfSense", Url: "198.18.0.1"},
@@ -89,17 +89,6 @@ func TestLinkOnlyAppsAreAddedAndDeleted(t *testing.T) {
 	a := l.app(l.addLinkOnly("pfSense", "https://198.18.0.1"))
 	if a.GetName() != "pfSense" || a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
 		t.Errorf("added %v, want a Link-only App", a)
-	}
-
-	if err := l.try("DeleteApp", &appspb.DeleteAppRequest{Id: "proxy:video.home.example"}, nil); err == nil || err.code != "failed_precondition" {
-		t.Errorf("DeleteApp of a proxied App: %v, want failed_precondition", err)
-	}
-	l.call("DeleteApp", &appspb.DeleteAppRequest{Id: a.GetId()}, nil)
-	if l.has(a.GetId()) {
-		t.Error("pfSense is still listed after its delete")
-	}
-	if l.appChecks()[a.GetId()] != nil {
-		t.Error("pfSense still has a Check")
 	}
 }
 

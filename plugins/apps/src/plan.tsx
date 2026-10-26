@@ -1,5 +1,5 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { useAction, usePluginLink } from "@ddash/plugin";
+import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
 import {
   AppsService,
   NameNoteKind,
@@ -11,8 +11,8 @@ import {
   type Plan,
   type RunActionResponse,
 } from "@ddash/proto/apps/apps_pb";
-import { StatusList, type StatusItem, type Tone } from "@ddash/ui";
-import { useState } from "react";
+import { Button, Dialog, FormActions, Notice, Skeleton, StatusList, type StatusItem, type Tone } from "@ddash/ui";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 // App Actions' Plans on screen: their steps with each one's progress, the
@@ -93,6 +93,12 @@ function Note({ note: n }: { note: NameNote }) {
       );
     case NameNoteKind.REATTACH:
       return <>Settings were kept for {appLink(n)}: adding it reattaches them, with its Check history.</>;
+    case NameNoteKind.ORPHAN:
+      return (
+        <>
+          {n.hostname} is kept for the orphaned App settings {appLink(n)}: reattach or delete them first.
+        </>
+      );
     default:
       return <>{n.text}</>;
   }
@@ -124,6 +130,8 @@ export type Outcome =
  */
 export function useRunAction() {
   const action = useAction(AppsService.method.runAction);
+  // A run that stopped half-way changed the Apps all the same.
+  const { refetch } = useQuery(AppsService.method.listApps, {});
   const [ran, setRan] = useState<{ plan: Plan; result?: RunActionResponse }>();
 
   let outcome: Outcome | undefined;
@@ -151,6 +159,7 @@ export function useRunAction() {
       setRan({ plan });
       const result = await action.run({ action: request, plan });
       if (result) setRan({ plan, result });
+      else void refetch();
       return result;
     },
     pending: action.pending,
@@ -161,4 +170,97 @@ export function useRunAction() {
     /** Forgets the run, e.g. once the Action is edited. */
     reset: () => setRan(undefined),
   };
+}
+
+/**
+ * The pane's Dialog slot: one Dialog at a time over the pane, such as
+ * Reattach, and the Plan Dialogs of external writes. open puts one in it,
+ * close empties it.
+ */
+export interface DialogSlot {
+  open: (dialog: ReactNode) => void;
+  close: () => void;
+}
+
+/**
+ * An external write's Plan in a Dialog: the server's Plan for action, its
+ * "name is free" notes and what keeps it from running, then each step's
+ * progress once confirmed. A run stops at the first failed step, saying
+ * so, nothing rolled back; one refused because the systems changed shows
+ * the new Plan, which confirming again runs. onDone gets RunAction's
+ * answer once it ran through and the Apps were re-read, or when the
+ * Operator closes it after.
+ */
+export function PlanDialog({
+  title,
+  action,
+  confirm,
+  danger,
+  onClose,
+  onDone,
+}: {
+  title: string;
+  action: ActionInit;
+  /** The confirming button's label, e.g. "Delete". */
+  confirm: string;
+  danger?: boolean;
+  onClose: () => void;
+  onDone: (result: RunActionResponse) => void;
+}) {
+  const dryRun = useQuery(AppsService.method.planAction, { action });
+  const run = useRunAction();
+  const plan = run.plan ?? dryRun.data?.plan;
+  const outcome = run.outcome;
+  const blocked = plan ? blocking(plan) : [];
+  const ended = outcome?.kind === "done" || outcome?.kind === "stopped" || outcome?.kind === "failed";
+  const can = !!plan && blocked.length === 0 && !run.pending && !ended;
+
+  const go = async () => {
+    if (!plan) return;
+    const done = await run.run(action, plan);
+    if (done && !done.reread) onDone(done);
+  };
+
+  return (
+    <Dialog
+      title={title}
+      subtitle="ddash does these steps in order, and stops at the first that fails."
+      onClose={onClose}
+      footer={
+        <FormActions>
+          <Button variant="ghost" onClick={onClose} disabled={run.pending}>
+            {ended ? "Close" : "Cancel"}
+          </Button>
+          {outcome?.kind === "done" ? (
+            <Button onClick={() => onDone(outcome.result)}>Done</Button>
+          ) : (
+            <Button variant={danger ? "danger" : "default"} disabled={!can} onClick={() => void go()}>
+              {confirm}
+            </Button>
+          )}
+        </FormActions>
+      }
+    >
+      <div className="flex flex-col gap-4">
+        {!plan && dryRun.error && <Notice tone="down">{dryRun.error.rawMessage}</Notice>}
+        {!plan && !dryRun.error && <Skeleton height="lg" />}
+        {plan && plan.names.length > 0 && (
+          <div className="text-sm">
+            <NameNotes names={plan.names} />
+          </div>
+        )}
+        {plan && plan.blocked.length > 0 && (
+          <Notice tone="warn">
+            {plan.blocked.map((b) => (
+              <p key={b}>{b}</p>
+            ))}
+          </Notice>
+        )}
+        {outcome?.kind === "changed" && <Notice tone="warn">Changed since you looked: ddash will now do what&apos;s below. Check it, then confirm again.</Notice>}
+        {(outcome?.kind === "stopped" || outcome?.kind === "failed") && <Notice tone="down">{outcome.message}</Notice>}
+        {outcome?.kind === "done" && <Notice tone="warn">Done. {outcome.result.reread}: the list catches up at the next sync.</Notice>}
+        {plan && <PlanSteps plan={plan} state={run.state} />}
+      </div>
+    </Dialog>
+  );
 }

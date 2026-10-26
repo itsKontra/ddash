@@ -1,29 +1,24 @@
 import { checkStatus, workloadName } from "@ddash/display";
 import { useAction } from "@ddash/plugin";
-import { AppsService, Reach, type App, type ListAppsResponse, type Workload } from "@ddash/proto/apps/apps_pb";
+import { AppsService, FixKind, Reach, type App, type Fix, type ListAppsResponse, type Warning, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, Dialog, Facts, Field, FormActions, Notice, Panel, Pill, Presence, Select } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { groupsOf, hostOf } from "./apps";
 import { reachLook } from "./list";
 import { AddressPanel, DisplayPanel, NetworkPanel, ProxyPanel, WorkloadPanel, type Editing, type PanelName } from "./panels";
-import { WarningBoxes, type FixHandlers } from "./warnings";
+import { PlanDialog, type DialogSlot } from "./plan";
+import { fixLabel, WarningBoxes, type FixHandlers } from "./warnings";
 
-/**
- * The pane's Dialog slot: one Dialog at a time over the pane, such as
- * Reattach, and the Plan Dialogs of external writes. open puts one in it,
- * close empties it.
- */
-export interface DialogSlot {
-  open: (dialog: ReactNode) => void;
-  close: () => void;
-}
+/** The fixes that remove something, confirmed with a danger button. */
+const removing: ReadonlySet<FixKind> = new Set([FixKind.REMOVE_NAME, FixKind.DELETE_PROXY_HOST, FixKind.DELETE_ENTRY]);
 
 /**
  * The selected App on the right: its header with Delete…, its Warning
  * boxes, then the Panels Display, Address and DNS, Reverse proxy,
- * Workload and Check, and Network. One Panel edits at a time; orphaned App
- * settings get their own pane.
+ * Workload and Check, and Network. One Panel edits at a time; external
+ * writes, Delete and the external fixes open their Plan in a Dialog.
+ * Orphaned App settings get their own pane.
  */
 export function AppPane({
   app,
@@ -44,21 +39,52 @@ export function AppPane({
   const title = useId();
   const slot: DialogSlot = { open: setDialog, close: () => setDialog(undefined) };
   const editing: Editing = { now, start: setNow, done: () => setNow(undefined) };
+  const remove = () =>
+    slot.open(
+      <PlanDialog
+        title={`Delete ${app.name}`}
+        action={{ action: { case: "delete", value: { id: app.id } } }}
+        confirm="Delete"
+        danger
+        onClose={slot.close}
+        onDone={() => {
+          slot.close();
+          onGone();
+        }}
+      />,
+    );
+  const fix = (_: Warning, f: Fix) => {
+    const label = fixLabel(f, list.apps);
+    slot.open(
+      <PlanDialog
+        title={label}
+        action={{ action: { case: "fix", value: { id: app.id, fix: f } } }}
+        confirm={label}
+        danger={removing.has(f.kind)}
+        onClose={slot.close}
+        onDone={slot.close}
+      />,
+    );
+  };
   const handlers: FixHandlers = {
     editWorkload: () => setNow("workload"),
+    editProxy: () => setNow("proxy"),
+    addProxy: () => setNow("proxy"),
     reattach: () => slot.open(<Reattach orphan={app} apps={list.apps} onClose={slot.close} />),
+    remove,
+    external: fix,
   };
   return (
     <article aria-labelledby={title} className="flex flex-col gap-4">
-      <Header id={title} app={app} check={check} onGone={onGone} />
+      <Header id={title} app={app} check={check} onDelete={remove} />
       <WarningBoxes app={app} apps={list.apps} showIgnored={showIgnored} handlers={handlers} onGone={onGone} />
       {app.orphaned ? (
         <Kept app={app} />
       ) : (
         <>
           <DisplayPanel app={app} groups={groupsOf(list.apps)} editing={editing} />
-          <AddressPanel app={app} list={list} editing={editing} />
-          <ProxyPanel app={app} list={list} />
+          <AddressPanel app={app} list={list} editing={editing} slot={slot} />
+          <ProxyPanel app={app} list={list} editing={editing} slot={slot} />
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <WorkloadPanel app={app} check={check} editing={editing} />
             <NetworkPanel app={app} list={list} />
@@ -71,7 +97,7 @@ export function AppPane({
 }
 
 /** The pane's header: icon, name, URL, Reach, Check and Hidden, and Delete…. */
-function Header({ id, app, check, onGone }: { id: string; app: App; check?: Check; onGone: () => void }) {
+function Header({ id, app, check, onDelete }: { id: string; app: App; check?: Check; onDelete: () => void }) {
   const status = checkStatus(check);
   return (
     <div className="flex items-start gap-3">
@@ -91,33 +117,11 @@ function Header({ id, app, check, onGone }: { id: string; app: App; check?: Chec
           {app.hidden && <Pill>Hidden</Pill>}
         </div>
       </div>
-      {!app.orphaned && <Delete app={app} onGone={onGone} />}
-    </div>
-  );
-}
-
-/**
- * Delete…: a Link-only App goes at once, after a confirm. Deleting an App
- * with a Proxy Host or a Host Override writes to pfSense and Nginx Proxy
- * Manager through a Plan, which the write tickets add here.
- */
-function Delete({ app, onGone }: { app: App; onGone: () => void }) {
-  const remove = useAction(AppsService.method.deleteApp);
-  const linkOnly = app.reach === Reach.LINK_ONLY;
-  return (
-    <div className="flex flex-col items-end gap-2">
-      <Button
-        size="sm"
-        variant="danger"
-        disabled={!linkOnly || remove.pending}
-        title={linkOnly ? undefined : "Writes to pfSense or Nginx Proxy Manager aren't available yet"}
-        onClick={async () => {
-          if (await remove.run({ id: app.id }, { confirm: { text: `Delete the App ${app.name}?`, action: "Delete" } })) onGone();
-        }}
-      >
-        Delete…
-      </Button>
-      {remove.error && <Notice tone="down">{remove.error.rawMessage}</Notice>}
+      {!app.orphaned && (
+        <Button size="sm" variant="danger" onClick={onDelete}>
+          Delete…
+        </Button>
+      )}
     </div>
   );
 }

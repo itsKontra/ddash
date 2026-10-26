@@ -86,10 +86,6 @@ service AppsService {
   rpc RunAction(RunActionRequest) returns (RunActionResponse) {
     option (ddash.action) = {};
   }
-  // DeleteApp deletes a Link-only App.
-  rpc DeleteApp(DeleteAppRequest) returns (DeleteAppResponse) {
-    option (ddash.action) = {disruptive: true};
-  }
   // ListWorkloads returns every Workload proxmox-api and docker-api list
   // now, to pick a Workload override from: containers by host, then
   // Proxmox guests by VMID, templates left out.
@@ -265,8 +261,9 @@ message Warning {
   repeated Fix fixes = 5;
 }
 
-// One way to fix a Warning, with what it acts on. External fixes will run
-// as App Actions with a Plan; ddash-only ones change the App at once.
+// One way to fix a Warning, with what it acts on. External fixes run as
+// App Actions with a Plan: Delete App and Add reverse proxy as their own,
+// the others as FixWarning. ddash-only ones change the App at once.
 message Fix {
   FixKind kind = 1;
   // The hostname it acts on: Register, Remove the name, Point at Reverse
@@ -463,12 +460,73 @@ message MergeRequest {
 
 message MergeResponse {}
 
-// A change to an App that writes to Nginx Proxy Manager or pfSense, or
-// adds an App: it runs through a Plan (PlanAction, RunAction).
+// A change to an App that writes to Nginx Proxy Manager or pfSense, adds
+// an App or deletes one: it runs through a Plan (PlanAction, RunAction).
 message AppAction {
   oneof action {
     AddApp add = 1;
+    ChangeAddress change_address = 2;
+    ChangeProxyHost change_proxy_host = 3;
+    AddReverseProxy add_reverse_proxy = 4;
+    RemoveReverseProxy remove_reverse_proxy = 5;
+    DeleteApp delete = 6;
+    // An external fix of one of the App's Warnings: Register, Remove the
+    // name, Save again, Point at Reverse Proxy, Delete Proxy Host and
+    // Delete an entry.
+    FixWarning fix = 7;
   }
+}
+
+// Change an App's URL and aliases. Each hostname added must be free; one
+// kept for orphaned App settings is refused, naming them. A proxied App's
+// Proxy Host serves the new names and the Reverse Proxy's Host Override
+// registers them as aliases; a Not-proxied App's own Host Override
+// registers them, renamed when its own name goes. The App keeps its id,
+// settings and Check history.
+message ChangeAddress {
+  string id = 1;
+  // The new URL: an http or https URL.
+  string url = 2;
+  // The new aliases: its hostnames but the URL's.
+  repeated string aliases = 3;
+}
+
+// Change the fields of an App's Proxy Host but its domain names. Any
+// managed field changed in Nginx Proxy Manager since the Plan refuses it,
+// touched or not; the fields ddash doesn't manage are kept.
+message ChangeProxyHost {
+  string id = 1;
+  ProxyHostFields proxy_host = 2;
+}
+
+// Put an App without a Proxy Host behind the Reverse Proxy: a Proxy Host
+// serving its hostnames, each of them an alias of the Reverse Proxy's
+// Host Override in place of the App's own Host Override.
+message AddReverseProxy {
+  string id = 1;
+  ProxyHostFields proxy_host = 2;
+}
+
+// Take an App from behind the Reverse Proxy: delete its Proxy Host, and
+// register its hostnames as a Host Override of its own at address in
+// place of the Reverse Proxy's aliases.
+message RemoveReverseProxy {
+  string id = 1;
+  // The address its Host Override resolves to, e.g. its upstream's.
+  string address = 2;
+}
+
+// Delete an App: its Proxy Host, its Host Override or the Reverse Proxy's
+// aliases for it, then its record and Check. A Link-only App's Plan
+// changes ddash alone.
+message DeleteApp {
+  string id = 1;
+}
+
+// Run one of the fixes an App's Warning offers, as ListApps gave it.
+message FixWarning {
+  string id = 1;
+  Fix fix = 2;
 }
 
 // Add App: an App and, by its Reach, its Proxy Host and DNS.
@@ -560,9 +618,9 @@ message NameNote {
   // The note as the Operator reads it, e.g. "grafana.home.example is taken
   // by Grafana."
   string text = 3;
-  // APP and REATTACH: the App's id.
+  // APP, REATTACH and ORPHAN: the App's id.
   string app_id = 4;
-  // APP, REATTACH and DEVICE: the App's or Device's name.
+  // APP, REATTACH, ORPHAN and DEVICE: the App's or Device's name.
   string name = 5;
   // APP: the App is Hidden.
   bool hidden = 6;
@@ -588,6 +646,9 @@ enum NameNoteKind {
   // Orphaned App settings were kept for it: adding it reattaches them.
   // It doesn't block.
   NAME_NOTE_KIND_REATTACH = 7;
+  // Orphaned App settings were kept for it: an App's new URL or alias
+  // can't have it until they are reattached or deleted.
+  NAME_NOTE_KIND_ORPHAN = 8;
 }
 
 message PlanActionRequest {
@@ -607,7 +668,7 @@ message RunActionRequest {
 // What an App Action did; also the details of the error of one that
 // stopped at a failed step.
 message RunActionResponse {
-  // The App it added or changed.
+  // The App it added, changed or deleted.
   string app_id = 1;
   // How many of the Plan's steps were done, from the first: all of them,
   // or those before the failed one.
@@ -617,12 +678,6 @@ message RunActionResponse {
   // stands either way.
   string reread = 3;
 }
-
-message DeleteAppRequest {
-  string id = 1;
-}
-
-message DeleteAppResponse {}
 
 message ListWorkloadsRequest {}
 
