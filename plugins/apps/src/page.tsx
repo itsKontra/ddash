@@ -1,7 +1,28 @@
 import { useAction } from "@ddash/plugin";
 import { AppsService, type App, type Overlay, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
-import { AppIcon, Button, DataTable, Dialog, EmptyState, Field, FormActions, Notice, PageTitle, Panel, Pill, Presence, SectionHeading, Select, Skeleton, type Column } from "@ddash/ui";
+import {
+  ActionStrip,
+  AppIcon,
+  Button,
+  DataTable,
+  Dialog,
+  EmptyState,
+  Field,
+  FormActions,
+  matches,
+  Notice,
+  PageTitle,
+  Panel,
+  Pill,
+  Presence,
+  SearchField,
+  SectionHeading,
+  Select,
+  Skeleton,
+  useQueryState,
+  type Column,
+} from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { sections, useApps } from "./apps";
 import { checkStatus } from "@ddash/display";
@@ -10,24 +31,39 @@ import { EditSheet } from "./edit";
 import { workloadName } from "@ddash/display";
 import { WorkloadLine } from "./workload";
 
+/** Whether an App matches the search: its name, its domains (a manual App's is its URL's host) or its group. */
+const found = (q: string, app: App) => matches(q, app.name, app.serverName, ...app.aliases, URL.parse(app.url)?.hostname, app.group);
+
 /** The Apps Page: App cards by group, display settings, manual Apps and unmatched settings. */
 export function AppsPage() {
   const { list, error } = useApps();
   const { byApp, error: checksError } = useAppChecks();
+  const [q, setQ] = useQueryState("q", "");
   // The App being edited, "new" while adding one.
   const [editing, setEditing] = useState<App | "new">();
   const apps = list?.apps ?? [];
-  const hidden = apps.filter((a) => a.hidden);
+  const shown = apps.filter((a) => found(q, a));
+  const hidden = shown.filter((a) => a.hidden);
   const groups = [...new Set(apps.map((a) => a.group).filter(Boolean))].sort();
   const add = (
     <Button icon="plus" onClick={() => setEditing("new")}>
       Add App
     </Button>
   );
+  const header = (
+    <>
+      {apps.length > 0 && (
+        <div className="w-full sm:w-72">
+          <SearchField label="Search Apps" value={q} onChange={setQ} placeholder="Search by name, domain or group" />
+        </div>
+      )}
+      {add}
+    </>
+  );
 
   return (
     <div>
-      <PageTitle kicker="Services" title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={add} />
+      <PageTitle kicker="Services" title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={header} />
       <div className="flex flex-col gap-6">
         {!list && !error && <Skeleton height="lg" />}
         {!list && error && <Notice tone="down">apps unavailable: {error.rawMessage}</Notice>}
@@ -42,7 +78,12 @@ export function AppsPage() {
             </EmptyState>
           </Panel>
         )}
-        {sections(apps).map((s) => (
+        {apps.length > 0 && shown.length === 0 && (
+          <Panel>
+            <EmptyState icon="search-x" title={`No Apps match "${q}"`} />
+          </Panel>
+        )}
+        {sections(shown).map((s) => (
           <Section key={s.title} title={s.title}>
             <Cards apps={s.apps} label={s.title} checks={byApp} onEdit={setEditing} />
           </Section>
@@ -147,38 +188,45 @@ const unmatchedColumns: Column<Overlay>[] = [
 ];
 
 /**
- * Settings whose Proxy Host is gone, as a compact table: each row's menu
+ * Settings whose Proxy Host is gone, as a compact table: each row's strip
  * re-attaches them to an App without settings, or deletes them.
  */
 function UnmatchedSettings({ overlays, targets }: { overlays: readonly Overlay[]; targets: readonly App[] }) {
-  const remove = useAction(AppsService.method.deleteOverlay);
   const [reattaching, setReattaching] = useState<Overlay>();
   return (
     <>
-      {remove.error && (
-        <div className="mb-3">
-          <Notice tone="down">{remove.error.rawMessage}</Notice>
-        </div>
-      )}
       <Panel flush>
         <DataTable
           rows={overlays}
           rowKey={(o) => o.serverName}
           columns={unmatchedColumns}
           density="compact"
-          actions={(o) => [
-            { label: "Re-attach…", disabled: targets.length === 0, onSelect: () => setReattaching(o) },
-            {
-              label: "Delete",
-              danger: true,
-              disabled: remove.pending,
-              onSelect: () => void remove.run({ serverName: o.serverName }, { confirm: { text: `Delete the settings kept for ${o.serverName}?`, action: "Delete" } }),
-            },
-          ]}
+          rowLabel={(o) => o.serverName}
+          strip={(o) => <UnmatchedStrip overlay={o} canReattach={targets.length > 0} onReattach={() => setReattaching(o)} />}
         />
       </Panel>
       <Presence>{reattaching && <Reattach overlay={reattaching} targets={targets} onClose={() => setReattaching(undefined)} />}</Presence>
     </>
+  );
+}
+
+/** An unmatched setting's strip: Re-attach… opens its Dialog, Delete asks first. */
+function UnmatchedStrip({ overlay, canReattach, onReattach }: { overlay: Overlay; canReattach: boolean; onReattach: () => void }) {
+  const remove = useAction(AppsService.method.deleteOverlay);
+  return (
+    <ActionStrip summary={`Kept for ${overlay.serverName}`} notice={remove.error && <Notice tone="down">{remove.error.rawMessage}</Notice>}>
+      <Button size="sm" variant="outline" disabled={!canReattach} onClick={onReattach}>
+        Re-attach…
+      </Button>
+      <Button
+        size="sm"
+        variant="danger"
+        disabled={remove.pending}
+        onClick={() => void remove.run({ serverName: overlay.serverName }, { confirm: { text: `Delete the settings kept for ${overlay.serverName}?`, action: "Delete" } })}
+      >
+        Delete
+      </Button>
+    </ActionStrip>
   );
 }
 
