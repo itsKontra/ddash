@@ -128,6 +128,7 @@ var systems = []system{
 				return nil
 			},
 			"ListFirewallRules": atLeastOne("firewall rule", func(m proto.Message) int { return len(m.(*pfsenseapipb.ListFirewallRulesResponse).GetRules()) }),
+			"ListHostOverrides": atLeastOne("Host Override", func(m proto.Message) int { return len(m.(*pfsenseapipb.ListHostOverridesResponse).GetHostOverrides()) }),
 		},
 		proxy: func(m proto.Message, addr string) (string, string, error) {
 			cfg := m.(*pfsenseapipb.PfsenseApiConfig)

@@ -35,6 +35,8 @@ const (
 	PfsenseApiService_AddAliasAddress_FullMethodName      = "/ddash.pfsenseapi.PfsenseApiService/AddAliasAddress"
 	PfsenseApiService_RemoveAliasAddress_FullMethodName   = "/ddash.pfsenseapi.PfsenseApiService/RemoveAliasAddress"
 	PfsenseApiService_MoveAliasAddress_FullMethodName     = "/ddash.pfsenseapi.PfsenseApiService/MoveAliasAddress"
+	PfsenseApiService_ListHostOverrides_FullMethodName    = "/ddash.pfsenseapi.PfsenseApiService/ListHostOverrides"
+	PfsenseApiService_ChangeHostOverrides_FullMethodName  = "/ddash.pfsenseapi.PfsenseApiService/ChangeHostOverrides"
 )
 
 // PfsenseApiServiceClient is the client API for PfsenseApiService service.
@@ -92,6 +94,19 @@ type PfsenseApiServiceClient interface {
 	// nothing changes, nothing is written. A failed write still applies the
 	// ones before it, so the filter runs what pfSense holds.
 	MoveAliasAddress(ctx context.Context, in *MoveAliasAddressRequest, opts ...grpc.CallOption) (*MoveAliasAddressResponse, error)
+	// ListHostOverrides returns every DNS Resolver Host Override with its
+	// aliases (services/dns_resolver/host_overrides), in pfSense's order.
+	ListHostOverrides(ctx context.Context, in *ListHostOverridesRequest, opts ...grpc.CallOption) (*ListHostOverridesResponse, error)
+	// ChangeHostOverrides runs an ordered batch of Host Override changes as
+	// one write, then applies the DNS Resolver once, which restarts Unbound.
+	// Each step looks its Host Override up by host and domain right before
+	// it is sent (pfSense's ids are positions that move on every write). A
+	// step that would register a hostname already registered, as a Host
+	// Override or as any Host Override's alias, is refused before it is
+	// sent. The first failing step ends the batch; what the steps before it
+	// wrote is still applied, and the error's status details carry a
+	// ChangeHostOverridesResponse saying how many steps succeeded.
+	ChangeHostOverrides(ctx context.Context, in *ChangeHostOverridesRequest, opts ...grpc.CallOption) (*ChangeHostOverridesResponse, error)
 }
 
 type pfsenseApiServiceClient struct {
@@ -232,6 +247,26 @@ func (c *pfsenseApiServiceClient) MoveAliasAddress(ctx context.Context, in *Move
 	return out, nil
 }
 
+func (c *pfsenseApiServiceClient) ListHostOverrides(ctx context.Context, in *ListHostOverridesRequest, opts ...grpc.CallOption) (*ListHostOverridesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListHostOverridesResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ListHostOverrides_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *pfsenseApiServiceClient) ChangeHostOverrides(ctx context.Context, in *ChangeHostOverridesRequest, opts ...grpc.CallOption) (*ChangeHostOverridesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ChangeHostOverridesResponse)
+	err := c.cc.Invoke(ctx, PfsenseApiService_ChangeHostOverrides_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PfsenseApiServiceServer is the server API for PfsenseApiService service.
 // All implementations must embed UnimplementedPfsenseApiServiceServer
 // for forward compatibility.
@@ -287,6 +322,19 @@ type PfsenseApiServiceServer interface {
 	// nothing changes, nothing is written. A failed write still applies the
 	// ones before it, so the filter runs what pfSense holds.
 	MoveAliasAddress(context.Context, *MoveAliasAddressRequest) (*MoveAliasAddressResponse, error)
+	// ListHostOverrides returns every DNS Resolver Host Override with its
+	// aliases (services/dns_resolver/host_overrides), in pfSense's order.
+	ListHostOverrides(context.Context, *ListHostOverridesRequest) (*ListHostOverridesResponse, error)
+	// ChangeHostOverrides runs an ordered batch of Host Override changes as
+	// one write, then applies the DNS Resolver once, which restarts Unbound.
+	// Each step looks its Host Override up by host and domain right before
+	// it is sent (pfSense's ids are positions that move on every write). A
+	// step that would register a hostname already registered, as a Host
+	// Override or as any Host Override's alias, is refused before it is
+	// sent. The first failing step ends the batch; what the steps before it
+	// wrote is still applied, and the error's status details carry a
+	// ChangeHostOverridesResponse saying how many steps succeeded.
+	ChangeHostOverrides(context.Context, *ChangeHostOverridesRequest) (*ChangeHostOverridesResponse, error)
 	mustEmbedUnimplementedPfsenseApiServiceServer()
 }
 
@@ -335,6 +383,12 @@ func (UnimplementedPfsenseApiServiceServer) RemoveAliasAddress(context.Context, 
 }
 func (UnimplementedPfsenseApiServiceServer) MoveAliasAddress(context.Context, *MoveAliasAddressRequest) (*MoveAliasAddressResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method MoveAliasAddress not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ListHostOverrides(context.Context, *ListHostOverridesRequest) (*ListHostOverridesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListHostOverrides not implemented")
+}
+func (UnimplementedPfsenseApiServiceServer) ChangeHostOverrides(context.Context, *ChangeHostOverridesRequest) (*ChangeHostOverridesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ChangeHostOverrides not implemented")
 }
 func (UnimplementedPfsenseApiServiceServer) mustEmbedUnimplementedPfsenseApiServiceServer() {}
 func (UnimplementedPfsenseApiServiceServer) testEmbeddedByValue()                           {}
@@ -591,6 +645,42 @@ func _PfsenseApiService_MoveAliasAddress_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PfsenseApiService_ListHostOverrides_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListHostOverridesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ListHostOverrides(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ListHostOverrides_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ListHostOverrides(ctx, req.(*ListHostOverridesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _PfsenseApiService_ChangeHostOverrides_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ChangeHostOverridesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PfsenseApiServiceServer).ChangeHostOverrides(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: PfsenseApiService_ChangeHostOverrides_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PfsenseApiServiceServer).ChangeHostOverrides(ctx, req.(*ChangeHostOverridesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PfsenseApiService_ServiceDesc is the grpc.ServiceDesc for PfsenseApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -649,6 +739,14 @@ var PfsenseApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MoveAliasAddress",
 			Handler:    _PfsenseApiService_MoveAliasAddress_Handler,
+		},
+		{
+			MethodName: "ListHostOverrides",
+			Handler:    _PfsenseApiService_ListHostOverrides_Handler,
+		},
+		{
+			MethodName: "ChangeHostOverrides",
+			Handler:    _PfsenseApiService_ChangeHostOverrides_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
