@@ -292,12 +292,24 @@ type Query struct {
 	// that failed (Failed), was Interrupted, or is still running
 	// (StillRunning).
 	Outcome string
+	// Search keeps the chains whose root has every whitespace-separated
+	// word of it, ignoring case, in its target, method or username.
+	Search string
+	// Order is Newest or Oldest root first; empty is Newest.
+	Order string
 	// PageSize is how many chains a page holds: DefaultPageSize when 0, at
 	// most MaxPageSize.
 	PageSize int
-	// PageToken is the previous Page's Next; empty for the newest page.
+	// PageToken is the previous Page's Next, from a Query with the same
+	// filters, Search and Order; empty for the first page.
 	PageToken string
 }
+
+// The orders Query.Order takes.
+const (
+	Newest = "newest"
+	Oldest = "oldest"
+)
 
 // Page sizes for Query.PageSize.
 const (
@@ -324,7 +336,7 @@ var outcomeFilters = map[string]string{
 // actorKinds are the kinds Query.ActorKind takes.
 var actorKinds = []string{auth.Operator, auth.Component, auth.Core}
 
-// Page is one page of chains, newest root first.
+// Page is one page of chains, in its Query's Order.
 type Page struct {
 	Chains []Chain
 	// Next is the PageToken of the next page; empty on the last page.
@@ -377,13 +389,27 @@ func (g *Gate) Chains(ctx context.Context, q Query) (Page, error) {
 		where = append(where, `EXISTS (SELECT 1 FROM audit_entry h WHERE h.chain_id = r.chain_id AND h.target = ?)`)
 		args = append(args, q.Target)
 	}
+	for _, word := range strings.Fields(q.Search) {
+		// LIKE ignores the case of ASCII letters only; others match as typed.
+		where = append(where, `(r.target LIKE ? ESCAPE '\' OR r.method LIKE ? ESCAPE '\' OR r.username LIKE ? ESCAPE '\')`)
+		like := "%" + likeEscaper.Replace(word) + "%"
+		args = append(args, like, like, like)
+	}
+	after, direction := "<", "DESC"
+	switch q.Order {
+	case "", Newest:
+	case Oldest:
+		after, direction = ">", "ASC"
+	default:
+		return Page{}, status.Errorf(codes.InvalidArgument, "order %q isn't %s or %s", q.Order, Newest, Oldest)
+	}
 	if q.PageToken != "" {
 		// The page goes on after the root the token names.
 		at, id, ok := parseToken(q.PageToken)
 		if !ok {
 			return Page{}, status.Errorf(codes.InvalidArgument, "page token %q isn't one this Audit Log gave", q.PageToken)
 		}
-		where = append(where, `(r.time < ? OR (r.time = ? AND r.id < ?))`)
+		where = append(where, `(r.time `+after+` ? OR (r.time = ? AND r.id `+after+` ?))`)
 		args = append(args, at, at, id)
 	}
 	size := q.PageSize
@@ -394,7 +420,7 @@ func (g *Gate) Chains(ctx context.Context, q Query) (Page, error) {
 	rows, err := g.db.QueryContext(ctx, `
 		SELECT r.chain_id, r.time, r.id FROM audit_entry r
 		WHERE `+strings.Join(where, " AND ")+`
-		ORDER BY r.time DESC, r.id DESC
+		ORDER BY r.time `+direction+`, r.id `+direction+`
 		LIMIT ?`, append(args, size+1)...)
 	if err != nil {
 		return Page{}, fmt.Errorf("audit log: %w", err)
@@ -422,6 +448,9 @@ func (g *Gate) Chains(ctx context.Context, q Query) (Page, error) {
 	page.Chains, err = g.hops(ctx, roots)
 	return page, err
 }
+
+// likeEscaper escapes a LIKE pattern's wildcards, for ESCAPE '\'.
+var likeEscaper = strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
 
 // root is a chain's first hop, as a page of chains is sorted by.
 type root struct {

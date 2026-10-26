@@ -240,12 +240,18 @@ message ListAuditLogRequest {
   string outcome = 3;
   // Chains per page: 50 when 0, at most 200.
   int32 page_size = 4;
-  // The previous page's next_page_token; empty for the newest page.
+  // The previous page's next_page_token, read with the same filters, query
+  // and order; empty for the first page.
   string page_token = 5;
+  // Only chains whose root matches every whitespace-separated word, ignoring
+  // case, in its target, method or actor's username. Empty means any.
+  string query = 6;
+  // "newest" or "oldest" root first. Empty means newest.
+  string order = 7;
 }
 
 message ListAuditLogResponse {
-  // Newest root first.
+  // In the order asked for.
   repeated AuditChain chains = 1;
   // Where the next page starts; empty on the last page.
   string next_page_token = 2;
