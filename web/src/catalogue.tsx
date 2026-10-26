@@ -20,7 +20,7 @@ import {
   type Tone,
 } from "@ddash/ui";
 import { useEffect, useState, type ReactNode } from "react";
-import { ConfigDialog } from "./config-form";
+import { ConfigSheet } from "./config-form";
 
 /**
  * The Plugins page: the Catalogue of the running Release, read at the FAST
@@ -82,7 +82,7 @@ export function Catalogue() {
       {/* Around the queue too, so its last form animates out. */}
       <Presence>
         {configuring ? (
-          <ConfigDialog owner={configuring} onClose={() => setConfiguring(undefined)} />
+          <ConfigSheet owner={configuring} onClose={() => setConfiguring(undefined)} />
         ) : (
           queue.length > 0 && <FormQueue key={queue[0]} next={queue[0]} onDone={done} />
         )}
@@ -116,7 +116,7 @@ function FormQueue({ next, onDone }: { next: string; onDone: (name: string) => v
   useEffect(() => {
     if (skip) onDone(next);
   }, [skip, next, onDone]);
-  return needsForm || opened ? <ConfigDialog owner={next} onClose={() => onDone(next)} /> : null;
+  return needsForm || opened ? <ConfigSheet owner={next} onClose={() => onDone(next)} /> : null;
 }
 
 /** A Component's status in the Catalogue, from whichever Plugin runs it. */
