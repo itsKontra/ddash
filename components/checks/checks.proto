@@ -255,8 +255,8 @@ message Latency {
 }
 
 // A Check's uptime over one window: beat-weighted up / (up + down), where
-// a failed beat counts as down even while the Check is pending, and beats
-// in Maintenance count as neither.
+// failed beats that leave the Check pending and beats in Maintenance count
+// as neither, so a window that was never down reads exactly 1.
 message Uptime {
   Window window = 1;
   // From 0 to 1; unset when the window holds no counted beat.
@@ -267,6 +267,8 @@ message Uptime {
   int64 maintenance = 5;
   // Unset when the window holds no counted up beat.
   Latency latency = 6;
+  // Failed beats that left the Check pending, left out of the ratio.
+  int64 pending = 7;
 }
 
 // One bucket of a window: its beats' counts and their latency.
@@ -277,6 +279,8 @@ message Bucket {
   int64 maintenance = 4;
   // Unset when the bucket holds no counted up beat.
   Latency latency = 5;
+  // Failed beats that left the Check pending.
+  int64 pending = 6;
 }
 
 // One probe of a Check.
