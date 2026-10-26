@@ -1,6 +1,6 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
 import { useQuery } from "@ddash/plugin";
-import type { ProxyHostFieldsSchema } from "@ddash/proto/apps/apps_pb";
+import type { ProxyHostFieldsSchema } from "@ddash/proto/ddash/proxyhost/proxy_host_pb";
 import { NginxProxyManagerApiService, type Certificate } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
 import { Checkbox, Field, Select, TextInput } from "@ddash/ui";
 

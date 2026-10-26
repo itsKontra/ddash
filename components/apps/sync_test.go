@@ -17,6 +17,7 @@ import (
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -96,7 +97,7 @@ func listedOverride(host, ip string, aliases ...string) *pfpb.HostOverride {
 }
 
 func listedHost(id int64, upstream string, port int32, domains ...string) *npmpb.ProxyHost {
-	return &npmpb.ProxyHost{Id: id, Enabled: true, Fields: &npmpb.ProxyHostFields{
+	return &npmpb.ProxyHost{Id: id, Enabled: true, Fields: &proxyhostpb.ProxyHostFields{
 		DomainNames: domains, ForwardScheme: "http", ForwardHost: upstream, ForwardPort: port, CertificateId: 3,
 	}}
 }

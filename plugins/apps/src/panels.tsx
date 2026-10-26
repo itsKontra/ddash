@@ -1,9 +1,10 @@
-import type { MessageInitShape } from "@bufbuild/protobuf";
+import { create, type MessageInitShape } from "@bufbuild/protobuf";
 import { checkStatus, historyBars } from "@ddash/display";
 import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
 import { AppsService, CertificateState, InternetPath, Reach, type App, type ListAppsResponse, type ProxyHost } from "@ddash/proto/apps/apps_pb";
 import { ChecksService, Window, type Check } from "@ddash/proto/checks/checks_pb";
 import { Kind, type WorkloadRefSchema } from "@ddash/proto/ddash/workload/workload_pb";
+import { ProxyHostFieldsSchema, type ProxyHostFields } from "@ddash/proto/ddash/proxyhost/proxy_host_pb";
 import { Button, Checkbox, Facts, FormActions, Panel, Pill, UptimeBars, type Fact, type Tone } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
@@ -233,7 +234,7 @@ function AddressForm({ app, slot, onDone }: { app: App; slot: DialogSlot; onDone
   );
 }
 
-const flags = (p: ProxyHost) =>
+const flags = (p: ProxyHostFields) =>
   [p.blockExploits && "Block Common Exploits", p.websockets && "Websockets", p.forceSsl && "Force SSL", p.http2 && "HTTP/2", p.hsts && "HSTS", p.hstsSubdomains && "HSTS subdomains"].filter(Boolean).join(" · ");
 
 /** Each certificate state's tone and label. */
@@ -248,9 +249,10 @@ const certificateLook: Record<CertificateState, { tone: Tone; label: string }> =
 /** The certificate a Proxy Host uses, with its state (as ListApps carries it) linking to the Reverse Proxy page. */
 function CertificateLine({ p }: { p: ProxyHost }) {
   const page = usePluginLink("reverse-proxy");
-  if (p.certificateId === 0n) return <>None: plain HTTP</>;
+  const id = p.fields?.certificateId ?? 0n;
+  if (id === 0n) return <>None: plain HTTP</>;
   const cert = p.certificate;
-  if (!cert) return <>#{String(p.certificateId)}, not listed now</>;
+  if (!cert) return <>#{String(id)}, not listed now</>;
   const s = certificateLook[cert.state];
   const pill = <Pill tone={s.tone}>{s.label}</Pill>;
   return (
@@ -292,6 +294,7 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
   if (editing.now === "proxy" && p) body = <ProxyForm app={app} p={p} slot={slot} onDone={editing.done} />;
   else if (editing.now === "proxy" && canAdd) body = <AddProxyForm app={app} slot={slot} onDone={editing.done} />;
   else if (p) {
+    const f = fieldsOf(p);
     body = (
       <div className="flex flex-col gap-3">
         {(!p.enabled || p.offline) && (
@@ -302,9 +305,9 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
         )}
         <Facts
           items={[
-            { label: "Upstream", value: `${p.forwardScheme}://${p.forwardHost}:${p.forwardPort}`, mono: true },
+            { label: "Upstream", value: `${f.forwardScheme}://${f.forwardHost}:${f.forwardPort}`, mono: true },
             { label: "Certificate", value: <CertificateLine p={p} /> },
-            { label: "Options", value: flags(p) || "None" },
+            { label: "Options", value: flags(f) || "None" },
             { label: "Proxy Host", value: `#${p.id} in Nginx Proxy Manager` },
           ]}
         />
@@ -333,8 +336,11 @@ export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListA
 /** An IP address rather than a hostname. */
 const isIP = (s: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) || s.includes(":");
 
+/** A Proxy Host's fields; empty when ListApps sent none. */
+const fieldsOf = (p: ProxyHost): ProxyHostFields => p.fields ?? create(ProxyHostFieldsSchema);
+
 /** A Proxy Host's fields as the form edits them. */
-const draftOf = (p: ProxyHost): ProxyDraft => ({
+const draftOf = (p: ProxyHostFields): ProxyDraft => ({
   scheme: p.forwardScheme === "https" ? "https" : "http",
   host: p.forwardHost,
   port: String(p.forwardPort),
@@ -350,8 +356,9 @@ const draftOf = (p: ProxyHost): ProxyDraft => ({
 /** The Reverse proxy Panel's Edit: the Proxy Host's fields, saved through a Plan, and Remove reverse proxy for a proxied App. */
 function ProxyForm({ app, p, slot, onDone }: { app: App; p: ProxyHost; slot: DialogSlot; onDone: () => void }) {
   const certificates = useCertificates();
-  const [draft, setDraft] = useState(() => draftOf(p));
-  const [address, setAddress] = useState(isIP(p.forwardHost) ? p.forwardHost : (app.network?.address ?? ""));
+  const [draft, setDraft] = useState(() => draftOf(fieldsOf(p)));
+  const upstream = fieldsOf(p).forwardHost;
+  const [address, setAddress] = useState(isIP(upstream) ? upstream : (app.network?.address ?? ""));
   const host = hostOf(app);
   const done = () => {
     slot.close();

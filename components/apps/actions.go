@@ -220,7 +220,7 @@ func (c *component) PromoteAlias(ctx context.Context, req *appspb.PromoteAliasRe
 		// Until the next sync derives them: the URL's old hostname
 		// stays an alias where its source still has it.
 		r.aliases = slices.DeleteFunc(slices.Clone(a.GetAliases()), func(n string) bool { return canonName(n) == alias })
-		if a.GetProxyHost() == nil || slices.ContainsFunc(a.GetProxyHost().GetDomainNames(), func(n string) bool { return canonName(n) == old }) {
+		if a.GetProxyHost() == nil || slices.ContainsFunc(a.GetProxyHost().GetFields().GetDomainNames(), func(n string) bool { return canonName(n) == old }) {
 			r.aliases = append(r.aliases, old)
 			slices.Sort(r.aliases)
 		}

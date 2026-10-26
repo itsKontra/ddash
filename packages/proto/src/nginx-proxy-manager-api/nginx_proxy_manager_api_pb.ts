@@ -11,6 +11,8 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
+import type { ProxyHostFields } from "../ddash/proxyhost/proxy_host_pb";
+import { file_ddash_proxyhost_proxy_host } from "../ddash/proxyhost/proxy_host_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
@@ -20,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file nginx-proxy-manager-api/nginx_proxy_manager_api.proto.
  */
 export const file_nginx_proxy_manager_api_nginx_proxy_manager_api: GenFile = /*@__PURE__*/
-  fileDesc("CjVuZ2lueC1wcm94eS1tYW5hZ2VyLWFwaS9uZ2lueF9wcm94eV9tYW5hZ2VyX2FwaS5wcm90bxIaZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkipAQKGk5naW54UHJveHlNYW5hZ2VyQXBpQ29uZmlnEs4BCgN1cmwYASABKAlCwAGatRi7ARoDVVJMIpcBTmdpbnggUHJveHkgTWFuYWdlcidzIGFkbWluIGFkZHJlc3Mgb24gcG9ydCA4MSwgd2hlcmUgaXRzIEFQSSBhbnN3ZXJzLiBJdHMgb3duIGFkZHJlc3MsIG5vdCBhIFByb3h5IEhvc3QncyBuYW1lLCBzbyBkZGFzaCByZWFjaGVzIGl0IHdoaWxlIEROUyBpcyBkb3duLioWaHR0cDovLzE5OC4xOC4xLjIxMDo4MTABOAESygEKBWVtYWlsGAIgASgJQroBmrUYtQEisAFDcmVhdGUgYSB1c2VyIGZvciBkZGFzaCBpbiBVc2Vycy4gVW5kZXIgUGVybWlzc2lvbnMgc2V0IEl0ZW0gVmlzaWJpbGl0eSB0byBBbGwgSXRlbXMsIFByb3h5IEhvc3RzIHRvIE1hbmFnZSwgU1NMIENlcnRpZmljYXRlcyB0byBWaWV3LCBldmVyeXRoaW5nIGVsc2UgdG8gSGlkZGVuLiBMZWF2ZSAyRkEgb2ZmLjABEmgKCHBhc3N3b3JkGAMgASgJQlaatRhSEAEiTGRkYXNoIHNpZ25zIGluIHdpdGggaXQgYXQgc3RhcnQgYW5kIGFnYWluIGJlZm9yZSBlYWNoIG9uZS1kYXkgdG9rZW4gZXhwaXJlcy4wASImChVMaXN0UHJveHlIb3N0c1JlcXVlc3QSDQoFZnJlc2gYASABKAgiVAoWTGlzdFByb3h5SG9zdHNSZXNwb25zZRI6Cgtwcm94eV9ob3N0cxgBIAMoCzIlLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlByb3h5SG9zdCKLAQoJUHJveHlIb3N0EgoKAmlkGAEgASgDEjsKBmZpZWxkcxgCIAEoCzIrLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlByb3h5SG9zdEZpZWxkcxIPCgdlbmFibGVkGAMgASgIEg8KB29mZmxpbmUYBCABKAgSEwoLbmdpbnhfZXJyb3IYBSABKAki+AEKD1Byb3h5SG9zdEZpZWxkcxIUCgxkb21haW5fbmFtZXMYASADKAkSFgoOZm9yd2FyZF9zY2hlbWUYAiABKAkSFAoMZm9yd2FyZF9ob3N0GAMgASgJEhQKDGZvcndhcmRfcG9ydBgEIAEoBRIWCg5ibG9ja19leHBsb2l0cxgFIAEoCBISCgp3ZWJzb2NrZXRzGAYgASgIEhYKDmNlcnRpZmljYXRlX2lkGAcgASgDEhEKCWZvcmNlX3NzbBgIIAEoCBINCgVodHRwMhgJIAEoCBIMCgRoc3RzGAogASgIEhcKD2hzdHNfc3ViZG9tYWlucxgLIAEoCCIoChdMaXN0Q2VydGlmaWNhdGVzUmVxdWVzdBINCgVmcmVzaBgBIAEoCCJZChhMaXN0Q2VydGlmaWNhdGVzUmVzcG9uc2USPQoMY2VydGlmaWNhdGVzGAEgAygLMicuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuQ2VydGlmaWNhdGUi2AEKC0NlcnRpZmljYXRlEgoKAmlkGAEgASgDEhAKCHByb3ZpZGVyGAIgASgJEhEKCW5pY2VfbmFtZRgDIAEoCRIUCgxkb21haW5fbmFtZXMYBCADKAkSLgoKZXhwaXJlc19vbhgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOwoFc3RhdGUYBiABKA4yLC5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5DZXJ0aWZpY2F0ZVN0YXRlEhUKDXN0YXRlX21lc3NhZ2UYByABKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCL7AQoRR2V0U3RhdHVzUmVzcG9uc2USMgoGc3RhdHVzGAEgASgOMiIuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuU3RhdHVzEisKB3JlYWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjUKEWxhc3RfZ29vZF9yZWFkX2F0GAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgEIAEoCRIPCgd2ZXJzaW9uGAUgASgJEh0KFXByb3h5X2hvc3RzX3JlYWRfb25seRgGIAEoCBIPCgdhZGRyZXNzGAcgASgJIhAKDlJlZnJlc2hSZXF1ZXN0IhEKD1JlZnJlc2hSZXNwb25zZSJVChZDcmVhdGVQcm94eUhvc3RSZXF1ZXN0EjsKBmZpZWxkcxgBIAEoCzIrLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlByb3h5SG9zdEZpZWxkcyJUChdDcmVhdGVQcm94eUhvc3RSZXNwb25zZRI5Cgpwcm94eV9ob3N0GAEgASgLMiUuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuUHJveHlIb3N0ImEKFlVwZGF0ZVByb3h5SG9zdFJlcXVlc3QSCgoCaWQYASABKAMSOwoGZmllbGRzGAIgASgLMisuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuUHJveHlIb3N0RmllbGRzIlQKF1VwZGF0ZVByb3h5SG9zdFJlc3BvbnNlEjkKCnByb3h5X2hvc3QYASABKAsyJS5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5Qcm94eUhvc3QiJAoWRGVsZXRlUHJveHlIb3N0UmVxdWVzdBIKCgJpZBgBIAEoAyIZChdEZWxldGVQcm94eUhvc3RSZXNwb25zZSqYAQoLRXJyb3JSZWFzb24SHAoYRVJST1JfUkVBU09OX1VOU1BFQ0lGSUVEEAASHgoaRVJST1JfUkVBU09OX0RPTUFJTl9JTl9VU0UQARIjCh9FUlJPUl9SRUFTT05fUFJPWFlfSE9TVF9PRkZMSU5FEAISJgoiRVJST1JfUkVBU09OX1BST1hZX0hPU1RTX1JFQURfT05MWRADKrYBChBDZXJ0aWZpY2F0ZVN0YXRlEiEKHUNFUlRJRklDQVRFX1NUQVRFX1VOU1BFQ0lGSUVEEAASGAoUQ0VSVElGSUNBVEVfU1RBVEVfT0sQARIiCh5DRVJUSUZJQ0FURV9TVEFURV9OT1RfUkVORVdJTkcQAhIiCh5DRVJUSUZJQ0FURV9TVEFURV9FWFBJUkVTX1NPT04QAxIdChlDRVJUSUZJQ0FURV9TVEFURV9FWFBJUkVEEAQqUQoGU3RhdHVzEhYKElNUQVRVU19VTlNQRUNJRklFRBAAEg0KCVNUQVRVU19VUBABEg8KC1NUQVRVU19XQVJOEAISDwoLU1RBVFVTX0RPV04QAzKFBwobTmdpbnhQcm94eU1hbmFnZXJBcGlTZXJ2aWNlEn0KDkxpc3RQcm94eUhvc3RzEjEuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuTGlzdFByb3h5SG9zdHNSZXF1ZXN0GjIuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuTGlzdFByb3h5SG9zdHNSZXNwb25zZSIEirUYABKDAQoQTGlzdENlcnRpZmljYXRlcxIzLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkxpc3RDZXJ0aWZpY2F0ZXNSZXF1ZXN0GjQuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuTGlzdENlcnRpZmljYXRlc1Jlc3BvbnNlIgSKtRgAEm4KCUdldFN0YXR1cxIsLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkdldFN0YXR1c1JlcXVlc3QaLS5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5HZXRTdGF0dXNSZXNwb25zZSIEirUYABJoCgdSZWZyZXNoEiouZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuUmVmcmVzaFJlcXVlc3QaKy5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5SZWZyZXNoUmVzcG9uc2UiBJK1GAASgAEKD0NyZWF0ZVByb3h5SG9zdBIyLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkNyZWF0ZVByb3h5SG9zdFJlcXVlc3QaMy5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5DcmVhdGVQcm94eUhvc3RSZXNwb25zZSIEkrUYABKAAQoPVXBkYXRlUHJveHlIb3N0EjIuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuVXBkYXRlUHJveHlIb3N0UmVxdWVzdBozLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlVwZGF0ZVByb3h5SG9zdFJlc3BvbnNlIgSStRgAEoABCg9EZWxldGVQcm94eUhvc3QSMi5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5EZWxldGVQcm94eUhvc3RSZXF1ZXN0GjMuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuRGVsZXRlUHJveHlIb3N0UmVzcG9uc2UiBJK1GABCbVprZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZ2lueC1wcm94eS1tYW5hZ2VyLWFwaS9uZ2lueHByb3h5bWFuYWdlcmFwaXBiO25naW54cHJveHltYW5hZ2VyYXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("CjVuZ2lueC1wcm94eS1tYW5hZ2VyLWFwaS9uZ2lueF9wcm94eV9tYW5hZ2VyX2FwaS5wcm90bxIaZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkipAQKGk5naW54UHJveHlNYW5hZ2VyQXBpQ29uZmlnEs4BCgN1cmwYASABKAlCwAGatRi7ARoDVVJMIpcBTmdpbnggUHJveHkgTWFuYWdlcidzIGFkbWluIGFkZHJlc3Mgb24gcG9ydCA4MSwgd2hlcmUgaXRzIEFQSSBhbnN3ZXJzLiBJdHMgb3duIGFkZHJlc3MsIG5vdCBhIFByb3h5IEhvc3QncyBuYW1lLCBzbyBkZGFzaCByZWFjaGVzIGl0IHdoaWxlIEROUyBpcyBkb3duLioWaHR0cDovLzE5OC4xOC4xLjIxMDo4MTABOAESygEKBWVtYWlsGAIgASgJQroBmrUYtQEisAFDcmVhdGUgYSB1c2VyIGZvciBkZGFzaCBpbiBVc2Vycy4gVW5kZXIgUGVybWlzc2lvbnMgc2V0IEl0ZW0gVmlzaWJpbGl0eSB0byBBbGwgSXRlbXMsIFByb3h5IEhvc3RzIHRvIE1hbmFnZSwgU1NMIENlcnRpZmljYXRlcyB0byBWaWV3LCBldmVyeXRoaW5nIGVsc2UgdG8gSGlkZGVuLiBMZWF2ZSAyRkEgb2ZmLjABEmgKCHBhc3N3b3JkGAMgASgJQlaatRhSEAEiTGRkYXNoIHNpZ25zIGluIHdpdGggaXQgYXQgc3RhcnQgYW5kIGFnYWluIGJlZm9yZSBlYWNoIG9uZS1kYXkgdG9rZW4gZXhwaXJlcy4wASImChVMaXN0UHJveHlIb3N0c1JlcXVlc3QSDQoFZnJlc2gYASABKAgiVAoWTGlzdFByb3h5SG9zdHNSZXNwb25zZRI6Cgtwcm94eV9ob3N0cxgBIAMoCzIlLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlByb3h5SG9zdCKAAQoJUHJveHlIb3N0EgoKAmlkGAEgASgDEjAKBmZpZWxkcxgCIAEoCzIgLmRkYXNoLnByb3h5aG9zdC5Qcm94eUhvc3RGaWVsZHMSDwoHZW5hYmxlZBgDIAEoCBIPCgdvZmZsaW5lGAQgASgIEhMKC25naW54X2Vycm9yGAUgASgJIigKF0xpc3RDZXJ0aWZpY2F0ZXNSZXF1ZXN0Eg0KBWZyZXNoGAEgASgIIlkKGExpc3RDZXJ0aWZpY2F0ZXNSZXNwb25zZRI9CgxjZXJ0aWZpY2F0ZXMYASADKAsyJy5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5DZXJ0aWZpY2F0ZSLYAQoLQ2VydGlmaWNhdGUSCgoCaWQYASABKAMSEAoIcHJvdmlkZXIYAiABKAkSEQoJbmljZV9uYW1lGAMgASgJEhQKDGRvbWFpbl9uYW1lcxgEIAMoCRIuCgpleHBpcmVzX29uGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBI7CgVzdGF0ZRgGIAEoDjIsLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkNlcnRpZmljYXRlU3RhdGUSFQoNc3RhdGVfbWVzc2FnZRgHIAEoCSISChBHZXRTdGF0dXNSZXF1ZXN0IvsBChFHZXRTdGF0dXNSZXNwb25zZRIyCgZzdGF0dXMYASABKA4yIi5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5TdGF0dXMSKwoHcmVhZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASNQoRbGFzdF9nb29kX3JlYWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg0KBWVycm9yGAQgASgJEg8KB3ZlcnNpb24YBSABKAkSHQoVcHJveHlfaG9zdHNfcmVhZF9vbmx5GAYgASgIEg8KB2FkZHJlc3MYByABKAkiEAoOUmVmcmVzaFJlcXVlc3QiEQoPUmVmcmVzaFJlc3BvbnNlIkoKFkNyZWF0ZVByb3h5SG9zdFJlcXVlc3QSMAoGZmllbGRzGAEgASgLMiAuZGRhc2gucHJveHlob3N0LlByb3h5SG9zdEZpZWxkcyJUChdDcmVhdGVQcm94eUhvc3RSZXNwb25zZRI5Cgpwcm94eV9ob3N0GAEgASgLMiUuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuUHJveHlIb3N0IlYKFlVwZGF0ZVByb3h5SG9zdFJlcXVlc3QSCgoCaWQYASABKAMSMAoGZmllbGRzGAIgASgLMiAuZGRhc2gucHJveHlob3N0LlByb3h5SG9zdEZpZWxkcyJUChdVcGRhdGVQcm94eUhvc3RSZXNwb25zZRI5Cgpwcm94eV9ob3N0GAEgASgLMiUuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuUHJveHlIb3N0IiQKFkRlbGV0ZVByb3h5SG9zdFJlcXVlc3QSCgoCaWQYASABKAMiGQoXRGVsZXRlUHJveHlIb3N0UmVzcG9uc2UqmAEKC0Vycm9yUmVhc29uEhwKGEVSUk9SX1JFQVNPTl9VTlNQRUNJRklFRBAAEh4KGkVSUk9SX1JFQVNPTl9ET01BSU5fSU5fVVNFEAESIwofRVJST1JfUkVBU09OX1BST1hZX0hPU1RfT0ZGTElORRACEiYKIkVSUk9SX1JFQVNPTl9QUk9YWV9IT1NUU19SRUFEX09OTFkQAyq2AQoQQ2VydGlmaWNhdGVTdGF0ZRIhCh1DRVJUSUZJQ0FURV9TVEFURV9VTlNQRUNJRklFRBAAEhgKFENFUlRJRklDQVRFX1NUQVRFX09LEAESIgoeQ0VSVElGSUNBVEVfU1RBVEVfTk9UX1JFTkVXSU5HEAISIgoeQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFU19TT09OEAMSHQoZQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFRBAEKlEKBlN0YXR1cxIWChJTVEFUVVNfVU5TUEVDSUZJRUQQABINCglTVEFUVVNfVVAQARIPCgtTVEFUVVNfV0FSThACEg8KC1NUQVRVU19ET1dOEAMyhQcKG05naW54UHJveHlNYW5hZ2VyQXBpU2VydmljZRJ9Cg5MaXN0UHJveHlIb3N0cxIxLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkxpc3RQcm94eUhvc3RzUmVxdWVzdBoyLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkxpc3RQcm94eUhvc3RzUmVzcG9uc2UiBIq1GAASgwEKEExpc3RDZXJ0aWZpY2F0ZXMSMy5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5MaXN0Q2VydGlmaWNhdGVzUmVxdWVzdBo0LmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkxpc3RDZXJ0aWZpY2F0ZXNSZXNwb25zZSIEirUYABJuCglHZXRTdGF0dXMSLC5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5HZXRTdGF0dXNSZXF1ZXN0Gi0uZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuR2V0U3RhdHVzUmVzcG9uc2UiBIq1GAASaAoHUmVmcmVzaBIqLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlJlZnJlc2hSZXF1ZXN0GisuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuUmVmcmVzaFJlc3BvbnNlIgSStRgAEoABCg9DcmVhdGVQcm94eUhvc3QSMi5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5DcmVhdGVQcm94eUhvc3RSZXF1ZXN0GjMuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuQ3JlYXRlUHJveHlIb3N0UmVzcG9uc2UiBJK1GAASgAEKD1VwZGF0ZVByb3h5SG9zdBIyLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLlVwZGF0ZVByb3h5SG9zdFJlcXVlc3QaMy5kZGFzaC5uZ2lueHByb3h5bWFuYWdlcmFwaS5VcGRhdGVQcm94eUhvc3RSZXNwb25zZSIEkrUYABKAAQoPRGVsZXRlUHJveHlIb3N0EjIuZGRhc2gubmdpbnhwcm94eW1hbmFnZXJhcGkuRGVsZXRlUHJveHlIb3N0UmVxdWVzdBozLmRkYXNoLm5naW54cHJveHltYW5hZ2VyYXBpLkRlbGV0ZVByb3h5SG9zdFJlc3BvbnNlIgSStRgAQm1aa2dpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbmdpbngtcHJveHktbWFuYWdlci1hcGkvbmdpbnhwcm94eW1hbmFnZXJhcGlwYjtuZ2lueHByb3h5bWFuYWdlcmFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_proxyhost_proxy_host, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.NginxProxyManagerApiConfig
@@ -103,7 +105,7 @@ export type ProxyHost = Message<"ddash.nginxproxymanagerapi.ProxyHost"> & {
   id: bigint;
 
   /**
-   * @generated from field: ddash.nginxproxymanagerapi.ProxyHostFields fields = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields fields = 2;
    */
   fields?: ProxyHostFields | undefined;
 
@@ -138,88 +140,6 @@ export const ProxyHostSchema: GenMessage<ProxyHost> = /*@__PURE__*/
   messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 3);
 
 /**
- * The fields of a Proxy Host ddash reads and writes.
- *
- * @generated from message ddash.nginxproxymanagerapi.ProxyHostFields
- */
-export type ProxyHostFields = Message<"ddash.nginxproxymanagerapi.ProxyHostFields"> & {
-  /**
-   * Its hostnames, sorted as Nginx Proxy Manager stores them.
-   *
-   * @generated from field: repeated string domain_names = 1;
-   */
-  domainNames: string[];
-
-  /**
-   * The upstream: "http" or "https", a host and a port.
-   *
-   * @generated from field: string forward_scheme = 2;
-   */
-  forwardScheme: string;
-
-  /**
-   * @generated from field: string forward_host = 3;
-   */
-  forwardHost: string;
-
-  /**
-   * @generated from field: int32 forward_port = 4;
-   */
-  forwardPort: number;
-
-  /**
-   * Block Common Exploits.
-   *
-   * @generated from field: bool block_exploits = 5;
-   */
-  blockExploits: boolean;
-
-  /**
-   * Websockets Support.
-   *
-   * @generated from field: bool websockets = 6;
-   */
-  websockets: boolean;
-
-  /**
-   * The certificate's id; 0 for none. Nginx Proxy Manager turns Force
-   * SSL and HTTP/2 off without one, and HSTS off without Force SSL.
-   *
-   * @generated from field: int64 certificate_id = 7;
-   */
-  certificateId: bigint;
-
-  /**
-   * @generated from field: bool force_ssl = 8;
-   */
-  forceSsl: boolean;
-
-  /**
-   * @generated from field: bool http2 = 9;
-   */
-  http2: boolean;
-
-  /**
-   * @generated from field: bool hsts = 10;
-   */
-  hsts: boolean;
-
-  /**
-   * HSTS for subdomains too; off without HSTS.
-   *
-   * @generated from field: bool hsts_subdomains = 11;
-   */
-  hstsSubdomains: boolean;
-};
-
-/**
- * Describes the message ddash.nginxproxymanagerapi.ProxyHostFields.
- * Use `create(ProxyHostFieldsSchema)` to create a new message.
- */
-export const ProxyHostFieldsSchema: GenMessage<ProxyHostFields> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 4);
-
-/**
  * @generated from message ddash.nginxproxymanagerapi.ListCertificatesRequest
  */
 export type ListCertificatesRequest = Message<"ddash.nginxproxymanagerapi.ListCertificatesRequest"> & {
@@ -236,7 +156,7 @@ export type ListCertificatesRequest = Message<"ddash.nginxproxymanagerapi.ListCe
  * Use `create(ListCertificatesRequestSchema)` to create a new message.
  */
 export const ListCertificatesRequestSchema: GenMessage<ListCertificatesRequest> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 5);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 4);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.ListCertificatesResponse
@@ -253,7 +173,7 @@ export type ListCertificatesResponse = Message<"ddash.nginxproxymanagerapi.ListC
  * Use `create(ListCertificatesResponseSchema)` to create a new message.
  */
 export const ListCertificatesResponseSchema: GenMessage<ListCertificatesResponse> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 6);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 5);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.Certificate
@@ -310,7 +230,7 @@ export type Certificate = Message<"ddash.nginxproxymanagerapi.Certificate"> & {
  * Use `create(CertificateSchema)` to create a new message.
  */
 export const CertificateSchema: GenMessage<Certificate> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 7);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 6);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.GetStatusRequest
@@ -323,7 +243,7 @@ export type GetStatusRequest = Message<"ddash.nginxproxymanagerapi.GetStatusRequ
  * Use `create(GetStatusRequestSchema)` to create a new message.
  */
 export const GetStatusRequestSchema: GenMessage<GetStatusRequest> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 8);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 7);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.GetStatusResponse
@@ -390,7 +310,7 @@ export type GetStatusResponse = Message<"ddash.nginxproxymanagerapi.GetStatusRes
  * Use `create(GetStatusResponseSchema)` to create a new message.
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 9);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 8);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.RefreshRequest
@@ -403,7 +323,7 @@ export type RefreshRequest = Message<"ddash.nginxproxymanagerapi.RefreshRequest"
  * Use `create(RefreshRequestSchema)` to create a new message.
  */
 export const RefreshRequestSchema: GenMessage<RefreshRequest> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 10);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 9);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.RefreshResponse
@@ -416,14 +336,14 @@ export type RefreshResponse = Message<"ddash.nginxproxymanagerapi.RefreshRespons
  * Use `create(RefreshResponseSchema)` to create a new message.
  */
 export const RefreshResponseSchema: GenMessage<RefreshResponse> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 11);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 10);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.CreateProxyHostRequest
  */
 export type CreateProxyHostRequest = Message<"ddash.nginxproxymanagerapi.CreateProxyHostRequest"> & {
   /**
-   * @generated from field: ddash.nginxproxymanagerapi.ProxyHostFields fields = 1;
+   * @generated from field: ddash.proxyhost.ProxyHostFields fields = 1;
    */
   fields?: ProxyHostFields | undefined;
 };
@@ -433,7 +353,7 @@ export type CreateProxyHostRequest = Message<"ddash.nginxproxymanagerapi.CreateP
  * Use `create(CreateProxyHostRequestSchema)` to create a new message.
  */
 export const CreateProxyHostRequestSchema: GenMessage<CreateProxyHostRequest> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 12);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 11);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.CreateProxyHostResponse
@@ -452,7 +372,7 @@ export type CreateProxyHostResponse = Message<"ddash.nginxproxymanagerapi.Create
  * Use `create(CreateProxyHostResponseSchema)` to create a new message.
  */
 export const CreateProxyHostResponseSchema: GenMessage<CreateProxyHostResponse> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 13);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 12);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.UpdateProxyHostRequest
@@ -466,7 +386,7 @@ export type UpdateProxyHostRequest = Message<"ddash.nginxproxymanagerapi.UpdateP
   /**
    * Every managed field, as it should be after the write.
    *
-   * @generated from field: ddash.nginxproxymanagerapi.ProxyHostFields fields = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields fields = 2;
    */
   fields?: ProxyHostFields | undefined;
 };
@@ -476,7 +396,7 @@ export type UpdateProxyHostRequest = Message<"ddash.nginxproxymanagerapi.UpdateP
  * Use `create(UpdateProxyHostRequestSchema)` to create a new message.
  */
 export const UpdateProxyHostRequestSchema: GenMessage<UpdateProxyHostRequest> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 14);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 13);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.UpdateProxyHostResponse
@@ -493,7 +413,7 @@ export type UpdateProxyHostResponse = Message<"ddash.nginxproxymanagerapi.Update
  * Use `create(UpdateProxyHostResponseSchema)` to create a new message.
  */
 export const UpdateProxyHostResponseSchema: GenMessage<UpdateProxyHostResponse> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 15);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 14);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.DeleteProxyHostRequest
@@ -510,7 +430,7 @@ export type DeleteProxyHostRequest = Message<"ddash.nginxproxymanagerapi.DeleteP
  * Use `create(DeleteProxyHostRequestSchema)` to create a new message.
  */
 export const DeleteProxyHostRequestSchema: GenMessage<DeleteProxyHostRequest> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 16);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 15);
 
 /**
  * @generated from message ddash.nginxproxymanagerapi.DeleteProxyHostResponse
@@ -523,7 +443,7 @@ export type DeleteProxyHostResponse = Message<"ddash.nginxproxymanagerapi.Delete
  * Use `create(DeleteProxyHostResponseSchema)` to create a new message.
  */
 export const DeleteProxyHostResponseSchema: GenMessage<DeleteProxyHostResponse> = /*@__PURE__*/
-  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 17);
+  messageDesc(file_nginx_proxy_manager_api_nginx_proxy_manager_api, 16);
 
 /**
  * Writes fail with a google.rpc.ErrorInfo detail whose reason is one of

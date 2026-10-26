@@ -13,6 +13,7 @@ package appspb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	proxyhost "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 	workload "github.com/itsKontra/ddash/proto/ddash/workload"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -1205,30 +1206,18 @@ func (x *HostOverrideOrAlias) GetIps() []string {
 type ProxyHost struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	// Its hostnames, sorted.
-	DomainNames []string `protobuf:"bytes,2,rep,name=domain_names,json=domainNames,proto3" json:"domain_names,omitempty"`
-	// The upstream.
-	ForwardScheme string `protobuf:"bytes,3,opt,name=forward_scheme,json=forwardScheme,proto3" json:"forward_scheme,omitempty"`
-	ForwardHost   string `protobuf:"bytes,4,opt,name=forward_host,json=forwardHost,proto3" json:"forward_host,omitempty"`
-	ForwardPort   int32  `protobuf:"varint,5,opt,name=forward_port,json=forwardPort,proto3" json:"forward_port,omitempty"`
-	// The certificate's id; 0 for none.
-	CertificateId  int64 `protobuf:"varint,6,opt,name=certificate_id,json=certificateId,proto3" json:"certificate_id,omitempty"`
-	BlockExploits  bool  `protobuf:"varint,7,opt,name=block_exploits,json=blockExploits,proto3" json:"block_exploits,omitempty"`
-	Websockets     bool  `protobuf:"varint,8,opt,name=websockets,proto3" json:"websockets,omitempty"`
-	ForceSsl       bool  `protobuf:"varint,9,opt,name=force_ssl,json=forceSsl,proto3" json:"force_ssl,omitempty"`
-	Http2          bool  `protobuf:"varint,10,opt,name=http2,proto3" json:"http2,omitempty"`
-	Hsts           bool  `protobuf:"varint,11,opt,name=hsts,proto3" json:"hsts,omitempty"`
-	HstsSubdomains bool  `protobuf:"varint,12,opt,name=hsts_subdomains,json=hstsSubdomains,proto3" json:"hsts_subdomains,omitempty"`
+	// Its fields, its hostnames sorted.
+	Fields *proxyhost.ProxyHostFields `protobuf:"bytes,2,opt,name=fields,proto3" json:"fields,omitempty"`
 	// Disabled in Nginx Proxy Manager: saved but not served. A label, no
 	// Warning.
-	Enabled bool `protobuf:"varint,13,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Offline: nginx rejected its config when it was last saved.
-	Offline    bool   `protobuf:"varint,14,opt,name=offline,proto3" json:"offline,omitempty"`
-	NginxError string `protobuf:"bytes,15,opt,name=nginx_error,json=nginxError,proto3" json:"nginx_error,omitempty"`
-	// The certificate certificate_id names, as Nginx Proxy Manager's last
-	// good read of its certificates lists it; unset for none, or before
-	// that read.
-	Certificate   *Certificate `protobuf:"bytes,16,opt,name=certificate,proto3" json:"certificate,omitempty"`
+	Offline    bool   `protobuf:"varint,4,opt,name=offline,proto3" json:"offline,omitempty"`
+	NginxError string `protobuf:"bytes,5,opt,name=nginx_error,json=nginxError,proto3" json:"nginx_error,omitempty"`
+	// The certificate fields.certificate_id names, as Nginx Proxy Manager's
+	// last good read of its certificates lists it; unset for none, or
+	// before that read.
+	Certificate   *Certificate `protobuf:"bytes,6,opt,name=certificate,proto3" json:"certificate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1270,81 +1259,11 @@ func (x *ProxyHost) GetId() int64 {
 	return 0
 }
 
-func (x *ProxyHost) GetDomainNames() []string {
+func (x *ProxyHost) GetFields() *proxyhost.ProxyHostFields {
 	if x != nil {
-		return x.DomainNames
+		return x.Fields
 	}
 	return nil
-}
-
-func (x *ProxyHost) GetForwardScheme() string {
-	if x != nil {
-		return x.ForwardScheme
-	}
-	return ""
-}
-
-func (x *ProxyHost) GetForwardHost() string {
-	if x != nil {
-		return x.ForwardHost
-	}
-	return ""
-}
-
-func (x *ProxyHost) GetForwardPort() int32 {
-	if x != nil {
-		return x.ForwardPort
-	}
-	return 0
-}
-
-func (x *ProxyHost) GetCertificateId() int64 {
-	if x != nil {
-		return x.CertificateId
-	}
-	return 0
-}
-
-func (x *ProxyHost) GetBlockExploits() bool {
-	if x != nil {
-		return x.BlockExploits
-	}
-	return false
-}
-
-func (x *ProxyHost) GetWebsockets() bool {
-	if x != nil {
-		return x.Websockets
-	}
-	return false
-}
-
-func (x *ProxyHost) GetForceSsl() bool {
-	if x != nil {
-		return x.ForceSsl
-	}
-	return false
-}
-
-func (x *ProxyHost) GetHttp2() bool {
-	if x != nil {
-		return x.Http2
-	}
-	return false
-}
-
-func (x *ProxyHost) GetHsts() bool {
-	if x != nil {
-		return x.Hsts
-	}
-	return false
-}
-
-func (x *ProxyHost) GetHstsSubdomains() bool {
-	if x != nil {
-		return x.HstsSubdomains
-	}
-	return false
 }
 
 func (x *ProxyHost) GetEnabled() bool {
@@ -2887,9 +2806,9 @@ func (x *ChangeAddress) GetAliases() []string {
 // managed field changed in Nginx Proxy Manager since the Plan refuses it,
 // touched or not; the fields ddash doesn't manage are kept.
 type ChangeProxyHost struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProxyHost     *ProxyHostFields       `protobuf:"bytes,2,opt,name=proxy_host,json=proxyHost,proto3" json:"proxy_host,omitempty"`
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Id            string                     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProxyHost     *proxyhost.ProxyHostFields `protobuf:"bytes,2,opt,name=proxy_host,json=proxyHost,proto3" json:"proxy_host,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2931,7 +2850,7 @@ func (x *ChangeProxyHost) GetId() string {
 	return ""
 }
 
-func (x *ChangeProxyHost) GetProxyHost() *ProxyHostFields {
+func (x *ChangeProxyHost) GetProxyHost() *proxyhost.ProxyHostFields {
 	if x != nil {
 		return x.ProxyHost
 	}
@@ -2942,9 +2861,9 @@ func (x *ChangeProxyHost) GetProxyHost() *ProxyHostFields {
 // serving its hostnames, each of them an alias of the Reverse Proxy's
 // Host Override in place of the App's own Host Override.
 type AddReverseProxy struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	ProxyHost     *ProxyHostFields       `protobuf:"bytes,2,opt,name=proxy_host,json=proxyHost,proto3" json:"proxy_host,omitempty"`
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Id            string                     `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	ProxyHost     *proxyhost.ProxyHostFields `protobuf:"bytes,2,opt,name=proxy_host,json=proxyHost,proto3" json:"proxy_host,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2986,7 +2905,7 @@ func (x *AddReverseProxy) GetId() string {
 	return ""
 }
 
-func (x *AddReverseProxy) GetProxyHost() *ProxyHostFields {
+func (x *AddReverseProxy) GetProxyHost() *proxyhost.ProxyHostFields {
 	if x != nil {
 		return x.ProxyHost
 	}
@@ -3166,7 +3085,7 @@ type AddApp struct {
 	// ddash.
 	Reach Reach `protobuf:"varint,5,opt,name=reach,proto3,enum=ddash.apps.Reach" json:"reach,omitempty"`
 	// PROXIED: the new Proxy Host's fields.
-	ProxyHost *ProxyHostFields `protobuf:"bytes,6,opt,name=proxy_host,json=proxyHost,proto3" json:"proxy_host,omitempty"`
+	ProxyHost *proxyhost.ProxyHostFields `protobuf:"bytes,6,opt,name=proxy_host,json=proxyHost,proto3" json:"proxy_host,omitempty"`
 	// NOT_PROXIED: the address the Host Override resolves to.
 	Address       string `protobuf:"bytes,7,opt,name=address,proto3" json:"address,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -3238,7 +3157,7 @@ func (x *AddApp) GetReach() Reach {
 	return Reach_REACH_UNSPECIFIED
 }
 
-func (x *AddApp) GetProxyHost() *ProxyHostFields {
+func (x *AddApp) GetProxyHost() *proxyhost.ProxyHostFields {
 	if x != nil {
 		return x.ProxyHost
 	}
@@ -3250,128 +3169,6 @@ func (x *AddApp) GetAddress() string {
 		return x.Address
 	}
 	return ""
-}
-
-// The fields of a Proxy Host ddash manages but its domain names, which are
-// the App's hostnames. Nginx Proxy Manager turns Force SSL and HTTP/2 off
-// without a certificate, HSTS off without Force SSL, and HSTS for
-// subdomains off without HSTS; a Plan shows them so.
-type ProxyHostFields struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// "http" or "https".
-	ForwardScheme string `protobuf:"bytes,1,opt,name=forward_scheme,json=forwardScheme,proto3" json:"forward_scheme,omitempty"`
-	ForwardHost   string `protobuf:"bytes,2,opt,name=forward_host,json=forwardHost,proto3" json:"forward_host,omitempty"`
-	ForwardPort   int32  `protobuf:"varint,3,opt,name=forward_port,json=forwardPort,proto3" json:"forward_port,omitempty"`
-	// One of Nginx Proxy Manager's certificates; 0 for none (plain HTTP).
-	CertificateId  int64 `protobuf:"varint,4,opt,name=certificate_id,json=certificateId,proto3" json:"certificate_id,omitempty"`
-	BlockExploits  bool  `protobuf:"varint,5,opt,name=block_exploits,json=blockExploits,proto3" json:"block_exploits,omitempty"`
-	Websockets     bool  `protobuf:"varint,6,opt,name=websockets,proto3" json:"websockets,omitempty"`
-	ForceSsl       bool  `protobuf:"varint,7,opt,name=force_ssl,json=forceSsl,proto3" json:"force_ssl,omitempty"`
-	Http2          bool  `protobuf:"varint,8,opt,name=http2,proto3" json:"http2,omitempty"`
-	Hsts           bool  `protobuf:"varint,9,opt,name=hsts,proto3" json:"hsts,omitempty"`
-	HstsSubdomains bool  `protobuf:"varint,10,opt,name=hsts_subdomains,json=hstsSubdomains,proto3" json:"hsts_subdomains,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *ProxyHostFields) Reset() {
-	*x = ProxyHostFields{}
-	mi := &file_apps_apps_proto_msgTypes[41]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ProxyHostFields) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ProxyHostFields) ProtoMessage() {}
-
-func (x *ProxyHostFields) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[41]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ProxyHostFields.ProtoReflect.Descriptor instead.
-func (*ProxyHostFields) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{41}
-}
-
-func (x *ProxyHostFields) GetForwardScheme() string {
-	if x != nil {
-		return x.ForwardScheme
-	}
-	return ""
-}
-
-func (x *ProxyHostFields) GetForwardHost() string {
-	if x != nil {
-		return x.ForwardHost
-	}
-	return ""
-}
-
-func (x *ProxyHostFields) GetForwardPort() int32 {
-	if x != nil {
-		return x.ForwardPort
-	}
-	return 0
-}
-
-func (x *ProxyHostFields) GetCertificateId() int64 {
-	if x != nil {
-		return x.CertificateId
-	}
-	return 0
-}
-
-func (x *ProxyHostFields) GetBlockExploits() bool {
-	if x != nil {
-		return x.BlockExploits
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetWebsockets() bool {
-	if x != nil {
-		return x.Websockets
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetForceSsl() bool {
-	if x != nil {
-		return x.ForceSsl
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetHttp2() bool {
-	if x != nil {
-		return x.Http2
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetHsts() bool {
-	if x != nil {
-		return x.Hsts
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetHstsSubdomains() bool {
-	if x != nil {
-		return x.HstsSubdomains
-	}
-	return false
 }
 
 // An App Action's Plan: its steps in the order they run, the "name is
@@ -3395,7 +3192,7 @@ type Plan struct {
 
 func (x *Plan) Reset() {
 	*x = Plan{}
-	mi := &file_apps_apps_proto_msgTypes[42]
+	mi := &file_apps_apps_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3407,7 +3204,7 @@ func (x *Plan) String() string {
 func (*Plan) ProtoMessage() {}
 
 func (x *Plan) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[42]
+	mi := &file_apps_apps_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3420,7 +3217,7 @@ func (x *Plan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Plan.ProtoReflect.Descriptor instead.
 func (*Plan) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{42}
+	return file_apps_apps_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *Plan) GetSteps() []*PlanStep {
@@ -3465,7 +3262,7 @@ type PlanStep struct {
 
 func (x *PlanStep) Reset() {
 	*x = PlanStep{}
-	mi := &file_apps_apps_proto_msgTypes[43]
+	mi := &file_apps_apps_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3477,7 +3274,7 @@ func (x *PlanStep) String() string {
 func (*PlanStep) ProtoMessage() {}
 
 func (x *PlanStep) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[43]
+	mi := &file_apps_apps_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3490,7 +3287,7 @@ func (x *PlanStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanStep.ProtoReflect.Descriptor instead.
 func (*PlanStep) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{43}
+	return file_apps_apps_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *PlanStep) GetSystem() System {
@@ -3529,7 +3326,7 @@ type PlanValue struct {
 
 func (x *PlanValue) Reset() {
 	*x = PlanValue{}
-	mi := &file_apps_apps_proto_msgTypes[44]
+	mi := &file_apps_apps_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3541,7 +3338,7 @@ func (x *PlanValue) String() string {
 func (*PlanValue) ProtoMessage() {}
 
 func (x *PlanValue) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[44]
+	mi := &file_apps_apps_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3554,7 +3351,7 @@ func (x *PlanValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanValue.ProtoReflect.Descriptor instead.
 func (*PlanValue) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{44}
+	return file_apps_apps_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *PlanValue) GetLabel() string {
@@ -3601,7 +3398,7 @@ type NameNote struct {
 
 func (x *NameNote) Reset() {
 	*x = NameNote{}
-	mi := &file_apps_apps_proto_msgTypes[45]
+	mi := &file_apps_apps_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3613,7 +3410,7 @@ func (x *NameNote) String() string {
 func (*NameNote) ProtoMessage() {}
 
 func (x *NameNote) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[45]
+	mi := &file_apps_apps_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3626,7 +3423,7 @@ func (x *NameNote) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NameNote.ProtoReflect.Descriptor instead.
 func (*NameNote) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{45}
+	return file_apps_apps_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *NameNote) GetHostname() string {
@@ -3687,7 +3484,7 @@ type PlanActionRequest struct {
 
 func (x *PlanActionRequest) Reset() {
 	*x = PlanActionRequest{}
-	mi := &file_apps_apps_proto_msgTypes[46]
+	mi := &file_apps_apps_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3699,7 +3496,7 @@ func (x *PlanActionRequest) String() string {
 func (*PlanActionRequest) ProtoMessage() {}
 
 func (x *PlanActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[46]
+	mi := &file_apps_apps_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3712,7 +3509,7 @@ func (x *PlanActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanActionRequest.ProtoReflect.Descriptor instead.
 func (*PlanActionRequest) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{46}
+	return file_apps_apps_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *PlanActionRequest) GetAction() *AppAction {
@@ -3731,7 +3528,7 @@ type PlanActionResponse struct {
 
 func (x *PlanActionResponse) Reset() {
 	*x = PlanActionResponse{}
-	mi := &file_apps_apps_proto_msgTypes[47]
+	mi := &file_apps_apps_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3743,7 +3540,7 @@ func (x *PlanActionResponse) String() string {
 func (*PlanActionResponse) ProtoMessage() {}
 
 func (x *PlanActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[47]
+	mi := &file_apps_apps_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3756,7 +3553,7 @@ func (x *PlanActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanActionResponse.ProtoReflect.Descriptor instead.
 func (*PlanActionResponse) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{47}
+	return file_apps_apps_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *PlanActionResponse) GetPlan() *Plan {
@@ -3780,7 +3577,7 @@ type RunActionRequest struct {
 
 func (x *RunActionRequest) Reset() {
 	*x = RunActionRequest{}
-	mi := &file_apps_apps_proto_msgTypes[48]
+	mi := &file_apps_apps_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3792,7 +3589,7 @@ func (x *RunActionRequest) String() string {
 func (*RunActionRequest) ProtoMessage() {}
 
 func (x *RunActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[48]
+	mi := &file_apps_apps_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3805,7 +3602,7 @@ func (x *RunActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunActionRequest.ProtoReflect.Descriptor instead.
 func (*RunActionRequest) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{48}
+	return file_apps_apps_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *RunActionRequest) GetAction() *AppAction {
@@ -3838,7 +3635,7 @@ type GetRunRequest struct {
 
 func (x *GetRunRequest) Reset() {
 	*x = GetRunRequest{}
-	mi := &file_apps_apps_proto_msgTypes[49]
+	mi := &file_apps_apps_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3850,7 +3647,7 @@ func (x *GetRunRequest) String() string {
 func (*GetRunRequest) ProtoMessage() {}
 
 func (x *GetRunRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[49]
+	mi := &file_apps_apps_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3863,7 +3660,7 @@ func (x *GetRunRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunRequest.ProtoReflect.Descriptor instead.
 func (*GetRunRequest) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{49}
+	return file_apps_apps_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GetRunRequest) GetRunId() string {
@@ -3883,7 +3680,7 @@ type GetRunResponse struct {
 
 func (x *GetRunResponse) Reset() {
 	*x = GetRunResponse{}
-	mi := &file_apps_apps_proto_msgTypes[50]
+	mi := &file_apps_apps_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3895,7 +3692,7 @@ func (x *GetRunResponse) String() string {
 func (*GetRunResponse) ProtoMessage() {}
 
 func (x *GetRunResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[50]
+	mi := &file_apps_apps_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3908,7 +3705,7 @@ func (x *GetRunResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRunResponse.ProtoReflect.Descriptor instead.
 func (*GetRunResponse) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{50}
+	return file_apps_apps_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *GetRunResponse) GetSteps() []StepState {
@@ -3937,7 +3734,7 @@ type RunActionResponse struct {
 
 func (x *RunActionResponse) Reset() {
 	*x = RunActionResponse{}
-	mi := &file_apps_apps_proto_msgTypes[51]
+	mi := &file_apps_apps_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3949,7 +3746,7 @@ func (x *RunActionResponse) String() string {
 func (*RunActionResponse) ProtoMessage() {}
 
 func (x *RunActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[51]
+	mi := &file_apps_apps_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3962,7 +3759,7 @@ func (x *RunActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunActionResponse.ProtoReflect.Descriptor instead.
 func (*RunActionResponse) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{51}
+	return file_apps_apps_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *RunActionResponse) GetAppId() string {
@@ -3994,7 +3791,7 @@ type ListWorkloadsRequest struct {
 
 func (x *ListWorkloadsRequest) Reset() {
 	*x = ListWorkloadsRequest{}
-	mi := &file_apps_apps_proto_msgTypes[52]
+	mi := &file_apps_apps_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4006,7 +3803,7 @@ func (x *ListWorkloadsRequest) String() string {
 func (*ListWorkloadsRequest) ProtoMessage() {}
 
 func (x *ListWorkloadsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[52]
+	mi := &file_apps_apps_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4019,7 +3816,7 @@ func (x *ListWorkloadsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkloadsRequest.ProtoReflect.Descriptor instead.
 func (*ListWorkloadsRequest) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{52}
+	return file_apps_apps_proto_rawDescGZIP(), []int{51}
 }
 
 type ListWorkloadsResponse struct {
@@ -4031,7 +3828,7 @@ type ListWorkloadsResponse struct {
 
 func (x *ListWorkloadsResponse) Reset() {
 	*x = ListWorkloadsResponse{}
-	mi := &file_apps_apps_proto_msgTypes[53]
+	mi := &file_apps_apps_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4043,7 +3840,7 @@ func (x *ListWorkloadsResponse) String() string {
 func (*ListWorkloadsResponse) ProtoMessage() {}
 
 func (x *ListWorkloadsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_apps_apps_proto_msgTypes[53]
+	mi := &file_apps_apps_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4056,7 +3853,7 @@ func (x *ListWorkloadsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWorkloadsResponse.ProtoReflect.Descriptor instead.
 func (*ListWorkloadsResponse) Descriptor() ([]byte, []int) {
-	return file_apps_apps_proto_rawDescGZIP(), []int{53}
+	return file_apps_apps_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ListWorkloadsResponse) GetWorkloads() []*Workload {
@@ -4071,7 +3868,7 @@ var File_apps_apps_proto protoreflect.FileDescriptor
 const file_apps_apps_proto_rawDesc = "" +
 	"\n" +
 	"\x0fapps/apps.proto\x12\n" +
-	"ddash.apps\x1a\x13ddash/options.proto\x1a\x1dddash/workload/workload.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\f\n" +
+	"ddash.apps\x1a\x13ddash/options.proto\x1a ddash/proxyhost/proxy_host.proto\x1a\x1dddash/workload/workload.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\f\n" +
 	"\n" +
 	"AppsConfig\"\xd3\x04\n" +
 	"\x03App\x12\x0e\n" +
@@ -4119,28 +3916,15 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x124\n" +
 	"\x06parent\x18\x03 \x01(\v2\x1c.ddash.apps.HostOverrideNameR\x06parent\x12\x10\n" +
-	"\x03ips\x18\x04 \x03(\tR\x03ips\"\x99\x04\n" +
+	"\x03ips\x18\x04 \x03(\tR\x03ips\"\xe5\x01\n" +
 	"\tProxyHost\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12!\n" +
-	"\fdomain_names\x18\x02 \x03(\tR\vdomainNames\x12%\n" +
-	"\x0eforward_scheme\x18\x03 \x01(\tR\rforwardScheme\x12!\n" +
-	"\fforward_host\x18\x04 \x01(\tR\vforwardHost\x12!\n" +
-	"\fforward_port\x18\x05 \x01(\x05R\vforwardPort\x12%\n" +
-	"\x0ecertificate_id\x18\x06 \x01(\x03R\rcertificateId\x12%\n" +
-	"\x0eblock_exploits\x18\a \x01(\bR\rblockExploits\x12\x1e\n" +
-	"\n" +
-	"websockets\x18\b \x01(\bR\n" +
-	"websockets\x12\x1b\n" +
-	"\tforce_ssl\x18\t \x01(\bR\bforceSsl\x12\x14\n" +
-	"\x05http2\x18\n" +
-	" \x01(\bR\x05http2\x12\x12\n" +
-	"\x04hsts\x18\v \x01(\bR\x04hsts\x12'\n" +
-	"\x0fhsts_subdomains\x18\f \x01(\bR\x0ehstsSubdomains\x12\x18\n" +
-	"\aenabled\x18\r \x01(\bR\aenabled\x12\x18\n" +
-	"\aoffline\x18\x0e \x01(\bR\aoffline\x12\x1f\n" +
-	"\vnginx_error\x18\x0f \x01(\tR\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x128\n" +
+	"\x06fields\x18\x02 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\x06fields\x12\x18\n" +
+	"\aenabled\x18\x03 \x01(\bR\aenabled\x12\x18\n" +
+	"\aoffline\x18\x04 \x01(\bR\aoffline\x12\x1f\n" +
+	"\vnginx_error\x18\x05 \x01(\tR\n" +
 	"nginxError\x129\n" +
-	"\vcertificate\x18\x10 \x01(\v2\x17.ddash.apps.CertificateR\vcertificate\"o\n" +
+	"\vcertificate\x18\x06 \x01(\v2\x17.ddash.apps.CertificateR\vcertificate\"o\n" +
 	"\vCertificate\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x122\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x1c.ddash.apps.CertificateStateR\x05state\x12\x18\n" +
@@ -4223,15 +4007,15 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\rChangeAddress\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x18\n" +
-	"\aaliases\x18\x03 \x03(\tR\aaliases\"]\n" +
+	"\aaliases\x18\x03 \x03(\tR\aaliases\"b\n" +
 	"\x0fChangeProxyHost\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12:\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12?\n" +
 	"\n" +
-	"proxy_host\x18\x02 \x01(\v2\x1b.ddash.apps.ProxyHostFieldsR\tproxyHost\"]\n" +
+	"proxy_host\x18\x02 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\tproxyHost\"b\n" +
 	"\x0fAddReverseProxy\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12:\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12?\n" +
 	"\n" +
-	"proxy_host\x18\x02 \x01(\v2\x1b.ddash.apps.ProxyHostFieldsR\tproxyHost\">\n" +
+	"proxy_host\x18\x02 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\tproxyHost\">\n" +
 	"\x12RemoveReverseProxy\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\"\x1b\n" +
@@ -4240,30 +4024,16 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\n" +
 	"FixWarning\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
-	"\x03fix\x18\x02 \x01(\v2\x0f.ddash.apps.FixR\x03fix\"\xd7\x01\n" +
+	"\x03fix\x18\x02 \x01(\v2\x0f.ddash.apps.FixR\x03fix\"\xdc\x01\n" +
 	"\x06AddApp\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04icon\x18\x03 \x01(\tR\x04icon\x12\x14\n" +
 	"\x05group\x18\x04 \x01(\tR\x05group\x12'\n" +
-	"\x05reach\x18\x05 \x01(\x0e2\x11.ddash.apps.ReachR\x05reach\x12:\n" +
+	"\x05reach\x18\x05 \x01(\x0e2\x11.ddash.apps.ReachR\x05reach\x12?\n" +
 	"\n" +
-	"proxy_host\x18\x06 \x01(\v2\x1b.ddash.apps.ProxyHostFieldsR\tproxyHost\x12\x18\n" +
-	"\aaddress\x18\a \x01(\tR\aaddress\"\xdc\x02\n" +
-	"\x0fProxyHostFields\x12%\n" +
-	"\x0eforward_scheme\x18\x01 \x01(\tR\rforwardScheme\x12!\n" +
-	"\fforward_host\x18\x02 \x01(\tR\vforwardHost\x12!\n" +
-	"\fforward_port\x18\x03 \x01(\x05R\vforwardPort\x12%\n" +
-	"\x0ecertificate_id\x18\x04 \x01(\x03R\rcertificateId\x12%\n" +
-	"\x0eblock_exploits\x18\x05 \x01(\bR\rblockExploits\x12\x1e\n" +
-	"\n" +
-	"websockets\x18\x06 \x01(\bR\n" +
-	"websockets\x12\x1b\n" +
-	"\tforce_ssl\x18\a \x01(\bR\bforceSsl\x12\x14\n" +
-	"\x05http2\x18\b \x01(\bR\x05http2\x12\x12\n" +
-	"\x04hsts\x18\t \x01(\bR\x04hsts\x12'\n" +
-	"\x0fhsts_subdomains\x18\n" +
-	" \x01(\bR\x0ehstsSubdomains\"\x8e\x01\n" +
+	"proxy_host\x18\x06 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\tproxyHost\x12\x18\n" +
+	"\aaddress\x18\a \x01(\tR\aaddress\"\x8e\x01\n" +
 	"\x04Plan\x12*\n" +
 	"\x05steps\x18\x01 \x03(\v2\x14.ddash.apps.PlanStepR\x05steps\x12*\n" +
 	"\x05names\x18\x02 \x03(\v2\x14.ddash.apps.NameNoteR\x05names\x12\x18\n" +
@@ -4401,72 +4171,72 @@ func file_apps_apps_proto_rawDescGZIP() []byte {
 }
 
 var file_apps_apps_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_apps_apps_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
+var file_apps_apps_proto_msgTypes = make([]protoimpl.MessageInfo, 53)
 var file_apps_apps_proto_goTypes = []any{
-	(InternetPath)(0),               // 0: ddash.apps.InternetPath
-	(Reach)(0),                      // 1: ddash.apps.Reach
-	(CertificateState)(0),           // 2: ddash.apps.CertificateState
-	(FixKind)(0),                    // 3: ddash.apps.FixKind
-	(WarningKind)(0),                // 4: ddash.apps.WarningKind
-	(System)(0),                     // 5: ddash.apps.System
-	(NameNoteKind)(0),               // 6: ddash.apps.NameNoteKind
-	(StepState)(0),                  // 7: ddash.apps.StepState
-	(*AppsConfig)(nil),              // 8: ddash.apps.AppsConfig
-	(*App)(nil),                     // 9: ddash.apps.App
-	(*NetworkInfo)(nil),             // 10: ddash.apps.NetworkInfo
-	(*NetworkDevice)(nil),           // 11: ddash.apps.NetworkDevice
-	(*AppSettings)(nil),             // 12: ddash.apps.AppSettings
-	(*Links)(nil),                   // 13: ddash.apps.Links
-	(*HostOverrideName)(nil),        // 14: ddash.apps.HostOverrideName
-	(*HostOverrideOrAlias)(nil),     // 15: ddash.apps.HostOverrideOrAlias
-	(*ProxyHost)(nil),               // 16: ddash.apps.ProxyHost
-	(*Certificate)(nil),             // 17: ddash.apps.Certificate
-	(*Warning)(nil),                 // 18: ddash.apps.Warning
-	(*Fix)(nil),                     // 19: ddash.apps.Fix
-	(*Workload)(nil),                // 20: ddash.apps.Workload
-	(*SourceRead)(nil),              // 21: ddash.apps.SourceRead
-	(*ListAppsRequest)(nil),         // 22: ddash.apps.ListAppsRequest
-	(*ListAppsResponse)(nil),        // 23: ddash.apps.ListAppsResponse
-	(*ReverseProxy)(nil),            // 24: ddash.apps.ReverseProxy
-	(*RefreshRequest)(nil),          // 25: ddash.apps.RefreshRequest
-	(*RefreshResponse)(nil),         // 26: ddash.apps.RefreshResponse
-	(*SetSettingsRequest)(nil),      // 27: ddash.apps.SetSettingsRequest
-	(*SetSettingsResponse)(nil),     // 28: ddash.apps.SetSettingsResponse
-	(*IgnoreWarningRequest)(nil),    // 29: ddash.apps.IgnoreWarningRequest
-	(*IgnoreWarningResponse)(nil),   // 30: ddash.apps.IgnoreWarningResponse
-	(*UnignoreWarningRequest)(nil),  // 31: ddash.apps.UnignoreWarningRequest
-	(*UnignoreWarningResponse)(nil), // 32: ddash.apps.UnignoreWarningResponse
-	(*ReattachRequest)(nil),         // 33: ddash.apps.ReattachRequest
-	(*ReattachResponse)(nil),        // 34: ddash.apps.ReattachResponse
-	(*DeleteRecordRequest)(nil),     // 35: ddash.apps.DeleteRecordRequest
-	(*DeleteRecordResponse)(nil),    // 36: ddash.apps.DeleteRecordResponse
-	(*PromoteAliasRequest)(nil),     // 37: ddash.apps.PromoteAliasRequest
-	(*PromoteAliasResponse)(nil),    // 38: ddash.apps.PromoteAliasResponse
-	(*MergeRequest)(nil),            // 39: ddash.apps.MergeRequest
-	(*MergeResponse)(nil),           // 40: ddash.apps.MergeResponse
-	(*AppAction)(nil),               // 41: ddash.apps.AppAction
-	(*ChangeAddress)(nil),           // 42: ddash.apps.ChangeAddress
-	(*ChangeProxyHost)(nil),         // 43: ddash.apps.ChangeProxyHost
-	(*AddReverseProxy)(nil),         // 44: ddash.apps.AddReverseProxy
-	(*RemoveReverseProxy)(nil),      // 45: ddash.apps.RemoveReverseProxy
-	(*DeleteApp)(nil),               // 46: ddash.apps.DeleteApp
-	(*FixWarning)(nil),              // 47: ddash.apps.FixWarning
-	(*AddApp)(nil),                  // 48: ddash.apps.AddApp
-	(*ProxyHostFields)(nil),         // 49: ddash.apps.ProxyHostFields
-	(*Plan)(nil),                    // 50: ddash.apps.Plan
-	(*PlanStep)(nil),                // 51: ddash.apps.PlanStep
-	(*PlanValue)(nil),               // 52: ddash.apps.PlanValue
-	(*NameNote)(nil),                // 53: ddash.apps.NameNote
-	(*PlanActionRequest)(nil),       // 54: ddash.apps.PlanActionRequest
-	(*PlanActionResponse)(nil),      // 55: ddash.apps.PlanActionResponse
-	(*RunActionRequest)(nil),        // 56: ddash.apps.RunActionRequest
-	(*GetRunRequest)(nil),           // 57: ddash.apps.GetRunRequest
-	(*GetRunResponse)(nil),          // 58: ddash.apps.GetRunResponse
-	(*RunActionResponse)(nil),       // 59: ddash.apps.RunActionResponse
-	(*ListWorkloadsRequest)(nil),    // 60: ddash.apps.ListWorkloadsRequest
-	(*ListWorkloadsResponse)(nil),   // 61: ddash.apps.ListWorkloadsResponse
-	(*workload.WorkloadRef)(nil),    // 62: ddash.workload.WorkloadRef
-	(*timestamppb.Timestamp)(nil),   // 63: google.protobuf.Timestamp
+	(InternetPath)(0),                 // 0: ddash.apps.InternetPath
+	(Reach)(0),                        // 1: ddash.apps.Reach
+	(CertificateState)(0),             // 2: ddash.apps.CertificateState
+	(FixKind)(0),                      // 3: ddash.apps.FixKind
+	(WarningKind)(0),                  // 4: ddash.apps.WarningKind
+	(System)(0),                       // 5: ddash.apps.System
+	(NameNoteKind)(0),                 // 6: ddash.apps.NameNoteKind
+	(StepState)(0),                    // 7: ddash.apps.StepState
+	(*AppsConfig)(nil),                // 8: ddash.apps.AppsConfig
+	(*App)(nil),                       // 9: ddash.apps.App
+	(*NetworkInfo)(nil),               // 10: ddash.apps.NetworkInfo
+	(*NetworkDevice)(nil),             // 11: ddash.apps.NetworkDevice
+	(*AppSettings)(nil),               // 12: ddash.apps.AppSettings
+	(*Links)(nil),                     // 13: ddash.apps.Links
+	(*HostOverrideName)(nil),          // 14: ddash.apps.HostOverrideName
+	(*HostOverrideOrAlias)(nil),       // 15: ddash.apps.HostOverrideOrAlias
+	(*ProxyHost)(nil),                 // 16: ddash.apps.ProxyHost
+	(*Certificate)(nil),               // 17: ddash.apps.Certificate
+	(*Warning)(nil),                   // 18: ddash.apps.Warning
+	(*Fix)(nil),                       // 19: ddash.apps.Fix
+	(*Workload)(nil),                  // 20: ddash.apps.Workload
+	(*SourceRead)(nil),                // 21: ddash.apps.SourceRead
+	(*ListAppsRequest)(nil),           // 22: ddash.apps.ListAppsRequest
+	(*ListAppsResponse)(nil),          // 23: ddash.apps.ListAppsResponse
+	(*ReverseProxy)(nil),              // 24: ddash.apps.ReverseProxy
+	(*RefreshRequest)(nil),            // 25: ddash.apps.RefreshRequest
+	(*RefreshResponse)(nil),           // 26: ddash.apps.RefreshResponse
+	(*SetSettingsRequest)(nil),        // 27: ddash.apps.SetSettingsRequest
+	(*SetSettingsResponse)(nil),       // 28: ddash.apps.SetSettingsResponse
+	(*IgnoreWarningRequest)(nil),      // 29: ddash.apps.IgnoreWarningRequest
+	(*IgnoreWarningResponse)(nil),     // 30: ddash.apps.IgnoreWarningResponse
+	(*UnignoreWarningRequest)(nil),    // 31: ddash.apps.UnignoreWarningRequest
+	(*UnignoreWarningResponse)(nil),   // 32: ddash.apps.UnignoreWarningResponse
+	(*ReattachRequest)(nil),           // 33: ddash.apps.ReattachRequest
+	(*ReattachResponse)(nil),          // 34: ddash.apps.ReattachResponse
+	(*DeleteRecordRequest)(nil),       // 35: ddash.apps.DeleteRecordRequest
+	(*DeleteRecordResponse)(nil),      // 36: ddash.apps.DeleteRecordResponse
+	(*PromoteAliasRequest)(nil),       // 37: ddash.apps.PromoteAliasRequest
+	(*PromoteAliasResponse)(nil),      // 38: ddash.apps.PromoteAliasResponse
+	(*MergeRequest)(nil),              // 39: ddash.apps.MergeRequest
+	(*MergeResponse)(nil),             // 40: ddash.apps.MergeResponse
+	(*AppAction)(nil),                 // 41: ddash.apps.AppAction
+	(*ChangeAddress)(nil),             // 42: ddash.apps.ChangeAddress
+	(*ChangeProxyHost)(nil),           // 43: ddash.apps.ChangeProxyHost
+	(*AddReverseProxy)(nil),           // 44: ddash.apps.AddReverseProxy
+	(*RemoveReverseProxy)(nil),        // 45: ddash.apps.RemoveReverseProxy
+	(*DeleteApp)(nil),                 // 46: ddash.apps.DeleteApp
+	(*FixWarning)(nil),                // 47: ddash.apps.FixWarning
+	(*AddApp)(nil),                    // 48: ddash.apps.AddApp
+	(*Plan)(nil),                      // 49: ddash.apps.Plan
+	(*PlanStep)(nil),                  // 50: ddash.apps.PlanStep
+	(*PlanValue)(nil),                 // 51: ddash.apps.PlanValue
+	(*NameNote)(nil),                  // 52: ddash.apps.NameNote
+	(*PlanActionRequest)(nil),         // 53: ddash.apps.PlanActionRequest
+	(*PlanActionResponse)(nil),        // 54: ddash.apps.PlanActionResponse
+	(*RunActionRequest)(nil),          // 55: ddash.apps.RunActionRequest
+	(*GetRunRequest)(nil),             // 56: ddash.apps.GetRunRequest
+	(*GetRunResponse)(nil),            // 57: ddash.apps.GetRunResponse
+	(*RunActionResponse)(nil),         // 58: ddash.apps.RunActionResponse
+	(*ListWorkloadsRequest)(nil),      // 59: ddash.apps.ListWorkloadsRequest
+	(*ListWorkloadsResponse)(nil),     // 60: ddash.apps.ListWorkloadsResponse
+	(*workload.WorkloadRef)(nil),      // 61: ddash.workload.WorkloadRef
+	(*proxyhost.ProxyHostFields)(nil), // 62: ddash.proxyhost.ProxyHostFields
+	(*timestamppb.Timestamp)(nil),     // 63: google.protobuf.Timestamp
 }
 var file_apps_apps_proto_depIdxs = []int32{
 	1,  // 0: ddash.apps.App.reach:type_name -> ddash.apps.Reach
@@ -4479,79 +4249,80 @@ var file_apps_apps_proto_depIdxs = []int32{
 	10, // 7: ddash.apps.App.network:type_name -> ddash.apps.NetworkInfo
 	0,  // 8: ddash.apps.NetworkInfo.internet_path:type_name -> ddash.apps.InternetPath
 	11, // 9: ddash.apps.NetworkInfo.device:type_name -> ddash.apps.NetworkDevice
-	62, // 10: ddash.apps.AppSettings.workload:type_name -> ddash.workload.WorkloadRef
+	61, // 10: ddash.apps.AppSettings.workload:type_name -> ddash.workload.WorkloadRef
 	14, // 11: ddash.apps.Links.host_override:type_name -> ddash.apps.HostOverrideName
 	14, // 12: ddash.apps.HostOverrideOrAlias.parent:type_name -> ddash.apps.HostOverrideName
-	17, // 13: ddash.apps.ProxyHost.certificate:type_name -> ddash.apps.Certificate
-	2,  // 14: ddash.apps.Certificate.state:type_name -> ddash.apps.CertificateState
-	4,  // 15: ddash.apps.Warning.kind:type_name -> ddash.apps.WarningKind
-	19, // 16: ddash.apps.Warning.fixes:type_name -> ddash.apps.Fix
-	3,  // 17: ddash.apps.Fix.kind:type_name -> ddash.apps.FixKind
-	15, // 18: ddash.apps.Fix.host_override:type_name -> ddash.apps.HostOverrideOrAlias
-	62, // 19: ddash.apps.Workload.ref:type_name -> ddash.workload.WorkloadRef
-	63, // 20: ddash.apps.SourceRead.read_at:type_name -> google.protobuf.Timestamp
-	63, // 21: ddash.apps.SourceRead.failing_since:type_name -> google.protobuf.Timestamp
-	9,  // 22: ddash.apps.ListAppsResponse.apps:type_name -> ddash.apps.App
-	21, // 23: ddash.apps.ListAppsResponse.proxy_hosts:type_name -> ddash.apps.SourceRead
-	21, // 24: ddash.apps.ListAppsResponse.host_overrides:type_name -> ddash.apps.SourceRead
-	24, // 25: ddash.apps.ListAppsResponse.reverse_proxy:type_name -> ddash.apps.ReverseProxy
-	12, // 26: ddash.apps.SetSettingsRequest.settings:type_name -> ddash.apps.AppSettings
-	4,  // 27: ddash.apps.IgnoreWarningRequest.kind:type_name -> ddash.apps.WarningKind
-	4,  // 28: ddash.apps.UnignoreWarningRequest.kind:type_name -> ddash.apps.WarningKind
-	48, // 29: ddash.apps.AppAction.add:type_name -> ddash.apps.AddApp
-	42, // 30: ddash.apps.AppAction.change_address:type_name -> ddash.apps.ChangeAddress
-	43, // 31: ddash.apps.AppAction.change_proxy_host:type_name -> ddash.apps.ChangeProxyHost
-	44, // 32: ddash.apps.AppAction.add_reverse_proxy:type_name -> ddash.apps.AddReverseProxy
-	45, // 33: ddash.apps.AppAction.remove_reverse_proxy:type_name -> ddash.apps.RemoveReverseProxy
-	46, // 34: ddash.apps.AppAction.delete:type_name -> ddash.apps.DeleteApp
-	47, // 35: ddash.apps.AppAction.fix:type_name -> ddash.apps.FixWarning
-	49, // 36: ddash.apps.ChangeProxyHost.proxy_host:type_name -> ddash.apps.ProxyHostFields
-	49, // 37: ddash.apps.AddReverseProxy.proxy_host:type_name -> ddash.apps.ProxyHostFields
-	19, // 38: ddash.apps.FixWarning.fix:type_name -> ddash.apps.Fix
-	1,  // 39: ddash.apps.AddApp.reach:type_name -> ddash.apps.Reach
-	49, // 40: ddash.apps.AddApp.proxy_host:type_name -> ddash.apps.ProxyHostFields
-	51, // 41: ddash.apps.Plan.steps:type_name -> ddash.apps.PlanStep
-	53, // 42: ddash.apps.Plan.names:type_name -> ddash.apps.NameNote
-	5,  // 43: ddash.apps.PlanStep.system:type_name -> ddash.apps.System
-	52, // 44: ddash.apps.PlanStep.values:type_name -> ddash.apps.PlanValue
-	6,  // 45: ddash.apps.NameNote.kind:type_name -> ddash.apps.NameNoteKind
-	41, // 46: ddash.apps.PlanActionRequest.action:type_name -> ddash.apps.AppAction
-	50, // 47: ddash.apps.PlanActionResponse.plan:type_name -> ddash.apps.Plan
-	41, // 48: ddash.apps.RunActionRequest.action:type_name -> ddash.apps.AppAction
-	50, // 49: ddash.apps.RunActionRequest.plan:type_name -> ddash.apps.Plan
-	7,  // 50: ddash.apps.GetRunResponse.steps:type_name -> ddash.apps.StepState
-	20, // 51: ddash.apps.ListWorkloadsResponse.workloads:type_name -> ddash.apps.Workload
-	22, // 52: ddash.apps.AppsService.ListApps:input_type -> ddash.apps.ListAppsRequest
-	25, // 53: ddash.apps.AppsService.Refresh:input_type -> ddash.apps.RefreshRequest
-	27, // 54: ddash.apps.AppsService.SetSettings:input_type -> ddash.apps.SetSettingsRequest
-	29, // 55: ddash.apps.AppsService.IgnoreWarning:input_type -> ddash.apps.IgnoreWarningRequest
-	31, // 56: ddash.apps.AppsService.UnignoreWarning:input_type -> ddash.apps.UnignoreWarningRequest
-	33, // 57: ddash.apps.AppsService.Reattach:input_type -> ddash.apps.ReattachRequest
-	35, // 58: ddash.apps.AppsService.DeleteRecord:input_type -> ddash.apps.DeleteRecordRequest
-	37, // 59: ddash.apps.AppsService.PromoteAlias:input_type -> ddash.apps.PromoteAliasRequest
-	39, // 60: ddash.apps.AppsService.Merge:input_type -> ddash.apps.MergeRequest
-	54, // 61: ddash.apps.AppsService.PlanAction:input_type -> ddash.apps.PlanActionRequest
-	56, // 62: ddash.apps.AppsService.RunAction:input_type -> ddash.apps.RunActionRequest
-	57, // 63: ddash.apps.AppsService.GetRun:input_type -> ddash.apps.GetRunRequest
-	60, // 64: ddash.apps.AppsService.ListWorkloads:input_type -> ddash.apps.ListWorkloadsRequest
-	23, // 65: ddash.apps.AppsService.ListApps:output_type -> ddash.apps.ListAppsResponse
-	26, // 66: ddash.apps.AppsService.Refresh:output_type -> ddash.apps.RefreshResponse
-	28, // 67: ddash.apps.AppsService.SetSettings:output_type -> ddash.apps.SetSettingsResponse
-	30, // 68: ddash.apps.AppsService.IgnoreWarning:output_type -> ddash.apps.IgnoreWarningResponse
-	32, // 69: ddash.apps.AppsService.UnignoreWarning:output_type -> ddash.apps.UnignoreWarningResponse
-	34, // 70: ddash.apps.AppsService.Reattach:output_type -> ddash.apps.ReattachResponse
-	36, // 71: ddash.apps.AppsService.DeleteRecord:output_type -> ddash.apps.DeleteRecordResponse
-	38, // 72: ddash.apps.AppsService.PromoteAlias:output_type -> ddash.apps.PromoteAliasResponse
-	40, // 73: ddash.apps.AppsService.Merge:output_type -> ddash.apps.MergeResponse
-	55, // 74: ddash.apps.AppsService.PlanAction:output_type -> ddash.apps.PlanActionResponse
-	59, // 75: ddash.apps.AppsService.RunAction:output_type -> ddash.apps.RunActionResponse
-	58, // 76: ddash.apps.AppsService.GetRun:output_type -> ddash.apps.GetRunResponse
-	61, // 77: ddash.apps.AppsService.ListWorkloads:output_type -> ddash.apps.ListWorkloadsResponse
-	65, // [65:78] is the sub-list for method output_type
-	52, // [52:65] is the sub-list for method input_type
-	52, // [52:52] is the sub-list for extension type_name
-	52, // [52:52] is the sub-list for extension extendee
-	0,  // [0:52] is the sub-list for field type_name
+	62, // 13: ddash.apps.ProxyHost.fields:type_name -> ddash.proxyhost.ProxyHostFields
+	17, // 14: ddash.apps.ProxyHost.certificate:type_name -> ddash.apps.Certificate
+	2,  // 15: ddash.apps.Certificate.state:type_name -> ddash.apps.CertificateState
+	4,  // 16: ddash.apps.Warning.kind:type_name -> ddash.apps.WarningKind
+	19, // 17: ddash.apps.Warning.fixes:type_name -> ddash.apps.Fix
+	3,  // 18: ddash.apps.Fix.kind:type_name -> ddash.apps.FixKind
+	15, // 19: ddash.apps.Fix.host_override:type_name -> ddash.apps.HostOverrideOrAlias
+	61, // 20: ddash.apps.Workload.ref:type_name -> ddash.workload.WorkloadRef
+	63, // 21: ddash.apps.SourceRead.read_at:type_name -> google.protobuf.Timestamp
+	63, // 22: ddash.apps.SourceRead.failing_since:type_name -> google.protobuf.Timestamp
+	9,  // 23: ddash.apps.ListAppsResponse.apps:type_name -> ddash.apps.App
+	21, // 24: ddash.apps.ListAppsResponse.proxy_hosts:type_name -> ddash.apps.SourceRead
+	21, // 25: ddash.apps.ListAppsResponse.host_overrides:type_name -> ddash.apps.SourceRead
+	24, // 26: ddash.apps.ListAppsResponse.reverse_proxy:type_name -> ddash.apps.ReverseProxy
+	12, // 27: ddash.apps.SetSettingsRequest.settings:type_name -> ddash.apps.AppSettings
+	4,  // 28: ddash.apps.IgnoreWarningRequest.kind:type_name -> ddash.apps.WarningKind
+	4,  // 29: ddash.apps.UnignoreWarningRequest.kind:type_name -> ddash.apps.WarningKind
+	48, // 30: ddash.apps.AppAction.add:type_name -> ddash.apps.AddApp
+	42, // 31: ddash.apps.AppAction.change_address:type_name -> ddash.apps.ChangeAddress
+	43, // 32: ddash.apps.AppAction.change_proxy_host:type_name -> ddash.apps.ChangeProxyHost
+	44, // 33: ddash.apps.AppAction.add_reverse_proxy:type_name -> ddash.apps.AddReverseProxy
+	45, // 34: ddash.apps.AppAction.remove_reverse_proxy:type_name -> ddash.apps.RemoveReverseProxy
+	46, // 35: ddash.apps.AppAction.delete:type_name -> ddash.apps.DeleteApp
+	47, // 36: ddash.apps.AppAction.fix:type_name -> ddash.apps.FixWarning
+	62, // 37: ddash.apps.ChangeProxyHost.proxy_host:type_name -> ddash.proxyhost.ProxyHostFields
+	62, // 38: ddash.apps.AddReverseProxy.proxy_host:type_name -> ddash.proxyhost.ProxyHostFields
+	19, // 39: ddash.apps.FixWarning.fix:type_name -> ddash.apps.Fix
+	1,  // 40: ddash.apps.AddApp.reach:type_name -> ddash.apps.Reach
+	62, // 41: ddash.apps.AddApp.proxy_host:type_name -> ddash.proxyhost.ProxyHostFields
+	50, // 42: ddash.apps.Plan.steps:type_name -> ddash.apps.PlanStep
+	52, // 43: ddash.apps.Plan.names:type_name -> ddash.apps.NameNote
+	5,  // 44: ddash.apps.PlanStep.system:type_name -> ddash.apps.System
+	51, // 45: ddash.apps.PlanStep.values:type_name -> ddash.apps.PlanValue
+	6,  // 46: ddash.apps.NameNote.kind:type_name -> ddash.apps.NameNoteKind
+	41, // 47: ddash.apps.PlanActionRequest.action:type_name -> ddash.apps.AppAction
+	49, // 48: ddash.apps.PlanActionResponse.plan:type_name -> ddash.apps.Plan
+	41, // 49: ddash.apps.RunActionRequest.action:type_name -> ddash.apps.AppAction
+	49, // 50: ddash.apps.RunActionRequest.plan:type_name -> ddash.apps.Plan
+	7,  // 51: ddash.apps.GetRunResponse.steps:type_name -> ddash.apps.StepState
+	20, // 52: ddash.apps.ListWorkloadsResponse.workloads:type_name -> ddash.apps.Workload
+	22, // 53: ddash.apps.AppsService.ListApps:input_type -> ddash.apps.ListAppsRequest
+	25, // 54: ddash.apps.AppsService.Refresh:input_type -> ddash.apps.RefreshRequest
+	27, // 55: ddash.apps.AppsService.SetSettings:input_type -> ddash.apps.SetSettingsRequest
+	29, // 56: ddash.apps.AppsService.IgnoreWarning:input_type -> ddash.apps.IgnoreWarningRequest
+	31, // 57: ddash.apps.AppsService.UnignoreWarning:input_type -> ddash.apps.UnignoreWarningRequest
+	33, // 58: ddash.apps.AppsService.Reattach:input_type -> ddash.apps.ReattachRequest
+	35, // 59: ddash.apps.AppsService.DeleteRecord:input_type -> ddash.apps.DeleteRecordRequest
+	37, // 60: ddash.apps.AppsService.PromoteAlias:input_type -> ddash.apps.PromoteAliasRequest
+	39, // 61: ddash.apps.AppsService.Merge:input_type -> ddash.apps.MergeRequest
+	53, // 62: ddash.apps.AppsService.PlanAction:input_type -> ddash.apps.PlanActionRequest
+	55, // 63: ddash.apps.AppsService.RunAction:input_type -> ddash.apps.RunActionRequest
+	56, // 64: ddash.apps.AppsService.GetRun:input_type -> ddash.apps.GetRunRequest
+	59, // 65: ddash.apps.AppsService.ListWorkloads:input_type -> ddash.apps.ListWorkloadsRequest
+	23, // 66: ddash.apps.AppsService.ListApps:output_type -> ddash.apps.ListAppsResponse
+	26, // 67: ddash.apps.AppsService.Refresh:output_type -> ddash.apps.RefreshResponse
+	28, // 68: ddash.apps.AppsService.SetSettings:output_type -> ddash.apps.SetSettingsResponse
+	30, // 69: ddash.apps.AppsService.IgnoreWarning:output_type -> ddash.apps.IgnoreWarningResponse
+	32, // 70: ddash.apps.AppsService.UnignoreWarning:output_type -> ddash.apps.UnignoreWarningResponse
+	34, // 71: ddash.apps.AppsService.Reattach:output_type -> ddash.apps.ReattachResponse
+	36, // 72: ddash.apps.AppsService.DeleteRecord:output_type -> ddash.apps.DeleteRecordResponse
+	38, // 73: ddash.apps.AppsService.PromoteAlias:output_type -> ddash.apps.PromoteAliasResponse
+	40, // 74: ddash.apps.AppsService.Merge:output_type -> ddash.apps.MergeResponse
+	54, // 75: ddash.apps.AppsService.PlanAction:output_type -> ddash.apps.PlanActionResponse
+	58, // 76: ddash.apps.AppsService.RunAction:output_type -> ddash.apps.RunActionResponse
+	57, // 77: ddash.apps.AppsService.GetRun:output_type -> ddash.apps.GetRunResponse
+	60, // 78: ddash.apps.AppsService.ListWorkloads:output_type -> ddash.apps.ListWorkloadsResponse
+	66, // [66:79] is the sub-list for method output_type
+	53, // [53:66] is the sub-list for method input_type
+	53, // [53:53] is the sub-list for extension type_name
+	53, // [53:53] is the sub-list for extension extendee
+	0,  // [0:53] is the sub-list for field type_name
 }
 
 func init() { file_apps_apps_proto_init() }
@@ -4574,7 +4345,7 @@ func file_apps_apps_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_apps_apps_proto_rawDesc), len(file_apps_apps_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   54,
+			NumMessages:   53,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

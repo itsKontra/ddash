@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 )
@@ -110,7 +112,7 @@ func (v view) app(r *record) *appspb.App {
 		}
 		if !serves(h, hostname(r.url)) {
 			var fixes []*appspb.Fix
-			for _, n := range a.GetProxyHost().GetDomainNames() {
+			for _, n := range a.GetProxyHost().GetFields().GetDomainNames() {
 				fixes = append(fixes, &appspb.Fix{Kind: appspb.FixKind_FIX_KIND_USE_AS_URL, Hostname: n})
 			}
 			warn(appspb.WarningKind_WARNING_KIND_URL_NOT_ON_PROXY_HOST, "", nil, fixes...)
@@ -272,22 +274,7 @@ func overrideTarget(ips []string, raw string) hostPort {
 }
 
 func proxyHostOf(h *npmpb.ProxyHost) *appspb.ProxyHost {
-	f := h.GetFields()
-	return &appspb.ProxyHost{
-		Id:             h.GetId(),
-		DomainNames:    slices.Sorted(slices.Values(f.GetDomainNames())),
-		ForwardScheme:  f.GetForwardScheme(),
-		ForwardHost:    f.GetForwardHost(),
-		ForwardPort:    f.GetForwardPort(),
-		CertificateId:  f.GetCertificateId(),
-		BlockExploits:  f.GetBlockExploits(),
-		Websockets:     f.GetWebsockets(),
-		ForceSsl:       f.GetForceSsl(),
-		Http2:          f.GetHttp2(),
-		Hsts:           f.GetHsts(),
-		HstsSubdomains: f.GetHstsSubdomains(),
-		Enabled:        h.GetEnabled(),
-		Offline:        h.GetOffline(),
-		NginxError:     h.GetNginxError(),
-	}
+	f := proto.CloneOf(h.GetFields())
+	slices.Sort(f.DomainNames)
+	return &appspb.ProxyHost{Id: h.GetId(), Fields: f, Enabled: h.GetEnabled(), Offline: h.GetOffline(), NginxError: h.GetNginxError()}
 }

@@ -354,7 +354,7 @@ func (c *component) fillCertificates(ctx context.Context, apps []*appspb.App) {
 	c.mu.Unlock()
 	for _, a := range apps {
 		if p := a.GetProxyHost(); p != nil {
-			p.Certificate = proto.CloneOf(certs[p.GetCertificateId()])
+			p.Certificate = proto.CloneOf(certs[p.GetFields().GetCertificateId()])
 		}
 	}
 }

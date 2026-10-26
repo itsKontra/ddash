@@ -81,8 +81,8 @@ type lab struct {
 	// holdApply, when set, holds pfSense's next DNS Resolver applies
 	// until it is closed.
 	holdApply atomic.Pointer[chan struct{}]
-	proxmox      *proxmoxFake
-	docker       *dockerFake
+	proxmox   *proxmoxFake
+	docker    *dockerFake
 }
 
 type labOptions struct {

@@ -10,9 +10,12 @@ import (
 	"strconv"
 	"strings"
 
+	"google.golang.org/protobuf/proto"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // The one Plan builder: every App Action, shown (PlanAction) or run
@@ -295,7 +298,7 @@ func (p planning) ownAddress(raw string) (ip netip.Addr, ok, atRP bool) {
 
 // createProxyHost adds the step creating a Proxy Host with the fields f,
 // titled by its hostname name.
-func (out *planned) createProxyHost(name string, f *npmpb.ProxyHostFields) {
+func (out *planned) createProxyHost(name string, f *proxyhostpb.ProxyHostFields) {
 	out.plan.Steps = append(out.plan.Steps, &appspb.PlanStep{
 		System: appspb.System_SYSTEM_NGINX_PROXY_MANAGER,
 		Title:  "Create Proxy Host " + name,
@@ -467,19 +470,15 @@ func isHostname(n string) bool {
 // proxyHostFields are the Proxy Host fields as Nginx Proxy Manager will
 // save them, with its toggle rules applied, and why they can't be saved
 // ("" when they can).
-func proxyHostFields(in *appspb.ProxyHostFields) (*npmpb.ProxyHostFields, string) {
-	f := &npmpb.ProxyHostFields{
-		ForwardScheme:  strings.ToLower(strings.TrimSpace(in.GetForwardScheme())),
-		ForwardHost:    strings.TrimSpace(in.GetForwardHost()),
-		ForwardPort:    in.GetForwardPort(),
-		CertificateId:  in.GetCertificateId(),
-		BlockExploits:  in.GetBlockExploits(),
-		Websockets:     in.GetWebsockets(),
-		ForceSsl:       in.GetForceSsl(),
-		Http2:          in.GetHttp2(),
-		Hsts:           in.GetHsts(),
-		HstsSubdomains: in.GetHstsSubdomains(),
+func proxyHostFields(in *proxyhostpb.ProxyHostFields) (*proxyhostpb.ProxyHostFields, string) {
+	f := &proxyhostpb.ProxyHostFields{}
+	if in != nil {
+		f = proto.CloneOf(in)
 	}
+	// The domain names are the App's hostnames, which the caller sets.
+	f.DomainNames = nil
+	f.ForwardScheme = strings.ToLower(strings.TrimSpace(f.GetForwardScheme()))
+	f.ForwardHost = strings.TrimSpace(f.GetForwardHost())
 	if f.GetCertificateId() == 0 {
 		f.ForceSsl, f.Http2 = false, false
 	}
@@ -504,8 +503,8 @@ func proxyHostFields(in *appspb.ProxyHostFields) (*npmpb.ProxyHostFields, string
 
 // proxyHostValues are a Proxy Host's managed fields as a step expects them
 // (before; nil for no Proxy Host) and writes them (after).
-func proxyHostValues(before, after *npmpb.ProxyHostFields) []*appspb.PlanValue {
-	texts := func(f *npmpb.ProxyHostFields) []string {
+func proxyHostValues(before, after *proxyhostpb.ProxyHostFields) []*appspb.PlanValue {
+	texts := func(f *proxyhostpb.ProxyHostFields) []string {
 		if f == nil {
 			return make([]string, 4)
 		}

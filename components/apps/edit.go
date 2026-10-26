@@ -11,6 +11,7 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // The Plans of the App Actions changing an App that is there: its
@@ -340,7 +341,7 @@ func (p planning) changeProxyHost(c *appspb.ChangeProxyHost) *planned {
 // updateProxyHost adds the step updating h with the fields f, its title
 // the format title of h's first name, expecting h's managed fields as last
 // read.
-func (out *planned) updateProxyHost(h *npmpb.ProxyHost, f *npmpb.ProxyHostFields, title string) {
+func (out *planned) updateProxyHost(h *npmpb.ProxyHost, f *proxyhostpb.ProxyHostFields, title string) {
 	out.plan.Steps = append(out.plan.Steps, &appspb.PlanStep{
 		System: appspb.System_SYSTEM_NGINX_PROXY_MANAGER,
 		Title:  fmt.Sprintf(title, firstName(h)),

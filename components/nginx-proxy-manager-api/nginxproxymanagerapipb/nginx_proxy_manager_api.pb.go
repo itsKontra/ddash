@@ -15,6 +15,7 @@ package nginxproxymanagerapipb
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	proxyhost "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -359,8 +360,8 @@ func (x *ListProxyHostsResponse) GetProxyHosts() []*ProxyHost {
 type ProxyHost struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Nginx Proxy Manager's id: stable across edits.
-	Id     int64            `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Fields *ProxyHostFields `protobuf:"bytes,2,opt,name=fields,proto3" json:"fields,omitempty"`
+	Id     int64                      `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Fields *proxyhost.ProxyHostFields `protobuf:"bytes,2,opt,name=fields,proto3" json:"fields,omitempty"`
 	// Whether it is enabled; a disabled Proxy Host is saved but not served.
 	Enabled bool `protobuf:"varint,3,opt,name=enabled,proto3" json:"enabled,omitempty"`
 	// Offline: nginx rejected its config when it was last saved
@@ -409,7 +410,7 @@ func (x *ProxyHost) GetId() int64 {
 	return 0
 }
 
-func (x *ProxyHost) GetFields() *ProxyHostFields {
+func (x *ProxyHost) GetFields() *proxyhost.ProxyHostFields {
 	if x != nil {
 		return x.Fields
 	}
@@ -437,138 +438,6 @@ func (x *ProxyHost) GetNginxError() string {
 	return ""
 }
 
-// The fields of a Proxy Host ddash reads and writes.
-type ProxyHostFields struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Its hostnames, sorted as Nginx Proxy Manager stores them.
-	DomainNames []string `protobuf:"bytes,1,rep,name=domain_names,json=domainNames,proto3" json:"domain_names,omitempty"`
-	// The upstream: "http" or "https", a host and a port.
-	ForwardScheme string `protobuf:"bytes,2,opt,name=forward_scheme,json=forwardScheme,proto3" json:"forward_scheme,omitempty"`
-	ForwardHost   string `protobuf:"bytes,3,opt,name=forward_host,json=forwardHost,proto3" json:"forward_host,omitempty"`
-	ForwardPort   int32  `protobuf:"varint,4,opt,name=forward_port,json=forwardPort,proto3" json:"forward_port,omitempty"`
-	// Block Common Exploits.
-	BlockExploits bool `protobuf:"varint,5,opt,name=block_exploits,json=blockExploits,proto3" json:"block_exploits,omitempty"`
-	// Websockets Support.
-	Websockets bool `protobuf:"varint,6,opt,name=websockets,proto3" json:"websockets,omitempty"`
-	// The certificate's id; 0 for none. Nginx Proxy Manager turns Force
-	// SSL and HTTP/2 off without one, and HSTS off without Force SSL.
-	CertificateId int64 `protobuf:"varint,7,opt,name=certificate_id,json=certificateId,proto3" json:"certificate_id,omitempty"`
-	ForceSsl      bool  `protobuf:"varint,8,opt,name=force_ssl,json=forceSsl,proto3" json:"force_ssl,omitempty"`
-	Http2         bool  `protobuf:"varint,9,opt,name=http2,proto3" json:"http2,omitempty"`
-	Hsts          bool  `protobuf:"varint,10,opt,name=hsts,proto3" json:"hsts,omitempty"`
-	// HSTS for subdomains too; off without HSTS.
-	HstsSubdomains bool `protobuf:"varint,11,opt,name=hsts_subdomains,json=hstsSubdomains,proto3" json:"hsts_subdomains,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *ProxyHostFields) Reset() {
-	*x = ProxyHostFields{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ProxyHostFields) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ProxyHostFields) ProtoMessage() {}
-
-func (x *ProxyHostFields) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ProxyHostFields.ProtoReflect.Descriptor instead.
-func (*ProxyHostFields) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *ProxyHostFields) GetDomainNames() []string {
-	if x != nil {
-		return x.DomainNames
-	}
-	return nil
-}
-
-func (x *ProxyHostFields) GetForwardScheme() string {
-	if x != nil {
-		return x.ForwardScheme
-	}
-	return ""
-}
-
-func (x *ProxyHostFields) GetForwardHost() string {
-	if x != nil {
-		return x.ForwardHost
-	}
-	return ""
-}
-
-func (x *ProxyHostFields) GetForwardPort() int32 {
-	if x != nil {
-		return x.ForwardPort
-	}
-	return 0
-}
-
-func (x *ProxyHostFields) GetBlockExploits() bool {
-	if x != nil {
-		return x.BlockExploits
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetWebsockets() bool {
-	if x != nil {
-		return x.Websockets
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetCertificateId() int64 {
-	if x != nil {
-		return x.CertificateId
-	}
-	return 0
-}
-
-func (x *ProxyHostFields) GetForceSsl() bool {
-	if x != nil {
-		return x.ForceSsl
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetHttp2() bool {
-	if x != nil {
-		return x.Http2
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetHsts() bool {
-	if x != nil {
-		return x.Hsts
-	}
-	return false
-}
-
-func (x *ProxyHostFields) GetHstsSubdomains() bool {
-	if x != nil {
-		return x.HstsSubdomains
-	}
-	return false
-}
-
 type ListCertificatesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Bypass the cache and refill it.
@@ -579,7 +448,7 @@ type ListCertificatesRequest struct {
 
 func (x *ListCertificatesRequest) Reset() {
 	*x = ListCertificatesRequest{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[5]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -591,7 +460,7 @@ func (x *ListCertificatesRequest) String() string {
 func (*ListCertificatesRequest) ProtoMessage() {}
 
 func (x *ListCertificatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[5]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -604,7 +473,7 @@ func (x *ListCertificatesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCertificatesRequest.ProtoReflect.Descriptor instead.
 func (*ListCertificatesRequest) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{5}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListCertificatesRequest) GetFresh() bool {
@@ -623,7 +492,7 @@ type ListCertificatesResponse struct {
 
 func (x *ListCertificatesResponse) Reset() {
 	*x = ListCertificatesResponse{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[6]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -635,7 +504,7 @@ func (x *ListCertificatesResponse) String() string {
 func (*ListCertificatesResponse) ProtoMessage() {}
 
 func (x *ListCertificatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[6]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -648,7 +517,7 @@ func (x *ListCertificatesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListCertificatesResponse.ProtoReflect.Descriptor instead.
 func (*ListCertificatesResponse) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{6}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListCertificatesResponse) GetCertificates() []*Certificate {
@@ -678,7 +547,7 @@ type Certificate struct {
 
 func (x *Certificate) Reset() {
 	*x = Certificate{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[7]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -690,7 +559,7 @@ func (x *Certificate) String() string {
 func (*Certificate) ProtoMessage() {}
 
 func (x *Certificate) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[7]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -703,7 +572,7 @@ func (x *Certificate) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Certificate.ProtoReflect.Descriptor instead.
 func (*Certificate) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{7}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Certificate) GetId() int64 {
@@ -763,7 +632,7 @@ type GetStatusRequest struct {
 
 func (x *GetStatusRequest) Reset() {
 	*x = GetStatusRequest{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[8]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -775,7 +644,7 @@ func (x *GetStatusRequest) String() string {
 func (*GetStatusRequest) ProtoMessage() {}
 
 func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[8]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -788,7 +657,7 @@ func (x *GetStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetStatusRequest) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{8}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{7}
 }
 
 type GetStatusResponse struct {
@@ -819,7 +688,7 @@ type GetStatusResponse struct {
 
 func (x *GetStatusResponse) Reset() {
 	*x = GetStatusResponse{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[9]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -831,7 +700,7 @@ func (x *GetStatusResponse) String() string {
 func (*GetStatusResponse) ProtoMessage() {}
 
 func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[9]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -844,7 +713,7 @@ func (x *GetStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetStatusResponse) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{9}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetStatusResponse) GetStatus() Status {
@@ -904,7 +773,7 @@ type RefreshRequest struct {
 
 func (x *RefreshRequest) Reset() {
 	*x = RefreshRequest{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[10]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -916,7 +785,7 @@ func (x *RefreshRequest) String() string {
 func (*RefreshRequest) ProtoMessage() {}
 
 func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[10]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -929,7 +798,7 @@ func (x *RefreshRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshRequest.ProtoReflect.Descriptor instead.
 func (*RefreshRequest) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{10}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{9}
 }
 
 type RefreshResponse struct {
@@ -940,7 +809,7 @@ type RefreshResponse struct {
 
 func (x *RefreshResponse) Reset() {
 	*x = RefreshResponse{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[11]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +821,7 @@ func (x *RefreshResponse) String() string {
 func (*RefreshResponse) ProtoMessage() {}
 
 func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[11]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,19 +834,19 @@ func (x *RefreshResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshResponse.ProtoReflect.Descriptor instead.
 func (*RefreshResponse) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{11}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{10}
 }
 
 type CreateProxyHostRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Fields        *ProxyHostFields       `protobuf:"bytes,1,opt,name=fields,proto3" json:"fields,omitempty"`
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Fields        *proxyhost.ProxyHostFields `protobuf:"bytes,1,opt,name=fields,proto3" json:"fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CreateProxyHostRequest) Reset() {
 	*x = CreateProxyHostRequest{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[12]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +858,7 @@ func (x *CreateProxyHostRequest) String() string {
 func (*CreateProxyHostRequest) ProtoMessage() {}
 
 func (x *CreateProxyHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[12]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1002,10 +871,10 @@ func (x *CreateProxyHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProxyHostRequest.ProtoReflect.Descriptor instead.
 func (*CreateProxyHostRequest) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{12}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{11}
 }
 
-func (x *CreateProxyHostRequest) GetFields() *ProxyHostFields {
+func (x *CreateProxyHostRequest) GetFields() *proxyhost.ProxyHostFields {
 	if x != nil {
 		return x.Fields
 	}
@@ -1022,7 +891,7 @@ type CreateProxyHostResponse struct {
 
 func (x *CreateProxyHostResponse) Reset() {
 	*x = CreateProxyHostResponse{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[13]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1034,7 +903,7 @@ func (x *CreateProxyHostResponse) String() string {
 func (*CreateProxyHostResponse) ProtoMessage() {}
 
 func (x *CreateProxyHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[13]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1047,7 +916,7 @@ func (x *CreateProxyHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateProxyHostResponse.ProtoReflect.Descriptor instead.
 func (*CreateProxyHostResponse) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{13}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CreateProxyHostResponse) GetProxyHost() *ProxyHost {
@@ -1061,14 +930,14 @@ type UpdateProxyHostRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Id    int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	// Every managed field, as it should be after the write.
-	Fields        *ProxyHostFields `protobuf:"bytes,2,opt,name=fields,proto3" json:"fields,omitempty"`
+	Fields        *proxyhost.ProxyHostFields `protobuf:"bytes,2,opt,name=fields,proto3" json:"fields,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *UpdateProxyHostRequest) Reset() {
 	*x = UpdateProxyHostRequest{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[14]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1080,7 +949,7 @@ func (x *UpdateProxyHostRequest) String() string {
 func (*UpdateProxyHostRequest) ProtoMessage() {}
 
 func (x *UpdateProxyHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[14]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1093,7 +962,7 @@ func (x *UpdateProxyHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProxyHostRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProxyHostRequest) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{14}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *UpdateProxyHostRequest) GetId() int64 {
@@ -1103,7 +972,7 @@ func (x *UpdateProxyHostRequest) GetId() int64 {
 	return 0
 }
 
-func (x *UpdateProxyHostRequest) GetFields() *ProxyHostFields {
+func (x *UpdateProxyHostRequest) GetFields() *proxyhost.ProxyHostFields {
 	if x != nil {
 		return x.Fields
 	}
@@ -1119,7 +988,7 @@ type UpdateProxyHostResponse struct {
 
 func (x *UpdateProxyHostResponse) Reset() {
 	*x = UpdateProxyHostResponse{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[15]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1131,7 +1000,7 @@ func (x *UpdateProxyHostResponse) String() string {
 func (*UpdateProxyHostResponse) ProtoMessage() {}
 
 func (x *UpdateProxyHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[15]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1144,7 +1013,7 @@ func (x *UpdateProxyHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProxyHostResponse.ProtoReflect.Descriptor instead.
 func (*UpdateProxyHostResponse) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{15}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *UpdateProxyHostResponse) GetProxyHost() *ProxyHost {
@@ -1163,7 +1032,7 @@ type DeleteProxyHostRequest struct {
 
 func (x *DeleteProxyHostRequest) Reset() {
 	*x = DeleteProxyHostRequest{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[16]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1175,7 +1044,7 @@ func (x *DeleteProxyHostRequest) String() string {
 func (*DeleteProxyHostRequest) ProtoMessage() {}
 
 func (x *DeleteProxyHostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[16]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1188,7 +1057,7 @@ func (x *DeleteProxyHostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProxyHostRequest.ProtoReflect.Descriptor instead.
 func (*DeleteProxyHostRequest) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{16}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *DeleteProxyHostRequest) GetId() int64 {
@@ -1206,7 +1075,7 @@ type DeleteProxyHostResponse struct {
 
 func (x *DeleteProxyHostResponse) Reset() {
 	*x = DeleteProxyHostResponse{}
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[17]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1218,7 +1087,7 @@ func (x *DeleteProxyHostResponse) String() string {
 func (*DeleteProxyHostResponse) ProtoMessage() {}
 
 func (x *DeleteProxyHostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[17]
+	mi := &file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1231,14 +1100,14 @@ func (x *DeleteProxyHostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteProxyHostResponse.ProtoReflect.Descriptor instead.
 func (*DeleteProxyHostResponse) Descriptor() ([]byte, []int) {
-	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{17}
+	return file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP(), []int{16}
 }
 
 var File_nginx_proxy_manager_api_nginx_proxy_manager_api_proto protoreflect.FileDescriptor
 
 const file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc = "" +
 	"\n" +
-	"5nginx-proxy-manager-api/nginx_proxy_manager_api.proto\x12\x1addash.nginxproxymanagerapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xba\x04\n" +
+	"5nginx-proxy-manager-api/nginx_proxy_manager_api.proto\x12\x1addash.nginxproxymanagerapi\x1a\x19ddash/config/config.proto\x1a ddash/proxyhost/proxy_host.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xba\x04\n" +
 	"\x1aNginxProxyManagerApiConfig\x12\xd3\x01\n" +
 	"\x03url\x18\x01 \x01(\tB\xc0\x01\x9a\xb5\x18\xbb\x01\x1a\x03URL\"\x97\x01Nginx Proxy Manager's admin address on port 81, where its API answers. Its own address, not a Proxy Host's name, so ddash reaches it while DNS is down.*\x16http://198.18.1.210:810\x018\x01R\x03url\x12\xd1\x01\n" +
 	"\x05email\x18\x02 \x01(\tB\xba\x01\x9a\xb5\x18\xb5\x01\"\xb0\x01Create a user for ddash in Users. Under Permissions set Item Visibility to All Items, Proxy Hosts to Manage, SSL Certificates to View, everything else to Hidden. Leave 2FA off.0\x01R\x05email\x12r\n" +
@@ -1247,29 +1116,14 @@ const file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc = "" +
 	"\x05fresh\x18\x01 \x01(\bR\x05fresh\"`\n" +
 	"\x16ListProxyHostsResponse\x12F\n" +
 	"\vproxy_hosts\x18\x01 \x03(\v2%.ddash.nginxproxymanagerapi.ProxyHostR\n" +
-	"proxyHosts\"\xb5\x01\n" +
+	"proxyHosts\"\xaa\x01\n" +
 	"\tProxyHost\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12C\n" +
-	"\x06fields\x18\x02 \x01(\v2+.ddash.nginxproxymanagerapi.ProxyHostFieldsR\x06fields\x12\x18\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x128\n" +
+	"\x06fields\x18\x02 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\x06fields\x12\x18\n" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\x12\x18\n" +
 	"\aoffline\x18\x04 \x01(\bR\aoffline\x12\x1f\n" +
 	"\vnginx_error\x18\x05 \x01(\tR\n" +
-	"nginxError\"\xff\x02\n" +
-	"\x0fProxyHostFields\x12!\n" +
-	"\fdomain_names\x18\x01 \x03(\tR\vdomainNames\x12%\n" +
-	"\x0eforward_scheme\x18\x02 \x01(\tR\rforwardScheme\x12!\n" +
-	"\fforward_host\x18\x03 \x01(\tR\vforwardHost\x12!\n" +
-	"\fforward_port\x18\x04 \x01(\x05R\vforwardPort\x12%\n" +
-	"\x0eblock_exploits\x18\x05 \x01(\bR\rblockExploits\x12\x1e\n" +
-	"\n" +
-	"websockets\x18\x06 \x01(\bR\n" +
-	"websockets\x12%\n" +
-	"\x0ecertificate_id\x18\a \x01(\x03R\rcertificateId\x12\x1b\n" +
-	"\tforce_ssl\x18\b \x01(\bR\bforceSsl\x12\x14\n" +
-	"\x05http2\x18\t \x01(\bR\x05http2\x12\x12\n" +
-	"\x04hsts\x18\n" +
-	" \x01(\bR\x04hsts\x12'\n" +
-	"\x0fhsts_subdomains\x18\v \x01(\bR\x0ehstsSubdomains\"/\n" +
+	"nginxError\"/\n" +
 	"\x17ListCertificatesRequest\x12\x14\n" +
 	"\x05fresh\x18\x01 \x01(\bR\x05fresh\"g\n" +
 	"\x18ListCertificatesResponse\x12K\n" +
@@ -1293,15 +1147,15 @@ const file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc = "" +
 	"\x15proxy_hosts_read_only\x18\x06 \x01(\bR\x12proxyHostsReadOnly\x12\x18\n" +
 	"\aaddress\x18\a \x01(\tR\aaddress\"\x10\n" +
 	"\x0eRefreshRequest\"\x11\n" +
-	"\x0fRefreshResponse\"]\n" +
-	"\x16CreateProxyHostRequest\x12C\n" +
-	"\x06fields\x18\x01 \x01(\v2+.ddash.nginxproxymanagerapi.ProxyHostFieldsR\x06fields\"_\n" +
+	"\x0fRefreshResponse\"R\n" +
+	"\x16CreateProxyHostRequest\x128\n" +
+	"\x06fields\x18\x01 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\x06fields\"_\n" +
 	"\x17CreateProxyHostResponse\x12D\n" +
 	"\n" +
-	"proxy_host\x18\x01 \x01(\v2%.ddash.nginxproxymanagerapi.ProxyHostR\tproxyHost\"m\n" +
+	"proxy_host\x18\x01 \x01(\v2%.ddash.nginxproxymanagerapi.ProxyHostR\tproxyHost\"b\n" +
 	"\x16UpdateProxyHostRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\x12C\n" +
-	"\x06fields\x18\x02 \x01(\v2+.ddash.nginxproxymanagerapi.ProxyHostFieldsR\x06fields\"_\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x128\n" +
+	"\x06fields\x18\x02 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\x06fields\"_\n" +
 	"\x17UpdateProxyHostResponse\x12D\n" +
 	"\n" +
 	"proxy_host\x18\x01 \x01(\v2%.ddash.nginxproxymanagerapi.ProxyHostR\tproxyHost\"(\n" +
@@ -1346,7 +1200,7 @@ func file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDescGZIP() []
 }
 
 var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_goTypes = []any{
 	(ErrorReason)(0),                   // 0: ddash.nginxproxymanagerapi.ErrorReason
 	(CertificateState)(0),              // 1: ddash.nginxproxymanagerapi.CertificateState
@@ -1355,49 +1209,49 @@ var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_goTypes = []any{
 	(*ListProxyHostsRequest)(nil),      // 4: ddash.nginxproxymanagerapi.ListProxyHostsRequest
 	(*ListProxyHostsResponse)(nil),     // 5: ddash.nginxproxymanagerapi.ListProxyHostsResponse
 	(*ProxyHost)(nil),                  // 6: ddash.nginxproxymanagerapi.ProxyHost
-	(*ProxyHostFields)(nil),            // 7: ddash.nginxproxymanagerapi.ProxyHostFields
-	(*ListCertificatesRequest)(nil),    // 8: ddash.nginxproxymanagerapi.ListCertificatesRequest
-	(*ListCertificatesResponse)(nil),   // 9: ddash.nginxproxymanagerapi.ListCertificatesResponse
-	(*Certificate)(nil),                // 10: ddash.nginxproxymanagerapi.Certificate
-	(*GetStatusRequest)(nil),           // 11: ddash.nginxproxymanagerapi.GetStatusRequest
-	(*GetStatusResponse)(nil),          // 12: ddash.nginxproxymanagerapi.GetStatusResponse
-	(*RefreshRequest)(nil),             // 13: ddash.nginxproxymanagerapi.RefreshRequest
-	(*RefreshResponse)(nil),            // 14: ddash.nginxproxymanagerapi.RefreshResponse
-	(*CreateProxyHostRequest)(nil),     // 15: ddash.nginxproxymanagerapi.CreateProxyHostRequest
-	(*CreateProxyHostResponse)(nil),    // 16: ddash.nginxproxymanagerapi.CreateProxyHostResponse
-	(*UpdateProxyHostRequest)(nil),     // 17: ddash.nginxproxymanagerapi.UpdateProxyHostRequest
-	(*UpdateProxyHostResponse)(nil),    // 18: ddash.nginxproxymanagerapi.UpdateProxyHostResponse
-	(*DeleteProxyHostRequest)(nil),     // 19: ddash.nginxproxymanagerapi.DeleteProxyHostRequest
-	(*DeleteProxyHostResponse)(nil),    // 20: ddash.nginxproxymanagerapi.DeleteProxyHostResponse
+	(*ListCertificatesRequest)(nil),    // 7: ddash.nginxproxymanagerapi.ListCertificatesRequest
+	(*ListCertificatesResponse)(nil),   // 8: ddash.nginxproxymanagerapi.ListCertificatesResponse
+	(*Certificate)(nil),                // 9: ddash.nginxproxymanagerapi.Certificate
+	(*GetStatusRequest)(nil),           // 10: ddash.nginxproxymanagerapi.GetStatusRequest
+	(*GetStatusResponse)(nil),          // 11: ddash.nginxproxymanagerapi.GetStatusResponse
+	(*RefreshRequest)(nil),             // 12: ddash.nginxproxymanagerapi.RefreshRequest
+	(*RefreshResponse)(nil),            // 13: ddash.nginxproxymanagerapi.RefreshResponse
+	(*CreateProxyHostRequest)(nil),     // 14: ddash.nginxproxymanagerapi.CreateProxyHostRequest
+	(*CreateProxyHostResponse)(nil),    // 15: ddash.nginxproxymanagerapi.CreateProxyHostResponse
+	(*UpdateProxyHostRequest)(nil),     // 16: ddash.nginxproxymanagerapi.UpdateProxyHostRequest
+	(*UpdateProxyHostResponse)(nil),    // 17: ddash.nginxproxymanagerapi.UpdateProxyHostResponse
+	(*DeleteProxyHostRequest)(nil),     // 18: ddash.nginxproxymanagerapi.DeleteProxyHostRequest
+	(*DeleteProxyHostResponse)(nil),    // 19: ddash.nginxproxymanagerapi.DeleteProxyHostResponse
+	(*proxyhost.ProxyHostFields)(nil),  // 20: ddash.proxyhost.ProxyHostFields
 	(*timestamppb.Timestamp)(nil),      // 21: google.protobuf.Timestamp
 }
 var file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_depIdxs = []int32{
 	6,  // 0: ddash.nginxproxymanagerapi.ListProxyHostsResponse.proxy_hosts:type_name -> ddash.nginxproxymanagerapi.ProxyHost
-	7,  // 1: ddash.nginxproxymanagerapi.ProxyHost.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
-	10, // 2: ddash.nginxproxymanagerapi.ListCertificatesResponse.certificates:type_name -> ddash.nginxproxymanagerapi.Certificate
+	20, // 1: ddash.nginxproxymanagerapi.ProxyHost.fields:type_name -> ddash.proxyhost.ProxyHostFields
+	9,  // 2: ddash.nginxproxymanagerapi.ListCertificatesResponse.certificates:type_name -> ddash.nginxproxymanagerapi.Certificate
 	21, // 3: ddash.nginxproxymanagerapi.Certificate.expires_on:type_name -> google.protobuf.Timestamp
 	1,  // 4: ddash.nginxproxymanagerapi.Certificate.state:type_name -> ddash.nginxproxymanagerapi.CertificateState
 	2,  // 5: ddash.nginxproxymanagerapi.GetStatusResponse.status:type_name -> ddash.nginxproxymanagerapi.Status
 	21, // 6: ddash.nginxproxymanagerapi.GetStatusResponse.read_at:type_name -> google.protobuf.Timestamp
 	21, // 7: ddash.nginxproxymanagerapi.GetStatusResponse.last_good_read_at:type_name -> google.protobuf.Timestamp
-	7,  // 8: ddash.nginxproxymanagerapi.CreateProxyHostRequest.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
+	20, // 8: ddash.nginxproxymanagerapi.CreateProxyHostRequest.fields:type_name -> ddash.proxyhost.ProxyHostFields
 	6,  // 9: ddash.nginxproxymanagerapi.CreateProxyHostResponse.proxy_host:type_name -> ddash.nginxproxymanagerapi.ProxyHost
-	7,  // 10: ddash.nginxproxymanagerapi.UpdateProxyHostRequest.fields:type_name -> ddash.nginxproxymanagerapi.ProxyHostFields
+	20, // 10: ddash.nginxproxymanagerapi.UpdateProxyHostRequest.fields:type_name -> ddash.proxyhost.ProxyHostFields
 	6,  // 11: ddash.nginxproxymanagerapi.UpdateProxyHostResponse.proxy_host:type_name -> ddash.nginxproxymanagerapi.ProxyHost
 	4,  // 12: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListProxyHosts:input_type -> ddash.nginxproxymanagerapi.ListProxyHostsRequest
-	8,  // 13: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:input_type -> ddash.nginxproxymanagerapi.ListCertificatesRequest
-	11, // 14: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:input_type -> ddash.nginxproxymanagerapi.GetStatusRequest
-	13, // 15: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:input_type -> ddash.nginxproxymanagerapi.RefreshRequest
-	15, // 16: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:input_type -> ddash.nginxproxymanagerapi.CreateProxyHostRequest
-	17, // 17: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:input_type -> ddash.nginxproxymanagerapi.UpdateProxyHostRequest
-	19, // 18: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:input_type -> ddash.nginxproxymanagerapi.DeleteProxyHostRequest
+	7,  // 13: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:input_type -> ddash.nginxproxymanagerapi.ListCertificatesRequest
+	10, // 14: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:input_type -> ddash.nginxproxymanagerapi.GetStatusRequest
+	12, // 15: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:input_type -> ddash.nginxproxymanagerapi.RefreshRequest
+	14, // 16: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:input_type -> ddash.nginxproxymanagerapi.CreateProxyHostRequest
+	16, // 17: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:input_type -> ddash.nginxproxymanagerapi.UpdateProxyHostRequest
+	18, // 18: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:input_type -> ddash.nginxproxymanagerapi.DeleteProxyHostRequest
 	5,  // 19: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListProxyHosts:output_type -> ddash.nginxproxymanagerapi.ListProxyHostsResponse
-	9,  // 20: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:output_type -> ddash.nginxproxymanagerapi.ListCertificatesResponse
-	12, // 21: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:output_type -> ddash.nginxproxymanagerapi.GetStatusResponse
-	14, // 22: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:output_type -> ddash.nginxproxymanagerapi.RefreshResponse
-	16, // 23: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:output_type -> ddash.nginxproxymanagerapi.CreateProxyHostResponse
-	18, // 24: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:output_type -> ddash.nginxproxymanagerapi.UpdateProxyHostResponse
-	20, // 25: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:output_type -> ddash.nginxproxymanagerapi.DeleteProxyHostResponse
+	8,  // 20: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.ListCertificates:output_type -> ddash.nginxproxymanagerapi.ListCertificatesResponse
+	11, // 21: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.GetStatus:output_type -> ddash.nginxproxymanagerapi.GetStatusResponse
+	13, // 22: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.Refresh:output_type -> ddash.nginxproxymanagerapi.RefreshResponse
+	15, // 23: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.CreateProxyHost:output_type -> ddash.nginxproxymanagerapi.CreateProxyHostResponse
+	17, // 24: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.UpdateProxyHost:output_type -> ddash.nginxproxymanagerapi.UpdateProxyHostResponse
+	19, // 25: ddash.nginxproxymanagerapi.NginxProxyManagerApiService.DeleteProxyHost:output_type -> ddash.nginxproxymanagerapi.DeleteProxyHostResponse
 	19, // [19:26] is the sub-list for method output_type
 	12, // [12:19] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
@@ -1416,7 +1270,7 @@ func file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc), len(file_nginx_proxy_manager_api_nginx_proxy_manager_api_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   18,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

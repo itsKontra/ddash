@@ -12,12 +12,13 @@ import (
 
 	pb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 	"github.com/itsKontra/ddash/sdk"
 )
 
 // wiki is a new Proxy Host's fields, its names out of order.
-func wiki() *pb.ProxyHostFields {
-	return &pb.ProxyHostFields{
+func wiki() *proxyhostpb.ProxyHostFields {
+	return &proxyhostpb.ProxyHostFields{
 		DomainNames:   []string{"wiki.home.example", "docs.home.example"},
 		ForwardScheme: "http", ForwardHost: "198.18.1.201", ForwardPort: 3010,
 		BlockExploits: true, Websockets: true, CertificateId: 3, ForceSsl: true, Http2: true, Hsts: true,
@@ -106,7 +107,7 @@ func TestASaveNginxRejectsIsAnErrorCarryingNginxsMessage(t *testing.T) {
 			return err
 		}, "39"},
 		{"update", func(c pb.NginxProxyManagerApiServiceClient) error {
-			_, err := c.UpdateProxyHost(t.Context(), &pb.UpdateProxyHostRequest{Id: 3, Fields: &pb.ProxyHostFields{
+			_, err := c.UpdateProxyHost(t.Context(), &pb.UpdateProxyHostRequest{Id: 3, Fields: &proxyhostpb.ProxyHostFields{
 				DomainNames: []string{"grafana.home.example"}, ForwardScheme: "http", ForwardHost: "wiki.lan", ForwardPort: 3000,
 			}})
 			return err
@@ -146,7 +147,7 @@ func TestUpdatingAProxyHostKeepsWhatDdashDoesntManage(t *testing.T) {
 	f := npm(t, "hand-tuned")
 	_, c := start(t, f.URL)
 	before := f.ProxyHost(21)
-	fields := &pb.ProxyHostFields{
+	fields := &proxyhostpb.ProxyHostFields{
 		DomainNames:   []string{"n8n.home.example", "automation.home.example"},
 		ForwardScheme: "https", ForwardHost: "198.18.1.207", ForwardPort: 5443,
 		BlockExploits: true, Websockets: false, CertificateId: 3, ForceSsl: true, Http2: false, Hsts: true, HstsSubdomains: false,
@@ -292,15 +293,15 @@ func TestAProxyHostDdashCantSaveIsInvalidArgument(t *testing.T) {
 	_, c := start(t, f.URL)
 	for _, tc := range []struct {
 		name string
-		edit func(*pb.ProxyHostFields)
+		edit func(*proxyhostpb.ProxyHostFields)
 	}{
-		{"no domain name", func(p *pb.ProxyHostFields) { p.DomainNames = nil }},
-		{"an empty domain name", func(p *pb.ProxyHostFields) { p.DomainNames = []string{""} }},
-		{"a scheme other than http or https", func(p *pb.ProxyHostFields) { p.ForwardScheme = "ftp" }},
-		{"no forward host", func(p *pb.ProxyHostFields) { p.ForwardHost = "" }},
-		{"port 0", func(p *pb.ProxyHostFields) { p.ForwardPort = 0 }},
-		{"port 65536", func(p *pb.ProxyHostFields) { p.ForwardPort = 65536 }},
-		{"a negative certificate id", func(p *pb.ProxyHostFields) { p.CertificateId = -1 }},
+		{"no domain name", func(p *proxyhostpb.ProxyHostFields) { p.DomainNames = nil }},
+		{"an empty domain name", func(p *proxyhostpb.ProxyHostFields) { p.DomainNames = []string{""} }},
+		{"a scheme other than http or https", func(p *proxyhostpb.ProxyHostFields) { p.ForwardScheme = "ftp" }},
+		{"no forward host", func(p *proxyhostpb.ProxyHostFields) { p.ForwardHost = "" }},
+		{"port 0", func(p *proxyhostpb.ProxyHostFields) { p.ForwardPort = 0 }},
+		{"port 65536", func(p *proxyhostpb.ProxyHostFields) { p.ForwardPort = 65536 }},
+		{"a negative certificate id", func(p *proxyhostpb.ProxyHostFields) { p.CertificateId = -1 }},
 	} {
 		fields := wiki()
 		tc.edit(fields)

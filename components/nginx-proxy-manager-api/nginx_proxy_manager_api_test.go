@@ -17,6 +17,7 @@ import (
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	pb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
@@ -94,7 +95,7 @@ func TestListsTheProxyHostsSignedInAsDdashsUser(t *testing.T) {
 	// v2.10's flags read 0/1.
 	want := &pb.ProxyHost{
 		Id: 1,
-		Fields: &pb.ProxyHostFields{
+		Fields: &proxyhostpb.ProxyHostFields{
 			DomainNames:   []string{"home.example", "nginx.home.example"},
 			ForwardScheme: "http", ForwardHost: "198.18.1.210", ForwardPort: 81,
 			BlockExploits: true, CertificateId: 3, ForceSsl: true, Http2: true,
@@ -128,8 +129,8 @@ func TestReadsTheFlagsLaterVersionsSendAsTrueAndFalse(t *testing.T) {
 	}
 
 	want := &pb.ListProxyHostsResponse{ProxyHosts: []*pb.ProxyHost{
-		{Id: 13, Fields: &pb.ProxyHostFields{DomainNames: []string{"fullstack.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.1.201", ForwardPort: 3080}},
-		{Id: 3, Fields: &pb.ProxyHostFields{
+		{Id: 13, Fields: &proxyhostpb.ProxyHostFields{DomainNames: []string{"fullstack.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.1.201", ForwardPort: 3080}},
+		{Id: 3, Fields: &proxyhostpb.ProxyHostFields{
 			DomainNames: []string{"grafana.home.example"}, ForwardScheme: "http", ForwardHost: "198.18.1.204", ForwardPort: 3000,
 			BlockExploits: true, Websockets: true, CertificateId: 3, ForceSsl: true, Http2: true, Hsts: true,
 		}, Enabled: true},

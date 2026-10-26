@@ -10,6 +10,8 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_options } from "../ddash/options_pb";
+import type { ProxyHostFields } from "../ddash/proxyhost/proxy_host_pb";
+import { file_ddash_proxyhost_proxy_host } from "../ddash/proxyhost/proxy_host_pb";
 import type { WorkloadRef } from "../ddash/workload/workload_pb";
 import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
@@ -20,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file apps/apps.proto.
  */
 export const file_apps_apps: GenFile = /*@__PURE__*/
-  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLOAwoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nEiwKA2RucxgQIAMoCzIfLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlT3JBbGlhcxIoCgduZXR3b3JrGBEgASgLMhcuZGRhc2guYXBwcy5OZXR3b3JrSW5mbyKPAQoLTmV0d29ya0luZm8SDwoHYWRkcmVzcxgBIAEoCRIvCg1pbnRlcm5ldF9wYXRoGAIgASgOMhguZGRhc2guYXBwcy5JbnRlcm5ldFBhdGgSEwoLYWRzX2FsbG93ZWQYAyABKAgSKQoGZGV2aWNlGAQgASgLMhkuZGRhc2guYXBwcy5OZXR3b3JrRGV2aWNlIioKDU5ldHdvcmtEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkidwoLQXBwU2V0dGluZ3MSDAoEbmFtZRgBIAEoCRIMCgRpY29uGAIgASgJEg0KBWdyb3VwGAMgASgJEg4KBmhpZGRlbhgEIAEoCBItCgh3b3JrbG9hZBgFIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIlMKBUxpbmtzEhUKDXByb3h5X2hvc3RfaWQYASABKAMSMwoNaG9zdF9vdmVycmlkZRgCIAEoCzIcLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlTmFtZSIwChBIb3N0T3ZlcnJpZGVOYW1lEgwKBGhvc3QYASABKAkSDgoGZG9tYWluGAIgASgJIm4KE0hvc3RPdmVycmlkZU9yQWxpYXMSDAoEaG9zdBgBIAEoCRIOCgZkb21haW4YAiABKAkSLAoGcGFyZW50GAMgASgLMhwuZGRhc2guYXBwcy5Ib3N0T3ZlcnJpZGVOYW1lEgsKA2lwcxgEIAMoCSLjAgoJUHJveHlIb3N0EgoKAmlkGAEgASgDEhQKDGRvbWFpbl9uYW1lcxgCIAMoCRIWCg5mb3J3YXJkX3NjaGVtZRgDIAEoCRIUCgxmb3J3YXJkX2hvc3QYBCABKAkSFAoMZm9yd2FyZF9wb3J0GAUgASgFEhYKDmNlcnRpZmljYXRlX2lkGAYgASgDEhYKDmJsb2NrX2V4cGxvaXRzGAcgASgIEhIKCndlYnNvY2tldHMYCCABKAgSEQoJZm9yY2Vfc3NsGAkgASgIEg0KBWh0dHAyGAogASgIEgwKBGhzdHMYCyABKAgSFwoPaHN0c19zdWJkb21haW5zGAwgASgIEg8KB2VuYWJsZWQYDSABKAgSDwoHb2ZmbGluZRgOIAEoCBITCgtuZ2lueF9lcnJvchgPIAEoCRIsCgtjZXJ0aWZpY2F0ZRgQIAEoCzIXLmRkYXNoLmFwcHMuQ2VydGlmaWNhdGUiWQoLQ2VydGlmaWNhdGUSDAoEbmFtZRgBIAEoCRIrCgVzdGF0ZRgCIAEoDjIcLmRkYXNoLmFwcHMuQ2VydGlmaWNhdGVTdGF0ZRIPCgdtZXNzYWdlGAMgASgJIoQBCgdXYXJuaW5nEiUKBGtpbmQYASABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kEg8KB2lnbm9yZWQYAiABKAgSDgoGZGV0YWlsGAMgASgJEhEKCWhvc3RuYW1lcxgEIAMoCRIeCgVmaXhlcxgFIAMoCzIPLmRkYXNoLmFwcHMuRml4IpkBCgNGaXgSIQoEa2luZBgBIAEoDjITLmRkYXNoLmFwcHMuRml4S2luZBIQCghob3N0bmFtZRgCIAEoCRI2Cg1ob3N0X292ZXJyaWRlGAMgASgLMh8uZGRhc2guYXBwcy5Ib3N0T3ZlcnJpZGVPckFsaWFzEg4KBmFwcF9pZBgEIAEoCRIVCg1wcm94eV9ob3N0X2lkGAUgASgDImMKCFdvcmtsb2FkEigKA3JlZhgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEgwKBG5hbWUYAiABKAkSDQoFc3RhdGUYAyABKAkSEAoIb3ZlcnJpZGUYBCABKAgipgEKClNvdXJjZVJlYWQSKwoHcmVhZF9hdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFZXJyb3IYAiABKAkSMQoNZmFpbGluZ19zaW5jZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFgoObm90X2NvbmZpZ3VyZWQYBCABKAgSEQoJcmVhZF9vbmx5GAUgASgIIhEKD0xpc3RBcHBzUmVxdWVzdCLtAQoQTGlzdEFwcHNSZXNwb25zZRIdCgRhcHBzGAEgAygLMg8uZGRhc2guYXBwcy5BcHASKwoLcHJveHlfaG9zdHMYAiABKAsyFi5kZGFzaC5hcHBzLlNvdXJjZVJlYWQSLgoOaG9zdF9vdmVycmlkZXMYAyABKAsyFi5kZGFzaC5hcHBzLlNvdXJjZVJlYWQSLwoNcmV2ZXJzZV9wcm94eRgEIAEoCzIYLmRkYXNoLmFwcHMuUmV2ZXJzZVByb3h5EhUKDW5ldHdvcmtfZXJyb3IYBSABKAkSFQoNYWRndWFyZF9lcnJvchgGIAEoCSJHCgxSZXZlcnNlUHJveHkSDwoHYWRkcmVzcxgBIAEoCRIWCg5ob3N0X292ZXJyaWRlcxgCIAMoCRIOCgZub3RpY2UYAyABKAkiEAoOUmVmcmVzaFJlcXVlc3QiEQoPUmVmcmVzaFJlc3BvbnNlIksKElNldFNldHRpbmdzUmVxdWVzdBIKCgJpZBgBIAEoCRIpCghzZXR0aW5ncxgCIAEoCzIXLmRkYXNoLmFwcHMuQXBwU2V0dGluZ3MiFQoTU2V0U2V0dGluZ3NSZXNwb25zZSJJChRJZ25vcmVXYXJuaW5nUmVxdWVzdBIKCgJpZBgBIAEoCRIlCgRraW5kGAIgASgOMhcuZGRhc2guYXBwcy5XYXJuaW5nS2luZCIXChVJZ25vcmVXYXJuaW5nUmVzcG9uc2UiSwoWVW5pZ25vcmVXYXJuaW5nUmVxdWVzdBIKCgJpZBgBIAEoCRIlCgRraW5kGAIgASgOMhcuZGRhc2guYXBwcy5XYXJuaW5nS2luZCIZChdVbmlnbm9yZVdhcm5pbmdSZXNwb25zZSIpCg9SZWF0dGFjaFJlcXVlc3QSCgoCaWQYASABKAkSCgoCdG8YAiABKAkiEgoQUmVhdHRhY2hSZXNwb25zZSIhChNEZWxldGVSZWNvcmRSZXF1ZXN0EgoKAmlkGAEgASgJIhYKFERlbGV0ZVJlY29yZFJlc3BvbnNlIjAKE1Byb21vdGVBbGlhc1JlcXVlc3QSCgoCaWQYASABKAkSDQoFYWxpYXMYAiABKAkiFgoUUHJvbW90ZUFsaWFzUmVzcG9uc2UiKAoMTWVyZ2VSZXF1ZXN0EgoKAmlkGAEgASgJEgwKBGZyb20YAiABKAkiDwoNTWVyZ2VSZXNwb25zZSLxAgoJQXBwQWN0aW9uEiEKA2FkZBgBIAEoCzISLmRkYXNoLmFwcHMuQWRkQXBwSAASMwoOY2hhbmdlX2FkZHJlc3MYAiABKAsyGS5kZGFzaC5hcHBzLkNoYW5nZUFkZHJlc3NIABI4ChFjaGFuZ2VfcHJveHlfaG9zdBgDIAEoCzIbLmRkYXNoLmFwcHMuQ2hhbmdlUHJveHlIb3N0SAASOAoRYWRkX3JldmVyc2VfcHJveHkYBCABKAsyGy5kZGFzaC5hcHBzLkFkZFJldmVyc2VQcm94eUgAEj4KFHJlbW92ZV9yZXZlcnNlX3Byb3h5GAUgASgLMh4uZGRhc2guYXBwcy5SZW1vdmVSZXZlcnNlUHJveHlIABInCgZkZWxldGUYBiABKAsyFS5kZGFzaC5hcHBzLkRlbGV0ZUFwcEgAEiUKA2ZpeBgHIAEoCzIWLmRkYXNoLmFwcHMuRml4V2FybmluZ0gAQggKBmFjdGlvbiI5Cg1DaGFuZ2VBZGRyZXNzEgoKAmlkGAEgASgJEgsKA3VybBgCIAEoCRIPCgdhbGlhc2VzGAMgAygJIk4KD0NoYW5nZVByb3h5SG9zdBIKCgJpZBgBIAEoCRIvCgpwcm94eV9ob3N0GAIgASgLMhsuZGRhc2guYXBwcy5Qcm94eUhvc3RGaWVsZHMiTgoPQWRkUmV2ZXJzZVByb3h5EgoKAmlkGAEgASgJEi8KCnByb3h5X2hvc3QYAiABKAsyGy5kZGFzaC5hcHBzLlByb3h5SG9zdEZpZWxkcyIxChJSZW1vdmVSZXZlcnNlUHJveHkSCgoCaWQYASABKAkSDwoHYWRkcmVzcxgCIAEoCSIXCglEZWxldGVBcHASCgoCaWQYASABKAkiNgoKRml4V2FybmluZxIKCgJpZBgBIAEoCRIcCgNmaXgYAiABKAsyDy5kZGFzaC5hcHBzLkZpeCKkAQoGQWRkQXBwEgsKA3VybBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSIAoFcmVhY2gYBSABKA4yES5kZGFzaC5hcHBzLlJlYWNoEi8KCnByb3h5X2hvc3QYBiABKAsyGy5kZGFzaC5hcHBzLlByb3h5SG9zdEZpZWxkcxIPCgdhZGRyZXNzGAcgASgJIuIBCg9Qcm94eUhvc3RGaWVsZHMSFgoOZm9yd2FyZF9zY2hlbWUYASABKAkSFAoMZm9yd2FyZF9ob3N0GAIgASgJEhQKDGZvcndhcmRfcG9ydBgDIAEoBRIWCg5jZXJ0aWZpY2F0ZV9pZBgEIAEoAxIWCg5ibG9ja19leHBsb2l0cxgFIAEoCBISCgp3ZWJzb2NrZXRzGAYgASgIEhEKCWZvcmNlX3NzbBgHIAEoCBINCgVodHRwMhgIIAEoCBIMCgRoc3RzGAkgASgIEhcKD2hzdHNfc3ViZG9tYWlucxgKIAEoCCJwCgRQbGFuEiMKBXN0ZXBzGAEgAygLMhQuZGRhc2guYXBwcy5QbGFuU3RlcBIjCgVuYW1lcxgCIAMoCzIULmRkYXNoLmFwcHMuTmFtZU5vdGUSDwoHYmxvY2tlZBgDIAMoCRINCgVub3RlcxgEIAMoCSJkCghQbGFuU3RlcBIiCgZzeXN0ZW0YASABKA4yEi5kZGFzaC5hcHBzLlN5c3RlbRINCgV0aXRsZRgCIAEoCRIlCgZ2YWx1ZXMYAyADKAsyFS5kZGFzaC5hcHBzLlBsYW5WYWx1ZSI5CglQbGFuVmFsdWUSDQoFbGFiZWwYASABKAkSDgoGYmVmb3JlGAIgASgJEg0KBWFmdGVyGAMgASgJIpQBCghOYW1lTm90ZRIQCghob3N0bmFtZRgBIAEoCRImCgRraW5kGAIgASgOMhguZGRhc2guYXBwcy5OYW1lTm90ZUtpbmQSDAoEdGV4dBgDIAEoCRIOCgZhcHBfaWQYBCABKAkSDAoEbmFtZRgFIAEoCRIOCgZoaWRkZW4YBiABKAgSEgoKZGV2aWNlX21hYxgHIAEoCSI6ChFQbGFuQWN0aW9uUmVxdWVzdBIlCgZhY3Rpb24YASABKAsyFS5kZGFzaC5hcHBzLkFwcEFjdGlvbiI0ChJQbGFuQWN0aW9uUmVzcG9uc2USHgoEcGxhbhgBIAEoCzIQLmRkYXNoLmFwcHMuUGxhbiJpChBSdW5BY3Rpb25SZXF1ZXN0EiUKBmFjdGlvbhgBIAEoCzIVLmRkYXNoLmFwcHMuQXBwQWN0aW9uEh4KBHBsYW4YAiABKAsyEC5kZGFzaC5hcHBzLlBsYW4SDgoGcnVuX2lkGAMgASgJIh8KDUdldFJ1blJlcXVlc3QSDgoGcnVuX2lkGAEgASgJIjYKDkdldFJ1blJlc3BvbnNlEiQKBXN0ZXBzGAEgAygOMhUuZGRhc2guYXBwcy5TdGVwU3RhdGUiQQoRUnVuQWN0aW9uUmVzcG9uc2USDgoGYXBwX2lkGAEgASgJEgwKBGRvbmUYAiABKAUSDgoGcmVyZWFkGAMgASgJIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkAKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRInCgl3b3JrbG9hZHMYASADKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkKoMBCgxJbnRlcm5ldFBhdGgSHQoZSU5URVJORVRfUEFUSF9VTlNQRUNJRklFRBAAEhsKF0lOVEVSTkVUX1BBVEhfVFVOTkVMTEVEEAESGAoUSU5URVJORVRfUEFUSF9ESVJFQ1QQAhIdChlJTlRFUk5FVF9QQVRIX05PX0lOVEVSTkVUEAMqXQoFUmVhY2gSFQoRUkVBQ0hfVU5TUEVDSUZJRUQQABIRCg1SRUFDSF9QUk9YSUVEEAESEwoPUkVBQ0hfTElOS19PTkxZEAISFQoRUkVBQ0hfTk9UX1BST1hJRUQQAyq2AQoQQ2VydGlmaWNhdGVTdGF0ZRIhCh1DRVJUSUZJQ0FURV9TVEFURV9VTlNQRUNJRklFRBAAEhgKFENFUlRJRklDQVRFX1NUQVRFX09LEAESIgoeQ0VSVElGSUNBVEVfU1RBVEVfTk9UX1JFTkVXSU5HEAISIgoeQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFU19TT09OEAMSHQoZQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFRBAEKqkDCgdGaXhLaW5kEhgKFEZJWF9LSU5EX1VOU1BFQ0lGSUVEEAASFQoRRklYX0tJTkRfUkVHSVNURVIQARIXChNGSVhfS0lORF9ERUxFVEVfQVBQEAISHgoaRklYX0tJTkRfQUREX1JFVkVSU0VfUFJPWFkQAxIYChRGSVhfS0lORF9SRU1PVkVfTkFNRRAEEiIKHkZJWF9LSU5EX1NFVF9XT1JLTE9BRF9PVkVSUklERRAFEh0KGUZJWF9LSU5EX1BJQ0tfQ0VSVElGSUNBVEUQBhIXChNGSVhfS0lORF9TQVZFX0FHQUlOEAcSFwoTRklYX0tJTkRfVVNFX0FTX1VSTBAIEiMKH0ZJWF9LSU5EX1BPSU5UX0FUX1JFVkVSU0VfUFJPWFkQCRIeChpGSVhfS0lORF9ERUxFVEVfUFJPWFlfSE9TVBAKEhkKFUZJWF9LSU5EX0RFTEVURV9FTlRSWRALEhIKDkZJWF9LSU5EX01FUkdFEAwSFQoRRklYX0tJTkRfUkVBVFRBQ0gQDRIaChZGSVhfS0lORF9ERUxFVEVfT1JQSEFOEA4q9AIKC1dhcm5pbmdLaW5kEhwKGFdBUk5JTkdfS0lORF9VTlNQRUNJRklFRBAAEhwKGFdBUk5JTkdfS0lORF9OT19XT1JLTE9BRBABEhcKE1dBUk5JTkdfS0lORF9OT19UTFMQAhIjCh9XQVJOSU5HX0tJTkRfUFJPWFlfSE9TVF9PRkZMSU5FEAMSJgoiV0FSTklOR19LSU5EX1VSTF9OT1RfT05fUFJPWFlfSE9TVBAEEhkKFVdBUk5JTkdfS0lORF9PUlBIQU5FRBAFEh8KG1dBUk5JTkdfS0lORF9OT1RfUkVHSVNURVJFRBAGEh4KGldBUk5JTkdfS0lORF9OT19QUk9YWV9IT1NUEAcSHQoZV0FSTklOR19LSU5EX0ROU19CWVBBU1NFUxAIEiEKHVdBUk5JTkdfS0lORF9SRUdJU1RFUkVEX1RXSUNFEAkSJQohV0FSTklOR19LSU5EX0hPU1ROQU1FX09OX1RXT19BUFBTEAoqZgoGU3lzdGVtEhYKElNZU1RFTV9VTlNQRUNJRklFRBAAEhAKDFNZU1RFTV9EREFTSBABEh4KGlNZU1RFTV9OR0lOWF9QUk9YWV9NQU5BR0VSEAISEgoOU1lTVEVNX1BGU0VOU0UQAyqfAgoMTmFtZU5vdGVLaW5kEh4KGk5BTUVfTk9URV9LSU5EX1VOU1BFQ0lGSUVEEAASIQodTkFNRV9OT1RFX0tJTkRfTk9UX0FfSE9TVE5BTUUQARIWChJOQU1FX05PVEVfS0lORF9BUFAQAhIgChxOQU1FX05PVEVfS0lORF9SRVZFUlNFX1BST1hZEAMSIAocTkFNRV9OT1RFX0tJTkRfSE9TVF9PVkVSUklERRAEEh0KGU5BTUVfTk9URV9LSU5EX1BST1hZX0hPU1QQBRIZChVOQU1FX05PVEVfS0lORF9ERVZJQ0UQBhIbChdOQU1FX05PVEVfS0lORF9SRUFUVEFDSBAHEhkKFU5BTUVfTk9URV9LSU5EX09SUEhBThAIKoMBCglTdGVwU3RhdGUSGgoWU1RFUF9TVEFURV9VTlNQRUNJRklFRBAAEhYKElNURVBfU1RBVEVfUEVORElORxABEhYKElNURVBfU1RBVEVfUlVOTklORxACEhMKD1NURVBfU1RBVEVfRE9ORRADEhUKEVNURVBfU1RBVEVfRkFJTEVEEAQyyQgKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASSAoHUmVmcmVzaBIaLmRkYXNoLmFwcHMuUmVmcmVzaFJlcXVlc3QaGy5kZGFzaC5hcHBzLlJlZnJlc2hSZXNwb25zZSIEkrUYABJUCgtTZXRTZXR0aW5ncxIeLmRkYXNoLmFwcHMuU2V0U2V0dGluZ3NSZXF1ZXN0Gh8uZGRhc2guYXBwcy5TZXRTZXR0aW5nc1Jlc3BvbnNlIgSStRgAEloKDUlnbm9yZVdhcm5pbmcSIC5kZGFzaC5hcHBzLklnbm9yZVdhcm5pbmdSZXF1ZXN0GiEuZGRhc2guYXBwcy5JZ25vcmVXYXJuaW5nUmVzcG9uc2UiBJK1GAASYAoPVW5pZ25vcmVXYXJuaW5nEiIuZGRhc2guYXBwcy5Vbmlnbm9yZVdhcm5pbmdSZXF1ZXN0GiMuZGRhc2guYXBwcy5Vbmlnbm9yZVdhcm5pbmdSZXNwb25zZSIEkrUYABJLCghSZWF0dGFjaBIbLmRkYXNoLmFwcHMuUmVhdHRhY2hSZXF1ZXN0GhwuZGRhc2guYXBwcy5SZWF0dGFjaFJlc3BvbnNlIgSStRgAElkKDERlbGV0ZVJlY29yZBIfLmRkYXNoLmFwcHMuRGVsZXRlUmVjb3JkUmVxdWVzdBogLmRkYXNoLmFwcHMuRGVsZXRlUmVjb3JkUmVzcG9uc2UiBpK1GAIIARJXCgxQcm9tb3RlQWxpYXMSHy5kZGFzaC5hcHBzLlByb21vdGVBbGlhc1JlcXVlc3QaIC5kZGFzaC5hcHBzLlByb21vdGVBbGlhc1Jlc3BvbnNlIgSStRgAEkQKBU1lcmdlEhguZGRhc2guYXBwcy5NZXJnZVJlcXVlc3QaGS5kZGFzaC5hcHBzLk1lcmdlUmVzcG9uc2UiBpK1GAIIARJTCgpQbGFuQWN0aW9uEh0uZGRhc2guYXBwcy5QbGFuQWN0aW9uUmVxdWVzdBoeLmRkYXNoLmFwcHMuUGxhbkFjdGlvblJlc3BvbnNlIgaKtRgCCAMSTgoJUnVuQWN0aW9uEhwuZGRhc2guYXBwcy5SdW5BY3Rpb25SZXF1ZXN0Gh0uZGRhc2guYXBwcy5SdW5BY3Rpb25SZXNwb25zZSIEkrUYABJHCgZHZXRSdW4SGS5kZGFzaC5hcHBzLkdldFJ1blJlcXVlc3QaGi5kZGFzaC5hcHBzLkdldFJ1blJlc3BvbnNlIgaKtRgCCAMSWgoNTGlzdFdvcmtsb2FkcxIgLmRkYXNoLmFwcHMuTGlzdFdvcmtsb2Fkc1JlcXVlc3QaIS5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXNwb25zZSIEirUYAEI6WjhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FwcHMvYXBwc3BiO2FwcHNwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_timestamp]);
+  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLOAwoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nEiwKA2RucxgQIAMoCzIfLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlT3JBbGlhcxIoCgduZXR3b3JrGBEgASgLMhcuZGRhc2guYXBwcy5OZXR3b3JrSW5mbyKPAQoLTmV0d29ya0luZm8SDwoHYWRkcmVzcxgBIAEoCRIvCg1pbnRlcm5ldF9wYXRoGAIgASgOMhguZGRhc2guYXBwcy5JbnRlcm5ldFBhdGgSEwoLYWRzX2FsbG93ZWQYAyABKAgSKQoGZGV2aWNlGAQgASgLMhkuZGRhc2guYXBwcy5OZXR3b3JrRGV2aWNlIioKDU5ldHdvcmtEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkidwoLQXBwU2V0dGluZ3MSDAoEbmFtZRgBIAEoCRIMCgRpY29uGAIgASgJEg0KBWdyb3VwGAMgASgJEg4KBmhpZGRlbhgEIAEoCBItCgh3b3JrbG9hZBgFIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIlMKBUxpbmtzEhUKDXByb3h5X2hvc3RfaWQYASABKAMSMwoNaG9zdF9vdmVycmlkZRgCIAEoCzIcLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlTmFtZSIwChBIb3N0T3ZlcnJpZGVOYW1lEgwKBGhvc3QYASABKAkSDgoGZG9tYWluGAIgASgJIm4KE0hvc3RPdmVycmlkZU9yQWxpYXMSDAoEaG9zdBgBIAEoCRIOCgZkb21haW4YAiABKAkSLAoGcGFyZW50GAMgASgLMhwuZGRhc2guYXBwcy5Ib3N0T3ZlcnJpZGVOYW1lEgsKA2lwcxgEIAMoCSKuAQoJUHJveHlIb3N0EgoKAmlkGAEgASgDEjAKBmZpZWxkcxgCIAEoCzIgLmRkYXNoLnByb3h5aG9zdC5Qcm94eUhvc3RGaWVsZHMSDwoHZW5hYmxlZBgDIAEoCBIPCgdvZmZsaW5lGAQgASgIEhMKC25naW54X2Vycm9yGAUgASgJEiwKC2NlcnRpZmljYXRlGAYgASgLMhcuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZSJZCgtDZXJ0aWZpY2F0ZRIMCgRuYW1lGAEgASgJEisKBXN0YXRlGAIgASgOMhwuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZVN0YXRlEg8KB21lc3NhZ2UYAyABKAkihAEKB1dhcm5pbmcSJQoEa2luZBgBIAEoDjIXLmRkYXNoLmFwcHMuV2FybmluZ0tpbmQSDwoHaWdub3JlZBgCIAEoCBIOCgZkZXRhaWwYAyABKAkSEQoJaG9zdG5hbWVzGAQgAygJEh4KBWZpeGVzGAUgAygLMg8uZGRhc2guYXBwcy5GaXgimQEKA0ZpeBIhCgRraW5kGAEgASgOMhMuZGRhc2guYXBwcy5GaXhLaW5kEhAKCGhvc3RuYW1lGAIgASgJEjYKDWhvc3Rfb3ZlcnJpZGUYAyABKAsyHy5kZGFzaC5hcHBzLkhvc3RPdmVycmlkZU9yQWxpYXMSDgoGYXBwX2lkGAQgASgJEhUKDXByb3h5X2hvc3RfaWQYBSABKAMiYwoIV29ya2xvYWQSKAoDcmVmGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghvdmVycmlkZRgEIAEoCCKmAQoKU291cmNlUmVhZBIrCgdyZWFkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgCIAEoCRIxCg1mYWlsaW5nX3NpbmNlGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5ub3RfY29uZmlndXJlZBgEIAEoCBIRCglyZWFkX29ubHkYBSABKAgiEQoPTGlzdEFwcHNSZXF1ZXN0Iu0BChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBIrCgtwcm94eV9ob3N0cxgCIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIuCg5ob3N0X292ZXJyaWRlcxgDIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIvCg1yZXZlcnNlX3Byb3h5GAQgASgLMhguZGRhc2guYXBwcy5SZXZlcnNlUHJveHkSFQoNbmV0d29ya19lcnJvchgFIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAYgASgJIkcKDFJldmVyc2VQcm94eRIPCgdhZGRyZXNzGAEgASgJEhYKDmhvc3Rfb3ZlcnJpZGVzGAIgAygJEg4KBm5vdGljZRgDIAEoCSIQCg5SZWZyZXNoUmVxdWVzdCIRCg9SZWZyZXNoUmVzcG9uc2UiSwoSU2V0U2V0dGluZ3NSZXF1ZXN0EgoKAmlkGAEgASgJEikKCHNldHRpbmdzGAIgASgLMhcuZGRhc2guYXBwcy5BcHBTZXR0aW5ncyIVChNTZXRTZXR0aW5nc1Jlc3BvbnNlIkkKFElnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhcKFUlnbm9yZVdhcm5pbmdSZXNwb25zZSJLChZVbmlnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhkKF1VuaWdub3JlV2FybmluZ1Jlc3BvbnNlIikKD1JlYXR0YWNoUmVxdWVzdBIKCgJpZBgBIAEoCRIKCgJ0bxgCIAEoCSISChBSZWF0dGFjaFJlc3BvbnNlIiEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSCgoCaWQYASABKAkiFgoURGVsZXRlUmVjb3JkUmVzcG9uc2UiMAoTUHJvbW90ZUFsaWFzUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVhbGlhcxgCIAEoCSIWChRQcm9tb3RlQWxpYXNSZXNwb25zZSIoCgxNZXJnZVJlcXVlc3QSCgoCaWQYASABKAkSDAoEZnJvbRgCIAEoCSIPCg1NZXJnZVJlc3BvbnNlIvECCglBcHBBY3Rpb24SIQoDYWRkGAEgASgLMhIuZGRhc2guYXBwcy5BZGRBcHBIABIzCg5jaGFuZ2VfYWRkcmVzcxgCIAEoCzIZLmRkYXNoLmFwcHMuQ2hhbmdlQWRkcmVzc0gAEjgKEWNoYW5nZV9wcm94eV9ob3N0GAMgASgLMhsuZGRhc2guYXBwcy5DaGFuZ2VQcm94eUhvc3RIABI4ChFhZGRfcmV2ZXJzZV9wcm94eRgEIAEoCzIbLmRkYXNoLmFwcHMuQWRkUmV2ZXJzZVByb3h5SAASPgoUcmVtb3ZlX3JldmVyc2VfcHJveHkYBSABKAsyHi5kZGFzaC5hcHBzLlJlbW92ZVJldmVyc2VQcm94eUgAEicKBmRlbGV0ZRgGIAEoCzIVLmRkYXNoLmFwcHMuRGVsZXRlQXBwSAASJQoDZml4GAcgASgLMhYuZGRhc2guYXBwcy5GaXhXYXJuaW5nSABCCAoGYWN0aW9uIjkKDUNoYW5nZUFkZHJlc3MSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg8KB2FsaWFzZXMYAyADKAkiUwoPQ2hhbmdlUHJveHlIb3N0EgoKAmlkGAEgASgJEjQKCnByb3h5X2hvc3QYAiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzIlMKD0FkZFJldmVyc2VQcm94eRIKCgJpZBgBIAEoCRI0Cgpwcm94eV9ob3N0GAIgASgLMiAuZGRhc2gucHJveHlob3N0LlByb3h5SG9zdEZpZWxkcyIxChJSZW1vdmVSZXZlcnNlUHJveHkSCgoCaWQYASABKAkSDwoHYWRkcmVzcxgCIAEoCSIXCglEZWxldGVBcHASCgoCaWQYASABKAkiNgoKRml4V2FybmluZxIKCgJpZBgBIAEoCRIcCgNmaXgYAiABKAsyDy5kZGFzaC5hcHBzLkZpeCKpAQoGQWRkQXBwEgsKA3VybBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSIAoFcmVhY2gYBSABKA4yES5kZGFzaC5hcHBzLlJlYWNoEjQKCnByb3h5X2hvc3QYBiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzEg8KB2FkZHJlc3MYByABKAkicAoEUGxhbhIjCgVzdGVwcxgBIAMoCzIULmRkYXNoLmFwcHMuUGxhblN0ZXASIwoFbmFtZXMYAiADKAsyFC5kZGFzaC5hcHBzLk5hbWVOb3RlEg8KB2Jsb2NrZWQYAyADKAkSDQoFbm90ZXMYBCADKAkiZAoIUGxhblN0ZXASIgoGc3lzdGVtGAEgASgOMhIuZGRhc2guYXBwcy5TeXN0ZW0SDQoFdGl0bGUYAiABKAkSJQoGdmFsdWVzGAMgAygLMhUuZGRhc2guYXBwcy5QbGFuVmFsdWUiOQoJUGxhblZhbHVlEg0KBWxhYmVsGAEgASgJEg4KBmJlZm9yZRgCIAEoCRINCgVhZnRlchgDIAEoCSKUAQoITmFtZU5vdGUSEAoIaG9zdG5hbWUYASABKAkSJgoEa2luZBgCIAEoDjIYLmRkYXNoLmFwcHMuTmFtZU5vdGVLaW5kEgwKBHRleHQYAyABKAkSDgoGYXBwX2lkGAQgASgJEgwKBG5hbWUYBSABKAkSDgoGaGlkZGVuGAYgASgIEhIKCmRldmljZV9tYWMYByABKAkiOgoRUGxhbkFjdGlvblJlcXVlc3QSJQoGYWN0aW9uGAEgASgLMhUuZGRhc2guYXBwcy5BcHBBY3Rpb24iNAoSUGxhbkFjdGlvblJlc3BvbnNlEh4KBHBsYW4YASABKAsyEC5kZGFzaC5hcHBzLlBsYW4iaQoQUnVuQWN0aW9uUmVxdWVzdBIlCgZhY3Rpb24YASABKAsyFS5kZGFzaC5hcHBzLkFwcEFjdGlvbhIeCgRwbGFuGAIgASgLMhAuZGRhc2guYXBwcy5QbGFuEg4KBnJ1bl9pZBgDIAEoCSIfCg1HZXRSdW5SZXF1ZXN0Eg4KBnJ1bl9pZBgBIAEoCSI2Cg5HZXRSdW5SZXNwb25zZRIkCgVzdGVwcxgBIAMoDjIVLmRkYXNoLmFwcHMuU3RlcFN0YXRlIkEKEVJ1bkFjdGlvblJlc3BvbnNlEg4KBmFwcF9pZBgBIAEoCRIMCgRkb25lGAIgASgFEg4KBnJlcmVhZBgDIAEoCSIWChRMaXN0V29ya2xvYWRzUmVxdWVzdCJAChVMaXN0V29ya2xvYWRzUmVzcG9uc2USJwoJd29ya2xvYWRzGAEgAygLMhQuZGRhc2guYXBwcy5Xb3JrbG9hZCqDAQoMSW50ZXJuZXRQYXRoEh0KGUlOVEVSTkVUX1BBVEhfVU5TUEVDSUZJRUQQABIbChdJTlRFUk5FVF9QQVRIX1RVTk5FTExFRBABEhgKFElOVEVSTkVUX1BBVEhfRElSRUNUEAISHQoZSU5URVJORVRfUEFUSF9OT19JTlRFUk5FVBADKl0KBVJlYWNoEhUKEVJFQUNIX1VOU1BFQ0lGSUVEEAASEQoNUkVBQ0hfUFJPWElFRBABEhMKD1JFQUNIX0xJTktfT05MWRACEhUKEVJFQUNIX05PVF9QUk9YSUVEEAMqtgEKEENlcnRpZmljYXRlU3RhdGUSIQodQ0VSVElGSUNBVEVfU1RBVEVfVU5TUEVDSUZJRUQQABIYChRDRVJUSUZJQ0FURV9TVEFURV9PSxABEiIKHkNFUlRJRklDQVRFX1NUQVRFX05PVF9SRU5FV0lORxACEiIKHkNFUlRJRklDQVRFX1NUQVRFX0VYUElSRVNfU09PThADEh0KGUNFUlRJRklDQVRFX1NUQVRFX0VYUElSRUQQBCqpAwoHRml4S2luZBIYChRGSVhfS0lORF9VTlNQRUNJRklFRBAAEhUKEUZJWF9LSU5EX1JFR0lTVEVSEAESFwoTRklYX0tJTkRfREVMRVRFX0FQUBACEh4KGkZJWF9LSU5EX0FERF9SRVZFUlNFX1BST1hZEAMSGAoURklYX0tJTkRfUkVNT1ZFX05BTUUQBBIiCh5GSVhfS0lORF9TRVRfV09SS0xPQURfT1ZFUlJJREUQBRIdChlGSVhfS0lORF9QSUNLX0NFUlRJRklDQVRFEAYSFwoTRklYX0tJTkRfU0FWRV9BR0FJThAHEhcKE0ZJWF9LSU5EX1VTRV9BU19VUkwQCBIjCh9GSVhfS0lORF9QT0lOVF9BVF9SRVZFUlNFX1BST1hZEAkSHgoaRklYX0tJTkRfREVMRVRFX1BST1hZX0hPU1QQChIZChVGSVhfS0lORF9ERUxFVEVfRU5UUlkQCxISCg5GSVhfS0lORF9NRVJHRRAMEhUKEUZJWF9LSU5EX1JFQVRUQUNIEA0SGgoWRklYX0tJTkRfREVMRVRFX09SUEhBThAOKvQCCgtXYXJuaW5nS2luZBIcChhXQVJOSU5HX0tJTkRfVU5TUEVDSUZJRUQQABIcChhXQVJOSU5HX0tJTkRfTk9fV09SS0xPQUQQARIXChNXQVJOSU5HX0tJTkRfTk9fVExTEAISIwofV0FSTklOR19LSU5EX1BST1hZX0hPU1RfT0ZGTElORRADEiYKIldBUk5JTkdfS0lORF9VUkxfTk9UX09OX1BST1hZX0hPU1QQBBIZChVXQVJOSU5HX0tJTkRfT1JQSEFORUQQBRIfChtXQVJOSU5HX0tJTkRfTk9UX1JFR0lTVEVSRUQQBhIeChpXQVJOSU5HX0tJTkRfTk9fUFJPWFlfSE9TVBAHEh0KGVdBUk5JTkdfS0lORF9ETlNfQllQQVNTRVMQCBIhCh1XQVJOSU5HX0tJTkRfUkVHSVNURVJFRF9UV0lDRRAJEiUKIVdBUk5JTkdfS0lORF9IT1NUTkFNRV9PTl9UV09fQVBQUxAKKmYKBlN5c3RlbRIWChJTWVNURU1fVU5TUEVDSUZJRUQQABIQCgxTWVNURU1fRERBU0gQARIeChpTWVNURU1fTkdJTlhfUFJPWFlfTUFOQUdFUhACEhIKDlNZU1RFTV9QRlNFTlNFEAMqnwIKDE5hbWVOb3RlS2luZBIeChpOQU1FX05PVEVfS0lORF9VTlNQRUNJRklFRBAAEiEKHU5BTUVfTk9URV9LSU5EX05PVF9BX0hPU1ROQU1FEAESFgoSTkFNRV9OT1RFX0tJTkRfQVBQEAISIAocTkFNRV9OT1RFX0tJTkRfUkVWRVJTRV9QUk9YWRADEiAKHE5BTUVfTk9URV9LSU5EX0hPU1RfT1ZFUlJJREUQBBIdChlOQU1FX05PVEVfS0lORF9QUk9YWV9IT1NUEAUSGQoVTkFNRV9OT1RFX0tJTkRfREVWSUNFEAYSGwoXTkFNRV9OT1RFX0tJTkRfUkVBVFRBQ0gQBxIZChVOQU1FX05PVEVfS0lORF9PUlBIQU4QCCqDAQoJU3RlcFN0YXRlEhoKFlNURVBfU1RBVEVfVU5TUEVDSUZJRUQQABIWChJTVEVQX1NUQVRFX1BFTkRJTkcQARIWChJTVEVQX1NUQVRFX1JVTk5JTkcQAhITCg9TVEVQX1NUQVRFX0RPTkUQAxIVChFTVEVQX1NUQVRFX0ZBSUxFRBAEMskICgtBcHBzU2VydmljZRJLCghMaXN0QXBwcxIbLmRkYXNoLmFwcHMuTGlzdEFwcHNSZXF1ZXN0GhwuZGRhc2guYXBwcy5MaXN0QXBwc1Jlc3BvbnNlIgSKtRgAEkgKB1JlZnJlc2gSGi5kZGFzaC5hcHBzLlJlZnJlc2hSZXF1ZXN0GhsuZGRhc2guYXBwcy5SZWZyZXNoUmVzcG9uc2UiBJK1GAASVAoLU2V0U2V0dGluZ3MSHi5kZGFzaC5hcHBzLlNldFNldHRpbmdzUmVxdWVzdBofLmRkYXNoLmFwcHMuU2V0U2V0dGluZ3NSZXNwb25zZSIEkrUYABJaCg1JZ25vcmVXYXJuaW5nEiAuZGRhc2guYXBwcy5JZ25vcmVXYXJuaW5nUmVxdWVzdBohLmRkYXNoLmFwcHMuSWdub3JlV2FybmluZ1Jlc3BvbnNlIgSStRgAEmAKD1VuaWdub3JlV2FybmluZxIiLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVxdWVzdBojLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVzcG9uc2UiBJK1GAASSwoIUmVhdHRhY2gSGy5kZGFzaC5hcHBzLlJlYXR0YWNoUmVxdWVzdBocLmRkYXNoLmFwcHMuUmVhdHRhY2hSZXNwb25zZSIEkrUYABJZCgxEZWxldGVSZWNvcmQSHy5kZGFzaC5hcHBzLkRlbGV0ZVJlY29yZFJlcXVlc3QaIC5kZGFzaC5hcHBzLkRlbGV0ZVJlY29yZFJlc3BvbnNlIgaStRgCCAESVwoMUHJvbW90ZUFsaWFzEh8uZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXF1ZXN0GiAuZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXNwb25zZSIEkrUYABJECgVNZXJnZRIYLmRkYXNoLmFwcHMuTWVyZ2VSZXF1ZXN0GhkuZGRhc2guYXBwcy5NZXJnZVJlc3BvbnNlIgaStRgCCAESUwoKUGxhbkFjdGlvbhIdLmRkYXNoLmFwcHMuUGxhbkFjdGlvblJlcXVlc3QaHi5kZGFzaC5hcHBzLlBsYW5BY3Rpb25SZXNwb25zZSIGirUYAggDEk4KCVJ1bkFjdGlvbhIcLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVxdWVzdBodLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVzcG9uc2UiBJK1GAASRwoGR2V0UnVuEhkuZGRhc2guYXBwcy5HZXRSdW5SZXF1ZXN0GhouZGRhc2guYXBwcy5HZXRSdW5SZXNwb25zZSIGirUYAggDEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GABCOlo4Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9hcHBzL2FwcHNwYjthcHBzcGJiBnByb3RvMw", [file_ddash_options, file_ddash_proxyhost_proxy_host, file_ddash_workload_workload, file_google_protobuf_timestamp]);
 
 /**
  * apps has nothing to configure: Apps come from its sources.
@@ -395,92 +397,38 @@ export type ProxyHost = Message<"ddash.apps.ProxyHost"> & {
   id: bigint;
 
   /**
-   * Its hostnames, sorted.
+   * Its fields, its hostnames sorted.
    *
-   * @generated from field: repeated string domain_names = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields fields = 2;
    */
-  domainNames: string[];
-
-  /**
-   * The upstream.
-   *
-   * @generated from field: string forward_scheme = 3;
-   */
-  forwardScheme: string;
-
-  /**
-   * @generated from field: string forward_host = 4;
-   */
-  forwardHost: string;
-
-  /**
-   * @generated from field: int32 forward_port = 5;
-   */
-  forwardPort: number;
-
-  /**
-   * The certificate's id; 0 for none.
-   *
-   * @generated from field: int64 certificate_id = 6;
-   */
-  certificateId: bigint;
-
-  /**
-   * @generated from field: bool block_exploits = 7;
-   */
-  blockExploits: boolean;
-
-  /**
-   * @generated from field: bool websockets = 8;
-   */
-  websockets: boolean;
-
-  /**
-   * @generated from field: bool force_ssl = 9;
-   */
-  forceSsl: boolean;
-
-  /**
-   * @generated from field: bool http2 = 10;
-   */
-  http2: boolean;
-
-  /**
-   * @generated from field: bool hsts = 11;
-   */
-  hsts: boolean;
-
-  /**
-   * @generated from field: bool hsts_subdomains = 12;
-   */
-  hstsSubdomains: boolean;
+  fields?: ProxyHostFields | undefined;
 
   /**
    * Disabled in Nginx Proxy Manager: saved but not served. A label, no
    * Warning.
    *
-   * @generated from field: bool enabled = 13;
+   * @generated from field: bool enabled = 3;
    */
   enabled: boolean;
 
   /**
    * Offline: nginx rejected its config when it was last saved.
    *
-   * @generated from field: bool offline = 14;
+   * @generated from field: bool offline = 4;
    */
   offline: boolean;
 
   /**
-   * @generated from field: string nginx_error = 15;
+   * @generated from field: string nginx_error = 5;
    */
   nginxError: string;
 
   /**
-   * The certificate certificate_id names, as Nginx Proxy Manager's last
-   * good read of its certificates lists it; unset for none, or before
-   * that read.
+   * The certificate fields.certificate_id names, as Nginx Proxy Manager's
+   * last good read of its certificates lists it; unset for none, or
+   * before that read.
    *
-   * @generated from field: ddash.apps.Certificate certificate = 16;
+   * @generated from field: ddash.apps.Certificate certificate = 6;
    */
   certificate?: Certificate | undefined;
 };
@@ -1223,7 +1171,7 @@ export type ChangeProxyHost = Message<"ddash.apps.ChangeProxyHost"> & {
   id: string;
 
   /**
-   * @generated from field: ddash.apps.ProxyHostFields proxy_host = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields proxy_host = 2;
    */
   proxyHost?: ProxyHostFields | undefined;
 };
@@ -1249,7 +1197,7 @@ export type AddReverseProxy = Message<"ddash.apps.AddReverseProxy"> & {
   id: string;
 
   /**
-   * @generated from field: ddash.apps.ProxyHostFields proxy_host = 2;
+   * @generated from field: ddash.proxyhost.ProxyHostFields proxy_host = 2;
    */
   proxyHost?: ProxyHostFields | undefined;
 };
@@ -1379,7 +1327,7 @@ export type AddApp = Message<"ddash.apps.AddApp"> & {
   /**
    * PROXIED: the new Proxy Host's fields.
    *
-   * @generated from field: ddash.apps.ProxyHostFields proxy_host = 6;
+   * @generated from field: ddash.proxyhost.ProxyHostFields proxy_host = 6;
    */
   proxyHost?: ProxyHostFields | undefined;
 
@@ -1397,77 +1345,6 @@ export type AddApp = Message<"ddash.apps.AddApp"> & {
  */
 export const AddAppSchema: GenMessage<AddApp> = /*@__PURE__*/
   messageDesc(file_apps_apps, 40);
-
-/**
- * The fields of a Proxy Host ddash manages but its domain names, which are
- * the App's hostnames. Nginx Proxy Manager turns Force SSL and HTTP/2 off
- * without a certificate, HSTS off without Force SSL, and HSTS for
- * subdomains off without HSTS; a Plan shows them so.
- *
- * @generated from message ddash.apps.ProxyHostFields
- */
-export type ProxyHostFields = Message<"ddash.apps.ProxyHostFields"> & {
-  /**
-   * "http" or "https".
-   *
-   * @generated from field: string forward_scheme = 1;
-   */
-  forwardScheme: string;
-
-  /**
-   * @generated from field: string forward_host = 2;
-   */
-  forwardHost: string;
-
-  /**
-   * @generated from field: int32 forward_port = 3;
-   */
-  forwardPort: number;
-
-  /**
-   * One of Nginx Proxy Manager's certificates; 0 for none (plain HTTP).
-   *
-   * @generated from field: int64 certificate_id = 4;
-   */
-  certificateId: bigint;
-
-  /**
-   * @generated from field: bool block_exploits = 5;
-   */
-  blockExploits: boolean;
-
-  /**
-   * @generated from field: bool websockets = 6;
-   */
-  websockets: boolean;
-
-  /**
-   * @generated from field: bool force_ssl = 7;
-   */
-  forceSsl: boolean;
-
-  /**
-   * @generated from field: bool http2 = 8;
-   */
-  http2: boolean;
-
-  /**
-   * @generated from field: bool hsts = 9;
-   */
-  hsts: boolean;
-
-  /**
-   * @generated from field: bool hsts_subdomains = 10;
-   */
-  hstsSubdomains: boolean;
-};
-
-/**
- * Describes the message ddash.apps.ProxyHostFields.
- * Use `create(ProxyHostFieldsSchema)` to create a new message.
- */
-export const ProxyHostFieldsSchema: GenMessage<ProxyHostFields> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 41);
 
 /**
  * An App Action's Plan: its steps in the order they run, the "name is
@@ -1512,7 +1389,7 @@ export type Plan = Message<"ddash.apps.Plan"> & {
  * Use `create(PlanSchema)` to create a new message.
  */
 export const PlanSchema: GenMessage<Plan> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 42);
+  messageDesc(file_apps_apps, 41);
 
 /**
  * One step of a Plan: a write to one system, with the values it expects
@@ -1544,7 +1421,7 @@ export type PlanStep = Message<"ddash.apps.PlanStep"> & {
  * Use `create(PlanStepSchema)` to create a new message.
  */
 export const PlanStepSchema: GenMessage<PlanStep> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 43);
+  messageDesc(file_apps_apps, 42);
 
 /**
  * A value a step expects to find and the one it writes.
@@ -1579,7 +1456,7 @@ export type PlanValue = Message<"ddash.apps.PlanValue"> & {
  * Use `create(PlanValueSchema)` to create a new message.
  */
 export const PlanValueSchema: GenMessage<PlanValue> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 44);
+  messageDesc(file_apps_apps, 43);
 
 /**
  * Why a hostname an Action adds isn't free, or that it reattaches
@@ -1640,7 +1517,7 @@ export type NameNote = Message<"ddash.apps.NameNote"> & {
  * Use `create(NameNoteSchema)` to create a new message.
  */
 export const NameNoteSchema: GenMessage<NameNote> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 45);
+  messageDesc(file_apps_apps, 44);
 
 /**
  * @generated from message ddash.apps.PlanActionRequest
@@ -1657,7 +1534,7 @@ export type PlanActionRequest = Message<"ddash.apps.PlanActionRequest"> & {
  * Use `create(PlanActionRequestSchema)` to create a new message.
  */
 export const PlanActionRequestSchema: GenMessage<PlanActionRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 46);
+  messageDesc(file_apps_apps, 45);
 
 /**
  * @generated from message ddash.apps.PlanActionResponse
@@ -1674,7 +1551,7 @@ export type PlanActionResponse = Message<"ddash.apps.PlanActionResponse"> & {
  * Use `create(PlanActionResponseSchema)` to create a new message.
  */
 export const PlanActionResponseSchema: GenMessage<PlanActionResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 47);
+  messageDesc(file_apps_apps, 46);
 
 /**
  * @generated from message ddash.apps.RunActionRequest
@@ -1706,7 +1583,7 @@ export type RunActionRequest = Message<"ddash.apps.RunActionRequest"> & {
  * Use `create(RunActionRequestSchema)` to create a new message.
  */
 export const RunActionRequestSchema: GenMessage<RunActionRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 48);
+  messageDesc(file_apps_apps, 47);
 
 /**
  * @generated from message ddash.apps.GetRunRequest
@@ -1723,7 +1600,7 @@ export type GetRunRequest = Message<"ddash.apps.GetRunRequest"> & {
  * Use `create(GetRunRequestSchema)` to create a new message.
  */
 export const GetRunRequestSchema: GenMessage<GetRunRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 49);
+  messageDesc(file_apps_apps, 48);
 
 /**
  * @generated from message ddash.apps.GetRunResponse
@@ -1742,7 +1619,7 @@ export type GetRunResponse = Message<"ddash.apps.GetRunResponse"> & {
  * Use `create(GetRunResponseSchema)` to create a new message.
  */
 export const GetRunResponseSchema: GenMessage<GetRunResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 50);
+  messageDesc(file_apps_apps, 49);
 
 /**
  * What an App Action did; also the details of the error of one that
@@ -1781,7 +1658,7 @@ export type RunActionResponse = Message<"ddash.apps.RunActionResponse"> & {
  * Use `create(RunActionResponseSchema)` to create a new message.
  */
 export const RunActionResponseSchema: GenMessage<RunActionResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 51);
+  messageDesc(file_apps_apps, 50);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsRequest
@@ -1794,7 +1671,7 @@ export type ListWorkloadsRequest = Message<"ddash.apps.ListWorkloadsRequest"> & 
  * Use `create(ListWorkloadsRequestSchema)` to create a new message.
  */
 export const ListWorkloadsRequestSchema: GenMessage<ListWorkloadsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 52);
+  messageDesc(file_apps_apps, 51);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsResponse
@@ -1811,7 +1688,7 @@ export type ListWorkloadsResponse = Message<"ddash.apps.ListWorkloadsResponse"> 
  * Use `create(ListWorkloadsResponseSchema)` to create a new message.
  */
 export const ListWorkloadsResponseSchema: GenMessage<ListWorkloadsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 53);
+  messageDesc(file_apps_apps, 52);
 
 /**
  * The internet path, as network names it.

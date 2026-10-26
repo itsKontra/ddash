@@ -7,6 +7,7 @@ syntax = "proto3";
 package ddash.apps;
 
 import "ddash/options.proto";
+import "ddash/proxyhost/proxy_host.proto";
 import "ddash/workload/workload.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -233,30 +234,18 @@ message HostOverrideOrAlias {
 // A Proxy Host as apps last read it from nginx-proxy-manager-api.
 message ProxyHost {
   int64 id = 1;
-  // Its hostnames, sorted.
-  repeated string domain_names = 2;
-  // The upstream.
-  string forward_scheme = 3;
-  string forward_host = 4;
-  int32 forward_port = 5;
-  // The certificate's id; 0 for none.
-  int64 certificate_id = 6;
-  bool block_exploits = 7;
-  bool websockets = 8;
-  bool force_ssl = 9;
-  bool http2 = 10;
-  bool hsts = 11;
-  bool hsts_subdomains = 12;
+  // Its fields, its hostnames sorted.
+  ddash.proxyhost.ProxyHostFields fields = 2;
   // Disabled in Nginx Proxy Manager: saved but not served. A label, no
   // Warning.
-  bool enabled = 13;
+  bool enabled = 3;
   // Offline: nginx rejected its config when it was last saved.
-  bool offline = 14;
-  string nginx_error = 15;
-  // The certificate certificate_id names, as Nginx Proxy Manager's last
-  // good read of its certificates lists it; unset for none, or before
-  // that read.
-  Certificate certificate = 16;
+  bool offline = 4;
+  string nginx_error = 5;
+  // The certificate fields.certificate_id names, as Nginx Proxy Manager's
+  // last good read of its certificates lists it; unset for none, or
+  // before that read.
+  Certificate certificate = 6;
 }
 
 // A Proxy Host's certificate and its state.
@@ -530,7 +519,7 @@ message ChangeAddress {
 // touched or not; the fields ddash doesn't manage are kept.
 message ChangeProxyHost {
   string id = 1;
-  ProxyHostFields proxy_host = 2;
+  ddash.proxyhost.ProxyHostFields proxy_host = 2;
 }
 
 // Put an App without a Proxy Host behind the Reverse Proxy: a Proxy Host
@@ -538,7 +527,7 @@ message ChangeProxyHost {
 // Host Override in place of the App's own Host Override.
 message AddReverseProxy {
   string id = 1;
-  ProxyHostFields proxy_host = 2;
+  ddash.proxyhost.ProxyHostFields proxy_host = 2;
 }
 
 // Take an App from behind the Reverse Proxy: delete its Proxy Host, and
@@ -579,28 +568,9 @@ message AddApp {
   // ddash.
   Reach reach = 5;
   // PROXIED: the new Proxy Host's fields.
-  ProxyHostFields proxy_host = 6;
+  ddash.proxyhost.ProxyHostFields proxy_host = 6;
   // NOT_PROXIED: the address the Host Override resolves to.
   string address = 7;
-}
-
-// The fields of a Proxy Host ddash manages but its domain names, which are
-// the App's hostnames. Nginx Proxy Manager turns Force SSL and HTTP/2 off
-// without a certificate, HSTS off without Force SSL, and HSTS for
-// subdomains off without HSTS; a Plan shows them so.
-message ProxyHostFields {
-  // "http" or "https".
-  string forward_scheme = 1;
-  string forward_host = 2;
-  int32 forward_port = 3;
-  // One of Nginx Proxy Manager's certificates; 0 for none (plain HTTP).
-  int64 certificate_id = 4;
-  bool block_exploits = 5;
-  bool websockets = 6;
-  bool force_ssl = 7;
-  bool http2 = 8;
-  bool hsts = 9;
-  bool hsts_subdomains = 10;
 }
 
 // An App Action's Plan: its steps in the order they run, the "name is

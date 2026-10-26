@@ -18,7 +18,7 @@ export const stateLook: Record<CertificateState, { tone: Tone; label: string }> 
 };
 
 /** The Apps whose Proxy Host uses the certificate. */
-const using = (apps: readonly App[], cert: Certificate) => apps.filter((a) => a.proxyHost && a.proxyHost.certificateId !== 0n && a.proxyHost.certificateId === cert.id);
+const using = (apps: readonly App[], cert: Certificate) => apps.filter((a) => cert.id !== 0n && a.proxyHost?.fields?.certificateId === cert.id);
 
 /** The Apps using a certificate, each linked to its pane on the Apps Page when that Plugin is installed. */
 function Apps({ apps }: { apps: readonly App[] }) {

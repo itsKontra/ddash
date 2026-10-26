@@ -7,9 +7,10 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
-func addReverseProxy(id string, f *appspb.ProxyHostFields) *appspb.AppAction {
+func addReverseProxy(id string, f *proxyhostpb.ProxyHostFields) *appspb.AppAction {
 	return &appspb.AppAction{Action: &appspb.AppAction_AddReverseProxy{AddReverseProxy: &appspb.AddReverseProxy{Id: id, ProxyHost: f}}}
 }
 
@@ -18,7 +19,7 @@ func removeReverseProxy(id, address string) *appspb.AppAction {
 }
 
 // nasProxy is a Proxy Host's fields for the NAS's web UI.
-var nasProxy = &appspb.ProxyHostFields{ForwardScheme: "https", ForwardHost: "198.18.2.10", ForwardPort: 5001, CertificateId: 3, BlockExploits: true, ForceSsl: true}
+var nasProxy = &proxyhostpb.ProxyHostFields{ForwardScheme: "https", ForwardHost: "198.18.2.10", ForwardPort: 5001, CertificateId: 3, BlockExploits: true, ForceSsl: true}
 
 // Add reverse proxy puts a Not-proxied App behind the Reverse Proxy: a
 // Proxy Host for its hostname, and its own Host Override replaced by an

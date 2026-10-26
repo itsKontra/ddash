@@ -25,6 +25,7 @@ import (
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // The round trips of `make smoke-writes` (RunWrites). They run the real
@@ -806,7 +807,7 @@ func (w *writes) proxyHostRoundTrip(ctx context.Context) (string, error) {
 			}
 		}
 	}
-	fields := &nginxproxymanagerapipb.ProxyHostFields{
+	fields := &proxyhostpb.ProxyHostFields{
 		DomainNames: []string{w.proxyHost}, ForwardScheme: "http", ForwardHost: w.ip.String(), ForwardPort: 80, BlockExploits: true,
 	}
 	created, err := w.npm.CreateProxyHost(ctx, &nginxproxymanagerapipb.CreateProxyHostRequest{Fields: fields})

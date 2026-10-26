@@ -68,13 +68,13 @@ export const certificates = {
  */
 export const apps = {
   apps: [
-    { id: "proxy:grafana.home.example", name: "Grafana", url: "https://grafana.home.example", reach: "REACH_PROXIED", proxyHost: { id: "3", certificateId: "1" } },
+    { id: "proxy:grafana.home.example", name: "Grafana", url: "https://grafana.home.example", reach: "REACH_PROXIED", proxyHost: { id: "3", fields: { certificateId: "1" } } },
     {
       id: "proxy:jellyfin.home.example",
       name: "Jellyfin",
       url: "https://jellyfin.home.example",
       reach: "REACH_PROXIED",
-      proxyHost: { id: "7", certificateId: "1", offline: true },
+      proxyHost: { id: "7", fields: { certificateId: "1" }, offline: true },
       warnings: [{ kind: "WARNING_KIND_PROXY_HOST_OFFLINE", detail: "nginx: [emerg] bad" }],
     },
     {
@@ -82,7 +82,7 @@ export const apps = {
       name: "Printer",
       url: "https://printer.home.example",
       reach: "REACH_PROXIED",
-      proxyHost: { id: "12", certificateId: "2", offline: true },
+      proxyHost: { id: "12", fields: { certificateId: "2" }, offline: true },
       warnings: [{ kind: "WARNING_KIND_PROXY_HOST_OFFLINE", ignored: true }],
     },
     {
@@ -91,7 +91,7 @@ export const apps = {
       url: "https://old.home.example",
       hidden: true,
       reach: "REACH_PROXIED",
-      proxyHost: { id: "9", certificateId: "1", offline: true },
+      proxyHost: { id: "9", fields: { certificateId: "1" }, offline: true },
       warnings: [{ kind: "WARNING_KIND_PROXY_HOST_OFFLINE" }],
     },
     {

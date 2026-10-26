@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	pb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
+	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
 // Proxy Host writes. Nginx Proxy Manager writes the row first and tests
@@ -71,7 +72,7 @@ func (c *component) DeleteProxyHost(ctx context.Context, req *pb.DeleteProxyHost
 
 // writable checks that ddash may write Proxy Hosts, signing in first if
 // it must, and that fields (unless nil) can be saved.
-func (c *component) writable(ctx context.Context, fields *pb.ProxyHostFields) error {
+func (c *component) writable(ctx context.Context, fields *proxyhostpb.ProxyHostFields) error {
 	if fields != nil {
 		if msg := invalid(fields); msg != "" {
 			return status.Error(codes.InvalidArgument, msg)
@@ -89,7 +90,7 @@ func (c *component) writable(ctx context.Context, fields *pb.ProxyHostFields) er
 
 // invalid says why Nginx Proxy Manager would refuse fields; "" when it
 // wouldn't.
-func invalid(p *pb.ProxyHostFields) string {
+func invalid(p *proxyhostpb.ProxyHostFields) string {
 	if len(p.GetDomainNames()) == 0 {
 		return "a Proxy Host needs a domain name"
 	}
@@ -114,7 +115,7 @@ func invalid(p *pb.ProxyHostFields) string {
 // body is a POST or PUT body with the fields ddash manages, each named as
 // v2.10's schema names it, and nothing else: v2.10 refuses a field it
 // doesn't know (such as trust_forwarded_proto, from v2.14).
-func body(p *pb.ProxyHostFields) map[string]any {
+func body(p *proxyhostpb.ProxyHostFields) map[string]any {
 	return map[string]any{
 		"domain_names":            p.GetDomainNames(),
 		"forward_scheme":          p.GetForwardScheme(),

@@ -8,6 +8,7 @@ syntax = "proto3";
 package ddash.nginxproxymanagerapi;
 
 import "ddash/config/config.proto";
+import "ddash/proxyhost/proxy_host.proto";
 import "ddash/options.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -108,7 +109,7 @@ message ListProxyHostsResponse {
 message ProxyHost {
   // Nginx Proxy Manager's id: stable across edits.
   int64 id = 1;
-  ProxyHostFields fields = 2;
+  ddash.proxyhost.ProxyHostFields fields = 2;
   // Whether it is enabled; a disabled Proxy Host is saved but not served.
   bool enabled = 3;
   // Offline: nginx rejected its config when it was last saved
@@ -116,28 +117,6 @@ message ProxyHost {
   bool offline = 4;
   // nginx's error from that save (meta.nginx_err); empty unless offline.
   string nginx_error = 5;
-}
-
-// The fields of a Proxy Host ddash reads and writes.
-message ProxyHostFields {
-  // Its hostnames, sorted as Nginx Proxy Manager stores them.
-  repeated string domain_names = 1;
-  // The upstream: "http" or "https", a host and a port.
-  string forward_scheme = 2;
-  string forward_host = 3;
-  int32 forward_port = 4;
-  // Block Common Exploits.
-  bool block_exploits = 5;
-  // Websockets Support.
-  bool websockets = 6;
-  // The certificate's id; 0 for none. Nginx Proxy Manager turns Force
-  // SSL and HTTP/2 off without one, and HSTS off without Force SSL.
-  int64 certificate_id = 7;
-  bool force_ssl = 8;
-  bool http2 = 9;
-  bool hsts = 10;
-  // HSTS for subdomains too; off without HSTS.
-  bool hsts_subdomains = 11;
 }
 
 message ListCertificatesRequest {
@@ -213,7 +192,7 @@ message RefreshRequest {}
 message RefreshResponse {}
 
 message CreateProxyHostRequest {
-  ProxyHostFields fields = 1;
+  ddash.proxyhost.ProxyHostFields fields = 1;
 }
 
 message CreateProxyHostResponse {
@@ -224,7 +203,7 @@ message CreateProxyHostResponse {
 message UpdateProxyHostRequest {
   int64 id = 1;
   // Every managed field, as it should be after the write.
-  ProxyHostFields fields = 2;
+  ddash.proxyhost.ProxyHostFields fields = 2;
 }
 
 message UpdateProxyHostResponse {
