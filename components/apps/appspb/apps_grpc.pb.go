@@ -35,6 +35,7 @@ const (
 	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
 	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
 	AppsService_RunAction_FullMethodName       = "/ddash.apps.AppsService/RunAction"
+	AppsService_GetRun_FullMethodName          = "/ddash.apps.AppsService/GetRun"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
 )
 
@@ -90,8 +91,14 @@ type AppsServiceClient interface {
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
-	// re-read a source.
+	// re-read a source. While it runs, GetRun tells each step's state under
+	// its run_id.
 	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error)
+	// GetRun returns how far the App Action RunAction runs under run_id
+	// has got: each Plan step's state, polled by the Plan Dialog while it
+	// waits for RunAction. Empty before the run's first write and once
+	// RunAction answered, which says how it ended.
+	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -216,6 +223,16 @@ func (c *appsServiceClient) RunAction(ctx context.Context, in *RunActionRequest,
 	return out, nil
 }
 
+func (c *appsServiceClient) GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRunResponse)
+	err := c.cc.Invoke(ctx, AppsService_GetRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListWorkloadsResponse)
@@ -278,8 +295,14 @@ type AppsServiceServer interface {
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
-	// re-read a source.
+	// re-read a source. While it runs, GetRun tells each step's state under
+	// its run_id.
 	RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error)
+	// GetRun returns how far the App Action RunAction runs under run_id
+	// has got: each Plan step's state, polled by the Plan Dialog while it
+	// waits for RunAction. Empty before the run's first write and once
+	// RunAction answered, which says how it ended.
+	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -326,6 +349,9 @@ func (UnimplementedAppsServiceServer) PlanAction(context.Context, *PlanActionReq
 }
 func (UnimplementedAppsServiceServer) RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RunAction not implemented")
+}
+func (UnimplementedAppsServiceServer) GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetRun not implemented")
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
@@ -549,6 +575,24 @@ func _AppsService_RunAction_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AppsService_GetRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).GetRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_GetRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).GetRun(ctx, req.(*GetRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListWorkloadsRequest)
 	if err := dec(in); err != nil {
@@ -617,6 +661,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RunAction",
 			Handler:    _AppsService_RunAction_Handler,
+		},
+		{
+			MethodName: "GetRun",
+			Handler:    _AppsService_GetRun_Handler,
 		},
 		{
 			MethodName: "ListWorkloads",

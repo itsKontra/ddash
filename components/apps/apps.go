@@ -92,6 +92,9 @@ type component struct {
 	// and writes them and the App Checks, alone.
 	turn sync.Mutex
 
+	// runs is the progress of the App Actions running now, for GetRun.
+	runs runs
+
 	mu sync.Mutex
 	// hosts is the last good read of the Proxy Hosts, by id; nil before
 	// the first since Start.

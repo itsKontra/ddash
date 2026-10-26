@@ -119,7 +119,7 @@ it("adds a proxied App by default: the debounced Plan beside the form, and Add s
   await settle();
 
   const [run] = actions(calls);
-  expect(run).toEqual({ method: "RunAction", body: { action: plans(calls)[1].action, plan: wikiPlan } });
+  expect(run).toEqual({ method: "RunAction", body: { action: plans(calls)[1].action, plan: wikiPlan, runId: expect.any(String) } });
   expect(search).toBe("?app=proxy%3Awiki.home.example");
 });
 

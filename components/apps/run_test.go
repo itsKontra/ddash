@@ -266,3 +266,48 @@ func TestAFixStopsWhenPfSenseFailsToApply(t *testing.T) {
 		t.Errorf("RunAction = %v, want %q…", err, want)
 	}
 }
+
+// progress is the steps' states GetRun gives the run id.
+func (l *lab) progress(id string) []appspb.StepState {
+	l.t.Helper()
+	resp := &appspb.GetRunResponse{}
+	l.call("GetRun", &appspb.GetRunRequest{RunId: id}, resp)
+	return resp.GetSteps()
+}
+
+// While an Action runs, GetRun gives each of its Plan's steps' states
+// under the run id the Plugin sent: here Nginx Proxy Manager's step done
+// and pfSense's running while pfSense applies. Once RunAction answered,
+// the run is forgotten.
+func TestGetRunShowsEachStepAsItRuns(t *testing.T) {
+	l := newLab(t, labOptions{})
+	release := make(chan struct{})
+	l.holdApply.Store(&release)
+	plan := l.plan(addWiki)
+	const id = "run-1"
+	ran := make(chan *callError, 1)
+	go func() {
+		ran <- l.try("RunAction", &appspb.RunActionRequest{Action: addWiki, Plan: plan, RunId: id}, nil)
+	}()
+
+	const (
+		pending = appspb.StepState_STEP_STATE_PENDING
+		running = appspb.StepState_STEP_STATE_RUNNING
+		done    = appspb.StepState_STEP_STATE_DONE
+	)
+	want := []appspb.StepState{done, running, pending}
+	var got []appspb.StepState
+	for deadline := time.Now().Add(5 * time.Second); !slices.Equal(got, want) && time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		got = l.progress(id)
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("GetRun while pfSense applies = %v, want %v", got, want)
+	}
+	close(release)
+	if err := <-ran; err != nil {
+		t.Fatalf("RunAction: %v", err)
+	}
+	if got := l.progress(id); len(got) != 0 {
+		t.Errorf("GetRun once RunAction answered = %v, want nothing", got)
+	}
+}

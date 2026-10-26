@@ -78,6 +78,9 @@ type lab struct {
 	// after its next DNS Resolver apply a second late.
 	stallPfSense atomic.Bool
 	applied      atomic.Bool
+	// holdApply, when set, holds pfSense's next DNS Resolver applies
+	// until it is closed.
+	holdApply atomic.Pointer[chan struct{}]
 	proxmox      *proxmoxFake
 	docker       *dockerFake
 }
@@ -152,6 +155,9 @@ func newLab(t *testing.T, o labOptions) *lab {
 		}
 		if r.Method == http.MethodGet && r.URL.Path == "/api/v2/services/dns_resolver/host_overrides" && l.stallPfSense.Load() && l.applied.Load() {
 			time.Sleep(time.Second)
+		}
+		if hold := l.holdApply.Load(); hold != nil && r.Method == http.MethodPost && r.URL.Path == "/api/v2/services/dns_resolver/apply" {
+			<-*hold
 		}
 		l.fw.ServeHTTP(w, r)
 		if r.Method == http.MethodPost && r.URL.Path == "/api/v2/services/dns_resolver/apply" {
