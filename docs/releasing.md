@@ -57,12 +57,17 @@ which produces one artifact set:
    - Proxmox: starts `ddash-smoke`, waits for the task, shuts it down
      gracefully; then tries to start a running Protected Workload and
      passes only if Proxmox refuses the token (were it not refused, the
-     Workload is running already, so nothing changes).
+     Workload is running already, so nothing changes);
+   - Nginx Proxy Manager: creates a Proxy Host for `SMOKE_PROXY_HOST`
+     forwarding to `SMOKE_UNUSED_IP`, changes its port, then deletes it.
+     Cleanup deletes only a Proxy Host with that one hostname forwarding to
+     that address.
 
    Each round trip's cleanup runs after it whether it passed or not (and on
    Ctrl-C), and before it, removing what an interrupted run left. It refuses
    to start when `SMOKE_UNUSED_IP` has a lease, a static map or an AdGuard
-   client, or when `ddash-smoke` isn't stopped. Each line is `ok …`,
+   client, when a Proxy Host holds `SMOKE_PROXY_HOST`, or when `ddash-smoke`
+   isn't stopped. Each line is `ok …`,
    `FAIL …` or `cleanup …`.
 4. Tag and push:
 

@@ -22,16 +22,19 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 )
 
 // The round trips of `make smoke-writes` (RunWrites). They run the real
-// Actions of pfsense-api, adguard-api and proxmox-api, and touch only the
-// smoke targets: the DDASH_SMOKE alias, a static mapping and an AdGuard
-// client for SMOKE_UNUSED_IP made with the smoke MAC and name, the Host
-// Override SMOKE_HOST_OVERRIDE with its alias, and the stopped ddash-smoke
-// LXC. What no Action can undo (deleting the static
+// Actions of pfsense-api, adguard-api, proxmox-api and
+// nginx-proxy-manager-api, and touch only the smoke targets: the
+// DDASH_SMOKE alias, a static mapping and an AdGuard client for
+// SMOKE_UNUSED_IP made with the smoke MAC and name, the Host Override
+// SMOKE_HOST_OVERRIDE with its alias, the stopped ddash-smoke LXC, and a
+// Proxy Host for SMOKE_PROXY_HOST forwarding to SMOKE_UNUSED_IP. What no
+// Action can undo (deleting the static
 // mapping and the client) goes to the system as a raw call. Each round
 // trip's cleanup runs before it, removing what an interrupted run left,
 // and after it, whether it passed or not.
@@ -59,6 +62,10 @@ const (
 	HostOverrideVar = "SMOKE_HOST_OVERRIDE"
 	// ReaddressedAddress is where the Host Override moves (TEST-NET-3).
 	ReaddressedAddress = "203.0.113.64"
+	// ProxyHostVar is the smoke.env variable holding a hostname no Proxy
+	// Host, Redirection Host or 404 Host holds: the Proxy Host round trip
+	// creates one for it, forwarding to UnusedAddressVar's address.
+	ProxyHostVar = "SMOKE_PROXY_HOST"
 	// TripTimeout bounds one round trip, CleanupTimeout its cleanup (which
 	// runs on even after the run is interrupted).
 	TripTimeout    = 5 * time.Minute
@@ -70,7 +77,7 @@ const (
 )
 
 // writeSystems are the system Components the round trips use.
-var writeSystems = []string{"pfsense-api", "adguard-api", "proxmox-api"}
+var writeSystems = []string{"pfsense-api", "adguard-api", "proxmox-api", "nginx-proxy-manager-api"}
 
 // roundTrip is one reversible exercise of a system's Actions.
 type roundTrip struct {
@@ -91,6 +98,7 @@ var roundTrips = []roundTrip{
 	{component: "adguard-api", name: "SetClientFiltering round trip", run: (*writes).clientRoundTrip, undo: (*writes).deleteClient},
 	{component: "proxmox-api", name: SmokeLXC + " start and shutdown", run: (*writes).powerRoundTrip, undo: (*writes).forceSmokeDown},
 	{component: "proxmox-api", name: "Protected refusal", run: (*writes).protectedRefusal},
+	{component: "nginx-proxy-manager-api", name: "Proxy Host round trip", run: (*writes).proxyHostRoundTrip, undo: (*writes).deleteSmokeProxyHosts},
 }
 
 // writes is what the round trips share: the started Components and what
@@ -106,6 +114,9 @@ type writes struct {
 	ag    adguardapipb.AdguardApiServiceClient
 	agCfg *adguardapipb.AdguardApiConfig
 	px    proxmoxapipb.ProxmoxApiServiceClient
+	npm   nginxproxymanagerapipb.NginxProxyManagerApiServiceClient
+	// proxyHost is ProxyHostVar's hostname; empty when unset.
+	proxyHost string
 
 	// smoke is ddash-smoke once a start was sent to it: only then does
 	// cleanup shut it down.
@@ -132,7 +143,11 @@ func RunWrites(ctx context.Context, opts Options) error {
 		return err
 	}
 
-	w := &writes{ip: ip, http: &http.Client{Timeout: CallTimeout}, host: strings.ToLower(strings.TrimSpace(opts.Env[HostOverrideVar]))}
+	w := &writes{
+		ip: ip, http: &http.Client{Timeout: CallTimeout},
+		host:      strings.ToLower(strings.TrimSpace(opts.Env[HostOverrideVar])),
+		proxyHost: strings.TrimSpace(opts.Env[ProxyHostVar]),
+	}
 	var errs []error
 	fail := func(err error) {
 		fmt.Fprintf(opts.Log, "FAIL %v\n", err)
@@ -154,6 +169,8 @@ func RunWrites(ctx context.Context, opts Options) error {
 					w.ag, w.agCfg = adguardapipb.NewAdguardApiServiceClient(conn), c
 				case *proxmoxapipb.ProxmoxApiConfig:
 					w.px = proxmoxapipb.NewProxmoxApiServiceClient(conn)
+				case *nginxproxymanagerapipb.NginxProxyManagerApiConfig:
+					w.npm = nginxproxymanagerapipb.NewNginxProxyManagerApiServiceClient(conn)
 				}
 			}
 		}
@@ -768,6 +785,99 @@ func (w *writes) do(req *http.Request) ([]byte, int, error) {
 	defer resp.Body.Close()
 	b, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
 	return b, resp.StatusCode, err
+}
+
+// Nginx Proxy Manager: a Proxy Host for SMOKE_PROXY_HOST, forwarding to
+// the unused address. That pair marks it as the smoke target: cleanup
+// deletes only a Proxy Host with exactly that hostname forwarding there.
+
+func (w *writes) proxyHostRoundTrip(ctx context.Context) (string, error) {
+	if w.proxyHost == "" {
+		return "", fmt.Errorf("set %s in smoke.env: a hostname no Proxy Host, Redirection Host or 404 Host holds", ProxyHostVar)
+	}
+	hosts, err := w.proxyHosts(ctx)
+	if err != nil {
+		return "", err
+	}
+	for _, h := range hosts {
+		for _, name := range h.GetFields().GetDomainNames() {
+			if strings.EqualFold(name, w.proxyHost) {
+				return "", fmt.Errorf("%s is held by Proxy Host %d (pick another %s)", name, h.GetId(), ProxyHostVar)
+			}
+		}
+	}
+	fields := &nginxproxymanagerapipb.ProxyHostFields{
+		DomainNames: []string{w.proxyHost}, ForwardScheme: "http", ForwardHost: w.ip.String(), ForwardPort: 80, BlockExploits: true,
+	}
+	created, err := w.npm.CreateProxyHost(ctx, &nginxproxymanagerapipb.CreateProxyHostRequest{Fields: fields})
+	if err != nil {
+		return "", fmt.Errorf("CreateProxyHost: %w", err)
+	}
+	id := created.GetProxyHost().GetId()
+	if got := created.GetProxyHost().GetFields(); got.GetForwardPort() != 80 || !got.GetBlockExploits() || !slices.Equal(got.GetDomainNames(), fields.GetDomainNames()) {
+		return "", fmt.Errorf("CreateProxyHost answered %v, want %v", got, fields)
+	}
+	fields.ForwardPort, fields.Websockets = 8080, true
+	updated, err := w.npm.UpdateProxyHost(ctx, &nginxproxymanagerapipb.UpdateProxyHostRequest{Id: id, Fields: fields})
+	if err != nil {
+		return "", fmt.Errorf("UpdateProxyHost: %w", err)
+	}
+	if got := updated.GetProxyHost().GetFields(); got.GetForwardPort() != 8080 || !got.GetWebsockets() {
+		return "", fmt.Errorf("UpdateProxyHost answered %v, want port 8080 with Websockets", got)
+	}
+	if hosts, err = w.proxyHosts(ctx); err != nil {
+		return "", err
+	}
+	i := slices.IndexFunc(hosts, func(h *nginxproxymanagerapipb.ProxyHost) bool { return h.GetId() == id })
+	if i < 0 || hosts[i].GetFields().GetForwardPort() != 8080 {
+		return "", fmt.Errorf("ListProxyHosts doesn't list Proxy Host %d as updated", id)
+	}
+	if _, err := w.npm.DeleteProxyHost(ctx, &nginxproxymanagerapipb.DeleteProxyHostRequest{Id: id}); err != nil {
+		return "", fmt.Errorf("DeleteProxyHost: %w", err)
+	}
+	if hosts, err = w.proxyHosts(ctx); err != nil {
+		return "", err
+	}
+	if slices.ContainsFunc(hosts, func(h *nginxproxymanagerapipb.ProxyHost) bool { return h.GetId() == id }) {
+		return "", fmt.Errorf("ListProxyHosts still lists Proxy Host %d after its delete", id)
+	}
+	return w.proxyHost, nil
+}
+
+// deleteSmokeProxyHosts deletes every Proxy Host for SMOKE_PROXY_HOST
+// alone that forwards to the unused address.
+func (w *writes) deleteSmokeProxyHosts(ctx context.Context) (string, error) {
+	if w.proxyHost == "" {
+		return "", nil
+	}
+	hosts, err := w.proxyHosts(ctx)
+	if err != nil {
+		return "", err
+	}
+	var deleted []string
+	for _, h := range hosts {
+		f := h.GetFields()
+		if len(f.GetDomainNames()) != 1 || !strings.EqualFold(f.GetDomainNames()[0], w.proxyHost) || f.GetForwardHost() != w.ip.String() {
+			continue
+		}
+		if _, err := w.npm.DeleteProxyHost(ctx, &nginxproxymanagerapipb.DeleteProxyHostRequest{Id: h.GetId()}); err != nil {
+			return "", fmt.Errorf("DeleteProxyHost %d: %w", h.GetId(), err)
+		}
+		deleted = append(deleted, fmt.Sprintf("Proxy Host %d %s", h.GetId(), f.GetDomainNames()[0]))
+	}
+	if len(deleted) == 0 {
+		return "", nil
+	}
+	return "deleted " + strings.Join(deleted, ", "), nil
+}
+
+// proxyHosts reads every Proxy Host fresh.
+func (w *writes) proxyHosts(ctx context.Context) ([]*nginxproxymanagerapipb.ProxyHost, error) {
+	r, err := w.npm.ListProxyHosts(ctx, &nginxproxymanagerapipb.ListProxyHostsRequest{Fresh: true})
+	if err != nil {
+		return nil, fmt.Errorf("ListProxyHosts: %w", err)
+	}
+	return r.GetProxyHosts(), nil
 }
 
 // Proxmox: ddash-smoke and a Protected Workload.

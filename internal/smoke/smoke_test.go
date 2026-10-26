@@ -73,6 +73,10 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok proxmox-api ListWorkloads",
 		"ok nginx-config GetSnapshot",
 		"ok nginx-config health",
+		"ok nginx-proxy-manager-api ListProxyHosts",
+		"ok nginx-proxy-manager-api ListCertificates",
+		"ok nginx-proxy-manager-api GetStatus",
+		"ok nginx-proxy-manager-api health",
 	} {
 		if !strings.Contains(log, want+"\n") {
 			t.Errorf("log lacks %q:\n%s", want, log)
@@ -147,6 +151,8 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 		"components/proxmox-api/testdata/baseline/api2/json/cluster/resources.json",
 		"components/docker-api/testdata/baseline/v1.44/containers/json.json",
 		"components/nginx-config/testdata/baseline/nginx_-T.stdout",
+		"components/nginx-proxy-manager-api/testdata/baseline/api/nginx/proxy-hosts.json",
+		"components/nginx-proxy-manager-api/testdata/baseline/api/users/me.json",
 	} {
 		if _, err := os.Stat(filepath.Join(root, file)); err != nil {
 			t.Errorf("not recorded: %v", err)
@@ -166,6 +172,10 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 	}
 	if strings.Contains(string(querylog), "site196.example") || !strings.Contains(string(querylog), "news.example") {
 		t.Errorf("a scrub.map literal survived in the query log")
+	}
+	token, _ := os.ReadFile(filepath.Join(root, "components/nginx-proxy-manager-api/testdata/baseline/api/tokens.post.json"))
+	if !strings.Contains(string(token), `"token": "REDACTED"`) {
+		t.Errorf("the sign-in's token wasn't redacted:\n%s", token)
 	}
 
 	// The recording is a lab of its own: smoke passes against it too.

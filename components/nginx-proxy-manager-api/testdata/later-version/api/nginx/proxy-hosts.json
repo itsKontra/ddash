@@ -1,0 +1,64 @@
+[
+  {
+    "id": 3,
+    "created_on": "2024-03-04 18:03:11",
+    "modified_on": "2026-08-12 09:21:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "grafana.home.example"
+    ],
+    "forward_host": "198.18.1.204",
+    "forward_port": 3000,
+    "access_list_id": 0,
+    "certificate_id": 3,
+    "ssl_forced": true,
+    "caching_enabled": false,
+    "block_exploits": true,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": true,
+    "http2_support": true,
+    "forward_scheme": "http",
+    "enabled": true,
+    "locations": [],
+    "hsts_enabled": true,
+    "hsts_subdomains": false,
+    "trust_forwarded_proto": false
+  },
+  {
+    "id": 13,
+    "created_on": "2024-03-14 18:13:11",
+    "modified_on": "2026-08-12 09:31:42",
+    "owner_user_id": 1,
+    "domain_names": [
+      "fullstack.home.example"
+    ],
+    "forward_host": "198.18.1.201",
+    "forward_port": 3080,
+    "access_list_id": 0,
+    "certificate_id": 0,
+    "ssl_forced": false,
+    "caching_enabled": false,
+    "block_exploits": false,
+    "advanced_config": "",
+    "meta": {
+      "letsencrypt_agree": false,
+      "dns_challenge": false,
+      "nginx_online": true,
+      "nginx_err": null
+    },
+    "allow_websocket_upgrade": false,
+    "http2_support": false,
+    "forward_scheme": "http",
+    "enabled": false,
+    "locations": [],
+    "hsts_enabled": false,
+    "hsts_subdomains": false,
+    "trust_forwarded_proto": false
+  }
+]
