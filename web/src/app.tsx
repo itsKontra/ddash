@@ -1,5 +1,5 @@
 import { CoreScope, InstalledPlugins, PluginHost, PluginScope, type Fetch, type PluginDefinition, type QueryClient } from "@ddash/plugin";
-import { cx, ErrorFrame, Notice, PageTitle, Skeleton, StatusDot, type Tone } from "@ddash/ui";
+import { cx, ErrorFrame, Notice, PageTitle, Skeleton, StatusDot, StripSwitcher, type Tone } from "@ddash/ui";
 import { useState } from "react";
 import { Route, Routes, useLocation, useParams, useRoutes } from "react-router";
 import { useAppearance } from "./appearance";
@@ -52,6 +52,8 @@ function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBund
           <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
         </Routes>
       </Chrome>
+      {/* PROTOTYPE: the row action strip's variants. */}
+      {import.meta.env.DEV && <StripSwitcher />}
     </InstalledPlugins>
   );
 }

@@ -1,10 +1,11 @@
 import { useQuery } from "@ddash/plugin";
 import { AddressSource, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { DataTable, EmptyState, Notice, PageTitle, Panel, Pill, type Column, type Tone } from "@ddash/ui";
+import { DataTable, EmptyState, Notice, PageTitle, Panel, Pill, useStripVariant, type Column, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
-import { PowerMenu } from "./power";
+import { powerMgmt } from "./power";
+import { WorkloadAside, WorkloadStatus, WorkloadStrip } from "./proto-strip";
 
 /** How each of Proxmox's statuses reads at a glance. */
 export const tones: Record<string, Tone> = {
@@ -80,7 +81,7 @@ const columns: readonly Column<Workload>[] = [
     sortValue: (w) => w.name,
     cell: (w) => <Link to={`workloads/${w.vmid}`}>{w.name}</Link>,
   },
-  { id: "status", header: "Status", sortable: true, sortValue: (w) => w.status, cell: (w) => <StatusPill workload={w} /> },
+  { id: "status", header: "Status", sortable: true, sortValue: (w) => w.status, cell: (w) => <WorkloadStatus workload={w} /> },
   { id: "id", header: "ID", sortable: true, sortValue: (w) => w.vmid, hideBelow: "sm", cell: (w) => <span className="tabular-nums">{w.vmid}</span> },
   { id: "kind", header: "Kind", cell: (w) => kindLabel(w.kind) },
   { id: "tags", header: "Tags", hideBelow: "sm", cell: (w) => <Tags workload={w} /> },
@@ -90,12 +91,14 @@ const columns: readonly Column<Workload>[] = [
   { id: "network", header: "Network", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).network}</span> },
   { id: "uptime", header: "Uptime", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span> },
   { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} /> },
-  { id: "power", header: <span className="sr-only">Power</span>, align: "right", cell: (w) => <PowerMenu workload={w} /> },
 ];
 
 /** The proxmox Page: every LXC and VM with its status, resources and IPs, and a menu of its power Actions. */
 export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
+  const perms = useQuery(ProxmoxApiService.method.listPermissions, {});
+  const v = useStripVariant();
+  const isProtected = (w: Workload) => !!perms.data && !perms.data.workloads.find((p) => p.vmid === w.vmid)?.privileges.includes(powerMgmt);
   return (
     <div>
       <PageTitle kicker="Infrastructure" title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
@@ -103,7 +106,16 @@ export function Workloads() {
         <Unlisted error={error} />
       ) : (
         <Panel flush>
-          <DataTable rows={data?.workloads ?? []} rowKey={(w) => String(w.vmid)} columns={columns} loading={!data} empty="Proxmox lists no LXCs or VMs" />
+          <DataTable
+            rows={data?.workloads ?? []}
+            rowKey={(w) => String(w.vmid)}
+            columns={columns}
+            loading={!data}
+            empty="Proxmox lists no LXCs or VMs"
+            strip={(w) => <WorkloadStrip workload={w} />}
+            hasStrip={(w) => v !== "1" || !isProtected(w)}
+            stripAside={(w) => <WorkloadAside workload={w} />}
+          />
         </Panel>
       )}
     </div>

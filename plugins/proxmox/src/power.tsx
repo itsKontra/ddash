@@ -22,10 +22,14 @@ const running: Record<PowerAction, string> = {
 };
 
 /** One power Action offered on a Workload. */
-interface Item {
+export interface Item {
   label: "Start" | "Stop" | "Restart";
   danger: boolean;
   run: () => void;
+  /** PROTOTYPE: runs it without the ConfirmDialog, for a strip that asks its own way. */
+  now: () => void;
+  /** PROTOTYPE: the confirm question, for a disruptive one. */
+  ask?: string;
 }
 
 /**
@@ -47,17 +51,26 @@ export function usePower(w: Workload) {
   const request = { workload: refOf(w) };
   const items: Item[] = [];
   if (!w.template && w.status === "running") {
+    const askRestart = `Restart ${label}?`;
+    const askStop = `Stop ${label}? Proxmox shuts it down cleanly and turns it off after 45 s if it hasn't stopped.`;
     items.push(
-      { label: "Restart", danger: true, run: () => void restart.run(request, { confirm: { text: `Restart ${label}?`, action: "Restart" } }) },
+      {
+        label: "Restart",
+        danger: true,
+        ask: askRestart,
+        run: () => void restart.run(request, { confirm: { text: askRestart, action: "Restart" } }),
+        now: () => void restart.run(request),
+      },
       {
         label: "Stop",
         danger: true,
-        run: () =>
-          void stop.run(request, { confirm: { text: `Stop ${label}? Proxmox shuts it down cleanly and turns it off after 45 s if it hasn't stopped.`, action: "Stop" } }),
+        ask: askStop,
+        run: () => void stop.run(request, { confirm: { text: askStop, action: "Stop" } }),
+        now: () => void stop.run(request),
       },
     );
   } else if (!w.template && w.status === "stopped") {
-    items.push({ label: "Start", danger: false, run: () => void start.run(request) });
+    items.push({ label: "Start", danger: false, run: () => void start.run(request), now: () => void start.run(request) });
   }
   return {
     known: privileges !== undefined,

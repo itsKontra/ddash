@@ -13,3 +13,5 @@ export * from "./data";
 export * from "./charts";
 export * from "./overlays";
 export * from "./icon";
+// PROTOTYPE: the row action strip's variants (prototype/row-action-strip only).
+export * from "./proto-strip";

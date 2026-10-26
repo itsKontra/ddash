@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { AdBlocking } from "./adblocking";
 import { DeviceSheet } from "./adopt";
 import { detailPath, nameOf, tally, useDevices } from "./devices";
+import { DeviceStrip } from "./proto-strip";
 
 /** The Devices section's header aside: how many are New. */
 export function NewCount() {
@@ -61,7 +62,9 @@ export function DevicesTable({ aside }: { aside?: ReactNode }) {
           rowKey={(d) => d.mac}
           columns={columns}
           loading={!data}
-          actions={(d) => [{ label: d.adopted ? "Rename" : "Adopt", onSelect: () => setSheet(d) }]}
+          strip={(d) => (
+            <DeviceStrip device={d} bypassAlias={data?.bypassAlias ?? ""} adguardError={data?.adguardError ?? ""} openSheet={() => setSheet(d)} />
+          )}
         />
       )}
       {sheet && <DeviceSheet device={sheet} onClose={() => setSheet(undefined)} />}

@@ -1,9 +1,10 @@
 // The data family: tables, tabs, status lists and facts, and the URL state an explorer keeps.
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { StatusDot } from "./atoms";
 import { Icon } from "./icon";
 import { Menu, type MenuItem } from "./overlays";
+import { RowArrow, StripRow, useStripVariant } from "./proto-strip";
 import { useOnHero } from "./surface";
 import { cx, type Tone } from "./tone";
 
@@ -189,6 +190,12 @@ export interface DataTableProps<R> {
   onRowClick?: (row: R) => void;
   /** The row's Actions, in its ⋯ Menu. */
   actions?: (row: R) => readonly MenuItem[];
+  /** PROTOTYPE: the row's inline action strip, opened by the arrow at its end; replaces actions. */
+  strip?: (row: R, close: () => void) => ReactNode;
+  /** PROTOTYPE: whether the row has an arrow at all; default every row. */
+  hasStrip?: (row: R) => boolean;
+  /** PROTOTYPE: drawn left of the arrow, e.g. a busy pill or a lock. */
+  stripAside?: (row: R) => ReactNode;
   /** Shown in place of the rows when there are none. Default "Nothing here yet". */
   empty?: ReactNode;
   /** Draws skeleton rows instead of rows (and instead of empty). */
@@ -237,13 +244,38 @@ function Table<R>({
   rowKey,
   columns,
   onRowClick,
-  actions,
+  actions: menuActions,
+  strip,
+  hasStrip,
+  stripAside,
   empty,
   loading,
   density = "comfortable",
   sort,
   onSort,
 }: DataTableProps<R> & { sort: string; onSort: (sort: string) => void }) {
+  const actions = menuActions ?? strip;
+  const variant = useStripVariant();
+  const [openKeys, setOpenKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const toggle = (k: string) =>
+    setOpenKeys((prev) => {
+      const open = prev.has(k);
+      if (variant !== "1") return open ? new Set() : new Set([k]);
+      const next = new Set(prev);
+      if (open) next.delete(k);
+      else next.add(k);
+      return next;
+    });
+  const scroller = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState<number>();
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el || !strip) return;
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [strip]);
+  const stickyArrow = variant !== "2";
   const by = parseSort(sort);
   const sortColumn = columns.find((c) => c.id === by.id && c.sortable && c.sortValue);
   const shown = useMemo(() => {
@@ -264,7 +296,7 @@ function Table<R>({
       i === 0 && "sticky left-0 z-1 bg-card group-hover:bg-linear-to-r group-hover:from-primary-tint group-hover:to-primary-tint",
     );
   return (
-    <div className="w-full overflow-x-auto">
+    <div ref={scroller} className="w-full overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-muted-foreground">
@@ -294,7 +326,7 @@ function Table<R>({
               );
             })}
             {actions && (
-              <th scope="col" className={cx(pad, "w-px")}>
+              <th scope="col" className={cx(pad, "w-px", strip && stickyArrow && "sticky right-0 z-1 bg-card")}>
                 <span className="sr-only">Actions</span>
               </th>
             )}
@@ -322,8 +354,8 @@ function Table<R>({
             </tr>
           ) : (
             shown.map((row) => (
+              <Fragment key={rowKey(row)}>
               <tr
-                key={rowKey(row)}
                 tabIndex={onRowClick ? 0 : undefined}
                 onClick={onRowClick && (() => onRowClick(row))}
                 onKeyDown={
@@ -355,11 +387,34 @@ function Table<R>({
                   );
                 })}
                 {actions && (
-                  <td className={cx(pad, "text-right")} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                    <Menu label={`Actions for ${rowKey(row)}`} items={actions(row)} />
+                  <td
+                    className={cx(
+                      pad,
+                      "text-right",
+                      strip && stickyArrow && "sticky right-0 z-1 bg-card group-hover:bg-linear-to-r group-hover:from-primary-tint group-hover:to-primary-tint",
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  >
+                    {strip ? (
+                      <span className="inline-flex items-center justify-end gap-2">
+                        {stripAside?.(row)}
+                        {(hasStrip?.(row) ?? true) && (
+                          <RowArrow open={openKeys.has(rowKey(row))} onToggle={() => toggle(rowKey(row))} label={`Actions for ${rowKey(row)}`} />
+                        )}
+                      </span>
+                    ) : (
+                      menuActions && <Menu label={`Actions for ${rowKey(row)}`} items={menuActions(row)} />
+                    )}
                   </td>
                 )}
               </tr>
+              {strip && (
+                <StripRow open={openKeys.has(rowKey(row))} span={span} width={width} onEscape={() => toggle(rowKey(row))}>
+                  {strip(row, () => toggle(rowKey(row)))}
+                </StripRow>
+              )}
+              </Fragment>
             ))
           )}
         </tbody>
