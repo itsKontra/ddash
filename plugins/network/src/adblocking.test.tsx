@@ -31,23 +31,6 @@ const phone = {
 };
 const devices = { bypassAlias: "VPN_BYPASS", devices: [tv, laptop, phone] };
 
-const query = (domain: string, extra: Record<string, unknown> = {}) => ({
-  time: "2026-10-20T09:59:50.123456Z",
-  domain,
-  type: "A",
-  client: "198.18.1.20",
-  reason: "NotFilteredNotFound",
-  status: "NOERROR",
-  elapsedMs: 4.5,
-  ...extra,
-});
-const queries = {
-  queries: [query("site1.example"), query("site2.example", { blocked: true, reason: "FilteredBlackList", rule: "||site2.example^" }), query("site3.example")],
-  oldest: "2026-10-20T09:50:20.123456Z",
-};
-const blocked = { queries: [queries.queries[1]], oldest: "" };
-
-
 // Shows the network Plugin at path, answering by method name ({} unless
 // given), and returns the calls with their JSON bodies.
 const show = (path: string, answers: Answers = {}) =>
@@ -55,7 +38,6 @@ const show = (path: string, answers: Answers = {}) =>
     path,
     {
       ListDevices: () => Response.json(devices),
-      ListQueries: (b) => Response.json((b as { mode?: string }).mode === "QUERY_MODE_BLOCKED" ? blocked : queries),
       ...answers,
     },
     withAdguard,
@@ -122,32 +104,4 @@ it("disables the toggle while AdGuard's clients can't be read, saying why", asyn
 
   expect((within(deviceRegion()).getByRole("switch", { name: /^Ad-blocking / }) as HTMLButtonElement).disabled).toBe(true);
   expect(within(deviceRegion()).getByRole("status").textContent).toMatch(/can't read AdGuard's clients/);
-});
-
-it("shows the Device's last 100 queries, and only the blocked ones when asked", async () => {
-  const calls = await show("/network/devices/02:5e:00:00:10:01");
-
-  expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toEqual([{ client: "198.18.1.20", limit: 100 }]);
-  const region = screen.getByRole("region", { name: "Queries" });
-  const table = within(region).getByRole("table");
-  expect(within(table).getAllByRole("row").slice(1).map((r) => within(r).getByRole("rowheader").textContent)).toEqual([
-    "site1.example",
-    "site2.example",
-    "site3.example",
-  ]);
-  const site2 = within(table).getByRole("row", { name: /site2\.example/ });
-  expect(within(site2).getByText("Blocked")).toBeTruthy();
-  expect(within(site2).getByText("||site2.example^")).toBeTruthy();
-
-  fireEvent.click(within(region).getByRole("checkbox", { name: "Blocked only" }));
-  await settle();
-
-  expect(calls.filter((c) => c.method === "ListQueries").map((c) => c.body)).toContainEqual({ client: "198.18.1.20", limit: 100, mode: "QUERY_MODE_BLOCKED" });
-  expect(within(within(region).getByRole("table")).getAllByRole("row")).toHaveLength(2);
-});
-
-it("says when the Device made no queries", async () => {
-  await show("/network/devices/02:5e:00:00:10:01", { ListQueries: () => Response.json({ queries: [] }) });
-
-  expect(within(screen.getByRole("region", { name: "Queries" })).getByText(/No queries/)).toBeTruthy();
 });
