@@ -38,7 +38,9 @@ function Body({ size }: { size: WidgetSize }) {
           items={troubled.map((c) => ({
             tone: toneOf(c),
             title: shownName(c),
-            aside: c.reason || (c.latencyMs ? latency(c.latencyMs) : stateLabel(c)),
+            // The aside never shrinks, so a long reason goes under the name instead.
+            aside: c.latencyMs ? latency(c.latencyMs) : stateLabel(c),
+            meta: c.reason ? <span className="text-down-text">{c.reason}</span> : undefined,
           }))}
         />
       )}

@@ -11,6 +11,7 @@ import {
   PageTitle,
   Panel,
   Pill,
+  Presence,
   Select,
   Sheet,
   StatusList,
@@ -144,7 +145,7 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
           </Button>
         </div>
       )}
-      {shown && <ChainSheet chain={shown} onClose={() => setShown(undefined)} />}
+      <Presence>{shown && <ChainSheet chain={shown} onClose={() => setShown(undefined)} />}</Presence>
     </>
   );
 }

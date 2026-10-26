@@ -1,6 +1,6 @@
 import { useAction, useQuery } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
-import { Button, Field, FormActions, Notice, Sheet, TextInput } from "@ddash/ui";
+import { Button, Field, FormActions, Notice, Presence, Sheet, TextInput } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
 import { nameOf } from "./devices";
 
@@ -109,7 +109,7 @@ export function DeviceAction({ device: d }: { device: Device }) {
       <Button variant="outline" size="sm" aria-label={label} onClick={() => setOpen(true)}>
         {d.adopted ? "Rename" : "Adopt"}
       </Button>
-      {open && <DeviceSheet device={d} onClose={() => setOpen(false)} />}
+      <Presence>{open && <DeviceSheet device={d} onClose={() => setOpen(false)} />}</Presence>
     </>
   );
 }

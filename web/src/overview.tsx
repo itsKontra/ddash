@@ -12,6 +12,7 @@ import {
   Notice,
   PageTitle,
   Pill,
+  Presence,
   Ring,
   SearchField,
   Segmented,
@@ -244,19 +245,21 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
           );
         })}
       </ul>
-      {draft && adding && (
-        <AddWidget
-          plugins={plugins}
-          placed={draft.entries}
-          onClose={() => setAdding(false)}
-          onAdd={(key, w) => {
-            edit((l) => ({
-              entries: [...l.entries, { widget: key, size: w.defaultSize }],
-              seen: l.seen.includes(key) ? l.seen : [...l.seen, key],
-            }));
-          }}
-        />
-      )}
+      <Presence>
+        {draft && adding && (
+          <AddWidget
+            plugins={plugins}
+            placed={draft.entries}
+            onClose={() => setAdding(false)}
+            onAdd={(key, w) => {
+              edit((l) => ({
+                entries: [...l.entries, { widget: key, size: w.defaultSize }],
+                seen: l.seen.includes(key) ? l.seen : [...l.seen, key],
+              }));
+            }}
+          />
+        )}
+      </Presence>
     </div>
   );
 }
