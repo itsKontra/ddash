@@ -1,62 +1,12 @@
 // The overlays family: what opens over the Page.
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { useContext, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import { Button } from "./atoms";
 import { Checkbox } from "./forms";
 import { Icon } from "./icon";
 import { Kicker } from "./kicker";
+import { Leaving, Presence } from "./presence";
 import { InFlush } from "./surface";
 import { cx, toneTint } from "./tone";
-
-/**
- * Lets an overlay animate out as well as in: wrap the condition that
- * mounts it, <Presence>{x && <Sheet …/>}</Presence>. When the child turns
- * falsy, Presence keeps the last one mounted with its old props, closed
- * (data-state="closed", which the overlays' exit transitions key on) and
- * inert, and unmounts it once its animations finish: at once with none
- * (reduced motion). A child that turns truthy again mid-exit cancels the
- * exit, and one that changes while open replaces it in place.
- */
-export function Presence({ children }: { children?: ReactNode }) {
-  const open = shows(children);
-  const [kept, setKept] = useState<ReactNode>(open ? children : null);
-  if (open && children !== kept) setKept(children);
-  const leaving = !open && shows(kept);
-  const box = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    if (!leaving) return;
-    // An infinite one (a pulsing Skeleton inside) never finishes.
-    const running = (box.current?.getAnimations?.({ subtree: true }) ?? []).filter((a) => a.effect?.getComputedTiming().endTime !== Infinity);
-    if (running.length === 0) return setKept(null);
-    let cancelled = false;
-    void Promise.allSettled(running.map((a) => a.finished)).then(() => cancelled || setKept(null));
-    return () => {
-      cancelled = true;
-    };
-  }, [leaving]);
-  const shown = open ? children : kept;
-  if (!shows(shown)) return null;
-  return (
-    <div ref={box} data-state={leaving ? "closed" : "open"} inert={leaving} className="contents">
-      <Leaving value={leaving}>{shown}</Leaving>
-    </div>
-  );
-}
-
-const shows = (node: ReactNode) => node !== null && node !== undefined && node !== false && node !== "";
-
-/** True inside a Presence whose child is leaving: its Overlay hands the focus back and ignores closes. */
-const Leaving = createContext(false);
 
 /** What a confirm dialog asks. */
 export interface ConfirmRequest {
@@ -162,7 +112,8 @@ function useFocusTrap(panel: RefObject<HTMLElement | null>, leaving: boolean) {
 /**
  * The dimmed, blurred overlay a Dialog and a Sheet share. Escape (heard
  * while bubbling, so a SearchField's Escape only clears it) and a click
- * outside the panel close it.
+ * outside the panel close it. Its Escape goes no further, so a DataTable
+ * strip or a Sheet it was opened from stays open.
  */
 function Overlay({
   role = "dialog",
@@ -189,7 +140,11 @@ function Overlay({
         // A confirm sits over the Sheet or Dialog whose Action asked it.
         className={cx("fixed inset-0 flex bg-foreground/40 backdrop-blur-xs", backdropMotion, role === "alertdialog" ? "z-60" : "z-50", placement)}
         onClick={close}
-        onKeyDown={(e) => e.key === "Escape" && close()}
+        onKeyDown={(e) => {
+          if (e.key !== "Escape") return;
+          e.stopPropagation();
+          close();
+        }}
       >
         <div
           ref={panel}
@@ -313,7 +268,11 @@ export function Menu({ label, items, disabled }: { label: string; items: readonl
                 "absolute right-0 z-40 mt-1 flex min-w-40 flex-col rounded-ui-lg border border-border bg-card p-1.5 shadow-elevation-raised",
                 menuMotion,
               )}
-              onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+              onKeyDown={(e) => {
+                if (e.key !== "Escape") return;
+                e.stopPropagation();
+                setOpen(false);
+              }}
             >
               {items.map((item, i) => (
                 <button

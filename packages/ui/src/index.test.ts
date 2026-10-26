@@ -8,6 +8,7 @@ it("exports exactly the spec's component set, plus cx, matches and the AppIcon h
       "Pill",
       "StatusDot",
       "Button",
+      "ToggleButton",
       "Icon",
       "Skeleton",
       "AppIcon",
@@ -35,6 +36,7 @@ it("exports exactly the spec's component set, plus cx, matches and the AppIcon h
       "FormActions",
       // data
       "DataTable",
+      "ActionStrip",
       "Tabs",
       "StatusList",
       "Facts",

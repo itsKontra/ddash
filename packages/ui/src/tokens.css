@@ -59,7 +59,7 @@
 :root {
   /* The backdrop's fade and blur, and a Dialog's. */
   --motion-fade: 0.2s;
-  /* A Sheet's and the phone Drawer's slide. */
+  /* A Sheet's and the phone Drawer's slide, and a DataTable strip's height. */
   --motion-slide: 0.26s;
   --motion-slide-ease: ease;
   /* A Menu's fade and scale from its top-right corner. */

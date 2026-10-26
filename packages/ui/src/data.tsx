@@ -1,9 +1,10 @@
-// The data family: tables, tabs, status lists and facts, and the URL state an explorer keeps.
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+// The data family: tables and their action strips, tabs, status lists and facts, and the URL state an explorer keeps.
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useSearchParams } from "react-router";
-import { StatusDot } from "./atoms";
+import { Pill, StatusDot } from "./atoms";
 import { Icon } from "./icon";
 import { Menu, type MenuItem } from "./overlays";
+import { Leaving, shows, usePresence } from "./presence";
 import { useOnHero } from "./surface";
 import { cx, type Tone } from "./tone";
 
@@ -159,6 +160,27 @@ export function Facts({ items }: { items: readonly Fact[] }) {
   );
 }
 
+/**
+ * What a DataTable row's strip holds, e.g. a Workload's: a summary line on
+ * the left, announced as it changes (role="status", e.g. "Proxmox is
+ * restarting it", then "running, up 1 min"), its compact controls on the
+ * right, wrapping under it on a phone, and a Notice underneath, e.g. an
+ * Action's error.
+ */
+export function ActionStrip({ summary, notice, children }: { summary: ReactNode; notice?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+        <div role="status" className="min-w-0 text-xs text-muted-foreground">
+          {summary}
+        </div>
+        {children && <div className="flex flex-wrap items-center gap-2">{children}</div>}
+      </div>
+      {notice}
+    </div>
+  );
+}
+
 /** One column of a DataTable. */
 export interface Column<R> {
   id: string;
@@ -181,7 +203,9 @@ export interface Column<R> {
 }
 
 /** What a DataTable takes. */
-export interface DataTableProps<R> {
+export type DataTableProps<R> = TableProps<R> & StripProps<R>;
+
+interface TableProps<R> {
   rows: readonly R[];
   rowKey: (row: R) => string;
   columns: readonly Column<R>[];
@@ -204,6 +228,26 @@ export interface DataTableProps<R> {
   defaultSort?: string;
 }
 
+/** A row's inline action strip; rowLabel and busy come with it. */
+type StripProps<R> =
+  | { strip?: undefined; rowLabel?: undefined; busy?: undefined }
+  | {
+      /**
+       * The row's inline action strip, e.g. an ActionStrip, opened by the
+       * arrow at the row's end; null gives the row no arrow, e.g. a
+       * template Workload. close closes it. Only the open row's strip is
+       * mounted, so it can be a component with state of its own.
+       */
+      strip: (row: R, close: () => void) => ReactNode | null;
+      /** Names the row's arrow and strip, "Actions for <rowLabel>", e.g. a Workload's name. */
+      rowLabel: (row: R) => string;
+      /**
+       * What the row is busy with, e.g. "restarting": a maint Pill beside
+       * its arrow, which can't open the strip meanwhile (an open one still closes).
+       */
+      busy?: (row: R) => string | undefined;
+    };
+
 const skeletonRows = 3;
 
 /**
@@ -212,6 +256,11 @@ const skeletonRows = 3;
  * sorting by a sortable column's header, skeleton rows while loading, the
  * empty state, and sideways scrolling on a phone with the first column
  * sticky. No pagination and no selection: the Plugin filters its own rows.
+ *
+ * With strip, each row ends in an arrow that opens its inline action strip
+ * under it, one at a time (see StripRow). Which one is open is the
+ * table's own, kept by rowKey: it survives a re-sort and a refetch, and is
+ * forgotten once its row leaves rows.
  */
 export function DataTable<R>(props: DataTableProps<R>) {
   return props.sortKey === undefined ? <LocalSort {...props} /> : <UrlSort {...props} sortKey={props.sortKey} />;
@@ -240,18 +289,15 @@ function parseSort(sort: string): { id: string; descending: boolean } {
 const compare = (a: string | number, b: string | number) =>
   typeof a === "number" && typeof b === "number" ? a - b : String(a).localeCompare(String(b), undefined, { numeric: true });
 
-function Table<R>({
-  rows,
-  rowKey,
-  columns,
-  onRowClick,
-  actions,
-  empty,
-  loading,
-  density = "comfortable",
-  sort,
-  onSort,
-}: DataTableProps<R> & { sort: string; onSort: (sort: string) => void }) {
+// The tint is translucent: laid as an image over bg-card, a sticky cell stays opaque.
+const stickyCell = "z-1 bg-card group-hover:bg-linear-to-r group-hover:from-primary-tint group-hover:to-primary-tint";
+
+function Table<R>(props: DataTableProps<R> & { sort: string; onSort: (sort: string) => void }) {
+  const { rows, rowKey, columns, onRowClick, actions, empty, loading, density = "comfortable", sort, onSort } = props;
+  const strips = props.strip && { strip: props.strip, rowLabel: props.rowLabel, busy: props.busy };
+  const [openKey, setOpenKey] = useState<string>();
+  if (openKey !== undefined && !rows.some((r) => rowKey(r) === openKey)) setOpenKey(undefined);
+  const scroller = useStripWidth(!!strips);
   const by = parseSort(sort);
   const sortColumn = columns.find((c) => c.id === by.id && c.sortable && c.sortValue);
   const shown = useMemo(() => {
@@ -261,18 +307,18 @@ function Table<R>({
     return [...rows].sort((a, b) => sign * compare(value(a), value(b)));
   }, [rows, sortColumn, by.descending]);
   const pad = cx("px-3 first:pl-4 last:pr-4", density === "compact" ? "py-1.5" : "py-2.5");
-  const span = columns.length + (actions ? 1 : 0);
+  const end = !!(actions || strips);
+  const span = columns.length + (end ? 1 : 0);
   const place = (c: Column<R>, i: number) =>
     cx(
       pad,
       "whitespace-nowrap",
       c.align === "right" ? "text-right" : "text-left",
       c.hideBelow === "sm" && "hidden sm:table-cell",
-      // The tint is translucent: laid as an image over bg-card, the sticky cell stays opaque.
-      i === 0 && "sticky left-0 z-1 bg-card group-hover:bg-linear-to-r group-hover:from-primary-tint group-hover:to-primary-tint",
+      i === 0 && cx("sticky left-0", stickyCell),
     );
   return (
-    <div className="w-full overflow-x-auto">
+    <div ref={scroller} className="w-full overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
           <tr className="border-b border-border text-xs text-muted-foreground">
@@ -301,8 +347,8 @@ function Table<R>({
                 </th>
               );
             })}
-            {actions && (
-              <th scope="col" className={cx(pad, "w-px")}>
+            {end && (
+              <th scope="col" className={cx(pad, "w-px", strips && "sticky right-0 z-1 bg-card")}>
                 <span className="sr-only">Actions</span>
               </th>
             )}
@@ -319,7 +365,7 @@ function Table<R>({
                     </span>
                   </td>
                 ))}
-                {actions && <td className={pad} />}
+                {end && <td className={pad} />}
               </tr>
             ))
           ) : shown.length === 0 ? (
@@ -329,49 +375,269 @@ function Table<R>({
               </td>
             </tr>
           ) : (
-            shown.map((row) => (
-              <tr
-                key={rowKey(row)}
-                tabIndex={onRowClick ? 0 : undefined}
-                onClick={onRowClick && (() => onRowClick(row))}
-                onKeyDown={
-                  onRowClick &&
-                  ((e) => {
-                    if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
-                    e.preventDefault();
-                    onRowClick(row);
-                  })
-                }
-                className={cx("group border-b border-border transition-colors last:border-b-0 hover:bg-primary-tint", onRowClick && "cursor-pointer")}
-              >
-                {columns.map((c, i) => {
-                  const Cell = c.rowHeader ? "th" : "td";
-                  return (
-                    <Cell
-                      key={c.id}
-                      scope={c.rowHeader ? "row" : undefined}
-                      className={cx(
-                        place(c, i),
-                        c.mono && "font-mono text-xs",
-                        c.rowHeader
-                          ? "font-semibold [&>a]:text-foreground [&>a:hover]:underline [&>button]:cursor-pointer [&>button]:text-left [&>button]:font-semibold [&>button:hover]:underline"
-                          : "font-normal",
-                      )}
-                    >
-                      {c.cell(row)}
-                    </Cell>
-                  );
-                })}
-                {actions && (
-                  <td className={cx(pad, "text-right")} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                    <Menu label={`Actions for ${rowKey(row)}`} items={actions(row)} />
-                  </td>
-                )}
-              </tr>
-            ))
+            shown.map((row) => {
+              const key = rowKey(row);
+              return (
+                <BodyRow
+                  key={key}
+                  onOpen={onRowClick && (() => onRowClick(row))}
+                  cells={columns.map((c, i) => {
+                    const Cell = c.rowHeader ? "th" : "td";
+                    return (
+                      <Cell
+                        key={c.id}
+                        scope={c.rowHeader ? "row" : undefined}
+                        className={cx(
+                          place(c, i),
+                          c.mono && "font-mono text-xs",
+                          c.rowHeader
+                            ? "font-semibold [&>a]:text-foreground [&>a:hover]:underline [&>button]:cursor-pointer [&>button]:text-left [&>button]:font-semibold [&>button:hover]:underline"
+                            : "font-normal",
+                        )}
+                      >
+                        {c.cell(row)}
+                      </Cell>
+                    );
+                  })}
+                  menu={actions && <Menu label={`Actions for ${key}`} items={actions(row)} />}
+                  strip={
+                    strips && {
+                      render: (close) => strips.strip(row, close),
+                      label: strips.rowLabel(row),
+                      busy: strips.busy?.(row) || undefined,
+                      open: openKey === key,
+                      onOpen: (open) => setOpenKey((k) => (open ? key : k === key ? undefined : k)),
+                    }
+                  }
+                  pad={pad}
+                  span={span}
+                />
+              );
+            })
           )}
         </tbody>
       </table>
     </div>
   );
+}
+
+/**
+ * The scroller's width as --strip-width, which a strip's content takes so
+ * it stays put, the scroller's width, while the table scrolls sideways.
+ */
+function useStripWidth(on: boolean) {
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scroller.current;
+    if (!on || !el || typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(() => el.style.setProperty("--strip-width", `${el.clientWidth}px`));
+    watch.observe(el);
+    return () => watch.disconnect();
+  }, [on]);
+  return scroller;
+}
+
+/** One row's strip, as Table hands it to BodyRow. */
+interface RowStrip {
+  render: (close: () => void) => ReactNode | null;
+  label: string;
+  busy?: string;
+  open: boolean;
+  onOpen: (open: boolean) => void;
+}
+
+/**
+ * One row of a DataTable: its cells, then its end cell with the ⋯ Menu or
+ * the strip's arrow, and with a strip, the strip's own row under it.
+ */
+function BodyRow({
+  onOpen,
+  cells,
+  menu,
+  strip,
+  pad,
+  span,
+}: {
+  onOpen?: () => void;
+  cells: ReactNode;
+  menu?: ReactNode;
+  strip?: RowStrip;
+  pad: string;
+  span: number;
+}) {
+  const id = useId();
+  const arrow = useRef<HTMLButtonElement>(null);
+  // Closing from inside the strip leaves the focus on the arrow, not on the inert strip.
+  // By id, not by ref: the strip gets close while rendering.
+  const close = () => {
+    if (document.getElementById(`${id}-strip`)?.contains(document.activeElement)) document.getElementById(`${id}-arrow`)?.focus();
+    strip?.onOpen(false);
+  };
+  const content = strip ? strip.render(close) : null;
+  const open = !!strip?.open && content !== null;
+  // Busy holds a closed strip shut; aria-disabled, not disabled, so the arrow keeps the focus.
+  const held = strip?.busy !== undefined && !open;
+  return (
+    <>
+      <tr
+        tabIndex={onOpen ? 0 : undefined}
+        onClick={onOpen}
+        onKeyDown={
+          onOpen &&
+          ((e) => {
+            if (e.target !== e.currentTarget || (e.key !== "Enter" && e.key !== " ")) return;
+            e.preventDefault();
+            onOpen();
+          })
+        }
+        className={cx("group border-b border-border transition-colors last:border-b-0 hover:bg-primary-tint", onOpen && "cursor-pointer")}
+      >
+        {cells}
+        {(menu || strip) && (
+          <td
+            className={cx(pad, "text-right", strip && cx("sticky right-0", stickyCell))}
+            onClick={(e) => e.stopPropagation()}
+            // The arrow's own keys don't reach the row anyway; only the Menu's are stopped.
+            onKeyDown={strip ? undefined : (e) => e.stopPropagation()}
+          >
+            {menu}
+            {strip && (
+              <span className="inline-flex items-center justify-end gap-2">
+                {strip.busy !== undefined && (
+                  <span id={`${id}-busy`} className="flex">
+                    <Pill tone="maint">{strip.busy}</Pill>
+                  </span>
+                )}
+                {content !== null && (
+                  <button
+                    ref={arrow}
+                    id={`${id}-arrow`}
+                    type="button"
+                    aria-label={`Actions for ${strip.label}`}
+                    aria-expanded={open}
+                    aria-controls={`${id}-strip`}
+                    aria-disabled={held || undefined}
+                    aria-describedby={strip.busy !== undefined ? `${id}-busy` : undefined}
+                    onClick={() => held || strip.onOpen(!open)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Escape" || !open) return;
+                      e.stopPropagation();
+                      close();
+                    }}
+                    className="inline-grid size-7 cursor-pointer place-items-center rounded-ui-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground aria-disabled:cursor-not-allowed aria-disabled:opacity-50 aria-expanded:text-foreground"
+                  >
+                    <span className={cx("flex motion-safe:transition-transform motion-safe:duration-(--motion-slide)", open && "rotate-180")}>
+                      <Icon name="chevron-down" size="sm" />
+                    </span>
+                  </button>
+                )}
+              </span>
+            )}
+          </td>
+        )}
+      </tr>
+      {strip && (
+        <StripRow id={`${id}-strip`} label={`Actions for ${strip.label}`} span={span} arrow={arrow} onClose={close}>
+          {open && content}
+        </StripRow>
+      )}
+    </>
+  );
+}
+
+/*
+ * The strip's slide (tokens.css): a <tr> can't animate its height, so a
+ * grid inside its cell goes from 0fr to 1fr as it enters (starting:) and
+ * back as it leaves (in-data-[state=closed]:, set by the strip's
+ * Presence). Under reduced motion it doesn't move at all.
+ */
+const stripMotion =
+  "grid-rows-[1fr] starting:grid-rows-[0fr] in-data-[state=closed]:grid-rows-[0fr] motion-safe:transition-[grid-template-rows] motion-safe:duration-(--motion-slide) motion-safe:ease-(--motion-slide-ease)";
+
+/**
+ * A row's strip: a full-width, tinted row right under it, a group named
+ * like its arrow so Tab enters it next. Its own Presence keeps it while it
+ * slides shut (a <div> can't sit in a <tbody>, so the <tr> is Presence's
+ * wrapper), and its content stays put, the scroller's width, while the
+ * table scrolls sideways. Escape inside closes it, unless something
+ * inside handled the Escape first (a SearchField, an overlay); and when
+ * the focused control inside goes away or turns disabled, the focus moves
+ * to the row's arrow.
+ */
+function StripRow({
+  id,
+  label,
+  span,
+  arrow,
+  onClose,
+  children,
+}: {
+  id: string;
+  label: string;
+  span: number;
+  arrow: RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  const { shown, leaving, box } = usePresence<HTMLTableRowElement>(children);
+  const group = useRef<HTMLDivElement>(null);
+  useFocusFallback(group, arrow, !leaving && shows(shown));
+  if (!shows(shown)) return null;
+  return (
+    <tr ref={box} data-state={leaving ? "closed" : "open"} inert={leaving} className="border-b border-border last:border-b-0">
+      <td colSpan={span} className="bg-primary-tint/50 p-0">
+        <div className="sticky left-0 w-(--strip-width)">
+          <div className={cx("grid", stripMotion)}>
+            <div className="min-h-0 overflow-clip">
+              <div
+                ref={group}
+                id={id}
+                role="group"
+                aria-label={label}
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape" || e.defaultPrevented) return;
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="px-4 py-2.5"
+              >
+                <Leaving value={leaving}>{shown}</Leaving>
+              </div>
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+/**
+ * While on, watches group for the focused control inside it being removed
+ * or disabled (a submit swapped for the summary, a confirmed Stop), which
+ * drops the focus to the page, and puts the focus on arrow instead.
+ */
+function useFocusFallback(group: RefObject<HTMLElement | null>, arrow: RefObject<HTMLElement | null>, on: boolean) {
+  useEffect(() => {
+    const el = group.current;
+    if (!on || !el) return;
+    let focused: Element | null = null;
+    const onIn = (e: FocusEvent) => (focused = e.target as Element);
+    // A move elsewhere is the Operator's; a drop to nowhere is checked below.
+    const onOut = (e: FocusEvent) => e.relatedTarget && (focused = null);
+    const watch = new MutationObserver(() => {
+      if (!focused || (focused.isConnected && !focused.matches(":disabled"))) return;
+      const at = document.activeElement;
+      if (at && at !== document.body && at !== focused) return;
+      focused = null;
+      arrow.current?.focus();
+    });
+    el.addEventListener("focusin", onIn);
+    el.addEventListener("focusout", onOut);
+    watch.observe(el, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled"] });
+    return () => {
+      el.removeEventListener("focusin", onIn);
+      el.removeEventListener("focusout", onOut);
+      watch.disconnect();
+    };
+  }, [group, arrow, on]);
 }

@@ -13,4 +13,5 @@ export * from "./data";
 export * from "./match";
 export * from "./charts";
 export * from "./overlays";
+export { Presence } from "./presence";
 export * from "./icon";
