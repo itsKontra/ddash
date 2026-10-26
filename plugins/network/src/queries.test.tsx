@@ -166,9 +166,33 @@ it("says what a search didn't find, and in how many log lines", async () => {
     ListQueries: (b) => Response.json((b as Request).limit === 5 ? recent : { queries: [], linesRead: 1234 }),
   });
 
-  expect(within(sheet()).getByText("No blocked AAAA queries match “tracker” in the 1,234 log lines searched.")).toBeTruthy();
+  expect(within(sheet()).getByText('No blocked AAAA queries match "tracker" in the 1,234 log lines searched.')).toBeTruthy();
   // The log ended before the budget did.
   expect(within(sheet()).queryByText(/of 50 found/)).toBeNull();
+});
+
+it("says in how many log lines a type filter alone found nothing, not that the whole log has none", async () => {
+  await show(`${page}?queries.open=1&queries.type=AAAA`, {
+    ListQueries: (b) => Response.json((b as Request).limit === 5 ? recent : { queries: [], linesRead: 1234 }),
+  });
+
+  expect(within(sheet()).getByText("No AAAA queries from 198.18.1.20 in the 1,234 log lines searched.")).toBeTruthy();
+});
+
+it("doesn't call 50 matches the newest once a search went further back", async () => {
+  const windows: Record<string, unknown> = {
+    "": { queries: [query("ads1.example")], oldest: "c2000", linesRead: 2000, reached: "2026-10-20T08:15:00Z" },
+    c2000: { queries: Array.from({ length: 50 }, (_, i) => query(`ads${i}.example`)), oldest: "c3000", linesRead: 1000 },
+  };
+  await show(`${page}?queries.open=1&queries.q=ads`, {
+    ListQueries: (b) => Response.json((b as Request).limit === 5 ? recent : windows[(b as Request).olderThan ?? ""]),
+  });
+
+  fireEvent.click(within(sheet()).getByRole("button", { name: "Search 2,000 older" }));
+  await settle();
+
+  expect(domains()).toHaveLength(50);
+  expect(within(sheet()).getByText(/^50 matches, back to \d\d:\d\d:\d\d\. Search or filter to reach older ones\.$/)).toBeTruthy();
 });
 
 it("says when the Device has no queries, or no blocked ones", async () => {

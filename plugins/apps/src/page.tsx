@@ -11,6 +11,7 @@ import {
   Field,
   FormActions,
   matches,
+  noMatch,
   Notice,
   PageTitle,
   Panel,
@@ -80,7 +81,7 @@ export function AppsPage() {
         )}
         {apps.length > 0 && shown.length === 0 && (
           <Panel>
-            <EmptyState icon="search-x" title={`No Apps match "${q}"`} />
+            <EmptyState icon="search-x" title={noMatch("Apps", q)} />
           </Panel>
         )}
         {sections(shown).map((s) => (

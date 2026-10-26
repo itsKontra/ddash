@@ -1,4 +1,5 @@
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
+import { ago } from "@ddash/display";
 import { useQuery } from "@ddash/plugin";
 import { AdguardApiService, QueryMode, type Query } from "@ddash/proto/adguard-api/adguard_api_pb";
 import {
@@ -6,6 +7,7 @@ import {
   DataTable,
   EmptyState,
   Icon,
+  noMatch,
   Notice,
   Panel,
   Pill,
@@ -22,7 +24,6 @@ import {
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import { count } from "./adguard";
-import { ago } from "./remote-access";
 
 /** How many blocked queries the Panel lists. */
 const RecentLimit = 5;
@@ -193,10 +194,18 @@ interface Scan {
   linesBefore: number;
 }
 
-/** "No blocked AAAA queries match “x” in the 2,000 log lines searched.", or "No queries from <ip> in AdGuard's log." without a search. */
+/**
+ * What the Sheet found nothing of. A search or a type filter scans only so
+ * many log lines, so it says how many: 'No blocked AAAA queries match "x"
+ * in the 2,000 log lines searched.', "No AAAA queries from <ip> in the
+ * 2,000 log lines searched."; a mode alone covers all of AdGuard's log.
+ */
 function nothingFound(ip: string, { q, mode, type }: Filter, lines: number) {
   const what = [mode === "all" ? "" : mode, type, "queries"].filter(Boolean).join(" ");
-  return q.trim() ? `No ${what} match “${q.trim()}” in the ${count(lines)} log lines searched.` : `No ${what} from ${ip} in AdGuard's log.`;
+  const searched = `in the ${count(lines)} log lines searched.`;
+  if (q.trim()) return `${noMatch(what, q)} ${searched}`;
+  if (type) return `No ${what} from ${ip} ${searched}`;
+  return `No ${what} from ${ip} in AdGuard's log.`;
 }
 
 function QueriesSheet({
@@ -247,7 +256,9 @@ function QueriesSheet({
         !hidden &&
         rows.length === SheetLimit && (
           <p className="text-xs text-muted-foreground">
-            The newest {SheetLimit} matches, back to {time(rows[SheetLimit - 1].time)}. Search or filter to reach older ones.
+            {/* Once a search went further back, these aren't the newest. */}
+            {from.olderThan ? `${SheetLimit} matches` : `The newest ${SheetLimit} matches`}, back to {time(rows[SheetLimit - 1].time)}. Search or filter
+            to reach older ones.
           </p>
         )
       }

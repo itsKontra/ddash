@@ -185,7 +185,7 @@ export function MetricTile({
 }
 
 /** One figure in a StatRow: its label and value; an undefined value is still loading. */
-export interface Stat {
+export interface StatRowItem {
   label: string;
   value: ReactNode;
 }
@@ -196,7 +196,7 @@ export interface Stat {
  * phone shows each value in full ("99.99 %", "999 ms"), never truncated.
  * Each figure is a group named by its label.
  */
-export function StatRow({ items }: { items: readonly Stat[] }) {
+export function StatRow({ items }: { items: readonly StatRowItem[] }) {
   return (
     <div className="grid auto-cols-fr grid-flow-col divide-x divide-border rounded-ui border border-border bg-card">
       {items.map((s) => (
@@ -206,7 +206,7 @@ export function StatRow({ items }: { items: readonly Stat[] }) {
   );
 }
 
-function StatCell({ label, value }: Stat) {
+function StatCell({ label, value }: StatRowItem) {
   const id = useId();
   return (
     <div role="group" aria-labelledby={id} className="px-3 py-2.5">

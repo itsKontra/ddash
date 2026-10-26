@@ -4,6 +4,7 @@
 import { useQuery } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
 import { cx, Icon, Presence, type IconName } from "@ddash/ui";
+import { backdropMotion } from "@ddash/ui/motion";
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router";
 import { useScheme } from "./appearance";
@@ -243,10 +244,7 @@ function Drawer({ sections, onClose }: { sections: Sections; onClose: () => void
   };
   return (
     // It slides in from the left and back out, as @ddash/ui's overlays move (tokens.css).
-    <div
-      className="fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm starting:bg-foreground/0 starting:backdrop-blur-none in-data-[state=closed]:bg-foreground/0 in-data-[state=closed]:backdrop-blur-none motion-safe:transition-[background-color,backdrop-filter] motion-safe:duration-(--motion-fade) lg:hidden"
-      onClick={onClose}
-    >
+    <div className={cx("fixed inset-0 z-40 bg-foreground/40 backdrop-blur-sm lg:hidden", backdropMotion)} onClick={onClose}>
       <div
         ref={panel}
         role="dialog"

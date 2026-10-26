@@ -1,8 +1,8 @@
 import { useAction, usePlugin } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
-import { ActionStrip, Button, Notice, Presence, ToggleButton } from "@ddash/ui";
+import { ActionStrip, Notice, ToggleButton } from "@ddash/ui";
 import { useState } from "react";
-import { AdoptSheet, RenameForm } from "./adopt";
+import { DeviceAction, RenameForm } from "./adopt";
 
 /**
  * A Devices row's strip: its routing and ad-blocking in a line, the
@@ -16,7 +16,6 @@ export function DeviceStrip({ device: d, bypassAlias, adguardError }: { device: 
   const direct = useAction(NetworkService.method.setDirect);
   const ads = useAction(NetworkService.method.setAdBlocking);
   const [renaming, setRenaming] = useState(false);
-  const [adopting, setAdopting] = useState(false);
   if (renaming) return <RenameForm device={d} onDone={() => setRenaming(false)} />;
 
   const blocked = !d.adBlockingOff;
@@ -28,38 +27,27 @@ export function DeviceStrip({ device: d, bypassAlias, adguardError }: { device: 
     !d.adopted && "New: a change Adopts it first",
   ].filter(Boolean);
   return (
-    <>
-      <ActionStrip
-        summary={summary.join(" · ")}
-        notice={
-          (unread || direct.error || ads.error) && (
-            <>
-              {unread && <Notice tone="warn">{adguardError}</Notice>}
-              {direct.error && <Notice tone="down">{direct.error.rawMessage}</Notice>}
-              {ads.error && <Notice tone="down">{ads.error.rawMessage}</Notice>}
-            </>
-          )
-        }
-      >
-        <ToggleButton size="sm" pressed={!d.direct} disabled={direct.pending} onChange={(tunnelled) => void direct.run({ mac: d.mac, direct: !tunnelled })}>
-          Tunnelled
+    <ActionStrip
+      summary={summary.join(" · ")}
+      notice={
+        (unread || direct.error || ads.error) && (
+          <>
+            {unread && <Notice tone="warn">{adguardError}</Notice>}
+            {direct.error && <Notice tone="down">{direct.error.rawMessage}</Notice>}
+            {ads.error && <Notice tone="down">{ads.error.rawMessage}</Notice>}
+          </>
+        )
+      }
+    >
+      <ToggleButton size="sm" pressed={!d.direct} disabled={direct.pending} onChange={(tunnelled) => void direct.run({ mac: d.mac, direct: !tunnelled })}>
+        Tunnelled
+      </ToggleButton>
+      {adguard && (
+        <ToggleButton size="sm" pressed={blocked} disabled={ads.pending || unread} onChange={(enabled) => void ads.run({ mac: d.mac, enabled })}>
+          Ads blocked
         </ToggleButton>
-        {adguard && (
-          <ToggleButton size="sm" pressed={blocked} disabled={ads.pending || unread} onChange={(enabled) => void ads.run({ mac: d.mac, enabled })}>
-            Ads blocked
-          </ToggleButton>
-        )}
-        {d.adopted ? (
-          <Button size="sm" variant="ghost" icon="pencil" onClick={() => setRenaming(true)}>
-            Rename
-          </Button>
-        ) : (
-          <Button size="sm" icon="badge-check" onClick={() => setAdopting(true)}>
-            Adopt…
-          </Button>
-        )}
-      </ActionStrip>
-      <Presence>{adopting && <AdoptSheet device={d} onClose={() => setAdopting(false)} />}</Presence>
-    </>
+      )}
+      <DeviceAction device={d} onRename={() => setRenaming(true)} />
+    </ActionStrip>
   );
 }

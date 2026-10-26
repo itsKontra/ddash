@@ -40,6 +40,15 @@ var allowedReasons = []string{
 	"FilteredSafeSearch", "Rewrite", "RewriteEtcHosts", "RewriteRule",
 }
 
+// modeReasons are the reasons each mode keeps, which AdGuard filters on
+// and filter.keeps checks again; nil, for every mode, keeps every line. A
+// mode missing here is unknown.
+var modeReasons = map[adguardapipb.QueryMode][]string{
+	adguardapipb.QueryMode_QUERY_MODE_UNSPECIFIED: nil,
+	adguardapipb.QueryMode_QUERY_MODE_BLOCKED:     blockedReasons,
+	adguardapipb.QueryMode_QUERY_MODE_ALLOWED:     allowedReasons,
+}
+
 // ListQueries asks AdGuard for the client's log lines in the mode, which
 // it filters itself, with offset=0 so it reads past its 50,000-line scan
 // cap until it has limit of them. Without text or type that one page is
@@ -52,17 +61,11 @@ func (c *component) ListQueries(ctx context.Context, req *adguardapipb.ListQueri
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "client %q is no address", req.GetClient())
 	}
-	f := filter{mode: req.GetMode(), words: strings.Fields(strings.ToLower(req.GetText())), qtype: req.GetType()}
-	var reasons []string
-	switch f.mode {
-	case adguardapipb.QueryMode_QUERY_MODE_UNSPECIFIED:
-	case adguardapipb.QueryMode_QUERY_MODE_BLOCKED:
-		reasons = blockedReasons
-	case adguardapipb.QueryMode_QUERY_MODE_ALLOWED:
-		reasons = allowedReasons
-	default:
-		return nil, status.Errorf(codes.InvalidArgument, "mode %d is unknown", f.mode)
+	reasons, known := modeReasons[req.GetMode()]
+	if !known {
+		return nil, status.Errorf(codes.InvalidArgument, "mode %d is unknown", req.GetMode())
 	}
+	f := filter{reasons: reasons, words: strings.Fields(strings.ToLower(req.GetText())), qtype: req.GetType()}
 	want := int(req.GetLimit())
 	budget := searchLines
 	if f.searches() {
@@ -148,34 +151,30 @@ func older(next, from string) bool {
 
 // filter is what a ListQueriesRequest keeps of the client's log lines.
 type filter struct {
-	mode  adguardapipb.QueryMode
-	words []string
-	qtype string
+	// reasons is the mode's modeReasons: nil keeps every reason.
+	reasons []string
+	words   []string
+	qtype   string
 }
 
 // searches says whether ddash filters on its own side, beyond the mode.
 func (f filter) searches() bool { return len(f.words) > 0 || f.qtype != "" }
 
 // keeps follows @ddash/ui's matches(): every word somewhere in the domain
-// or the rule, ignoring case. It checks the mode too, since an AdGuard
-// older than v0.107.77 ignores reason and sends every line.
+// or the rule, ignoring case. It checks the mode's reasons too, since an
+// AdGuard older than v0.107.77 ignores reason and sends every line.
 func (f filter) keeps(q *adguardapipb.Query) bool {
-	switch f.mode {
-	case adguardapipb.QueryMode_QUERY_MODE_BLOCKED:
-		if !q.GetBlocked() {
-			return false
-		}
-	case adguardapipb.QueryMode_QUERY_MODE_ALLOWED:
-		if q.GetBlocked() {
-			return false
-		}
+	if f.reasons != nil && !slices.Contains(f.reasons, q.GetReason()) {
+		return false
 	}
 	if f.qtype != "" && !strings.EqualFold(q.GetType(), f.qtype) {
 		return false
 	}
 	fields := []string{strings.ToLower(q.GetDomain()), strings.ToLower(q.GetRule())}
 	for _, w := range f.words {
-		// Like matches(), a word also matches without : and - (for a MAC).
+		// matches() also tries a word without its : and -, so a MAC matches
+		// either way. A domain or a rule is never a MAC, yet the rule is the
+		// same here: "ad-server" also finds "adserver.example".
 		bare := separators.Replace(w)
 		if !slices.ContainsFunc(fields, func(s string) bool {
 			return strings.Contains(s, w) || bare != "" && strings.Contains(s, bare)

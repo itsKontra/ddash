@@ -146,20 +146,20 @@ it("keeps the Name field with network's refusal", async () => {
 it("adopts a New Device from its detail; an Adopted one offers rename instead", async () => {
   await show("/network/devices/02:5e:00:00:20:01");
   const summary = screen.getByRole("region", { name: "Device" });
-  expect(within(summary).getByRole("button", { name: "Adopt galaxy-s24" })).toBeTruthy();
+  expect(within(summary).getByRole("button", { name: "Adopt…" })).toBeTruthy();
   expect(within(summary).queryByRole("button", { name: /Rename/ })).toBeNull();
   cleanup();
 
   await show("/network/devices/02:5e:00:00:10:01");
   const adopted = screen.getByRole("region", { name: "Device" });
   expect(within(adopted).queryByRole("button", { name: /Adopt/ })).toBeNull();
-  expect(within(adopted).getByRole("button", { name: "Rename Living room TV" })).toBeTruthy();
+  expect(within(adopted).getByRole("button", { name: "Rename" })).toBeTruthy();
 });
 
 it("renames an Adopted Device from its detail, leaving the address to pfSense", async () => {
   const calls = await show("/network/devices/02:5e:00:00:10:01");
 
-  fireEvent.click(screen.getByRole("button", { name: "Rename Living room TV" }));
+  fireEvent.click(screen.getByRole("button", { name: "Rename" }));
   // In place, as in the Devices table's strip: there's no Rename Sheet.
   expect(screen.queryByRole("dialog")).toBeNull();
   const summary = screen.getByRole("region", { name: "Device" });
@@ -174,7 +174,7 @@ it("renames an Adopted Device from its detail, leaving the address to pfSense", 
 
   expect(calls.filter((c) => c.method === "RenameDevice").map((c) => c.body)).toEqual([{ mac: "02:5e:00:00:10:01", name: "Kitchen TV" }]);
   expect(within(summary).queryByRole("textbox")).toBeNull();
-  expect(document.activeElement).toBe(within(summary).getByRole("button", { name: "Rename Living room TV" }));
+  expect(document.activeElement).toBe(within(summary).getByRole("button", { name: "Rename" }));
 });
 
 it("keeps the dialog open with network's refusal", async () => {
@@ -182,7 +182,7 @@ it("keeps the dialog open with network's refusal", async () => {
     AdoptDevice: () => Response.json({ code: "already_exists", message: "198.18.1.23 is already held by printer" }, { status: 409 }),
   });
 
-  fireEvent.click(screen.getByRole("button", { name: "Adopt galaxy-s24" }));
+  fireEvent.click(screen.getByRole("button", { name: "Adopt…" }));
   await settle();
   const dialog = screen.getByRole("dialog", { name: "Adopt galaxy-s24" });
   fireEvent.click(within(dialog).getByRole("button", { name: "Adopt" }));
@@ -195,7 +195,7 @@ it("keeps the dialog open with network's refusal", async () => {
 it("says so when the reserved range is full", async () => {
   await show("/network/devices/02:5e:00:00:20:01", { NextReservedAddress: () => Response.json({ reservedRange: "198.18.1.20-198.18.1.49" }) });
 
-  fireEvent.click(screen.getByRole("button", { name: "Adopt galaxy-s24" }));
+  fireEvent.click(screen.getByRole("button", { name: "Adopt…" }));
   await settle();
 
   const dialog = screen.getByRole("dialog", { name: "Adopt galaxy-s24" });

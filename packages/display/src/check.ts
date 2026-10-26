@@ -46,3 +46,9 @@ export function checkStatus(c: Check | undefined): CheckStatus {
       return { tone: "idle", label: c.reason ? `pending: ${c.reason}` : "pending" };
   }
 }
+
+/**
+ * The order Check tones sort in, worst first: down, warn, Maintenance, up,
+ * then idle. A table ranks each row by the tone its own cell draws.
+ */
+export const toneRank: Readonly<Record<Tone, number>> = { down: 0, warn: 1, maint: 2, up: 3, info: 4, idle: 5 };

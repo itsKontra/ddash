@@ -5,7 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { nameOf } from "./devices";
 
 /** The sheet Adopting a New Device: its name and the reserved address, pre-filled with the lowest free one. */
-export function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
+function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
   const adopt = useAction(NetworkService.method.adoptDevice);
   const { data: next } = useQuery(NetworkService.method.nextReservedAddress, {});
   const form = useId();
@@ -104,21 +104,25 @@ export function RenameForm({ device: d, onDone }: { device: Device; onDone: () =
   );
 }
 
-/** The Device Page's Action: Adopt for a New Device, opening its sheet, or Rename for an Adopted one. */
+/**
+ * A Device's naming Action, the same on its Page and in its Devices row's
+ * strip: Rename for an Adopted Device (onRename turns the caller's view
+ * into a RenameForm), or Adopt… for a New one, opening its Sheet. The
+ * Sheet stays mounted past the Adopt, so it animates out.
+ */
 export function DeviceAction({ device: d, onRename, focus }: { device: Device; onRename: () => void; focus?: boolean }) {
   const [adopting, setAdopting] = useState(false);
-  if (d.adopted) {
-    return (
-      <Button variant="outline" size="sm" aria-label={`Rename ${nameOf(d)}`} autoFocus={focus} onClick={onRename}>
-        Rename
-      </Button>
-    );
-  }
   return (
     <>
-      <Button variant="outline" size="sm" aria-label={`Adopt ${nameOf(d)}`} onClick={() => setAdopting(true)}>
-        Adopt
-      </Button>
+      {d.adopted ? (
+        <Button size="sm" variant="ghost" icon="pencil" autoFocus={focus} onClick={onRename}>
+          Rename
+        </Button>
+      ) : (
+        <Button size="sm" icon="badge-check" onClick={() => setAdopting(true)}>
+          Adopt…
+        </Button>
+      )}
       <Presence>{adopting && <AdoptSheet device={d} onClose={() => setAdopting(false)} />}</Presence>
     </>
   );

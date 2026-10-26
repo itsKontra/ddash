@@ -10,7 +10,7 @@ export function CheckDetail({ check, onClose }: { check: Check; onClose: () => v
   const [name, setName] = useState<WindowName>("24 h");
   const { data, error } = useHistory(check.id, name);
   // The window's latency; undefined while loading, and when it had no up beat.
-  const l = data?.uptime[windowNames.indexOf(name)]?.latency;
+  const windowLatency = data?.uptime[windowNames.indexOf(name)]?.latency;
   return (
     <Sheet title={shownName(check)} onClose={onClose}>
       <div className="flex flex-col gap-4">
@@ -22,14 +22,14 @@ export function CheckDetail({ check, onClose }: { check: Check; onClose: () => v
         <Segmented label="Window" value={name} options={windowNames} onChange={setName} />
         <div>
           <SectionHeading title="Latency" />
-          {data && !l ? (
+          {data && !windowLatency ? (
             <EmptyState icon="gauge" title={`No up beats in the last ${name}.`} />
           ) : (
             <StatRow
               items={[
-                { label: "average", value: l && latency(l.avgMs) },
-                { label: "min", value: l && latency(l.minMs) },
-                { label: "max", value: l && latency(l.maxMs) },
+                { label: "average", value: windowLatency && latency(windowLatency.avgMs) },
+                { label: "min", value: windowLatency && latency(windowLatency.minMs) },
+                { label: "max", value: windowLatency && latency(windowLatency.maxMs) },
               ]}
             />
           )}
