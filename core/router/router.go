@@ -133,7 +133,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	resp := dynamicpb.NewMessage(md.Output())
 	fullMethod := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
-	ctx, cancel := context.WithTimeout(onward(r.Context(), actor, chain), Deadline(md))
+	ctx, cancel := callContext(onward(r.Context(), actor, chain), md)
 	defer cancel()
 	err = ep.Conn.Invoke(ctx, fullMethod, req, resp)
 	done(err)
@@ -170,13 +170,20 @@ const (
 	ActionDeadline = 60 * time.Second
 )
 
-// Deadline is how long a call to md may take: ActionDeadline for an
-// Action, GetterDeadline for a getter.
-func Deadline(md protoreflect.MethodDescriptor) time.Duration {
+// Detach returns the context an admitted Action runs under: ctx's values
+// (actor, chain) without its cancellation, ending after ActionDeadline. An
+// Action runs to its end whatever its caller does (ADR-0004).
+func Detach(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), ActionDeadline)
+}
+
+// callContext returns the context a call to md runs under: detached for an
+// Action, and for a getter ctx bounded by GetterDeadline.
+func callContext(ctx context.Context, md protoreflect.MethodDescriptor) (context.Context, context.CancelFunc) {
 	if appstate.IsAction(md) {
-		return ActionDeadline
+		return Detach(ctx)
 	}
-	return GetterDeadline
+	return context.WithTimeout(ctx, GetterDeadline)
 }
 
 // inScope refuses a call unless plugin is installed and lists component

@@ -122,9 +122,10 @@ func TestComposeGivesTheCoreTimeToStopEveryComponent(t *testing.T) {
 		t.Fatalf("stop_grace_period: %v", err)
 	}
 
-	// On SIGTERM the core drains HTTP, then stops every Component.
-	if grace != 20*time.Second || httpShutdownTimeout+runtime.StopTimeout >= grace {
-		t.Errorf("stop_grace_period %v, want 20s, more than the core's %v + %v", grace, httpShutdownTimeout, runtime.StopTimeout)
+	// On SIGTERM the core lets in-flight Actions finish, then stops every
+	// Component.
+	if grace != 90*time.Second || httpShutdownTimeout+runtime.StopTimeout >= grace {
+		t.Errorf("stop_grace_period %v, want 90s, more than the core's %v + %v", grace, httpShutdownTimeout, runtime.StopTimeout)
 	}
 }
 

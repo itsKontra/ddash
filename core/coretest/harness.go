@@ -319,10 +319,15 @@ func ConnectRequest(component, method, body string) *http.Request {
 // CoreCall makes a Connect unary JSON call to the core API's method, as the
 // shell would.
 func (h *Harness) CoreCall(method, body string) *httptest.ResponseRecorder {
+	return h.Do(CoreRequest(method, body))
+}
+
+// CoreRequest is a Connect unary JSON request to the core API's method.
+func CoreRequest(method, body string) *http.Request {
 	r := httptest.NewRequest(http.MethodPost, "/api/core/ddash.core.CoreService/"+method, bytes.NewBufferString(body))
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Connect-Protocol-Version", "1")
-	return h.Do(r)
+	return r
 }
 
 // Get serves a GET of path, as the browser would.

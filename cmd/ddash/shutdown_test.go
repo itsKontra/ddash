@@ -5,67 +5,88 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"slices"
 	"sync"
 	"testing"
 	"testing/synctest"
 	"time"
 )
 
-// components records when the Components were stopped and the core DB
-// closed.
-type components struct {
-	mu             sync.Mutex
-	stopped, close time.Time
+// steps records the shutdown's steps in the order they happened, and when.
+type steps struct {
+	mu   sync.Mutex
+	done []string
+	at   []time.Duration
+	from time.Time
 }
 
-func (c *components) StopComponents(context.Context) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.stopped = time.Now()
+func (s *steps) add(step string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.done = append(s.done, step)
+	s.at = append(s.at, time.Since(s.from))
 }
 
-func (c *components) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.close = time.Now()
+func (s *steps) StopComponents(context.Context) { s.add("stop Components") }
+
+func (s *steps) Close() error {
+	s.add("close the core DB")
 	return nil
 }
 
-// On SIGTERM: stop accepting HTTP, stop the Components at once (not after
-// in-flight requests), and close the core DB only once HTTP is drained.
-func TestShutdownStopsComponentsAtOnceAndClosesTheDBLast(t *testing.T) {
+// serving serves srv on one in-memory connection, or on none when conn is
+// nil.
+func serving(srv *http.Server, conn net.Conn) {
+	go func() { _ = srv.Serve(&oneConn{conn: conn, done: make(chan struct{})}) }()
+}
+
+// On SIGTERM: stop accepting HTTP and let in-flight requests (and the
+// Actions they run) finish, then stop the Components, and close the core
+// DB last.
+func TestShutdownLetsInFlightRequestsFinishBeforeStoppingComponents(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
-		started := time.Now()
-		release := make(chan struct{})
+		s := &steps{from: time.Now()}
 		inFlight := make(chan struct{})
 		srv := &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			close(inFlight)
-			<-release
+			time.Sleep(30 * time.Second)
+			s.add("end the request")
 		})}
 		client, server := net.Pipe()
-		ln := &oneConn{conn: server, done: make(chan struct{})}
-		go func() { _ = srv.Serve(ln) }()
+		serving(srv, server)
 		go func() {
 			_, _ = client.Write([]byte("GET / HTTP/1.1\r\nHost: ddash\r\n\r\n"))
 			_, _ = io.Copy(io.Discard, client)
 		}()
 		<-inFlight
 
-		c := &components{}
-		go func() {
-			time.Sleep(3 * time.Second)
-			close(release)
-		}()
-		drain(srv, c)
+		_ = drain(srv, s)
 
-		if got := c.stopped.Sub(started); got != 0 {
-			t.Errorf("Components stopped %v after SIGTERM, want at once", got)
+		if want := []string{"end the request", "stop Components", "close the core DB"}; !slices.Equal(s.done, want) {
+			t.Errorf("steps = %v, want %v", s.done, want)
 		}
 		// http.Server.Shutdown polls for idle connections, a little late.
-		if got := c.close.Sub(started); got < 3*time.Second || got >= httpShutdownTimeout {
-			t.Errorf("core DB closed %v after SIGTERM, want once the 3 s request ended", got)
+		if got := s.at[len(s.at)-1]; got < 30*time.Second || got >= 31*time.Second {
+			t.Errorf("drained %v after SIGTERM, want once the 30 s request ended", got)
 		}
 		client.Close()
+	})
+}
+
+func TestAnIdleShutdownIsImmediate(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		s := &steps{from: time.Now()}
+		srv := &http.Server{Handler: http.NotFoundHandler()}
+		serving(srv, nil)
+
+		_ = drain(srv, s)
+
+		if want := []string{"stop Components", "close the core DB"}; !slices.Equal(s.done, want) {
+			t.Errorf("steps = %v, want %v", s.done, want)
+		}
+		if got := time.Since(s.from); got != 0 {
+			t.Errorf("drained %v after SIGTERM, want at once", got)
+		}
 	})
 }
 
