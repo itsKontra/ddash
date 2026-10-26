@@ -1,0 +1,3 @@
+name: nginx-proxy-manager-api
+description: Signs in to Nginx Proxy Manager as a dedicated user, reads and writes its Proxy Hosts and reads its certificates.
+requires: []

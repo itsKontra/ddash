@@ -16,6 +16,8 @@ import (
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	nginxconfig "github.com/itsKontra/ddash/components/nginx-config"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
@@ -212,6 +214,37 @@ var systems = []system{
 		capture: func(ctx context.Context, dbPath string, m proto.Message) (string, fixture.Output, error) {
 			out, err := nginxconfig.Capture(ctx, dbPath, m.(*nginxconfigpb.NginxConfigConfig))
 			return "nginx -T", fixture.Output{Stdout: []byte(out.Stdout), Stderr: []byte(out.Stderr), Exit: out.Exit}, err
+		},
+	},
+	{
+		def:     nginxproxymanagerapi.Definition(),
+		service: nginxproxymanagerapipb.NginxProxyManagerApiService_ServiceDesc.ServiceName,
+		config:  func() proto.Message { return &nginxproxymanagerapipb.NginxProxyManagerApiConfig{} },
+		checks: map[string]func(proto.Message) error{
+			"ListProxyHosts": atLeastOne("Proxy Host", func(m proto.Message) int {
+				return len(m.(*nginxproxymanagerapipb.ListProxyHostsResponse).GetProxyHosts())
+			}),
+			"ListCertificates": atLeastOne("certificate", func(m proto.Message) int {
+				return len(m.(*nginxproxymanagerapipb.ListCertificatesResponse).GetCertificates())
+			}),
+			"GetStatus": func(m proto.Message) error {
+				s := m.(*nginxproxymanagerapipb.GetStatusResponse)
+				switch {
+				case s.GetStatus() != nginxproxymanagerapipb.Status_STATUS_UP:
+					return fmt.Errorf("status %s: %s", s.GetStatus(), s.GetError())
+				case s.GetAddress() == "":
+					return errors.New("no Reverse Proxy address: the URL's host doesn't resolve")
+				case s.GetProxyHostsReadOnly():
+					return errors.New("ddash's user has Proxy Hosts on View: set them to Manage")
+				}
+				return nil
+			},
+		},
+		proxy: func(m proto.Message, addr string) (string, string, error) {
+			cfg := m.(*nginxproxymanagerapipb.NginxProxyManagerApiConfig)
+			upstream := cfg.GetUrl()
+			cfg.Url = "http://" + addr
+			return upstream, "", nil
 		},
 	},
 }

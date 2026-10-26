@@ -1,0 +1,222 @@
+syntax = "proto3";
+
+// nginx-proxy-manager-api reads and writes Nginx Proxy Manager's Proxy
+// Hosts and reads its certificates through its API on the admin port
+// (:81), signed in as a dedicated user. It is coded to what v2.10
+// accepts: booleans decode as 0/1 or true/false, writes send only fields
+// v2.10 knows, and certificates map to Proxy Hosts by certificate_id.
+package ddash.nginxproxymanagerapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb;nginxproxymanagerapipb";
+
+message NginxProxyManagerApiConfig {
+  // Nginx Proxy Manager's admin address, e.g. "http://198.18.1.210:81".
+  string url = 1 [(ddash.config.field) = {
+    label: "URL"
+    help: "Nginx Proxy Manager's admin address on port 81, where its API answers. Its own address, not a Proxy Host's name, so ddash reaches it while DNS is down."
+    required: true
+    format: FORMAT_URL
+    placeholder: "http://198.18.1.210:81"
+  }];
+  // The email of ddash's user in Nginx Proxy Manager.
+  string email = 2 [(ddash.config.field) = {
+    required: true
+    help: "Create a user for ddash in Users. Under Permissions set Item Visibility to All Items, Proxy Hosts to Manage, SSL Certificates to View, everything else to Hidden. Leave 2FA off."
+  }];
+  // Its password, exchanged for a one-day token at each sign-in.
+  string password = 3 [(ddash.config.field) = {
+    required: true
+    secret: true
+    help: "ddash signs in with it at start and again before each one-day token expires."
+  }];
+}
+
+service NginxProxyManagerApiService {
+  // ListProxyHosts returns every Proxy Host ddash's user sees
+  // (GET /api/nginx/proxy-hosts), in Nginx Proxy Manager's order: by
+  // domain names.
+  rpc ListProxyHosts(ListProxyHostsRequest) returns (ListProxyHostsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListCertificates returns every SSL certificate
+  // (GET /api/nginx/certificates), in Nginx Proxy Manager's order: by
+  // nice name.
+  rpc ListCertificates(ListCertificatesRequest) returns (ListCertificatesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // GetStatus says whether ddash can read Nginx Proxy Manager, as of its
+  // last read of the Proxy Hosts, with what the last sign-in learned.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // Refresh drops every cache and the token, so the next read signs in
+  // again (re-reading the version and permissions) and reads afresh.
+  rpc Refresh(RefreshRequest) returns (RefreshResponse) {
+    option (ddash.action) = {};
+  }
+  // CreateProxyHost creates a Proxy Host (POST /api/nginx/proxy-hosts)
+  // with the fields ddash manages; Nginx Proxy Manager picks its defaults
+  // for the rest.
+  rpc CreateProxyHost(CreateProxyHostRequest) returns (CreateProxyHostResponse) {
+    option (ddash.action) = {};
+  }
+  // UpdateProxyHost reads the Proxy Host, then sets the fields ddash
+  // manages (PUT /api/nginx/proxy-hosts/{id}). Every other field
+  // (advanced config, custom locations, access list, caching, enabled)
+  // stays as it is.
+  rpc UpdateProxyHost(UpdateProxyHostRequest) returns (UpdateProxyHostResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteProxyHost deletes a Proxy Host
+  // (DELETE /api/nginx/proxy-hosts/{id}).
+  rpc DeleteProxyHost(DeleteProxyHostRequest) returns (DeleteProxyHostResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+// Writes fail with a google.rpc.ErrorInfo detail whose reason is one of
+// these names (domain "nginx-proxy-manager-api") where a caller acts on
+// the kind of failure:
+enum ErrorReason {
+  ERROR_REASON_UNSPECIFIED = 0;
+  // AlreadyExists: Nginx Proxy Manager's 400 "<host> is already in use".
+  // A Proxy Host, Redirection Host or 404 Host holds that domain name; the
+  // metadata's "domain_name" names it. Nothing was written.
+  ERROR_REASON_DOMAIN_IN_USE = 1;
+  // Aborted: Nginx Proxy Manager saved the Proxy Host, but nginx rejected
+  // its config, so it is Offline. The message carries nginx's error; the
+  // metadata holds "id" and "nginx_error".
+  ERROR_REASON_PROXY_HOST_OFFLINE = 2;
+  // PermissionDenied: ddash's user may only view Proxy Hosts. Nothing was
+  // sent.
+  ERROR_REASON_PROXY_HOSTS_READ_ONLY = 3;
+}
+
+message ListProxyHostsRequest {
+  // Bypass the cache and refill it: an App Action's fresh read.
+  bool fresh = 1;
+}
+
+message ListProxyHostsResponse {
+  repeated ProxyHost proxy_hosts = 1;
+}
+
+message ProxyHost {
+  // Nginx Proxy Manager's id: stable across edits.
+  int64 id = 1;
+  ProxyHostFields fields = 2;
+  // Whether it is enabled; a disabled Proxy Host is saved but not served.
+  bool enabled = 3;
+  // Offline: nginx rejected its config when it was last saved
+  // (meta.nginx_online false), so it isn't served.
+  bool offline = 4;
+  // nginx's error from that save (meta.nginx_err); empty unless offline.
+  string nginx_error = 5;
+}
+
+// The fields of a Proxy Host ddash reads and writes.
+message ProxyHostFields {
+  // Its hostnames, sorted as Nginx Proxy Manager stores them.
+  repeated string domain_names = 1;
+  // The upstream: "http" or "https", a host and a port.
+  string forward_scheme = 2;
+  string forward_host = 3;
+  int32 forward_port = 4;
+  // Block Common Exploits.
+  bool block_exploits = 5;
+  // Websockets Support.
+  bool websockets = 6;
+  // The certificate's id; 0 for none. Nginx Proxy Manager turns Force
+  // SSL and HTTP/2 off without one, and HSTS off without Force SSL.
+  int64 certificate_id = 7;
+  bool force_ssl = 8;
+  bool http2 = 9;
+  bool hsts = 10;
+  // HSTS for subdomains too; off without HSTS.
+  bool hsts_subdomains = 11;
+}
+
+message ListCertificatesRequest {
+  // Bypass the cache and refill it.
+  bool fresh = 1;
+}
+
+message ListCertificatesResponse {
+  repeated Certificate certificates = 1;
+}
+
+message Certificate {
+  int64 id = 1;
+  // "letsencrypt" or "other" (uploaded).
+  string provider = 2;
+  string nice_name = 3;
+  // The names it covers, wildcards like "*.home.example" included.
+  repeated string domain_names = 4;
+  // When it expires (expires_on, read as UTC).
+  google.protobuf.Timestamp expires_on = 5;
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  // Up: the last read succeeded. Warn: it failed after a good one. Down:
+  // Nginx Proxy Manager doesn't answer, refuses ddash's sign-in, or every
+  // read failed so far. Offline Proxy Hosts don't change it.
+  Status status = 1;
+  // When ddash last read Nginx Proxy Manager, well or not; unset before
+  // the first read.
+  google.protobuf.Timestamp read_at = 2;
+  // When the last good read was; unset before the first.
+  google.protobuf.Timestamp last_good_read_at = 3;
+  // Why the last read failed; empty when it succeeded.
+  string error = 4;
+  // Nginx Proxy Manager's version as GET /api reported it at the last
+  // sign-in, e.g. "2.10.4"; empty before the first.
+  string version = 5;
+  // Proxy Hosts are View for ddash's user: reads work, every write is
+  // refused.
+  bool proxy_hosts_read_only = 6;
+  // The Reverse Proxy's address: the configured URL's host, resolved when
+  // it is a name; empty when it doesn't resolve.
+  string address = 7;
+}
+
+enum Status {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_UP = 1;
+  STATUS_WARN = 2;
+  STATUS_DOWN = 3;
+}
+
+message RefreshRequest {}
+
+message RefreshResponse {}
+
+message CreateProxyHostRequest {
+  ProxyHostFields fields = 1;
+}
+
+message CreateProxyHostResponse {
+  // As Nginx Proxy Manager saved it, with the flags it forced.
+  ProxyHost proxy_host = 1;
+}
+
+message UpdateProxyHostRequest {
+  int64 id = 1;
+  // Every managed field, as it should be after the write.
+  ProxyHostFields fields = 2;
+}
+
+message UpdateProxyHostResponse {
+  ProxyHost proxy_host = 1;
+}
+
+message DeleteProxyHostRequest {
+  int64 id = 1;
+}
+
+message DeleteProxyHostResponse {}

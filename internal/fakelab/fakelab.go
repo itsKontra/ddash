@@ -6,8 +6,9 @@
 // Docker comes first; each later system adds itself to systems (HTTP) or
 // sshSystems (SSH). A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
-// adguardfake; Proxmox: proxmoxfake). A named scenario (e.g. "vpn-on-fallback") replaces the
-// baseline of every system that has a sibling directory of that name.
+// adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake). A
+// named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
+// system that has a sibling directory of that name.
 package fakelab
 
 import (
@@ -29,6 +30,8 @@ import (
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
 	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
@@ -95,6 +98,16 @@ var systems = []system{
 		},
 		// Workload status and power tasks are kept: Start/Stop/Restart stick.
 		serve: func(dir string) (http.Handler, error) { return proxmoxfake.New(dir, proxmoxfake.Options{}) },
+	},
+	{
+		component: "nginx-proxy-manager-api",
+		fixtures:  "components/nginx-proxy-manager-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			// The fixtures' user, with the fake's password.
+			return &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: "http://" + addr, Email: "ddash@home.example", Password: "fakelab"}
+		},
+		// Sign-ins and Proxy Hosts are kept: writes stick.
+		serve: func(dir string) (http.Handler, error) { return npmfake.New(dir, npmfake.Options{Password: "fakelab"}) },
 	},
 }
 

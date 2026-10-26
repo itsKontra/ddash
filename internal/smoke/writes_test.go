@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
 	"github.com/itsKontra/ddash/internal/fakelab"
@@ -25,6 +26,10 @@ import (
 // mapping or AdGuard client.
 const unused = "198.18.1.60"
 
+// smokeProxyHost is a hostname no Proxy Host, Redirection Host or 404
+// Host in the lab's fixtures holds.
+const smokeProxyHost = "ddash-smoke.home.example"
+
 // writesLab is the baseline lab plus the smoke targets: pfSense's empty
 // DDASH_SMOKE alias, and Proxmox's VM 100 and LXC 210 Protected (the
 // protected scenario; the baseline already has the stopped ddash-smoke
@@ -34,6 +39,7 @@ func writesLab(t *testing.T) (*fakelab.Lab, map[string]string) {
 	l := lab(t, repoRoot, "smoke-writes", "protected")
 	env := envFor(t, l)
 	env[smoke.UnusedAddressVar] = unused
+	env[smoke.ProxyHostVar] = smokeProxyHost
 	return l, env
 }
 
@@ -51,6 +57,7 @@ type labState struct {
 	DHCPPending, FWPending   bool
 	Clients                  []map[string]any
 	Smoke, Protected, OtherV string
+	ProxyHosts               []map[string]any
 }
 
 func stateOf(l *fakelab.Lab) labState {
@@ -62,6 +69,7 @@ func stateOf(l *fakelab.Lab) labState {
 		DHCPPending: fw.Pending(), FWPending: fw.FirewallPending(),
 		Clients: ag.Clients(),
 		Smoke:   px.Status(211), Protected: px.Status(100), OtherV: px.Status(210),
+		ProxyHosts: l.Handler("nginx-proxy-manager-api").(*npmfake.NPM).ProxyHosts(),
 	}
 }
 
@@ -108,6 +116,7 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 		"ok adguard-api SetClientFiltering round trip",
 		"ok proxmox-api ddash-smoke start and shutdown",
 		"ok proxmox-api Protected refusal (VM 100 pfSense)",
+		"ok nginx-proxy-manager-api Proxy Host round trip (" + smokeProxyHost + ")",
 	} {
 		if !strings.Contains(log, want+"\n") {
 			t.Errorf("log lacks %q:\n%s", want, log)
@@ -144,6 +153,12 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 	}
 	if n := count(ag, "POST /control/clients/update"); n != 2 {
 		t.Errorf("%d client updates, want 2 (off, then on)", n)
+	}
+	npm := l.Handler("nginx-proxy-manager-api").(*npmfake.NPM).Log()
+	for _, want := range []string{"POST /api/nginx/proxy-hosts", "PUT /api/nginx/proxy-hosts/39", "DELETE /api/nginx/proxy-hosts/39"} {
+		if count(npm, want) != 1 {
+			t.Errorf("Proxy Host requests lack one %q:\n%v", want, npm)
+		}
 	}
 	if diff := cmp.Diff([]string{
 		"lxc/211/status/start",
@@ -218,6 +233,11 @@ func TestWritesCleanUpWhenAStepFails(t *testing.T) {
 		px.ServeHTTP(w, r)
 	}))
 
+	pointAt(t, env, "nginx-proxy-manager-api", failOnce(l.Handler("nginx-proxy-manager-api"), func(r *http.Request) bool {
+		// The update, after the create.
+		return r.Method == http.MethodPut
+	}))
+
 	log, err := runWrites(t, env)
 
 	for _, want := range []string{
@@ -225,6 +245,7 @@ func TestWritesCleanUpWhenAStepFails(t *testing.T) {
 		"pfsense-api static mapping round trip",
 		"adguard-api SetClientFiltering round trip",
 		"proxmox-api ddash-smoke start and shutdown",
+		"nginx-proxy-manager-api Proxy Host round trip",
 	} {
 		if err == nil || !strings.Contains(err.Error(), want) {
 			t.Errorf("err = %v, want %q failing", err, want)
@@ -249,14 +270,31 @@ func TestWritesRemoveWhatAnInterruptedRunLeftFirst(t *testing.T) {
 	leftover := httptest.NewRequest(http.MethodPost, "/api/v2/services/dhcp_server/static_mapping",
 		strings.NewReader(`{"parent_id": "lan", "mac": "`+smoke.SmokeMAC+`", "ipaddr": "`+unused+`", "descr": "ddash smoke-writes", "apply": true}`))
 	fw.ServeHTTP(httptest.NewRecorder(), leftover)
+	npm := l.Handler("nginx-proxy-manager-api").(*npmfake.NPM)
+	signIn := httptest.NewRecorder()
+	npm.ServeHTTP(signIn, httptest.NewRequest(http.MethodPost, "/api/tokens", strings.NewReader(`{"identity": "ddash@home.example", "secret": "fakelab"}`)))
+	var token struct{ Token string }
+	_ = json.Unmarshal(signIn.Body.Bytes(), &token)
+	leftoverHost := httptest.NewRequest(http.MethodPost, "/api/nginx/proxy-hosts",
+		strings.NewReader(`{"domain_names": ["`+smokeProxyHost+`"], "forward_scheme": "http", "forward_host": "`+unused+`", "forward_port": 80}`))
+	leftoverHost.Header.Set("Authorization", "Bearer "+token.Token)
+	npm.ServeHTTP(httptest.NewRecorder(), leftoverHost)
+	if len(npm.ProxyHosts()) != len(before.ProxyHosts)+1 {
+		t.Fatal("the leftover Proxy Host wasn't created")
+	}
 
 	log, err := runWrites(t, env)
 
 	if err != nil {
 		t.Fatalf("smoke-writes failed: %v\n%s", err, log)
 	}
-	if want := "cleanup before pfsense-api static mapping round trip: deleted the static mapping of " + smoke.SmokeMAC + " on lan (left by an earlier run)\n"; !strings.Contains(log, want) {
-		t.Errorf("log lacks %q:\n%s", want, log)
+	for _, want := range []string{
+		"cleanup before pfsense-api static mapping round trip: deleted the static mapping of " + smoke.SmokeMAC + " on lan (left by an earlier run)\n",
+		"cleanup before nginx-proxy-manager-api Proxy Host round trip: deleted Proxy Host 39 " + smokeProxyHost + " (left by an earlier run)\n",
+	} {
+		if !strings.Contains(log, want) {
+			t.Errorf("log lacks %q:\n%s", want, log)
+		}
 	}
 	if diff := cmp.Diff(before, stateOf(l)); diff != "" {
 		t.Errorf("the lab after smoke-writes (-before +after):\n%s", diff)
@@ -286,6 +324,29 @@ func TestWritesRefuseAnAddressInUseAndWriteNothing(t *testing.T) {
 	}
 	if diff := cmp.Diff(before, stateOf(l)); diff != "" {
 		t.Errorf("the lab changed (-before +after):\n%s", diff)
+	}
+}
+
+func TestTheProxyHostRoundTripNeedsItsHostnameAndRefusesOneInUse(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		host, want string
+	}{
+		{"", "nginx-proxy-manager-api Proxy Host round trip: set " + smoke.ProxyHostVar + " in smoke.env"},
+		{"grafana.home.example", "nginx-proxy-manager-api Proxy Host round trip: grafana.home.example is held by Proxy Host 3"},
+	} {
+		l, env := writesLab(t)
+		env[smoke.ProxyHostVar] = tc.host
+		before := stateOf(l)
+
+		_, err := runWrites(t, env)
+
+		if err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("err = %v, want %q", err, tc.want)
+		}
+		if diff := cmp.Diff(before.ProxyHosts, stateOf(l).ProxyHosts); diff != "" {
+			t.Errorf("the Proxy Hosts changed (-before +after):\n%s", diff)
+		}
 	}
 }
 

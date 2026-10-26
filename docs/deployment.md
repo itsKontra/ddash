@@ -104,6 +104,9 @@ Do these by hand, in order, before first use.
       A privilege covers its endpoint for every object: ddash itself keeps
       to the bypass alias and the Devices' static mappings.
 - [ ] Proxmox: the role and token, plus the **Protected ACLs** below.
+- [ ] Nginx Proxy Manager: a dedicated user for ddash (Users). Permissions:
+      Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
+      everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
@@ -149,6 +152,9 @@ them once:
 - [ ] A free LAN address (no lease, no static mapping, no AdGuard client),
       outside the DHCP pools, as `SMOKE_UNUSED_IP` in the dev machine's
       `smoke.env`.
+- [ ] A hostname no Proxy Host, Redirection Host or 404 Host holds (e.g.
+      `ddash-smoke.<domain>`) as `SMOKE_PROXY_HOST`. It needs no DNS record:
+      the round trip only creates and deletes its Proxy Host.
 
 ## Updating
 
