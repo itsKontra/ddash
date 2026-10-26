@@ -193,6 +193,16 @@ describe.each(ways)("$name", (way) => {
     expect(dialog().getByText(blocked)).toBeTruthy();
     expect((dialog().getByRole("button", { name: way.confirm }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("shows the Plan's notes, and still lets it run", async () => {
+    const note = "nasui.home.example stays an alias of the Reverse Proxy's Host Override, with no Proxy Host to serve it: remove it there, or add a reverse proxy again.";
+    await open(way.app, { PlanAction: () => Response.json({ plan: { ...plan, notes: [note] } }) });
+    await way.open();
+    await settle();
+
+    expect(dialog().getByText(note)).toBeTruthy();
+    expect((dialog().getByRole("button", { name: way.confirm }) as HTMLButtonElement).disabled).toBe(false);
+  });
 });
 
 it("empties the pane once the App is deleted", async () => {

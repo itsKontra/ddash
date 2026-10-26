@@ -250,3 +250,21 @@ func TestPointAtReverseProxyMovesOnlyTheAppsNames(t *testing.T) {
 		}
 	})
 }
+
+// Delete Proxy Host leaves the Proxy Host's names that are aliases at the
+// Reverse Proxy's address registered: its Plan says so.
+func TestDeleteProxyHostSaysWhichNamesStayRegistered(t *testing.T) {
+	l := newLab(t, labOptions{})
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.10:5000", "nas.home.example", "nasui.home.example"))
+	l.register("nasui.home.example")
+	l.refresh()
+	nas := l.byURL("https://nas.home.example").GetId()
+	w := warningOf(l.app(nas), dnsBypasses)
+	i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetKind() == appspb.FixKind_FIX_KIND_DELETE_PROXY_HOST })
+
+	p := l.plan(fixAction(nas, w.GetFixes()[i]))
+	want := []string{"nasui.home.example stays an alias of the Reverse Proxy's Host Override, with no Proxy Host to serve it: remove it there, or add a reverse proxy again."}
+	if d := diff(want, p.GetNotes()); d != "" || len(p.GetBlocked()) != 0 {
+		t.Errorf("Plan's notes (-want +got):\n%s\nblocked: %q", d, p.GetBlocked())
+	}
+}

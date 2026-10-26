@@ -3194,7 +3194,10 @@ type Plan struct {
 	// Why it can't run now, each as the Operator reads it, e.g. the Reverse
 	// Proxy's Host Override problem; empty when it can. A taken name blocks
 	// it too, by its note alone.
-	Blocked       []string `protobuf:"bytes,3,rep,name=blocked,proto3" json:"blocked,omitempty"`
+	Blocked []string `protobuf:"bytes,3,rep,name=blocked,proto3" json:"blocked,omitempty"`
+	// What the Operator should know before confirming that doesn't keep it
+	// from running, e.g. names a deleted Proxy Host leaves registered.
+	Notes         []string `protobuf:"bytes,4,rep,name=notes,proto3" json:"notes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3246,6 +3249,13 @@ func (x *Plan) GetNames() []*NameNote {
 func (x *Plan) GetBlocked() []string {
 	if x != nil {
 		return x.Blocked
+	}
+	return nil
+}
+
+func (x *Plan) GetNotes() []string {
+	if x != nil {
+		return x.Notes
 	}
 	return nil
 }
@@ -3958,11 +3968,12 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\x05http2\x18\b \x01(\bR\x05http2\x12\x12\n" +
 	"\x04hsts\x18\t \x01(\bR\x04hsts\x12'\n" +
 	"\x0fhsts_subdomains\x18\n" +
-	" \x01(\bR\x0ehstsSubdomains\"x\n" +
+	" \x01(\bR\x0ehstsSubdomains\"\x8e\x01\n" +
 	"\x04Plan\x12*\n" +
 	"\x05steps\x18\x01 \x03(\v2\x14.ddash.apps.PlanStepR\x05steps\x12*\n" +
 	"\x05names\x18\x02 \x03(\v2\x14.ddash.apps.NameNoteR\x05names\x12\x18\n" +
-	"\ablocked\x18\x03 \x03(\tR\ablocked\"{\n" +
+	"\ablocked\x18\x03 \x03(\tR\ablocked\x12\x14\n" +
+	"\x05notes\x18\x04 \x03(\tR\x05notes\"{\n" +
 	"\bPlanStep\x12*\n" +
 	"\x06system\x18\x01 \x01(\x0e2\x12.ddash.apps.SystemR\x06system\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12-\n" +

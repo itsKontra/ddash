@@ -580,6 +580,9 @@ message Plan {
   // Proxy's Host Override problem; empty when it can. A taken name blocks
   // it too, by its note alone.
   repeated string blocked = 3;
+  // What the Operator should know before confirming that doesn't keep it
+  // from running, e.g. names a deleted Proxy Host leaves registered.
+  repeated string notes = 4;
 }
 
 // One step of a Plan: a write to one system, with the values it expects

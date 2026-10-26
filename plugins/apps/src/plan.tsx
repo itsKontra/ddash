@@ -184,7 +184,8 @@ export interface DialogSlot {
 
 /**
  * An external write's Plan in a Dialog: the server's Plan for action, its
- * "name is free" notes and what keeps it from running, then each step's
+ * "name is free" notes, what keeps it from running and what else to know
+ * before confirming, then each step's
  * progress once confirmed. A run stops at the first failed step, saying
  * so, nothing rolled back; one refused because the systems changed shows
  * the new Plan, which confirming again runs. onDone gets RunAction's
@@ -253,6 +254,13 @@ export function PlanDialog({
           <Notice tone="warn">
             {plan.blocked.map((b) => (
               <p key={b}>{b}</p>
+            ))}
+          </Notice>
+        )}
+        {plan && plan.notes.length > 0 && (
+          <Notice tone="info">
+            {plan.notes.map((n) => (
+              <p key={n}>{n}</p>
             ))}
           </Notice>
         )}

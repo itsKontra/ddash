@@ -548,8 +548,16 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 		}
 	case appspb.FixKind_FIX_KIND_DELETE_PROXY_HOST:
 		p.npmWritable(out.block)
-		if h := p.v.hosts[f.GetProxyHostId()]; h != nil {
-			out.deleteProxyHost(h)
+		h := p.v.hosts[f.GetProxyHostId()]
+		if h == nil {
+			break
+		}
+		out.deleteProxyHost(h)
+		// Its names at the Reverse Proxy's address stay, unserved.
+		for _, m := range sorted(canonNames(h.GetFields().GetDomainNames())) {
+			if p.dns != nil && p.dns.proxied(m) {
+				out.plan.Notes = append(out.plan.Notes, m+" stays an alias of the Reverse Proxy's Host Override, with no Proxy Host to serve it: remove it there, or add a reverse proxy again.")
+			}
 		}
 	case appspb.FixKind_FIX_KIND_DELETE_ENTRY:
 		p.pfWritable(out.block)
