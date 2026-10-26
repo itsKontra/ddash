@@ -159,6 +159,8 @@ func (a coreAPI) ListAuditLog(ctx context.Context, req *corepb.ListAuditLogReque
 		ActorKind: req.GetActorKind(),
 		Target:    req.GetTarget(),
 		Outcome:   req.GetOutcome(),
+		Search:    req.GetQuery(),
+		Order:     req.GetOrder(),
 		PageSize:  int(req.GetPageSize()),
 		PageToken: req.GetPageToken(),
 	})
