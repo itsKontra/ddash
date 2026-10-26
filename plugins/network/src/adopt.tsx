@@ -5,7 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { nameOf } from "./devices";
 
 /** The sheet Adopting a New Device: its name and the reserved address, pre-filled with the lowest free one. */
-function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
+export function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
   const adopt = useAction(NetworkService.method.adoptDevice);
   const { data: next } = useQuery(NetworkService.method.nextReservedAddress, {});
   const form = useId();
@@ -58,58 +58,68 @@ function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => voi
   );
 }
 
-/** The sheet renaming an Adopted Device: its static mapping's description. */
-function RenameSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
+/**
+ * Renaming an Adopted Device in place, its static mapping's description:
+ * a Name field with Rename and Cancel. Enter renames; Escape in the field
+ * cancels, and goes no further (a row's strip stays open).
+ */
+export function RenameForm({ device: d, onDone }: { device: Device; onDone: () => void }) {
   const rename = useAction(NetworkService.method.renameDevice);
-  const form = useId();
   const [name, setName] = useState(d.name);
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    if (await rename.run({ mac: d.mac, name })) onClose();
+    if (await rename.run({ mac: d.mac, name })) onDone();
   };
 
   return (
-    <Sheet
-      title={`Rename ${nameOf(d)}`}
-      onClose={onClose}
-      footer={
-        <FormActions>
-          <Button type="submit" form={form} disabled={rename.pending}>
+    <form onSubmit={(e) => void save(e)} className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1 basis-56">
+          <Field label="Name" hint={`It keeps its reserved address ${d.reservation?.ip ?? d.ip}; change that in pfSense.`}>
+            <TextInput
+              autoFocus
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Escape") return;
+                e.preventDefault();
+                onDone();
+              }}
+            />
+          </Field>
+        </div>
+        {/* In line with the field, under its label. */}
+        <div className="flex gap-2 pt-5.5">
+          <Button type="submit" disabled={rename.pending}>
             Rename
           </Button>
-        </FormActions>
-      }
-    >
-      <form id={form} onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
-        <Field label="Name">
-          <TextInput value={name} onChange={(e) => setName(e.target.value)} />
-        </Field>
-        <p className="text-sm text-muted-foreground">
-          It keeps its reserved address <span className="tabular-nums">{d.reservation?.ip ?? d.ip}</span>. Change the address or remove the
-          reservation in pfSense.
-        </p>
-        {rename.error && <Notice tone="down">{rename.error.rawMessage}</Notice>}
-      </form>
-    </Sheet>
+          <Button variant="ghost" onClick={onDone}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+      {rename.error && <Notice tone="down">{rename.error.rawMessage}</Notice>}
+    </form>
   );
 }
 
-/** The sheet for a Device: Adopt for a New one, rename for an Adopted one. */
-export function DeviceSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
-  return d.adopted ? <RenameSheet device={d} onClose={onClose} /> : <AdoptSheet device={d} onClose={onClose} />;
-}
-
-/** Adopt for a New Device, Rename for an Adopted one, each opening its sheet. */
-export function DeviceAction({ device: d }: { device: Device }) {
-  const [open, setOpen] = useState(false);
-  const label = `${d.adopted ? "Rename" : "Adopt"} ${nameOf(d)}`;
+/** The Device Page's Action: Adopt for a New Device, opening its sheet, or Rename for an Adopted one. */
+export function DeviceAction({ device: d, onRename, focus }: { device: Device; onRename: () => void; focus?: boolean }) {
+  const [adopting, setAdopting] = useState(false);
+  if (d.adopted) {
+    return (
+      <Button variant="outline" size="sm" aria-label={`Rename ${nameOf(d)}`} autoFocus={focus} onClick={onRename}>
+        Rename
+      </Button>
+    );
+  }
   return (
     <>
-      <Button variant="outline" size="sm" aria-label={label} onClick={() => setOpen(true)}>
-        {d.adopted ? "Rename" : "Adopt"}
+      <Button variant="outline" size="sm" aria-label={`Adopt ${nameOf(d)}`} onClick={() => setAdopting(true)}>
+        Adopt
       </Button>
-      <Presence>{open && <DeviceSheet device={d} onClose={() => setOpen(false)} />}</Presence>
+      <Presence>{adopting && <AdoptSheet device={d} onClose={() => setAdopting(false)} />}</Presence>
     </>
   );
 }

@@ -82,6 +82,56 @@ it("toggles a New Device straight away, saying it Adopts it first", async () => 
   expect(calls.some((c) => c.method === "AdoptDevice")).toBe(false);
 });
 
+const table = () => within(screen.getByRole("region", { name: "Devices" })).getByRole("table");
+/** Opens a Device's strip in the Devices table and returns it. */
+function open(device: string) {
+  fireEvent.click(within(table()).getByRole("button", { name: `Actions for ${device}` }));
+  return within(table()).getByRole("group", { name: `Actions for ${device}` });
+}
+
+it("makes a Device Direct from the Devices table's strip, pressing Tunnelled off at once", async () => {
+  const calls = await show("/network");
+
+  const strip = open("Living room TV");
+  expect(within(strip).getByRole("status").textContent).toBe("Tunnelled via the VPN Tunnel");
+  const tunnelled = within(strip).getByRole("button", { name: "Tunnelled" });
+  expect(tunnelled.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(tunnelled);
+  await settle();
+
+  expect(screen.queryByRole("alertdialog")).toBeNull();
+  expect(setDirect(calls)).toEqual([{ mac: "02:5e:00:00:10:01", direct: true }]);
+});
+
+it("tunnels a Direct Device again from its strip, which says where it is", async () => {
+  const calls = await show("/network");
+
+  const strip = open("Work laptop");
+  expect(within(strip).getByRole("status").textContent).toBe("Direct, in VPN_BYPASS");
+  fireEvent.click(within(strip).getByRole("button", { name: "Tunnelled", pressed: false }));
+  await settle();
+
+  expect(setDirect(calls).map((b) => [b.mac, b.direct ?? false])).toEqual([["02:5e:00:00:10:02", false]]);
+});
+
+it("says in a New Device's strip that a change Adopts it first", async () => {
+  await show("/network");
+
+  expect(within(open("02:5e:00:00:20:02")).getByRole("status").textContent).toBe("Tunnelled via the VPN Tunnel · New: a change Adopts it first");
+});
+
+it("shows network's refusal in the strip", async () => {
+  await show("/network", {
+    SetDirect: () => Response.json({ code: "failed_precondition", message: "Work laptop stays Direct: VPN_BYPASS holds 198.18.1.21 through 198.18.1.16/28" }, { status: 400 }),
+  });
+
+  const strip = open("Work laptop");
+  fireEvent.click(within(strip).getByRole("button", { name: "Tunnelled" }));
+  await settle();
+
+  expect(within(strip).getByRole("alert").textContent).toMatch(/stays Direct/);
+});
+
 it("shows network's refusal next to the toggle", async () => {
   await show("/network/devices/02:5e:00:00:10:02", {
     SetDirect: () =>
