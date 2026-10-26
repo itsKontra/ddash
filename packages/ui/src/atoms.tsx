@@ -57,8 +57,7 @@ export function Button({
       type={type}
       {...rest}
       className={cx(
-        "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-ui font-medium transition-colors disabled:pointer-events-none disabled:opacity-40",
-        size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
+        buttonLook(size),
         variant === "default" && "bg-primary text-primary-foreground hover:opacity-90",
         variant === "outline" && "border border-border bg-card hover:bg-muted",
         variant === "ghost" && "hover:bg-muted",
@@ -66,6 +65,49 @@ export function Button({
       )}
     >
       {icon && <Icon name={icon} size={size} />}
+      {children}
+    </button>
+  );
+}
+
+/** What a Button and a ToggleButton share: the shape, the sizes and the disabled look. */
+const buttonLook = (size: "sm" | "md") =>
+  cx(
+    "inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-ui font-medium transition-colors disabled:pointer-events-none disabled:opacity-40",
+    size === "sm" ? "h-7 px-2.5 text-xs" : "h-9 px-3.5 text-sm",
+  );
+
+/**
+ * A Button for a setting that's on or off, e.g. a Device's "Tunnelled" in
+ * its row's strip: pressed (aria-pressed) while it's on, ticked and in the
+ * primary tint. Like a Switch it acts at once; the Switch suits a form.
+ */
+export function ToggleButton({
+  pressed,
+  onChange,
+  disabled,
+  size = "md",
+  children,
+}: {
+  pressed: boolean;
+  onChange: (pressed: boolean) => void;
+  disabled?: boolean;
+  size?: "sm" | "md";
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={() => onChange(!pressed)}
+      className={cx(
+        buttonLook(size),
+        "border",
+        pressed ? "border-primary bg-primary-tint text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Icon name={pressed ? "check" : "x"} size={size} />
       {children}
     </button>
   );

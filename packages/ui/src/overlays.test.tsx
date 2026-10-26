@@ -2,11 +2,12 @@ import { act, cleanup, fireEvent, render, screen, within } from "@testing-librar
 import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 import { Button, ConfirmDialog, Dialog, Menu, Presence, Sheet } from "./index";
+import { stubAnimations, unstubAnimations } from "./test-animations";
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
-  delete (Element.prototype as Partial<Element>).getAnimations;
+  unstubAnimations();
 });
 
 it("Menu opens its items from a labelled button and closes once one is picked", () => {
@@ -179,26 +180,6 @@ it.each(["Dialog", "Sheet"] as const)("%s traps the focus inside and hands it ba
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(document.activeElement).toBe(opener);
 });
-
-/**
- * Stubs getAnimations (jsdom has none) with one running animation per call,
- * whose finished the test settles: finish() ends the latest, cancel() aborts it.
- */
-function stubAnimations() {
-  const calls: { finish: () => void; cancel: () => void }[] = [];
-  Element.prototype.getAnimations = function () {
-    let finish = () => {};
-    let cancel = () => {};
-    const finished = new Promise<Animation>((resolve, reject) => {
-      finish = () => resolve(this as unknown as Animation);
-      cancel = () => reject(new DOMException("aborted", "AbortError"));
-    });
-    finished.catch(() => {});
-    calls.push({ finish, cancel });
-    return [{ finished } as Animation];
-  };
-  return calls;
-}
 
 function Toggle({ initial = true }: { initial?: boolean }) {
   const [open, setOpen] = useState(initial);
