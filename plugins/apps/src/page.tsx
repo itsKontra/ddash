@@ -1,5 +1,5 @@
 import { useAction } from "@ddash/plugin";
-import { AppsService, type App, type Overlay, type Workload } from "@ddash/proto/apps/apps_pb";
+import { AppsService, Reach, type App, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
 import {
   ActionStrip,
@@ -25,17 +25,17 @@ import {
   type Column,
 } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
-import { sections, useApps } from "./apps";
+import { counting, sections, useApps, warningText } from "./apps";
 import { checkStatus } from "@ddash/display";
 import { useAppChecks } from "./checks";
 import { EditSheet } from "./edit";
 import { workloadName } from "@ddash/display";
 import { WorkloadLine } from "./workload";
 
-/** Whether an App matches the search: its name, its domains (a manual App's is its URL's host) or its group. */
-const found = (q: string, app: App) => matches(q, app.name, app.serverName, ...app.aliases, URL.parse(app.url)?.hostname, app.group);
+/** Whether an App matches the search: its name, its URL's host, its aliases or its group. */
+const found = (q: string, app: App) => matches(q, app.name, URL.parse(app.url)?.hostname, ...app.aliases, app.group);
 
-/** The Apps Page: App cards by group, display settings, manual Apps and unmatched settings. */
+/** The Apps Page: App cards by group, their settings, Link-only Apps and orphaned App settings. */
 export function AppsPage() {
   const { list, error } = useApps();
   const { byApp, error: checksError } = useAppChecks();
@@ -43,9 +43,11 @@ export function AppsPage() {
   // The App being edited, "new" while adding one.
   const [editing, setEditing] = useState<App | "new">();
   const apps = list?.apps ?? [];
-  const shown = apps.filter((a) => found(q, a));
+  const orphans = apps.filter((a) => a.orphaned);
+  const shown = apps.filter((a) => !a.orphaned && found(q, a));
   const hidden = shown.filter((a) => a.hidden);
   const groups = [...new Set(apps.map((a) => a.group).filter(Boolean))].sort();
+  const readError = list?.proxyHosts?.error;
   const add = (
     <Button icon="plus" onClick={() => setEditing("new")}>
       Add App
@@ -64,22 +66,20 @@ export function AppsPage() {
 
   return (
     <div>
-      <PageTitle kicker="Services" title="Apps" subtitle="Every nginx Proxy Host, plus the Apps you add." actions={header} />
+      <PageTitle kicker="Services" title="Apps" subtitle="Every Proxy Host in Nginx Proxy Manager, plus the Apps you add." actions={header} />
       <div className="flex flex-col gap-6">
         {!list && !error && <Skeleton height="lg" />}
         {!list && error && <Notice tone="down">apps unavailable: {error.rawMessage}</Notice>}
-        {list?.discoveryError && (
-          <Notice tone="warn">Couldn't read the Proxy Hosts from nginx-config: {list.discoveryError}. Showing those of the last read.</Notice>
-        )}
+        {readError && <Notice tone="warn">Couldn't read the Proxy Hosts from Nginx Proxy Manager: {readError}. Showing those of the last read.</Notice>}
         {list && apps.length > 0 && checksError && <Notice tone="warn">Check status unavailable: {checksError.rawMessage}</Notice>}
         {list && apps.length === 0 && (
           <Panel>
             <EmptyState icon="layout-grid" title="No Apps yet" action={add}>
-              Proxy Hosts show here once nginx-config reads them, or add an App by hand.
+              Proxy Hosts show here once ddash reads them from Nginx Proxy Manager, or add an App by hand.
             </EmptyState>
           </Panel>
         )}
-        {apps.length > 0 && shown.length === 0 && (
+        {apps.length > orphans.length && shown.length === 0 && (
           <Panel>
             <EmptyState icon="search-x" title={noMatch("Apps", q)} />
           </Panel>
@@ -94,12 +94,12 @@ export function AppsPage() {
             <Cards apps={hidden} label="Hidden" checks={byApp} onEdit={setEditing} />
           </Section>
         )}
-        {list && list.unmatched.length > 0 && (
-          <Section title="Unmatched settings">
+        {orphans.length > 0 && (
+          <Section title="Orphaned App settings">
             <p className="mb-3 text-sm text-muted-foreground">
-              Settings kept for Proxy Hosts that are gone or were renamed. Re-attach them to an App, or delete them.
+              Settings kept for Apps whose Proxy Host is gone. Re-attach them to an App, or delete them.
             </p>
-            <UnmatchedSettings overlays={list.unmatched} targets={apps.filter((a) => !a.manual && !a.overlay)} />
+            <Orphans orphans={orphans} targets={apps.filter((a) => a.reach === Reach.PROXIED && !a.touched && !a.orphaned)} />
           </Section>
         )}
       </div>
@@ -139,9 +139,10 @@ function Cards({
   );
 }
 
-/** An App's card: icon, name and URL opening it, its Check's status, its Workload and its aliases. */
+/** An App's card: icon, name and URL opening it, its Check's status, its Warnings that count, its Workload and its aliases. */
 function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, Check>; onEdit: () => void }) {
   const status = checks && checkStatus(checks.get(app.id));
+  const warnings = counting(app);
   return (
     <li aria-label={app.name} className="min-w-0">
       <Panel>
@@ -165,6 +166,12 @@ function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, 
               </Pill>
             </span>
           )}
+          {warnings.length > 0 && (
+            <p aria-label="Warnings" className="text-xs text-warn-text">
+              {warnings.map((w) => warningText[w.kind]).join(" · ")}
+            </p>
+          )}
+          {app.proxyHost && !app.proxyHost.enabled && <p className="text-xs text-muted-foreground">Proxy Host disabled</p>}
           {(app.workload || app.aliases.length > 0) && (
             <div className="flex min-w-0 flex-col gap-1">
               {app.workload && <WorkloadLine workload={app.workload} />}
@@ -177,45 +184,50 @@ function Card({ app, checks, onEdit }: { app: App; checks?: ReadonlyMap<string, 
   );
 }
 
-/** What an overlay sets, e.g. "Documents · group Office · hidden". */
-function summary(o: Overlay) {
-  const workload = o.workload && `on ${workloadName({ ref: o.workload } as Workload)}`;
-  return [o.name, o.icon && `icon ${o.icon}`, o.group && `group ${o.group}`, o.hidden && "hidden", workload].filter(Boolean).join(" · ");
+/** What orphaned App settings keep, e.g. "Documents · group Office · hidden". */
+function summary(a: App) {
+  const s = a.settings;
+  const workload = s?.workload && `on ${workloadName({ ref: s.workload } as Workload)}`;
+  return [s?.name, s?.icon && `icon ${s.icon}`, s?.group && `group ${s.group}`, s?.hidden && "hidden", workload].filter(Boolean).join(" · ");
 }
 
-const unmatchedColumns: Column<Overlay>[] = [
-  { id: "host", header: "Proxy Host", rowHeader: true, mono: true, cell: (o) => o.serverName },
-  { id: "settings", header: "Settings", cell: (o) => summary(o) },
+/** An App's URL's hostname: what orphaned App settings were kept for. */
+const hostOf = (a: App) => URL.parse(a.url)?.hostname ?? a.url;
+
+const orphanColumns: Column<App>[] = [
+  { id: "host", header: "Kept for", rowHeader: true, mono: true, cell: (a) => hostOf(a) },
+  { id: "settings", header: "Settings", cell: (a) => summary(a) },
 ];
 
 /**
- * Settings whose Proxy Host is gone, as a compact table: each row's strip
- * re-attaches them to an App without settings, or deletes them.
+ * Orphaned App settings as a compact table: each row's strip re-attaches
+ * them to an App without settings, or deletes them.
  */
-function UnmatchedSettings({ overlays, targets }: { overlays: readonly Overlay[]; targets: readonly App[] }) {
-  const [reattaching, setReattaching] = useState<Overlay>();
+function Orphans({ orphans, targets }: { orphans: readonly App[]; targets: readonly App[] }) {
+  const [reattaching, setReattaching] = useState<App>();
   return (
     <>
       <Panel flush>
         <DataTable
-          rows={overlays}
-          rowKey={(o) => o.serverName}
-          columns={unmatchedColumns}
+          rows={orphans}
+          rowKey={(a) => a.id}
+          columns={orphanColumns}
           density="compact"
-          rowLabel={(o) => o.serverName}
-          strip={(o) => <UnmatchedStrip overlay={o} canReattach={targets.length > 0} onReattach={() => setReattaching(o)} />}
+          rowLabel={(a) => hostOf(a)}
+          strip={(a) => <OrphanStrip orphan={a} canReattach={targets.length > 0} onReattach={() => setReattaching(a)} />}
         />
       </Panel>
-      <Presence>{reattaching && <Reattach overlay={reattaching} targets={targets} onClose={() => setReattaching(undefined)} />}</Presence>
+      <Presence>{reattaching && <Reattach orphan={reattaching} targets={targets} onClose={() => setReattaching(undefined)} />}</Presence>
     </>
   );
 }
 
-/** An unmatched setting's strip: Re-attach… opens its Dialog, Delete asks first. */
-function UnmatchedStrip({ overlay, canReattach, onReattach }: { overlay: Overlay; canReattach: boolean; onReattach: () => void }) {
-  const remove = useAction(AppsService.method.deleteOverlay);
+/** An orphan's strip: Re-attach… opens its Dialog, Delete asks first. */
+function OrphanStrip({ orphan, canReattach, onReattach }: { orphan: App; canReattach: boolean; onReattach: () => void }) {
+  const remove = useAction(AppsService.method.deleteOrphan);
+  const host = hostOf(orphan);
   return (
-    <ActionStrip summary={`Kept for ${overlay.serverName}`} notice={remove.error && <Notice tone="down">{remove.error.rawMessage}</Notice>}>
+    <ActionStrip summary={`Kept for ${host}`} notice={remove.error && <Notice tone="down">{remove.error.rawMessage}</Notice>}>
       <Button size="sm" variant="outline" disabled={!canReattach} onClick={onReattach}>
         Re-attach…
       </Button>
@@ -223,7 +235,7 @@ function UnmatchedStrip({ overlay, canReattach, onReattach }: { overlay: Overlay
         size="sm"
         variant="danger"
         disabled={remove.pending}
-        onClick={() => void remove.run({ serverName: overlay.serverName }, { confirm: { text: `Delete the settings kept for ${overlay.serverName}?`, action: "Delete" } })}
+        onClick={() => void remove.run({ id: orphan.id }, { confirm: { text: `Delete the settings kept for ${host}?`, action: "Delete" } })}
       >
         Delete
       </Button>
@@ -231,15 +243,15 @@ function UnmatchedStrip({ overlay, canReattach, onReattach }: { overlay: Overlay
   );
 }
 
-/** Re-attaches an unmatched setting to an App without settings of its own. */
-function Reattach({ overlay, targets, onClose }: { overlay: Overlay; targets: readonly App[]; onClose: () => void }) {
-  const attach = useAction(AppsService.method.attachOverlay);
+/** Re-attaches orphaned App settings to an App without settings of its own. */
+function Reattach({ orphan, targets, onClose }: { orphan: App; targets: readonly App[]; onClose: () => void }) {
+  const attach = useAction(AppsService.method.reattach);
   const [to, setTo] = useState("");
   const form = useId();
   return (
     <Dialog
-      title={`Re-attach ${overlay.serverName}`}
-      subtitle={summary(overlay)}
+      title={`Re-attach ${hostOf(orphan)}`}
+      subtitle={summary(orphan)}
       onClose={onClose}
       footer={
         <FormActions>
@@ -257,15 +269,15 @@ function Reattach({ overlay, targets, onClose }: { overlay: Overlay; targets: re
         className="flex flex-col gap-4"
         onSubmit={async (e) => {
           e.preventDefault();
-          if (await attach.run({ serverName: overlay.serverName, to })) onClose();
+          if (await attach.run({ id: orphan.id, to })) onClose();
         }}
       >
         <Field label="Re-attach to" hint="Only Apps without settings of their own.">
           <Select value={to} onChange={(e) => setTo(e.target.value)}>
             <option value="">Choose an App…</option>
             {targets.map((a) => (
-              <option key={a.serverName} value={a.serverName}>
-                {a.name} ({a.serverName})
+              <option key={a.id} value={a.id}>
+                {a.name} ({hostOf(a)})
               </option>
             ))}
           </Select>

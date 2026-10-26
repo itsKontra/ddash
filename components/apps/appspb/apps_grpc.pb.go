@@ -4,8 +4,9 @@
 // - protoc             (unknown)
 // source: apps/apps.proto
 
-// apps turns every nginx Proxy Host into an App, adds the Operator's manual
-// Apps, and keeps the Operator's display settings (the overlay) for both.
+// apps keeps a record per App, discovered from Nginx Proxy Manager's Proxy
+// Hosts or added as Link only, with the Operator's settings and Ignores,
+// and derives each App's Warnings on every sync.
 
 package appspb
 
@@ -22,46 +23,57 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AppsService_ListApps_FullMethodName       = "/ddash.apps.AppsService/ListApps"
-	AppsService_SetOverlay_FullMethodName     = "/ddash.apps.AppsService/SetOverlay"
-	AppsService_AttachOverlay_FullMethodName  = "/ddash.apps.AppsService/AttachOverlay"
-	AppsService_DeleteOverlay_FullMethodName  = "/ddash.apps.AppsService/DeleteOverlay"
-	AppsService_CreateApp_FullMethodName      = "/ddash.apps.AppsService/CreateApp"
-	AppsService_UpdateApp_FullMethodName      = "/ddash.apps.AppsService/UpdateApp"
-	AppsService_DeleteApp_FullMethodName      = "/ddash.apps.AppsService/DeleteApp"
-	AppsService_ListWorkloads_FullMethodName  = "/ddash.apps.AppsService/ListWorkloads"
-	AppsService_ListProxyHosts_FullMethodName = "/ddash.apps.AppsService/ListProxyHosts"
+	AppsService_ListApps_FullMethodName        = "/ddash.apps.AppsService/ListApps"
+	AppsService_Refresh_FullMethodName         = "/ddash.apps.AppsService/Refresh"
+	AppsService_SetSettings_FullMethodName     = "/ddash.apps.AppsService/SetSettings"
+	AppsService_IgnoreWarning_FullMethodName   = "/ddash.apps.AppsService/IgnoreWarning"
+	AppsService_UnignoreWarning_FullMethodName = "/ddash.apps.AppsService/UnignoreWarning"
+	AppsService_Reattach_FullMethodName        = "/ddash.apps.AppsService/Reattach"
+	AppsService_DeleteOrphan_FullMethodName    = "/ddash.apps.AppsService/DeleteOrphan"
+	AppsService_PromoteAlias_FullMethodName    = "/ddash.apps.AppsService/PromoteAlias"
+	AppsService_CreateApp_FullMethodName       = "/ddash.apps.AppsService/CreateApp"
+	AppsService_DeleteApp_FullMethodName       = "/ddash.apps.AppsService/DeleteApp"
+	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
 )
 
 // AppsServiceClient is the client API for AppsService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AppsServiceClient interface {
-	// ListApps returns every App, discovered and manual, with its overlay
-	// applied, and the overlays that match no App.
+	// ListApps returns every App: discovered, Link only and orphaned App
+	// settings, each with its Warnings, and how the sources were last read.
 	ListApps(ctx context.Context, in *ListAppsRequest, opts ...grpc.CallOption) (*ListAppsResponse, error)
-	// SetOverlay sets a discovered App's display settings, keyed by its first
-	// server_name. An overlay with every field empty is removed.
-	SetOverlay(ctx context.Context, in *SetOverlayRequest, opts ...grpc.CallOption) (*SetOverlayResponse, error)
-	// AttachOverlay moves an overlay onto another App, e.g. after a rename
-	// left it unmatched.
-	AttachOverlay(ctx context.Context, in *AttachOverlayRequest, opts ...grpc.CallOption) (*AttachOverlayResponse, error)
-	// DeleteOverlay drops an overlay: its App falls back to the defaults.
-	DeleteOverlay(ctx context.Context, in *DeleteOverlayRequest, opts ...grpc.CallOption) (*DeleteOverlayResponse, error)
-	// CreateApp adds a manual App.
+	// Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
+	// the Apps are current.
+	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
+	// SetSettings sets an App's ddash-only settings: name, icon, group,
+	// Hidden and Workload override. They take effect at once.
+	SetSettings(ctx context.Context, in *SetSettingsRequest, opts ...grpc.CallOption) (*SetSettingsResponse, error)
+	// IgnoreWarning Ignores one kind of Warning on an App until it is
+	// un-ignored: it is still listed, flagged, but doesn't count.
+	IgnoreWarning(ctx context.Context, in *IgnoreWarningRequest, opts ...grpc.CallOption) (*IgnoreWarningResponse, error)
+	// UnignoreWarning ends an Ignore.
+	UnignoreWarning(ctx context.Context, in *UnignoreWarningRequest, opts ...grpc.CallOption) (*UnignoreWarningResponse, error)
+	// Reattach moves orphaned App settings onto an App without settings of
+	// its own: the App keeps the orphan's id (and so its Check's history),
+	// settings and Ignores, with the other App's sources and URL. The other
+	// App's record goes.
+	Reattach(ctx context.Context, in *ReattachRequest, opts ...grpc.CallOption) (*ReattachResponse, error)
+	// DeleteOrphan deletes orphaned App settings.
+	DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error)
+	// PromoteAlias makes one of an App's aliases the hostname of its URL,
+	// keeping the scheme and port. It changes nothing outside ddash. It is
+	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
+	// names are then the App's aliases.
+	PromoteAlias(ctx context.Context, in *PromoteAliasRequest, opts ...grpc.CallOption) (*PromoteAliasResponse, error)
+	// CreateApp adds a Link-only App.
 	CreateApp(ctx context.Context, in *CreateAppRequest, opts ...grpc.CallOption) (*CreateAppResponse, error)
-	// UpdateApp replaces a manual App's details.
-	UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error)
-	// DeleteApp removes a manual App.
+	// DeleteApp deletes a Link-only App.
 	DeleteApp(ctx context.Context, in *DeleteAppRequest, opts ...grpc.CallOption) (*DeleteAppResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
 	ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error)
-	// ListProxyHosts returns every server block in nginx-config's snapshot
-	// that forwards to an upstream (some location has a proxy_pass), by first
-	// server_name, each with the App it yields and what looks wrong with it.
-	ListProxyHosts(ctx context.Context, in *ListProxyHostsRequest, opts ...grpc.CallOption) (*ListProxyHostsResponse, error)
 }
 
 type appsServiceClient struct {
@@ -82,30 +94,70 @@ func (c *appsServiceClient) ListApps(ctx context.Context, in *ListAppsRequest, o
 	return out, nil
 }
 
-func (c *appsServiceClient) SetOverlay(ctx context.Context, in *SetOverlayRequest, opts ...grpc.CallOption) (*SetOverlayResponse, error) {
+func (c *appsServiceClient) Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SetOverlayResponse)
-	err := c.cc.Invoke(ctx, AppsService_SetOverlay_FullMethodName, in, out, cOpts...)
+	out := new(RefreshResponse)
+	err := c.cc.Invoke(ctx, AppsService_Refresh_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appsServiceClient) AttachOverlay(ctx context.Context, in *AttachOverlayRequest, opts ...grpc.CallOption) (*AttachOverlayResponse, error) {
+func (c *appsServiceClient) SetSettings(ctx context.Context, in *SetSettingsRequest, opts ...grpc.CallOption) (*SetSettingsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AttachOverlayResponse)
-	err := c.cc.Invoke(ctx, AppsService_AttachOverlay_FullMethodName, in, out, cOpts...)
+	out := new(SetSettingsResponse)
+	err := c.cc.Invoke(ctx, AppsService_SetSettings_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *appsServiceClient) DeleteOverlay(ctx context.Context, in *DeleteOverlayRequest, opts ...grpc.CallOption) (*DeleteOverlayResponse, error) {
+func (c *appsServiceClient) IgnoreWarning(ctx context.Context, in *IgnoreWarningRequest, opts ...grpc.CallOption) (*IgnoreWarningResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteOverlayResponse)
-	err := c.cc.Invoke(ctx, AppsService_DeleteOverlay_FullMethodName, in, out, cOpts...)
+	out := new(IgnoreWarningResponse)
+	err := c.cc.Invoke(ctx, AppsService_IgnoreWarning_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *appsServiceClient) UnignoreWarning(ctx context.Context, in *UnignoreWarningRequest, opts ...grpc.CallOption) (*UnignoreWarningResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UnignoreWarningResponse)
+	err := c.cc.Invoke(ctx, AppsService_UnignoreWarning_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *appsServiceClient) Reattach(ctx context.Context, in *ReattachRequest, opts ...grpc.CallOption) (*ReattachResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReattachResponse)
+	err := c.cc.Invoke(ctx, AppsService_Reattach_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *appsServiceClient) DeleteOrphan(ctx context.Context, in *DeleteOrphanRequest, opts ...grpc.CallOption) (*DeleteOrphanResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteOrphanResponse)
+	err := c.cc.Invoke(ctx, AppsService_DeleteOrphan_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *appsServiceClient) PromoteAlias(ctx context.Context, in *PromoteAliasRequest, opts ...grpc.CallOption) (*PromoteAliasResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PromoteAliasResponse)
+	err := c.cc.Invoke(ctx, AppsService_PromoteAlias_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,16 +168,6 @@ func (c *appsServiceClient) CreateApp(ctx context.Context, in *CreateAppRequest,
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateAppResponse)
 	err := c.cc.Invoke(ctx, AppsService_CreateApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *appsServiceClient) UpdateApp(ctx context.Context, in *UpdateAppRequest, opts ...grpc.CallOption) (*UpdateAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(UpdateAppResponse)
-	err := c.cc.Invoke(ctx, AppsService_UpdateApp_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -152,45 +194,44 @@ func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloads
 	return out, nil
 }
 
-func (c *appsServiceClient) ListProxyHosts(ctx context.Context, in *ListProxyHostsRequest, opts ...grpc.CallOption) (*ListProxyHostsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListProxyHostsResponse)
-	err := c.cc.Invoke(ctx, AppsService_ListProxyHosts_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // AppsServiceServer is the server API for AppsService service.
 // All implementations must embed UnimplementedAppsServiceServer
 // for forward compatibility.
 type AppsServiceServer interface {
-	// ListApps returns every App, discovered and manual, with its overlay
-	// applied, and the overlays that match no App.
+	// ListApps returns every App: discovered, Link only and orphaned App
+	// settings, each with its Warnings, and how the sources were last read.
 	ListApps(context.Context, *ListAppsRequest) (*ListAppsResponse, error)
-	// SetOverlay sets a discovered App's display settings, keyed by its first
-	// server_name. An overlay with every field empty is removed.
-	SetOverlay(context.Context, *SetOverlayRequest) (*SetOverlayResponse, error)
-	// AttachOverlay moves an overlay onto another App, e.g. after a rename
-	// left it unmatched.
-	AttachOverlay(context.Context, *AttachOverlayRequest) (*AttachOverlayResponse, error)
-	// DeleteOverlay drops an overlay: its App falls back to the defaults.
-	DeleteOverlay(context.Context, *DeleteOverlayRequest) (*DeleteOverlayResponse, error)
-	// CreateApp adds a manual App.
+	// Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
+	// the Apps are current.
+	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
+	// SetSettings sets an App's ddash-only settings: name, icon, group,
+	// Hidden and Workload override. They take effect at once.
+	SetSettings(context.Context, *SetSettingsRequest) (*SetSettingsResponse, error)
+	// IgnoreWarning Ignores one kind of Warning on an App until it is
+	// un-ignored: it is still listed, flagged, but doesn't count.
+	IgnoreWarning(context.Context, *IgnoreWarningRequest) (*IgnoreWarningResponse, error)
+	// UnignoreWarning ends an Ignore.
+	UnignoreWarning(context.Context, *UnignoreWarningRequest) (*UnignoreWarningResponse, error)
+	// Reattach moves orphaned App settings onto an App without settings of
+	// its own: the App keeps the orphan's id (and so its Check's history),
+	// settings and Ignores, with the other App's sources and URL. The other
+	// App's record goes.
+	Reattach(context.Context, *ReattachRequest) (*ReattachResponse, error)
+	// DeleteOrphan deletes orphaned App settings.
+	DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error)
+	// PromoteAlias makes one of an App's aliases the hostname of its URL,
+	// keeping the scheme and port. It changes nothing outside ddash. It is
+	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
+	// names are then the App's aliases.
+	PromoteAlias(context.Context, *PromoteAliasRequest) (*PromoteAliasResponse, error)
+	// CreateApp adds a Link-only App.
 	CreateApp(context.Context, *CreateAppRequest) (*CreateAppResponse, error)
-	// UpdateApp replaces a manual App's details.
-	UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error)
-	// DeleteApp removes a manual App.
+	// DeleteApp deletes a Link-only App.
 	DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
 	ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error)
-	// ListProxyHosts returns every server block in nginx-config's snapshot
-	// that forwards to an upstream (some location has a proxy_pass), by first
-	// server_name, each with the App it yields and what looks wrong with it.
-	ListProxyHosts(context.Context, *ListProxyHostsRequest) (*ListProxyHostsResponse, error)
 	mustEmbedUnimplementedAppsServiceServer()
 }
 
@@ -204,29 +245,35 @@ type UnimplementedAppsServiceServer struct{}
 func (UnimplementedAppsServiceServer) ListApps(context.Context, *ListAppsRequest) (*ListAppsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListApps not implemented")
 }
-func (UnimplementedAppsServiceServer) SetOverlay(context.Context, *SetOverlayRequest) (*SetOverlayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SetOverlay not implemented")
+func (UnimplementedAppsServiceServer) Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Refresh not implemented")
 }
-func (UnimplementedAppsServiceServer) AttachOverlay(context.Context, *AttachOverlayRequest) (*AttachOverlayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method AttachOverlay not implemented")
+func (UnimplementedAppsServiceServer) SetSettings(context.Context, *SetSettingsRequest) (*SetSettingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetSettings not implemented")
 }
-func (UnimplementedAppsServiceServer) DeleteOverlay(context.Context, *DeleteOverlayRequest) (*DeleteOverlayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteOverlay not implemented")
+func (UnimplementedAppsServiceServer) IgnoreWarning(context.Context, *IgnoreWarningRequest) (*IgnoreWarningResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method IgnoreWarning not implemented")
+}
+func (UnimplementedAppsServiceServer) UnignoreWarning(context.Context, *UnignoreWarningRequest) (*UnignoreWarningResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UnignoreWarning not implemented")
+}
+func (UnimplementedAppsServiceServer) Reattach(context.Context, *ReattachRequest) (*ReattachResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Reattach not implemented")
+}
+func (UnimplementedAppsServiceServer) DeleteOrphan(context.Context, *DeleteOrphanRequest) (*DeleteOrphanResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteOrphan not implemented")
+}
+func (UnimplementedAppsServiceServer) PromoteAlias(context.Context, *PromoteAliasRequest) (*PromoteAliasResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PromoteAlias not implemented")
 }
 func (UnimplementedAppsServiceServer) CreateApp(context.Context, *CreateAppRequest) (*CreateAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateApp not implemented")
-}
-func (UnimplementedAppsServiceServer) UpdateApp(context.Context, *UpdateAppRequest) (*UpdateAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method UpdateApp not implemented")
 }
 func (UnimplementedAppsServiceServer) DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method DeleteApp not implemented")
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
-}
-func (UnimplementedAppsServiceServer) ListProxyHosts(context.Context, *ListProxyHostsRequest) (*ListProxyHostsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListProxyHosts not implemented")
 }
 func (UnimplementedAppsServiceServer) mustEmbedUnimplementedAppsServiceServer() {}
 func (UnimplementedAppsServiceServer) testEmbeddedByValue()                     {}
@@ -267,56 +314,128 @@ func _AppsService_ListApps_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_SetOverlay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetOverlayRequest)
+func _AppsService_Refresh_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppsServiceServer).SetOverlay(ctx, in)
+		return srv.(AppsServiceServer).Refresh(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AppsService_SetOverlay_FullMethodName,
+		FullMethod: AppsService_Refresh_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).SetOverlay(ctx, req.(*SetOverlayRequest))
+		return srv.(AppsServiceServer).Refresh(ctx, req.(*RefreshRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_AttachOverlay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AttachOverlayRequest)
+func _AppsService_SetSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetSettingsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppsServiceServer).AttachOverlay(ctx, in)
+		return srv.(AppsServiceServer).SetSettings(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AppsService_AttachOverlay_FullMethodName,
+		FullMethod: AppsService_SetSettings_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).AttachOverlay(ctx, req.(*AttachOverlayRequest))
+		return srv.(AppsServiceServer).SetSettings(ctx, req.(*SetSettingsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_DeleteOverlay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteOverlayRequest)
+func _AppsService_IgnoreWarning_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IgnoreWarningRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AppsServiceServer).DeleteOverlay(ctx, in)
+		return srv.(AppsServiceServer).IgnoreWarning(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: AppsService_DeleteOverlay_FullMethodName,
+		FullMethod: AppsService_IgnoreWarning_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).DeleteOverlay(ctx, req.(*DeleteOverlayRequest))
+		return srv.(AppsServiceServer).IgnoreWarning(ctx, req.(*IgnoreWarningRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AppsService_UnignoreWarning_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UnignoreWarningRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).UnignoreWarning(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_UnignoreWarning_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).UnignoreWarning(ctx, req.(*UnignoreWarningRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AppsService_Reattach_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReattachRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).Reattach(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_Reattach_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).Reattach(ctx, req.(*ReattachRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AppsService_DeleteOrphan_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteOrphanRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).DeleteOrphan(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_DeleteOrphan_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).DeleteOrphan(ctx, req.(*DeleteOrphanRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AppsService_PromoteAlias_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PromoteAliasRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).PromoteAlias(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_PromoteAlias_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).PromoteAlias(ctx, req.(*PromoteAliasRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -335,24 +454,6 @@ func _AppsService_CreateApp_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AppsServiceServer).CreateApp(ctx, req.(*CreateAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _AppsService_UpdateApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UpdateAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AppsServiceServer).UpdateApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AppsService_UpdateApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).UpdateApp(ctx, req.(*UpdateAppRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -393,24 +494,6 @@ func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_ListProxyHosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListProxyHostsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AppsServiceServer).ListProxyHosts(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AppsService_ListProxyHosts_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).ListProxyHosts(ctx, req.(*ListProxyHostsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // AppsService_ServiceDesc is the grpc.ServiceDesc for AppsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -423,24 +506,36 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AppsService_ListApps_Handler,
 		},
 		{
-			MethodName: "SetOverlay",
-			Handler:    _AppsService_SetOverlay_Handler,
+			MethodName: "Refresh",
+			Handler:    _AppsService_Refresh_Handler,
 		},
 		{
-			MethodName: "AttachOverlay",
-			Handler:    _AppsService_AttachOverlay_Handler,
+			MethodName: "SetSettings",
+			Handler:    _AppsService_SetSettings_Handler,
 		},
 		{
-			MethodName: "DeleteOverlay",
-			Handler:    _AppsService_DeleteOverlay_Handler,
+			MethodName: "IgnoreWarning",
+			Handler:    _AppsService_IgnoreWarning_Handler,
+		},
+		{
+			MethodName: "UnignoreWarning",
+			Handler:    _AppsService_UnignoreWarning_Handler,
+		},
+		{
+			MethodName: "Reattach",
+			Handler:    _AppsService_Reattach_Handler,
+		},
+		{
+			MethodName: "DeleteOrphan",
+			Handler:    _AppsService_DeleteOrphan_Handler,
+		},
+		{
+			MethodName: "PromoteAlias",
+			Handler:    _AppsService_PromoteAlias_Handler,
 		},
 		{
 			MethodName: "CreateApp",
 			Handler:    _AppsService_CreateApp_Handler,
-		},
-		{
-			MethodName: "UpdateApp",
-			Handler:    _AppsService_UpdateApp_Handler,
 		},
 		{
 			MethodName: "DeleteApp",
@@ -449,10 +544,6 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWorkloads",
 			Handler:    _AppsService_ListWorkloads_Handler,
-		},
-		{
-			MethodName: "ListProxyHosts",
-			Handler:    _AppsService_ListProxyHosts_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1,30 +1,88 @@
 import { renderScoped as render, type Answers, type Call } from "@ddash/plugin/testing";
 
-/** ListApps' answer (Connect JSON). */
+/**
+ * ListApps' answer (Connect JSON). No Warning counts: Old's is on a
+ * Hidden App, Printer's No TLS and the orphan's are Ignored.
+ */
 export const list = {
   apps: [
     {
       id: "proxy:grafana.home.example",
-      serverName: "grafana.home.example",
       name: "Grafana",
       url: "https://grafana.home.example",
       group: "Monitoring",
-      overlay: { serverName: "grafana.home.example", group: "Monitoring" },
+      reach: "REACH_PROXIED",
+      touched: true,
+      settings: { group: "Monitoring" },
+      links: { proxyHostId: "3" },
       workload: { ref: { kind: "KIND_LXC", host: "pve", id: "120" }, name: "grafana", state: "running" },
     },
     {
       id: "proxy:jellyfin.home.example",
-      serverName: "jellyfin.home.example",
       name: "Jellyfin",
       url: "https://jellyfin.home.example",
       aliases: ["media.home.example", "tv.home.example"],
+      reach: "REACH_PROXIED",
+      settings: {},
+      links: { proxyHostId: "7" },
       workload: { ref: { kind: "KIND_DOCKER", host: "media", id: "jellyfin" }, name: "jellyfin", state: "exited" },
     },
-    { id: "proxy:old.home.example", serverName: "old.home.example", name: "Old", url: "https://old.home.example", hidden: true, overlay: { serverName: "old.home.example", hidden: true } },
-    { id: "manual:00aa11bb22cc33dd", name: "pfSense", url: "https://198.18.0.1", icon: "pfsense", group: "Network", manual: true },
-    { id: "proxy:printer.home.example", serverName: "printer.home.example", name: "Printer", url: "http://printer.home.example:8080" },
+    {
+      id: "proxy:old.home.example",
+      name: "Old",
+      url: "https://old.home.example",
+      hidden: true,
+      reach: "REACH_PROXIED",
+      touched: true,
+      settings: { hidden: true },
+      links: { proxyHostId: "9" },
+      warnings: [{ kind: "WARNING_KIND_NO_WORKLOAD" }],
+    },
+    {
+      id: "app:00aa11bb22cc33dd",
+      name: "pfSense",
+      url: "https://198.18.0.1",
+      icon: "pfsense",
+      group: "Network",
+      reach: "REACH_LINK_ONLY",
+      touched: true,
+      settings: { name: "pfSense", icon: "pfsense", group: "Network" },
+      links: {},
+    },
+    {
+      id: "proxy:printer.home.example",
+      name: "Printer",
+      url: "http://printer.home.example:8080",
+      reach: "REACH_PROXIED",
+      settings: {},
+      links: { proxyHostId: "12" },
+      warnings: [{ kind: "WARNING_KIND_NO_TLS", ignored: true }],
+    },
+    {
+      id: "proxy:paperless.home.example",
+      name: "Documents",
+      url: "https://paperless.home.example",
+      group: "Office",
+      orphaned: true,
+      touched: true,
+      settings: { name: "Documents", group: "Office" },
+      links: {},
+      warnings: [{ kind: "WARNING_KIND_ORPHANED", ignored: true }],
+    },
   ],
-  unmatched: [{ serverName: "paperless.home.example", name: "Documents", group: "Office" }],
+  proxyHosts: { readAt: "2026-10-26T07:15:00Z" },
+};
+
+/** list with Warnings that count: Jellyfin's No Workload and Offline Proxy Host, Printer's No Workload. */
+export const warned = {
+  ...list,
+  apps: list.apps.map((a) =>
+    a.name === "Jellyfin"
+      ? { ...a, warnings: [{ kind: "WARNING_KIND_NO_WORKLOAD" }, { kind: "WARNING_KIND_PROXY_HOST_OFFLINE", detail: "nginx: [emerg] bad" }] }
+      : a.name === "Printer"
+        ? { ...a, warnings: [{ kind: "WARNING_KIND_NO_WORKLOAD" }, ...(a.warnings ?? [])] }
+        : a,
+  ),
 };
 
 /** ListWorkloads' answer: what an override can pick. */
@@ -57,7 +115,7 @@ export const checks = {
       certExpires: new Date(Date.now() + 5 * day + 3_600_000).toISOString(),
       certExpiring: true,
     }),
-    appCheck(4, "manual:00aa11bb22cc33dd", "STATE_PENDING", { reason: "timeout", failures: 1 }),
+    appCheck(4, "app:00aa11bb22cc33dd", "STATE_PENDING", { reason: "timeout", failures: 1 }),
     appCheck(5, "proxy:old.home.example", "STATE_UP", { disabled: true }),
     { id: "6", spec: { name: "nas", type: "CHECK_TYPE_TCP", target: "198.18.1.10:22" }, state: "STATE_DOWN" },
   ],

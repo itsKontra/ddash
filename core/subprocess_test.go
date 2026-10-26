@@ -73,7 +73,7 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 		t.Errorf("ListPowerTasks: status %d: %s", res.Code, res.Body)
 	}
 
-	// apps reads nginx-config's snapshot through the host (GRPCBroker).
+	// apps reads nginx-proxy-manager-api's Proxy Hosts through the host (GRPCBroker).
 	h.Install("apps")
 	h.WaitState("apps", runtime.OK)
 	res = h.Call("apps", "apps", "ListApps", `{}`)
@@ -83,13 +83,6 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 	// apps links it to its container through proxmox-api and docker-api.
 	if !strings.Contains(res.Body.String(), `"KIND_DOCKER"`) {
 		t.Errorf("ListApps: %s; want home.home.example linked to its container", res.Body)
-	}
-
-	// The reverse-proxy Page joins Proxy Hosts with apps' Apps and their Checks.
-	for component, method := range map[string]string{"apps": "ListApps", "checks": "ListChecks"} {
-		if res := h.Call("reverse-proxy", component, method, `{}`); res.Code != http.StatusOK {
-			t.Errorf("reverse-proxy → %s %s: status %d: %s", component, method, res.Code, res.Body)
-		}
 	}
 }
 

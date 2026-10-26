@@ -1,73 +1,18 @@
 package apps_test
 
 import (
-	"context"
 	"strings"
-	"sync"
 	"testing"
-	"testing/synctest"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
-	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
-	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	"github.com/itsKontra/ddash/core/runtime"
 	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
-	"github.com/itsKontra/ddash/sdk"
-	"github.com/itsKontra/ddash/sdk/sdktest"
 )
-
-// proxmoxFake fakes proxmox-api: the guests the test sets, or an error.
-type proxmoxFake struct {
-	proxmoxapipb.ProxmoxApiServiceClient
-
-	mu     sync.Mutex
-	guests []*proxmoxapipb.Workload
-	err    error
-}
-
-func (f *proxmoxFake) ListWorkloads(context.Context, *proxmoxapipb.ListWorkloadsRequest, ...grpc.CallOption) (*proxmoxapipb.ListWorkloadsResponse, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.err != nil {
-		return nil, f.err
-	}
-	return &proxmoxapipb.ListWorkloadsResponse{Workloads: f.guests}, nil
-}
-
-func (f *proxmoxFake) fail(err error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.err = err
-}
-
-// dockerFake fakes docker-api: the hosts the test sets, or an error.
-type dockerFake struct {
-	dockerapipb.DockerApiServiceClient
-
-	mu    sync.Mutex
-	hosts []*dockerapipb.HostContainers
-	err   error
-}
-
-func (f *dockerFake) ListContainers(context.Context, *dockerapipb.ListContainersRequest, ...grpc.CallOption) (*dockerapipb.ListContainersResponse, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	if f.err != nil {
-		return nil, f.err
-	}
-	return &dockerapipb.ListContainersResponse{Hosts: f.hosts}, nil
-}
-
-func (f *dockerFake) fail(err error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.err = err
-}
 
 // guest is a running Proxmox guest with one NIC holding ips.
 func guest(kind proxmoxapipb.Kind, vmid uint32, name string, ips ...string) *proxmoxapipb.Workload {
@@ -78,7 +23,7 @@ func guest(kind proxmoxapipb.Kind, vmid uint32, name string, ips ...string) *pro
 }
 
 // container is a running container publishing ports ("8096" on every
-// address, "198.18.2.10:8096" on one).
+// address, "198.18.2.11:8989" on one).
 func container(name string, ports ...string) *dockerapipb.Container {
 	c := &dockerapipb.Container{Id: name + "-id", Name: name, State: "running"}
 	for _, p := range ports {
@@ -95,15 +40,12 @@ func container(name string, ports ...string) *dockerapipb.Container {
 	return c
 }
 
-// lab is the Workload sources behind a home network: the Docker host
-// "media" is itself LXC 110 at 198.18.2.10.
-type lab struct {
-	proxmox *proxmoxFake
-	docker  *dockerFake
-}
-
-func newLab() lab {
-	return lab{
+// workloadLab is a home network's Workloads: the Docker host "media" is
+// itself LXC 110 at 198.18.2.10; Nginx Proxy Manager has no Proxy Host
+// to begin with.
+func workloadLab(t *testing.T) *lab {
+	return newLab(t, labOptions{
+		noProxyHosts: true,
 		proxmox: &proxmoxFake{guests: []*proxmoxapipb.Workload{
 			guest(proxmoxapipb.Kind_KIND_LXC, 110, "media", "198.18.2.10"),
 			guest(proxmoxapipb.Kind_KIND_LXC, 120, "paperless", "198.18.2.30"),
@@ -116,19 +58,7 @@ func newLab() lab {
 				container("sonarr", "198.18.2.11:8989"),
 			},
 		}}},
-	}
-}
-
-func (l lab) options() []sdktest.Option {
-	return []sdktest.Option{
-		sdktest.WithClient[proxmoxapipb.ProxmoxApiServiceClient](l.proxmox),
-		sdktest.WithClient[dockerapipb.DockerApiServiceClient](l.docker),
-	}
-}
-
-func startInLab(t *testing.T, n *nginx, l lab) started {
-	t.Helper()
-	return start(t, n, l.options()...)
+	})
 }
 
 func ref(kind workloadpb.Kind, host, id string) *workloadpb.WorkloadRef {
@@ -144,285 +74,135 @@ func docker(name string) *appspb.Workload {
 }
 
 // workloads is each App's Workload by App id; nil for none.
-func (s started) workloads(t *testing.T) map[string]*appspb.Workload {
-	t.Helper()
+func (l *lab) workloads() map[string]*appspb.Workload {
+	l.t.Helper()
 	out := map[string]*appspb.Workload{}
-	for _, a := range s.apps(t) {
+	for _, a := range l.list().GetApps() {
 		out[a.GetId()] = a.GetWorkload()
 	}
 	return out
 }
 
-func TestAnAppIsLinkedToTheContainerPublishingItsUpstreamPortOnADockerHost(t *testing.T) {
-	// media is both a Docker host and LXC 110: the container wins.
-	s := startInLab(t, newNginx(jellyfin), newLab())
+// A proxied App's Workload is matched at its Proxy Host's upstream: the
+// container publishing the upstream's port on a Docker host at that
+// address (a Docker host is often a guest itself: the container wins),
+// else the guest with that address; a port bound to one address matches
+// there only. An upstream matching nothing has no Workload, and warns.
+func TestAProxiedAppsWorkloadIsMatchedAtItsUpstream(t *testing.T) {
+	l := workloadLab(t)
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.10:8096", "jellyfin.home.example"))
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.10:8282", "download.home.example"))
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.10:8989", "series.home.example"))
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.11:8989", "sonarr.home.example"))
+	l.npm.AddProxyHost(proxyHost("https://198.18.1.41:8123", "ha.home.example"))
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.99:80", "gone.home.example"))
+	l.refresh()
 
-	if d := diff(docker("jellyfin"), s.workloads(t)["proxy:jellyfin.home.example"]); d != "" {
+	want := map[string]*appspb.Workload{
+		"proxy:jellyfin.home.example": docker("jellyfin"),
+		"proxy:download.home.example": lxc("110", "media"),
+		"proxy:series.home.example":   lxc("110", "media"),
+		"proxy:sonarr.home.example":   docker("sonarr"),
+		"proxy:ha.home.example":       {Ref: ref(workloadpb.Kind_KIND_VM, "pve1", "200"), Name: "homeassistant", State: "running"},
+		"proxy:gone.home.example":     nil,
+	}
+	if d := diff(want, l.workloads()); d != "" {
+		t.Errorf("Workloads (-want +got):\n%s", d)
+	}
+	if d := diff([]appspb.WarningKind{noWorkload}, kinds(l.app("proxy:gone.home.example"))); d != "" {
+		t.Errorf("gone's Warnings (-want +got):\n%s", d)
+	}
+
+	// A new upstream re-matches.
+	l.npm.EditProxyHost(int(l.app("proxy:gone.home.example").GetLinks().GetProxyHostId()), proxyHost("http://198.18.2.30:8000", "gone.home.example"))
+	l.refresh()
+	if d := diff(lxc("120", "paperless"), l.workloads()["proxy:gone.home.example"]); d != "" {
+		t.Errorf("Workload at the new upstream (-want +got):\n%s", d)
+	}
+}
+
+// A Link-only App is matched on its URL's host and port, and never warns
+// of having no Workload.
+func TestALinkOnlyAppIsMatchedOnItsURL(t *testing.T) {
+	l := workloadLab(t)
+	var a, b appspb.CreateAppResponse
+	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Jellyfin", Url: "http://198.18.2.10:8096"}}, &a)
+	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Printer", Url: "https://198.18.1.60"}}, &b)
+
+	want := map[string]*appspb.Workload{a.GetApp().GetId(): docker("jellyfin"), b.GetApp().GetId(): nil}
+	if d := diff(want, l.workloads()); d != "" {
+		t.Errorf("Workloads (-want +got):\n%s", d)
+	}
+	if w := l.app(b.GetApp().GetId()).GetWarnings(); len(w) != 0 {
+		t.Errorf("Printer's Warnings = %v, want none", w)
+	}
+}
+
+// The override wins over the match, and is kept even while no source
+// lists it.
+func TestAWorkloadOverrideWins(t *testing.T) {
+	l := workloadLab(t)
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.10:8096", "jellyfin.home.example"))
+	l.refresh()
+
+	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:jellyfin.home.example", Settings: &appspb.AppSettings{Workload: ref(workloadpb.Kind_KIND_LXC, "", "120")}}, nil)
+	want := lxc("120", "paperless")
+	want.Override = true
+	if d := diff(want, l.workloads()["proxy:jellyfin.home.example"]); d != "" {
 		t.Errorf("Workload (-want +got):\n%s", d)
 	}
-}
 
-func TestAnUpstreamPortNoContainerPublishesIsTheGuestAtThatAddress(t *testing.T) {
-	n := newNginx(
-		proxy([]string{"portainer.home.example"}, "http://198.18.2.10:9000", "443 ssl"),
-		proxy([]string{"paperless.home.example"}, "http://198.18.2.30:8000", "443 ssl"),
-		proxy([]string{"home-assistant.home.example"}, "http://198.18.1.41:8123", "443 ssl"),
-	)
-	s := startInLab(t, n, newLab())
-
-	want := map[string]*appspb.Workload{
-		"proxy:portainer.home.example":      lxc("110", "media"),
-		"proxy:paperless.home.example":      lxc("120", "paperless"),
-		"proxy:home-assistant.home.example": {Ref: ref(workloadpb.Kind_KIND_VM, "pve1", "200"), Name: "homeassistant", State: "running"},
-	}
-	if d := diff(want, s.workloads(t)); d != "" {
-		t.Errorf("Workloads (-want +got):\n%s", d)
+	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:jellyfin.home.example", Settings: &appspb.AppSettings{Workload: ref(workloadpb.Kind_KIND_LXC, "", "999")}}, nil)
+	want = &appspb.Workload{Ref: ref(workloadpb.Kind_KIND_LXC, "", "999"), Override: true}
+	if d := diff(want, l.workloads()["proxy:jellyfin.home.example"]); d != "" {
+		t.Errorf("an override no source lists (-want +got):\n%s", d)
 	}
 }
 
-func TestAPortBoundToOneAddressIsMatchedOnThatAddressOnly(t *testing.T) {
-	n := newNginx(
-		proxy([]string{"sonarr.home.example"}, "http://198.18.2.11:8989", "443 ssl"),
-		proxy([]string{"wrong.home.example"}, "http://198.18.2.10:8989", "443 ssl"),
-	)
-	s := startInLab(t, n, newLab())
+// App Checks name their App's Workload.
+func TestAppChecksCarryTheirAppsWorkload(t *testing.T) {
+	l := workloadLab(t)
+	l.npm.AddProxyHost(proxyHost("http://198.18.2.10:8096", "jellyfin.home.example"))
+	l.refresh()
 
-	want := map[string]*appspb.Workload{
-		"proxy:sonarr.home.example": docker("sonarr"),
-		"proxy:wrong.home.example":  lxc("110", "media"),
-	}
-	if d := diff(want, s.workloads(t)); d != "" {
-		t.Errorf("Workloads (-want +got):\n%s", d)
+	got := l.appChecks()["proxy:jellyfin.home.example"].GetWorkload()
+	if d := diff(ref(workloadpb.Kind_KIND_DOCKER, "media", "jellyfin"), got); d != "" {
+		t.Errorf("the Check's Workload (-want +got):\n%s", d)
 	}
 }
 
-func TestAProxyPassNamingAnUpstreamBlockUsesItsFirstServer(t *testing.T) {
-	n := newNginx(grafana)
-	n.snap.Upstreams = []*nginxconfigpb.Upstream{{Name: "grafana", Servers: []string{"198.18.2.30:3000", "198.18.2.31:3000"}}}
-	s := startInLab(t, n, newLab())
+// While a Workload source can't be read, apps is degraded naming it, its
+// Workloads are no App's, and no App warns of having none.
+func TestAnUnavailableWorkloadSourceDegradesApps(t *testing.T) {
+	l := workloadLab(t)
+	l.npm.AddProxyHost(proxyHost("http://198.18.1.41:8123", "ha.home.example"))
+	l.refresh()
 
-	if d := diff(lxc("120", "paperless"), s.workloads(t)["proxy:grafana.home.example"]); d != "" {
-		t.Errorf("Workload (-want +got):\n%s", d)
-	}
-}
-
-func TestTheDefaultPortIsTheProxyPassSchemes(t *testing.T) {
-	l := newLab()
-	l.docker.hosts[0].Containers = append(l.docker.hosts[0].Containers, container("caddy", "80", "443"))
-	n := newNginx(
-		proxy([]string{"web.home.example"}, "http://198.18.2.10", "443 ssl"),
-		proxy([]string{"tls.home.example"}, "https://198.18.2.10/app", "443 ssl"),
-	)
-	s := startInLab(t, n, l)
-
-	want := map[string]*appspb.Workload{
-		"proxy:web.home.example": docker("caddy"),
-		"proxy:tls.home.example": docker("caddy"),
-	}
-	if d := diff(want, s.workloads(t)); d != "" {
-		t.Errorf("Workloads (-want +got):\n%s", d)
-	}
-}
-
-// Nginx Proxy Manager proxies to "$forward_scheme://$server:$port$request_uri";
-// nginx-config fills in the variables the block sets, which leaves the
-// request's own path variable after the port.
-func TestAVariableAfterTheUpstreamsPortIsOnlyItsPath(t *testing.T) {
-	n := newNginx(
-		proxy([]string{"jellyfin.home.example"}, "http://198.18.2.10:8096$request_uri", "443 ssl"),
-		proxy([]string{"paperless.home.example"}, "http://198.18.2.30:8000/$1", "443 ssl"),
-		// Without a port, the variable may still be part of the host.
-		proxy([]string{"unsure.home.example"}, "http://198.18.2.30$request_uri", "443 ssl"),
-		proxy([]string{"port.home.example"}, "http://198.18.2.30:$port", "443 ssl"),
-		proxy([]string{"scheme.home.example"}, "$forward_scheme://198.18.2.30:8000", "443 ssl"),
-	)
-	s := startInLab(t, n, newLab())
-
-	want := map[string]*appspb.Workload{
-		"proxy:jellyfin.home.example":  docker("jellyfin"),
-		"proxy:paperless.home.example": lxc("120", "paperless"),
-		"proxy:unsure.home.example":    nil,
-		"proxy:port.home.example":      nil,
-		"proxy:scheme.home.example":    nil,
-	}
-	if d := diff(want, s.workloads(t)); d != "" {
-		t.Errorf("Workloads (-want +got):\n%s", d)
-	}
-}
-
-func TestAnUpstreamMatchingNothingHasNoWorkload(t *testing.T) {
-	n := newNginx(
-		proxy([]string{"printer.home.example"}, "http://198.18.1.40", "8080"),
-		proxy([]string{"dynamic.home.example"}, "http://$backend", "443 ssl"),
-		proxy([]string{"socket.home.example"}, "http://unix:/run/app.sock", "443 ssl"),
-	)
-	s := startInLab(t, n, newLab())
-
-	for id, w := range s.workloads(t) {
-		if w != nil {
-			t.Errorf("%s: Workload %v, want none", id, w)
-		}
-	}
-}
-
-func TestAManualAppIsMatchedOnItsURLHost(t *testing.T) {
-	s := startInLab(t, newNginx(), newLab())
-	created, err := s.c.CreateApp(t.Context(), &appspb.CreateAppRequest{App: &appspb.ManualApp{Name: "Jellyfin direct", Url: "http://198.18.2.10:8096"}})
-	if err != nil {
+	l.proxmox.fail(status.Error(codes.Unavailable, "proxmox is down"))
+	if err := l.h.Restart("apps"); err != nil {
 		t.Fatal(err)
 	}
-
-	if d := diff(docker("jellyfin"), s.workloads(t)[created.GetApp().GetId()]); d != "" {
-		t.Errorf("Workload (-want +got):\n%s", d)
+	l.h.WaitState("apps", runtime.Degraded)
+	if msg := l.h.Status("apps").Message; msg != "proxmox-api unavailable: proxmox is down" {
+		t.Errorf("health %q, want proxmox-api named", msg)
 	}
-}
-
-func TestAWorkloadOverrideInTheOverlayWins(t *testing.T) {
-	s := startInLab(t, newNginx(jellyfin, grafana), newLab())
-
-	s.setOverlay(t, &appspb.Overlay{ServerName: "jellyfin.home.example", Workload: ref(workloadpb.Kind_KIND_LXC, "pve1", "120")})
-	s.setOverlay(t, &appspb.Overlay{ServerName: "grafana.home.example", Workload: ref(workloadpb.Kind_KIND_EXTERNAL, "198.18.1.50", "")})
-
-	want := map[string]*appspb.Workload{
-		"proxy:jellyfin.home.example": {Ref: ref(workloadpb.Kind_KIND_LXC, "pve1", "120"), Name: "paperless", State: "running", Override: true},
-		"proxy:grafana.home.example":  {Ref: ref(workloadpb.Kind_KIND_EXTERNAL, "198.18.1.50", ""), Name: "198.18.1.50", Override: true},
-	}
-	if d := diff(want, s.workloads(t)); d != "" {
-		t.Errorf("Workloads (-want +got):\n%s", d)
-	}
-}
-
-func TestAnOverrideOnlyIsAnOverlay(t *testing.T) {
-	s := startInLab(t, newNginx(jellyfin), newLab())
-	o := &appspb.Overlay{ServerName: "jellyfin.home.example", Workload: ref(workloadpb.Kind_KIND_LXC, "pve1", "110")}
-
-	s.setOverlay(t, o)
-
-	if d := diff(o, s.app(t, "proxy:jellyfin.home.example").GetOverlay()); d != "" {
-		t.Errorf("overlay (-want +got):\n%s", d)
-	}
-}
-
-func TestAnOverrideOfAWorkloadNoSourceListsKeepsItsReference(t *testing.T) {
-	s := startInLab(t, newNginx(jellyfin), newLab())
-
-	s.setOverlay(t, &appspb.Overlay{ServerName: "jellyfin.home.example", Workload: ref(workloadpb.Kind_KIND_DOCKER, "media", "gone")})
-
-	want := &appspb.Workload{Ref: ref(workloadpb.Kind_KIND_DOCKER, "media", "gone"), Override: true}
-	if d := diff(want, s.workloads(t)["proxy:jellyfin.home.example"]); d != "" {
-		t.Errorf("Workload (-want +got):\n%s", d)
-	}
-}
-
-func TestABadWorkloadOverrideIsRefused(t *testing.T) {
-	s := startInLab(t, newNginx(jellyfin), newLab())
-
-	for name, r := range map[string]*workloadpb.WorkloadRef{
-		"LXC without a VMID":       ref(workloadpb.Kind_KIND_LXC, "pve1", ""),
-		"VM with a name for VMID":  ref(workloadpb.Kind_KIND_VM, "pve1", "homeassistant"),
-		"container without a host": ref(workloadpb.Kind_KIND_DOCKER, "", "jellyfin"),
-		"external without a host":  ref(workloadpb.Kind_KIND_EXTERNAL, "", ""),
-		"unknown kind":             ref(workloadpb.Kind(99), "x", "y"),
-	} {
-		_, err := s.c.SetOverlay(t.Context(), &appspb.SetOverlayRequest{Overlay: &appspb.Overlay{ServerName: "jellyfin.home.example", Workload: r}})
-		if codeOf(err) != codes.InvalidArgument {
-			t.Errorf("%s: %v, want InvalidArgument", name, err)
-		}
-	}
-}
-
-func TestAnUnconfiguredWorkloadSourceDegradesAppsAndDropsItsLinks(t *testing.T) {
-	l := newLab()
-	l.proxmox.fail(status.Error(codes.FailedPrecondition, "not configured"))
-	n := newNginx(jellyfin, proxy([]string{"paperless.home.example"}, "http://198.18.2.30:8000", "443 ssl"))
-	s := startInLab(t, n, l)
-
-	want := map[string]*appspb.Workload{
-		"proxy:jellyfin.home.example":  docker("jellyfin"),
-		"proxy:paperless.home.example": nil,
-	}
-	if d := diff(want, s.workloads(t)); d != "" {
-		t.Errorf("Workloads (-want +got):\n%s", d)
-	}
-	if got := s.h.Health(); got.State != sdk.Degraded || got.Message != "proxmox-api not configured" {
-		t.Errorf("health = %v, want degraded naming proxmox-api", got)
-	}
-}
-
-func TestAnUnavailableWorkloadSourceDegradesAppsAndDropsItsLinks(t *testing.T) {
-	synctest.Test(t, func(t *testing.T) { anUnavailableWorkloadSource(t) })
-}
-
-func anUnavailableWorkloadSource(t *testing.T) {
-	l := newLab()
-	l.docker.fail(status.Error(codes.Unavailable, "docker-api is down"))
-	s := startInLab(t, newNginx(jellyfin), l)
-
-	if d := diff(lxc("110", "media"), s.workloads(t)["proxy:jellyfin.home.example"]); d != "" {
-		t.Errorf("Workload without docker-api (-want +got):\n%s", d)
-	}
-	if got := s.h.Health(); got.State != sdk.Degraded || got.Message != "docker-api unavailable: docker-api is down" {
-		t.Errorf("health = %v, want degraded naming docker-api", got)
-	}
-
-	l.docker.fail(nil)
-	afterPoll()
-	if d := diff(docker("jellyfin"), s.workloads(t)["proxy:jellyfin.home.example"]); d != "" {
-		t.Errorf("Workload once docker-api answers (-want +got):\n%s", d)
-	}
-	if got := s.h.Health(); got.State != sdk.OK {
-		t.Errorf("health once docker-api answers = %v, want ok", got)
-	}
-}
-
-func TestADockerHostThatCantBeReadDegradesApps(t *testing.T) {
-	l := newLab()
-	l.docker.hosts = append(l.docker.hosts, &dockerapipb.HostContainers{Host: "build", Address: "198.18.2.40", Error: "connection refused"})
-	s := startInLab(t, newNginx(jellyfin), l)
-
-	if d := diff(docker("jellyfin"), s.workloads(t)["proxy:jellyfin.home.example"]); d != "" {
-		t.Errorf("Workload (-want +got):\n%s", d)
-	}
-	if got := s.h.Health(); got.State != sdk.Degraded || got.Message != "docker-api can't read build: connection refused" {
-		t.Errorf("health = %v, want degraded naming the host", got)
-	}
-}
-
-func TestAppChecksCarryTheirAppsWorkload(t *testing.T) {
-	s := startInLab(t, newNginx(jellyfin, printer), newLab())
-	s.apps(t)
-
-	want := []*checkspb.AppCheck{
-		{AppId: "proxy:jellyfin.home.example", Name: "Jellyfin", Url: "https://jellyfin.home.example", Enabled: true, Workload: ref(workloadpb.Kind_KIND_DOCKER, "media", "jellyfin")},
-		appCheck("proxy:printer.home.example", "Printer", "http://printer.home.example:8080", true),
-	}
-	if d := diff(want, s.checks.last()); d != "" {
-		t.Errorf("App Checks (-want +got):\n%s", d)
-	}
-
-	s.setOverlay(t, &appspb.Overlay{ServerName: "printer.home.example", Workload: ref(workloadpb.Kind_KIND_EXTERNAL, "198.18.1.40", "")})
-	if got := s.checks.last()[1].GetWorkload(); got.GetKind() != workloadpb.Kind_KIND_EXTERNAL {
-		t.Errorf("printer's Check Workload after the override: %v, want the external host", got)
+	ha := l.app("proxy:ha.home.example")
+	if ha.GetWorkload() != nil || len(ha.GetWarnings()) != 0 {
+		t.Errorf("ha = %v, want no Workload and no Warning", ha)
 	}
 }
 
 func TestListWorkloadsOffersEveryContainerAndGuest(t *testing.T) {
-	l := newLab()
-	l.proxmox.guests = append(l.proxmox.guests, &proxmoxapipb.Workload{Kind: proxmoxapipb.Kind_KIND_VM, Vmid: 9000, Node: "pve1", Name: "debian-template", Template: true, Status: "stopped"})
-	s := startInLab(t, newNginx(), l)
+	l := workloadLab(t)
+	var resp appspb.ListWorkloadsResponse
+	l.call("ListWorkloads", &appspb.ListWorkloadsRequest{}, &resp)
 
-	resp, err := s.c.ListWorkloads(t.Context(), &appspb.ListWorkloadsRequest{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := &appspb.ListWorkloadsResponse{Workloads: []*appspb.Workload{
-		docker("jellyfin"),
-		docker("sonarr"),
-		lxc("110", "media"),
-		lxc("120", "paperless"),
+	want := []*appspb.Workload{
+		docker("jellyfin"), docker("sonarr"),
+		lxc("110", "media"), lxc("120", "paperless"),
 		{Ref: ref(workloadpb.Kind_KIND_VM, "pve1", "200"), Name: "homeassistant", State: "running"},
-	}}
-	if d := diff(want, resp); d != "" {
-		t.Errorf("ListWorkloads (-want +got):\n%s", d)
+	}
+	if d := diff(want, resp.GetWorkloads()); d != "" {
+		t.Errorf("Workloads (-want +got):\n%s", d)
 	}
 }

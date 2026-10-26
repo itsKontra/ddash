@@ -215,6 +215,61 @@ func (f *NPM) ProxyHosts() []map[string]any {
 	return out
 }
 
+// AddProxyHost adds a Proxy Host as the Operator would in Nginx Proxy
+// Manager's UI: enabled, online, no certificate, with edit applied to
+// its row, its domain_names then sorted. It returns the new id.
+func (f *NPM) AddProxyHost(edit func(row map[string]any)) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	id := f.nextID
+	f.nextID++
+	row := map[string]any{
+		"id": id, "created_on": time.Now().UTC().Format(time.DateTime), "owner_user_id": 1,
+		"domain_names": []any{}, "forward_scheme": "http", "forward_host": "", "forward_port": 80,
+		"access_list_id": 0, "certificate_id": 0, "advanced_config": "", "locations": []any{},
+		"meta":       map[string]any{"letsencrypt_agree": false, "dns_challenge": false, "nginx_online": true, "nginx_err": nil},
+		"ssl_forced": false, "caching_enabled": false, "block_exploits": false, "allow_websocket_upgrade": false,
+		"http2_support": false, "enabled": true, "hsts_enabled": false, "hsts_subdomains": false,
+	}
+	f.hosts = append(f.hosts, f.edited(row, edit))
+	return id
+}
+
+// EditProxyHost changes the Proxy Host with id as the Operator would in
+// Nginx Proxy Manager's UI: edit gets its stored row (flags as bools),
+// and its domain_names are sorted after. It reports whether there was one.
+func (f *NPM) EditProxyHost(id int, edit func(row map[string]any)) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	i := f.find(id)
+	if i < 0 {
+		return false
+	}
+	f.hosts[i] = f.edited(clone(f.hosts[i]), edit)
+	return true
+}
+
+// DeleteProxyHost deletes the Proxy Host with id as the Operator would in
+// Nginx Proxy Manager's UI, reporting whether there was one.
+func (f *NPM) DeleteProxyHost(id int) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	i := f.find(id)
+	if i >= 0 {
+		f.hosts = slices.Delete(f.hosts, i, i+1)
+	}
+	return i >= 0
+}
+
+func (f *NPM) edited(row map[string]any, edit func(row map[string]any)) map[string]any {
+	edit(row)
+	names := texts(row["domain_names"])
+	slices.Sort(names)
+	row["domain_names"] = names
+	row["modified_on"] = time.Now().UTC().Format(time.DateTime)
+	return row
+}
+
 // Log returns each request as "METHOD /path", in order.
 func (f *NPM) Log() []string {
 	f.mu.Lock()

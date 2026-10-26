@@ -101,3 +101,31 @@ func TestATokenPastItsExpiryIsRefused(t *testing.T) {
 		t.Errorf("GET = %d %v, want 400 Token has expired", code, out)
 	}
 }
+
+// A test changes Proxy Hosts as the Operator would in Nginx Proxy
+// Manager's UI, and the API reads the result.
+func TestProxyHostsChangedOutsideTheAPIReadBack(t *testing.T) {
+	f := baseline(t)
+	token := signIn(t, f)
+
+	id := f.AddProxyHost(func(row map[string]any) {
+		row["domain_names"] = []string{"wiki.home.example", "docs.home.example"}
+		row["forward_host"], row["forward_port"] = "198.18.2.11", 3000
+	})
+	f.EditProxyHost(3, func(row map[string]any) { row["domain_names"] = []string{"graphs.home.example"} })
+	f.DeleteProxyHost(11)
+
+	_, out := do(f, token, http.MethodGet, "/api/nginx/proxy-hosts", "")
+	got := map[float64]string{}
+	for _, h := range out.([]any) {
+		h := h.(map[string]any)
+		var names []string
+		for _, n := range h["domain_names"].([]any) {
+			names = append(names, n.(string))
+		}
+		got[h["id"].(float64)] = strings.Join(names, ",")
+	}
+	if len(got) != 23 || got[float64(id)] != "docs.home.example,wiki.home.example" || got[3] != "graphs.home.example" || got[11] != "" {
+		t.Errorf("Proxy Hosts = %v, want the new one sorted, 3 renamed and 11 gone", got)
+	}
+}

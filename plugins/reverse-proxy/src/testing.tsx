@@ -2,7 +2,7 @@ import { renderScoped as render, type Answers } from "@ddash/plugin/testing";
 import plugin from "./index";
 
 /** The reverse-proxy Plugin's scope in tests. */
-export const reverseProxy = { name: "reverse-proxy", requires: ["nginx-config", "apps", "checks"] };
+export const reverseProxy = { name: "reverse-proxy", requires: ["nginx-config"] };
 
 /**
  * Renders children in the reverse-proxy Plugin's scope against fakes

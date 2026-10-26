@@ -1,6 +1,6 @@
 name: reverse-proxy
 title: Reverse proxy
-description: nginx config health and every Proxy Host with its App, Check, Workload and certificate.
+description: nginx config health.
 icon: waypoints
 author: itsKontra
-requires: [nginx-config, apps, checks]
+requires: [nginx-config]
