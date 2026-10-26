@@ -129,6 +129,21 @@ it("HeroCard is a section named by its title, with kicker, caption, foot and asi
   expect(within(hero).getByRole("meter", { name: "Widgets up" })).toBeTruthy();
 });
 
+it("HeroCard centres its halo on the aside, and draws none without one", () => {
+  render(
+    <>
+      <HeroCard kicker="Status" title="With a Ring" aside={<Ring ratio={1} value="11" label="Widgets up" />} />
+      <HeroCard kicker="Status" title="Without an aside" />
+    </>,
+  );
+
+  const halo = (region: string) => screen.getByRole("region", { name: region }).querySelector("[data-halo]");
+  const ringHalo = halo("With a Ring")!;
+  expect(ringHalo.parentElement).toBe(screen.getByRole("meter", { name: "Widgets up" }).parentElement);
+  expect(ringHalo.className.split(" ")).toEqual(expect.arrayContaining(["absolute", "left-1/2", "top-1/2", "-translate-1/2", "size-90"]));
+  expect(halo("Without an aside")).toBeNull();
+});
+
 it("A Ring draws its arc in nav-accent on a HeroCard and in primary elsewhere", () => {
   render(
     <>
