@@ -15,7 +15,7 @@ import (
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 )
 
-// The one Plan builder: every App Action, dry-run (PlanAction) or run
+// The one Plan builder: every App Action, shown (PlanAction) or run
 // (RunAction), gets its Plan from planning.build. A planned Action holds
 // its Plan as the Operator sees it and how each of its steps runs, in the
 // one order every App Action has: the Nginx Proxy Manager write, then one
@@ -385,7 +385,7 @@ func (p planning) nameNote(n string, reach appspb.Reach, self string) *appspb.Na
 					return note(appspb.NameNoteKind_NAME_NOTE_KIND_REVERSE_PROXY, "%s is the Reverse Proxy's own name.", n)
 				}
 			}
-			if len(p.dns.entries[n]) > 0 {
+			if len(p.dns.registering[n]) > 0 {
 				return note(appspb.NameNoteKind_NAME_NOTE_KIND_HOST_OVERRIDE, "%s is already registered in pfSense.", n)
 			}
 		}

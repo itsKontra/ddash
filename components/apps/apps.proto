@@ -137,7 +137,7 @@ message App {
   repeated Warning warnings = 15;
   // Every Host Override and alias registering one of its hostnames, in
   // pfSense's order; empty before pfSense was first read.
-  repeated DnsEntry dns = 16;
+  repeated HostOverrideOrAlias dns = 16;
   // How its Workload reaches the internet, from network by the Workload's
   // address (a container's Docker host's); unset without a Workload with
   // an IP address, or while network can't answer.
@@ -213,7 +213,7 @@ message HostOverrideName {
 }
 
 // A Host Override or one of its aliases, as pfSense lists it.
-message DnsEntry {
+message HostOverrideOrAlias {
   string host = 1;
   string domain = 2;
   // An alias's Host Override; unset for a Host Override.
@@ -295,8 +295,8 @@ message Fix {
   // The hostname it acts on: Register, Remove the name, Point at Reverse
   // Proxy, Use as URL.
   string hostname = 2;
-  // Delete an entry: the Host Override or alias to delete.
-  DnsEntry entry = 3;
+  // Delete either entry: the Host Override or alias to delete.
+  HostOverrideOrAlias host_override = 3;
   // Merge: the other App sharing the hostname.
   string app_id = 4;
   // Save again, Delete Proxy Host: the Proxy Host's id.
@@ -358,7 +358,7 @@ enum WarningKind {
   // A Proxy Host's hostname resolves elsewhere than the Reverse Proxy.
   WARNING_KIND_DNS_BYPASSES = 8;
   // A hostname is both a Host Override and an alias, or an alias under
-  // two Host Overrides; each entry has its Delete fix.
+  // two Host Overrides; each has its Delete fix.
   WARNING_KIND_REGISTERED_TWICE = 9;
   // Another App has the hostname too; Merge makes them one.
   WARNING_KIND_HOSTNAME_ON_TWO_APPS = 10;

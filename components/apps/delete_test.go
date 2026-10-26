@@ -22,7 +22,7 @@ const (
 )
 
 // dnsOf is how pfSense registers the hostname n now: "Host Override →
-// 198.18.1.60", "alias of nginx.home.example → 127.0.0.1", each entry.
+// 198.18.1.60", "alias of nginx.home.example → 127.0.0.1", each Host Override or alias.
 func (l *lab) dnsOf(n string) []string {
 	var out []string
 	for _, o := range l.fw.HostOverrides() {

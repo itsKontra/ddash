@@ -43,21 +43,21 @@ type dns struct {
 	// rpAddress is the Reverse Proxy's address, canonical.
 	rpAddress string
 	overrides []*pfpb.HostOverride
-	// entries are the Host Overrides and aliases registering each
+	// registering are the Host Overrides and aliases registering each
 	// hostname, by canonical hostname, in pfSense's order.
-	entries map[string][]*appspb.DnsEntry
+	registering map[string][]*appspb.HostOverrideOrAlias
 }
 
 // newDNS indexes a read of the Host Overrides; rpAddress is the Reverse
 // Proxy's address.
 func newDNS(overrides []*pfpb.HostOverride, rpAddress string) *dns {
-	d := &dns{rpAddress: canonHost(rpAddress), overrides: overrides, entries: map[string][]*appspb.DnsEntry{}}
+	d := &dns{rpAddress: canonHost(rpAddress), overrides: overrides, registering: map[string][]*appspb.HostOverrideOrAlias{}}
 	for _, o := range overrides {
 		own := nameOf(o)
-		d.entries[own.fqdn()] = append(d.entries[own.fqdn()], &appspb.DnsEntry{Host: o.GetHost(), Domain: o.GetDomain(), Ips: o.GetIps()})
+		d.registering[own.fqdn()] = append(d.registering[own.fqdn()], &appspb.HostOverrideOrAlias{Host: o.GetHost(), Domain: o.GetDomain(), Ips: o.GetIps()})
 		for _, a := range o.GetAliases() {
 			n := hostName{a.GetHost(), a.GetDomain()}.fqdn()
-			d.entries[n] = append(d.entries[n], &appspb.DnsEntry{Host: a.GetHost(), Domain: a.GetDomain(), Parent: own.proto(), Ips: o.GetIps()})
+			d.registering[n] = append(d.registering[n], &appspb.HostOverrideOrAlias{Host: a.GetHost(), Domain: a.GetDomain(), Parent: own.proto(), Ips: o.GetIps()})
 		}
 	}
 	return d
@@ -130,13 +130,13 @@ func (d *dns) proxiedNames() []string {
 // proxied reports whether the hostname n (canonical) is an alias at the
 // Reverse Proxy's address.
 func (d *dns) proxied(n string) bool {
-	return slices.ContainsFunc(d.entries[n], func(e *appspb.DnsEntry) bool { return e.GetParent() != nil && d.atReverseProxy(e.GetIps()) })
+	return slices.ContainsFunc(d.registering[n], func(e *appspb.HostOverrideOrAlias) bool { return e.GetParent() != nil && d.atReverseProxy(e.GetIps()) })
 }
 
 // elsewhere reports whether the hostname n (canonical) is registered at
 // an address other than the Reverse Proxy's.
 func (d *dns) elsewhere(n string) bool {
-	return slices.ContainsFunc(d.entries[n], func(e *appspb.DnsEntry) bool { return !d.atReverseProxy(e.GetIps()) })
+	return slices.ContainsFunc(d.registering[n], func(e *appspb.HostOverrideOrAlias) bool { return !d.atReverseProxy(e.GetIps()) })
 }
 
 // overrideNames are a Host Override's own name and its aliases',

@@ -107,11 +107,11 @@ function DisplayForm({ app, groups, onDone }: { app: App; groups: readonly strin
   );
 }
 
-/** How one DNS entry registers a hostname. */
+/** How the Host Overrides and aliases registering a hostname do. */
 function dnsLine(app: App, list: ListAppsResponse, name: string): ReactNode {
-  const entries = app.dns.filter((e) => `${e.host ? `${e.host}.` : ""}${e.domain}`.toLowerCase() === name.toLowerCase());
-  if (entries.length === 0) return list.hostOverrides?.readAt ? <span className="text-warn-text">not registered</span> : "not read yet";
-  return entries
+  const registering = app.dns.filter((e) => `${e.host ? `${e.host}.` : ""}${e.domain}`.toLowerCase() === name.toLowerCase());
+  if (registering.length === 0) return list.hostOverrides?.readAt ? <span className="text-warn-text">not registered</span> : "not read yet";
+  return registering
     .map((e) => {
       if (!e.parent) return `Host Override → ${e.ips.join(", ")}`;
       const parent = `${e.parent.host ? `${e.parent.host}.` : ""}${e.parent.domain}`;

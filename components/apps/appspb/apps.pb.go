@@ -321,7 +321,7 @@ const (
 	// A Proxy Host's hostname resolves elsewhere than the Reverse Proxy.
 	WarningKind_WARNING_KIND_DNS_BYPASSES WarningKind = 8
 	// A hostname is both a Host Override and an alias, or an alias under
-	// two Host Overrides; each entry has its Delete fix.
+	// two Host Overrides; each has its Delete fix.
 	WarningKind_WARNING_KIND_REGISTERED_TWICE WarningKind = 9
 	// Another App has the hostname too; Merge makes them one.
 	WarningKind_WARNING_KIND_HOSTNAME_ON_TWO_APPS WarningKind = 10
@@ -595,7 +595,7 @@ type App struct {
 	Warnings []*Warning `protobuf:"bytes,15,rep,name=warnings,proto3" json:"warnings,omitempty"`
 	// Every Host Override and alias registering one of its hostnames, in
 	// pfSense's order; empty before pfSense was first read.
-	Dns []*DnsEntry `protobuf:"bytes,16,rep,name=dns,proto3" json:"dns,omitempty"`
+	Dns []*HostOverrideOrAlias `protobuf:"bytes,16,rep,name=dns,proto3" json:"dns,omitempty"`
 	// How its Workload reaches the internet, from network by the Workload's
 	// address (a container's Docker host's); unset without a Workload with
 	// an IP address, or while network can't answer.
@@ -739,7 +739,7 @@ func (x *App) GetWarnings() []*Warning {
 	return nil
 }
 
-func (x *App) GetDns() []*DnsEntry {
+func (x *App) GetDns() []*HostOverrideOrAlias {
 	if x != nil {
 		return x.Dns
 	}
@@ -1072,7 +1072,7 @@ func (x *HostOverrideName) GetDomain() string {
 }
 
 // A Host Override or one of its aliases, as pfSense lists it.
-type DnsEntry struct {
+type HostOverrideOrAlias struct {
 	state  protoimpl.MessageState `protogen:"open.v1"`
 	Host   string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	Domain string                 `protobuf:"bytes,2,opt,name=domain,proto3" json:"domain,omitempty"`
@@ -1084,20 +1084,20 @@ type DnsEntry struct {
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *DnsEntry) Reset() {
-	*x = DnsEntry{}
+func (x *HostOverrideOrAlias) Reset() {
+	*x = HostOverrideOrAlias{}
 	mi := &file_apps_apps_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *DnsEntry) String() string {
+func (x *HostOverrideOrAlias) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*DnsEntry) ProtoMessage() {}
+func (*HostOverrideOrAlias) ProtoMessage() {}
 
-func (x *DnsEntry) ProtoReflect() protoreflect.Message {
+func (x *HostOverrideOrAlias) ProtoReflect() protoreflect.Message {
 	mi := &file_apps_apps_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1109,33 +1109,33 @@ func (x *DnsEntry) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use DnsEntry.ProtoReflect.Descriptor instead.
-func (*DnsEntry) Descriptor() ([]byte, []int) {
+// Deprecated: Use HostOverrideOrAlias.ProtoReflect.Descriptor instead.
+func (*HostOverrideOrAlias) Descriptor() ([]byte, []int) {
 	return file_apps_apps_proto_rawDescGZIP(), []int{7}
 }
 
-func (x *DnsEntry) GetHost() string {
+func (x *HostOverrideOrAlias) GetHost() string {
 	if x != nil {
 		return x.Host
 	}
 	return ""
 }
 
-func (x *DnsEntry) GetDomain() string {
+func (x *HostOverrideOrAlias) GetDomain() string {
 	if x != nil {
 		return x.Domain
 	}
 	return ""
 }
 
-func (x *DnsEntry) GetParent() *HostOverrideName {
+func (x *HostOverrideOrAlias) GetParent() *HostOverrideName {
 	if x != nil {
 		return x.Parent
 	}
 	return nil
 }
 
-func (x *DnsEntry) GetIps() []string {
+func (x *HostOverrideOrAlias) GetIps() []string {
 	if x != nil {
 		return x.Ips
 	}
@@ -1472,8 +1472,8 @@ type Fix struct {
 	// The hostname it acts on: Register, Remove the name, Point at Reverse
 	// Proxy, Use as URL.
 	Hostname string `protobuf:"bytes,2,opt,name=hostname,proto3" json:"hostname,omitempty"`
-	// Delete an entry: the Host Override or alias to delete.
-	Entry *DnsEntry `protobuf:"bytes,3,opt,name=entry,proto3" json:"entry,omitempty"`
+	// Delete either entry: the Host Override or alias to delete.
+	HostOverride *HostOverrideOrAlias `protobuf:"bytes,3,opt,name=host_override,json=hostOverride,proto3" json:"host_override,omitempty"`
 	// Merge: the other App sharing the hostname.
 	AppId string `protobuf:"bytes,4,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	// Save again, Delete Proxy Host: the Proxy Host's id.
@@ -1526,9 +1526,9 @@ func (x *Fix) GetHostname() string {
 	return ""
 }
 
-func (x *Fix) GetEntry() *DnsEntry {
+func (x *Fix) GetHostOverride() *HostOverrideOrAlias {
 	if x != nil {
-		return x.Entry
+		return x.HostOverride
 	}
 	return nil
 }
@@ -3915,7 +3915,7 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\x0fapps/apps.proto\x12\n" +
 	"ddash.apps\x1a\x13ddash/options.proto\x1a\x1dddash/workload/workload.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\f\n" +
 	"\n" +
-	"AppsConfig\"\xc8\x04\n" +
+	"AppsConfig\"\xd3\x04\n" +
 	"\x03App\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x10\n" +
@@ -3933,8 +3933,8 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\n" +
 	"proxy_host\x18\r \x01(\v2\x15.ddash.apps.ProxyHostR\tproxyHost\x120\n" +
 	"\bworkload\x18\x0e \x01(\v2\x14.ddash.apps.WorkloadR\bworkload\x12/\n" +
-	"\bwarnings\x18\x0f \x03(\v2\x13.ddash.apps.WarningR\bwarnings\x12&\n" +
-	"\x03dns\x18\x10 \x03(\v2\x14.ddash.apps.DnsEntryR\x03dns\x121\n" +
+	"\bwarnings\x18\x0f \x03(\v2\x13.ddash.apps.WarningR\bwarnings\x121\n" +
+	"\x03dns\x18\x10 \x03(\v2\x1f.ddash.apps.HostOverrideOrAliasR\x03dns\x121\n" +
 	"\anetwork\x18\x11 \x01(\v2\x17.ddash.apps.NetworkInfoR\anetwork\"\xba\x01\n" +
 	"\vNetworkInfo\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12=\n" +
@@ -3956,8 +3956,8 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\rhost_override\x18\x02 \x01(\v2\x1c.ddash.apps.HostOverrideNameR\fhostOverride\">\n" +
 	"\x10HostOverrideName\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x16\n" +
-	"\x06domain\x18\x02 \x01(\tR\x06domain\"~\n" +
-	"\bDnsEntry\x12\x12\n" +
+	"\x06domain\x18\x02 \x01(\tR\x06domain\"\x89\x01\n" +
+	"\x13HostOverrideOrAlias\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x16\n" +
 	"\x06domain\x18\x02 \x01(\tR\x06domain\x124\n" +
 	"\x06parent\x18\x03 \x01(\v2\x1c.ddash.apps.HostOverrideNameR\x06parent\x12\x10\n" +
@@ -3992,11 +3992,11 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\aignored\x18\x02 \x01(\bR\aignored\x12\x16\n" +
 	"\x06detail\x18\x03 \x01(\tR\x06detail\x12\x1c\n" +
 	"\thostnames\x18\x04 \x03(\tR\thostnames\x12%\n" +
-	"\x05fixes\x18\x05 \x03(\v2\x0f.ddash.apps.FixR\x05fixes\"\xb1\x01\n" +
+	"\x05fixes\x18\x05 \x03(\v2\x0f.ddash.apps.FixR\x05fixes\"\xcb\x01\n" +
 	"\x03Fix\x12'\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x13.ddash.apps.FixKindR\x04kind\x12\x1a\n" +
-	"\bhostname\x18\x02 \x01(\tR\bhostname\x12*\n" +
-	"\x05entry\x18\x03 \x01(\v2\x14.ddash.apps.DnsEntryR\x05entry\x12\x15\n" +
+	"\bhostname\x18\x02 \x01(\tR\bhostname\x12D\n" +
+	"\rhost_override\x18\x03 \x01(\v2\x1f.ddash.apps.HostOverrideOrAliasR\fhostOverride\x12\x15\n" +
 	"\x06app_id\x18\x04 \x01(\tR\x05appId\x12\"\n" +
 	"\rproxy_host_id\x18\x05 \x01(\x03R\vproxyHostId\"\x7f\n" +
 	"\bWorkload\x12-\n" +
@@ -4247,7 +4247,7 @@ var file_apps_apps_proto_goTypes = []any{
 	(*AppSettings)(nil),             // 11: ddash.apps.AppSettings
 	(*Links)(nil),                   // 12: ddash.apps.Links
 	(*HostOverrideName)(nil),        // 13: ddash.apps.HostOverrideName
-	(*DnsEntry)(nil),                // 14: ddash.apps.DnsEntry
+	(*HostOverrideOrAlias)(nil),     // 14: ddash.apps.HostOverrideOrAlias
 	(*ProxyHost)(nil),               // 15: ddash.apps.ProxyHost
 	(*Certificate)(nil),             // 16: ddash.apps.Certificate
 	(*Warning)(nil),                 // 17: ddash.apps.Warning
@@ -4302,19 +4302,19 @@ var file_apps_apps_proto_depIdxs = []int32{
 	15, // 3: ddash.apps.App.proxy_host:type_name -> ddash.apps.ProxyHost
 	19, // 4: ddash.apps.App.workload:type_name -> ddash.apps.Workload
 	17, // 5: ddash.apps.App.warnings:type_name -> ddash.apps.Warning
-	14, // 6: ddash.apps.App.dns:type_name -> ddash.apps.DnsEntry
+	14, // 6: ddash.apps.App.dns:type_name -> ddash.apps.HostOverrideOrAlias
 	9,  // 7: ddash.apps.App.network:type_name -> ddash.apps.NetworkInfo
 	0,  // 8: ddash.apps.NetworkInfo.internet_path:type_name -> ddash.apps.InternetPath
 	10, // 9: ddash.apps.NetworkInfo.device:type_name -> ddash.apps.NetworkDevice
 	59, // 10: ddash.apps.AppSettings.workload:type_name -> ddash.workload.WorkloadRef
 	13, // 11: ddash.apps.Links.host_override:type_name -> ddash.apps.HostOverrideName
-	13, // 12: ddash.apps.DnsEntry.parent:type_name -> ddash.apps.HostOverrideName
+	13, // 12: ddash.apps.HostOverrideOrAlias.parent:type_name -> ddash.apps.HostOverrideName
 	16, // 13: ddash.apps.ProxyHost.certificate:type_name -> ddash.apps.Certificate
 	2,  // 14: ddash.apps.Certificate.state:type_name -> ddash.apps.CertificateState
 	4,  // 15: ddash.apps.Warning.kind:type_name -> ddash.apps.WarningKind
 	18, // 16: ddash.apps.Warning.fixes:type_name -> ddash.apps.Fix
 	3,  // 17: ddash.apps.Fix.kind:type_name -> ddash.apps.FixKind
-	14, // 18: ddash.apps.Fix.entry:type_name -> ddash.apps.DnsEntry
+	14, // 18: ddash.apps.Fix.host_override:type_name -> ddash.apps.HostOverrideOrAlias
 	59, // 19: ddash.apps.Workload.ref:type_name -> ddash.workload.WorkloadRef
 	60, // 20: ddash.apps.SourceRead.read_at:type_name -> google.protobuf.Timestamp
 	60, // 21: ddash.apps.SourceRead.failing_since:type_name -> google.protobuf.Timestamp

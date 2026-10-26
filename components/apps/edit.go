@@ -96,7 +96,7 @@ func (p planning) delete(d *appspb.DeleteApp) *planned {
 
 // unregister removes the App's DNS: its own Host Override, its aliases
 // with it, and its hostnames' aliases at the Reverse Proxy's address.
-// Other entries for its names are other Apps'.
+// Other Host Overrides and aliases for its names are other Apps'.
 func (p planning) unregister(out *planned, a *appspb.App, r *record) {
 	if p.dns == nil {
 		return
@@ -144,7 +144,7 @@ func deleteOverride(o *pfpb.HostOverride) (*pfpb.HostOverrideStep, string, []*ap
 }
 
 // removeAlias removes the alias e from its Host Override o.
-func removeAlias(o *pfpb.HostOverride, e *appspb.DnsEntry) (*pfpb.HostOverrideStep, string, []*appspb.PlanValue) {
+func removeAlias(o *pfpb.HostOverride, e *appspb.HostOverrideOrAlias) (*pfpb.HostOverrideStep, string, []*appspb.PlanValue) {
 	parent, n := nameOf(o), hostName{e.GetHost(), e.GetDomain()}
 	step := &pfpb.HostOverrideStep{Change: &pfpb.HostOverrideStep_RemoveAlias{RemoveAlias: &pfpb.AliasChange{
 		Parent: &pfpb.HostName{Host: parent.host, Domain: parent.domain},
@@ -258,7 +258,7 @@ func (p planning) changeAddress(c *appspb.ChangeAddress) *planned {
 				out.addDNS(addAlias(own, n))
 			}
 			for _, n := range removed {
-				for _, e := range p.dns.entries[n] {
+				for _, e := range p.dns.registering[n] {
 					if e.GetParent() != nil && nameOf(own).same(hostName{e.GetParent().GetHost(), e.GetParent().GetDomain()}) {
 						out.addDNS(removeAlias(own, e))
 					}
@@ -523,7 +523,7 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 		// with its aliases, which move too: unless one isn't only the
 		// App's name, which the Operator removes or moves first.
 		moved := []string{n}
-		for _, e := range p.dns.entries[n] {
+		for _, e := range p.dns.registering[n] {
 			if p.dns.atReverseProxy(e.GetIps()) {
 				continue
 			}
@@ -569,7 +569,7 @@ func (p planning) fix(c *appspb.FixWarning) *planned {
 		if p.dns == nil {
 			break
 		}
-		e := f.GetEntry()
+		e := f.GetHostOverride()
 		if parent := e.GetParent(); parent != nil {
 			if o := p.dns.named(hostName{parent.GetHost(), parent.GetDomain()}); o != nil {
 				out.addDNS(removeAlias(o, e))
@@ -612,7 +612,7 @@ func (p planning) removeProxied(out *planned, n string) {
 	if p.dns == nil {
 		return
 	}
-	for _, e := range p.dns.entries[n] {
+	for _, e := range p.dns.registering[n] {
 		if parent := e.GetParent(); parent != nil && p.dns.atReverseProxy(e.GetIps()) {
 			if o := p.dns.named(hostName{parent.GetHost(), parent.GetDomain()}); o != nil {
 				out.addDNS(removeAlias(o, e))

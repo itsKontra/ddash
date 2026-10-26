@@ -93,7 +93,7 @@ export function AddApp({ list, onDone }: { list: ListAppsResponse; onDone: (id?:
     },
   };
   const { settled, current } = useSettled(action);
-  const dryRun = useQuery(AppsService.method.planAction, { action: settled });
+  const planQuery = useQuery(AppsService.method.planAction, { action: settled });
   const run = useRunAction();
   /** set, forgetting the last run: the Action changed. */
   const edit =
@@ -103,7 +103,7 @@ export function AddApp({ list, onDone }: { list: ListAppsResponse; onDone: (id?:
       set(v);
     };
 
-  const plan = run.plan ?? dryRun.data?.plan;
+  const plan = run.plan ?? planQuery.data?.plan;
   const typed = url.trim() !== "";
   const blocked = plan ? blocking(plan) : [];
   const outcome = run.outcome;

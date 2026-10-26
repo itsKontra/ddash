@@ -208,9 +208,9 @@ export function PlanDialog({
   onClose: () => void;
   onDone: (result: RunActionResponse) => void;
 }) {
-  const dryRun = useQuery(AppsService.method.planAction, { action });
+  const planQuery = useQuery(AppsService.method.planAction, { action });
   const run = useRunAction();
-  const plan = run.plan ?? dryRun.data?.plan;
+  const plan = run.plan ?? planQuery.data?.plan;
   const outcome = run.outcome;
   const blocked = plan ? blocking(plan) : [];
   const ended = outcome?.kind === "done" || outcome?.kind === "stopped" || outcome?.kind === "failed";
@@ -243,8 +243,8 @@ export function PlanDialog({
       }
     >
       <div className="flex flex-col gap-4">
-        {!plan && dryRun.error && <Notice tone="down">{dryRun.error.rawMessage}</Notice>}
-        {!plan && !dryRun.error && <Skeleton height="lg" />}
+        {!plan && planQuery.error && <Notice tone="down">{planQuery.error.rawMessage}</Notice>}
+        {!plan && !planQuery.error && <Skeleton height="lg" />}
         {plan && plan.names.length > 0 && (
           <div className="text-sm">
             <NameNotes names={plan.names} />

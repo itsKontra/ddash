@@ -174,7 +174,7 @@ func TestDeleteAnEntryFixesRegisteredTwice(t *testing.T) {
 	t.Run("the Host Override", func(t *testing.T) {
 		l := setUp(t)
 		w := warningOf(l.app(id), registeredTwice)
-		i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetEntry().GetParent() == nil })
+		i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetHostOverride().GetParent() == nil })
 		action := fixAction(id, w.GetFixes()[i])
 		if got := titles(l.plan(action)); !slices.Equal(got, []string{"SYSTEM_PFSENSE: Delete Host Override grafana.home.example"}) {
 			t.Errorf("steps = %q", got)
@@ -187,7 +187,7 @@ func TestDeleteAnEntryFixesRegisteredTwice(t *testing.T) {
 	t.Run("the alias", func(t *testing.T) {
 		l := setUp(t)
 		w := warningOf(l.app(id), registeredTwice)
-		i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetEntry().GetParent() != nil })
+		i := slices.IndexFunc(w.GetFixes(), func(f *appspb.Fix) bool { return f.GetHostOverride().GetParent() != nil })
 		action := fixAction(id, w.GetFixes()[i])
 		if got := titles(l.plan(action)); !slices.Equal(got, []string{"SYSTEM_PFSENSE: Remove alias grafana.home.example from nginx.home.example"}) {
 			t.Errorf("steps = %q", got)

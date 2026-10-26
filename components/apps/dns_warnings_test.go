@@ -26,7 +26,7 @@ func notRegistered(n string) *appspb.Warning {
 	return named(warning(notRegisteredKind, false, "", fixed(appspb.FixKind_FIX_KIND_REGISTER, onName(n)), deleteApp), n)
 }
 
-func onEntry(e *appspb.DnsEntry) func(*appspb.Fix) { return func(f *appspb.Fix) { f.Entry = e } }
+func onOverrideOrAlias(e *appspb.HostOverrideOrAlias) func(*appspb.Fix) { return func(f *appspb.Fix) { f.HostOverride = e } }
 
 // addOverride adds a Host Override in pfSense's web UI.
 func (l *lab) addOverride(host, ip string, aliases ...string) {
@@ -158,22 +158,22 @@ func TestAHostnameRegisteredTwiceWarns(t *testing.T) {
 	if grafana.GetReach() != appspb.Reach_REACH_NOT_PROXIED {
 		t.Errorf("Grafana is %v, want Not proxied", grafana.GetReach())
 	}
-	alias := &appspb.DnsEntry{Host: "grafana", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}
-	override := &appspb.DnsEntry{Host: "grafana", Domain: "home.example", Ips: []string{"198.18.1.204"}}
+	alias := &appspb.HostOverrideOrAlias{Host: "grafana", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}
+	override := &appspb.HostOverrideOrAlias{Host: "grafana", Domain: "home.example", Ips: []string{"198.18.1.204"}}
 	want := []*appspb.Warning{
 		named(warning(dnsBypasses, false, "",
 			fixed(appspb.FixKind_FIX_KIND_POINT_AT_REVERSE_PROXY, onName("grafana.home.example")),
 			fixed(appspb.FixKind_FIX_KIND_DELETE_PROXY_HOST, onProxyHost(3)),
 		), "grafana.home.example"),
 		named(warning(registeredTwice, false, "",
-			fixed(appspb.FixKind_FIX_KIND_DELETE_ENTRY, onEntry(alias)),
-			fixed(appspb.FixKind_FIX_KIND_DELETE_ENTRY, onEntry(override)),
+			fixed(appspb.FixKind_FIX_KIND_DELETE_ENTRY, onOverrideOrAlias(alias)),
+			fixed(appspb.FixKind_FIX_KIND_DELETE_ENTRY, onOverrideOrAlias(override)),
 		), "grafana.home.example"),
 	}
 	if d := diff(want, grafana.GetWarnings()); d != "" {
 		t.Errorf("Grafana's Warnings (-want +got):\n%s", d)
 	}
-	if d := diff([]*appspb.DnsEntry{alias, override}, grafana.GetDns()); d != "" {
+	if d := diff([]*appspb.HostOverrideOrAlias{alias, override}, grafana.GetDns()); d != "" {
 		t.Errorf("Grafana's DNS (-want +got):\n%s", d)
 	}
 

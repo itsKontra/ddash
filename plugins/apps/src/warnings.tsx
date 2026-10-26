@@ -1,10 +1,10 @@
 import { useAction } from "@ddash/plugin";
-import { AppsService, FixKind, type App, type DnsEntry, type Fix, type Warning } from "@ddash/proto/apps/apps_pb";
+import { AppsService, FixKind, type App, type HostOverrideOrAlias, type Fix, type Warning } from "@ddash/proto/apps/apps_pb";
 import { Button, cx, Notice, Pill, StatusDot } from "@ddash/ui";
 import { ddashOnly, warningText } from "./apps";
 
 /** "nas.home.example" for a Host Override, "media.home.example (alias of nas.home.example)" for an alias. */
-export const entryText = (e?: DnsEntry) => {
+export const overrideOrAliasText = (e?: HostOverrideOrAlias) => {
   if (!e) return "";
   const name = `${e.host ? `${e.host}.` : ""}${e.domain}`;
   return e.parent ? `${name} (alias of ${e.parent.host ? `${e.parent.host}.` : ""}${e.parent.domain})` : name;
@@ -34,7 +34,7 @@ export function fixLabel(f: Fix, apps: readonly App[]): string {
     case FixKind.DELETE_PROXY_HOST:
       return "Delete Proxy Host";
     case FixKind.DELETE_ENTRY:
-      return `Delete ${entryText(f.entry)}`;
+      return `Delete ${overrideOrAliasText(f.hostOverride)}`;
     case FixKind.MERGE:
       return `Merge ${apps.find((a) => a.id === f.appId)?.name ?? f.appId} into this App`;
     case FixKind.REATTACH:

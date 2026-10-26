@@ -10,7 +10,7 @@ export function failing<D extends DescMessage>(code: string, message: string, sc
 
 const day = 86_400_000;
 
-/** The Reverse Proxy's Host Override, as a DnsEntry's parent. */
+/** The Reverse Proxy's Host Override, as an alias's parent. */
 const nginx = { host: "nginx", domain: "home.example" };
 
 /** The wildcard certificate (id 3) as ListApps carries it on a Proxy Host: Not renewing. */

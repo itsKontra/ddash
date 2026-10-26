@@ -148,7 +148,7 @@ func TestAddAProxiedApp(t *testing.T) {
 	if d := cmp.Diff(wantHost, ph, protocmp.Transform(), protocmp.IgnoreFields(&appspb.ProxyHost{}, "certificate")); d != "" {
 		t.Errorf("Proxy Host (-want +got):\n%s", d)
 	}
-	if d := diff([]*appspb.DnsEntry{{Host: "wiki", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}}, a.GetDns()); d != "" {
+	if d := diff([]*appspb.HostOverrideOrAlias{{Host: "wiki", Domain: "home.example", Parent: &appspb.HostOverrideName{Host: "nginx", Domain: "home.example"}, Ips: []string{rpAddress}}}, a.GetDns()); d != "" {
 		t.Errorf("DNS (-want +got):\n%s", d)
 	}
 	if _, ok := l.appChecks()[a.GetId()]; !ok {
@@ -187,7 +187,7 @@ func TestAddANotProxiedApp(t *testing.T) {
 		a.GetLinks().GetHostOverride().GetHost() != "printer" || a.GetLinks().GetHostOverride().GetDomain() != "home.example" {
 		t.Errorf("App = %v, want Not-proxied Printer linked to its Host Override", a)
 	}
-	if d := diff([]*appspb.DnsEntry{{Host: "printer", Domain: "home.example", Ips: []string{"198.18.1.60"}}}, a.GetDns()); d != "" {
+	if d := diff([]*appspb.HostOverrideOrAlias{{Host: "printer", Domain: "home.example", Ips: []string{"198.18.1.60"}}}, a.GetDns()); d != "" {
 		t.Errorf("DNS (-want +got):\n%s", d)
 	}
 }
