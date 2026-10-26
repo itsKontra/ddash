@@ -118,6 +118,17 @@ it("Segmented is a named radio group with the picked option checked, picking on 
   expect(picked).toEqual(["L"]);
 });
 
+it("Segmented while busy disables every option and says so, picking nothing", () => {
+  const picked: string[] = [];
+  render(<Segmented label="Size" value="M" options={["S", "M", "L"]} onChange={(v) => picked.push(v)} busy />);
+
+  expect(screen.getByRole("radiogroup", { name: "Size" }).getAttribute("aria-busy")).toBe("true");
+  for (const radio of screen.getAllByRole("radio")) expect((radio as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(screen.getByRole("radio", { name: "L" }));
+  fireEvent.keyDown(screen.getByRole("radio", { name: "M" }), { key: "ArrowRight" });
+  expect(picked).toEqual([]);
+});
+
 it("Segmented in a Field is named by the Field's label and described by its hint, leaving no label pointing nowhere", () => {
   const { container } = render(
     <Field label="Maintenance length" hint="Ends on its own">

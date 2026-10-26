@@ -5,6 +5,7 @@ import { Link } from "react-router";
 import { AdBlocking } from "./adblocking";
 import { DeviceStrip } from "./device-strip";
 import { detailPath, nameOf, tally, useDevices } from "./devices";
+import { choiceOf, PathPill } from "./internet-path";
 
 /** The Devices section's header aside: how many are New. */
 export function NewCount() {
@@ -16,11 +17,6 @@ export function NewCount() {
 /** Adopted or New, as a pill. */
 export function Adoption({ device: d }: { device: Device }) {
   return d.adopted ? <Pill tone="idle">Adopted</Pill> : <Pill tone="warn">New</Pill>;
-}
-
-/** Tunnelled or Direct, as a pill. */
-export function Routing({ device: d }: { device: Device }) {
-  return d.direct ? <Pill tone="idle">Direct</Pill> : <Pill tone="up">Tunnelled</Pill>;
 }
 
 /** An IPv4 address as a number, so 198.18.1.20 sorts before 198.18.1.150; one that isn't sorts last. */
@@ -45,27 +41,28 @@ const columns: Column<Device>[] = [
   { id: "address", header: "Address", sortable: true, sortValue: (d) => (d.adopted ? 1 : 0), cell: (d) => <Adoption device={d} /> },
   {
     id: "routing",
-    header: "Routing",
+    header: "Internet path",
     sortable: true,
-    sortValue: (d) => (d.direct ? 1 : 0),
+    sortValue: (d) => d.internetPath,
     cell: (d) => (
       <span className="inline-flex items-center gap-2">
-        <Routing device={d} />
+        <PathPill device={d} />
         <AdBlocking device={d} />
       </span>
     ),
   },
 ];
 
-type TabId = "all" | "new" | "online" | "tunnelled" | "direct";
+type TabId = "all" | "new" | "online" | "tunnelled" | "direct" | "no-internet";
 
 /** The table's Tabs, each with the Devices it shows. */
 const tabNames: readonly { id: TabId; label: string; has: (d: Device) => boolean }[] = [
   { id: "all", label: "All", has: () => true },
   { id: "new", label: "New", has: (d) => !d.adopted },
   { id: "online", label: "Online", has: (d) => d.online },
-  { id: "tunnelled", label: "Tunnelled", has: (d) => !d.direct },
-  { id: "direct", label: "Direct", has: (d) => d.direct },
+  { id: "tunnelled", label: "Tunnelled", has: (d) => choiceOf(d) === "Tunnelled" },
+  { id: "direct", label: "Direct", has: (d) => choiceOf(d) === "Direct" },
+  { id: "no-internet", label: "No Internet", has: (d) => choiceOf(d) === "No Internet" },
 ];
 
 const tabOf = (id: string) => tabNames.find((t) => t.id === id) ?? tabNames[0];
@@ -77,7 +74,7 @@ const found = (q: string, d: Device) => matches(q, d.name, d.ip, d.mac, ...d.ali
 const byName = (a: Device, b: Device) => nameOf(a).localeCompare(nameOf(b), undefined, { numeric: true });
 
 /**
- * The Devices section: every Device with its routing and status, searched,
+ * The Devices section: every Device with its internet path and status, searched,
  * sorted and split into Tabs under devices.* in the URL (the Page has other
  * tables). Each name opens its detail; each row's strip holds its Actions.
  */
@@ -89,7 +86,10 @@ export function DevicesTable({ aside }: { aside?: ReactNode }) {
   const none = data?.devices.length === 0;
   const shown = tabOf(tab);
   const searched = (data?.devices ?? []).filter((d) => found(q, d)).sort(byName);
-  const tabs: TabOption<TabId>[] = tabNames.map((t) => ({ id: t.id, label: t.label, count: searched.filter(t.has).length }));
+  // No Internet only once network has its alias.
+  const tabs: TabOption<TabId>[] = tabNames
+    .filter((t) => t.id !== "no-internet" || data?.blockAlias)
+    .map((t) => ({ id: t.id, label: t.label, count: searched.filter(t.has).length }));
   return (
     <Panel
       title="Devices"
@@ -121,7 +121,7 @@ export function DevicesTable({ aside }: { aside?: ReactNode }) {
           loading={!data}
           empty={q.trim() ? noMatch("Devices", q) : `No ${shown.label} Devices`}
           rowLabel={nameOf}
-          strip={(d) => data && <DeviceStrip device={d} bypassAlias={data.bypassAlias} adguardError={data.adguardError} />}
+          strip={(d) => data && <DeviceStrip device={d} list={data} />}
         />
       )}
     </Panel>

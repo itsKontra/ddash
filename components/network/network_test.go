@@ -150,10 +150,19 @@ func start(t *testing.T, fw *firewall) (*sdktest.Harness, networkpb.NetworkServi
 
 // startWithAdGuard starts network on fw and ag (adblocking_test.go).
 func startWithAdGuard(t *testing.T, fw *firewall, ag *adguard) (*sdktest.Harness, networkpb.NetworkServiceClient) {
+	return startAll(t, fw, ag, homeConfig())
+}
+
+// startConfigured starts network on fw with cfg.
+func startConfigured(t *testing.T, fw *firewall, cfg *networkpb.NetworkConfig) (*sdktest.Harness, networkpb.NetworkServiceClient) {
+	return startAll(t, fw, &adguard{}, cfg)
+}
+
+func startAll(t *testing.T, fw *firewall, ag *adguard, cfg *networkpb.NetworkConfig) (*sdktest.Harness, networkpb.NetworkServiceClient) {
 	h := sdktest.New(t, network.Definition(),
 		sdktest.WithClient[pfsenseapipb.PfsenseApiServiceClient](fw),
 		sdktest.WithClient[adguardapipb.AdguardApiServiceClient](ag))
-	h.MustStart(homeConfig())
+	h.MustStart(cfg)
 	return h, networkpb.NewNetworkServiceClient(h.Conn)
 }
 

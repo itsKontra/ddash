@@ -291,3 +291,107 @@ func TestAliasAndStaticMappingWritesShareOneQueue(t *testing.T) {
 		t.Error("changes still pending, want applied")
 	}
 }
+
+func TestMovingAnAddressWritesBothAliasesAndAppliesOnce(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+
+	got, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "198.18.1.6", From: []string{"VPN_BYPASS"}, To: "KILL_SWITCH", Detail: "AndroidTV"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantBypass := bypass()
+	wantBypass.Addresses = slices.Delete(wantBypass.Addresses, 2, 3)
+	wantBypass.Details = slices.Delete(wantBypass.Details, 2, 3)
+	if diff := cmp.Diff(wantBypass, alias(fw, "VPN_BYPASS")); diff != "" {
+		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
+	}
+	wantKill := pfsensefake.Alias{Name: "KILL_SWITCH", Addresses: []string{"198.18.1.212", "198.18.1.6"}, Details: []string{"Entry added Sat, 17 Oct 2026 19:15:47 +0200", "AndroidTV"}}
+	if diff := cmp.Diff(wantKill, alias(fw, "KILL_SWITCH")); diff != "" {
+		t.Errorf("KILL_SWITCH (-want +got):\n%s", diff)
+	}
+	var names []string
+	for _, a := range got.GetAliases() {
+		names = append(names, a.GetName())
+	}
+	if !slices.Equal(names, []string{"VPN_BYPASS", "KILL_SWITCH"}) {
+		t.Errorf("answer names %v, want the two aliases written", names)
+	}
+	// One lookup, both writes, then one apply.
+	want := []string{readAliases, patchAlias, patchAlias, firewallPost, pfsensefake.AppliedFirewall}
+	if diff := cmp.Diff(want, aliasWrites(fw)); diff != "" {
+		t.Errorf("calls (-want +got):\n%s", diff)
+	}
+}
+
+func TestMovingAnAddressWithNoTargetTakesItOutOfEveryAliasHoldingIt(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+
+	// VictronAllow and DNS_SERVER both hold 198.18.1.202; VPN_BYPASS doesn't.
+	if _, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "198.18.1.202", From: []string{"VictronAllow", "VPN_BYPASS", "DNS_SERVER"}}); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, name := range []string{"VictronAllow", "DNS_SERVER"} {
+		if a := alias(fw, name); slices.Contains(a.Addresses, "198.18.1.202") || len(a.Details) != len(a.Addresses) {
+			t.Errorf("%s = %v, want 198.18.1.202 gone with its description", name, a)
+		}
+	}
+	if diff := cmp.Diff(bypass(), alias(fw, "VPN_BYPASS")); diff != "" {
+		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
+	}
+	want := []string{readAliases, patchAlias, patchAlias, firewallPost, pfsensefake.AppliedFirewall}
+	if diff := cmp.Diff(want, aliasWrites(fw)); diff != "" {
+		t.Errorf("calls (-want +got):\n%s", diff)
+	}
+}
+
+func TestMovingAnAddressAlreadyWhereItBelongsWritesNothing(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+
+	if _, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "198.18.1.6", From: []string{"KILL_SWITCH"}, To: "VPN_BYPASS"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff([]string{readAliases}, aliasWrites(fw)); diff != "" {
+		t.Errorf("calls (-want +got):\n%s", diff)
+	}
+}
+
+func TestAMoveNamingAnAliasTheFirewallLacksWritesNothing(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+
+	_, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "198.18.1.6", From: []string{"VPN_BYPASS"}, To: "NO_SUCH"})
+
+	if status.Code(err) != codes.NotFound || !strings.Contains(err.Error(), "NO_SUCH") {
+		t.Errorf("Move = %v, want NotFound naming the alias", err)
+	}
+	if diff := cmp.Diff([]string{readAliases}, aliasWrites(fw)); diff != "" {
+		t.Errorf("calls (-want +got):\n%s", diff)
+	}
+}
+
+func TestAMoveWhoseLastWriteIsRefusedStillAppliesTheOnesBefore(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+	if _, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "VPN_BYPASS", Address: "2001:db8::6"}); err != nil {
+		t.Fatal(err)
+	}
+
+	// A network alias takes no bare IPv6 address.
+	_, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "2001:db8::6", From: []string{"VPN_BYPASS"}, To: "WAN_SUBNETWORK"})
+
+	if status.Code(err) != codes.FailedPrecondition || !strings.Contains(err.Error(), "not a valid CIDR") {
+		t.Errorf("Move = %v, want pfSense's refusal", err)
+	}
+	if diff := cmp.Diff(bypass(), alias(fw, "VPN_BYPASS")); diff != "" {
+		t.Errorf("VPN_BYPASS (-want +got):\n%s", diff)
+	}
+	if fw.FirewallPending() {
+		t.Error("alias changes still pending, want the first write applied")
+	}
+}

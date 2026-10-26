@@ -179,18 +179,21 @@ const arrowStep: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLe
 /**
  * Picks one of a few options, e.g. a Widget's size: a radio group drawn like
  * Tabs. It takes one tab stop; the arrow keys move along it and pick.
- * Inside a Field it takes the Field's label and hint.
+ * Inside a Field it takes the Field's label and hint. While busy (a pick
+ * that acts at once is applying) no option can be picked.
  */
 export function Segmented<T extends string>({
   label,
   value,
   options,
   onChange,
+  busy,
 }: {
   label: string;
   value: T;
   options: readonly T[];
   onChange: (value: T) => void;
+  busy?: boolean;
 }) {
   const field = useContext(FieldGroup);
   const { "aria-describedby": describedBy } = useWiring();
@@ -201,6 +204,7 @@ export function Segmented<T extends string>({
       aria-label={field ? undefined : label}
       aria-labelledby={field?.labelId}
       aria-describedby={describedBy}
+      aria-busy={busy || undefined}
       className="inline-flex flex-wrap gap-1"
     >
       {options.map((o, i) => (
@@ -210,17 +214,18 @@ export function Segmented<T extends string>({
           role="radio"
           aria-checked={o === value}
           tabIndex={o === value ? 0 : -1}
+          disabled={busy}
           onClick={() => onChange(o)}
           onKeyDown={(e) => {
             const step = arrowStep[e.key];
-            if (step === undefined) return;
+            if (step === undefined || busy) return;
             e.preventDefault();
             const next = (i + step + options.length) % options.length;
             (e.currentTarget.parentElement?.children[next] as HTMLElement | undefined)?.focus();
             onChange(options[next]);
           }}
           className={cx(
-            "cursor-pointer rounded-ui-sm px-2.5 py-1 text-xs font-semibold transition-colors",
+            "cursor-pointer rounded-ui-sm px-2.5 py-1 text-xs font-semibold transition-colors disabled:cursor-wait disabled:opacity-60",
             o === value ? "bg-primary-tint text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
         >

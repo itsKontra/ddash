@@ -3,6 +3,7 @@ package pfsenseapi
 import (
 	"context"
 	"net/http"
+	"net/netip"
 	"slices"
 	"strings"
 
@@ -39,6 +40,11 @@ func (c *component) lookupAlias(ctx context.Context, name string) (*alias, int, 
 	if err != nil {
 		return nil, -1, err
 	}
+	return findAlias(all, name)
+}
+
+// findAlias returns the alias named name in all, and its id.
+func findAlias(all []alias, name string) (*alias, int, error) {
 	for id := range all {
 		if all[id].Name == name {
 			a := &all[id]
@@ -118,4 +124,89 @@ func (c *component) RemoveAliasAddress(ctx context.Context, req *pfsenseapipb.Re
 		return nil, err
 	}
 	return &pfsenseapipb.RemoveAliasAddressResponse{Alias: out}, nil
+}
+
+const firewallApplyPath = "/api/v2/firewall/apply"
+
+func (c *component) MoveAliasAddress(ctx context.Context, req *pfsenseapipb.MoveAliasAddressRequest) (*pfsenseapipb.MoveAliasAddressResponse, error) {
+	address := strings.TrimSpace(req.GetAddress())
+	if address == "" {
+		return nil, status.Error(codes.InvalidArgument, "give the address to move")
+	}
+	out := &pfsenseapipb.MoveAliasAddressResponse{}
+	err := c.write(ctx, func() error {
+		all, err := c.readAliases(ctx)
+		if err != nil {
+			return err
+		}
+		// One read for every write: changing members renumbers no alias.
+		type patch struct {
+			id                 int
+			addresses, details []string
+		}
+		var patches []patch
+		for _, name := range req.GetFrom() {
+			a, id, err := findAlias(all, name)
+			if err != nil {
+				return err
+			}
+			addresses, details := []string{}, []string{}
+			for i, m := range a.Address {
+				if !sameMember(m, address) {
+					addresses = append(addresses, m)
+					details = append(details, a.Detail[i])
+				}
+			}
+			if len(addresses) != len(a.Address) {
+				patches = append(patches, patch{id, addresses, details})
+			}
+		}
+		if to := req.GetTo(); to != "" {
+			a, id, err := findAlias(all, to)
+			if err != nil {
+				return err
+			}
+			if !slices.ContainsFunc(a.Address, func(m string) bool { return sameMember(m, address) }) {
+				patches = append(patches, patch{id, append(a.Address, address), append(a.Detail, req.GetDetail())})
+			}
+		}
+		if len(patches) == 0 {
+			return nil
+		}
+		// The writes wait for one apply, which also follows a failed one,
+		// so the filter runs what pfSense holds.
+		var werr error
+		for _, p := range patches {
+			var updated alias
+			body := map[string]any{"id": p.id, "address": p.addresses, "detail": p.details}
+			if werr = c.api.send(ctx, http.MethodPatch, aliasPath, body, &updated); werr != nil {
+				break
+			}
+			out.Aliases = append(out.Aliases, updated.proto())
+		}
+		if len(out.Aliases) == 0 {
+			return werr
+		}
+		var applied any
+		aerr := c.api.send(ctx, http.MethodPost, firewallApplyPath, map[string]any{}, &applied)
+		if werr != nil {
+			return werr
+		}
+		return aerr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// sameMember reports whether the alias member m is address, written the
+// same or as the same IP.
+func sameMember(m, address string) bool {
+	if m == address {
+		return true
+	}
+	a, errA := netip.ParseAddr(strings.TrimSpace(m))
+	b, errB := netip.ParseAddr(address)
+	return errA == nil && errB == nil && a == b
 }
