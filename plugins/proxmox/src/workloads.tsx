@@ -1,10 +1,11 @@
 import { useQuery } from "@ddash/plugin";
-import { AddressSource, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { DataTable, EmptyState, Notice, PageTitle, Panel, Pill, type Column, type Tone } from "@ddash/ui";
+import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
+import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
+import { DataTable, EmptyState, matches, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
-import { PowerMenu } from "./power";
+import { PowerStrip, taskOf } from "./power";
 
 /** How each of Proxmox's statuses reads at a glance. */
 export const tones: Record<string, Tone> = {
@@ -82,28 +83,108 @@ const columns: readonly Column<Workload>[] = [
   },
   { id: "status", header: "Status", sortable: true, sortValue: (w) => w.status, cell: (w) => <StatusPill workload={w} /> },
   { id: "id", header: "ID", sortable: true, sortValue: (w) => w.vmid, hideBelow: "sm", cell: (w) => <span className="tabular-nums">{w.vmid}</span> },
-  { id: "kind", header: "Kind", cell: (w) => kindLabel(w.kind) },
+  { id: "kind", header: "Kind", sortable: true, sortValue: (w) => kindLabel(w.kind), cell: (w) => kindLabel(w.kind) },
   { id: "tags", header: "Tags", hideBelow: "sm", cell: (w) => <Tags workload={w} /> },
-  { id: "cpu", header: "CPU", cell: (w) => <span className="tabular-nums">{resources(w).cpu}</span> },
-  { id: "memory", header: "Memory", cell: (w) => <span className="tabular-nums">{resources(w).memory}</span> },
-  { id: "disk", header: "Disk", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).disk}</span> },
+  // The resources sort by what's in use (CPU, memory and uptime: none while stopped), not by how the cell reads.
+  { id: "cpu", header: "CPU", sortable: true, sortValue: (w) => live(w, w.cpu), cell: (w) => <span className="tabular-nums">{resources(w).cpu}</span> },
+  {
+    id: "memory",
+    header: "Memory",
+    sortable: true,
+    sortValue: (w) => live(w, Number(w.mem)),
+    cell: (w) => <span className="tabular-nums">{resources(w).memory}</span>,
+  },
+  {
+    id: "disk",
+    header: "Disk",
+    hideBelow: "sm",
+    sortable: true,
+    sortValue: (w) => Number(w.disk),
+    cell: (w) => <span className="tabular-nums">{resources(w).disk}</span>,
+  },
   { id: "network", header: "Network", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).network}</span> },
-  { id: "uptime", header: "Uptime", hideBelow: "sm", cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span> },
+  {
+    id: "uptime",
+    header: "Uptime",
+    hideBelow: "sm",
+    sortable: true,
+    sortValue: (w) => live(w, Number(w.uptimeSeconds)),
+    cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span>,
+  },
   { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} /> },
-  { id: "power", header: <span className="sr-only">Power</span>, align: "right", cell: (w) => <PowerMenu workload={w} /> },
 ];
 
-/** The proxmox Page: every LXC and VM with its status, resources and IPs, and a menu of its power Actions. */
+/** A running Workload's live value, else 0. */
+const live = (w: Workload, value: number) => (w.status === "running" ? value : 0);
+
+/** Whether a Workload matches the search: its name, ID, tags or IPs. */
+const found = (q: string, w: Workload) => matches(q, w.name, String(w.vmid), ...w.tags, ...w.nics.flatMap((n) => n.ips));
+
+type TabId = "all" | "running" | "stopped";
+
+/** The Tabs, each with the Workloads it shows. */
+const tabNames: readonly { id: TabId; label: string; has: (w: Workload) => boolean }[] = [
+  { id: "all", label: "All", has: () => true },
+  { id: "running", label: "Running", has: (w) => w.status === "running" },
+  { id: "stopped", label: "Stopped", has: (w) => w.status === "stopped" },
+];
+
+/** The Kind Select's options past Any, as the URL keeps them. */
+const kinds = new Map([
+  ["lxc", Kind.LXC],
+  ["vm", Kind.VM],
+]);
+
+/**
+ * The proxmox Page: every LXC and VM with its status, resources and IPs,
+ * searched, filtered by status and kind and sorted (kept in the URL), and
+ * each row's strip with its power Actions.
+ */
 export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
+  const tasks = useQuery(ProxmoxService.method.listPowerTasks, {});
+  // Read up front, so a strip opens on its power Actions, not on a skeleton.
+  useQuery(ProxmoxApiService.method.listPermissions, {});
+  const [q, setQ] = useQueryState("q", "");
+  const [tab, setTab] = useQueryState("tab", "all");
+  const [kind, setKind] = useQueryState("kind", "");
+  const all = data?.workloads ?? [];
+  const only = kinds.get(kind);
+  const searched = all.filter((w) => found(q, w) && (only === undefined || w.kind === only));
+  const shown = tabNames.find((t) => t.id === tab) ?? tabNames[0];
+  const tabs = tabNames.map((t) => ({ id: t.id, label: t.label, count: searched.filter(t.has).length }));
   return (
     <div>
       <PageTitle kicker="Infrastructure" title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
       {error && !data ? (
         <Unlisted error={error} />
       ) : (
-        <Panel flush>
-          <DataTable rows={data?.workloads ?? []} rowKey={(w) => String(w.vmid)} columns={columns} loading={!data} empty="Proxmox lists no LXCs or VMs" />
+        <Panel
+          flush
+          toolbar={
+            <>
+              <SearchField label="Search Workloads" value={q} onChange={setQ} placeholder="Search by name, ID, tag or IP" />
+              <Select label="Kind" value={only === undefined ? "" : kind} onChange={(e) => setKind(e.target.value)}>
+                <option value="">Any kind</option>
+                <option value="lxc">LXC</option>
+                <option value="vm">VM</option>
+              </Select>
+              <Tabs label="Show" value={shown.id} options={tabs} onChange={setTab} />
+            </>
+          }
+        >
+          <DataTable
+            rows={searched.filter(shown.has)}
+            rowKey={(w) => String(w.vmid)}
+            columns={columns}
+            sortKey="sort"
+            defaultSort="id"
+            loading={!data}
+            empty={q ? `No Workloads match "${q}"` : all.length ? "No Workloads match the filters" : "Proxmox lists no LXCs or VMs"}
+            rowLabel={(w) => w.name}
+            strip={(w) => (w.template ? null : <PowerStrip workload={w} />)}
+            busy={(w) => taskOf(tasks.data?.tasks, w)}
+          />
         </Panel>
       )}
     </div>

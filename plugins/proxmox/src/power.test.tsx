@@ -5,33 +5,47 @@ import { bodies, show } from "./testing";
 
 afterEach(cleanup);
 
-const menu = (name: string) => within(screen.getByRole("row", { name: new RegExp(name) })).queryByRole("button", { name: `Power for ${name}` });
+const row = (name: string) => screen.getByRole("rowheader", { name }).closest("tr")!;
+const arrow = (name: string) => within(row(name)).queryByRole("button", { name: `Actions for ${name}` });
+const strip = (name: string) => screen.queryByRole("group", { name: `Actions for ${name}` });
 
-async function pick(name: string, item: string) {
-  fireEvent.click(menu(name)!);
-  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+/** Opens a Workload's strip from its row's arrow, and returns it. */
+function open(name: string) {
+  fireEvent.click(arrow(name)!);
+  return strip(name)!;
+}
+
+async function pick(name: string, action: string) {
+  fireEvent.click(within(open(name)).getByRole("button", { name: action }));
   await settle();
 }
 
-it("offers Stop and Restart on a running Workload and Start on a stopped one, from its row's menu", async () => {
+it("offers Stop and Restart on a running Workload and Start on a stopped one, in its row's strip", async () => {
   await show("/proxmox");
 
-  fireEvent.click(menu("media-stack")!);
-  expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Restart", "Stop"]);
-  fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+  const media = open("media-stack");
+  expect(within(media).getAllByRole("button").map((b) => b.textContent)).toEqual(["Restart", "Stop"]);
+  expect(within(media).getByRole("status").textContent).toBe("running, up 2 d");
 
-  fireEvent.click(menu("dhcp-box")!);
-  expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Start"]);
+  const dhcp = open("dhcp-box");
+  expect(within(dhcp).getAllByRole("button").map((b) => b.textContent)).toEqual(["Start"]);
+  expect(within(dhcp).getByRole("status").textContent).toBe("stopped");
 });
 
-it("shows a protected-in-Proxmox lock in place of the menu where ddash can't power the Workload", async () => {
+it("shows the protected-in-Proxmox lock, and why, in the strip of a Workload ddash can't power", async () => {
   await show("/proxmox");
 
-  const nginx = screen.getByRole("row", { name: /nginx/ });
-  expect(menu("nginx")).toBeNull();
+  const nginx = open("nginx");
   expect(within(nginx).getByText("protected in Proxmox")).toBeTruthy();
-  // A template has no power Actions.
-  expect(menu("debian-template")).toBeNull();
+  expect(within(nginx).getByRole("status").textContent).toMatch(/doesn't hold VM\.PowerMgmt/);
+  expect(within(nginx).queryByRole("button")).toBeNull();
+});
+
+it("gives a template no arrow: it has no power Actions", async () => {
+  await show("/proxmox");
+
+  expect(arrow("debian-template")).toBeNull();
+  expect(arrow("win-test")).toBeTruthy();
 });
 
 it("stops a Workload once the Operator confirms, naming it by kind and VMID", async () => {
@@ -56,7 +70,8 @@ it("restarts only after the confirm, and does nothing when cancelled", async () 
   await settle();
   expect(bodies(calls, "RestartWorkload")).toEqual([]);
 
-  await pick("media-stack", "Restart");
+  fireEvent.click(within(strip("media-stack")!).getByRole("button", { name: "Restart" }));
+  await settle();
   fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Restart" }));
   await settle();
   expect(bodies(calls, "RestartWorkload")).toEqual([{ workload: { kind: "KIND_LXC", host: "pve", id: "102" } }]);
@@ -71,25 +86,46 @@ it("starts a stopped Workload at once, without a confirm", async () => {
   expect(bodies(calls, "StartWorkload")).toEqual([{ workload: { kind: "KIND_VM", host: "pve", id: "111" } }]);
 });
 
-it("disables a Workload's power Actions while its task runs", async () => {
-  await show("/proxmox", {
-    ListPowerTasks: () =>
-      Response.json({ tasks: [{ workload: { kind: "KIND_LXC", host: "pve", id: "102" }, action: "POWER_ACTION_STOP", started: "2026-10-20T09:00:00Z" }] }),
-  });
+const stopping = () =>
+  Response.json({ tasks: [{ workload: { kind: "KIND_LXC", host: "pve", id: "102" }, action: "POWER_ACTION_STOP", started: "2026-10-20T09:00:00Z" }] });
 
-  expect((menu("media-stack") as HTMLButtonElement).disabled).toBe(true);
-  expect(within(screen.getByRole("row", { name: /media-stack/ })).getByText("stopping")).toBeTruthy();
-  expect((menu("dhcp-box") as HTMLButtonElement).disabled).toBe(false);
+it("marks a closed row busy while its task runs, its arrow held shut", async () => {
+  await show("/proxmox", { ListPowerTasks: stopping });
+
+  const media = arrow("media-stack")!;
+  expect(within(row("media-stack")).getByText("stopping")).toBeTruthy();
+  expect(media.getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(media);
+  expect(strip("media-stack")).toBeNull();
+  expect(arrow("dhcp-box")!.hasAttribute("aria-disabled")).toBe(false);
 });
 
-it("shows why a power Action failed in its row", async () => {
+it("reads the task in the open strip once it runs, its power Actions disabled", async () => {
+  let tasks = () => Response.json({});
+  const calls = await show("/proxmox", { ListPowerTasks: () => tasks() });
+
+  await pick("media-stack", "Stop");
+  tasks = stopping;
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Stop" }));
+  await settle();
+
+  expect(bodies(calls, "StopWorkload")).toHaveLength(1);
+  const media = strip("media-stack")!;
+  expect(within(media).getByRole("status").textContent).toBe("Proxmox is stopping it");
+  for (const b of within(media).getAllByRole("button")) expect((b as HTMLButtonElement).disabled).toBe(true);
+  // The open strip still closes; then the row holds shut.
+  fireEvent.click(arrow("media-stack")!);
+  expect(arrow("media-stack")!.getAttribute("aria-disabled")).toBe("true");
+});
+
+it("shows why a power Action failed in its strip", async () => {
   await show("/proxmox", {
     StartWorkload: () => Response.json({ code: "permission_denied", message: "VM 111 win-test is protected in Proxmox" }, { status: 403 }),
   });
 
   await pick("win-test", "Start");
 
-  expect(within(screen.getByRole("row", { name: /win-test/ })).getByRole("alert").textContent).toContain("VM 111 win-test is protected in Proxmox");
+  expect(within(strip("win-test")!).getByRole("alert").textContent).toContain("VM 111 win-test is protected in Proxmox");
 });
 
 it("has the power Actions as buttons on a Workload's detail", async () => {
