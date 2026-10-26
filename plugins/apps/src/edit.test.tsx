@@ -59,11 +59,12 @@ it("saves the Display settings at once, keeping the Workload override", async ()
 
 it("edits one Panel at a time", async () => {
   await open("proxy:jellyfin.home.example");
-  expect(editButtons().map((b) => b.getAttribute("aria-label"))).toEqual(["Edit Display", "Edit Address and DNS", "Edit Workload and Check"]);
+  expect(editButtons().map((b) => b.getAttribute("aria-label"))).toEqual(["Edit Display", "Edit Address and DNS", "Edit Reverse proxy", "Edit Workload and Check"]);
 
   fireEvent.click(screen.getByRole("button", { name: "Edit Display" }));
   expect(editButtons().map((b) => [b.getAttribute("aria-label"), (b as HTMLButtonElement).disabled])).toEqual([
     ["Edit Address and DNS", true],
+    ["Edit Reverse proxy", true],
     ["Edit Workload and Check", true],
   ]);
 
@@ -148,25 +149,27 @@ it("promotes an alias to the URL, at once", async () => {
   expect(within(panel("Address and DNS")).queryByRole("button", { name: /^Make / })).toBeNull();
 });
 
-it("offers no Address Edit without aliases to promote", async () => {
+it("edits the address of an App without aliases, with none to promote", async () => {
   await open("proxy:grafana.home.example");
 
-  expect(screen.queryByRole("button", { name: "Edit Address and DNS" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Edit Address and DNS" }));
+  const form = within(panel("Address and DNS"));
+  expect((form.getByLabelText("URL") as HTMLInputElement).value).toBe("https://grafana.home.example");
+  expect(form.queryByRole("button", { name: /^Make / })).toBeNull();
+  expect((form.getByRole("button", { name: "Save" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
-it("deletes a Link-only App after a confirm; Delete… on others waits for the write tickets", async () => {
-  const calls = await open("app:00aa11bb22cc33dd");
+it("deletes a Link-only App through its Plan, which changes ddash alone", async () => {
+  const plan = { steps: [{ system: "SYSTEM_DDASH", title: "Delete the App pfSense and its Check" }] };
+  const calls = await open("app:00aa11bb22cc33dd", { PlanAction: () => Response.json({ plan }), RunAction: () => Response.json({ appId: "app:00aa11bb22cc33dd", done: 1 }) });
 
   fireEvent.click(within(pane()).getByRole("button", { name: "Delete…" }));
-  const confirm = screen.getByRole("alertdialog");
-  expect(confirm.textContent).toContain("Delete the App pfSense?");
-  fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
+  await settle();
+  const dialog = within(screen.getByRole("dialog", { name: "Delete pfSense" }));
+  expect(dialog.getByText("Delete the App pfSense and its Check")).toBeTruthy();
+  fireEvent.click(dialog.getByRole("button", { name: "Delete" }));
   await settle();
 
-  expect(actions(calls)).toEqual([{ method: "DeleteApp", body: { id: "app:00aa11bb22cc33dd" } }]);
+  expect(actions(calls)).toEqual([{ method: "RunAction", body: { action: { delete: { id: "app:00aa11bb22cc33dd" } }, plan } }]);
   expect(search).toBe("");
-
-  cleanup();
-  await open("proxy:grafana.home.example");
-  expect((within(pane()).getByRole("button", { name: "Delete…" }) as HTMLButtonElement).disabled).toBe(true);
 });

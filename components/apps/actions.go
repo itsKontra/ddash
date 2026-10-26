@@ -235,19 +235,6 @@ func (c *component) PromoteAlias(ctx context.Context, req *appspb.PromoteAliasRe
 	return &appspb.PromoteAliasResponse{}, nil
 }
 
-func (c *component) DeleteApp(ctx context.Context, req *appspb.DeleteAppRequest) (*appspb.DeleteAppResponse, error) {
-	err := c.change(ctx, req.GetId(), func(a *appspb.App, r *record, _ []*record) (changes, error) {
-		if a.GetReach() != appspb.Reach_REACH_LINK_ONLY {
-			return changes{}, status.Errorf(codes.FailedPrecondition, "%s isn't Link only: its sources would bring it back", a.GetName())
-		}
-		return changes{drop: []string{r.id}}, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &appspb.DeleteAppResponse{}, nil
-}
-
 func checkIcon(icon string) error {
 	if icon != "" && !iconName.MatchString(icon) {
 		return status.Error(codes.InvalidArgument, "icon must be a dashboard-icons name, e.g. jellyfin or home-assistant")

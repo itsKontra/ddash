@@ -65,7 +65,11 @@ func (c *component) RunAction(ctx context.Context, req *appspb.RunActionRequest)
 		if written, err = pl.npm(ctx, c.npm); err != nil {
 			return nil, c.stopped(ctx, pl, done, err)
 		}
-		c.wroteProxyHost(written)
+		if pl.deletes != 0 {
+			c.deletedProxyHost(pl.deletes)
+		} else {
+			c.wroteProxyHost(written)
+		}
 		done++
 	}
 	if len(pl.dns) > 0 {
@@ -77,16 +81,33 @@ func (c *component) RunAction(ctx context.Context, req *appspb.RunActionRequest)
 		c.wroteDNS(pl.dns)
 		done += len(pl.dns)
 	}
-	recs, err := c.store.records(ctx)
-	if err != nil {
-		return nil, c.stopped(ctx, pl, done, err)
+	id := pl.id
+	if pl.record != nil {
+		recs, err := c.store.records(ctx)
+		if err != nil {
+			return nil, c.stopped(ctx, pl, done, err)
+		}
+		var ch changes
+		ch, id = pl.record(recs, written)
+		if err := c.store.save(ctx, ch.put, ch.drop); err != nil {
+			return nil, c.stopped(ctx, pl, done, err)
+		}
+		done++
 	}
-	ch, id := pl.record(recs, written)
-	if err := c.store.save(ctx, ch.put, ch.drop); err != nil {
-		return nil, c.stopped(ctx, pl, done, err)
-	}
-	done++
 	return &appspb.RunActionResponse{AppId: id, Done: int32(done), Reread: c.resyncLocked(ctx)}, nil
+}
+
+// deletedProxyHost drops a Proxy Host an App Action deleted from the last
+// good read, as wroteProxyHost puts one in.
+func (c *component) deletedProxyHost(id int64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.hosts == nil {
+		return
+	}
+	hosts := maps.Clone(c.hosts)
+	delete(hosts, id)
+	c.hosts = hosts
 }
 
 // wroteProxyHost puts a Proxy Host an App Action wrote into the last good

@@ -103,6 +103,16 @@ func (d *dns) override(n hostName) *pfpb.HostOverride {
 	return nil
 }
 
+// named is the Host Override n names, wherever it points; nil for none.
+func (d *dns) named(n hostName) *pfpb.HostOverride {
+	for _, o := range d.overrides {
+		if nameOf(o).same(n) {
+			return o
+		}
+	}
+	return nil
+}
+
 // proxiedNames are the aliases at the Reverse Proxy's address, canonical,
 // in pfSense's order: each is a proxied App's hostname.
 func (d *dns) proxiedNames() []string {

@@ -35,7 +35,6 @@ const (
 	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
 	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
 	AppsService_RunAction_FullMethodName       = "/ddash.apps.AppsService/RunAction"
-	AppsService_DeleteApp_FullMethodName       = "/ddash.apps.AppsService/DeleteApp"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
 )
 
@@ -91,8 +90,6 @@ type AppsServiceClient interface {
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
 	// re-read a source.
 	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error)
-	// DeleteApp deletes a Link-only App.
-	DeleteApp(ctx context.Context, in *DeleteAppRequest, opts ...grpc.CallOption) (*DeleteAppResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -217,16 +214,6 @@ func (c *appsServiceClient) RunAction(ctx context.Context, in *RunActionRequest,
 	return out, nil
 }
 
-func (c *appsServiceClient) DeleteApp(ctx context.Context, in *DeleteAppRequest, opts ...grpc.CallOption) (*DeleteAppResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(DeleteAppResponse)
-	err := c.cc.Invoke(ctx, AppsService_DeleteApp_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListWorkloadsResponse)
@@ -289,8 +276,6 @@ type AppsServiceServer interface {
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
 	// re-read a source.
 	RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error)
-	// DeleteApp deletes a Link-only App.
-	DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -337,9 +322,6 @@ func (UnimplementedAppsServiceServer) PlanAction(context.Context, *PlanActionReq
 }
 func (UnimplementedAppsServiceServer) RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RunAction not implemented")
-}
-func (UnimplementedAppsServiceServer) DeleteApp(context.Context, *DeleteAppRequest) (*DeleteAppResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method DeleteApp not implemented")
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
@@ -563,24 +545,6 @@ func _AppsService_RunAction_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_DeleteApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteAppRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AppsServiceServer).DeleteApp(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AppsService_DeleteApp_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).DeleteApp(ctx, req.(*DeleteAppRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListWorkloadsRequest)
 	if err := dec(in); err != nil {
@@ -649,10 +613,6 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RunAction",
 			Handler:    _AppsService_RunAction_Handler,
-		},
-		{
-			MethodName: "DeleteApp",
-			Handler:    _AppsService_DeleteApp_Handler,
 		},
 		{
 			MethodName: "ListWorkloads",

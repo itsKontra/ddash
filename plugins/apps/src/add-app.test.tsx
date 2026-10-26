@@ -1,5 +1,3 @@
-import { create, toBinary, type DescMessage, type MessageInitShape } from "@bufbuild/protobuf";
-import { base64Encode } from "@bufbuild/protobuf/wire";
 import { PlanSchema, RunActionResponseSchema } from "@ddash/proto/apps/apps_pb";
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { useLocation } from "react-router";
@@ -7,7 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import { pending, settle } from "@ddash/plugin/testing";
 import { planDelay } from "./add-app";
 import plugin from "./index";
-import { actions, certificates, renderScoped, split } from "./testing";
+import { actions, certificates, failing, renderScoped, split } from "./testing";
 
 afterEach(cleanup);
 
@@ -91,12 +89,6 @@ const steps = () =>
 
 /** A step's state as it says it; undefined before Add. */
 const state = (step: string | null) => step?.match(/running…|done|failed|not run/)?.[0];
-
-/** A Connect error answer with a detail. */
-function failing<D extends DescMessage>(code: string, message: string, schema: D, detail: MessageInitShape<D>, status = 400) {
-  const value = base64Encode(toBinary(schema, create(schema, detail)), "std_raw");
-  return () => Response.json({ code, message, details: [{ type: schema.typeName, value }] }, { status });
-}
 
 it("adds a proxied App by default: the debounced Plan beside the form, and Add sending the Plan on screen", async () => {
   const calls = await openAdd({ RunAction: () => Response.json({ appId: "proxy:wiki.home.example", done: 3 }) });

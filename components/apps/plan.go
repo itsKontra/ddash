@@ -32,11 +32,20 @@ type planned struct {
 	// dns is the one pfSense batch, a Plan step each after npm's; empty
 	// for none.
 	dns []*pfpb.HostOverrideStep
+	// deletes is the Proxy Host npm deletes; 0 when it writes one, or
+	// for none.
+	deletes int64
 	// record is the App record step, the Plan's last: the records to put
 	// and drop given every record now and the Proxy Host npm wrote (nil
-	// without one), and the App's id.
+	// without one), and the App's id. nil for none: the Action changes
+	// the sources alone, and the next sync the record.
 	record func(recs []*record, written *npmpb.ProxyHost) (changes, string)
+	// id is the App the Action changes when it has no record step.
+	id string
 }
+
+// block adds why the Plan can't run.
+func (p *planned) block(why string) { p.plan.Blocked = append(p.plan.Blocked, why) }
 
 // blocked is why the Plan can't run: its blocks and taken names, as the
 // Operator reads them; empty when it can.
@@ -121,6 +130,18 @@ func (p planning) build(action *appspb.AppAction) *planned {
 	switch a := action.GetAction().(type) {
 	case *appspb.AppAction_Add:
 		return p.add(a.Add)
+	case *appspb.AppAction_ChangeAddress:
+		return p.changeAddress(a.ChangeAddress)
+	case *appspb.AppAction_ChangeProxyHost:
+		return p.changeProxyHost(a.ChangeProxyHost)
+	case *appspb.AppAction_AddReverseProxy:
+		return p.addReverseProxy(a.AddReverseProxy)
+	case *appspb.AppAction_RemoveReverseProxy:
+		return p.removeReverseProxy(a.RemoveReverseProxy)
+	case *appspb.AppAction_Delete:
+		return p.delete(a.Delete)
+	case *appspb.AppAction_Fix:
+		return p.fix(a.Fix)
 	}
 	return &planned{plan: &appspb.Plan{Blocked: []string{"Choose what to do."}}}
 }
@@ -210,7 +231,7 @@ func (p planning) add(a *appspb.AddApp) *planned {
 		case p.rpAddress != "" && ip.String() == canonHost(p.rpAddress):
 			block(fmt.Sprintf("%s is the Reverse Proxy's address: choose Reverse proxy.", ip))
 		case host != "":
-			out.addDNS(createOverride(splitName(host), ip.String()))
+			out.addDNS(createOverride(splitName(host), []string{ip.String()}))
 		}
 	}
 
@@ -279,10 +300,10 @@ func addAlias(rp *pfpb.HostOverride, n string) (*pfpb.HostOverrideStep, string, 
 	}
 }
 
-// createOverride creates a Host Override named n at ip.
-func createOverride(n hostName, ip string) (*pfpb.HostOverrideStep, string, []*appspb.PlanValue) {
-	step := &pfpb.HostOverrideStep{Change: &pfpb.HostOverrideStep_Create{Create: &pfpb.HostOverride{Host: n.host, Domain: n.domain, Ips: []string{ip}}}}
-	return step, "Create Host Override " + n.fqdn(), []*appspb.PlanValue{{Label: "Host Override", After: n.fqdn() + " → " + ip}}
+// createOverride creates a Host Override named n at ips.
+func createOverride(n hostName, ips []string) (*pfpb.HostOverrideStep, string, []*appspb.PlanValue) {
+	step := &pfpb.HostOverrideStep{Change: &pfpb.HostOverrideStep_Create{Create: &pfpb.HostOverride{Host: n.host, Domain: n.domain, Ips: ips}}}
+	return step, "Create Host Override " + n.fqdn(), []*appspb.PlanValue{{Label: "Host Override", After: n.fqdn() + " → " + strings.Join(ips, ", ")}}
 }
 
 // overrideText is "nginx.home.example → 198.18.1.210".

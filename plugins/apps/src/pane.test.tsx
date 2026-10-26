@@ -75,7 +75,7 @@ it("labels a disabled Proxy Host, with no Warning for it", async () => {
   expect(screen.queryByRole("region", { name: "No TLS" })).toBeNull();
 });
 
-it("shows a Not-proxied App: its Host Override and alias, and Add reverse proxy… waiting for the write tickets", async () => {
+it("shows a Not-proxied App: its Host Override and alias, and Add reverse proxy…", async () => {
   await open("app:5a5a5a5a5a5a5a5a");
 
   expect(screen.getByRole("heading", { level: 2, name: "NAS" }).parentElement!.textContent).toContain("Not proxied");
@@ -85,7 +85,7 @@ it("shows a Not-proxied App: its Host Override and alias, and Add reverse proxy�
     "media.home.example": "alias of nas.home.example → 198.18.1.20",
   });
   expect(within(panel("Reverse proxy")).getByText("Not proxied: pfSense resolves nas.home.example to 198.18.1.20.")).toBeTruthy();
-  expect((within(panel("Reverse proxy")).getByRole("button", { name: "Add reverse proxy…" }) as HTMLButtonElement).disabled).toBe(true);
+  expect((within(panel("Reverse proxy")).getByRole("button", { name: "Add reverse proxy…" }) as HTMLButtonElement).disabled).toBe(false);
   expect(within(panel("Workload and Check")).getByText("override")).toBeTruthy();
 });
 

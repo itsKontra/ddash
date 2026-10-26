@@ -49,16 +49,22 @@ export function fixLabel(f: Fix, apps: readonly App[]): string {
 const danger: ReadonlySet<FixKind> = new Set([FixKind.DELETE_APP, FixKind.REMOVE_NAME, FixKind.DELETE_PROXY_HOST, FixKind.DELETE_ENTRY, FixKind.DELETE_ORPHAN]);
 
 /**
- * How the pane acts on a fix it can't run itself: the Workload Panel's
- * Edit, the Reattach Dialog, and (once the write tickets land) a Plan
- * Dialog for each external fix. A fix without a handler shows disabled.
+ * How the pane acts on a fix it can't run itself: the Panels' Edits, the
+ * Reattach Dialog, Delete's Plan Dialog, and a Plan Dialog for each other
+ * external fix. A fix without a handler shows disabled.
  */
 export interface FixHandlers {
   /** Opens the Workload and Check Panel's Edit. */
   editWorkload?: () => void;
   /** Opens the Reattach Dialog. */
   reattach?: () => void;
-  /** Runs an external fix through its Plan; unset while none can. */
+  /** Opens the Reverse proxy Panel's Edit, to pick a certificate. */
+  editProxy?: () => void;
+  /** Opens the Reverse proxy Panel's Add reverse proxy. */
+  addProxy?: () => void;
+  /** Opens Delete's Plan Dialog. */
+  remove?: () => void;
+  /** Runs any other external fix through its Plan Dialog. */
   external?: (w: Warning, f: Fix) => void;
 }
 
@@ -90,6 +96,12 @@ function WarningBox({ app, apps, warning: w, handlers, onGone }: { app: App; app
         return handlers.editWorkload;
       case FixKind.REATTACH:
         return handlers.reattach;
+      case FixKind.PICK_CERTIFICATE:
+        return handlers.editProxy;
+      case FixKind.ADD_REVERSE_PROXY:
+        return handlers.addProxy;
+      case FixKind.DELETE_APP:
+        return handlers.remove;
       case FixKind.USE_AS_URL:
         return () => void promote.run({ id: app.id, alias: f.hostname });
       case FixKind.MERGE: {
@@ -127,7 +139,6 @@ function WarningBox({ app, apps, warning: w, handlers, onGone }: { app: App; app
               size="sm"
               variant={danger.has(f.kind) ? "danger" : "outline"}
               disabled={!act}
-              title={act ? undefined : "Writes to pfSense or Nginx Proxy Manager aren't available yet"}
               onClick={act}
             >
               {fixLabel(f, apps)}

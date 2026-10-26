@@ -10,10 +10,12 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { hostOf } from "./apps";
 import { Failed, GroupField, IconField, Text, WorkloadField } from "./fields";
+import { PlanDialog, type DialogSlot } from "./plan";
+import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";
 import { external, refKey, refOf, WorkloadLine } from "./workload";
 
 /** The Panels with an Edit; one edits at a time. */
-export type PanelName = "display" | "address" | "workload";
+export type PanelName = "display" | "address" | "proxy" | "workload";
 
 /** Which Panel edits now, and how to start and end it. */
 export interface Editing {
@@ -122,16 +124,16 @@ function dnsLine(app: App, list: ListAppsResponse, name: string): ReactNode {
 
 /**
  * Address and DNS: the URL, the aliases, and how pfSense registers each
- * hostname. Its Edit promotes an alias to the URL, a ddash-only change;
- * changing the URL or the aliases writes to pfSense and Nginx Proxy
- * Manager through a Plan, which the write tickets add here.
+ * hostname. Its Edit changes the URL and the aliases through a Plan, which
+ * checks each new name is free, and promotes an alias to the URL at once,
+ * a ddash-only change.
  */
-export function AddressPanel({ app, list, editing }: { app: App; list: ListAppsResponse; editing: Editing }) {
+export function AddressPanel({ app, list, editing, slot }: { app: App; list: ListAppsResponse; editing: Editing; slot: DialogSlot }) {
   const names = [hostOf(app), ...app.aliases];
   return (
-    <Panel title="Address and DNS" actions={app.aliases.length > 0 && <EditButton panel="address" title="Address and DNS" editing={editing} />}>
+    <Panel title="Address and DNS" actions={<EditButton panel="address" title="Address and DNS" editing={editing} />}>
       {editing.now === "address" ? (
-        <PromoteForm app={app} onDone={editing.done} />
+        <AddressForm app={app} slot={slot} onDone={editing.done} />
       ) : (
         <div className="flex flex-col gap-3">
           <Facts
@@ -159,36 +161,76 @@ export function AddressPanel({ app, list, editing }: { app: App; list: ListAppsR
   );
 }
 
-function PromoteForm({ app, onDone }: { app: App; onDone: () => void }) {
+/** Hostnames typed with commas or spaces between them. */
+const splitNames = (s: string) => s.split(/[\s,]+/).filter(Boolean);
+
+/** What saving a new address writes, by Reach. */
+const addressHint: Record<Reach, string> = {
+  [Reach.UNSPECIFIED]: "",
+  [Reach.PROXIED]: "Saving shows the Plan first: the Proxy Host's names, and the aliases of the Reverse Proxy's Host Override.",
+  [Reach.NOT_PROXIED]: "Saving shows the Plan first: the App's own Host Override and its aliases in pfSense.",
+  [Reach.LINK_ONLY]: "Only ddash changes: a Link-only App has nothing in pfSense.",
+};
+
+function AddressForm({ app, slot, onDone }: { app: App; slot: DialogSlot; onDone: () => void }) {
   const promote = useAction(AppsService.method.promoteAlias);
+  const [url, setUrl] = useState(app.url);
+  const [aliases, setAliases] = useState(app.aliases.join(", "));
+  const changed = url.trim() !== app.url || splitNames(aliases).join(" ") !== app.aliases.join(" ");
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    if (!changed) return;
+    slot.open(
+      <PlanDialog
+        title={`Change ${app.name}'s address`}
+        action={{ action: { case: "changeAddress", value: { id: app.id, url: url.trim(), aliases: splitNames(aliases) } } }}
+        confirm="Save"
+        onClose={slot.close}
+        onDone={() => {
+          slot.close();
+          onDone();
+        }}
+      />,
+    );
+  };
   return (
-    <div className="flex flex-col gap-3">
-      <p className="text-sm text-muted-foreground">Make an alias the URL&apos;s hostname. Only ddash changes: pfSense and Nginx Proxy Manager keep every name.</p>
-      <ul className="flex flex-col gap-2">
-        {app.aliases.map((a) => (
-          <li key={a} className="flex items-center gap-2">
-            <span className="flex-1 font-mono text-sm break-all">{a}</span>
-            <Button
-              size="sm"
-              variant="outline"
-              aria-label={`Make ${a} the URL`}
-              disabled={promote.pending}
-              onClick={async () => {
-                if (await promote.run({ id: app.id, alias: a })) onDone();
-              }}
-            >
-              Make URL
-            </Button>
-          </li>
-        ))}
-      </ul>
+    <form onSubmit={save} className="flex flex-col gap-4">
+      <Text label="URL" value={url} onChange={setUrl} />
+      <Text label="Aliases" hint="Its further hostnames, with commas or spaces between them." value={aliases} onChange={setAliases} />
+      <p className="text-sm text-muted-foreground">{addressHint[app.reach]}</p>
+      {app.aliases.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-muted-foreground">Or make an alias the URL&apos;s hostname at once. Only ddash changes: pfSense and Nginx Proxy Manager keep every name.</p>
+          <ul className="flex flex-col gap-2">
+            {app.aliases.map((a) => (
+              <li key={a} className="flex items-center gap-2">
+                <span className="flex-1 font-mono text-sm break-all">{a}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  aria-label={`Make ${a} the URL`}
+                  disabled={promote.pending}
+                  onClick={async () => {
+                    if (await promote.run({ id: app.id, alias: a })) onDone();
+                  }}
+                >
+                  Make URL
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <Failed error={promote.error} />
       <FormActions>
         <Button variant="ghost" onClick={onDone}>
-          Done
+          Cancel
+        </Button>
+        <Button type="submit" disabled={!changed}>
+          Save
         </Button>
       </FormActions>
-    </div>
+    </form>
   );
 }
 
@@ -221,49 +263,178 @@ function CertificateLine({ id }: { id: bigint }) {
 
 /**
  * Reverse proxy: the Proxy Host serving the App, its certificate's state
- * and whether it is disabled or Offline; Add reverse proxy… on a
- * Not-proxied App. Its Edit and Add reverse proxy… write to Nginx Proxy
- * Manager through a Plan, which the write tickets add here.
+ * and whether it is disabled or Offline. Its Edit changes the Proxy Host,
+ * or removes the reverse proxy; Add reverse proxy… puts an App without a
+ * Proxy Host behind it. Each writes through a Plan.
  */
-export function ProxyPanel({ app, list }: { app: App; list: ListAppsResponse }) {
+export function ProxyPanel({ app, list, editing, slot }: { app: App; list: ListAppsResponse; editing: Editing; slot: DialogSlot }) {
   const p = app.proxyHost;
   const ip = app.dns.find((e) => !e.parent)?.ips[0] ?? app.dns[0]?.ips[0];
-  const add = app.reach === Reach.NOT_PROXIED && !p && (
-    <Button size="sm" variant="outline" disabled title="Writes to pfSense or Nginx Proxy Manager aren't available yet">
-      Add reverse proxy…
-    </Button>
+  const canAdd = !p && (app.reach === Reach.NOT_PROXIED || app.reach === Reach.PROXIED);
+  const actions = p ? (
+    <EditButton panel="proxy" title="Reverse proxy" editing={editing} />
+  ) : (
+    canAdd &&
+    editing.now !== "proxy" && (
+      <Button size="sm" variant="outline" disabled={editing.now !== undefined} onClick={() => editing.start("proxy")}>
+        Add reverse proxy…
+      </Button>
+    )
   );
+  let body: ReactNode;
+  if (editing.now === "proxy" && p) body = <ProxyForm app={app} p={p} slot={slot} onDone={editing.done} />;
+  else if (editing.now === "proxy" && canAdd) body = <AddProxyForm app={app} slot={slot} onDone={editing.done} />;
+  else if (p) {
+    body = (
+      <div className="flex flex-col gap-3">
+        {(!p.enabled || p.offline) && (
+          <div className="flex flex-wrap gap-2">
+            {!p.enabled && <Pill>Proxy Host disabled</Pill>}
+            {p.offline && <Pill tone="warn">Offline</Pill>}
+          </div>
+        )}
+        <Facts
+          items={[
+            { label: "Upstream", value: `${p.forwardScheme}://${p.forwardHost}:${p.forwardPort}`, mono: true },
+            { label: "Certificate", value: <CertificateLine id={p.certificateId} /> },
+            { label: "Options", value: flags(p) || "None" },
+            { label: "Proxy Host", value: `#${p.id} in Nginx Proxy Manager` },
+          ]}
+        />
+      </div>
+    );
+  } else {
+    body = (
+      <p className="text-sm text-muted-foreground">
+        {app.reach === Reach.NOT_PROXIED
+          ? `Not proxied: pfSense resolves ${hostOf(app)} to ${ip ?? "its own address"}.`
+          : app.reach === Reach.LINK_ONLY
+            ? "A link only: no Proxy Host."
+            : list.proxyHosts?.readAt
+              ? "No Proxy Host serves it."
+              : "Nginx Proxy Manager not read yet."}
+      </p>
+    );
+  }
   return (
-    <Panel title="Reverse proxy" actions={add}>
-      {p ? (
-        <div className="flex flex-col gap-3">
-          {(!p.enabled || p.offline) && (
-            <div className="flex flex-wrap gap-2">
-              {!p.enabled && <Pill>Proxy Host disabled</Pill>}
-              {p.offline && <Pill tone="warn">Offline</Pill>}
-            </div>
-          )}
-          <Facts
-            items={[
-              { label: "Upstream", value: `${p.forwardScheme}://${p.forwardHost}:${p.forwardPort}`, mono: true },
-              { label: "Certificate", value: <CertificateLine id={p.certificateId} /> },
-              { label: "Options", value: flags(p) || "None" },
-              { label: "Proxy Host", value: `#${p.id} in Nginx Proxy Manager` },
-            ]}
-          />
-        </div>
-      ) : (
-        <p className="text-sm text-muted-foreground">
-          {app.reach === Reach.NOT_PROXIED
-            ? `Not proxied: pfSense resolves ${hostOf(app)} to ${ip ?? "its own address"}.`
-            : app.reach === Reach.LINK_ONLY
-              ? "A link only: no Proxy Host."
-              : list.proxyHosts?.readAt
-                ? "No Proxy Host serves it."
-                : "Nginx Proxy Manager not read yet."}
-        </p>
-      )}
+    <Panel title="Reverse proxy" actions={actions}>
+      {body}
     </Panel>
+  );
+}
+
+/** An IP address rather than a hostname. */
+const isIP = (s: string) => /^\d{1,3}(\.\d{1,3}){3}$/.test(s) || s.includes(":");
+
+/** A Proxy Host's fields as the form edits them. */
+const draftOf = (p: ProxyHost): ProxyDraft => ({
+  scheme: p.forwardScheme === "https" ? "https" : "http",
+  host: p.forwardHost,
+  port: String(p.forwardPort),
+  certificateId: p.certificateId,
+  blockExploits: p.blockExploits,
+  websockets: p.websockets,
+  forceSsl: p.forceSsl,
+  http2: p.http2,
+  hsts: p.hsts,
+  hstsSubdomains: p.hstsSubdomains,
+});
+
+/** The Reverse proxy Panel's Edit: the Proxy Host's fields, saved through a Plan, and Remove reverse proxy for a proxied App. */
+function ProxyForm({ app, p, slot, onDone }: { app: App; p: ProxyHost; slot: DialogSlot; onDone: () => void }) {
+  const certificates = useCertificates();
+  const [draft, setDraft] = useState(() => draftOf(p));
+  const [address, setAddress] = useState(isIP(p.forwardHost) ? p.forwardHost : (app.network?.address ?? ""));
+  const host = hostOf(app);
+  const done = () => {
+    slot.close();
+    onDone();
+  };
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    slot.open(
+      <PlanDialog
+        title={`Update ${app.name}'s Proxy Host`}
+        action={{ action: { case: "changeProxyHost", value: { id: app.id, proxyHost: resolve(draft, certificates, host) } } }}
+        confirm="Save"
+        onClose={slot.close}
+        onDone={done}
+      />,
+    );
+  };
+  const remove = () =>
+    slot.open(
+      <PlanDialog
+        title={`Remove ${app.name}'s reverse proxy`}
+        action={{ action: { case: "removeReverseProxy", value: { id: app.id, address: address.trim() } } }}
+        confirm="Remove reverse proxy"
+        danger
+        onClose={slot.close}
+        onDone={done}
+      />,
+    );
+  return (
+    <div className="flex flex-col gap-6">
+      <form onSubmit={save} className="flex flex-col gap-4">
+        <ProxyFields value={draft} onChange={setDraft} host={host} certificates={certificates} />
+        <p className="text-sm text-muted-foreground">Saving shows the Plan first. What ddash doesn&apos;t manage, such as custom locations and the advanced config, stays as it is.</p>
+        <FormActions>
+          <Button variant="ghost" onClick={onDone}>
+            Cancel
+          </Button>
+          <Button type="submit">Save</Button>
+        </FormActions>
+      </form>
+      {app.reach === Reach.PROXIED && (
+        <section aria-label="Remove reverse proxy" className="flex flex-col gap-3 border-t border-border pt-4">
+          <p className="text-sm text-muted-foreground">
+            Deletes the Proxy Host, and gives {host} a Host Override of its own in pfSense, resolving straight to the address.
+          </p>
+          <Text label="Address" value={address} onChange={setAddress} placeholder="198.18.1.60" />
+          <div className="flex">
+            <Button variant="danger" disabled={!address.trim()} onClick={remove}>
+              Remove reverse proxy…
+            </Button>
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** Add reverse proxy: a new Proxy Host's fields, the upstream at the App's address to begin with, added through a Plan. */
+function AddProxyForm({ app, slot, onDone }: { app: App; slot: DialogSlot; onDone: () => void }) {
+  const certificates = useCertificates();
+  const [draft, setDraft] = useState<ProxyDraft>(() => ({ ...newProxy(), host: app.dns.find((e) => !e.parent)?.ips[0] ?? app.network?.address ?? "" }));
+  const host = hostOf(app);
+  const save = (e: FormEvent) => {
+    e.preventDefault();
+    slot.open(
+      <PlanDialog
+        title={`Add a reverse proxy to ${app.name}`}
+        action={{ action: { case: "addReverseProxy", value: { id: app.id, proxyHost: resolve(draft, certificates, host) } } }}
+        confirm="Add reverse proxy"
+        onClose={slot.close}
+        onDone={() => {
+          slot.close();
+          onDone();
+        }}
+      />,
+    );
+  };
+  return (
+    <form onSubmit={save} className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">
+        A Proxy Host for {[host, ...app.aliases].join(", ")}, each an alias of the Reverse Proxy&apos;s Host Override in place of its own Host Override.
+      </p>
+      <ProxyFields value={draft} onChange={setDraft} host={host} certificates={certificates} />
+      <FormActions>
+        <Button variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button type="submit">Save</Button>
+      </FormActions>
+    </form>
   );
 }
 
