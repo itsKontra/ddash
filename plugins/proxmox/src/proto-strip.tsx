@@ -6,7 +6,7 @@ import type { Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { Button, Icon, InlineConfirm, Notice, Pill, TwoStepButton, useStripVariant } from "@ddash/ui";
 import { useState } from "react";
 import { ProtectedLock, usePower, type Item } from "./power";
-import { StatusPill } from "./workloads";
+import { resources, StatusPill } from "./workloads";
 
 export function WorkloadStrip({ workload: w }: { workload: Workload }) {
   const v = useStripVariant();
@@ -61,16 +61,20 @@ export function WorkloadStrip({ workload: w }: { workload: Workload }) {
     );
   }
 
-  if (v === "3") {
+  if (v === "3" || v === "4") {
     return (
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <p className="text-xs text-muted-foreground">
-            {p.task ? `Proxmox is ${p.task} it` : p.items.some((i) => i.danger) ? "Stop and Restart ask for a second click." : "Power"}
+            {p.task ? `Proxmox is ${p.task} it` : v === "3" && p.items.some((i) => i.danger) ? "Stop and Restart ask for a second click." : w.status === "running" ? `running, up ${resources(w).uptime}` : w.status}
           </p>
           <div className="flex flex-wrap items-center gap-2">
             {p.items.map((i) =>
-              i.danger ? (
+              i.danger && v === "4" ? (
+                <Button key={i.label} size="sm" variant="danger" disabled={p.busy} onClick={i.run}>
+                  {i.label}
+                </Button>
+              ) : i.danger ? (
                 <TwoStepButton key={i.label} label={i.label} armed={`Click again to ${i.label.toLowerCase()}`} disabled={p.busy} onRun={i.now} />
               ) : (
                 <Button key={i.label} size="sm" disabled={p.busy} onClick={i.now}>
@@ -108,7 +112,7 @@ export function WorkloadAside({ workload: w }: { workload: Workload }) {
   const p = usePower(w);
   if (v === "1" && p.protected) return <ProtectedLock />;
   if (!p.task) return null;
-  if (v === "1") return <Pill tone="maint">{p.task}</Pill>;
+  if (v === "1" || v === "4") return <Pill tone="maint">{p.task}</Pill>;
   if (v === "3")
     return (
       <span title={`Proxmox is ${p.task} it`} className="flex text-maint-text motion-safe:animate-spin">

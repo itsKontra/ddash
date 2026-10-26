@@ -3,7 +3,7 @@
 // (see @ddash/ui's proto-strip.tsx). Throwaway; prototype/row-action-strip only.
 import { useAction, useQuery } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
-import { Button, Field, Notice, Segmented, Switch, TextInput, useStripVariant } from "@ddash/ui";
+import { Button, Field, Notice, Segmented, Switch, TextInput, ToggleButton, useStripVariant } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { AdBlockingToggle } from "./adblocking";
 import { DirectToggle } from "./direct";
@@ -20,6 +20,7 @@ export function DeviceStrip(props: StripProps) {
   const v = useStripVariant();
   if (v === "2") return <Inline {...props} />;
   if (v === "3") return <Command {...props} />;
+  if (v === "4") return <Command {...props} toggles />;
   return <Toolbar {...props} />;
 }
 
@@ -145,8 +146,12 @@ function InlineAdopt({ device: d }: { device: Device }) {
   );
 }
 
-/** 3: a summary line left, compact controls right; Rename swaps the strip for a name field, Adopt opens its Sheet. */
-function Command({ device: d, bypassAlias, adguardError, openSheet }: StripProps) {
+/**
+ * 3: a summary line left, compact controls right; Rename swaps the strip for
+ * a name field, Adopt opens its Sheet. 4 (toggles): one toggle button per
+ * setting in place of each Segmented.
+ */
+function Command({ device: d, bypassAlias, adguardError, openSheet, toggles }: StripProps & { toggles?: boolean }) {
   const direct = useAction(NetworkService.method.setDirect);
   const ads = useAction(NetworkService.method.setAdBlocking);
   const [renaming, setRenaming] = useState(false);
@@ -161,6 +166,17 @@ function Command({ device: d, bypassAlias, adguardError, openSheet }: StripProps
           {!d.adopted && " · New: a change Adopts it first"}
         </p>
         <div className="flex flex-wrap items-center gap-3">
+          {toggles ? (
+            <>
+              <ToggleButton pressed={!d.direct} disabled={direct.pending} onToggle={() => void direct.run({ mac: d.mac, direct: !d.direct })}>
+                Tunnelled
+              </ToggleButton>
+              <ToggleButton pressed={on} disabled={ads.pending || adguardError !== ""} onToggle={() => void ads.run({ mac: d.mac, enabled: !on })}>
+                Ads blocked
+              </ToggleButton>
+            </>
+          ) : (
+            <>
           <Segmented
             label="Routing"
             value={d.direct ? "Direct" : "Tunnelled"}
@@ -173,6 +189,8 @@ function Command({ device: d, bypassAlias, adguardError, openSheet }: StripProps
             options={["Ads blocked", "Ads allowed"] as const}
             onChange={(v) => !ads.pending && adguardError === "" && void ads.run({ mac: d.mac, enabled: v === "Ads blocked" })}
           />
+            </>
+          )}
           {d.adopted ? (
             <Button size="sm" variant="ghost" icon="pencil" onClick={() => setRenaming(true)}>
               Rename

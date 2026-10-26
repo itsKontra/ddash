@@ -12,18 +12,21 @@
 //   3 Command   one strip at a time; a summary line plus compact Segmented
 //               controls; Rename edits in the strip, Adopt keeps its Sheet;
 //               a disruptive Action is a two-step button; busy spins the arrow.
+//   4 Chosen    the Operator's pick: 3, but with 1's arrow, one toggle
+//               button per setting ("Tunnelled", "Ads blocked"), 1's
+//               ConfirmDialog and 1's busy pill beside the arrow.
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Button } from "./atoms";
 import { Icon } from "./icon";
 import { cx } from "./tone";
 
-export type StripVariant = "1" | "2" | "3";
-export const stripVariants: Record<StripVariant, string> = { "1": "Toolbar", "2": "Inline", "3": "Command" };
+export type StripVariant = "1" | "2" | "3" | "4";
+export const stripVariants: Record<StripVariant, string> = { "1": "Toolbar", "2": "Inline", "3": "Command", "4": "Chosen" };
 const order = Object.keys(stripVariants) as StripVariant[];
 
 const key = "ddash.prototype.strip-variant";
 const listeners = new Set<() => void>();
-const valid = (v: string | null): v is StripVariant => v === "1" || v === "2" || v === "3";
+const valid = (v: string | null): v is StripVariant => v === "1" || v === "2" || v === "3" || v === "4";
 function read(): StripVariant {
   const q = new URLSearchParams(window.location.search).get("variant");
   if (valid(q)) return q;
@@ -97,7 +100,7 @@ export function RowArrow({ open, onToggle, label, busy }: { open: boolean; onTog
       onClick={onToggle}
       className={cx(
         "inline-grid cursor-pointer place-items-center transition-colors",
-        v === "1" && "size-7 rounded-ui-sm text-muted-foreground hover:bg-muted hover:text-foreground",
+        (v === "1" || v === "4") && "size-7 rounded-ui-sm text-muted-foreground hover:bg-muted hover:text-foreground",
         v === "2" && "size-7 rounded-full text-muted-foreground hover:text-foreground",
         v === "3" && cx("size-7 rounded-ui-sm border", open ? "border-primary bg-primary-tint text-primary" : "border-border bg-card hover:bg-muted"),
       )}
@@ -137,7 +140,7 @@ export function StripRow({ open, span, width, onEscape, children }: { open: bool
   }, [open]);
   if (!shown) return null;
   return (
-    <tr className={cx("border-b border-border last:border-b-0", v === "1" && "bg-muted/40", v === "2" && "bg-card", v === "3" && "bg-primary-tint/50")}>
+    <tr className={cx("border-b border-border last:border-b-0", v === "1" && "bg-muted/40", v === "2" && "bg-card", (v === "3" || v === "4") && "bg-primary-tint/50")}>
       <td colSpan={span} className="p-0">
         <div
           className={cx("grid motion-safe:transition-[grid-template-rows] motion-safe:duration-[260ms] motion-safe:ease-[ease]", expanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}
@@ -154,7 +157,7 @@ export function StripRow({ open, span, width, onEscape, children }: { open: bool
                 "sticky left-0",
                 v === "1" && "border-l-2 border-primary px-4 py-3",
                 v === "2" && "px-4 pt-2 pb-5",
-                v === "3" && "px-4 py-2",
+                (v === "3" || v === "4") && "px-4 py-2",
               )}
             >
               {children}
@@ -163,6 +166,25 @@ export function StripRow({ open, span, width, onEscape, children }: { open: bool
         </div>
       </td>
     </tr>
+  );
+}
+
+/** Variant 4's setting: one button that is pressed while the setting is on, e.g. "Tunnelled". */
+export function ToggleButton({ pressed, onToggle, disabled, children }: { pressed: boolean; onToggle: () => void; disabled?: boolean; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={onToggle}
+      className={cx(
+        "inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-ui-sm border px-2.5 text-xs font-semibold transition-colors disabled:pointer-events-none disabled:opacity-40",
+        pressed ? "border-primary bg-primary-tint text-primary" : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
+      )}
+    >
+      <Icon name={pressed ? "check" : "x"} size="sm" />
+      {children}
+    </button>
   );
 }
 
