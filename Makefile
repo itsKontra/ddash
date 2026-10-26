@@ -112,8 +112,9 @@ dev: build
 
 # By hand only, never in CI or on a schedule: every system Component's
 # getters against the real homelab systems in the gitignored smoke.env
-# (copy smoke.env.example), checking that they decode and that their
-# invariants hold. Component DBs stay in .smoke/ between runs.
+# (copy smoke.env.example), then network's info by address over them,
+# checking that they decode and that their invariants hold. Component
+# DBs stay in .smoke/ between runs.
 smoke:
 	go run ./cmd/smoke -env smoke.env -data .smoke
 
