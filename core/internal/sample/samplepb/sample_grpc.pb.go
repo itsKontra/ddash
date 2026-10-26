@@ -21,10 +21,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	SampleService_Greet_FullMethodName      = "/ddash.sample.SampleService/Greet"
-	SampleService_Wait_FullMethodName       = "/ddash.sample.SampleService/Wait"
-	SampleService_WaitAction_FullMethodName = "/ddash.sample.SampleService/WaitAction"
-	SampleService_Act_FullMethodName        = "/ddash.sample.SampleService/Act"
+	SampleService_Greet_FullMethodName        = "/ddash.sample.SampleService/Greet"
+	SampleService_Wait_FullMethodName         = "/ddash.sample.SampleService/Wait"
+	SampleService_WaitAction_FullMethodName   = "/ddash.sample.SampleService/WaitAction"
+	SampleService_GetSetupHint_FullMethodName = "/ddash.sample.SampleService/GetSetupHint"
+	SampleService_Act_FullMethodName          = "/ddash.sample.SampleService/Act"
 )
 
 // SampleServiceClient is the client API for SampleService service.
@@ -38,6 +39,9 @@ type SampleServiceClient interface {
 	Wait(ctx context.Context, in *WaitRequest, opts ...grpc.CallOption) (*WaitResponse, error)
 	// WaitAction blocks until the call ends.
 	WaitAction(ctx context.Context, in *WaitActionRequest, opts ...grpc.CallOption) (*WaitActionResponse, error)
+	// GetSetupHint answers with its hook's setup hint; Unimplemented
+	// without the hook.
+	GetSetupHint(ctx context.Context, in *GetSetupHintRequest, opts ...grpc.CallOption) (*GetSetupHintResponse, error)
 	// Act answers with the actor it ran for, unless its hook replaces it.
 	Act(ctx context.Context, in *ActRequest, opts ...grpc.CallOption) (*ActResponse, error)
 }
@@ -80,6 +84,16 @@ func (c *sampleServiceClient) WaitAction(ctx context.Context, in *WaitActionRequ
 	return out, nil
 }
 
+func (c *sampleServiceClient) GetSetupHint(ctx context.Context, in *GetSetupHintRequest, opts ...grpc.CallOption) (*GetSetupHintResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSetupHintResponse)
+	err := c.cc.Invoke(ctx, SampleService_GetSetupHint_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *sampleServiceClient) Act(ctx context.Context, in *ActRequest, opts ...grpc.CallOption) (*ActResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ActResponse)
@@ -101,6 +115,9 @@ type SampleServiceServer interface {
 	Wait(context.Context, *WaitRequest) (*WaitResponse, error)
 	// WaitAction blocks until the call ends.
 	WaitAction(context.Context, *WaitActionRequest) (*WaitActionResponse, error)
+	// GetSetupHint answers with its hook's setup hint; Unimplemented
+	// without the hook.
+	GetSetupHint(context.Context, *GetSetupHintRequest) (*GetSetupHintResponse, error)
 	// Act answers with the actor it ran for, unless its hook replaces it.
 	Act(context.Context, *ActRequest) (*ActResponse, error)
 	mustEmbedUnimplementedSampleServiceServer()
@@ -121,6 +138,9 @@ func (UnimplementedSampleServiceServer) Wait(context.Context, *WaitRequest) (*Wa
 }
 func (UnimplementedSampleServiceServer) WaitAction(context.Context, *WaitActionRequest) (*WaitActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method WaitAction not implemented")
+}
+func (UnimplementedSampleServiceServer) GetSetupHint(context.Context, *GetSetupHintRequest) (*GetSetupHintResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSetupHint not implemented")
 }
 func (UnimplementedSampleServiceServer) Act(context.Context, *ActRequest) (*ActResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Act not implemented")
@@ -200,6 +220,24 @@ func _SampleService_WaitAction_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SampleService_GetSetupHint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSetupHintRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(SampleServiceServer).GetSetupHint(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: SampleService_GetSetupHint_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(SampleServiceServer).GetSetupHint(ctx, req.(*GetSetupHintRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _SampleService_Act_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ActRequest)
 	if err := dec(in); err != nil {
@@ -236,6 +274,10 @@ var SampleService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "WaitAction",
 			Handler:    _SampleService_WaitAction_Handler,
+		},
+		{
+			MethodName: "GetSetupHint",
+			Handler:    _SampleService_GetSetupHint_Handler,
 		},
 		{
 			MethodName: "Act",

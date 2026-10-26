@@ -116,6 +116,7 @@ func (r *Runtime) haveCatalogue(ctx context.Context) bool {
 	cat, err := r.opts.Release.Catalogue(ctx)
 	if err == nil {
 		if err = r.useCatalogue(ctx, cat); err == nil {
+			r.dropRetired(ctx)
 			return true
 		}
 	}

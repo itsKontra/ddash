@@ -51,11 +51,11 @@ func TestANotificationIsHeldForTheGroupingWindow(t *testing.T) {
 	})
 }
 
-// report reports the nginx config item down with reason, or up when
+// report reports the Nginx Proxy Manager item down with reason, or up when
 // reason is empty.
 func report(t *testing.T, c checkspb.ChecksServiceClient, reason string) {
 	t.Helper()
-	reportItem(t, c, "nginx-config", "nginx config", reason)
+	reportItem(t, c, "nginx-proxy-manager-api", "Nginx Proxy Manager", reason)
 }
 
 func reportItem(t *testing.T, c checkspb.ChecksServiceClient, item, name, reason string) {
@@ -79,7 +79,7 @@ func TestAReportedItemIsNotifiedWhenItGoesDownAndWhenItRecovers(t *testing.T) {
 		report(t, c, emerg)
 		after(checks.GroupWindow + tick11())
 		click := sdktest.PublicURL + "/reverse-proxy"
-		want := []*ntfyapipb.Notification{{Title: "nginx config down", Message: emerg, Priority: 4, Tags: []string{"red_circle"}, Click: click}}
+		want := []*ntfyapipb.Notification{{Title: "Nginx Proxy Manager down", Message: emerg, Priority: 4, Tags: []string{"red_circle"}, Click: click}}
 		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
 			t.Fatalf("after the read failed (-want +got):\n%s", diff)
 		}
@@ -87,7 +87,7 @@ func TestAReportedItemIsNotifiedWhenItGoesDownAndWhenItRecovers(t *testing.T) {
 		after(4 * time.Minute)
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
-		want = append(want, &ntfyapipb.Notification{Title: "nginx config up again", Message: "Down for 5 min (" + emerg + ")", Priority: 3, Tags: []string{"green_circle"}, Click: click})
+		want = append(want, &ntfyapipb.Notification{Title: "Nginx Proxy Manager up again", Message: "Down for 5 min (" + emerg + ")", Priority: 3, Tags: []string{"green_circle"}, Click: click})
 		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("after it recovered (-want +got):\n%s", diff)
 		}
@@ -118,7 +118,7 @@ func TestAReportedItemsStateSurvivesARestartOfChecks(t *testing.T) {
 		l.ntfy.setDown(false)
 		startIn(t, l, sdktest.WithDB(h.DBPath))
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"nginx config down"}) {
+		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
 			t.Errorf("sent %v after the restart, want the down that wasn't delivered before it", got)
 		}
 	})
@@ -128,10 +128,10 @@ func TestReportStateRefusesABadReport(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		_, c := startIn(t, newLab())
 		for _, req := range []*checkspb.ReportStateRequest{
-			{Name: "nginx config", State: checkspb.State_STATE_DOWN},
-			{Item: "nginx-config", State: checkspb.State_STATE_DOWN},
-			{Item: "nginx-config", Name: "nginx config", State: checkspb.State_STATE_PENDING},
-			{Item: "nginx-config", Name: "nginx config", State: checkspb.State_STATE_UP, Path: "https://elsewhere.example/"},
+			{Name: "Nginx Proxy Manager", State: checkspb.State_STATE_DOWN},
+			{Item: "nginx-proxy-manager-api", State: checkspb.State_STATE_DOWN},
+			{Item: "nginx-proxy-manager-api", Name: "Nginx Proxy Manager", State: checkspb.State_STATE_PENDING},
+			{Item: "nginx-proxy-manager-api", Name: "Nginx Proxy Manager", State: checkspb.State_STATE_UP, Path: "https://elsewhere.example/"},
 		} {
 			if _, err := c.ReportState(t.Context(), req); status.Code(err) != codes.InvalidArgument {
 				t.Errorf("ReportState(%v): %v, want InvalidArgument", req, err)
@@ -322,13 +322,13 @@ func TestAReportedItemFlapsLikeACheck(t *testing.T) {
 			report(t, c, "")
 			after(checks.GroupWindow + tick11())
 		}
-		want := []string{"nginx config down", "nginx config up again", "nginx config down", "nginx config up again", "nginx config flapping"}
+		want := []string{"Nginx Proxy Manager down", "Nginx Proxy Manager up again", "Nginx Proxy Manager down", "Nginx Proxy Manager up again", "Nginx Proxy Manager flapping"}
 		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, want) {
 			t.Fatalf("sent %v, want %v", got, want)
 		}
 
 		after(checks.FlapHold + checks.GroupWindow + tick11())
-		want = append(want, "nginx config up again")
+		want = append(want, "Nginx Proxy Manager up again")
 		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, want) {
 			t.Errorf("sent %v once up for 30 min, want %v", got, want)
 		}
@@ -402,19 +402,19 @@ func TestMaintenanceOnEverythingSilencesReportedItems(t *testing.T) {
 		maintain(t, c, checkScope(id), 0)
 		report(t, c, emerg)
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"nginx config down"}) {
+		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
 			t.Fatalf("sent %v with only a Check in Maintenance, want the reported down", got)
 		}
 
 		maintain(t, c, everything(), 0)
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"nginx config down"}) {
+		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
 			t.Fatalf("sent %v in Maintenance on everything, want nothing more", got)
 		}
 		endMaintenance(t, c, everything())
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"nginx config down", "nginx config up again"}) {
+		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down", "Nginx Proxy Manager up again"}) {
 			t.Errorf("sent %v after Maintenance, want the recovery", got)
 		}
 	})

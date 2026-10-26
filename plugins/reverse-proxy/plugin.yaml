@@ -1,6 +1,6 @@
 name: reverse-proxy
 title: Reverse proxy
-description: nginx config health.
+description: Whether Nginx Proxy Manager answers, its certificates and the Apps using them.
 icon: waypoints
 author: itsKontra
-requires: [nginx-config]
+requires: [nginx-proxy-manager-api, apps]

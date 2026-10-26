@@ -128,6 +128,7 @@ func (s sourceRead) proto() *appspb.SourceRead {
 	if s.err != nil {
 		out.Error = status.Convert(s.err).Message()
 		out.FailingSince = timestamppb.New(s.failingSince)
+		out.NotConfigured = notConfigured(s.err)
 	}
 	return out
 }

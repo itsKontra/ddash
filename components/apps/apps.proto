@@ -318,6 +318,8 @@ message SourceRead {
   string error = 2;
   // When reads started failing; unset while they work.
   google.protobuf.Timestamp failing_since = 3;
+  // The source's Component has no config yet: the Operator sets it up.
+  bool not_configured = 4;
 }
 
 message ListAppsRequest {}

@@ -92,11 +92,17 @@ func (c *component) readSources(ctx context.Context) sources {
 }
 
 func sourceProblem(name string, err error) string {
-	st := status.Convert(err)
-	if st.Code() == codes.FailedPrecondition && st.Message() == "not configured" {
+	if notConfigured(err) {
 		return name + " not configured"
 	}
-	return name + " unavailable: " + st.Message()
+	return name + " unavailable: " + status.Convert(err).Message()
+}
+
+// notConfigured reports whether err is the host's answer for a Component
+// without config.
+func notConfigured(err error) bool {
+	st := status.Convert(err)
+	return st.Code() == codes.FailedPrecondition && st.Message() == "not configured"
 }
 
 // workloadFor is an App's Workload: the override when there is one, else

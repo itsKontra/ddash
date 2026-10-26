@@ -1041,7 +1041,7 @@ export const ListMaintenanceResponseSchema: GenMessage<ListMaintenanceResponse> 
  */
 export type ReportStateRequest = Message<"ddash.checks.ReportStateRequest"> & {
   /**
-   * The caller's identity for the item, e.g. "nginx-config"; one state per
+   * The caller's identity for the item, e.g. "vpn-tunnel"; one state per
    * item.
    *
    * @generated from field: string item = 1;
@@ -1049,7 +1049,7 @@ export type ReportStateRequest = Message<"ddash.checks.ReportStateRequest"> & {
   item: string;
 
   /**
-   * What Notifications call it, e.g. "nginx config".
+   * What Notifications call it, e.g. "VPN Tunnel".
    *
    * @generated from field: string name = 2;
    */
@@ -1063,7 +1063,7 @@ export type ReportStateRequest = Message<"ddash.checks.ReportStateRequest"> & {
   state: State;
 
   /**
-   * Why it is down, e.g. nginx's error; empty when up.
+   * Why it is down, e.g. the tunnel's handshake error; empty when up.
    *
    * @generated from field: string reason = 4;
    */

@@ -253,3 +253,45 @@ func TestADBMovedAsideIsNeverDeleted(t *testing.T) {
 		t.Errorf("moved aside = %v, want both DBs: %v", got, want)
 	}
 }
+
+// A Release that no longer ships a Component drops its DB and config on
+// its first start: nothing is carried over, and nothing is left orphaned.
+func TestARetiredComponentsDataIsDroppedOnTheNextRelease(t *testing.T) {
+	data := t.TempDir()
+	old := coretest.New(t, coretest.Options{
+		Release:    "v1.0.0",
+		Components: []sdk.Definition{greeter(sample.Hooks{}), sample.Define("relay", []string{"greeter"}, sample.Hooks{})},
+		Plugins:    []coretest.Plugin{hello, relayer},
+		DataDir:    data,
+	})
+	old.SeedConfig("greeter", configured)
+	old.SeedConfig("relay", configured)
+	old.Install("hello")
+	old.Install("relayer")
+	old.WaitState("relay", runtime.OK)
+	old.Shutdown()
+
+	// v1.1.0 retires relay: relayer requires greeter instead.
+	h := coretest.New(t, coretest.Options{
+		Release:    "v1.1.0",
+		Components: []sdk.Definition{greeter(sample.Hooks{})},
+		Plugins:    []coretest.Plugin{hello, {Name: "relayer", Requires: []string{"greeter"}}},
+		DataDir:    data,
+	})
+
+	h.WaitState("greeter", runtime.OK)
+	for _, f := range dbFiles(t, h) {
+		if strings.HasPrefix(f, "relay.") {
+			t.Errorf("%s is still there", f)
+		}
+	}
+	if saved, err := h.Host.Config().Saved(t.Context(), "relay"); err != nil || saved {
+		t.Errorf("relay's config saved = %v (%v), want dropped", saved, err)
+	}
+	if orphans := h.Host.Runtime().Orphans(); len(orphans) != 0 {
+		t.Errorf("orphans = %v, want none", orphans)
+	}
+	if saved, _ := h.Host.Config().Saved(t.Context(), "greeter"); !saved {
+		t.Error("greeter's config is gone, want it kept")
+	}
+}

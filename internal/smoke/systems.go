@@ -1,7 +1,6 @@
 package smoke
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -14,8 +13,6 @@ import (
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
-	nginxconfig "github.com/itsKontra/ddash/components/nginx-config"
-	"github.com/itsKontra/ddash/components/nginx-config/nginxconfigpb"
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
@@ -23,7 +20,6 @@ import (
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk"
-	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
 // system is one system Component smoke runs.
@@ -42,9 +38,6 @@ type system struct {
 	// the real system's URL and the name its TLS certificate is checked
 	// as. Nil: the Component reaches its system some other way.
 	proxy func(cfg proto.Message, addr string) (upstream, tlsName string, err error)
-	// capture runs what the Component runs over SSH, for the fixtures,
-	// with the Component's DB at dbPath.
-	capture func(ctx context.Context, dbPath string, cfg proto.Message) (command string, out fixture.Output, err error)
 }
 
 // A new system Component (one that talks to an external system) belongs
@@ -194,27 +187,6 @@ var systems = []system{
 			upstream, tlsName := cfg.GetUrl(), cfg.GetTlsServerName()
 			cfg.Url, cfg.TlsServerName = "http://"+addr, ""
 			return upstream, tlsName, nil
-		},
-	},
-	{
-		def:     nginxconfig.Definition(),
-		service: nginxconfigpb.NginxConfigService_ServiceDesc.ServiceName,
-		config:  func() proto.Message { return &nginxconfigpb.NginxConfigConfig{} },
-		checks: map[string]func(proto.Message) error{
-			"GetSnapshot": func(m proto.Message) error {
-				s := m.(*nginxconfigpb.GetSnapshotResponse).GetSnapshot()
-				if s.GetError() != "" {
-					return fmt.Errorf("nginx -T failed: %s", s.GetError())
-				}
-				if len(s.GetServers()) == 0 {
-					return errors.New("no server block")
-				}
-				return nil
-			},
-		},
-		capture: func(ctx context.Context, dbPath string, m proto.Message) (string, fixture.Output, error) {
-			out, err := nginxconfig.Capture(ctx, dbPath, m.(*nginxconfigpb.NginxConfigConfig))
-			return "nginx -T", fixture.Output{Stdout: []byte(out.Stdout), Stderr: []byte(out.Stderr), Exit: out.Exit}, err
 		},
 	},
 	{

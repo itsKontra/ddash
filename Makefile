@@ -113,11 +113,11 @@ dev: build
 # By hand only, never in CI or on a schedule: every system Component's
 # getters against the real homelab systems in the gitignored smoke.env
 # (copy smoke.env.example), checking that they decode and that their
-# invariants hold. Component DBs (nginx-config's key) stay in .smoke/.
+# invariants hold. Component DBs stay in .smoke/ between runs.
 smoke:
 	go run ./cmd/smoke -env smoke.env -data .smoke
 
-# The same run, also writing every answer and `nginx -T` as fixtures,
+# The same run, also writing every answer as fixtures,
 # scrubbed (SCRUB_* in smoke.env plus the gitignored scrub.map), into
 # components/<name>/testdata/$(SCENARIO)/. Review them, then move what you
 # need into baseline in a PR of its own.
