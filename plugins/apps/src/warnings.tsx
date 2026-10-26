@@ -1,52 +1,7 @@
 import { useAction } from "@ddash/plugin";
-import { AppsService, FixKind, type App, type HostOverrideOrAlias, type Fix, type Warning } from "@ddash/proto/apps/apps_pb";
+import { AppsService, FixKind, type App, type Fix, type Warning } from "@ddash/proto/apps/apps_pb";
 import { Button, cx, Notice, Pill, StatusDot } from "@ddash/ui";
-import { ddashOnly, warningText } from "./apps";
-
-/** "nas.home.example" for a Host Override, "media.home.example (alias of nas.home.example)" for an alias. */
-export const overrideOrAliasText = (e?: HostOverrideOrAlias) => {
-  if (!e) return "";
-  const name = `${e.host ? `${e.host}.` : ""}${e.domain}`;
-  return e.parent ? `${name} (alias of ${e.parent.host ? `${e.parent.host}.` : ""}${e.parent.domain})` : name;
-};
-
-/** What a fix's button says. */
-export function fixLabel(f: Fix, apps: readonly App[]): string {
-  switch (f.kind) {
-    case FixKind.REGISTER:
-      return `Register ${f.hostname}`;
-    case FixKind.DELETE_APP:
-      return "Delete App…";
-    case FixKind.ADD_REVERSE_PROXY:
-      return "Add reverse proxy…";
-    case FixKind.REMOVE_NAME:
-      return `Remove ${f.hostname}`;
-    case FixKind.SET_WORKLOAD_OVERRIDE:
-      return "Set a Workload override";
-    case FixKind.PICK_CERTIFICATE:
-      return "Pick a certificate…";
-    case FixKind.SAVE_AGAIN:
-      return "Save again";
-    case FixKind.USE_AS_URL:
-      return `Use ${f.hostname} as the URL`;
-    case FixKind.POINT_AT_REVERSE_PROXY:
-      return `Point ${f.hostname} at the Reverse Proxy`;
-    case FixKind.DELETE_PROXY_HOST:
-      return "Delete Proxy Host";
-    case FixKind.DELETE_ENTRY:
-      return `Delete ${overrideOrAliasText(f.hostOverride)}`;
-    case FixKind.MERGE:
-      return `Merge ${apps.find((a) => a.id === f.appId)?.name ?? f.appId} into this App`;
-    case FixKind.REATTACH:
-      return "Reattach to an App…";
-    case FixKind.DELETE_ORPHAN:
-      return "Delete";
-    default:
-      return "Fix";
-  }
-}
-
-const danger: ReadonlySet<FixKind> = new Set([FixKind.DELETE_APP, FixKind.REMOVE_NAME, FixKind.DELETE_PROXY_HOST, FixKind.DELETE_ENTRY, FixKind.DELETE_ORPHAN]);
+import { fixes, fixLabel, warningText } from "./apps";
 
 /**
  * How the pane acts on a fix it can't run itself: the Panels' Edits, the
@@ -91,17 +46,9 @@ function WarningBox({ app, apps, warning: w, handlers, onGone }: { app: App; app
   const error = ignore.error ?? unignore.error ?? promote.error ?? merge.error ?? remove.error;
 
   const run = (f: Fix): (() => void) | undefined => {
+    const fix = fixes[f.kind];
+    if (fix.place) return handlers[fix.place];
     switch (f.kind) {
-      case FixKind.SET_WORKLOAD_OVERRIDE:
-        return handlers.editWorkload;
-      case FixKind.REATTACH:
-        return handlers.reattach;
-      case FixKind.PICK_CERTIFICATE:
-        return handlers.editProxy;
-      case FixKind.ADD_REVERSE_PROXY:
-        return handlers.addProxy;
-      case FixKind.DELETE_APP:
-        return handlers.remove;
       case FixKind.USE_AS_URL:
         return () => void promote.run({ id: app.id, alias: f.hostname });
       case FixKind.MERGE: {
@@ -117,7 +64,7 @@ function WarningBox({ app, apps, warning: w, handlers, onGone }: { app: App; app
           if (await remove.run({ id: app.id }, { confirm: { text: `Delete the settings kept for ${app.name}?`, action: "Delete" } })) onGone();
         };
       default:
-        return ddashOnly.has(f.kind) || !handlers.external ? undefined : () => handlers.external!(w, f);
+        return fix.ddashOnly || !handlers.external ? undefined : () => handlers.external!(w, f);
     }
   };
 
@@ -137,7 +84,7 @@ function WarningBox({ app, apps, warning: w, handlers, onGone }: { app: App; app
             <Button
               key={i}
               size="sm"
-              variant={danger.has(f.kind) ? "danger" : "outline"}
+              variant={fixes[f.kind].removes ? "danger" : "outline"}
               disabled={!act}
               onClick={act}
             >

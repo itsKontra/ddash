@@ -1,17 +1,14 @@
 import { checkStatus, workloadName } from "@ddash/display";
 import { useAction } from "@ddash/plugin";
-import { AppsService, FixKind, Reach, type App, type Fix, type ListAppsResponse, type Warning, type Workload } from "@ddash/proto/apps/apps_pb";
+import { AppsService, Reach, type App, type Fix, type ListAppsResponse, type Warning, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, Dialog, Facts, Field, FormActions, Notice, Panel, Pill, Presence, Select } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
-import { groupsOf, hostOf } from "./apps";
+import { fixes, fixLabel, groupsOf, hostOf } from "./apps";
 import { reachLook } from "./list";
 import { AddressPanel, DisplayPanel, NetworkPanel, ProxyPanel, WorkloadPanel, type Editing, type PanelName } from "./panels";
 import { PlanDialog, type DialogSlot } from "./plan";
-import { fixLabel, WarningBoxes, type FixHandlers } from "./warnings";
-
-/** The fixes that remove something, confirmed with a danger button. */
-const removing: ReadonlySet<FixKind> = new Set([FixKind.REMOVE_NAME, FixKind.DELETE_PROXY_HOST, FixKind.DELETE_ENTRY]);
+import { WarningBoxes, type FixHandlers } from "./warnings";
 
 /**
  * The selected App on the right: its header with Delete…, its Warning
@@ -68,7 +65,7 @@ export function AppPane({
         title={label}
         action={{ action: { case: "fix", value: { id: app.id, fix: f } } }}
         confirm={label}
-        danger={removing.has(f.kind)}
+        danger={fixes[f.kind].removes}
         onClose={slot.close}
         onDone={slot.close}
       />,

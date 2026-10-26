@@ -7,7 +7,7 @@ import { Kind, type WorkloadRefSchema } from "@ddash/proto/ddash/workload/worklo
 import { Button, Checkbox, Facts, FormActions, Panel, Pill, UptimeBars, type Fact, type Tone } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
-import { hostOf } from "./apps";
+import { fqdn, hostOf } from "./apps";
 import { Failed, GroupField, IconField, Text, WorkloadField } from "./fields";
 import { PlanDialog, type DialogSlot } from "./plan";
 import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";
@@ -109,12 +109,12 @@ function DisplayForm({ app, groups, onDone }: { app: App; groups: readonly strin
 
 /** How the Host Overrides and aliases registering a hostname do. */
 function dnsLine(app: App, list: ListAppsResponse, name: string): ReactNode {
-  const registering = app.dns.filter((e) => `${e.host ? `${e.host}.` : ""}${e.domain}`.toLowerCase() === name.toLowerCase());
+  const registering = app.dns.filter((e) => fqdn(e).toLowerCase() === name.toLowerCase());
   if (registering.length === 0) return list.hostOverrides?.readAt ? <span className="text-warn-text">not registered</span> : "not read yet";
   return registering
     .map((e) => {
       if (!e.parent) return `Host Override → ${e.ips.join(", ")}`;
-      const parent = `${e.parent.host ? `${e.parent.host}.` : ""}${e.parent.domain}`;
+      const parent = fqdn(e.parent);
       const rp = list.reverseProxy?.hostOverrides.includes(parent);
       return `alias of ${parent}${rp ? " (the Reverse Proxy)" : ` → ${e.ips.join(", ")}`}`;
     })

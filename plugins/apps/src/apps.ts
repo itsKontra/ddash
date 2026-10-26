@@ -1,5 +1,5 @@
 import { useQuery, type Badge } from "@ddash/plugin";
-import { AppsService, FixKind, WarningKind, type App, type ListAppsResponse, type Warning } from "@ddash/proto/apps/apps_pb";
+import { AppsService, FixKind, WarningKind, type App, type Fix, type HostOverrideOrAlias, type ListAppsResponse, type Warning } from "@ddash/proto/apps/apps_pb";
 import { matches } from "@ddash/ui";
 
 /** ListApps, shared by the Page, the Widget and the badge, and when it last answered. */
@@ -90,14 +90,44 @@ export const warningText: Record<WarningKind, string> = {
   [WarningKind.HOSTNAME_ON_TWO_APPS]: "Hostname on two Apps",
 };
 
-/** The fixes that change ddash alone and so run at once; the others write to pfSense or Nginx Proxy Manager through a Plan. */
-export const ddashOnly: ReadonlySet<FixKind> = new Set([
-  FixKind.SET_WORKLOAD_OVERRIDE,
-  FixKind.USE_AS_URL,
-  FixKind.MERGE,
-  FixKind.REATTACH,
-  FixKind.DELETE_ORPHAN,
-]);
+/** "nas.home.example": a Host Override's or alias's hostname, or its parent's. */
+export const fqdn = (n: { host: string; domain: string }) => `${n.host ? `${n.host}.` : ""}${n.domain}`;
+
+/** "nas.home.example" for a Host Override, "media.home.example (alias of nas.home.example)" for an alias. */
+export const overrideOrAliasText = (e?: HostOverrideOrAlias) => {
+  if (!e) return "";
+  return e.parent ? `${fqdn(e)} (alias of ${fqdn(e.parent)})` : fqdn(e);
+};
+
+/** What the pane opens for a fix it runs elsewhere: a Panel's Edit, the Reattach Dialog or Delete's Plan Dialog. */
+export type FixPlace = "editWorkload" | "reattach" | "editProxy" | "addProxy" | "remove";
+
+/**
+ * Each fix: what its button says; whether it removes something (a danger
+ * button); whether it changes ddash alone and so runs at once (the others
+ * write to pfSense or Nginx Proxy Manager through a Plan); and where the
+ * pane runs it when not in its Warning box or a Plan Dialog of its own.
+ */
+export const fixes: Record<FixKind, { label: (f: Fix, apps: readonly App[]) => string; removes?: boolean; ddashOnly?: boolean; place?: FixPlace }> = {
+  [FixKind.UNSPECIFIED]: { label: () => "Fix" },
+  [FixKind.REGISTER]: { label: (f) => `Register ${f.hostname}` },
+  [FixKind.DELETE_APP]: { label: () => "Delete App…", removes: true, place: "remove" },
+  [FixKind.ADD_REVERSE_PROXY]: { label: () => "Add reverse proxy…", place: "addProxy" },
+  [FixKind.REMOVE_NAME]: { label: (f) => `Remove ${f.hostname}`, removes: true },
+  [FixKind.SET_WORKLOAD_OVERRIDE]: { label: () => "Set a Workload override", ddashOnly: true, place: "editWorkload" },
+  [FixKind.PICK_CERTIFICATE]: { label: () => "Pick a certificate…", place: "editProxy" },
+  [FixKind.SAVE_AGAIN]: { label: () => "Save again" },
+  [FixKind.USE_AS_URL]: { label: (f) => `Use ${f.hostname} as the URL`, ddashOnly: true },
+  [FixKind.POINT_AT_REVERSE_PROXY]: { label: (f) => `Point ${f.hostname} at the Reverse Proxy` },
+  [FixKind.DELETE_PROXY_HOST]: { label: () => "Delete Proxy Host", removes: true },
+  [FixKind.DELETE_ENTRY]: { label: (f) => `Delete ${overrideOrAliasText(f.hostOverride)}`, removes: true },
+  [FixKind.MERGE]: { label: (f, apps) => `Merge ${apps.find((a) => a.id === f.appId)?.name ?? f.appId} into this App`, ddashOnly: true },
+  [FixKind.REATTACH]: { label: () => "Reattach to an App…", ddashOnly: true, place: "reattach" },
+  [FixKind.DELETE_ORPHAN]: { label: () => "Delete", removes: true, ddashOnly: true },
+};
+
+/** What a fix's button says. */
+export const fixLabel = (f: Fix, apps: readonly App[]) => fixes[f.kind].label(f, apps);
 
 /** The Nav Entry's badge: how many Warnings count, in warn. */
 export function useWarningsBadge(): Badge | null {
