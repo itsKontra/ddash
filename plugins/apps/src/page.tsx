@@ -49,6 +49,8 @@ export function AppsPage() {
   const hidden = shown.filter((a) => a.hidden);
   const groups = [...new Set(apps.map((a) => a.group).filter(Boolean))].sort();
   const readError = list?.proxyHosts?.error;
+  const dnsError = list?.hostOverrides?.error;
+  const rpNotice = list?.reverseProxy?.notice;
   const add = (
     <Button icon="plus" onClick={() => setEditing("new")}>
       Add App
@@ -67,7 +69,7 @@ export function AppsPage() {
 
   return (
     <div>
-      <PageTitle kicker="Services" title="Apps" subtitle="Every Proxy Host in Nginx Proxy Manager, plus the Apps you add." actions={header} />
+      <PageTitle kicker="Services" title="Apps" subtitle="Every Proxy Host in Nginx Proxy Manager and Host Override in pfSense, plus the Apps you add." actions={header} />
       <div className="flex flex-col gap-6">
         {!list && !error && <Skeleton height="lg" />}
         {!list && error && <Notice tone="down">apps unavailable: {error.rawMessage}</Notice>}
@@ -81,6 +83,8 @@ export function AppsPage() {
         ) : (
           readError && <Notice tone="warn">Couldn't read the Proxy Hosts from Nginx Proxy Manager: {readError}. Showing those of the last read.</Notice>
         )}
+        {dnsError && <Notice tone="warn">Couldn't read the Host Overrides from pfSense: {dnsError}. Showing those of the last read.</Notice>}
+        {rpNotice && <Notice tone="warn">{rpNotice}</Notice>}
         {list && apps.length > 0 && checksError && <Notice tone="warn">Check status unavailable: {checksError.rawMessage}</Notice>}
         {list && apps.length === 0 && (
           <Panel>
@@ -107,9 +111,9 @@ export function AppsPage() {
         {orphans.length > 0 && (
           <Section title="Orphaned App settings">
             <p className="mb-3 text-sm text-muted-foreground">
-              Settings kept for Apps whose Proxy Host is gone. Re-attach them to an App, or delete them.
+              Settings kept for Apps whose sources are gone. Re-attach them to an App, or delete them.
             </p>
-            <Orphans orphans={orphans} targets={apps.filter((a) => a.reach === Reach.PROXIED && !a.touched && !a.orphaned)} />
+            <Orphans orphans={orphans} targets={apps.filter((a) => (a.reach === Reach.PROXIED || a.reach === Reach.NOT_PROXIED) && !a.touched && !a.orphaned)} />
           </Section>
         )}
       </div>

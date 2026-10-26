@@ -30,7 +30,9 @@ func TestEveryProxyHostIsAnApp(t *testing.T) {
 
 	var got []seen
 	for _, a := range l.list().GetApps() {
-		got = append(got, seenOf(a))
+		if a.GetReach() == appspb.Reach_REACH_PROXIED {
+			got = append(got, seenOf(a))
+		}
 	}
 	want := []seen{
 		{"proxy:backup.home.example", "Backup", "https://backup.home.example", nil, ""},

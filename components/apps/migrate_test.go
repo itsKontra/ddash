@@ -125,8 +125,8 @@ func TestAnUpgradeKeepsEveryOverlayAndManualApp(t *testing.T) {
 			t.Errorf("the merged manual App %s is still listed", gone)
 		}
 	}
-	if len(got) != 25 {
-		t.Errorf("%d Apps, want the 23 Proxy Hosts', paperless's orphan and pfSense", len(got))
+	if len(got) != 30 {
+		t.Errorf("%d Apps, want the 23 Proxy Hosts', the 5 Not-proxied Host Overrides', paperless's orphan and pfSense", len(got))
 	}
 	if w := l.app("proxy:video.home.example").GetSettings().GetWorkload(); w.GetId() != "212" {
 		t.Errorf("video's Workload override = %v, want the overlay's", w)

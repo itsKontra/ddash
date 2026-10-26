@@ -8,8 +8,8 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 )
 
-// An App the Operator never touched disappears with its Proxy Host, its
-// Check included.
+// An App the Operator never touched disappears with its sources (its Proxy
+// Host and its name in pfSense), its Check included.
 func TestAnUntouchedAppDisappearsWithItsProxyHost(t *testing.T) {
 	l := newLab(t, labOptions{})
 	if l.appChecks()["proxy:grafana.home.example"] == nil {
@@ -17,6 +17,11 @@ func TestAnUntouchedAppDisappearsWithItsProxyHost(t *testing.T) {
 	}
 
 	l.npm.DeleteProxyHost(3)
+	l.refresh()
+	if !l.has("proxy:grafana.home.example") {
+		t.Fatal("Grafana went while pfSense still has its name")
+	}
+	l.unregister("grafana.home.example")
 	l.refresh()
 
 	if l.has("proxy:grafana.home.example") {
@@ -27,7 +32,7 @@ func TestAnUntouchedAppDisappearsWithItsProxyHost(t *testing.T) {
 	}
 }
 
-// A touched App stays as orphaned App settings when its Proxy Host goes,
+// A touched App stays as orphaned App settings when its sources go,
 // without a Check, until it is reattached to an App or deleted.
 func TestATouchedAppBecomesOrphanedAppSettings(t *testing.T) {
 	l := newLab(t, labOptions{})
@@ -36,6 +41,7 @@ func TestATouchedAppBecomesOrphanedAppSettings(t *testing.T) {
 
 	l.npm.DeleteProxyHost(3) // grafana
 	l.npm.DeleteProxyHost(5) // influxdb
+	l.unregister("grafana.home.example", "influxdb.home.example")
 	l.refresh()
 
 	for _, id := range []string{"proxy:grafana.home.example", "proxy:influxdb.home.example"} {
@@ -57,6 +63,7 @@ func TestATouchedAppBecomesOrphanedAppSettings(t *testing.T) {
 	// Reattached to the Proxy Host's new App, Grafana's record takes its
 	// sources and URL and keeps its id, settings and Check.
 	newHost := l.npm.AddProxyHost(proxyHost("http://198.18.1.204:3000", "graphs.home.example"))
+	l.register("graphs.home.example")
 	l.refresh()
 	if !l.has("proxy:graphs.home.example") {
 		t.Fatal("no App for the new Proxy Host")
@@ -88,6 +95,7 @@ func TestReattachAndDeleteOrphanTakeOrphanedAppSettings(t *testing.T) {
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:grafana.home.example", Settings: &appspb.AppSettings{Name: "Graphs"}}, nil)
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:ha.home.example", Settings: &appspb.AppSettings{Hidden: true}}, nil)
 	l.npm.DeleteProxyHost(3)
+	l.unregister("grafana.home.example")
 	l.refresh()
 
 	for _, tc := range []struct {

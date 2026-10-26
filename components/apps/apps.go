@@ -1,14 +1,15 @@
 // Package apps is the apps Component: it keeps a record per App, under an
 // opaque id that outlives URL changes, discovered from Nginx Proxy
-// Manager's Proxy Hosts or added as Link only, with the Operator's
-// settings and Ignores.
+// Manager's Proxy Hosts and pfSense's Host Overrides or added as Link
+// only, with the Operator's settings and Ignores.
 //
-// Every SyncInterval it reads nginx-proxy-manager-api's Proxy Hosts
-// (cached there for sdk.TTLSlow) and the Workloads proxmox-api and
-// docker-api list, attaches every Proxy Host to a record (attach), and
-// declares every App's Check to checks when the set changed. ListApps
-// derives each App's Reach, Workload and Warnings from the records and
-// the last good reads (derive); only the records and Ignores are stored.
+// Every SyncInterval it reads nginx-proxy-manager-api's Proxy Hosts and
+// the Reverse Proxy's address, pfsense-api's Host Overrides (both cached
+// there for sdk.TTLSlow) and the Workloads proxmox-api and docker-api
+// list, attaches every source to a record (attach), and declares every
+// App's Check to checks when the set changed. ListApps derives each App's
+// Reach, Workload and Warnings from the records and the last good reads
+// (derive); only the records and Ignores are stored.
 package apps
 
 import (
@@ -27,6 +28,7 @@ import (
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
+	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -38,11 +40,14 @@ var manifest []byte
 var migrations embed.FS
 
 // SyncInterval is how often apps re-reads its sources, so a change made in
-// Nginx Proxy Manager reaches Apps within a minute.
+// Nginx Proxy Manager or pfSense reaches Apps within a minute.
 const SyncInterval = 60 * time.Second
 
-// npmName names nginx-proxy-manager-api in Health and errors.
-const npmName = "nginx-proxy-manager-api"
+// The sources' names in Health and errors.
+const (
+	npmName     = "nginx-proxy-manager-api"
+	pfsenseName = "pfsense-api"
+)
 
 // Definition is apps, ready for sdk.Serve.
 func Definition() sdk.Definition {
@@ -58,6 +63,7 @@ type component struct {
 	appspb.UnimplementedAppsServiceServer
 
 	npm     npmpb.NginxProxyManagerApiServiceClient
+	pfsense pfpb.PfsenseApiServiceClient
 	checks  checkspb.ChecksServiceClient
 	proxmox proxmoxapipb.ProxmoxApiServiceClient
 	docker  dockerapipb.DockerApiServiceClient
@@ -76,11 +82,15 @@ type component struct {
 	mu sync.Mutex
 	// hosts is the last good read of the Proxy Hosts, by id; nil before
 	// the first since Start.
-	hosts map[int64]*npmpb.ProxyHost
-	// hostsAt is when that read was; hostsErr why the reads since failed,
-	// since failingSince.
-	hostsAt, failingSince time.Time
-	hostsErr              error
+	hosts     map[int64]*npmpb.ProxyHost
+	hostsRead sourceRead
+	// overrides is the last good read of the Host Overrides; nil before
+	// the first since Start.
+	overrides     []*pfpb.HostOverride
+	overridesRead sourceRead
+	// rpAddress is the Reverse Proxy's address as last read; empty
+	// before the first.
+	rpAddress string
 	// src is the last read of the Workload sources.
 	src sources
 	// checksErr is why the last SetAppChecks failed; empty once one worked.
@@ -90,8 +100,42 @@ type component struct {
 	sent []*checkspb.AppCheck
 }
 
+// sourceRead is how a source was last read.
+type sourceRead struct {
+	// at is when the last good read was; zero before the first.
+	at time.Time
+	// err is why the reads since failed, since failingSince.
+	err          error
+	failingSince time.Time
+}
+
+func (s *sourceRead) note(err error) {
+	switch {
+	case err == nil:
+		s.err, s.at = nil, time.Now()
+	case s.err == nil:
+		s.err, s.failingSince = err, time.Now()
+	default:
+		s.err = err
+	}
+}
+
+func (s sourceRead) proto() *appspb.SourceRead {
+	out := &appspb.SourceRead{}
+	if !s.at.IsZero() {
+		out.ReadAt = timestamppb.New(s.at)
+	}
+	if s.err != nil {
+		out.Error = status.Convert(s.err).Message()
+		out.FailingSince = timestamppb.New(s.failingSince)
+		out.NotConfigured = notConfigured(s.err)
+	}
+	return out
+}
+
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfig) error {
 	c.npm = sdk.Require(env, npmpb.NewNginxProxyManagerApiServiceClient)
+	c.pfsense = sdk.Require(env, pfpb.NewPfsenseApiServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.proxmox = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
 	c.docker = sdk.Require(env, dockerapipb.NewDockerApiServiceClient)
@@ -115,8 +159,11 @@ func (c *component) Health(ctx context.Context) sdk.Health {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	var problems []string
-	if c.hostsErr != nil {
-		problems = append(problems, sourceProblem(npmName, c.hostsErr))
+	if c.hostsRead.err != nil {
+		problems = append(problems, sourceProblem(npmName, c.hostsRead.err))
+	}
+	if c.overridesRead.err != nil {
+		problems = append(problems, sourceProblem(pfsenseName, c.overridesRead.err))
 	}
 	if c.checksErr != "" {
 		problems = append(problems, "checks unavailable: "+c.checksErr)
@@ -137,57 +184,83 @@ func (c *component) waitSynced(ctx context.Context) error {
 	}
 }
 
-// sync reads the sources (Nginx Proxy Manager's fresh, bypassing its
-// cache, when fresh), attaches the Proxy Hosts of a good read to the
-// records, and declares the App Checks. It returns why Nginx Proxy
-// Manager couldn't be read; its last good read then stays.
+// sync reads the sources (fresh, bypassing their caches, when fresh),
+// attaches what the last good reads hold to the records, and declares
+// the App Checks. It returns why each source that couldn't be read
+// failed, naming it; its last good read then stays.
 func (c *component) sync(ctx context.Context, fresh bool) error {
 	c.turn.Lock()
 	defer c.turn.Unlock()
-	resp, err := c.npm.ListProxyHosts(ctx, &npmpb.ListProxyHostsRequest{Fresh: fresh})
+	hosts, hostsErr := c.npm.ListProxyHosts(ctx, &npmpb.ListProxyHostsRequest{Fresh: fresh})
+	// The Reverse Proxy's address comes from the config, so it is known
+	// while Nginx Proxy Manager can't be read too.
+	st, stErr := c.npm.GetStatus(ctx, &npmpb.GetStatusRequest{})
+	overrides, overridesErr := c.pfsense.ListHostOverrides(ctx, &pfpb.ListHostOverridesRequest{Fresh: fresh})
 	src := c.readSources(ctx)
 
 	c.mu.Lock()
 	c.src = src
-	if err != nil {
-		if c.hostsErr == nil {
-			c.failingSince = time.Now()
-		}
-		c.hostsErr = err
-	} else {
-		c.hostsErr, c.hostsAt = nil, time.Now()
+	c.hostsRead.note(hostsErr)
+	if hostsErr == nil {
 		c.hosts = map[int64]*npmpb.ProxyHost{}
-		for _, h := range resp.GetProxyHosts() {
+		for _, h := range hosts.GetProxyHosts() {
 			c.hosts[h.GetId()] = h
 		}
 	}
+	c.overridesRead.note(overridesErr)
+	if overridesErr == nil {
+		c.overrides = overrides.GetHostOverrides()
+		if c.overrides == nil {
+			c.overrides = []*pfpb.HostOverride{}
+		}
+	}
+	if stErr == nil && st.GetAddress() != "" {
+		c.rpAddress = st.GetAddress()
+	}
 	c.mu.Unlock()
 
-	if err == nil {
-		if werr := c.attach(ctx, resp.GetProxyHosts()); werr != nil {
-			c.log.Error("attach the Proxy Hosts to App records", "err", werr)
+	if hostsErr == nil || overridesErr == nil {
+		if err := c.attach(ctx); err != nil {
+			c.log.Error("attach the sources to App records", "err", err)
 		}
 	}
 	c.syncChecks(ctx)
-	return err
+
+	var failed []string
+	if hostsErr != nil {
+		failed = append(failed, npmName+": "+status.Convert(hostsErr).Message())
+	}
+	if overridesErr != nil {
+		failed = append(failed, pfsenseName+": "+status.Convert(overridesErr).Message())
+	}
+	if len(failed) > 0 {
+		return status.Errorf(codes.Unavailable, "couldn't read %s", strings.Join(failed, "; "))
+	}
+	return nil
 }
 
-// attach attaches a good read's Proxy Hosts to the records and saves the
-// result.
-func (c *component) attach(ctx context.Context, hosts []*npmpb.ProxyHost) error {
+// attach attaches the last good reads' sources to the records and saves
+// the result.
+func (c *component) attach(ctx context.Context) error {
 	recs, err := c.store.records(ctx)
 	if err != nil {
 		return err
 	}
-	ch := attach(recs, hosts)
+	ch := attach(recs, c.view())
 	return c.store.save(ctx, ch.put, ch.drop)
 }
 
 // view is a copy of what the Apps are derived from besides their records.
+// The Host Overrides count as read only once the Reverse Proxy's address
+// is known too: without it, they can't be told apart.
 func (c *component) view() view {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return view{hosts: c.hosts, src: c.src}
+	v := view{hosts: c.hosts, src: c.src}
+	if c.overrides != nil && c.rpAddress != "" {
+		v.dns = newDNS(c.overrides, c.rpAddress)
+	}
+	return v
 }
 
 // apps derives every App from the records now.
@@ -203,30 +276,28 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 	if err := c.waitSynced(ctx); err != nil {
 		return nil, err
 	}
-	all, err := c.apps(ctx)
+	recs, err := c.store.records(ctx)
 	if err != nil {
 		return nil, err
 	}
+	v := c.view()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	read := &appspb.SourceRead{}
-	if !c.hostsAt.IsZero() {
-		read.ReadAt = timestamppb.New(c.hostsAt)
-	}
-	if c.hostsErr != nil {
-		read.Error = status.Convert(c.hostsErr).Message()
-		read.FailingSince = timestamppb.New(c.failingSince)
-		read.NotConfigured = notConfigured(c.hostsErr)
-	}
-	return &appspb.ListAppsResponse{Apps: all, ProxyHosts: read}, nil
+	return &appspb.ListAppsResponse{
+		Apps:          derive(recs, v),
+		ProxyHosts:    c.hostsRead.proto(),
+		HostOverrides: c.overridesRead.proto(),
+		ReverseProxy:  reverseProxyOf(v.dns, c.rpAddress),
+	}, nil
 }
 
 func (c *component) Refresh(ctx context.Context, _ *appspb.RefreshRequest) (*appspb.RefreshResponse, error) {
 	if _, err := c.npm.Refresh(ctx, &npmpb.RefreshRequest{}); err != nil {
 		return nil, err
 	}
+	// The fresh reads drop and refill pfSense's Host Override cache.
 	if err := c.sync(ctx, true); err != nil {
-		return nil, status.Errorf(codes.Unavailable, "couldn't read %s: %s", npmName, status.Convert(err).Message())
+		return nil, err
 	}
 	return &appspb.RefreshResponse{}, nil
 }

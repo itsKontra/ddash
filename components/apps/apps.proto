@@ -1,8 +1,9 @@
 syntax = "proto3";
 
 // apps keeps a record per App, discovered from Nginx Proxy Manager's Proxy
-// Hosts or added as Link only, with the Operator's settings and Ignores,
-// and derives each App's Warnings on every sync.
+// Hosts and pfSense's Host Overrides or added as Link only, with the
+// Operator's settings and Ignores, and derives each App's Warnings on every
+// sync.
 package ddash.apps;
 
 import "ddash/options.proto";
@@ -20,8 +21,8 @@ service AppsService {
   rpc ListApps(ListAppsRequest) returns (ListAppsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
-  // Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
-  // the Apps are current.
+  // Refresh drops Nginx Proxy Manager's caches and pfSense's Host
+  // Override cache, syncs, and returns once the Apps are current.
   rpc Refresh(RefreshRequest) returns (RefreshResponse) {
     option (ddash.action) = {};
   }
@@ -57,6 +58,14 @@ service AppsService {
   rpc PromoteAlias(PromoteAliasRequest) returns (PromoteAliasResponse) {
     option (ddash.action) = {};
   }
+  // Merge makes two Apps sharing a hostname one: the App id keeps its id,
+  // settings and Ignores and gains the other's sources; the other App's
+  // record goes, its Check with it. It is the fix for "Hostname on two
+  // Apps", and changes nothing outside ddash. Two Apps that both have a
+  // Proxy Host, or both a Host Override of their own, can't be merged.
+  rpc Merge(MergeRequest) returns (MergeResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
   // CreateApp adds a Link-only App.
   rpc CreateApp(CreateAppRequest) returns (CreateAppResponse) {
     option (ddash.action) = {};
@@ -83,7 +92,8 @@ message App {
   string name = 2;
   // Where the App opens, e.g. "https://grafana.home.example".
   string url = 3;
-  // Its further hostnames: its Proxy Host's other domain names.
+  // Its further hostnames: its Proxy Host's other domain names and its
+  // Host Override's own name and aliases, sorted.
   repeated string aliases = 4;
   // The settings' icon, group and Hidden.
   string icon = 5;
@@ -111,14 +121,21 @@ message App {
   Workload workload = 14;
   // What looks wrong, in WarningKind order, Ignored ones included.
   repeated Warning warnings = 15;
+  // Every Host Override and alias registering one of its hostnames, in
+  // pfSense's order; empty before pfSense was first read.
+  repeated DnsEntry dns = 16;
 }
 
 enum Reach {
   REACH_UNSPECIFIED = 0;
-  // A Proxy Host serves it.
+  // A Proxy Host serves it, or a hostname of it resolves to the Reverse
+  // Proxy's address.
   REACH_PROXIED = 1;
   // It has no source: the Operator added it by hand.
   REACH_LINK_ONLY = 2;
+  // Its own Host Override points elsewhere than the Reverse Proxy, with
+  // or without a Proxy Host ("DNS bypasses the Reverse Proxy" with one).
+  REACH_NOT_PROXIED = 3;
 }
 
 // The Operator's ddash-only settings for an App.
@@ -139,6 +156,25 @@ message AppSettings {
 message Links {
   // Nginx Proxy Manager's id of its Proxy Host; 0 for none.
   int64 proxy_host_id = 1;
+  // A Not-proxied App's own Host Override (pfSense has no stable id);
+  // unset for none.
+  HostOverrideName host_override = 2;
+}
+
+// A Host Override's name: host may be empty, naming the domain itself.
+message HostOverrideName {
+  string host = 1;
+  string domain = 2;
+}
+
+// A Host Override or one of its aliases, as pfSense lists it.
+message DnsEntry {
+  string host = 1;
+  string domain = 2;
+  // An alias's Host Override; unset for a Host Override.
+  HostOverrideName parent = 3;
+  // The addresses it resolves to: its own, or its Host Override's.
+  repeated string ips = 4;
 }
 
 // A Proxy Host as apps last read it from nginx-proxy-manager-api.
@@ -174,6 +210,61 @@ message Warning {
   // What the kind needs said, e.g. nginx's error for an Offline Proxy
   // Host; empty for most.
   string detail = 3;
+  // The hostnames it is about, sorted, for the kinds about names: Not
+  // registered, No Proxy Host, DNS bypasses the Reverse Proxy, Registered
+  // twice, Hostname on two Apps.
+  repeated string hostnames = 4;
+  // What fixes it, in the order offered.
+  repeated Fix fixes = 5;
+}
+
+// One way to fix a Warning, with what it acts on. External fixes will run
+// as App Actions with a Plan; ddash-only ones change the App at once.
+message Fix {
+  FixKind kind = 1;
+  // The hostname it acts on: Register, Remove the name, Point at Reverse
+  // Proxy, Use as URL.
+  string hostname = 2;
+  // Delete an entry: the Host Override or alias to delete.
+  DnsEntry entry = 3;
+  // Merge: the other App sharing the hostname.
+  string app_id = 4;
+  // Save again, Delete Proxy Host: the Proxy Host's id.
+  int64 proxy_host_id = 5;
+}
+
+enum FixKind {
+  FIX_KIND_UNSPECIFIED = 0;
+  // Register the hostname as an alias of the Reverse Proxy's Host
+  // Override. External.
+  FIX_KIND_REGISTER = 1;
+  // Delete the App, its Proxy Host and DNS with it. External.
+  FIX_KIND_DELETE_APP = 2;
+  // Put the App behind the Reverse Proxy with a new Proxy Host. External.
+  FIX_KIND_ADD_REVERSE_PROXY = 3;
+  // Remove the hostname from pfSense. External.
+  FIX_KIND_REMOVE_NAME = 4;
+  // Set a Workload override (SetSettings). ddash only.
+  FIX_KIND_SET_WORKLOAD_OVERRIDE = 5;
+  // Pick a certificate in the Reverse proxy Panel. External.
+  FIX_KIND_PICK_CERTIFICATE = 6;
+  // Send the Proxy Host to Nginx Proxy Manager again. External.
+  FIX_KIND_SAVE_AGAIN = 7;
+  // Make the hostname the URL's (PromoteAlias). ddash only.
+  FIX_KIND_USE_AS_URL = 8;
+  // Replace the hostname's Host Override with an alias of the Reverse
+  // Proxy's Host Override. External.
+  FIX_KIND_POINT_AT_REVERSE_PROXY = 9;
+  // Delete the Proxy Host. External.
+  FIX_KIND_DELETE_PROXY_HOST = 10;
+  // Delete the entry from pfSense. External.
+  FIX_KIND_DELETE_ENTRY = 11;
+  // Merge the other App into this one (Merge). ddash only.
+  FIX_KIND_MERGE = 12;
+  // Reattach the orphaned App settings to an App (Reattach). ddash only.
+  FIX_KIND_REATTACH = 13;
+  // Delete the orphaned App settings (DeleteOrphan). ddash only.
+  FIX_KIND_DELETE_ORPHAN = 14;
 }
 
 enum WarningKind {
@@ -190,6 +281,17 @@ enum WarningKind {
   WARNING_KIND_URL_NOT_ON_PROXY_HOST = 4;
   // Orphaned App settings: a touched App lost its sources.
   WARNING_KIND_ORPHANED = 5;
+  // A proxied App's hostname is no Host Override or alias.
+  WARNING_KIND_NOT_REGISTERED = 6;
+  // A hostname at the Reverse Proxy's address that no Proxy Host serves.
+  WARNING_KIND_NO_PROXY_HOST = 7;
+  // A Proxy Host's hostname resolves elsewhere than the Reverse Proxy.
+  WARNING_KIND_DNS_BYPASSES = 8;
+  // A hostname is both a Host Override and an alias, or an alias under
+  // two Host Overrides; each entry has its Delete fix.
+  WARNING_KIND_REGISTERED_TWICE = 9;
+  // Another App has the hostname too; Merge makes them one.
+  WARNING_KIND_HOSTNAME_ON_TWO_APPS = 10;
 }
 
 // A Workload as apps last read it.
@@ -227,6 +329,25 @@ message ListAppsResponse {
   repeated App apps = 1;
   // nginx-proxy-manager-api's Proxy Hosts.
   SourceRead proxy_hosts = 2;
+  // pfsense-api's Host Overrides.
+  SourceRead host_overrides = 3;
+  // The Reverse Proxy's Host Override, as the last reads found it.
+  ReverseProxy reverse_proxy = 4;
+}
+
+// The Reverse Proxy as Apps see it: its address, and the Host Overrides
+// at it. Exactly one is the Reverse Proxy's Host Override; with none or
+// several, reads still work, but the writes that create or move proxied
+// hostnames are blocked with the notice.
+message ReverseProxy {
+  // nginx-proxy-manager-api's GetStatus address; empty while unknown.
+  string address = 1;
+  // Every Host Override at that address, host.domain, in pfSense's order.
+  repeated string host_overrides = 2;
+  // Why proxied writes are blocked, to show as a Notice; empty when
+  // exactly one Host Override is the Reverse Proxy's, and before the
+  // address and the Host Overrides were first read.
+  string notice = 3;
 }
 
 message RefreshRequest {}
@@ -285,6 +406,15 @@ message LinkOnlyApp {
   string icon = 3;
   string group = 4;
 }
+
+message MergeRequest {
+  // The App that stays, with its id and settings.
+  string id = 1;
+  // The App merged into it, whose record goes.
+  string from = 2;
+}
+
+message MergeResponse {}
 
 message CreateAppRequest {
   LinkOnlyApp app = 1;

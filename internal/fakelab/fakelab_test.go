@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -69,6 +70,27 @@ func bootNetworkLabWith(t *testing.T, configure func(*networkpb.NetworkConfig), 
 	h.WaitState("network", runtime.OK)
 	vpnReport(t, h)
 	return h, lab
+}
+
+// The lab's Reverse Proxy is Nginx Proxy Manager's fake: the Reverse
+// Proxy's Host Override points where it answers, so Apps sees the
+// Operator's layout in `make dev`.
+func TestTheReverseProxysHostOverridePointsAtTheLab(t *testing.T) {
+	lab, err := fakelab.Start(repoRoot, "127.0.0.1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(lab.Close)
+
+	var at []string
+	for _, o := range lab.Handler("pfsense-api").(*pfsensefake.Firewall).HostOverrides() {
+		if slices.Contains(o.IPs, "127.0.0.1") {
+			at = append(at, o.Host)
+		}
+	}
+	if !slices.Equal(at, []string{"nginx"}) {
+		t.Errorf("Host Overrides at 127.0.0.1: %v, want nginx alone", at)
+	}
 }
 
 // vpnReport waits for network's report of the VPN Tunnel item to checks,

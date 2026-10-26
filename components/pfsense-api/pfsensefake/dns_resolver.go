@@ -54,6 +54,25 @@ func (f *Firewall) HostOverrides() []HostOverride {
 	return out
 }
 
+// EditHostOverrides changes the Host Overrides as the Operator would in
+// pfSense's web UI, saved and applied: edit gets every Host Override in
+// order and returns them as they should be, in that order.
+func (f *Firewall) EditHostOverrides(edit func([]HostOverride) []HostOverride) {
+	all := edit(f.HostOverrides())
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.overrides = make([]map[string]any, 0, len(all))
+	for _, o := range all {
+		aliases := make([]any, 0, len(o.Aliases))
+		for _, a := range o.Aliases {
+			aliases = append(aliases, map[string]any{"host": a.Host, "domain": a.Domain, "descr": a.Description})
+		}
+		f.overrides = append(f.overrides, map[string]any{
+			"host": o.Host, "domain": o.Domain, "ip": slices.Clone(o.IPs), "descr": o.Description, "aliases": aliases,
+		})
+	}
+}
+
 // DNSPending reports whether Host Override changes wait for an apply.
 func (f *Firewall) DNSPending() bool {
 	f.mu.Lock()

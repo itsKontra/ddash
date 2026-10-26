@@ -5,8 +5,9 @@
 // source: apps/apps.proto
 
 // apps keeps a record per App, discovered from Nginx Proxy Manager's Proxy
-// Hosts or added as Link only, with the Operator's settings and Ignores,
-// and derives each App's Warnings on every sync.
+// Hosts and pfSense's Host Overrides or added as Link only, with the
+// Operator's settings and Ignores, and derives each App's Warnings on every
+// sync.
 
 package appspb
 
@@ -31,6 +32,7 @@ const (
 	AppsService_Reattach_FullMethodName        = "/ddash.apps.AppsService/Reattach"
 	AppsService_DeleteOrphan_FullMethodName    = "/ddash.apps.AppsService/DeleteOrphan"
 	AppsService_PromoteAlias_FullMethodName    = "/ddash.apps.AppsService/PromoteAlias"
+	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
 	AppsService_CreateApp_FullMethodName       = "/ddash.apps.AppsService/CreateApp"
 	AppsService_DeleteApp_FullMethodName       = "/ddash.apps.AppsService/DeleteApp"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
@@ -43,8 +45,8 @@ type AppsServiceClient interface {
 	// ListApps returns every App: discovered, Link only and orphaned App
 	// settings, each with its Warnings, and how the sources were last read.
 	ListApps(ctx context.Context, in *ListAppsRequest, opts ...grpc.CallOption) (*ListAppsResponse, error)
-	// Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
-	// the Apps are current.
+	// Refresh drops Nginx Proxy Manager's caches and pfSense's Host
+	// Override cache, syncs, and returns once the Apps are current.
 	Refresh(ctx context.Context, in *RefreshRequest, opts ...grpc.CallOption) (*RefreshResponse, error)
 	// SetSettings sets an App's ddash-only settings: name, icon, group,
 	// Hidden and Workload override. They take effect at once.
@@ -66,6 +68,12 @@ type AppsServiceClient interface {
 	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
 	// names are then the App's aliases.
 	PromoteAlias(ctx context.Context, in *PromoteAliasRequest, opts ...grpc.CallOption) (*PromoteAliasResponse, error)
+	// Merge makes two Apps sharing a hostname one: the App id keeps its id,
+	// settings and Ignores and gains the other's sources; the other App's
+	// record goes, its Check with it. It is the fix for "Hostname on two
+	// Apps", and changes nothing outside ddash. Two Apps that both have a
+	// Proxy Host, or both a Host Override of their own, can't be merged.
+	Merge(ctx context.Context, in *MergeRequest, opts ...grpc.CallOption) (*MergeResponse, error)
 	// CreateApp adds a Link-only App.
 	CreateApp(ctx context.Context, in *CreateAppRequest, opts ...grpc.CallOption) (*CreateAppResponse, error)
 	// DeleteApp deletes a Link-only App.
@@ -164,6 +172,16 @@ func (c *appsServiceClient) PromoteAlias(ctx context.Context, in *PromoteAliasRe
 	return out, nil
 }
 
+func (c *appsServiceClient) Merge(ctx context.Context, in *MergeRequest, opts ...grpc.CallOption) (*MergeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MergeResponse)
+	err := c.cc.Invoke(ctx, AppsService_Merge_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *appsServiceClient) CreateApp(ctx context.Context, in *CreateAppRequest, opts ...grpc.CallOption) (*CreateAppResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateAppResponse)
@@ -201,8 +219,8 @@ type AppsServiceServer interface {
 	// ListApps returns every App: discovered, Link only and orphaned App
 	// settings, each with its Warnings, and how the sources were last read.
 	ListApps(context.Context, *ListAppsRequest) (*ListAppsResponse, error)
-	// Refresh drops Nginx Proxy Manager's caches, syncs, and returns once
-	// the Apps are current.
+	// Refresh drops Nginx Proxy Manager's caches and pfSense's Host
+	// Override cache, syncs, and returns once the Apps are current.
 	Refresh(context.Context, *RefreshRequest) (*RefreshResponse, error)
 	// SetSettings sets an App's ddash-only settings: name, icon, group,
 	// Hidden and Workload override. They take effect at once.
@@ -224,6 +242,12 @@ type AppsServiceServer interface {
 	// also the fix for "URL not on the Proxy Host", whose Proxy Host's
 	// names are then the App's aliases.
 	PromoteAlias(context.Context, *PromoteAliasRequest) (*PromoteAliasResponse, error)
+	// Merge makes two Apps sharing a hostname one: the App id keeps its id,
+	// settings and Ignores and gains the other's sources; the other App's
+	// record goes, its Check with it. It is the fix for "Hostname on two
+	// Apps", and changes nothing outside ddash. Two Apps that both have a
+	// Proxy Host, or both a Host Override of their own, can't be merged.
+	Merge(context.Context, *MergeRequest) (*MergeResponse, error)
 	// CreateApp adds a Link-only App.
 	CreateApp(context.Context, *CreateAppRequest) (*CreateAppResponse, error)
 	// DeleteApp deletes a Link-only App.
@@ -265,6 +289,9 @@ func (UnimplementedAppsServiceServer) DeleteOrphan(context.Context, *DeleteOrpha
 }
 func (UnimplementedAppsServiceServer) PromoteAlias(context.Context, *PromoteAliasRequest) (*PromoteAliasResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PromoteAlias not implemented")
+}
+func (UnimplementedAppsServiceServer) Merge(context.Context, *MergeRequest) (*MergeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Merge not implemented")
 }
 func (UnimplementedAppsServiceServer) CreateApp(context.Context, *CreateAppRequest) (*CreateAppResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateApp not implemented")
@@ -440,6 +467,24 @@ func _AppsService_PromoteAlias_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AppsService_Merge_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MergeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).Merge(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_Merge_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).Merge(ctx, req.(*MergeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AppsService_CreateApp_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateAppRequest)
 	if err := dec(in); err != nil {
@@ -532,6 +577,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PromoteAlias",
 			Handler:    _AppsService_PromoteAlias_Handler,
+		},
+		{
+			MethodName: "Merge",
+			Handler:    _AppsService_Merge_Handler,
 		},
 		{
 			MethodName: "CreateApp",

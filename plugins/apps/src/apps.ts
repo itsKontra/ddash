@@ -48,6 +48,11 @@ export const warningText: Record<WarningKind, string> = {
   [WarningKind.PROXY_HOST_OFFLINE]: "Proxy Host offline",
   [WarningKind.URL_NOT_ON_PROXY_HOST]: "URL not on the Proxy Host",
   [WarningKind.ORPHANED]: "Orphaned App settings",
+  [WarningKind.NOT_REGISTERED]: "Not registered",
+  [WarningKind.NO_PROXY_HOST]: "No Proxy Host",
+  [WarningKind.DNS_BYPASSES]: "DNS bypasses the Reverse Proxy",
+  [WarningKind.REGISTERED_TWICE]: "Registered twice",
+  [WarningKind.HOSTNAME_ON_TWO_APPS]: "Hostname on two Apps",
 };
 
 /** The Nav Entry's badge: how many Warnings count, in warn. */

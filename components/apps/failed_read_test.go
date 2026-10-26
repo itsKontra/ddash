@@ -32,6 +32,7 @@ func TestAFailedReadKeepsTheLastGoodRead(t *testing.T) {
 	}
 
 	l.failNPM.Store(false)
+	l.unregister("grafana.home.example")
 	l.refresh()
 	if l.has("proxy:grafana.home.example") {
 		t.Error("Grafana is still listed once Nginx Proxy Manager answers again")
@@ -74,12 +75,12 @@ func TestBeforeTheFirstGoodReadNoWarningNeedingItIsDerived(t *testing.T) {
 	}
 
 	list := l.list()
-	if len(list.GetApps()) != 23 {
-		t.Errorf("%d Apps, want all 23 records", len(list.GetApps()))
+	if len(list.GetApps()) != 28 {
+		t.Errorf("%d Apps, want all 28 records", len(list.GetApps()))
 	}
 	for _, a := range list.GetApps() {
-		if len(a.GetWarnings()) > 0 || a.GetOrphaned() || a.GetReach() != appspb.Reach_REACH_PROXIED {
-			t.Errorf("%s = %v, want proxied, without Warnings", a.GetId(), a)
+		if len(a.GetWarnings()) > 0 || a.GetOrphaned() || (a.GetLinks().GetProxyHostId() != 0) != (a.GetReach() == appspb.Reach_REACH_PROXIED) {
+			t.Errorf("%s = %v, want proxied when it was, without Warnings", a.GetId(), a)
 		}
 	}
 	if read := list.GetProxyHosts(); read.GetReadAt() != nil || read.GetError() == "" {

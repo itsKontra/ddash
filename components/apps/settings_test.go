@@ -37,12 +37,13 @@ func TestTheSettingsActionSetsAnAppsSettings(t *testing.T) {
 	}
 }
 
-// Empty settings don't touch an App: it still disappears with its Proxy
-// Host.
+// Empty settings don't touch an App: it still disappears with its
+// sources.
 func TestEmptySettingsDontTouchAnApp(t *testing.T) {
 	l := newLab(t, labOptions{})
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:video.home.example", Settings: &appspb.AppSettings{}}, nil)
 	l.npm.DeleteProxyHost(34)
+	l.unregister("video.home.example")
 	l.refresh()
 	if l.has("proxy:video.home.example") {
 		t.Error("video is still listed")

@@ -14,9 +14,10 @@ func kinds(a *appspb.App) []appspb.WarningKind {
 	return out
 }
 
-// A domain renamed in Nginx Proxy Manager's UI keeps the App: its record
-// is linked to the Proxy Host's id. Its URL stays until the Operator picks
-// one of the new names, and says it is no longer on the Proxy Host.
+// A domain renamed in Nginx Proxy Manager's UI (and in pfSense's) keeps
+// the App: its record is linked to the Proxy Host's id. Its URL stays
+// until the Operator picks one of the new names, and says it is no longer
+// on the Proxy Host.
 func TestARenamedProxyHostKeepsItsApp(t *testing.T) {
 	l := newLab(t, labOptions{})
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:grafana.home.example", Settings: &appspb.AppSettings{Group: "Monitoring"}}, nil)
@@ -24,6 +25,8 @@ func TestARenamedProxyHostKeepsItsApp(t *testing.T) {
 	l.npm.EditProxyHost(3, func(row map[string]any) {
 		row["domain_names"] = []string{"graphs.home.example", "metrics.home.example"}
 	})
+	l.unregister("grafana.home.example")
+	l.register("graphs.home.example", "metrics.home.example")
 	l.refresh()
 
 	got := l.app("proxy:grafana.home.example")
@@ -84,6 +87,7 @@ func TestAnAliasIsPromotedToTheURL(t *testing.T) {
 func TestAProxyHostWithANewIdAttachesByHostname(t *testing.T) {
 	l := newLab(t, labOptions{})
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:grafana.home.example", Settings: &appspb.AppSettings{Name: "Graphs"}}, nil)
+	before := len(l.list().GetApps())
 
 	l.npm.DeleteProxyHost(3)
 	id := l.npm.AddProxyHost(proxyHost("http://198.18.1.204:3000", "grafana.home.example"))
@@ -93,8 +97,8 @@ func TestAProxyHostWithANewIdAttachesByHostname(t *testing.T) {
 	if got.GetName() != "Graphs" || got.GetLinks().GetProxyHostId() != int64(id) || got.GetOrphaned() {
 		t.Errorf("Grafana = %v, want its settings, linked to Proxy Host %d", got, id)
 	}
-	if len(l.list().GetApps()) != 23 {
-		t.Errorf("%d Apps, want 23", len(l.list().GetApps()))
+	if n := len(l.list().GetApps()); n != before {
+		t.Errorf("%d Apps, want %d", n, before)
 	}
 }
 
@@ -105,6 +109,7 @@ func TestALinkOnlyAppAbsorbsAProxyHostForItsHostname(t *testing.T) {
 	var created appspb.CreateAppResponse
 	l.call("CreateApp", &appspb.CreateAppRequest{App: &appspb.LinkOnlyApp{Name: "Wiki", Url: "https://wiki.home.example"}}, &created)
 	id := created.GetApp().GetId()
+	before := len(l.list().GetApps())
 	if created.GetApp().GetReach() != appspb.Reach_REACH_LINK_ONLY {
 		t.Fatalf("created %v, want Link only", created.GetApp())
 	}
@@ -119,7 +124,7 @@ func TestALinkOnlyAppAbsorbsAProxyHostForItsHostname(t *testing.T) {
 	if d := diff([]string{"docs.home.example"}, got.GetAliases()); d != "" {
 		t.Errorf("aliases (-want +got):\n%s", d)
 	}
-	if len(l.list().GetApps()) != 24 {
-		t.Errorf("%d Apps, want 24: no other for the new Proxy Host", len(l.list().GetApps()))
+	if n := len(l.list().GetApps()); n != before {
+		t.Errorf("%d Apps, want %d: no other for the new Proxy Host", n, before)
 	}
 }

@@ -374,6 +374,18 @@ it("says when Nginx Proxy Manager couldn't be read", async () => {
   expect(screen.getAllByRole("button", { name: "Add App" })).toHaveLength(2);
 });
 
+it("says when pfSense couldn't be read, and why proxied writes are blocked", async () => {
+  const notice = "No Host Override points at the Reverse Proxy (198.18.1.210): create one to add proxied Apps.";
+  renderScoped(<Page />, {
+    ListApps: () => Response.json({ apps: [], hostOverrides: { error: "pfsense-api is not configured" }, reverseProxy: { address: "198.18.1.210", notice } }),
+  });
+  await settle();
+
+  const notices = screen.getAllByRole("status").map((s) => s.textContent);
+  expect(notices).toContainEqual(expect.stringMatching(/Host Overrides from pfSense: pfsense-api is not configured/));
+  expect(notices).toContain(notice);
+});
+
 it("shows each card's Workload, linked to its Proxmox detail or the Docker Page when that Plugin is installed", async () => {
   renderScoped(<Page />, {}, ["apps", "proxmox"]);
   await settle();

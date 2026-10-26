@@ -96,6 +96,7 @@ func TestAProxiedAppsWorkloadIsMatchedAtItsUpstream(t *testing.T) {
 	l.npm.AddProxyHost(proxyHost("http://198.18.2.11:8989", "sonarr.home.example"))
 	l.npm.AddProxyHost(proxyHost("https://198.18.1.41:8123", "ha.home.example"))
 	l.npm.AddProxyHost(proxyHost("http://198.18.2.99:80", "gone.home.example"))
+	l.register("jellyfin.home.example", "download.home.example", "series.home.example", "sonarr.home.example", "ha.home.example", "gone.home.example")
 	l.refresh()
 
 	want := map[string]*appspb.Workload{
@@ -176,6 +177,7 @@ func TestAppChecksCarryTheirAppsWorkload(t *testing.T) {
 func TestAnUnavailableWorkloadSourceDegradesApps(t *testing.T) {
 	l := workloadLab(t)
 	l.npm.AddProxyHost(proxyHost("http://198.18.1.41:8123", "ha.home.example"))
+	l.register("ha.home.example")
 	l.refresh()
 
 	l.proxmox.fail(status.Error(codes.Unavailable, "proxmox is down"))
