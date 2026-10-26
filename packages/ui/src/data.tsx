@@ -1,11 +1,43 @@
-// The data family: tables and their action strips, tabs, status lists and facts, and the URL state an explorer keeps.
+// The data family: tables and their action strips, tabs, status lists and facts, and the search and URL state an explorer keeps.
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useSearchParams } from "react-router";
 import { Pill, StatusDot } from "./atoms";
 import { Icon } from "./icon";
-import { Leaving, shows, usePresence } from "./presence";
+import { usePresence } from "./presence";
 import { useOnHero } from "./surface";
 import { cx, type Tone } from "./tone";
+
+const mac = /^[0-9a-f]{2}([:-][0-9a-f]{2}){5}$/i;
+const separators = /[:-]/g;
+
+/**
+ * Whether a search query matches a row's fields, e.g. a Device's name, IP
+ * and MAC: every word of the query, ignoring case, appears in some field.
+ * A MAC also matches without its separators, so "aabb" finds aa:bb:…. An
+ * empty query matches everything; undefined fields are skipped.
+ */
+export function matches(query: string, ...fields: readonly (string | undefined)[]): boolean {
+  const haystacks = fields.flatMap((f) => {
+    if (f === undefined) return [];
+    const lower = f.toLowerCase();
+    return mac.test(f) ? [lower, lower.replace(separators, "")] : [lower];
+  });
+  return query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((word) => {
+      const bare = word.replace(separators, "");
+      return haystacks.some((h) => h.includes(word) || (bare !== "" && h.includes(bare)));
+    });
+}
+
+/**
+ * Every table's empty state for a search that found nothing, e.g.
+ * noMatch("Devices", " nas ") is 'No Devices match "nas"'. things is
+ * plural, as the table's rows are.
+ */
+export const noMatch = (things: string, query: string) => `No ${things} match "${query.trim()}"`;
 
 /**
  * One URL search param as state, e.g. an explorer's search, tab or sort, so
@@ -564,12 +596,12 @@ function StripRow({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const { shown, leaving, box } = usePresence<HTMLTableRowElement>(children);
+  const { present, leaving, wrapper, content } = usePresence<HTMLTableRowElement>(children);
   const group = useRef<HTMLDivElement>(null);
-  useFocusFallback(group, arrow, !leaving && shows(shown));
-  if (!shows(shown)) return null;
+  useFocusFallback(group, arrow, present && !leaving);
+  if (!present) return null;
   return (
-    <tr ref={box} data-state={leaving ? "closed" : "open"} inert={leaving} className="border-b border-border last:border-b-0">
+    <tr {...wrapper} className="border-b border-border last:border-b-0">
       <td colSpan={span} className="bg-primary-tint/50 p-0">
         <div className="sticky left-0 w-(--strip-width)">
           <div className={cx("grid", stripMotion)}>
@@ -586,7 +618,7 @@ function StripRow({
                 }}
                 className="px-4 py-2.5"
               >
-                <Leaving value={leaving}>{shown}</Leaving>
+                {content}
               </div>
             </div>
           </div>

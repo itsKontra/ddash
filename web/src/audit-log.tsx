@@ -7,6 +7,7 @@ import {
   DataTable,
   EmptyState,
   Facts,
+  noMatch,
   Notice,
   PageTitle,
   Panel,
@@ -145,7 +146,7 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
           defaultSort={defaultSort}
           loading={!pages[0].chains}
           empty={
-            <EmptyState icon="scroll-text" title={filter.query ? `No Actions match "${filter.query}"` : "No Actions match"}>
+            <EmptyState icon="scroll-text" title={filter.query.trim() ? noMatch("Actions", filter.query) : "No Actions match"}>
               Try Anyone, or another target or outcome.
             </EmptyState>
           }

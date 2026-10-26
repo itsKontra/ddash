@@ -4,9 +4,13 @@ import { Button } from "./atoms";
 import { Checkbox } from "./forms";
 import { Icon } from "./icon";
 import { Kicker } from "./kicker";
+import { backdropMotion } from "./motion";
 import { Leaving, Presence } from "./presence";
 import { InFlush } from "./surface";
 import { cx, toneTint } from "./tone";
+
+// Presence lives in its own module so DataTable's strip can share its lifecycle; it is an overlay.
+export { Presence } from "./presence";
 
 /** What a confirm dialog asks. */
 export interface ConfirmRequest {
@@ -203,10 +207,9 @@ export function Dialog(props: OverlayProps) {
 /*
  * The overlays' motion (tokens.css): each enters from (starting:) and leaves
  * to (in-data-[state=closed]:, set by Presence) the same values, so an exit
- * is the exact reverse and reopening mid-exit turns it around.
+ * is the exact reverse and reopening mid-exit turns it around. The
+ * backdrop's is in motion.ts, shared with the shell's Drawer.
  */
-const backdropMotion =
-  "starting:bg-foreground/0 starting:backdrop-blur-none in-data-[state=closed]:bg-foreground/0 in-data-[state=closed]:backdrop-blur-none motion-safe:transition-[background-color,backdrop-filter] motion-safe:duration-(--motion-fade)";
 const dialogMotion =
   "starting:opacity-(--motion-dialog-opacity) starting:[transform:var(--motion-dialog-from)] in-data-[state=closed]:opacity-(--motion-dialog-opacity) in-data-[state=closed]:[transform:var(--motion-dialog-from)] motion-safe:transition-[opacity,transform] motion-safe:duration-(--motion-fade)";
 const sheetMotion =

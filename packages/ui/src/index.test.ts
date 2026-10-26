@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import * as ui from "./index";
 
-it("exports exactly the spec's component set, plus cx, matches and the AppIcon helpers", () => {
+it("exports exactly the spec's component set, plus cx, matches, noMatch and the AppIcon helpers", () => {
   expect(Object.keys(ui).sort()).toEqual(
     [
       // atoms
@@ -42,6 +42,7 @@ it("exports exactly the spec's component set, plus cx, matches and the AppIcon h
       "Facts",
       "useQueryState",
       "matches",
+      "noMatch",
       // feedback
       "EmptyState",
       "Notice",

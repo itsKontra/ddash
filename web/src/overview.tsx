@@ -9,6 +9,7 @@ import {
   HeroCard,
   Icon,
   MetricTile,
+  noMatch,
   Notice,
   PageTitle,
   Pill,
@@ -489,7 +490,7 @@ function AddWidget({
               </ul>
             </div>
           ))}
-          {groups.length === 0 && <EmptyState icon="search-x" title={`No Widget matches “${q}”`} />}
+          {groups.length === 0 && <EmptyState icon="search-x" title={noMatch("Widgets", q)} />}
         </div>
       )}
     </Sheet>

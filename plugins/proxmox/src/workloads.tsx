@@ -1,7 +1,7 @@
 import { useQuery } from "@ddash/plugin";
 import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
-import { DataTable, EmptyState, matches, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
+import { DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
@@ -180,7 +180,7 @@ export function Workloads() {
             sortKey="sort"
             defaultSort="id"
             loading={!data}
-            empty={q ? `No Workloads match "${q}"` : all.length ? "No Workloads match the filters" : "Proxmox lists no LXCs or VMs"}
+            empty={q.trim() ? noMatch("Workloads", q) : all.length ? "No Workloads match the filters" : "Proxmox lists no LXCs or VMs"}
             rowLabel={(w) => w.name}
             strip={(w) => (w.template ? null : <PowerStrip workload={w} />)}
             busy={(w) => taskOf(tasks.data?.tasks, w)}

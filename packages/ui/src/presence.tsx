@@ -11,21 +11,21 @@ import { createContext, useLayoutEffect, useRef, useState, type ReactNode } from
  * exit, and one that changes while open replaces it in place.
  */
 export function Presence({ children }: { children?: ReactNode }) {
-  const { shown, leaving, box } = usePresence<HTMLDivElement>(children);
-  if (!shows(shown)) return null;
+  const { present, wrapper, content } = usePresence<HTMLDivElement>(children);
+  if (!present) return null;
   return (
-    <div ref={box} data-state={leaving ? "closed" : "open"} inert={leaving} className="contents">
-      <Leaving value={leaving}>{shown}</Leaving>
+    <div {...wrapper} className="contents">
+      {content}
     </div>
   );
 }
 
 /**
  * Presence's lifecycle for a wrapper the caller draws itself, where a
- * <div> can't go, e.g. DataTable's strip <tr> in a <tbody>: what to show
- * (nothing once it's empty), whether it's leaving, and the ref of the
- * wrapper whose animations it waits for. The caller sets data-state and
- * inert on the wrapper and wraps what it shows in Leaving, as Presence does.
+ * <div> can't go, e.g. DataTable's strip <tr> in a <tbody>. The caller
+ * draws nothing while present is false, spreads wrapper (its ref,
+ * data-state and inert) on its wrapper and puts content inside it, as
+ * Presence does.
  */
 export function usePresence<E extends Element>(children: ReactNode) {
   const open = shows(children);
@@ -44,10 +44,18 @@ export function usePresence<E extends Element>(children: ReactNode) {
       cancelled = true;
     };
   }, [leaving]);
-  return { shown: open ? children : kept, leaving, box };
+  return {
+    /** Whether anything is mounted: open, or still leaving. */
+    present: open || leaving,
+    leaving,
+    /** The wrapper's props: the ref whose animations an exit waits for, its state and inert while leaving. */
+    wrapper: { ref: box, "data-state": leaving ? "closed" : "open", inert: leaving },
+    /** What the wrapper holds, told whether it is leaving. */
+    content: <Leaving value={leaving}>{open ? children : kept}</Leaving>,
+  };
 }
 
-export const shows = (node: ReactNode) => node !== null && node !== undefined && node !== false && node !== "";
+const shows = (node: ReactNode) => node !== null && node !== undefined && node !== false && node !== "";
 
 /** True inside a Presence whose child is leaving: its Overlay hands the focus back and ignores closes. */
 export const Leaving = createContext(false);

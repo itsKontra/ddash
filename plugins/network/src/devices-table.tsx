@@ -1,5 +1,5 @@
 import type { Device } from "@ddash/proto/network/network_pb";
-import { DataTable, EmptyState, matches, Notice, Panel, Pill, SearchField, StatusDot, Tabs, useQueryState, type Column, type TabOption } from "@ddash/ui";
+import { DataTable, EmptyState, matches, noMatch, Notice, Panel, Pill, SearchField, StatusDot, Tabs, useQueryState, type Column, type TabOption } from "@ddash/ui";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { AdBlocking } from "./adblocking";
@@ -119,7 +119,7 @@ export function DevicesTable({ aside }: { aside?: ReactNode }) {
           sortKey="devices.sort"
           defaultSort="name"
           loading={!data}
-          empty={q ? `No Devices match "${q}"` : `No ${shown.label} Devices`}
+          empty={q.trim() ? noMatch("Devices", q) : `No ${shown.label} Devices`}
           rowLabel={nameOf}
           strip={(d) => data && <DeviceStrip device={d} bypassAlias={data.bypassAlias} adguardError={data.adguardError} />}
         />
