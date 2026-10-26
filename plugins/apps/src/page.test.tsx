@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { useLocation } from "react-router";
 import { afterEach, expect, it } from "vitest";
 import { dashboardIcon } from "@ddash/ui";
 import plugin from "./index";
@@ -38,6 +39,71 @@ it("shows the visible Apps as cards by group, ungrouped ones in the default sect
   expect(names("Network")).toEqual(["pfSense"]);
   expect(names("Ungrouped")).toEqual(["Jellyfin", "Printer"]);
   expect(names("Hidden")).toEqual(["Old"]);
+});
+
+// The Page's URL search, as the search box last wrote it.
+let search = "";
+
+function Where() {
+  search = useLocation().search;
+  return null;
+}
+
+const searchbox = () => screen.getByRole("searchbox", { name: "Search Apps" });
+/** Each card section as its name followed by its cards' names. */
+const cards = () =>
+  screen
+    .queryAllByRole("list")
+    .map((l) => [l.getAttribute("aria-label"), ...within(l).getAllByRole("listitem").map((li) => li.getAttribute("aria-label"))]);
+
+it("searches the cards in every group, Hidden included, by name, domain or group, kept in the URL", async () => {
+  renderScoped(
+    <>
+      <Page />
+      <Where />
+    </>,
+  );
+  await settle();
+
+  const find = (q: string) => {
+    fireEvent.change(searchbox(), { target: { value: q } });
+    return cards();
+  };
+  expect(find("graf")).toEqual([["Monitoring", "Grafana"]]);
+  expect(find("tv.home")).toEqual([["Ungrouped", "Jellyfin"]]);
+  expect(find("198.18.0.1")).toEqual([["Network", "pfSense"]]);
+  expect(find("netw")).toEqual([["Network", "pfSense"]]);
+  expect(find("old")).toEqual([["Hidden", "Old"]]);
+  expect(find("home.example")).toEqual([
+    ["Monitoring", "Grafana"],
+    ["Ungrouped", "Jellyfin", "Printer"],
+    ["Hidden", "Old"],
+  ]);
+  expect(search).toBe("?q=home.example");
+  // A group with no match is gone; Unmatched settings isn't searched.
+  expect(sectionNames()).toEqual(["Monitoring", "Ungrouped", "Hidden", "Unmatched settings"]);
+  expect(screen.getByRole("rowheader", { name: "paperless.home.example" })).toBeTruthy();
+
+  fireEvent.change(searchbox(), { target: { value: "" } });
+  expect(search).toBe("");
+  expect(sectionNames()).toEqual(["Monitoring", "Network", "Ungrouped", "Hidden", "Unmatched settings"]);
+});
+
+it("opens on the search a link carries", async () => {
+  renderScoped(<Page />, {}, undefined, "/?q=jelly");
+  await settle();
+
+  expect(searchbox()).toHaveProperty("value", "jelly");
+  expect(cards()).toEqual([["Ungrouped", "Jellyfin"]]);
+});
+
+it("says so when no App matches the search", async () => {
+  renderScoped(<Page />, {}, undefined, "/?q=nothing-like-it");
+  await settle();
+
+  expect(screen.getByText('No Apps match "nothing-like-it"')).toBeTruthy();
+  expect(cards()).toEqual([]);
+  expect(sectionNames()).toEqual(["Unmatched settings"]);
 });
 
 it("shows each card's Check status, and warns of a certificate expiring within 14 days", async () => {
@@ -207,11 +273,14 @@ it("edits and deletes a manual App", async () => {
 const unmatched = (serverName: string) =>
   within(within(screen.getByRole("region", { name: "Unmatched settings" })).getByRole("table")).getByRole("rowheader", { name: serverName }).closest("tr")!;
 
-/** Picks item from the ⋯ Menu of the unmatched setting serverName. */
-function chooseUnmatched(serverName: string, item: string) {
+/** Opens the strip of the unmatched setting serverName and returns it. */
+function openUnmatched(serverName: string) {
   fireEvent.click(within(unmatched(serverName)).getByRole("button", { name: `Actions for ${serverName}` }));
-  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+  return screen.getByRole("group", { name: `Actions for ${serverName}` });
 }
+
+/** Presses button in the strip of the unmatched setting serverName. */
+const chooseUnmatched = (serverName: string, button: string) => fireEvent.click(within(openUnmatched(serverName)).getByRole("button", { name: button }));
 
 it("tables the unmatched settings, each with what it sets", async () => {
   renderScoped(<Page />);
@@ -220,7 +289,18 @@ it("tables the unmatched settings, each with what it sets", async () => {
   expect(unmatched("paperless.home.example").textContent).toContain("Documents · group Office");
 });
 
-it("re-attaches unmatched settings to an App without any, from the row's menu", async () => {
+it("puts an unmatched setting's Actions in its strip, with no ⋯ Menu", async () => {
+  renderScoped(<Page />);
+  await settle();
+
+  const table = within(screen.getByRole("region", { name: "Unmatched settings" })).getByRole("table");
+  expect(table.querySelector('[aria-haspopup="menu"]')).toBeNull();
+  const strip = openUnmatched("paperless.home.example");
+  expect(within(strip).getByRole("status").textContent).toBe("Kept for paperless.home.example");
+  expect(within(strip).getAllByRole("button").map((b) => b.textContent)).toEqual(["Re-attach…", "Delete"]);
+});
+
+it("re-attaches unmatched settings to an App without any, from the row's strip", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
@@ -238,12 +318,14 @@ it("re-attaches unmatched settings to an App without any, from the row's menu", 
   expect(screen.queryByRole("dialog", { name: "Re-attach paperless.home.example" })).toBeNull();
 });
 
-it("deletes unmatched settings from the row's menu after a confirm", async () => {
+it("deletes unmatched settings from the row's strip after a confirm", async () => {
   const calls = renderScoped(<Page />);
   await settle();
 
   chooseUnmatched("paperless.home.example", "Delete");
-  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+  const confirm = screen.getByRole("alertdialog");
+  expect(confirm.textContent).toContain("Delete the settings kept for paperless.home.example?");
+  fireEvent.click(within(confirm).getByRole("button", { name: "Delete" }));
   await settle();
 
   expect(actions(calls)).toEqual([{ method: "DeleteOverlay", body: { serverName: "paperless.home.example" } }]);
