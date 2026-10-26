@@ -140,6 +140,48 @@ func (r *Runtime) deleteData(ctx context.Context, name string) error {
 	return r.opts.Config.Delete(ctx, name)
 }
 
+// dropRetired deletes the data of every Component the running Release's
+// catalogue no longer ships (see deleteData): it can never run again, and
+// nothing it kept is carried over to what replaced it. A Component counts
+// by its DB file or by the Release that last opened it. A failure is
+// logged; that data stays an orphan.
+func (r *Runtime) dropRetired(ctx context.Context) {
+	r.mu.Lock()
+	cat := r.cat
+	r.mu.Unlock()
+	seen := map[string]bool{}
+	entries, _ := os.ReadDir(filepath.Join(r.opts.DataDir, "db"))
+	for _, e := range entries {
+		if name, ok := strings.CutSuffix(e.Name(), ".db"); ok && !e.IsDir() {
+			seen[name] = true
+		}
+	}
+	rows, err := r.opts.DB.QueryContext(ctx, `SELECT name FROM component_release`)
+	if err == nil {
+		for rows.Next() {
+			var name string
+			if rows.Scan(&name) == nil {
+				seen[name] = true
+			}
+		}
+		err = rows.Err()
+		rows.Close()
+	}
+	if err != nil {
+		r.log.Error("list the Components that kept data", "err", err)
+	}
+	for _, name := range slices.Sorted(maps.Keys(seen)) {
+		if _, ok := cat.component(name); ok {
+			continue
+		}
+		if err := r.deleteData(ctx, name); err != nil {
+			r.log.Error("drop a retired Component's data", "component", name, "err", err)
+			continue
+		}
+		r.log.Info("dropped a retired Component's data", "component", name, "release", cat.Release)
+	}
+}
+
 // Orphans returns, sorted, the Components that have a DB file although no
 
 // installed Plugin requires them.

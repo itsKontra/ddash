@@ -354,11 +354,21 @@ it("shows apps being unavailable as a failure", async () => {
   expect(screen.queryByRole("status", { name: "Loading" })).toBeNull();
 });
 
-it("says when Nginx Proxy Manager couldn't be read", async () => {
-  renderScoped(<Page />, { ListApps: () => Response.json({ apps: [], proxyHosts: { error: "nginx-proxy-manager-api is not configured" } }) });
+it("asks to set up Nginx Proxy Manager until it is configured", async () => {
+  renderScoped(<Page />, { ListApps: () => Response.json({ apps: [], proxyHosts: { error: "not configured", notConfigured: true } }) });
   await settle();
 
-  expect(screen.getByRole("status").textContent).toMatch(/Nginx Proxy Manager: nginx-proxy-manager-api is not configured/);
+  const notice = screen.getByRole("status");
+  expect(notice.textContent).toMatch(/^Set up Nginx Proxy Manager/);
+  expect(within(notice).getByRole("link", { name: "Configure it in Plugins" }).getAttribute("href")).toBe("/plugins");
+  expect(screen.queryByText(/Couldn't read the Proxy Hosts/)).toBeNull();
+});
+
+it("says when Nginx Proxy Manager couldn't be read", async () => {
+  renderScoped(<Page />, { ListApps: () => Response.json({ apps: [], proxyHosts: { error: "nginx-proxy-manager-api unavailable: sign-in refused" } }) });
+  await settle();
+
+  expect(screen.getByRole("status").textContent).toMatch(/Nginx Proxy Manager: nginx-proxy-manager-api unavailable: sign-in refused/);
   expect(screen.getByText("No Apps yet")).toBeTruthy();
   // The empty state offers adding one, as the Page title does.
   expect(screen.getAllByRole("button", { name: "Add App" })).toHaveLength(2);

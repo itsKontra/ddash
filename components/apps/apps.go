@@ -216,6 +216,7 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 	if c.hostsErr != nil {
 		read.Error = status.Convert(c.hostsErr).Message()
 		read.FailingSince = timestamppb.New(c.failingSince)
+		read.NotConfigured = notConfigured(c.hostsErr)
 	}
 	return &appspb.ListAppsResponse{Apps: all, ProxyHosts: read}, nil
 }

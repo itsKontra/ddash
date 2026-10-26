@@ -172,33 +172,3 @@ func TestRecordingWithoutAScrubberWritesNothing(t *testing.T) {
 		t.Errorf("wrote %v, refused %v: want nothing written and one refusal", got, refused)
 	}
 }
-
-func TestWriteCommandWritesACapturedCommandAsTheSSHServerReadsIt(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "baseline")
-	err := fixture.WriteCommand(dir, "/usr/sbin/nginx -T", fixture.Output{
-		Stdout: []byte("server_name realname;\n"), Stderr: []byte("test is successful\n"), Exit: 1,
-	}, scrubName)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	want := map[string]string{
-		"nginx_-T.stdout": "server_name node1;\n",
-		"nginx_-T.stderr": "test is successful\n",
-		"nginx_-T.exit":   "1\n",
-	}
-	if got := files(t, dir); len(got) != len(want) || got["nginx_-T.stdout"] != want["nginx_-T.stdout"] ||
-		got["nginx_-T.stderr"] != want["nginx_-T.stderr"] || got["nginx_-T.exit"] != want["nginx_-T.exit"] {
-		t.Errorf("wrote %q, want %q", got, want)
-	}
-}
-
-func TestWriteCommandRefusesWhatTheScrubberRefuses(t *testing.T) {
-	dir := t.TempDir()
-
-	err := fixture.WriteCommand(dir, "nginx -T", fixture.Output{Stdout: []byte("LEAK")}, scrubName)
-
-	if err == nil || len(files(t, dir)) != 0 {
-		t.Errorf("err = %v, files %v: want a refusal and nothing written", err, files(t, dir))
-	}
-}

@@ -108,55 +108,6 @@ func File(method, urlPath string, code int) string {
 	return p + ".json"
 }
 
-// Output is what a command printed and how it exited.
-type Output struct {
-	Stdout, Stderr []byte
-	Exit           int
-}
-
-// WriteCommand writes command's captured output, scrubbed, into the
-// scenario dir as SSHServer answers it back (see SSH): <name>.stdout,
-// <name>.stderr when it printed any and <name>.exit when not 0. Files of an
-// earlier recording it doesn't write are removed. Nothing is written when
-// scrub refuses any of it.
-func WriteCommand(dir, command string, out Output, scrub Scrub) error {
-	if scrub == nil {
-		return errors.New("fixture: no scrubber")
-	}
-	base := commandFile(command)
-	files := map[string][]byte{base + ".stdout": out.Stdout}
-	if len(out.Stderr) > 0 {
-		files[base+".stderr"] = out.Stderr
-	}
-	if out.Exit != 0 {
-		files[base+".exit"] = []byte(strconv.Itoa(out.Exit) + "\n")
-	}
-	scrubbed := map[string][]byte{}
-	for name, body := range files {
-		n, b, err := scrub(name, body)
-		if err != nil {
-			return fmt.Errorf("fixture: %s not recorded: %w", name, err)
-		}
-		scrubbed[n] = b
-	}
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return err
-	}
-	for _, ext := range []string{".stdout", ".stderr", ".exit"} {
-		if _, ok := scrubbed[base+ext]; !ok {
-			if err := os.Remove(filepath.Join(dir, base+ext)); err != nil && !errors.Is(err, os.ErrNotExist) {
-				return err
-			}
-		}
-	}
-	for name, body := range scrubbed {
-		if err := os.WriteFile(filepath.Join(dir, name), body, 0o644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // write scrubs and writes one recorded body.
 func write(dir, file string, body []byte, scrub Scrub) error {
 	if scrub == nil {

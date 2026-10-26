@@ -25,7 +25,7 @@ import (
 
 func main() {
 	envPath := flag.String("env", "smoke.env", "the systems to run against (gitignored)")
-	data := flag.String("data", ".smoke", "where the Components keep their DBs between runs (nginx-config's key)")
+	data := flag.String("data", ".smoke", "where the Components keep their DBs between runs")
 	record := flag.Bool("record", false, "also write each answer as a scrubbed fixture")
 	writes := flag.Bool("writes", false, "run the Action round trips on the smoke targets instead of the getters")
 	scenario := flag.String("scenario", "recorded", "the scenario the fixtures go to: components/<name>/testdata/<scenario>/")

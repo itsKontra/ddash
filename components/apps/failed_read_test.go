@@ -41,6 +41,17 @@ func TestAFailedReadKeepsTheLastGoodRead(t *testing.T) {
 	}
 }
 
+// Until nginx-proxy-manager-api is configured, the read says so, for the
+// "Set up Nginx Proxy Manager" Notice.
+func TestTheReadSaysWhenNginxProxyManagerIsNotConfigured(t *testing.T) {
+	l := newLab(t, labOptions{npmUnconfigured: true})
+
+	read := l.list().GetProxyHosts()
+	if !read.GetNotConfigured() || read.GetReadAt() != nil || read.GetError() == "" {
+		t.Errorf("Proxy Hosts read %v, want not configured, with its error and no good read", read)
+	}
+}
+
 // Before the first good read since apps started, the Apps are their
 // records as they were, without a Warning needing Nginx Proxy Manager,
 // and apps is degraded, naming it.
