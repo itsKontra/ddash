@@ -32,7 +32,10 @@ const short: Record<ProxyHostWarning, string> = {
 /** A warning as the Warnings list says it, e.g. "upstream http://198.18.2.99 matches no Workload". */
 const describe = (host: ProxyHost, w: ProxyHostWarning) => (w === ProxyHostWarning.NO_WORKLOAD ? `upstream ${host.upstream} matches no Workload` : short[w]);
 
-const keyOf = (h: ProxyHost) => `${h.file}:${h.line}:${h.serverNames[0] ?? ""}`;
+/** proxy_pass without its nginx variables: "http://jellyfin:8096$request_uri" reads "http://jellyfin:8096". */
+const bareUpstream = (upstream: string) => upstream.replace(/\$(\{\w+\}|\w+)/g, "");
+
+const keyOf =(h: ProxyHost) => `${h.file}:${h.line}:${h.serverNames[0] ?? ""}`;
 
 /** A Proxy Host with its App's Check: undefined without an App or while checks can't answer, null when the App has none. */
 interface Row {
@@ -46,7 +49,10 @@ const columns: readonly Column<Row>[] = [
     id: "upstream",
     header: "Upstream",
     mono: true,
-    cell: ({ host }) => (host.upstreamServers.length ? `${host.upstream} → ${host.upstreamServers.join(", ")}` : host.upstream),
+    cell: ({ host }) => {
+      const upstream = bareUpstream(host.upstream);
+      return host.upstreamServers.length ? `${upstream} → ${host.upstreamServers.join(", ")}` : upstream;
+    },
   },
   { id: "app", header: "App", cell: ({ host }) => <AppName host={host} /> },
   { id: "check", header: "Check", cell: ({ host, check }) => host.app && <CheckLine check={check} /> },
