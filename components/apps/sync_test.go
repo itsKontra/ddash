@@ -10,6 +10,7 @@ import (
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks"
+	"github.com/itsKontra/ddash/components/network/networkpb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
@@ -74,6 +75,16 @@ func (f *pfsenseList) set(overrides ...*pfpb.HostOverride) {
 	f.overrides = overrides
 }
 
+// networkFake is a network Component whose reads all fail (Unimplemented):
+// the Apps go without network info.
+type networkFake struct {
+	networkpb.UnimplementedNetworkServiceServer
+}
+
+func (*networkFake) Start(context.Context, *sdk.Env, *networkpb.NetworkConfig) error { return nil }
+
+func (*networkFake) Health(context.Context) sdk.Health { return sdk.Health{State: sdk.OK} }
+
 // listedOverride is a Host Override host.home.example at ip with aliases
 // (hosts in home.example).
 func listedOverride(host, ip string, aliases ...string) *pfpb.HostOverride {
@@ -107,6 +118,11 @@ func TestANewSourceReachesAppsWithinAMinute(t *testing.T) {
 					Manifest: []byte("name: pfsense-api\ndescription: A fake.\nrequires: []\n"),
 					Service:  &pfpb.PfsenseApiService_ServiceDesc,
 					New:      func() sdk.Component[*pfpb.PfsenseApiConfig] { return fw },
+				}),
+				sdk.Define(sdk.Spec[*networkpb.NetworkConfig]{
+					Manifest: []byte("name: network\ndescription: A fake.\nrequires: [pfsense-api]\n"),
+					Service:  &networkpb.NetworkService_ServiceDesc,
+					New:      func() sdk.Component[*networkpb.NetworkConfig] { return &networkFake{} },
 				}),
 				ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
 				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}),

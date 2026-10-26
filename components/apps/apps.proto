@@ -124,6 +124,37 @@ message App {
   // Every Host Override and alias registering one of its hostnames, in
   // pfSense's order; empty before pfSense was first read.
   repeated DnsEntry dns = 16;
+  // How its Workload reaches the internet, from network by the Workload's
+  // address (a container's Docker host's); unset without a Workload with
+  // an IP address, or while network can't answer.
+  NetworkInfo network = 17;
+}
+
+// An App's network info: read only, changed on the Network Page.
+message NetworkInfo {
+  // The address it was read at: the Docker host's for a container, the
+  // guest's first IP, an external host's IP.
+  string address = 1;
+  InternetPath internet_path = 2;
+  // Ads Allowed: AdGuard doesn't filter the address.
+  bool ads_allowed = 3;
+  // The Device holding the address; unset for none (servers with fixed
+  // addresses aren't Devices).
+  NetworkDevice device = 4;
+}
+
+// The internet path, as network names it.
+enum InternetPath {
+  INTERNET_PATH_UNSPECIFIED = 0;
+  INTERNET_PATH_TUNNELLED = 1;
+  INTERNET_PATH_DIRECT = 2;
+  INTERNET_PATH_NO_INTERNET = 3;
+}
+
+// A Device, enough to link to it on the Network Page.
+message NetworkDevice {
+  string mac = 1;
+  string name = 2;
 }
 
 enum Reach {
@@ -320,6 +351,9 @@ message SourceRead {
   google.protobuf.Timestamp failing_since = 3;
   // The source's Component has no config yet: the Operator sets it up.
   bool not_configured = 4;
+  // The source reads, but refuses ddash's writes (Nginx Proxy Manager's
+  // Proxy Hosts set to View for ddash's user).
+  bool read_only = 5;
 }
 
 message ListAppsRequest {}
@@ -333,6 +367,12 @@ message ListAppsResponse {
   SourceRead host_overrides = 3;
   // The Reverse Proxy's Host Override, as the last reads found it.
   ReverseProxy reverse_proxy = 4;
+  // Why network couldn't give the Apps' network info; empty when it
+  // could.
+  string network_error = 5;
+  // Why AdGuard couldn't be read, so no App shows Ads Allowed; empty when
+  // it could.
+  string adguard_error = 6;
 }
 
 // The Reverse Proxy as Apps see it: its address, and the Host Overrides

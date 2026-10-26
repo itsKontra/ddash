@@ -2,7 +2,7 @@
   "name": "@ddash/display",
   "private": true,
   "type": "module",
-  "description": "How every Plugin shows shared values the same way: Workload kinds and names, byte counts, how long ago a time was, an App's Check status and the order Check tones sort in. Plain functions, bundled into each Plugin that uses them.",
+  "description": "How every Plugin shows shared values the same way: Workload kinds and names, byte counts, how long ago a time was, an App's Check status and its history as bars, the order Check tones sort in, and a certificate's state. Plain functions, bundled into each Plugin that uses them.",
   "exports": {
     ".": "./src/index.ts"
   },

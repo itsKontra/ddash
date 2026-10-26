@@ -19,12 +19,17 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
+	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
+	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
+	"github.com/itsKontra/ddash/components/network"
+	"github.com/itsKontra/ddash/components/network/networkpb"
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
@@ -45,8 +50,9 @@ import (
 // baseline: 23 Proxy Hosts), the real pfsense-api over pfsensefake
 // (pfSense's baseline: the Reverse Proxy's Host Override nginx with 23
 // aliases, and five others), the real checks (whose probes dial nowhere),
-// and Workload sources: the real proxmox-api and docker-api over their
-// fixtures, or fakes a test sets.
+// the real network over that pfSense and the real adguard-api over
+// adguardfake's baseline, and Workload sources: the real proxmox-api and
+// docker-api over their fixtures, or fakes a test sets.
 //
 // Nginx Proxy Manager answers on 127.0.0.1, which is therefore the
 // Reverse Proxy's address: the lab moves the nginx Host Override (at
@@ -91,6 +97,8 @@ type labOptions struct {
 	failNPM *atomic.Bool
 	// npmUnconfigured leaves nginx-proxy-manager-api without config.
 	npmUnconfigured bool
+	// networkUnconfigured leaves network without config.
+	networkUnconfigured bool
 }
 
 const npmEmail = "ddash@home.example"
@@ -138,8 +146,16 @@ func newLab(t *testing.T, o labOptions) *lab {
 	}))
 	t.Cleanup(fwSrv.Close)
 
+	adguard, err := adguardfake.New("../adguard-api/testdata/baseline", adguardfake.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	agSrv := httptest.NewServer(adguard)
+	t.Cleanup(agSrv.Close)
+
 	components := []sdk.Definition{
-		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
+		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), network.Definition(), adguardapi.Definition(),
+		ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
 	}
 	if o.fixtureWorkloads {
 		components = append(components, proxmoxapi.Definition(), dockerapi.Definition())
@@ -161,6 +177,10 @@ func newLab(t *testing.T, o labOptions) *lab {
 		l.h.SeedConfig("nginx-proxy-manager-api", &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: srv.URL, Email: npmEmail, Password: npmfake.DefaultPassword})
 	}
 	l.h.SeedConfig("pfsense-api", &pfsenseapipb.PfsenseApiConfig{Url: fwSrv.URL, ApiKey: "test"})
+	l.h.SeedConfig("adguard-api", &adguardapipb.AdguardApiConfig{Url: agSrv.URL, Username: "test", Password: "test"})
+	if !o.networkUnconfigured {
+		l.h.SeedConfig("network", &networkpb.NetworkConfig{BypassAlias: "VPN_BYPASS", BlockAlias: "KILL_SWITCH", ReservedRange: "198.18.1.150-198.18.1.199"})
+	}
 	if o.fixtureWorkloads {
 		pve := fixture.Server(t, "../proxmox-api/testdata/baseline")
 		media := fixture.Server(t, "../docker-api/testdata/published-on-lan")

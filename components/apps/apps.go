@@ -9,7 +9,8 @@
 // list, attaches every source to a record (attach), and declares every
 // App's Check to checks when the set changed. ListApps derives each App's
 // Reach, Workload and Warnings from the records and the last good reads
-// (derive); only the records and Ignores are stored.
+// (derive), and each Workload's network info from network by address;
+// only the records and Ignores are stored.
 package apps
 
 import (
@@ -27,6 +28,7 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
+	"github.com/itsKontra/ddash/components/network/networkpb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
@@ -64,6 +66,7 @@ type component struct {
 
 	npm     npmpb.NginxProxyManagerApiServiceClient
 	pfsense pfpb.PfsenseApiServiceClient
+	network networkpb.NetworkServiceClient
 	checks  checkspb.ChecksServiceClient
 	proxmox proxmoxapipb.ProxmoxApiServiceClient
 	docker  dockerapipb.DockerApiServiceClient
@@ -91,6 +94,9 @@ type component struct {
 	// rpAddress is the Reverse Proxy's address as last read; empty
 	// before the first.
 	rpAddress string
+	// hostsReadOnly is whether Nginx Proxy Manager refuses ddash's
+	// Proxy Host writes, as last read.
+	hostsReadOnly bool
 	// src is the last read of the Workload sources.
 	src sources
 	// checksErr is why the last SetAppChecks failed; empty once one worked.
@@ -136,6 +142,7 @@ func (s sourceRead) proto() *appspb.SourceRead {
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfig) error {
 	c.npm = sdk.Require(env, npmpb.NewNginxProxyManagerApiServiceClient)
 	c.pfsense = sdk.Require(env, pfpb.NewPfsenseApiServiceClient)
+	c.network = sdk.Require(env, networkpb.NewNetworkServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.proxmox = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
 	c.docker = sdk.Require(env, dockerapipb.NewDockerApiServiceClient)
@@ -217,6 +224,9 @@ func (c *component) sync(ctx context.Context, fresh bool) error {
 	if stErr == nil && st.GetAddress() != "" {
 		c.rpAddress = st.GetAddress()
 	}
+	if stErr == nil {
+		c.hostsReadOnly = st.GetProxyHostsReadOnly()
+	}
 	c.mu.Unlock()
 
 	if hostsErr == nil || overridesErr == nil {
@@ -281,13 +291,19 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 		return nil, err
 	}
 	v := c.view()
+	apps := derive(recs, v)
+	networkErr, adguardErr := c.fillNetwork(ctx, apps, v.src)
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	hosts := c.hostsRead.proto()
+	hosts.ReadOnly = c.hostsReadOnly
 	return &appspb.ListAppsResponse{
-		Apps:          derive(recs, v),
-		ProxyHosts:    c.hostsRead.proto(),
+		Apps:          apps,
+		ProxyHosts:    hosts,
 		HostOverrides: c.overridesRead.proto(),
 		ReverseProxy:  reverseProxyOf(v.dns, c.rpAddress),
+		NetworkError:  networkErr,
+		AdguardError:  adguardErr,
 	}, nil
 }
 
