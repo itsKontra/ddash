@@ -5,6 +5,8 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+## v0.0.2-rc.3
+
 - ddash no longer reads nginx over SSH: the Reverse Proxy and Apps read
   Nginx Proxy Manager's API. Remove ddash's line (`command="/usr/sbin/nginx -T"`)
   from root's `authorized_keys` on the nginx host. Its old SSH settings are
