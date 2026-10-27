@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing/fstest"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -36,8 +37,8 @@ type Hooks struct {
 	// SetupHint is its setup hint, given the config it started with. Nil:
 	// it offers none.
 	SetupHint func(cfg *samplepb.SampleConfig) *configpb.SetupHint
-	// Release, once closed, ends WaitAction ok. Nil: WaitAction waits until
-	// the call ends.
+	// Release, once closed, ends WaitAction ok and lets Progress go on.
+	// Nil: they wait until the call ends.
 	Release <-chan struct{}
 }
 
@@ -137,10 +138,41 @@ func (c *component) Act(ctx context.Context, req *samplepb.ActRequest) (*samplep
 }
 
 func (c *component) WaitAction(ctx context.Context, _ *samplepb.WaitActionRequest) (*samplepb.WaitActionResponse, error) {
+	if err := c.wait(ctx); err != nil {
+		return nil, err
+	}
+	return &samplepb.WaitActionResponse{}, nil
+}
+
+// wait waits until the hooks release it or ctx ends.
+func (c *component) wait(ctx context.Context) error {
 	select {
 	case <-c.hooks.Release:
-		return &samplepb.WaitActionResponse{}, nil
+		return nil
 	case <-ctx.Done():
-		return nil, status.FromContextError(ctx.Err()).Err()
+		return status.FromContextError(ctx.Err()).Err()
+	}
+}
+
+func (c *component) Progress(req *samplepb.ProgressRequest, stream grpc.ServerStreamingServer[samplepb.ProgressResponse]) error {
+	for sent := int32(0); ; sent++ {
+		if req.WaitAfter != nil && sent == req.GetWaitAfter() {
+			if err := c.wait(stream.Context()); err != nil {
+				return err
+			}
+		}
+		if req.FailAfter != nil && sent == req.GetFailAfter() {
+			st, err := status.Newf(codes.Aborted, "stopped at %d", sent).WithDetails(&samplepb.ProgressResponse{Step: sent})
+			if err != nil {
+				return err
+			}
+			return st.Err()
+		}
+		if sent == req.GetCount() {
+			return nil
+		}
+		if err := stream.Send(&samplepb.ProgressResponse{Step: sent + 1}); err != nil {
+			return err
+		}
 	}
 }

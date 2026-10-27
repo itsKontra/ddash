@@ -93,8 +93,28 @@ func (i *Instance) Register(s grpc.ServiceRegistrar) {
 			},
 		}
 	}
+	api.Streams = make([]grpc.StreamDesc, len(i.def.service.Streams))
+	for n, sd := range i.def.service.Streams {
+		handler := sd.Handler
+		sd.Handler = func(_ any, stream grpc.ServerStream) error {
+			r := i.ready.Load()
+			if r == nil {
+				return status.Error(codes.FailedPrecondition, "not configured")
+			}
+			return handler(r.c.impl(), hostStream{stream, fromHost(stream.Context())})
+		}
+		api.Streams[n] = sd
+	}
 	s.RegisterService(&api, struct{}{})
 }
+
+// hostStream is a stream whose context carries who the call runs for.
+type hostStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s hostStream) Context() context.Context { return s.ctx }
 
 func (i *Instance) Describe(context.Context, *componentpb.DescribeRequest) (*componentpb.DescribeResponse, error) {
 	d, err := i.def.describe()

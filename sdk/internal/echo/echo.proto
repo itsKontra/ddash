@@ -23,6 +23,9 @@ service EchoService {
   rpc AddNote(AddNoteRequest) returns (AddNoteResponse) {
     option (ddash.action) = {disruptive: true};
   }
+  rpc Watch(WatchRequest) returns (stream WatchResponse) {
+    option (ddash.action) = {};
+  }
 }
 
 // UnmarkedService breaks the rule that every method is a getter or an
@@ -34,6 +37,39 @@ service UnmarkedService {
 message UnmarkedRequest {}
 
 message UnmarkedResponse {}
+
+// StreamingGetterService streams from a getter, so the SDK must refuse it.
+service StreamingGetterService {
+  rpc Tail(TailRequest) returns (stream TailResponse) {
+    option (ddash.getter) = {};
+  }
+}
+
+// ClientStreamingService streams from the client, so the SDK must refuse it.
+service ClientStreamingService {
+  rpc Upload(stream UploadRequest) returns (UploadResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+// BidiStreamingService streams both ways, so the SDK must refuse it.
+service BidiStreamingService {
+  rpc Chat(stream ChatRequest) returns (stream ChatResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message TailRequest {}
+
+message TailResponse {}
+
+message UploadRequest {}
+
+message UploadResponse {}
+
+message ChatRequest {}
+
+message ChatResponse {}
 
 message EchoRequest {
   string message = 1;
@@ -54,6 +90,14 @@ message AddNoteRequest {
 }
 
 message AddNoteResponse {}
+
+message WatchRequest {
+  string message = 1;
+}
+
+message WatchResponse {
+  string message = 1;
+}
 
 // HintFromActionConfig names an Action as its setup hint's getter, so the
 // SDK must refuse it.

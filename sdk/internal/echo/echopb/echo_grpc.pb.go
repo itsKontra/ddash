@@ -24,6 +24,7 @@ const (
 	EchoService_Echo_FullMethodName       = "/ddash.echo.EchoService/Echo"
 	EchoService_CountNotes_FullMethodName = "/ddash.echo.EchoService/CountNotes"
 	EchoService_AddNote_FullMethodName    = "/ddash.echo.EchoService/AddNote"
+	EchoService_Watch_FullMethodName      = "/ddash.echo.EchoService/Watch"
 )
 
 // EchoServiceClient is the client API for EchoService service.
@@ -33,6 +34,7 @@ type EchoServiceClient interface {
 	Echo(ctx context.Context, in *EchoRequest, opts ...grpc.CallOption) (*EchoResponse, error)
 	CountNotes(ctx context.Context, in *CountNotesRequest, opts ...grpc.CallOption) (*CountNotesResponse, error)
 	AddNote(ctx context.Context, in *AddNoteRequest, opts ...grpc.CallOption) (*AddNoteResponse, error)
+	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchResponse], error)
 }
 
 type echoServiceClient struct {
@@ -73,6 +75,25 @@ func (c *echoServiceClient) AddNote(ctx context.Context, in *AddNoteRequest, opt
 	return out, nil
 }
 
+func (c *echoServiceClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &EchoService_ServiceDesc.Streams[0], EchoService_Watch_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[WatchRequest, WatchResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type EchoService_WatchClient = grpc.ServerStreamingClient[WatchResponse]
+
 // EchoServiceServer is the server API for EchoService service.
 // All implementations must embed UnimplementedEchoServiceServer
 // for forward compatibility.
@@ -80,6 +101,7 @@ type EchoServiceServer interface {
 	Echo(context.Context, *EchoRequest) (*EchoResponse, error)
 	CountNotes(context.Context, *CountNotesRequest) (*CountNotesResponse, error)
 	AddNote(context.Context, *AddNoteRequest) (*AddNoteResponse, error)
+	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchResponse]) error
 	mustEmbedUnimplementedEchoServiceServer()
 }
 
@@ -98,6 +120,9 @@ func (UnimplementedEchoServiceServer) CountNotes(context.Context, *CountNotesReq
 }
 func (UnimplementedEchoServiceServer) AddNote(context.Context, *AddNoteRequest) (*AddNoteResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddNote not implemented")
+}
+func (UnimplementedEchoServiceServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchResponse]) error {
+	return status.Error(codes.Unimplemented, "method Watch not implemented")
 }
 func (UnimplementedEchoServiceServer) mustEmbedUnimplementedEchoServiceServer() {}
 func (UnimplementedEchoServiceServer) testEmbeddedByValue()                     {}
@@ -174,6 +199,17 @@ func _EchoService_AddNote_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EchoService_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(WatchRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(EchoServiceServer).Watch(m, &grpc.GenericServerStream[WatchRequest, WatchResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type EchoService_WatchServer = grpc.ServerStreamingServer[WatchResponse]
+
 // EchoService_ServiceDesc is the grpc.ServiceDesc for EchoService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -194,7 +230,13 @@ var EchoService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _EchoService_AddNote_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Watch",
+			Handler:       _EchoService_Watch_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "echo/echo.proto",
 }
 
@@ -303,5 +345,315 @@ var UnmarkedService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
+	Metadata: "echo/echo.proto",
+}
+
+const (
+	StreamingGetterService_Tail_FullMethodName = "/ddash.echo.StreamingGetterService/Tail"
+)
+
+// StreamingGetterServiceClient is the client API for StreamingGetterService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// StreamingGetterService streams from a getter, so the SDK must refuse it.
+type StreamingGetterServiceClient interface {
+	Tail(ctx context.Context, in *TailRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TailResponse], error)
+}
+
+type streamingGetterServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewStreamingGetterServiceClient(cc grpc.ClientConnInterface) StreamingGetterServiceClient {
+	return &streamingGetterServiceClient{cc}
+}
+
+func (c *streamingGetterServiceClient) Tail(ctx context.Context, in *TailRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[TailResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &StreamingGetterService_ServiceDesc.Streams[0], StreamingGetterService_Tail_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[TailRequest, TailResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StreamingGetterService_TailClient = grpc.ServerStreamingClient[TailResponse]
+
+// StreamingGetterServiceServer is the server API for StreamingGetterService service.
+// All implementations must embed UnimplementedStreamingGetterServiceServer
+// for forward compatibility.
+//
+// StreamingGetterService streams from a getter, so the SDK must refuse it.
+type StreamingGetterServiceServer interface {
+	Tail(*TailRequest, grpc.ServerStreamingServer[TailResponse]) error
+	mustEmbedUnimplementedStreamingGetterServiceServer()
+}
+
+// UnimplementedStreamingGetterServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedStreamingGetterServiceServer struct{}
+
+func (UnimplementedStreamingGetterServiceServer) Tail(*TailRequest, grpc.ServerStreamingServer[TailResponse]) error {
+	return status.Error(codes.Unimplemented, "method Tail not implemented")
+}
+func (UnimplementedStreamingGetterServiceServer) mustEmbedUnimplementedStreamingGetterServiceServer() {
+}
+func (UnimplementedStreamingGetterServiceServer) testEmbeddedByValue() {}
+
+// UnsafeStreamingGetterServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to StreamingGetterServiceServer will
+// result in compilation errors.
+type UnsafeStreamingGetterServiceServer interface {
+	mustEmbedUnimplementedStreamingGetterServiceServer()
+}
+
+func RegisterStreamingGetterServiceServer(s grpc.ServiceRegistrar, srv StreamingGetterServiceServer) {
+	// If the following call panics, it indicates UnimplementedStreamingGetterServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&StreamingGetterService_ServiceDesc, srv)
+}
+
+func _StreamingGetterService_Tail_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(TailRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StreamingGetterServiceServer).Tail(m, &grpc.GenericServerStream[TailRequest, TailResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type StreamingGetterService_TailServer = grpc.ServerStreamingServer[TailResponse]
+
+// StreamingGetterService_ServiceDesc is the grpc.ServiceDesc for StreamingGetterService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var StreamingGetterService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "ddash.echo.StreamingGetterService",
+	HandlerType: (*StreamingGetterServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Tail",
+			Handler:       _StreamingGetterService_Tail_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "echo/echo.proto",
+}
+
+const (
+	ClientStreamingService_Upload_FullMethodName = "/ddash.echo.ClientStreamingService/Upload"
+)
+
+// ClientStreamingServiceClient is the client API for ClientStreamingService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ClientStreamingService streams from the client, so the SDK must refuse it.
+type ClientStreamingServiceClient interface {
+	Upload(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadRequest, UploadResponse], error)
+}
+
+type clientStreamingServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewClientStreamingServiceClient(cc grpc.ClientConnInterface) ClientStreamingServiceClient {
+	return &clientStreamingServiceClient{cc}
+}
+
+func (c *clientStreamingServiceClient) Upload(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[UploadRequest, UploadResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &ClientStreamingService_ServiceDesc.Streams[0], ClientStreamingService_Upload_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[UploadRequest, UploadResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClientStreamingService_UploadClient = grpc.ClientStreamingClient[UploadRequest, UploadResponse]
+
+// ClientStreamingServiceServer is the server API for ClientStreamingService service.
+// All implementations must embed UnimplementedClientStreamingServiceServer
+// for forward compatibility.
+//
+// ClientStreamingService streams from the client, so the SDK must refuse it.
+type ClientStreamingServiceServer interface {
+	Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error
+	mustEmbedUnimplementedClientStreamingServiceServer()
+}
+
+// UnimplementedClientStreamingServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedClientStreamingServiceServer struct{}
+
+func (UnimplementedClientStreamingServiceServer) Upload(grpc.ClientStreamingServer[UploadRequest, UploadResponse]) error {
+	return status.Error(codes.Unimplemented, "method Upload not implemented")
+}
+func (UnimplementedClientStreamingServiceServer) mustEmbedUnimplementedClientStreamingServiceServer() {
+}
+func (UnimplementedClientStreamingServiceServer) testEmbeddedByValue() {}
+
+// UnsafeClientStreamingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ClientStreamingServiceServer will
+// result in compilation errors.
+type UnsafeClientStreamingServiceServer interface {
+	mustEmbedUnimplementedClientStreamingServiceServer()
+}
+
+func RegisterClientStreamingServiceServer(s grpc.ServiceRegistrar, srv ClientStreamingServiceServer) {
+	// If the following call panics, it indicates UnimplementedClientStreamingServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&ClientStreamingService_ServiceDesc, srv)
+}
+
+func _ClientStreamingService_Upload_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(ClientStreamingServiceServer).Upload(&grpc.GenericServerStream[UploadRequest, UploadResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type ClientStreamingService_UploadServer = grpc.ClientStreamingServer[UploadRequest, UploadResponse]
+
+// ClientStreamingService_ServiceDesc is the grpc.ServiceDesc for ClientStreamingService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var ClientStreamingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "ddash.echo.ClientStreamingService",
+	HandlerType: (*ClientStreamingServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Upload",
+			Handler:       _ClientStreamingService_Upload_Handler,
+			ClientStreams: true,
+		},
+	},
+	Metadata: "echo/echo.proto",
+}
+
+const (
+	BidiStreamingService_Chat_FullMethodName = "/ddash.echo.BidiStreamingService/Chat"
+)
+
+// BidiStreamingServiceClient is the client API for BidiStreamingService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// BidiStreamingService streams both ways, so the SDK must refuse it.
+type BidiStreamingServiceClient interface {
+	Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatRequest, ChatResponse], error)
+}
+
+type bidiStreamingServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewBidiStreamingServiceClient(cc grpc.ClientConnInterface) BidiStreamingServiceClient {
+	return &bidiStreamingServiceClient{cc}
+}
+
+func (c *bidiStreamingServiceClient) Chat(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ChatRequest, ChatResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &BidiStreamingService_ServiceDesc.Streams[0], BidiStreamingService_Chat_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ChatRequest, ChatResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BidiStreamingService_ChatClient = grpc.BidiStreamingClient[ChatRequest, ChatResponse]
+
+// BidiStreamingServiceServer is the server API for BidiStreamingService service.
+// All implementations must embed UnimplementedBidiStreamingServiceServer
+// for forward compatibility.
+//
+// BidiStreamingService streams both ways, so the SDK must refuse it.
+type BidiStreamingServiceServer interface {
+	Chat(grpc.BidiStreamingServer[ChatRequest, ChatResponse]) error
+	mustEmbedUnimplementedBidiStreamingServiceServer()
+}
+
+// UnimplementedBidiStreamingServiceServer must be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedBidiStreamingServiceServer struct{}
+
+func (UnimplementedBidiStreamingServiceServer) Chat(grpc.BidiStreamingServer[ChatRequest, ChatResponse]) error {
+	return status.Error(codes.Unimplemented, "method Chat not implemented")
+}
+func (UnimplementedBidiStreamingServiceServer) mustEmbedUnimplementedBidiStreamingServiceServer() {}
+func (UnimplementedBidiStreamingServiceServer) testEmbeddedByValue()                              {}
+
+// UnsafeBidiStreamingServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to BidiStreamingServiceServer will
+// result in compilation errors.
+type UnsafeBidiStreamingServiceServer interface {
+	mustEmbedUnimplementedBidiStreamingServiceServer()
+}
+
+func RegisterBidiStreamingServiceServer(s grpc.ServiceRegistrar, srv BidiStreamingServiceServer) {
+	// If the following call panics, it indicates UnimplementedBidiStreamingServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&BidiStreamingService_ServiceDesc, srv)
+}
+
+func _BidiStreamingService_Chat_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(BidiStreamingServiceServer).Chat(&grpc.GenericServerStream[ChatRequest, ChatResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type BidiStreamingService_ChatServer = grpc.BidiStreamingServer[ChatRequest, ChatResponse]
+
+// BidiStreamingService_ServiceDesc is the grpc.ServiceDesc for BidiStreamingService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var BidiStreamingService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "ddash.echo.BidiStreamingService",
+	HandlerType: (*BidiStreamingServiceServer)(nil),
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Chat",
+			Handler:       _BidiStreamingService_Chat_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "echo/echo.proto",
 }
