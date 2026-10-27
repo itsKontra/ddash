@@ -61,54 +61,54 @@ func (c *component) RunAction(req *appspb.RunActionRequest, stream grpc.ServerSt
 		return status.Error(codes.FailedPrecondition, strings.Join(blocked, " "))
 	}
 
-	run := newProgress(stream, len(pl.plan.GetSteps()))
+	progress := newProgress(stream, len(pl.plan.GetSteps()))
 	done := 0
 	var written *npmpb.ProxyHost
 	if pl.npm != nil {
-		run.mark(done, done+1, appspb.StepState_STEP_STATE_RUNNING)
+		progress.mark(done, done+1, appspb.StepState_STEP_STATE_RUNNING)
 		if written, err = pl.npm(ctx, c.npm); err != nil {
-			return c.stopped(ctx, pl, run, done, err)
+			return c.stopped(ctx, pl, progress, done, err)
 		}
 		if pl.deletes != 0 {
 			c.deletedProxyHost(pl.deletes)
 		} else {
 			c.wroteProxyHost(written)
 		}
-		run.mark(done, done+1, appspb.StepState_STEP_STATE_DONE)
+		progress.mark(done, done+1, appspb.StepState_STEP_STATE_DONE)
 		done++
 	}
 	if len(pl.dns) > 0 {
-		run.mark(done, done+len(pl.dns), appspb.StepState_STEP_STATE_RUNNING)
+		progress.mark(done, done+len(pl.dns), appspb.StepState_STEP_STATE_RUNNING)
 		if _, err := c.pfsense.ChangeHostOverrides(ctx, &pfpb.ChangeHostOverridesRequest{Steps: pl.dns}); err != nil {
 			r := batchResult(err)
 			n := int(r.GetSucceeded())
 			c.wroteDNS(pl.dns[:n])
-			run.mark(done, done+n, appspb.StepState_STEP_STATE_DONE)
+			progress.mark(done, done+n, appspb.StepState_STEP_STATE_DONE)
 			if r.GetApplyFailed() && n == len(pl.dns) {
-				return c.stoppedApplying(ctx, pl, run, done+n, err)
+				return c.stoppedApplying(ctx, pl, progress, done+n, err)
 			}
-			return c.stopped(ctx, pl, run, done+n, err)
+			return c.stopped(ctx, pl, progress, done+n, err)
 		}
 		c.wroteDNS(pl.dns)
-		run.mark(done, done+len(pl.dns), appspb.StepState_STEP_STATE_DONE)
+		progress.mark(done, done+len(pl.dns), appspb.StepState_STEP_STATE_DONE)
 		done += len(pl.dns)
 	}
 	id := pl.id
 	if pl.record != nil {
-		run.mark(done, done+1, appspb.StepState_STEP_STATE_RUNNING)
+		progress.mark(done, done+1, appspb.StepState_STEP_STATE_RUNNING)
 		recs, err := c.store.records(ctx)
 		if err != nil {
-			return c.stopped(ctx, pl, run, done, err)
+			return c.stopped(ctx, pl, progress, done, err)
 		}
 		var ch changes
 		ch, id = pl.record(recs, written)
 		if err := c.store.save(ctx, ch.put, ch.drop); err != nil {
-			return c.stopped(ctx, pl, run, done, err)
+			return c.stopped(ctx, pl, progress, done, err)
 		}
-		run.mark(done, done+1, appspb.StepState_STEP_STATE_DONE)
+		progress.mark(done, done+1, appspb.StepState_STEP_STATE_DONE)
 		done++
 	}
-	return stream.Send(&appspb.RunActionResponse{AppId: id, Done: int32(done), Reread: c.resyncLocked(ctx), Steps: run.steps})
+	return stream.Send(&appspb.RunActionResponse{AppId: id, Done: int32(done), Reread: c.resyncLocked(ctx), Steps: progress.steps})
 }
 
 // progress is a running App Action's Plan steps' states, which it streams
@@ -246,19 +246,19 @@ func batchResult(err error) *pfpb.ChangeHostOverridesResponse {
 // stopped is the error of an App Action that stopped at its step done
 // (counting from 0) on err: it names the step and what was done before,
 // and carries a RunActionResponse. The Action still ends with a sync.
-func (c *component) stopped(ctx context.Context, pl *planned, run *progress, done int, err error) error {
+func (c *component) stopped(ctx context.Context, pl *planned, progress *progress, done int, err error) error {
 	steps := pl.plan.GetSteps()
 	if done >= len(steps) {
 		return c.stoppedAt(ctx, pl, done, fmt.Sprintf("Stopped after step %d of %d", done, len(steps)), err)
 	}
-	run.fail(done)
+	progress.fail(done)
 	return c.stoppedAt(ctx, pl, done, fmt.Sprintf("Stopped at step %d of %d, %s", done+1, len(steps), steps[done].GetTitle()), err)
 }
 
 // stoppedApplying is the error of an App Action whose pfSense steps, up to
 // its step done, were all written but pfSense failed to apply them.
-func (c *component) stoppedApplying(ctx context.Context, pl *planned, run *progress, done int, err error) error {
-	run.fail(done - 1)
+func (c *component) stoppedApplying(ctx context.Context, pl *planned, progress *progress, done int, err error) error {
+	progress.fail(done - 1)
 	at := fmt.Sprintf("Stopped after step %d of %d, applying the Host Override changes in pfSense", done, len(pl.plan.GetSteps()))
 	return c.stoppedAt(ctx, pl, done, at, err)
 }

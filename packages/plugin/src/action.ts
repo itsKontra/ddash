@@ -103,10 +103,10 @@ export function useStreamingAction<I extends DescMessage, O extends DescMessage>
   const ask = useConfirm();
   const [state, setState] = useState<{ pending: boolean; last?: MessageShape<O>; error?: ConnectError }>({ pending: false });
   // Each run's own controller: leaving a for await doesn't abort its fetch.
-  const runs = useRef(new Set<AbortController>());
+  const aborts = useRef(new Set<AbortController>());
   useEffect(() => {
-    const open = runs.current;
-    return () => open.forEach((run) => run.abort());
+    const open = aborts.current;
+    return () => open.forEach((abort) => abort.abort());
   }, []);
 
   const run = useCallback(
@@ -114,7 +114,7 @@ export function useStreamingAction<I extends DescMessage, O extends DescMessage>
       const call = await confirmFirst(method, ask, request, options);
       if (!call) return undefined;
       const abort = new AbortController();
-      runs.current.add(abort);
+      aborts.current.add(abort);
       setState({ pending: true });
       let last: MessageShape<O> | undefined;
       try {
@@ -136,7 +136,7 @@ export function useStreamingAction<I extends DescMessage, O extends DescMessage>
         setState({ pending: false, last, error: ConnectError.from(err) });
         return undefined;
       } finally {
-        runs.current.delete(abort);
+        aborts.current.delete(abort);
       }
     },
     [method, transport, client, ask],

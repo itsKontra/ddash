@@ -79,10 +79,10 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var streaming bool
 	switch mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt {
 	case "application/json":
-	case streamJSON:
+	case StreamJSON:
 		streaming = true
 	default:
-		http.Error(w, "Connect calls are application/json, or "+streamJSON+" to stream", http.StatusUnsupportedMediaType)
+		http.Error(w, "Connect calls are application/json, or "+StreamJSON+" to stream", http.StatusUnsupportedMediaType)
 		return
 	}
 	fail := func(err error) { WriteError(w, err) }
@@ -114,23 +114,23 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fail(cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method)))
 		return
 	}
+	// The SDK lets only Actions stream, and only from the server.
+	if md.IsStreamingClient() || (md.IsStreamingServer() && !appstate.IsAction(md)) {
+		fail(status.Errorf(codes.Unimplemented, "%s streams, but only Actions stream, and only from the server", md.FullName()))
+		return
+	}
 	// As connect-go does, a method is called in its own kind's form only.
-	if streams := md.IsStreamingClient() || md.IsStreamingServer(); streams != streaming {
+	if streams := streams(md); streams != streaming {
 		want := "application/json"
 		if streams {
-			want = streamJSON
+			want = StreamJSON
 		}
 		http.Error(w, fmt.Sprintf("%s: call it with %s", md.FullName(), want), http.StatusUnsupportedMediaType)
 		return
 	}
-	// The SDK lets only Actions stream, and only from the server.
-	if md.IsStreamingClient() || (streaming && !appstate.IsAction(md)) {
-		fail(status.Errorf(codes.Unimplemented, "%s streams, but only Actions stream, and only from the server", md.FullName()))
-		return
-	}
 	limit := int64(maxRequestBytes)
 	if streaming {
-		limit += 5 // the envelope's header
+		limit += EnvelopeHeader
 	}
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
 	if err == nil && streaming {
@@ -165,20 +165,19 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fail(refused)
 		return
 	}
-	fullMethod := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
 	ctx, cancel := callContext(onward(r.Context(), actor, chain), md)
 	defer cancel()
 	if streaming {
 		// The whole stream runs under the Action's deadline, and the
 		// handler returns only once it ended, so shutdown waits for it.
 		s := newStream(w)
-		err = relay(ctx, s, ep, fullMethod, md, req)
+		err = relay(ctx, s, ep, md, req)
 		done(err)
 		s.end(err)
 		return
 	}
 	resp := dynamicpb.NewMessage(md.Output())
-	err = ep.Conn.Invoke(ctx, fullMethod, req, resp)
+	err = ep.Conn.Invoke(ctx, FullMethod(ep, md), req, resp)
 	done(err)
 	if err != nil {
 		WriteError(w, err)
@@ -191,6 +190,17 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+}
+
+// FullMethod is the gRPC name of md, a method of ep's API:
+// /<package.Service>/<Method>.
+func FullMethod(ep runtime.Endpoint, md protoreflect.MethodDescriptor) string {
+	return "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
+}
+
+// streams reports whether md streams, either way.
+func streams(md protoreflect.MethodDescriptor) bool {
+	return md.IsStreamingClient() || md.IsStreamingServer()
 }
 
 // NewChain returns a new chain id, for an Action that starts a chain.
