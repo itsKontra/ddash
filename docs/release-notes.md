@@ -5,6 +5,8 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+## v0.0.2-rc.4
+
 - An Action you confirmed now runs to its end even when you close the tab,
   and ddash lets a running Action finish before it stops for an update. Set
   `stop_grace_period: 90s` on the ddash service in your compose file, as
