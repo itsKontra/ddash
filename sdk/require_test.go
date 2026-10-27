@@ -13,6 +13,7 @@ import (
 
 	componentpb "github.com/itsKontra/ddash/proto/ddash/component"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/inmem"
 	"github.com/itsKontra/ddash/sdk/internal/echo/echopb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
@@ -30,6 +31,15 @@ func (r *relay) Start(ctx context.Context, env *sdk.Env, cfg *echopb.EchoConfig)
 
 func (r *relay) Echo(ctx context.Context, req *echopb.EchoRequest) (*echopb.EchoResponse, error) {
 	return r.upstream.Echo(ctx, req)
+}
+
+// Watch answers with what the Component it requires answered.
+func (r *relay) Watch(req *echopb.WatchRequest, stream grpc.ServerStreamingServer[echopb.WatchResponse]) error {
+	resp, err := r.upstream.Echo(stream.Context(), &echopb.EchoRequest{Message: req.GetMessage()})
+	if err != nil {
+		return err
+	}
+	return stream.Send(&echopb.WatchResponse{Message: resp.GetMessage()})
 }
 
 func defineRelay() sdk.Definition {
@@ -114,6 +124,38 @@ func TestASubprocessRequiresThroughTheHostOverGoPlugin(t *testing.T) {
 
 	if want := "host says hi for [operator:ada]"; err != nil || resp.GetMessage() != want {
 		t.Fatalf("Echo = %q, %v; want %q", resp.GetMessage(), err, want)
+	}
+}
+
+// carried stands in for the host: it answers Echo with the actor and chain
+// the call carried.
+type carried struct {
+	echopb.UnimplementedEchoServiceServer
+}
+
+func (carried) Echo(ctx context.Context, req *echopb.EchoRequest) (*echopb.EchoResponse, error) {
+	md, _ := metadata.FromIncomingContext(ctx)
+	return &echopb.EchoResponse{Message: fmt.Sprintf("%s for %v on %v", req.GetMessage(), md.Get(sdk.ActorMetadata), md.Get(sdk.ChainMetadata))}, nil
+}
+
+func TestAStreamedMethodCarriesItsActorAndChainOnward(t *testing.T) {
+	host, stop, err := inmem.Serve("host", func(s grpc.ServiceRegistrar) { echopb.RegisterEchoServiceServer(s, carried{}) })
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stop)
+	h := sdktest.New(t, defineRelay(), func(o *sdk.InstanceOptions) { o.Host = host })
+	h.MustStart(&echopb.EchoConfig{})
+
+	asAda := metadata.AppendToOutgoingContext(t.Context(), sdk.ActorMetadata, "operator:ada", sdk.ChainMetadata, "chain-1")
+	stream, err := echopb.NewEchoServiceClient(h.Conn).Watch(asAda, &echopb.WatchRequest{Message: "hi"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := stream.Recv()
+
+	if want := "hi for [operator:ada] on [chain-1]"; err != nil || resp.GetMessage() != want {
+		t.Fatalf("Watch = %q, %v; want %q", resp.GetMessage(), err, want)
 	}
 }
 

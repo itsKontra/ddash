@@ -347,20 +347,9 @@ func (l *lab) try(method string, req, out proto.Message) *callError {
 	}
 	res := l.h.Call("apps", "apps", method, string(body))
 	if res.Code != http.StatusOK {
-		var e struct {
-			Code, Message string
-			Details       []struct{ Type, Value string }
-		}
+		var e coretest.ConnectError
 		_ = json.Unmarshal(res.Body.Bytes(), &e)
-		out := &callError{code: e.Code, message: e.Message}
-		for _, d := range e.Details {
-			b, err := base64.RawStdEncoding.DecodeString(d.Value)
-			if err != nil {
-				l.t.Fatalf("%s's detail %s: %v", method, d.Type, err)
-			}
-			out.details = append(out.details, detail{d.Type, b})
-		}
-		return out
+		return l.callError(method, &e)
 	}
 	if out != nil {
 		if err := protojson.Unmarshal(res.Body.Bytes(), out); err != nil {
@@ -368,6 +357,43 @@ func (l *lab) try(method string, req, out proto.Message) *callError {
 		}
 	}
 	return nil
+}
+
+// stream calls apps' server-streaming method, returning each message it
+// streamed decoded into a new out, then its failure.
+func stream[M proto.Message](l *lab, method string, req proto.Message, out func() M) ([]M, *callError) {
+	l.t.Helper()
+	body, err := protojson.Marshal(req)
+	if err != nil {
+		l.t.Fatal(err)
+	}
+	s := l.h.Stream("apps", "apps", method, string(body))
+	var msgs []M
+	for _, m := range s.Messages {
+		msg := out()
+		if err := protojson.Unmarshal([]byte(m), msg); err != nil {
+			l.t.Fatalf("%s's message %s: %v", method, m, err)
+		}
+		msgs = append(msgs, msg)
+	}
+	if s.Error != nil {
+		return msgs, l.callError(method, s.Error)
+	}
+	return msgs, nil
+}
+
+// callError is method's failure e, its details decoded.
+func (l *lab) callError(method string, e *coretest.ConnectError) *callError {
+	l.t.Helper()
+	out := &callError{code: e.Code, message: e.Message}
+	for _, d := range e.Details {
+		b, err := base64.RawStdEncoding.DecodeString(d.Value)
+		if err != nil {
+			l.t.Fatalf("%s's detail %s: %v", method, d.Type, err)
+		}
+		out.details = append(out.details, detail{d.Type, b})
+	}
+	return out
 }
 
 func (l *lab) list() *appspb.ListAppsResponse {

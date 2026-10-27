@@ -41,8 +41,7 @@ func (h *Host) formGetter(ctx context.Context, component, getter string, out pro
 	ctx = metadata.AppendToOutgoingContext(ctx,
 		sdk.ActorMetadata, auth.Actor{Kind: auth.Core}.String(), sdk.ChainMetadata, router.NewChain())
 	resp := dynamicpb.NewMessage(md.Output())
-	method := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
-	if err := ep.Conn.Invoke(ctx, method, dynamicpb.NewMessage(md.Input()), resp); err != nil {
+	if err := ep.Conn.Invoke(ctx, router.FullMethod(ep, md), dynamicpb.NewMessage(md.Input()), resp); err != nil {
 		return err
 	}
 	want := out.ProtoReflect().Descriptor().FullName()

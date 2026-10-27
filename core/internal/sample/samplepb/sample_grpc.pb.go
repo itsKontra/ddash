@@ -26,6 +26,7 @@ const (
 	SampleService_WaitAction_FullMethodName   = "/ddash.sample.SampleService/WaitAction"
 	SampleService_GetSetupHint_FullMethodName = "/ddash.sample.SampleService/GetSetupHint"
 	SampleService_Act_FullMethodName          = "/ddash.sample.SampleService/Act"
+	SampleService_Progress_FullMethodName     = "/ddash.sample.SampleService/Progress"
 )
 
 // SampleServiceClient is the client API for SampleService service.
@@ -44,6 +45,11 @@ type SampleServiceClient interface {
 	GetSetupHint(ctx context.Context, in *GetSetupHintRequest, opts ...grpc.CallOption) (*GetSetupHintResponse, error)
 	// Act answers with the actor it ran for, unless its hook replaces it.
 	Act(ctx context.Context, in *ActRequest, opts ...grpc.CallOption) (*ActResponse, error)
+	// Progress streams count messages, their steps numbered from 1. Once it
+	// sent wait_after of them it waits as WaitAction does; once it sent
+	// fail_after of them it fails ABORTED "stopped at <step>", with the last
+	// message sent as a detail.
+	Progress(ctx context.Context, in *ProgressRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressResponse], error)
 }
 
 type sampleServiceClient struct {
@@ -104,6 +110,25 @@ func (c *sampleServiceClient) Act(ctx context.Context, in *ActRequest, opts ...g
 	return out, nil
 }
 
+func (c *sampleServiceClient) Progress(ctx context.Context, in *ProgressRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ProgressResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &SampleService_ServiceDesc.Streams[0], SampleService_Progress_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ProgressRequest, ProgressResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SampleService_ProgressClient = grpc.ServerStreamingClient[ProgressResponse]
+
 // SampleServiceServer is the server API for SampleService service.
 // All implementations must embed UnimplementedSampleServiceServer
 // for forward compatibility.
@@ -120,6 +145,11 @@ type SampleServiceServer interface {
 	GetSetupHint(context.Context, *GetSetupHintRequest) (*GetSetupHintResponse, error)
 	// Act answers with the actor it ran for, unless its hook replaces it.
 	Act(context.Context, *ActRequest) (*ActResponse, error)
+	// Progress streams count messages, their steps numbered from 1. Once it
+	// sent wait_after of them it waits as WaitAction does; once it sent
+	// fail_after of them it fails ABORTED "stopped at <step>", with the last
+	// message sent as a detail.
+	Progress(*ProgressRequest, grpc.ServerStreamingServer[ProgressResponse]) error
 	mustEmbedUnimplementedSampleServiceServer()
 }
 
@@ -144,6 +174,9 @@ func (UnimplementedSampleServiceServer) GetSetupHint(context.Context, *GetSetupH
 }
 func (UnimplementedSampleServiceServer) Act(context.Context, *ActRequest) (*ActResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Act not implemented")
+}
+func (UnimplementedSampleServiceServer) Progress(*ProgressRequest, grpc.ServerStreamingServer[ProgressResponse]) error {
+	return status.Error(codes.Unimplemented, "method Progress not implemented")
 }
 func (UnimplementedSampleServiceServer) mustEmbedUnimplementedSampleServiceServer() {}
 func (UnimplementedSampleServiceServer) testEmbeddedByValue()                       {}
@@ -256,6 +289,17 @@ func _SampleService_Act_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _SampleService_Progress_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ProgressRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(SampleServiceServer).Progress(m, &grpc.GenericServerStream[ProgressRequest, ProgressResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type SampleService_ProgressServer = grpc.ServerStreamingServer[ProgressResponse]
+
 // SampleService_ServiceDesc is the grpc.ServiceDesc for SampleService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -284,6 +328,12 @@ var SampleService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SampleService_Act_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Progress",
+			Handler:       _SampleService_Progress_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "sample/sample.proto",
 }

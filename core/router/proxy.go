@@ -26,9 +26,10 @@ import (
 // HostServer returns the gRPC server through which caller's sdk.Require
 // clients reach the Components caller requires. It is a transparent proxy:
 // it finds the Component serving the called service among caller's
-// requires, refusing a call outside them with PermissionDenied, applies the
-// deadline, passes Actions through the gate, and forwards the request and
-// response bytes unchanged. A launcher serves it to caller, with opts.
+// requires, refusing a call outside them with PermissionDenied and a
+// streaming method with Unimplemented, applies the deadline, passes Actions
+// through the gate, and forwards the request and response bytes unchanged.
+// A launcher serves it to caller, with opts.
 func (rt *Router) HostServer(caller string, opts ...grpc.ServerOption) *grpc.Server {
 	opts = append(opts,
 		grpc.UnknownServiceHandler(rt.proxy(caller)),
@@ -54,6 +55,9 @@ func (rt *Router) proxy(caller string) grpc.StreamHandler {
 		if md == nil {
 			return cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", target, method))
 		}
+		if streams(md) {
+			refused = cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s streams; Components call each other unary only", md.FullName()))
+		}
 		var req frame
 		if err := stream.RecvMsg(&req); err != nil {
 			return err
@@ -77,7 +81,7 @@ func (rt *Router) proxy(caller string) grpc.StreamHandler {
 			done(refused)
 			return refused
 		}
-		ctx, cancel := context.WithTimeout(onward(ctx, actor, chain), Deadline(md))
+		ctx, cancel := callContext(onward(ctx, actor, chain), md)
 		defer cancel()
 		var resp frame
 		err = ep.Conn.Invoke(ctx, fullMethod, &req, &resp, grpc.ForceCodecV2(rawCodec{}))

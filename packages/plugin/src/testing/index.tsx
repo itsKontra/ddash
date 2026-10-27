@@ -12,15 +12,22 @@ import { createQueryClient } from "../query";
 import { PluginHost, PluginScope } from "../scope";
 import type { Fetch } from "../transport";
 
-/** A call the fake core received: the method's name, the URL's path and the decoded JSON body. */
+/**
+ * A call the fake core received: the method's name, the URL's path and the
+ * decoded JSON body (a streamed call's too, taken out of its envelope).
+ */
 export interface Call {
   method: string;
   url: string;
   body: unknown;
 }
 
-/** How the fake core answers one method, given the call's decoded body. */
-export type Answer = (body: unknown) => Response | Promise<Response>;
+/**
+ * How the fake core answers one method, given the call's decoded body and
+ * what it was fetched with (e.g. its signal, to keep a stream open on),
+ * which renderScoped always passes.
+ */
+export type Answer = (body: unknown, init?: RequestInit) => Response | Promise<Response>;
 
 /** The fake core's answers, by method name. */
 export type Answers = Record<string, Answer>;
@@ -36,6 +43,66 @@ export function pending(): Promise<Response> {
 
 /** The core's answer while a Component is down: Connect's unavailable, as a 503. */
 export const unavailable = (message: string) => Response.json({ code: "unavailable", message }, { status: 503 });
+
+/** An error's detail as Connect JSON carries it: the message's full name and its binary encoding in unpadded base64. */
+export interface Detail {
+  type: string;
+  value: string;
+}
+
+/** A streamed call's end-of-stream error, as the host writes it: e.g. failed_precondition, with details. */
+export interface StreamError {
+  code: string;
+  message: string;
+  details?: Detail[];
+}
+
+export interface StreamOptions {
+  /** The error the stream ends with after its messages; a clean end by default. */
+  error?: StreamError;
+  /**
+   * Keeps the stream open after its messages, as a running Action's stays,
+   * until this signal aborts (the call's own: init.signal), when its body
+   * fails as an aborted fetch's does.
+   */
+  openUntil?: AbortSignal | null;
+}
+
+/** One Connect envelope: a flags byte, the length as 4 bytes big-endian, then the JSON. */
+function envelope(flags: number, json: unknown): Uint8Array {
+  const data = new TextEncoder().encode(JSON.stringify(json));
+  const out = new Uint8Array(5 + data.length);
+  out[0] = flags;
+  new DataView(out.buffer).setUint32(1, data.length);
+  out.set(data, 5);
+  return out;
+}
+
+/**
+ * The host's answer to a streamed call, as Connect's application/connect+json:
+ * a 200 carrying each message in its own envelope, then the end of the stream
+ * ({} or the error). Each envelope comes a turn of the event loop after the
+ * last, as the host flushes them, so each message renders on its own.
+ */
+export function streamed(messages: unknown[], { error, openUntil }: StreamOptions = {}): Response {
+  const envelopes = messages.map((m) => envelope(0, m));
+  if (!openUntil) envelopes.push(envelope(2, error ? { error } : {}));
+  const body = new ReadableStream<Uint8Array>({
+    start(stream) {
+      const abort = () => stream.error(new DOMException("The operation was aborted.", "AbortError"));
+      if (openUntil?.aborted) abort();
+      else openUntil?.addEventListener("abort", abort, { once: true });
+    },
+    async pull(stream) {
+      await new Promise((r) => setTimeout(r, 0));
+      const next = envelopes.shift();
+      if (next) stream.enqueue(next);
+      else if (openUntil) await new Promise(() => {});
+      else stream.close();
+    },
+  });
+  return new Response(body, { headers: { "Content-Type": "application/connect+json" } });
+}
 
 /**
  * Wraps a fake fetch so settle waits for its answers. The shell's tests
@@ -73,9 +140,15 @@ export async function settle() {
   }
 }
 
-const decode = (body: BodyInit | null | undefined): unknown => {
+// A call's JSON body. A streamed call (application/connect+json) sends its
+// request in one envelope, behind the 5 bytes of flags and length.
+const decode = (init: RequestInit | undefined): unknown => {
+  const body = init?.body;
   if (!body) return undefined;
-  return JSON.parse(typeof body === "string" ? body : new TextDecoder().decode(body as Uint8Array));
+  if (typeof body === "string") return JSON.parse(body);
+  const bytes = body as Uint8Array;
+  const enveloped = new Headers(init.headers).get("Content-Type")?.startsWith("application/connect+");
+  return JSON.parse(new TextDecoder().decode(enveloped ? bytes.subarray(5) : bytes));
 };
 
 /** The Plugin scope a test renders in: its name and the Components it requires. */
@@ -105,9 +178,9 @@ export function renderScoped(scope: Scope, children: ReactNode, { answers = {}, 
   const fetch = tracked(async (input, init) => {
     const url = new URL(String(input), "http://ddash.test").pathname;
     const method = url.split("/").pop()!;
-    const body = decode(init?.body);
+    const body = decode(init);
     calls.push({ method, url, body });
-    return answers[method] ? answers[method](body) : unanswered(method, body);
+    return answers[method] ? answers[method](body, init) : unanswered(method, body);
   });
   // Icon draws through the page's own fetch.
   vi.stubGlobal("fetch", async () => Response.json({}));

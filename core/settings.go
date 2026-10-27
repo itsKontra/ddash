@@ -88,7 +88,7 @@ func (h *Host) SaveConfig(ctx context.Context, req *corepb.SaveConfigRequest) (*
 		record.Changes = edit.Changes
 	}
 	resp := &corepb.SaveConfigResponse{}
-	err = h.coreAction(ctx, "SaveConfig", record, func() error {
+	err = h.coreAction(ctx, "SaveConfig", record, func(ctx context.Context) error {
 		if err != nil {
 			return err
 		}

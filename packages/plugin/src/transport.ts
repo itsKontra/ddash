@@ -9,19 +9,20 @@ export function isDisruptive(method: DescMethod): boolean {
 }
 
 /**
- * The confirm text the Operator agreed to, which useAction sets on a
- * disruptive call. Empty when there was no confirm.
+ * The confirm text the Operator agreed to, which useAction and
+ * useStreamingAction set on a disruptive call. Empty when there was no
+ * confirm.
  */
 export const confirmed = createContextKey("", { description: "the confirm text the Operator agreed to" });
 
 /**
  * Refuses a disruptive call that wasn't confirmed, so a missing confirm
- * fails in dev rather than shipping.
+ * fails in dev rather than shipping. Streams too.
  */
 const requireConfirm: Interceptor = (next) => (req) => {
   if (isDisruptive(req.method) && !req.contextValues.get(confirmed)) {
     throw new ConnectError(
-      `${req.method.parent.typeName}.${req.method.name} is disruptive: run it with a confirm text through useAction`,
+      `${req.method.parent.typeName}.${req.method.name} is disruptive: run it with a confirm text through ${req.stream ? "useStreamingAction" : "useAction"}`,
       Code.FailedPrecondition,
     );
   }
@@ -45,7 +46,7 @@ export type Fetch = typeof globalThis.fetch;
  * Ddash-Plugin header and goes to /api/c/<component>/<package.Service>/<Method>,
  * where component is the one among the Plugin's requires whose name, without
  * hyphens, is the service's package after "ddash." (docker-api serves
- * ddash.dockerapi).
+ * ddash.dockerapi). A server-streaming Action goes the same way.
  */
 export function pluginTransport(plugin: PluginRef, fetch?: Fetch): Transport {
   const naming: Interceptor = (next) => (req) => {
@@ -73,8 +74,15 @@ export function pluginTransport(plugin: PluginRef, fetch?: Fetch): Transport {
     async unary(method, ...rest) {
       return forService(method.parent.typeName).unary(method, ...rest);
     },
-    async stream() {
-      throw new ConnectError("ddash methods are unary only", Code.Unimplemented);
+    async stream(method, ...rest) {
+      // connect-web can't send a client stream, and no Component serves one.
+      if (method.methodKind !== "server_streaming") {
+        throw new ConnectError(
+          `${method.parent.typeName}.${method.name} streams from the client; ddash methods are unary or server-streaming`,
+          Code.Unimplemented,
+        );
+      }
+      return forService(method.parent.typeName).stream(method, ...rest);
     },
   };
 }

@@ -211,9 +211,10 @@ func (d Definition) checkSetupHint(cfg protoreflect.MessageDescriptor) error {
 	return fmt.Errorf("sdk: %s: %s's setup_from %s answers %s, which has no ddash.config.SetupHint field", d.Name(), cfg.FullName(), name, m.Output().FullName())
 }
 
-// checkMethods enforces that every API method is unary and exactly one of a
-// getter or an Action, since the host derives routing, refresh, confirms
-// and the Audit Log from that.
+// checkMethods enforces that every API method is exactly one of a getter or
+// an Action, since the host derives routing, refresh, confirms and the
+// Audit Log from that, and unary unless it is an Action streaming from the
+// server.
 func (d Definition) checkMethods() error {
 	svc, err := d.serviceDescriptor()
 	if err != nil {
@@ -222,14 +223,17 @@ func (d Definition) checkMethods() error {
 	methods := svc.Methods()
 	for i := range methods.Len() {
 		m := methods.Get(i)
-		if m.IsStreamingClient() || m.IsStreamingServer() {
-			return fmt.Errorf("sdk: %s: %s streams; Component methods are unary only", d.Name(), m.FullName())
+		if m.IsStreamingClient() {
+			return fmt.Errorf("sdk: %s: %s streams from the client; Component methods are unary or server-streaming Actions", d.Name(), m.FullName())
 		}
 		opts := m.Options()
 		getter := proto.HasExtension(opts, ddashpb.E_Getter)
 		action := proto.HasExtension(opts, ddashpb.E_Action)
 		if getter == action {
 			return fmt.Errorf("sdk: %s: %s must be exactly one of a getter or an Action: option (ddash.getter) or (ddash.action)", d.Name(), m.FullName())
+		}
+		if m.IsStreamingServer() && getter {
+			return fmt.Errorf("sdk: %s: %s streams, but only Actions may stream", d.Name(), m.FullName())
 		}
 	}
 	return nil

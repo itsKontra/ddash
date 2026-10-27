@@ -85,16 +85,46 @@ func (i *Instance) Register(s grpc.ServiceRegistrar) {
 		api.Methods[n] = grpc.MethodDesc{
 			MethodName: m.MethodName,
 			Handler: func(_ any, ctx context.Context, dec func(any) error, ic grpc.UnaryServerInterceptor) (any, error) {
-				r := i.ready.Load()
-				if r == nil {
-					return nil, status.Error(codes.FailedPrecondition, "not configured")
+				c, err := i.configured()
+				if err != nil {
+					return nil, err
 				}
-				return handler(r.c.impl(), fromHost(ctx), dec, ic)
+				return handler(c.impl(), fromHost(ctx), dec, ic)
 			},
 		}
 	}
+	api.Streams = make([]grpc.StreamDesc, len(i.def.service.Streams))
+	for n, sd := range i.def.service.Streams {
+		handler := sd.Handler
+		sd.Handler = func(_ any, stream grpc.ServerStream) error {
+			c, err := i.configured()
+			if err != nil {
+				return err
+			}
+			return handler(c.impl(), hostStream{stream, fromHost(stream.Context())})
+		}
+		api.Streams[n] = sd
+	}
 	s.RegisterService(&api, struct{}{})
 }
+
+// configured returns the started Component, or FailedPrecondition "not
+// configured" until Start succeeded.
+func (i *Instance) configured() (component, error) {
+	r := i.ready.Load()
+	if r == nil {
+		return nil, status.Error(codes.FailedPrecondition, "not configured")
+	}
+	return r.c, nil
+}
+
+// hostStream is a stream whose context carries who the call runs for.
+type hostStream struct {
+	grpc.ServerStream
+	ctx context.Context
+}
+
+func (s hostStream) Context() context.Context { return s.ctx }
 
 func (i *Instance) Describe(context.Context, *componentpb.DescribeRequest) (*componentpb.DescribeResponse, error) {
 	d, err := i.def.describe()
@@ -151,17 +181,17 @@ func (i *Instance) start(req *componentpb.StartRequest) error {
 }
 
 func (i *Instance) Health(ctx context.Context, _ *componentpb.HealthRequest) (*componentpb.HealthResponse, error) {
-	r := i.ready.Load()
-	if r == nil {
+	c, err := i.configured()
+	if err != nil {
 		i.mu.Lock()
 		startErr := i.startErr
 		i.mu.Unlock()
 		if startErr == nil || FieldErrorsOf(startErr) != nil {
-			return nil, status.Error(codes.FailedPrecondition, "not configured")
+			return nil, err
 		}
 		return Health{State: Down, Message: status.Convert(startErr).Message()}.proto(), nil
 	}
-	return worst(r.c.Health(ctx), i.loops.health()).proto(), nil
+	return worst(c.Health(ctx), i.loops.health()).proto(), nil
 }
 
 // worst returns the worst of hs, the first of equals.

@@ -1,7 +1,8 @@
 // Package router carries every call that reaches a Component. UI calls
-// arrive at /api/c/<component>/<Method> as Connect unary JSON, transcoded to
-// and from the Component's protobuf API with dynamicpb and protojson from
-// the descriptors the Component's Describe returned. Calls between
+// arrive at /api/c/<component>/<Method> as Connect unary JSON, or Connect
+// server-streaming JSON for an Action that streams, transcoded to and from
+// the Component's protobuf API with dynamicpb and protojson from the
+// descriptors the Component's Describe returned. Calls between
 // Components arrive through HostServer, a transparent gRPC proxy. Either
 // way the router enforces requires, sets the deadline, carries the actor
 // and chain id onward, and passes Actions through the gate.
@@ -11,6 +12,7 @@ import (
 	"cmp"
 	"context"
 	"crypto/rand"
+	"fmt"
 	"io"
 	"mime"
 	"net/http"
@@ -69,16 +71,27 @@ func New(components Components, gate *appstate.Gate) *Router {
 func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.Header().Set("Allow", http.MethodPost)
-		http.Error(w, "Connect unary calls are POST", http.StatusMethodNotAllowed)
+		http.Error(w, "Connect calls are POST", http.StatusMethodNotAllowed)
 		return
 	}
-	if mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt != "application/json" {
-		http.Error(w, "Connect unary calls are application/json", http.StatusUnsupportedMediaType)
+	// The content type picks the form of the answer, refusals included:
+	// connect-web reads a stream's error only from its end-of-stream.
+	var streaming bool
+	switch mt, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type")); mt {
+	case "application/json":
+	case StreamJSON:
+		streaming = true
+	default:
+		http.Error(w, "Connect calls are application/json, or "+StreamJSON+" to stream", http.StatusUnsupportedMediaType)
 		return
+	}
+	fail := func(err error) { WriteError(w, err) }
+	if streaming {
+		fail = func(err error) { newStream(w).end(err) }
 	}
 	component, method, ok := strings.Cut(strings.TrimPrefix(r.URL.Path, Prefix), "/")
 	if !ok {
-		WriteError(w, status.Error(codes.NotFound, "want /api/c/<component>/<Method>"))
+		fail(status.Error(codes.NotFound, "want /api/c/<component>/<Method>"))
 		return
 	}
 	// A refusal for scope or an undecodable request still passes an Action
@@ -86,7 +99,7 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	refused := rt.inScope(r.Header.Get(PluginHeader), component)
 	ep, err := rt.components.Endpoint(component)
 	if err != nil {
-		WriteError(w, cmp.Or(refused, err))
+		fail(cmp.Or(refused, err))
 		return
 	}
 	// Stock connect-web clients with base URL /api/c/<component> ask for
@@ -98,12 +111,33 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		md = ep.Service.Methods().ByName(protoreflect.Name(name))
 	}
 	if md == nil {
-		WriteError(w, cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method)))
+		fail(cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", component, method)))
 		return
 	}
-	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxRequestBytes))
+	// The SDK lets only Actions stream, and only from the server.
+	if md.IsStreamingClient() || (md.IsStreamingServer() && !appstate.IsAction(md)) {
+		fail(status.Errorf(codes.Unimplemented, "%s streams, but only Actions stream, and only from the server", md.FullName()))
+		return
+	}
+	// As connect-go does, a method is called in its own kind's form only.
+	if streams := streams(md); streams != streaming {
+		want := "application/json"
+		if streams {
+			want = StreamJSON
+		}
+		http.Error(w, fmt.Sprintf("%s: call it with %s", md.FullName(), want), http.StatusUnsupportedMediaType)
+		return
+	}
+	limit := int64(maxRequestBytes)
+	if streaming {
+		limit += EnvelopeHeader
+	}
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, limit))
+	if err == nil && streaming {
+		body, err = readEnvelope(body)
+	}
 	if err != nil {
-		WriteError(w, status.Errorf(codes.InvalidArgument, "read request: %v", err))
+		fail(status.Errorf(codes.InvalidArgument, "read request: %v", err))
 		return
 	}
 	req := dynamicpb.NewMessage(md.Input())
@@ -117,25 +151,33 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	actor, ok := auth.ActorFrom(r.Context())
 	if !ok {
-		WriteError(w, status.Error(codes.Unauthenticated, "sign in first"))
+		fail(status.Error(codes.Unauthenticated, "sign in first"))
 		return
 	}
 	chain := NewChain()
 	done, err := rt.gate.Admit(r.Context(), actor, appstate.Action{Chain: chain, Target: component, Method: md, Request: req})
 	if err != nil {
-		WriteError(w, err)
+		fail(err)
 		return
 	}
 	if refused != nil {
 		done(refused)
-		WriteError(w, refused)
+		fail(refused)
+		return
+	}
+	ctx, cancel := callContext(onward(r.Context(), actor, chain), md)
+	defer cancel()
+	if streaming {
+		// The whole stream runs under the Action's deadline, and the
+		// handler returns only once it ended, so shutdown waits for it.
+		s := newStream(w)
+		err = relay(ctx, s, ep, md, req)
+		done(err)
+		s.end(err)
 		return
 	}
 	resp := dynamicpb.NewMessage(md.Output())
-	fullMethod := "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
-	ctx, cancel := context.WithTimeout(onward(r.Context(), actor, chain), Deadline(md))
-	defer cancel()
-	err = ep.Conn.Invoke(ctx, fullMethod, req, resp)
+	err = ep.Conn.Invoke(ctx, FullMethod(ep, md), req, resp)
 	done(err)
 	if err != nil {
 		WriteError(w, err)
@@ -148,6 +190,17 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+}
+
+// FullMethod is the gRPC name of md, a method of ep's API:
+// /<package.Service>/<Method>.
+func FullMethod(ep runtime.Endpoint, md protoreflect.MethodDescriptor) string {
+	return "/" + string(ep.Service.FullName()) + "/" + string(md.Name())
+}
+
+// streams reports whether md streams, either way.
+func streams(md protoreflect.MethodDescriptor) bool {
+	return md.IsStreamingClient() || md.IsStreamingServer()
 }
 
 // NewChain returns a new chain id, for an Action that starts a chain.
@@ -170,13 +223,20 @@ const (
 	ActionDeadline = 60 * time.Second
 )
 
-// Deadline is how long a call to md may take: ActionDeadline for an
-// Action, GetterDeadline for a getter.
-func Deadline(md protoreflect.MethodDescriptor) time.Duration {
+// Detach returns the context an admitted Action runs under: ctx's values
+// (actor, chain) without its cancellation, ending after ActionDeadline. An
+// Action runs to its end whatever its caller does (ADR-0004).
+func Detach(ctx context.Context) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.WithoutCancel(ctx), ActionDeadline)
+}
+
+// callContext returns the context a call to md runs under: detached for an
+// Action, and for a getter ctx bounded by GetterDeadline.
+func callContext(ctx context.Context, md protoreflect.MethodDescriptor) (context.Context, context.CancelFunc) {
 	if appstate.IsAction(md) {
-		return ActionDeadline
+		return Detach(ctx)
 	}
-	return GetterDeadline
+	return context.WithTimeout(ctx, GetterDeadline)
 }
 
 // inScope refuses a call unless plugin is installed and lists component

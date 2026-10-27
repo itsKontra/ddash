@@ -1,11 +1,53 @@
 import { create, toBinary, type DescMessage, type MessageInitShape } from "@bufbuild/protobuf";
 import { base64Encode } from "@bufbuild/protobuf/wire";
-import { renderScoped as render, type Answers, type Call } from "@ddash/plugin/testing";
+import { renderScoped as render, streamed, type Answers, type Call } from "@ddash/plugin/testing";
 
-/** A Connect error answer with a detail, e.g. RunAction's stopped run or its refusal with the new Plan. */
-export function failing<D extends DescMessage>(code: string, message: string, schema: D, detail: MessageInitShape<D>, status = 400) {
+/**
+ * RunAction's stream ending in a Connect error with a detail after
+ * messages (none by default), e.g. a stopped run after its steps' states,
+ * or its refusal with the new Plan.
+ */
+export function failing<D extends DescMessage>(code: string, message: string, schema: D, detail: MessageInitShape<D>, messages: unknown[] = []) {
   const value = base64Encode(toBinary(schema, create(schema, detail)), "std_raw");
-  return () => Response.json({ code, message, details: [{ type: schema.typeName, value }] }, { status });
+  return () => streamed(messages, { error: { code, message, details: [{ type: schema.typeName, value }] } });
+}
+
+/**
+ * Keeps what read gives each time the page changes, once in a row, from
+ * now until stop; e.g. a Plan's step states as a run streams them.
+ */
+export function watch<T>(read: () => T) {
+  const seen: T[] = [];
+  const look = () => {
+    const now = read();
+    if (JSON.stringify(seen.at(-1)) !== JSON.stringify(now)) seen.push(now);
+  };
+  const observer = new MutationObserver(look);
+  observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+  look();
+  return {
+    seen,
+    stop: () => {
+      look();
+      observer.disconnect();
+    },
+  };
+}
+
+/** A step's state as RunAction streams it (Connect JSON). */
+export const step = { pending: "STEP_STATE_PENDING", running: "STEP_STATE_RUNNING", done: "STEP_STATE_DONE", failed: "STEP_STATE_FAILED" } as const;
+
+/** RunAction's stream of a run through: each step's state as it changes, then its result, every step done. */
+export function ranThrough(result: { appId: string; done: number; reread?: string }) {
+  const states: string[][] = [];
+  const steps: string[] = Array.from({ length: result.done }, () => step.pending);
+  for (let i = 0; i < result.done; i++) {
+    steps[i] = step.running;
+    states.push([...steps]);
+    steps[i] = step.done;
+    states.push([...steps]);
+  }
+  return () => streamed([...states.map((s) => ({ steps: s })), { ...result, steps }]);
 }
 
 const day = 86_400_000;

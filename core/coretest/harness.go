@@ -20,8 +20,10 @@ import (
 	"cmp"
 	"context"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"maps"
@@ -316,13 +318,102 @@ func ConnectRequest(component, method, body string) *http.Request {
 	return r
 }
 
+// Stream makes a Connect server-streaming JSON call from plugin's transport
+// to component's method, as the shell would, and decodes what streamed
+// back. It fails the test unless the answer is a whole stream.
+func (h *Harness) Stream(plugin, component, method, body string) Streamed {
+	h.t.Helper()
+	r := StreamRequest(component, method, body)
+	r.Header.Set(PluginHeader, plugin)
+	res := h.Do(r)
+	s, err := ReadStream(res.Body)
+	if err != nil {
+		h.t.Fatalf("%s: status %d: %v", method, res.Code, err)
+	}
+	s.Status, s.Header = res.Code, res.Header()
+	return s
+}
+
+// StreamRequest is a Connect server-streaming JSON request to component's
+// method, body in its one envelope, naming no Plugin.
+func StreamRequest(component, method, body string) *http.Request {
+	env := binary.BigEndian.AppendUint32([]byte{router.FlagMessage}, uint32(len(body)))
+	r := httptest.NewRequest(http.MethodPost, "/api/c/"+component+"/"+method, bytes.NewReader(append(env, body...)))
+	r.Header.Set("Content-Type", router.StreamJSON)
+	r.Header.Set("Connect-Protocol-Version", "1")
+	return r
+}
+
+// Streamed is what a streamed call answered.
+type Streamed struct {
+	Status int
+	Header http.Header
+	// Messages are the messages' JSON, in order.
+	Messages []string
+	// Error is the end-of-stream's error; nil when the stream ended ok.
+	Error *ConnectError
+}
+
+// ConnectError is a Connect error as its JSON carries it.
+type ConnectError struct {
+	Code    string
+	Message string
+	Details []struct{ Type, Value string }
+}
+
+// ReadStream reads a Connect stream from r: its messages, then its
+// end-of-stream, which must come last.
+func ReadStream(r io.Reader) (Streamed, error) {
+	var s Streamed
+	for {
+		flags, msg, err := ReadEnvelope(r)
+		if err != nil {
+			return s, err
+		}
+		if flags == router.FlagMessage {
+			s.Messages = append(s.Messages, string(msg))
+			continue
+		}
+		if flags != router.FlagEndStream {
+			return s, fmt.Errorf("envelope flags %#x", flags)
+		}
+		var end struct{ Error *ConnectError }
+		if err := json.Unmarshal(msg, &end); err != nil {
+			return s, fmt.Errorf("end-of-stream %s: %v", msg, err)
+		}
+		if extra, _ := io.ReadAll(r); len(extra) > 0 {
+			return s, fmt.Errorf("%d bytes after the end-of-stream", len(extra))
+		}
+		s.Error = end.Error
+		return s, nil
+	}
+}
+
+// ReadEnvelope reads one Connect envelope from r.
+func ReadEnvelope(r io.Reader) (flags byte, msg []byte, err error) {
+	var head [router.EnvelopeHeader]byte
+	if _, err := io.ReadFull(r, head[:]); err != nil {
+		return 0, nil, fmt.Errorf("envelope: %w", err)
+	}
+	msg = make([]byte, binary.BigEndian.Uint32(head[1:]))
+	if _, err := io.ReadFull(r, msg); err != nil {
+		return 0, nil, fmt.Errorf("envelope: %w", err)
+	}
+	return head[0], msg, nil
+}
+
 // CoreCall makes a Connect unary JSON call to the core API's method, as the
 // shell would.
 func (h *Harness) CoreCall(method, body string) *httptest.ResponseRecorder {
+	return h.Do(CoreRequest(method, body))
+}
+
+// CoreRequest is a Connect unary JSON request to the core API's method.
+func CoreRequest(method, body string) *http.Request {
 	r := httptest.NewRequest(http.MethodPost, "/api/core/ddash.core.CoreService/"+method, bytes.NewBufferString(body))
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Connect-Protocol-Version", "1")
-	return h.Do(r)
+	return r
 }
 
 // Get serves a GET of path, as the browser would.

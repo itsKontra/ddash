@@ -121,21 +121,21 @@ func TestTheAuditLogFiltersByOutcome(t *testing.T) {
 		}
 		return &samplepb.ActResponse{}, nil
 	}}
-	h := newRelay(t, relayWhenAsked, refuseOnward)
+	release := make(chan struct{})
+	relay := relayWhenAsked
+	relay.Release = release
+	h := newRelay(t, relay, refuseOnward)
 	for _, note := range []string{"relay", "stay"} {
 		if res := h.Call("relayer", "relay", "Act", `{"note":"`+note+`"}`); res.Code != http.StatusOK {
 			t.Fatalf("Act %s: status %d: %s", note, res.Code, res.Body)
 		}
 	}
-	ctx, cancel := context.WithCancel(t.Context())
 	ended := make(chan struct{})
 	go func() {
 		defer close(ended)
-		r := coretest.ConnectRequest("relay", "WaitAction", `{}`).WithContext(ctx)
-		r.Header.Set(coretest.PluginHeader, "relayer")
-		h.Do(r)
+		h.Call("relayer", "relay", "WaitAction", `{}`)
 	}()
-	defer func() { cancel(); <-ended }()
+	defer func() { close(release); <-ended }()
 	for deadline := time.Now().Add(10 * time.Second); h.AuditLog()[0].Method != "WaitAction"; time.Sleep(5 * time.Millisecond) {
 		if time.Now().After(deadline) {
 			t.Fatal("WaitAction never showed as running")

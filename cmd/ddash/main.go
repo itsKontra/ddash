@@ -36,6 +36,7 @@ import (
 
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/auth"
+	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/web"
@@ -44,13 +45,16 @@ import (
 const defaultListen = ":8080"
 
 // httpShutdownTimeout bounds how long in-flight requests may finish after
-// SIGTERM, side by side with the Components' runtime.StopTimeout; even
-// one after the other they fit compose's 20 s grace period.
-const httpShutdownTimeout = 5 * time.Second
+// SIGTERM: long enough for an admitted Action to run to its end. With the
+// Components' runtime.StopTimeout after it, it fits compose's 90 s grace
+// period.
+const httpShutdownTimeout = router.ActionDeadline + 5*time.Second
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
 	defer stop()
+	// The first signal starts the drain; a second one kills ddash.
+	context.AfterFunc(ctx, stop)
 	var err error
 	switch {
 	case len(os.Args) > 1 && os.Args[1] == "healthcheck":
@@ -127,22 +131,17 @@ type stoppable interface {
 	Close() error
 }
 
-// drain shuts down in the spec's order: stop accepting HTTP and, at the
-// same time, stop every Component in parallel (runtime.StopTimeout, then
-// kill); in-flight requests get httpShutdownTimeout from the start; the
-// core DB closes last.
+// drain shuts down one step after another: stop accepting HTTP and wait
+// up to httpShutdownTimeout for in-flight requests, and with them every
+// admitted Action (ADR-0004); then stop every Component in parallel
+// (runtime.StopTimeout, then kill); the core DB closes last.
 func drain(srv *http.Server, host stoppable) error {
-	httpDone := make(chan struct{})
-	go func() {
-		defer close(httpDone)
-		ctx, cancel := context.WithTimeout(context.Background(), httpShutdownTimeout)
-		defer cancel()
-		if srv.Shutdown(ctx) != nil {
-			srv.Close()
-		}
-	}()
+	ctx, cancel := context.WithTimeout(context.Background(), httpShutdownTimeout)
+	defer cancel()
+	if srv.Shutdown(ctx) != nil {
+		srv.Close()
+	}
 	host.StopComponents(context.Background())
-	<-httpDone
 	return host.Close()
 }
 
