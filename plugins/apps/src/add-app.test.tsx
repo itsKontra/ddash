@@ -5,7 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import { pending, settle } from "@ddash/plugin/testing";
 import { planDelay } from "./add-app";
 import plugin from "./index";
-import { actions, certificates, failing, renderScoped, split } from "./testing";
+import { actions, certificates, failing, ranThrough, renderScoped, split, step, watch } from "./testing";
 
 afterEach(cleanup);
 
@@ -91,7 +91,7 @@ const steps = () =>
 const state = (step: string | null) => step?.match(/running…|done|failed|not run/)?.[0];
 
 it("adds a proxied App by default: the debounced Plan beside the form, and Add sending the Plan on screen", async () => {
-  const calls = await openAdd({ RunAction: () => Response.json({ appId: "proxy:wiki.home.example", done: 3 }) });
+  const calls = await openAdd({ RunAction: ranThrough({ appId: "proxy:wiki.home.example", done: 3 }) });
 
   expect(radio("Reverse proxy").getAttribute("aria-checked")).toBe("true");
   await fill({ URL: "https://wiki.home.example", Name: "Wiki", "Upstream host": "198.18.2.11", Port: "3000" });
@@ -119,7 +119,7 @@ it("adds a proxied App by default: the debounced Plan beside the form, and Add s
   await settle();
 
   const [run] = actions(calls);
-  expect(run).toEqual({ method: "RunAction", body: { action: plans(calls)[1].action, plan: wikiPlan, runId: expect.any(String) } });
+  expect(run).toEqual({ method: "RunAction", body: { action: plans(calls)[1].action, plan: wikiPlan } });
   expect(search).toBe("?app=proxy%3Awiki.home.example");
 });
 
@@ -281,11 +281,24 @@ it("shows each step's progress after Add, and where it stopped, nothing rolled b
 
   cleanup();
   const stopped = "Stopped at step 2 of 3, Add alias wiki.home.example to nginx.home.example: pfSense refused it. Done: Create Proxy Host wiki.home.example. Nothing was rolled back.";
-  await openAdd({ RunAction: failing("unavailable", stopped, RunActionResponseSchema, { done: 1 }, 503) });
+  const { pending: p, running: r, done: d, failed: f } = step;
+  const ran = [[r, p, p], [d, p, p], [d, r, p], [d, f, p]].map((steps) => ({ steps }));
+  await openAdd({ RunAction: failing("unavailable", stopped, RunActionResponseSchema, { done: 1 }, ran) });
   await fill({ URL: "https://wiki.home.example", "Upstream host": "198.18.2.11" });
   fireEvent.click(addButton());
+  const shown = watch(() => steps().map(state));
   await settle();
-  expect(steps().map(state)).toEqual(["done", "failed", "not run"]);
+  shown.stop();
+  expect(shown.seen).toEqual([
+    [undefined, undefined, undefined],
+    ["running…", "running…", "running…"],
+    ["running…", undefined, undefined],
+    ["done", undefined, undefined],
+    ["done", "running…", undefined],
+    ["done", "failed", undefined],
+    // Once the error came, after the sync ending the run.
+    ["done", "failed", "not run"],
+  ]);
   expect(form().getByRole("alert").textContent).toContain(stopped);
   expect(search).toBe("?app=new");
 });
@@ -296,7 +309,7 @@ it("shows the new Plan when the systems changed since the Operator looked, and A
   const calls = await openAdd({
     RunAction: () => {
       runs++;
-      return runs === 1 ? failing("aborted", "changed since you looked: confirm the new Plan", PlanSchema, changed, 409)() : Response.json({ appId: "proxy:wiki.home.example", done: 3 });
+      return (runs === 1 ? failing("aborted", "changed since you looked: confirm the new Plan", PlanSchema, changed) : ranThrough({ appId: "proxy:wiki.home.example", done: 3 }))();
     },
   });
   await fill({ URL: "https://wiki.home.example", "Upstream host": "198.18.2.11" });
@@ -314,7 +327,7 @@ it("shows the new Plan when the systems changed since the Operator looked, and A
 });
 
 it("reports what was added when the Apps couldn't be re-read, with a way to it", async () => {
-  await openAdd({ RunAction: () => Response.json({ appId: "proxy:wiki.home.example", done: 3, reread: "couldn't re-read pfsense-api: timeout" }) });
+  await openAdd({ RunAction: ranThrough({ appId: "proxy:wiki.home.example", done: 3, reread: "couldn't re-read pfsense-api: timeout" }) });
   await fill({ URL: "https://wiki.home.example", "Upstream host": "198.18.2.11" });
   fireEvent.click(addButton());
   await settle();

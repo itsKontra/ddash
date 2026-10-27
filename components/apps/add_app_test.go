@@ -26,14 +26,26 @@ func (l *lab) plan(action *appspb.AppAction) *appspb.Plan {
 	return resp.GetPlan()
 }
 
-// tryRun runs action, confirming plan.
+// runStream runs action, confirming plan, and returns what RunAction
+// streamed: each step-state message, the last one its result, then its
+// failure.
+func (l *lab) runStream(action *appspb.AppAction, plan *appspb.Plan) ([]*appspb.RunActionResponse, *callError) {
+	l.t.Helper()
+	return stream(l, "RunAction", &appspb.RunActionRequest{Action: action, Plan: plan}, func() *appspb.RunActionResponse { return &appspb.RunActionResponse{} })
+}
+
+// tryRun runs action, confirming plan: its result is RunAction's last
+// message.
 func (l *lab) tryRun(action *appspb.AppAction, plan *appspb.Plan) (*appspb.RunActionResponse, *callError) {
 	l.t.Helper()
-	resp := &appspb.RunActionResponse{}
-	if err := l.try("RunAction", &appspb.RunActionRequest{Action: action, Plan: plan}, resp); err != nil {
+	msgs, err := l.runStream(action, plan)
+	if err != nil {
 		return nil, err
 	}
-	return resp, nil
+	if len(msgs) == 0 {
+		l.t.Fatal("RunAction ended without a message")
+	}
+	return msgs[len(msgs)-1], nil
 }
 
 // run runs action, confirming the Plan PlanAction gives it now; it fails
