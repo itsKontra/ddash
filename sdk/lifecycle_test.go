@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -125,6 +126,44 @@ func TestAMethodThatIsNeitherGetterNorActionIsRefused(t *testing.T) {
 	})
 }
 
+// streams serves every service whose methods stream as the SDK refuses.
+type streams struct {
+	echopb.UnimplementedStreamingGetterServiceServer
+	echopb.UnimplementedClientStreamingServiceServer
+	echopb.UnimplementedBidiStreamingServiceServer
+}
+
+func (streams) Start(context.Context, *sdk.Env, *echopb.EchoConfig) error { return nil }
+func (streams) Health(context.Context) sdk.Health                         { return sdk.Health{State: sdk.OK} }
+
+// Only an Action may stream, and only from the server: echo's Watch is
+// one, so echo defines.
+func TestOnlyAServerStreamingActionMayStream(t *testing.T) {
+	define(&echo{})
+
+	for _, c := range []struct {
+		service *grpc.ServiceDesc
+		want    string
+	}{
+		{&echopb.StreamingGetterService_ServiceDesc, "ddash.echo.StreamingGetterService.Tail streams, but only Actions may stream"},
+		{&echopb.ClientStreamingService_ServiceDesc, "ddash.echo.ClientStreamingService.Upload streams from the client; Component methods are unary or server-streaming Actions"},
+		{&echopb.BidiStreamingService_ServiceDesc, "ddash.echo.BidiStreamingService.Chat streams from the client; Component methods are unary or server-streaming Actions"},
+	} {
+		func() {
+			defer func() {
+				if r := recover(); r == nil || !strings.HasSuffix(fmt.Sprint(r), c.want) {
+					t.Errorf("Define recovered %v, want a panic saying %q", r, c.want)
+				}
+			}()
+			sdk.Define(sdk.Spec[*echopb.EchoConfig]{
+				Manifest: []byte(echoManifest),
+				Service:  c.service,
+				New:      func() sdk.Component[*echopb.EchoConfig] { return streams{} },
+			})
+		}()
+	}
+}
+
 type hinted[C proto.Message] struct {
 	echopb.UnimplementedEchoServiceServer
 }
@@ -237,6 +276,19 @@ func TestMethodsAreNotConfiguredBeforeStart(t *testing.T) {
 	h := sdktest.New(t, define(&echo{}))
 
 	_, err := echopb.NewEchoServiceClient(h.Conn).Echo(t.Context(), &echopb.EchoRequest{Message: "hi"})
+
+	if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != "not configured" {
+		t.Fatalf("err = %v, want FailedPrecondition: not configured", err)
+	}
+}
+
+func TestAStreamedMethodIsNotConfiguredBeforeStart(t *testing.T) {
+	h := sdktest.New(t, define(&echo{}))
+
+	stream, err := echopb.NewEchoServiceClient(h.Conn).Watch(t.Context(), &echopb.WatchRequest{Message: "hi"})
+	if err == nil {
+		_, err = stream.Recv()
+	}
 
 	if status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != "not configured" {
 		t.Fatalf("err = %v, want FailedPrecondition: not configured", err)

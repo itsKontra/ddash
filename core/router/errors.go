@@ -37,11 +37,28 @@ var connectCodes = map[codes.Code]struct {
 }
 
 // WriteError writes err as a Connect unary error: the HTTP status for its
-// code and a JSON body {code, message, details}. A gRPC status error keeps
-// its code and its details, each named by its message's full name with
-// its bytes in unpadded base64, as connect-go writes them; a context error
-// becomes deadline_exceeded or canceled; anything else is unknown.
+// code and its wireError as the body.
 func WriteError(w http.ResponseWriter, err error) {
+	code, e := connectError(err)
+	body, _ := json.Marshal(e)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	w.Write(body)
+}
+
+// wireError is a Connect error's JSON, the same for unary and streaming.
+type wireError struct {
+	Code    string   `json:"code"`
+	Message string   `json:"message,omitempty"`
+	Details []detail `json:"details,omitempty"`
+}
+
+// connectError returns err as a Connect error, with the HTTP status a unary
+// call answers it with. A gRPC status error keeps its code and its details,
+// each named by its message's full name with its bytes in unpadded base64,
+// as connect-go writes them; a context error becomes deadline_exceeded or
+// canceled; anything else is unknown.
+func connectError(err error) (int, wireError) {
 	st, ok := status.FromError(err)
 	switch {
 	case ok:
@@ -60,14 +77,7 @@ func WriteError(w http.ResponseWriter, err error) {
 		name := d.GetTypeUrl()[strings.LastIndex(d.GetTypeUrl(), "/")+1:]
 		details = append(details, detail{Type: name, Value: base64.RawStdEncoding.EncodeToString(d.GetValue())})
 	}
-	body, _ := json.Marshal(struct {
-		Code    string   `json:"code"`
-		Message string   `json:"message,omitempty"`
-		Details []detail `json:"details,omitempty"`
-	}{c.name, st.Message(), details})
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(c.status)
-	w.Write(body)
+	return c.status, wireError{c.name, st.Message(), details}
 }
 
 // detail is a Connect error detail.

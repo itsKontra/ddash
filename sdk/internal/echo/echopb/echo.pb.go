@@ -142,6 +142,222 @@ func (*UnmarkedResponse) Descriptor() ([]byte, []int) {
 	return file_echo_echo_proto_rawDescGZIP(), []int{2}
 }
 
+type TailRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TailRequest) Reset() {
+	*x = TailRequest{}
+	mi := &file_echo_echo_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TailRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TailRequest) ProtoMessage() {}
+
+func (x *TailRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TailRequest.ProtoReflect.Descriptor instead.
+func (*TailRequest) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{3}
+}
+
+type TailResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TailResponse) Reset() {
+	*x = TailResponse{}
+	mi := &file_echo_echo_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TailResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TailResponse) ProtoMessage() {}
+
+func (x *TailResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TailResponse.ProtoReflect.Descriptor instead.
+func (*TailResponse) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{4}
+}
+
+type UploadRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadRequest) Reset() {
+	*x = UploadRequest{}
+	mi := &file_echo_echo_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadRequest) ProtoMessage() {}
+
+func (x *UploadRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadRequest.ProtoReflect.Descriptor instead.
+func (*UploadRequest) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{5}
+}
+
+type UploadResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UploadResponse) Reset() {
+	*x = UploadResponse{}
+	mi := &file_echo_echo_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UploadResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UploadResponse) ProtoMessage() {}
+
+func (x *UploadResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UploadResponse.ProtoReflect.Descriptor instead.
+func (*UploadResponse) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{6}
+}
+
+type ChatRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatRequest) Reset() {
+	*x = ChatRequest{}
+	mi := &file_echo_echo_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatRequest) ProtoMessage() {}
+
+func (x *ChatRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatRequest.ProtoReflect.Descriptor instead.
+func (*ChatRequest) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{7}
+}
+
+type ChatResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ChatResponse) Reset() {
+	*x = ChatResponse{}
+	mi := &file_echo_echo_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ChatResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ChatResponse) ProtoMessage() {}
+
+func (x *ChatResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ChatResponse.ProtoReflect.Descriptor instead.
+func (*ChatResponse) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{8}
+}
+
 type EchoRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
@@ -151,7 +367,7 @@ type EchoRequest struct {
 
 func (x *EchoRequest) Reset() {
 	*x = EchoRequest{}
-	mi := &file_echo_echo_proto_msgTypes[3]
+	mi := &file_echo_echo_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -163,7 +379,7 @@ func (x *EchoRequest) String() string {
 func (*EchoRequest) ProtoMessage() {}
 
 func (x *EchoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[3]
+	mi := &file_echo_echo_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -176,7 +392,7 @@ func (x *EchoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EchoRequest.ProtoReflect.Descriptor instead.
 func (*EchoRequest) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{3}
+	return file_echo_echo_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *EchoRequest) GetMessage() string {
@@ -195,7 +411,7 @@ type EchoResponse struct {
 
 func (x *EchoResponse) Reset() {
 	*x = EchoResponse{}
-	mi := &file_echo_echo_proto_msgTypes[4]
+	mi := &file_echo_echo_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -207,7 +423,7 @@ func (x *EchoResponse) String() string {
 func (*EchoResponse) ProtoMessage() {}
 
 func (x *EchoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[4]
+	mi := &file_echo_echo_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -220,7 +436,7 @@ func (x *EchoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EchoResponse.ProtoReflect.Descriptor instead.
 func (*EchoResponse) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{4}
+	return file_echo_echo_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *EchoResponse) GetMessage() string {
@@ -238,7 +454,7 @@ type CountNotesRequest struct {
 
 func (x *CountNotesRequest) Reset() {
 	*x = CountNotesRequest{}
-	mi := &file_echo_echo_proto_msgTypes[5]
+	mi := &file_echo_echo_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -250,7 +466,7 @@ func (x *CountNotesRequest) String() string {
 func (*CountNotesRequest) ProtoMessage() {}
 
 func (x *CountNotesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[5]
+	mi := &file_echo_echo_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -263,7 +479,7 @@ func (x *CountNotesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountNotesRequest.ProtoReflect.Descriptor instead.
 func (*CountNotesRequest) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{5}
+	return file_echo_echo_proto_rawDescGZIP(), []int{11}
 }
 
 type CountNotesResponse struct {
@@ -275,7 +491,7 @@ type CountNotesResponse struct {
 
 func (x *CountNotesResponse) Reset() {
 	*x = CountNotesResponse{}
-	mi := &file_echo_echo_proto_msgTypes[6]
+	mi := &file_echo_echo_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +503,7 @@ func (x *CountNotesResponse) String() string {
 func (*CountNotesResponse) ProtoMessage() {}
 
 func (x *CountNotesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[6]
+	mi := &file_echo_echo_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +516,7 @@ func (x *CountNotesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CountNotesResponse.ProtoReflect.Descriptor instead.
 func (*CountNotesResponse) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{6}
+	return file_echo_echo_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CountNotesResponse) GetCount() int64 {
@@ -319,7 +535,7 @@ type AddNoteRequest struct {
 
 func (x *AddNoteRequest) Reset() {
 	*x = AddNoteRequest{}
-	mi := &file_echo_echo_proto_msgTypes[7]
+	mi := &file_echo_echo_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -331,7 +547,7 @@ func (x *AddNoteRequest) String() string {
 func (*AddNoteRequest) ProtoMessage() {}
 
 func (x *AddNoteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[7]
+	mi := &file_echo_echo_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -344,7 +560,7 @@ func (x *AddNoteRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNoteRequest.ProtoReflect.Descriptor instead.
 func (*AddNoteRequest) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{7}
+	return file_echo_echo_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AddNoteRequest) GetText() string {
@@ -362,7 +578,7 @@ type AddNoteResponse struct {
 
 func (x *AddNoteResponse) Reset() {
 	*x = AddNoteResponse{}
-	mi := &file_echo_echo_proto_msgTypes[8]
+	mi := &file_echo_echo_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -374,7 +590,7 @@ func (x *AddNoteResponse) String() string {
 func (*AddNoteResponse) ProtoMessage() {}
 
 func (x *AddNoteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[8]
+	mi := &file_echo_echo_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -387,7 +603,95 @@ func (x *AddNoteResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNoteResponse.ProtoReflect.Descriptor instead.
 func (*AddNoteResponse) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{8}
+	return file_echo_echo_proto_rawDescGZIP(), []int{14}
+}
+
+type WatchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchRequest) Reset() {
+	*x = WatchRequest{}
+	mi := &file_echo_echo_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchRequest) ProtoMessage() {}
+
+func (x *WatchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
+func (*WatchRequest) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *WatchRequest) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type WatchResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *WatchResponse) Reset() {
+	*x = WatchResponse{}
+	mi := &file_echo_echo_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *WatchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*WatchResponse) ProtoMessage() {}
+
+func (x *WatchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_echo_echo_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use WatchResponse.ProtoReflect.Descriptor instead.
+func (*WatchResponse) Descriptor() ([]byte, []int) {
+	return file_echo_echo_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *WatchResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 // HintFromActionConfig names an Action as its setup hint's getter, so the
@@ -400,7 +704,7 @@ type HintFromActionConfig struct {
 
 func (x *HintFromActionConfig) Reset() {
 	*x = HintFromActionConfig{}
-	mi := &file_echo_echo_proto_msgTypes[9]
+	mi := &file_echo_echo_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -412,7 +716,7 @@ func (x *HintFromActionConfig) String() string {
 func (*HintFromActionConfig) ProtoMessage() {}
 
 func (x *HintFromActionConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[9]
+	mi := &file_echo_echo_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -425,7 +729,7 @@ func (x *HintFromActionConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HintFromActionConfig.ProtoReflect.Descriptor instead.
 func (*HintFromActionConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{9}
+	return file_echo_echo_proto_rawDescGZIP(), []int{17}
 }
 
 // HintFromNoHintConfig names a getter whose response has no SetupHint, so
@@ -438,7 +742,7 @@ type HintFromNoHintConfig struct {
 
 func (x *HintFromNoHintConfig) Reset() {
 	*x = HintFromNoHintConfig{}
-	mi := &file_echo_echo_proto_msgTypes[10]
+	mi := &file_echo_echo_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -450,7 +754,7 @@ func (x *HintFromNoHintConfig) String() string {
 func (*HintFromNoHintConfig) ProtoMessage() {}
 
 func (x *HintFromNoHintConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[10]
+	mi := &file_echo_echo_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -463,7 +767,7 @@ func (x *HintFromNoHintConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HintFromNoHintConfig.ProtoReflect.Descriptor instead.
 func (*HintFromNoHintConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{10}
+	return file_echo_echo_proto_rawDescGZIP(), []int{18}
 }
 
 // TestFromGetterConfig names a getter as its test_action, so the SDK must
@@ -476,7 +780,7 @@ type TestFromGetterConfig struct {
 
 func (x *TestFromGetterConfig) Reset() {
 	*x = TestFromGetterConfig{}
-	mi := &file_echo_echo_proto_msgTypes[11]
+	mi := &file_echo_echo_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -488,7 +792,7 @@ func (x *TestFromGetterConfig) String() string {
 func (*TestFromGetterConfig) ProtoMessage() {}
 
 func (x *TestFromGetterConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[11]
+	mi := &file_echo_echo_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -501,7 +805,7 @@ func (x *TestFromGetterConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestFromGetterConfig.ProtoReflect.Descriptor instead.
 func (*TestFromGetterConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{11}
+	return file_echo_echo_proto_rawDescGZIP(), []int{19}
 }
 
 // TestFromDisruptiveConfig names a disruptive Action as its test_action,
@@ -514,7 +818,7 @@ type TestFromDisruptiveConfig struct {
 
 func (x *TestFromDisruptiveConfig) Reset() {
 	*x = TestFromDisruptiveConfig{}
-	mi := &file_echo_echo_proto_msgTypes[12]
+	mi := &file_echo_echo_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -526,7 +830,7 @@ func (x *TestFromDisruptiveConfig) String() string {
 func (*TestFromDisruptiveConfig) ProtoMessage() {}
 
 func (x *TestFromDisruptiveConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[12]
+	mi := &file_echo_echo_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -539,7 +843,7 @@ func (x *TestFromDisruptiveConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestFromDisruptiveConfig.ProtoReflect.Descriptor instead.
 func (*TestFromDisruptiveConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{12}
+	return file_echo_echo_proto_rawDescGZIP(), []int{20}
 }
 
 // ChoicesFromUnrequiredConfig takes choices from a Component echo doesn't
@@ -553,7 +857,7 @@ type ChoicesFromUnrequiredConfig struct {
 
 func (x *ChoicesFromUnrequiredConfig) Reset() {
 	*x = ChoicesFromUnrequiredConfig{}
-	mi := &file_echo_echo_proto_msgTypes[13]
+	mi := &file_echo_echo_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -565,7 +869,7 @@ func (x *ChoicesFromUnrequiredConfig) String() string {
 func (*ChoicesFromUnrequiredConfig) ProtoMessage() {}
 
 func (x *ChoicesFromUnrequiredConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[13]
+	mi := &file_echo_echo_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -578,7 +882,7 @@ func (x *ChoicesFromUnrequiredConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesFromUnrequiredConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesFromUnrequiredConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{13}
+	return file_echo_echo_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *ChoicesFromUnrequiredConfig) GetPick() string {
@@ -598,7 +902,7 @@ type ChoicesFromNoComponentConfig struct {
 
 func (x *ChoicesFromNoComponentConfig) Reset() {
 	*x = ChoicesFromNoComponentConfig{}
-	mi := &file_echo_echo_proto_msgTypes[14]
+	mi := &file_echo_echo_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -610,7 +914,7 @@ func (x *ChoicesFromNoComponentConfig) String() string {
 func (*ChoicesFromNoComponentConfig) ProtoMessage() {}
 
 func (x *ChoicesFromNoComponentConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[14]
+	mi := &file_echo_echo_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +927,7 @@ func (x *ChoicesFromNoComponentConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesFromNoComponentConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesFromNoComponentConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{14}
+	return file_echo_echo_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *ChoicesFromNoComponentConfig) GetPick() string {
@@ -643,7 +947,7 @@ type ChoicesOnAnIntConfig struct {
 
 func (x *ChoicesOnAnIntConfig) Reset() {
 	*x = ChoicesOnAnIntConfig{}
-	mi := &file_echo_echo_proto_msgTypes[15]
+	mi := &file_echo_echo_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -655,7 +959,7 @@ func (x *ChoicesOnAnIntConfig) String() string {
 func (*ChoicesOnAnIntConfig) ProtoMessage() {}
 
 func (x *ChoicesOnAnIntConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[15]
+	mi := &file_echo_echo_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -668,7 +972,7 @@ func (x *ChoicesOnAnIntConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesOnAnIntConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesOnAnIntConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{15}
+	return file_echo_echo_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *ChoicesOnAnIntConfig) GetPick() int64 {
@@ -688,7 +992,7 @@ type ChoicesConfig struct {
 
 func (x *ChoicesConfig) Reset() {
 	*x = ChoicesConfig{}
-	mi := &file_echo_echo_proto_msgTypes[16]
+	mi := &file_echo_echo_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -700,7 +1004,7 @@ func (x *ChoicesConfig) String() string {
 func (*ChoicesConfig) ProtoMessage() {}
 
 func (x *ChoicesConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_echo_echo_proto_msgTypes[16]
+	mi := &file_echo_echo_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -713,7 +1017,7 @@ func (x *ChoicesConfig) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChoicesConfig.ProtoReflect.Descriptor instead.
 func (*ChoicesConfig) Descriptor() ([]byte, []int) {
-	return file_echo_echo_proto_rawDescGZIP(), []int{16}
+	return file_echo_echo_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *ChoicesConfig) GetPick() string {
@@ -733,7 +1037,13 @@ const file_echo_echo_proto_rawDesc = "" +
 	"EchoConfig\x12\x16\n" +
 	"\x06prefix\x18\x01 \x01(\tR\x06prefix\"\x11\n" +
 	"\x0fUnmarkedRequest\"\x12\n" +
-	"\x10UnmarkedResponse\"'\n" +
+	"\x10UnmarkedResponse\"\r\n" +
+	"\vTailRequest\"\x0e\n" +
+	"\fTailResponse\"\x0f\n" +
+	"\rUploadRequest\"\x10\n" +
+	"\x0eUploadResponse\"\r\n" +
+	"\vChatRequest\"\x0e\n" +
+	"\fChatResponse\"'\n" +
 	"\vEchoRequest\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\"(\n" +
 	"\fEchoResponse\x12\x18\n" +
@@ -743,7 +1053,11 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\x05count\x18\x01 \x01(\x03R\x05count\"$\n" +
 	"\x0eAddNoteRequest\x12\x12\n" +
 	"\x04text\x18\x01 \x01(\tR\x04text\"\x11\n" +
-	"\x0fAddNoteResponse\"%\n" +
+	"\x0fAddNoteResponse\"(\n" +
+	"\fWatchRequest\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\")\n" +
+	"\rWatchResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"%\n" +
 	"\x14HintFromActionConfig:\r\xaa\xb5\x18\t\n" +
 	"\aAddNote\"\"\n" +
 	"\x14HintFromNoHintConfig:\n" +
@@ -760,14 +1074,21 @@ const file_echo_echo_proto_rawDesc = "" +
 	"\x14ChoicesOnAnIntConfig\x12-\n" +
 	"\x04pick\x18\x01 \x01(\x03B\x19\x9a\xb5\x18\x15R\x13upstream.ListThingsR\x04pick\">\n" +
 	"\rChoicesConfig\x12-\n" +
-	"\x04pick\x18\x01 \x01(\tB\x19\x9a\xb5\x18\x15R\x13upstream.ListThingsR\x04pick2\xef\x01\n" +
+	"\x04pick\x18\x01 \x01(\tB\x19\x9a\xb5\x18\x15R\x13upstream.ListThingsR\x04pick2\xb5\x02\n" +
 	"\vEchoService\x12?\n" +
 	"\x04Echo\x12\x17.ddash.echo.EchoRequest\x1a\x18.ddash.echo.EchoResponse\"\x04\x8a\xb5\x18\x00\x12S\n" +
 	"\n" +
 	"CountNotes\x12\x1d.ddash.echo.CountNotesRequest\x1a\x1e.ddash.echo.CountNotesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12J\n" +
-	"\aAddNote\x12\x1a.ddash.echo.AddNoteRequest\x1a\x1b.ddash.echo.AddNoteResponse\"\x06\x92\xb5\x18\x02\b\x012X\n" +
+	"\aAddNote\x12\x1a.ddash.echo.AddNoteRequest\x1a\x1b.ddash.echo.AddNoteResponse\"\x06\x92\xb5\x18\x02\b\x01\x12D\n" +
+	"\x05Watch\x12\x18.ddash.echo.WatchRequest\x1a\x19.ddash.echo.WatchResponse\"\x04\x92\xb5\x18\x000\x012X\n" +
 	"\x0fUnmarkedService\x12E\n" +
-	"\bUnmarked\x12\x1b.ddash.echo.UnmarkedRequest\x1a\x1c.ddash.echo.UnmarkedResponseB<Z:github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopbb\x06proto3"
+	"\bUnmarked\x12\x1b.ddash.echo.UnmarkedRequest\x1a\x1c.ddash.echo.UnmarkedResponse2[\n" +
+	"\x16StreamingGetterService\x12A\n" +
+	"\x04Tail\x12\x17.ddash.echo.TailRequest\x1a\x18.ddash.echo.TailResponse\"\x04\x8a\xb5\x18\x000\x012a\n" +
+	"\x16ClientStreamingService\x12G\n" +
+	"\x06Upload\x12\x19.ddash.echo.UploadRequest\x1a\x1a.ddash.echo.UploadResponse\"\x04\x92\xb5\x18\x00(\x012[\n" +
+	"\x14BidiStreamingService\x12C\n" +
+	"\x04Chat\x12\x17.ddash.echo.ChatRequest\x1a\x18.ddash.echo.ChatResponse\"\x04\x92\xb5\x18\x00(\x010\x01B<Z:github.com/itsKontra/ddash/sdk/internal/echo/echopb;echopbb\x06proto3"
 
 var (
 	file_echo_echo_proto_rawDescOnce sync.Once
@@ -781,40 +1102,56 @@ func file_echo_echo_proto_rawDescGZIP() []byte {
 	return file_echo_echo_proto_rawDescData
 }
 
-var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_echo_echo_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
 var file_echo_echo_proto_goTypes = []any{
 	(*EchoConfig)(nil),                   // 0: ddash.echo.EchoConfig
 	(*UnmarkedRequest)(nil),              // 1: ddash.echo.UnmarkedRequest
 	(*UnmarkedResponse)(nil),             // 2: ddash.echo.UnmarkedResponse
-	(*EchoRequest)(nil),                  // 3: ddash.echo.EchoRequest
-	(*EchoResponse)(nil),                 // 4: ddash.echo.EchoResponse
-	(*CountNotesRequest)(nil),            // 5: ddash.echo.CountNotesRequest
-	(*CountNotesResponse)(nil),           // 6: ddash.echo.CountNotesResponse
-	(*AddNoteRequest)(nil),               // 7: ddash.echo.AddNoteRequest
-	(*AddNoteResponse)(nil),              // 8: ddash.echo.AddNoteResponse
-	(*HintFromActionConfig)(nil),         // 9: ddash.echo.HintFromActionConfig
-	(*HintFromNoHintConfig)(nil),         // 10: ddash.echo.HintFromNoHintConfig
-	(*TestFromGetterConfig)(nil),         // 11: ddash.echo.TestFromGetterConfig
-	(*TestFromDisruptiveConfig)(nil),     // 12: ddash.echo.TestFromDisruptiveConfig
-	(*ChoicesFromUnrequiredConfig)(nil),  // 13: ddash.echo.ChoicesFromUnrequiredConfig
-	(*ChoicesFromNoComponentConfig)(nil), // 14: ddash.echo.ChoicesFromNoComponentConfig
-	(*ChoicesOnAnIntConfig)(nil),         // 15: ddash.echo.ChoicesOnAnIntConfig
-	(*ChoicesConfig)(nil),                // 16: ddash.echo.ChoicesConfig
+	(*TailRequest)(nil),                  // 3: ddash.echo.TailRequest
+	(*TailResponse)(nil),                 // 4: ddash.echo.TailResponse
+	(*UploadRequest)(nil),                // 5: ddash.echo.UploadRequest
+	(*UploadResponse)(nil),               // 6: ddash.echo.UploadResponse
+	(*ChatRequest)(nil),                  // 7: ddash.echo.ChatRequest
+	(*ChatResponse)(nil),                 // 8: ddash.echo.ChatResponse
+	(*EchoRequest)(nil),                  // 9: ddash.echo.EchoRequest
+	(*EchoResponse)(nil),                 // 10: ddash.echo.EchoResponse
+	(*CountNotesRequest)(nil),            // 11: ddash.echo.CountNotesRequest
+	(*CountNotesResponse)(nil),           // 12: ddash.echo.CountNotesResponse
+	(*AddNoteRequest)(nil),               // 13: ddash.echo.AddNoteRequest
+	(*AddNoteResponse)(nil),              // 14: ddash.echo.AddNoteResponse
+	(*WatchRequest)(nil),                 // 15: ddash.echo.WatchRequest
+	(*WatchResponse)(nil),                // 16: ddash.echo.WatchResponse
+	(*HintFromActionConfig)(nil),         // 17: ddash.echo.HintFromActionConfig
+	(*HintFromNoHintConfig)(nil),         // 18: ddash.echo.HintFromNoHintConfig
+	(*TestFromGetterConfig)(nil),         // 19: ddash.echo.TestFromGetterConfig
+	(*TestFromDisruptiveConfig)(nil),     // 20: ddash.echo.TestFromDisruptiveConfig
+	(*ChoicesFromUnrequiredConfig)(nil),  // 21: ddash.echo.ChoicesFromUnrequiredConfig
+	(*ChoicesFromNoComponentConfig)(nil), // 22: ddash.echo.ChoicesFromNoComponentConfig
+	(*ChoicesOnAnIntConfig)(nil),         // 23: ddash.echo.ChoicesOnAnIntConfig
+	(*ChoicesConfig)(nil),                // 24: ddash.echo.ChoicesConfig
 }
 var file_echo_echo_proto_depIdxs = []int32{
-	3, // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
-	5, // 1: ddash.echo.EchoService.CountNotes:input_type -> ddash.echo.CountNotesRequest
-	7, // 2: ddash.echo.EchoService.AddNote:input_type -> ddash.echo.AddNoteRequest
-	1, // 3: ddash.echo.UnmarkedService.Unmarked:input_type -> ddash.echo.UnmarkedRequest
-	4, // 4: ddash.echo.EchoService.Echo:output_type -> ddash.echo.EchoResponse
-	6, // 5: ddash.echo.EchoService.CountNotes:output_type -> ddash.echo.CountNotesResponse
-	8, // 6: ddash.echo.EchoService.AddNote:output_type -> ddash.echo.AddNoteResponse
-	2, // 7: ddash.echo.UnmarkedService.Unmarked:output_type -> ddash.echo.UnmarkedResponse
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+	9,  // 0: ddash.echo.EchoService.Echo:input_type -> ddash.echo.EchoRequest
+	11, // 1: ddash.echo.EchoService.CountNotes:input_type -> ddash.echo.CountNotesRequest
+	13, // 2: ddash.echo.EchoService.AddNote:input_type -> ddash.echo.AddNoteRequest
+	15, // 3: ddash.echo.EchoService.Watch:input_type -> ddash.echo.WatchRequest
+	1,  // 4: ddash.echo.UnmarkedService.Unmarked:input_type -> ddash.echo.UnmarkedRequest
+	3,  // 5: ddash.echo.StreamingGetterService.Tail:input_type -> ddash.echo.TailRequest
+	5,  // 6: ddash.echo.ClientStreamingService.Upload:input_type -> ddash.echo.UploadRequest
+	7,  // 7: ddash.echo.BidiStreamingService.Chat:input_type -> ddash.echo.ChatRequest
+	10, // 8: ddash.echo.EchoService.Echo:output_type -> ddash.echo.EchoResponse
+	12, // 9: ddash.echo.EchoService.CountNotes:output_type -> ddash.echo.CountNotesResponse
+	14, // 10: ddash.echo.EchoService.AddNote:output_type -> ddash.echo.AddNoteResponse
+	16, // 11: ddash.echo.EchoService.Watch:output_type -> ddash.echo.WatchResponse
+	2,  // 12: ddash.echo.UnmarkedService.Unmarked:output_type -> ddash.echo.UnmarkedResponse
+	4,  // 13: ddash.echo.StreamingGetterService.Tail:output_type -> ddash.echo.TailResponse
+	6,  // 14: ddash.echo.ClientStreamingService.Upload:output_type -> ddash.echo.UploadResponse
+	8,  // 15: ddash.echo.BidiStreamingService.Chat:output_type -> ddash.echo.ChatResponse
+	8,  // [8:16] is the sub-list for method output_type
+	0,  // [0:8] is the sub-list for method input_type
+	0,  // [0:0] is the sub-list for extension type_name
+	0,  // [0:0] is the sub-list for extension extendee
+	0,  // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_echo_echo_proto_init() }
@@ -828,9 +1165,9 @@ func file_echo_echo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_echo_echo_proto_rawDesc), len(file_echo_echo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   25,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   5,
 		},
 		GoTypes:           file_echo_echo_proto_goTypes,
 		DependencyIndexes: file_echo_echo_proto_depIdxs,

@@ -74,6 +74,23 @@ service SampleService {
   rpc Act(ActRequest) returns (ActResponse) {
     option (ddash.action) = {disruptive: true};
   }
+  // Progress streams count messages, their steps numbered from 1. Once it
+  // sent wait_after of them it waits as WaitAction does; once it sent
+  // fail_after of them it fails ABORTED "stopped at <step>", with the last
+  // message sent as a detail.
+  rpc Progress(ProgressRequest) returns (stream ProgressResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message ProgressRequest {
+  int32 count = 1;
+  optional int32 wait_after = 2;
+  optional int32 fail_after = 3;
+}
+
+message ProgressResponse {
+  int32 step = 1;
 }
 
 message ActRequest {
