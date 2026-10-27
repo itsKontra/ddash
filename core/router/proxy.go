@@ -55,7 +55,7 @@ func (rt *Router) proxy(caller string) grpc.StreamHandler {
 		if md == nil {
 			return cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s has no method %s", target, method))
 		}
-		if md.IsStreamingClient() || md.IsStreamingServer() {
+		if streams(md) {
 			refused = cmp.Or(refused, status.Errorf(codes.Unimplemented, "%s streams; Components call each other unary only", md.FullName()))
 		}
 		var req frame

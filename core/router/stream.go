@@ -21,14 +21,19 @@ import (
 	"github.com/itsKontra/ddash/core/runtime"
 )
 
-// streamJSON is the content type of Connect server-streaming JSON, asked
+// StreamJSON is the content type of Connect server-streaming JSON, asked
 // for and answered.
-const streamJSON = "application/connect+json"
+const StreamJSON = "application/connect+json"
 
-// Connect envelope flags.
+// A Connect envelope: a header of one byte of flags and a big-endian
+// uint32 length, then the message.
 const (
-	flagMessage   = 0
-	flagEndStream = 2
+	// EnvelopeHeader is the header's length in bytes.
+	EnvelopeHeader = 5
+	// FlagMessage flags an envelope carrying a message.
+	FlagMessage = 0
+	// FlagEndStream flags the end-of-stream envelope.
+	FlagEndStream = 2
 )
 
 // stream answers a Connect server-streaming call: HTTP 200 at once, one
@@ -46,7 +51,7 @@ type stream struct {
 
 // newStream starts the answer to a streamed call.
 func newStream(w http.ResponseWriter) *stream {
-	w.Header().Set("Content-Type", streamJSON)
+	w.Header().Set("Content-Type", StreamJSON)
 	// Nginx Proxy Manager buffers responses unless told not to.
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
@@ -65,7 +70,7 @@ func (s *stream) send(opts protojson.MarshalOptions, msg proto.Message) {
 		s.err = status.Errorf(codes.Internal, "encode %s: %v", msg.ProtoReflect().Descriptor().FullName(), err)
 		return
 	}
-	s.write(flagMessage, b)
+	s.write(FlagMessage, b)
 }
 
 // end ends the stream: {} after a clean end, else {"error": …} with err,
@@ -79,9 +84,11 @@ func (s *stream) end(err error) {
 		end.Error = &e
 	}
 	b, _ := json.Marshal(end)
-	s.write(flagEndStream, b)
+	s.write(FlagEndStream, b)
 }
 
+// write writes msg in an envelope with flags and flushes it, unless the
+// browser is gone; a failed write means it is.
 func (s *stream) write(flags byte, msg []byte) {
 	if s.gone {
 		return
@@ -94,6 +101,8 @@ func (s *stream) write(flags byte, msg []byte) {
 	s.flush()
 }
 
+// flush sends what was written on to the browser; a failed flush means it
+// is gone.
 func (s *stream) flush() {
 	if err := s.rc.Flush(); err != nil {
 		s.gone = true
@@ -103,23 +112,23 @@ func (s *stream) flush() {
 // readEnvelope returns the message in body, which must be exactly one
 // uncompressed envelope.
 func readEnvelope(body []byte) ([]byte, error) {
-	if len(body) < 5 {
+	if len(body) < EnvelopeHeader {
 		return nil, errors.New("want one enveloped message")
 	}
-	if body[0] != flagMessage {
+	if body[0] != FlagMessage {
 		return nil, fmt.Errorf("envelope flags %#x: compression isn't supported", body[0])
 	}
-	if n := binary.BigEndian.Uint32(body[1:5]); int64(n) != int64(len(body)-5) {
-		return nil, fmt.Errorf("envelope of %d bytes in %d: want exactly one enveloped message", n, len(body)-5)
+	if n := binary.BigEndian.Uint32(body[1:EnvelopeHeader]); int64(n) != int64(len(body)-EnvelopeHeader) {
+		return nil, fmt.Errorf("envelope of %d bytes in %d: want exactly one enveloped message", n, len(body)-EnvelopeHeader)
 	}
-	return body[5:], nil
+	return body[EnvelopeHeader:], nil
 }
 
 // relay calls md, a server-streaming method on ep, with req and sends each
 // message it answers on to s. It keeps receiving until the Component's
 // stream ends, even once the browser is gone, and returns how it ended.
-func relay(ctx context.Context, s *stream, ep runtime.Endpoint, fullMethod string, md protoreflect.MethodDescriptor, req proto.Message) error {
-	cs, err := ep.Conn.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true}, fullMethod)
+func relay(ctx context.Context, s *stream, ep runtime.Endpoint, md protoreflect.MethodDescriptor, req proto.Message) error {
+	cs, err := ep.Conn.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true}, FullMethod(ep, md))
 	if err != nil {
 		return err
 	}

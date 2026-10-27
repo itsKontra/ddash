@@ -82,7 +82,7 @@ func (h *Host) RunTestAction(ctx context.Context, req *corepb.RunTestActionReque
 	}
 	callCtx, cancel := router.Detach(metadata.AppendToOutgoingContext(ctx, kv...))
 	defer cancel()
-	err = ep.Conn.Invoke(callCtx, "/"+string(ep.Service.FullName())+"/"+string(md.Name()), in, dynamicpb.NewMessage(md.Output()))
+	err = ep.Conn.Invoke(callCtx, router.FullMethod(ep, md), in, dynamicpb.NewMessage(md.Output()))
 	done(err)
 	if err != nil {
 		return nil, err

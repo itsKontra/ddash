@@ -337,9 +337,9 @@ func (h *Harness) Stream(plugin, component, method, body string) Streamed {
 // StreamRequest is a Connect server-streaming JSON request to component's
 // method, body in its one envelope, naming no Plugin.
 func StreamRequest(component, method, body string) *http.Request {
-	env := binary.BigEndian.AppendUint32([]byte{0}, uint32(len(body)))
+	env := binary.BigEndian.AppendUint32([]byte{router.FlagMessage}, uint32(len(body)))
 	r := httptest.NewRequest(http.MethodPost, "/api/c/"+component+"/"+method, bytes.NewReader(append(env, body...)))
-	r.Header.Set("Content-Type", "application/connect+json")
+	r.Header.Set("Content-Type", router.StreamJSON)
 	r.Header.Set("Connect-Protocol-Version", "1")
 	return r
 }
@@ -370,11 +370,11 @@ func ReadStream(r io.Reader) (Streamed, error) {
 		if err != nil {
 			return s, err
 		}
-		if flags == 0 {
+		if flags == router.FlagMessage {
 			s.Messages = append(s.Messages, string(msg))
 			continue
 		}
-		if flags != 2 {
+		if flags != router.FlagEndStream {
 			return s, fmt.Errorf("envelope flags %#x", flags)
 		}
 		var end struct{ Error *ConnectError }
@@ -391,7 +391,7 @@ func ReadStream(r io.Reader) (Streamed, error) {
 
 // ReadEnvelope reads one Connect envelope from r.
 func ReadEnvelope(r io.Reader) (flags byte, msg []byte, err error) {
-	var head [5]byte
+	var head [router.EnvelopeHeader]byte
 	if _, err := io.ReadFull(r, head[:]); err != nil {
 		return 0, nil, fmt.Errorf("envelope: %w", err)
 	}

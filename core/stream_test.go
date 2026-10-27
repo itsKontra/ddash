@@ -3,6 +3,7 @@ package core_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -213,5 +214,37 @@ func TestAStreamingMethodCalledFromAComponentIsUnimplemented(t *testing.T) {
 	}
 	if want := []string{"relay Act Unimplemented", "greeter Progress Unimplemented"}; !slices.Equal(got, want) {
 		t.Errorf("Audit Log = %v, want %v", got, want)
+	}
+}
+
+// failing is a browser's connection that breaks after ok writes: every
+// write from then on fails.
+type failing struct {
+	*httptest.ResponseRecorder
+	ok, writes int
+}
+
+func (f *failing) Write(b []byte) (int, error) {
+	f.writes++
+	if f.writes > f.ok {
+		return 0, errors.New("connection reset by peer")
+	}
+	return f.ResponseRecorder.Write(b)
+}
+
+func TestAStreamWhoseWriteFailedRunsToItsEndWithoutWritingMore(t *testing.T) {
+	h := newHello(t, configured)
+	h.WaitState("greeter", runtime.OK)
+	r := coretest.StreamRequest("greeter", "Progress", `{"count":3}`)
+	r.Header.Set(coretest.PluginHeader, "hello")
+	w := &failing{ResponseRecorder: httptest.NewRecorder(), ok: 1}
+
+	h.Host.Handler().ServeHTTP(w, r)
+
+	if w.writes != 2 {
+		t.Errorf("%d writes, want 2: step 1, then the failed step 2 and nothing after", w.writes)
+	}
+	if entries := componentEntries(h); len(entries) != 1 || entries[0].Outcome != appstate.OK {
+		t.Errorf("entries = %+v, want Progress ok", entries)
 	}
 }
