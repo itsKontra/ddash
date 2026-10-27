@@ -1,5 +1,5 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { useAction, useClient, usePluginLink, useQuery } from "@ddash/plugin";
+import { usePluginLink, useQuery, useStreamingAction } from "@ddash/plugin";
 import {
   AppsService,
   NameNoteKind,
@@ -13,7 +13,7 @@ import {
   type RunActionResponse,
 } from "@ddash/proto/apps/apps_pb";
 import { Button, Dialog, FormActions, Notice, Skeleton, StatusList, type StatusItem, type Tone } from "@ddash/ui";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 // App Actions' Plans on screen: their steps with each one's progress, the
@@ -125,10 +125,7 @@ export type Outcome =
   | { kind: "stopped"; done: number; message: string }
   | { kind: "failed"; message: string };
 
-/** How often a run's progress is read while RunAction hasn't answered. */
-export const progressEvery = 500;
-
-/** A step's state as GetRun tells it, on screen; unspecified reads as running. */
+/** A step's state as RunAction streams it, on screen; unspecified reads as running. */
 const runStep: Record<RunStep, StepState> = {
   [RunStep.UNSPECIFIED]: "running",
   [RunStep.PENDING]: "planned",
@@ -139,28 +136,15 @@ const runStep: Record<RunStep, StepState> = {
 
 /**
  * Runs an App Action with the Plan confirmed, and keeps how it went: the
- * Plan it ran (or the new one it was refused with), and each step's state,
- * read from GetRun while RunAction hasn't answered.
+ * Plan it ran (or the new one it was refused with), and each step's state
+ * as RunAction streams it.
  */
 export function useRunAction() {
-  const action = useAction(AppsService.method.runAction);
-  const client = useClient(AppsService);
+  const action = useStreamingAction(AppsService.method.runAction);
   // A run that stopped half-way changed the Apps all the same.
   const { refetch } = useQuery(AppsService.method.listApps, {});
-  const [ran, setRan] = useState<{ plan: Plan; runId: string; result?: RunActionResponse }>();
-  const [progress, setProgress] = useState<readonly RunStep[]>([]);
-
-  const following = action.pending ? ran?.runId : undefined;
-  useEffect(() => {
-    if (!following) return;
-    const timer = setInterval(() => {
-      client.getRun({ runId: following }).then(
-        (r) => setProgress(r.steps),
-        () => {},
-      );
-    }, progressEvery);
-    return () => clearInterval(timer);
-  }, [following, client]);
+  const [ran, setRan] = useState<{ plan: Plan; result?: RunActionResponse }>();
+  const progress = action.last?.steps ?? [];
 
   let outcome: Outcome | undefined;
   if (ran && !action.pending) {
@@ -184,11 +168,9 @@ export function useRunAction() {
   return {
     /** Runs action, confirming plan; resolves to the answer, or undefined when it didn't succeed. */
     run: async (request: ActionInit, plan: Plan) => {
-      const runId = crypto.randomUUID();
-      setRan({ plan, runId });
-      setProgress([]);
-      const result = await action.run({ action: request, plan, runId });
-      if (result) setRan({ plan, runId, result });
+      setRan({ plan });
+      const result = await action.run({ action: request, plan });
+      if (result) setRan({ plan, result });
       else void refetch();
       return result;
     },

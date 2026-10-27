@@ -1,10 +1,10 @@
 import { PlanSchema, RunActionResponseSchema, System } from "@ddash/proto/apps/apps_pb";
-import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { useLocation } from "react-router";
 import { afterEach, describe, expect, it } from "vitest";
-import { pending, settle, type Call } from "@ddash/plugin/testing";
+import { pending, settle, streamed, type Answers, type Call } from "@ddash/plugin/testing";
 import plugin from "./index";
-import { actions, failing, renderScoped, split } from "./testing";
+import { actions, failing, ranThrough, renderScoped, split, step, watch } from "./testing";
 
 afterEach(cleanup);
 
@@ -32,7 +32,7 @@ const plan = {
   ],
 };
 
-const open = async (id: string, answers = {}) => {
+const open = async (id: string, answers: Answers = {}) => {
   const calls = renderScoped(<Page />, { ListApps: () => Response.json(split), PlanAction: () => Response.json({ plan }), ...answers }, ["apps"], `/?app=${encodeURIComponent(id)}`);
   await settle();
   return calls;
@@ -132,7 +132,7 @@ const ways: { name: string; app: string; confirm: string; open: () => unknown; a
 
 describe.each(ways)("$name", (way) => {
   it("shows the Plan in a Dialog, and runs that Plan once confirmed", async () => {
-    const calls = await open(way.app, { RunAction: () => Response.json({ appId: way.app, done: 2 }) });
+    const calls = await open(way.app, { RunAction: ranThrough({ appId: way.app, done: 2 }) });
     await way.open();
     await settle();
 
@@ -141,7 +141,7 @@ describe.each(ways)("$name", (way) => {
     fireEvent.click(dialog().getByRole("button", { name: way.confirm }));
     await settle();
 
-    expect(runs(calls)).toEqual([{ method: "RunAction", body: { action: way.action, plan, runId: expect.any(String) } }]);
+    expect(runs(calls)).toEqual([{ method: "RunAction", body: { action: way.action, plan } }]);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 
@@ -156,12 +156,22 @@ describe.each(ways)("$name", (way) => {
 
     cleanup();
     const stopped = "Stopped at step 2 of 2, Update the App Grafana: database is locked. Done: Update Proxy Host grafana.home.example. Nothing was rolled back.";
-    await open(way.app, { RunAction: failing("unavailable", stopped, RunActionResponseSchema, { done: 1 }, 503) });
+    const ran = [[step.running, step.pending], [step.done, step.pending], [step.done, step.running], [step.done, step.failed]].map((steps) => ({ steps }));
+    await open(way.app, { RunAction: failing("unavailable", stopped, RunActionResponseSchema, { done: 1 }, ran) });
     await way.open();
     await settle();
     fireEvent.click(dialog().getByRole("button", { name: way.confirm }));
+    const shown = watch(() => steps().map(state));
     await settle();
-    expect(steps().map(state)).toEqual(["done", "failed"]);
+    shown.stop();
+    expect(shown.seen).toEqual([
+      [undefined, undefined],
+      ["running…", "running…"],
+      ["running…", undefined],
+      ["done", undefined],
+      ["done", "running…"],
+      ["done", "failed"],
+    ]);
     expect(dialog().getByRole("alert").textContent).toContain(stopped);
     expect((dialog().getByRole("button", { name: way.confirm }) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -170,7 +180,7 @@ describe.each(ways)("$name", (way) => {
     const changed = { steps: [{ system: System.PFSENSE, title: "Remove alias grafana.home.example from rp.home.example" }] };
     let n = 0;
     const calls = await open(way.app, {
-      RunAction: () => (++n === 1 ? failing("aborted", "changed since you looked: confirm the new Plan", PlanSchema, changed, 409)() : Response.json({ appId: way.app, done: 1 })),
+      RunAction: () => (++n === 1 ? failing("aborted", "changed since you looked: confirm the new Plan", PlanSchema, changed) : ranThrough({ appId: way.app, done: 1 }))(),
     });
     await way.open();
     await settle();
@@ -205,27 +215,55 @@ describe.each(ways)("$name", (way) => {
   });
 });
 
-it("shows each step's progress while the run goes on, polling GetRun under its run id", async () => {
+it("shows each step's state as the run streams it, then done", async () => {
+  const calls = await open("proxy:grafana.home.example", { RunAction: ranThrough({ appId: "proxy:grafana.home.example", done: 2 }) });
+  fireEvent.click(within(pane()).getByRole("button", { name: "Delete…" }));
+  await settle();
+  fireEvent.click(dialog().getByRole("button", { name: "Delete" }));
+  const shown = watch(() => (screen.queryByRole("dialog") ? steps().map(state) : "closed"));
+  await settle();
+  shown.stop();
+
+  expect(shown.seen).toEqual([
+    [undefined, undefined],
+    ["running…", "running…"],
+    ["running…", undefined],
+    ["done", undefined],
+    ["done", "running…"],
+    ["done", "done"],
+    "closed",
+  ]);
+  expect(calls.map((c) => c.method)).not.toContain("GetRun");
+});
+
+it("closing the Dialog mid-run stops following it and refetches, the Action running on", async () => {
+  let signal: AbortSignal | undefined;
   const calls = await open("proxy:grafana.home.example", {
-    RunAction: () => pending(),
-    GetRun: () => Response.json({ steps: ["STEP_STATE_DONE", "STEP_STATE_RUNNING"] }),
+    RunAction: (_, init) => {
+      signal = init?.signal ?? undefined;
+      return streamed([{ steps: [step.done, step.running] }], { openUntil: signal });
+    },
   });
   fireEvent.click(within(pane()).getByRole("button", { name: "Delete…" }));
   await settle();
   fireEvent.click(dialog().getByRole("button", { name: "Delete" }));
   await settle();
-  expect(steps().map(state)).toEqual(["running…", "running…"]);
-
-  await act(() => new Promise((r) => setTimeout(r, 600)));
-  await settle();
   expect(steps().map(state)).toEqual(["done", "running…"]);
-  const runId = (runs(calls)[0].body as { runId: string }).runId;
-  expect(runId).not.toBe("");
-  expect(calls.filter((c) => c.method === "GetRun").map((c) => c.body)).toContainEqual({ runId });
+  expect((dialog().getByRole("button", { name: "Cancel" }) as HTMLButtonElement).disabled).toBe(true);
+  const lists = calls.filter((c) => c.method === "ListApps").length;
+
+  fireEvent.click(dialog().getByRole("button", { name: "Close" }));
+  await settle();
+
+  expect(signal?.aborted).toBe(true);
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(calls.filter((c) => c.method === "ListApps").length).toBeGreaterThan(lists);
+  // Not done: the pane stays on the App.
+  expect(search).toBe("?app=proxy%3Agrafana.home.example");
 });
 
 it("empties the pane once the App is deleted", async () => {
-  await open("proxy:grafana.home.example", { RunAction: () => Response.json({ appId: "proxy:grafana.home.example", done: 3 }) });
+  await open("proxy:grafana.home.example", { RunAction: ranThrough({ appId: "proxy:grafana.home.example", done: 2 }) });
   fireEvent.click(within(pane()).getByRole("button", { name: "Delete…" }));
   await settle();
   fireEvent.click(dialog().getByRole("button", { name: "Delete" }));

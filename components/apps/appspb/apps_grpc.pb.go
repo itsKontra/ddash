@@ -35,7 +35,6 @@ const (
 	AppsService_Merge_FullMethodName           = "/ddash.apps.AppsService/Merge"
 	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
 	AppsService_RunAction_FullMethodName       = "/ddash.apps.AppsService/RunAction"
-	AppsService_GetRun_FullMethodName          = "/ddash.apps.AppsService/GetRun"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
 )
 
@@ -91,14 +90,12 @@ type AppsServiceClient interface {
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
-	// re-read a source. While it runs, GetRun tells each step's state under
-	// its run_id.
-	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error)
-	// GetRun returns how far the App Action RunAction runs under run_id
-	// has got: each Plan step's state, polled by the Plan Dialog while it
-	// waits for RunAction. Empty before the run's first write and once
-	// RunAction answered, which says how it ended.
-	GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error)
+	// re-read a source. It streams each step's state as it runs: a message,
+	// carrying every step's state, each time one changes (pfSense's steps
+	// change together, as one batch), then after the sync a last one, its
+	// result, which alone fills in app_id, done and reread. Both refusals
+	// come before any message; a stopped Action's error after its steps'.
+	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RunActionResponse], error)
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -213,25 +210,24 @@ func (c *appsServiceClient) PlanAction(ctx context.Context, in *PlanActionReques
 	return out, nil
 }
 
-func (c *appsServiceClient) RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (*RunActionResponse, error) {
+func (c *appsServiceClient) RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RunActionResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RunActionResponse)
-	err := c.cc.Invoke(ctx, AppsService_RunAction_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &AppsService_ServiceDesc.Streams[0], AppsService_RunAction_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[RunActionRequest, RunActionResponse]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
 
-func (c *appsServiceClient) GetRun(ctx context.Context, in *GetRunRequest, opts ...grpc.CallOption) (*GetRunResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetRunResponse)
-	err := c.cc.Invoke(ctx, AppsService_GetRun_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AppsService_RunActionClient = grpc.ServerStreamingClient[RunActionResponse]
 
 func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -295,14 +291,12 @@ type AppsServiceServer interface {
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
-	// re-read a source. While it runs, GetRun tells each step's state under
-	// its run_id.
-	RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error)
-	// GetRun returns how far the App Action RunAction runs under run_id
-	// has got: each Plan step's state, polled by the Plan Dialog while it
-	// waits for RunAction. Empty before the run's first write and once
-	// RunAction answered, which says how it ended.
-	GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error)
+	// re-read a source. It streams each step's state as it runs: a message,
+	// carrying every step's state, each time one changes (pfSense's steps
+	// change together, as one batch), then after the sync a last one, its
+	// result, which alone fills in app_id, done and reread. Both refusals
+	// come before any message; a stopped Action's error after its steps'.
+	RunAction(*RunActionRequest, grpc.ServerStreamingServer[RunActionResponse]) error
 	// ListWorkloads returns every Workload proxmox-api and docker-api list
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
@@ -347,11 +341,8 @@ func (UnimplementedAppsServiceServer) Merge(context.Context, *MergeRequest) (*Me
 func (UnimplementedAppsServiceServer) PlanAction(context.Context, *PlanActionRequest) (*PlanActionResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PlanAction not implemented")
 }
-func (UnimplementedAppsServiceServer) RunAction(context.Context, *RunActionRequest) (*RunActionResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RunAction not implemented")
-}
-func (UnimplementedAppsServiceServer) GetRun(context.Context, *GetRunRequest) (*GetRunResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetRun not implemented")
+func (UnimplementedAppsServiceServer) RunAction(*RunActionRequest, grpc.ServerStreamingServer[RunActionResponse]) error {
+	return status.Error(codes.Unimplemented, "method RunAction not implemented")
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
@@ -557,41 +548,16 @@ func _AppsService_PlanAction_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AppsService_RunAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RunActionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
+func _AppsService_RunAction_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(RunActionRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(AppsServiceServer).RunAction(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AppsService_RunAction_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).RunAction(ctx, req.(*RunActionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(AppsServiceServer).RunAction(m, &grpc.GenericServerStream[RunActionRequest, RunActionResponse]{ServerStream: stream})
 }
 
-func _AppsService_GetRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetRunRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(AppsServiceServer).GetRun(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: AppsService_GetRun_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AppsServiceServer).GetRun(ctx, req.(*GetRunRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type AppsService_RunActionServer = grpc.ServerStreamingServer[RunActionResponse]
 
 func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListWorkloadsRequest)
@@ -659,18 +625,16 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AppsService_PlanAction_Handler,
 		},
 		{
-			MethodName: "RunAction",
-			Handler:    _AppsService_RunAction_Handler,
-		},
-		{
-			MethodName: "GetRun",
-			Handler:    _AppsService_GetRun_Handler,
-		},
-		{
 			MethodName: "ListWorkloads",
 			Handler:    _AppsService_ListWorkloads_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "RunAction",
+			Handler:       _AppsService_RunAction_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "apps/apps.proto",
 }

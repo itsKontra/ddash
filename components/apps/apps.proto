@@ -85,17 +85,13 @@ service AppsService {
   // what was done, nothing is rolled back, and its details carry a
   // RunActionResponse saying how many steps were done. Success or failure,
   // it ends with a sync bounded to 10 s, which may report that it couldn't
-  // re-read a source. While it runs, GetRun tells each step's state under
-  // its run_id.
-  rpc RunAction(RunActionRequest) returns (RunActionResponse) {
+  // re-read a source. It streams each step's state as it runs: a message,
+  // carrying every step's state, each time one changes (pfSense's steps
+  // change together, as one batch), then after the sync a last one, its
+  // result, which alone fills in app_id, done and reread. Both refusals
+  // come before any message; a stopped Action's error after its steps'.
+  rpc RunAction(RunActionRequest) returns (stream RunActionResponse) {
     option (ddash.action) = {};
-  }
-  // GetRun returns how far the App Action RunAction runs under run_id
-  // has got: each Plan step's state, polled by the Plan Dialog while it
-  // waits for RunAction. Empty before the run's first write and once
-  // RunAction answered, which says how it ended.
-  rpc GetRun(GetRunRequest) returns (GetRunResponse) {
-    option (ddash.getter) = {refresh: NONE};
   }
   // ListWorkloads returns every Workload proxmox-api and docker-api list
   // now, to pick a Workload override from: containers by host, then
@@ -670,18 +666,6 @@ message RunActionRequest {
   AppAction action = 1;
   // The Plan the Operator confirmed, as PlanAction gave it.
   Plan plan = 2;
-  // Names the run for GetRun, e.g. a random id the Plugin made; empty
-  // for a run nobody follows.
-  string run_id = 3;
-}
-
-message GetRunRequest {
-  string run_id = 1;
-}
-
-message GetRunResponse {
-  // Each Plan step's state, in the Plan's order.
-  repeated StepState steps = 1;
 }
 
 // Where a Plan step of a running App Action is.
@@ -696,8 +680,9 @@ enum StepState {
   STEP_STATE_FAILED = 4;
 }
 
-// What an App Action did; also the details of the error of one that
-// stopped at a failed step.
+// How far an App Action has got, and once it ended what it did; also the
+// details of the error of one that stopped at a failed step, without its
+// steps.
 message RunActionResponse {
   // The App it added, changed or deleted.
   string app_id = 1;
@@ -708,6 +693,8 @@ message RunActionResponse {
   // re-read: pfsense-api: timeout"; empty when it could. What it wrote
   // stands either way.
   string reread = 3;
+  // Each Plan step's state, in the Plan's order.
+  repeated StepState steps = 4;
 }
 
 message ListWorkloadsRequest {}

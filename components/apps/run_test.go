@@ -1,6 +1,8 @@
 package apps_test
 
 import (
+	"cmp"
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -8,8 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
+	"github.com/itsKontra/ddash/core/coretest"
 )
 
 // addWiki is Add App for wiki.home.example behind the Reverse Proxy.
@@ -29,7 +34,8 @@ func (l *lab) wikiHosts() int {
 
 // When the systems changed since the Operator looked, so that the Plan
 // built again from a fresh read differs from the one confirmed, the
-// Action refuses before any write, returning the new Plan.
+// Action refuses before any write and any message, returning the new
+// Plan.
 func TestAChangeSinceThePlanRefusesBeforeAnyWrite(t *testing.T) {
 	l := newLab(t, labOptions{})
 	confirmed := l.plan(addWiki)
@@ -38,9 +44,9 @@ func TestAChangeSinceThePlanRefusesBeforeAnyWrite(t *testing.T) {
 	l.npm.AddProxyHost(proxyHost("http://198.18.2.12:80", "wiki.home.example"))
 	npmLog, fwLog := len(l.npm.Log()), len(l.fw.Log())
 
-	_, err := l.tryRun(addWiki, confirmed)
-	if err == nil || err.code != "aborted" || !strings.HasPrefix(err.message, "changed since you looked") {
-		t.Fatalf("RunAction = %v, want aborted: changed since you looked", err)
+	msgs, err := l.runStream(addWiki, confirmed)
+	if err == nil || err.code != "aborted" || !strings.HasPrefix(err.message, "changed since you looked") || len(msgs) != 0 {
+		t.Fatalf("RunAction = %q then %v, want aborted: changed since you looked, before any message", states(msgs), err)
 	}
 	var fresh appspb.Plan
 	if !err.detail(&fresh) {
@@ -267,47 +273,134 @@ func TestAFixStopsWhenPfSenseFailsToApply(t *testing.T) {
 	}
 }
 
-// progress is the steps' states GetRun gives the run id.
-func (l *lab) progress(id string) []appspb.StepState {
-	l.t.Helper()
-	resp := &appspb.GetRunResponse{}
-	l.call("GetRun", &appspb.GetRunRequest{RunId: id}, resp)
-	return resp.GetSteps()
+// states are the step states of each message RunAction streamed, a
+// letter a step: P pending, R running, D done, F failed.
+func states(msgs []*appspb.RunActionResponse) []string {
+	letter := map[appspb.StepState]string{
+		appspb.StepState_STEP_STATE_PENDING: "P",
+		appspb.StepState_STEP_STATE_RUNNING: "R",
+		appspb.StepState_STEP_STATE_DONE:    "D",
+		appspb.StepState_STEP_STATE_FAILED:  "F",
+	}
+	var out []string
+	for _, m := range msgs {
+		var b strings.Builder
+		for _, s := range m.GetSteps() {
+			b.WriteString(cmp.Or(letter[s], "?"))
+		}
+		out = append(out, b.String())
+	}
+	return out
 }
 
-// While an Action runs, GetRun gives each of its Plan's steps' states
-// under the run id the Plugin sent: here Nginx Proxy Manager's step done
-// and pfSense's running while pfSense applies. Once RunAction answered,
-// the run is forgotten.
-func TestGetRunShowsEachStepAsItRuns(t *testing.T) {
+// A proxied Add streams each step's state as it changes: Nginx Proxy
+// Manager's step running then done, then pfSense's batch, then the App
+// record. The last message, after the sync ending the Action, is its
+// result; the ones before carry the steps alone.
+func TestAnAddStreamsEachStepAsItRuns(t *testing.T) {
+	l := newLab(t, labOptions{})
+
+	msgs, err := l.runStream(addWiki, l.plan(addWiki))
+	if err != nil {
+		t.Fatalf("RunAction: %v", err)
+	}
+	if got, want := states(msgs), []string{"RPP", "DPP", "DRP", "DDP", "DDR", "DDD", "DDD"}; !slices.Equal(got, want) {
+		t.Errorf("RunAction's step states = %q, want %q", got, want)
+	}
+	last := msgs[len(msgs)-1]
+	if last.GetAppId() != "proxy:wiki.home.example" || last.GetDone() != 3 || last.GetReread() != "" {
+		t.Errorf("RunAction's last message = %v, want proxy:wiki.home.example, 3 steps done, re-read", last)
+	}
+	for i, m := range msgs[:len(msgs)-1] {
+		if m.GetAppId() != "" || m.GetDone() != 0 || m.GetReread() != "" {
+			t.Errorf("RunAction's message %d = %v, want the steps alone", i+1, m)
+		}
+	}
+}
+
+// An Action stopped at a step streams the steps' states up to the failed
+// one, then ends in the error saying where it stopped, which carries a
+// RunActionResponse.
+func TestAStoppedAddStreamsItsStepsThenTheError(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		fail  func(l *lab)
+		want  []string
+		done  int32
+		where string
+	}{
+		{"Nginx Proxy Manager refuses", func(l *lab) { l.npm.AddRedirectionHost("wiki.home.example") }, []string{"RPP", "FPP"}, 0, "Stopped at step 1 of 3"},
+		{"a pfSense write fails", func(l *lab) { l.fw.FailDNSWrite(1) }, []string{"RPP", "DPP", "DRP", "DFP"}, 1, "Stopped at step 2 of 3"},
+		{"pfSense fails to apply", func(l *lab) { l.fw.FailDNSApply() }, []string{"RPP", "DPP", "DRP", "DDP", "DFP"}, 2, "Stopped after step 2 of 3"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			l := newLab(t, labOptions{})
+			tc.fail(l)
+
+			msgs, err := l.runStream(addWiki, l.plan(addWiki))
+			var resp appspb.RunActionResponse
+			if err == nil || !strings.HasPrefix(err.message, tc.where) || !err.detail(&resp) || resp.GetDone() != tc.done {
+				t.Fatalf("RunAction = %v (%v), want %q…, %d steps done", err, &resp, tc.where, tc.done)
+			}
+			if got := states(msgs); !slices.Equal(got, tc.want) {
+				t.Errorf("RunAction's step states = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
+
+// An Add whose browser left mid-run (its Plan Dialog closed) runs to its
+// end all the same, and its Audit Log entry says it did.
+func TestAnAddWhoseBrowserLeftRunsToItsEnd(t *testing.T) {
 	l := newLab(t, labOptions{})
 	release := make(chan struct{})
 	l.holdApply.Store(&release)
-	plan := l.plan(addWiki)
-	const id = "run-1"
-	ran := make(chan *callError, 1)
+	body, err := protojson.Marshal(&appspb.RunActionRequest{Action: addWiki, Plan: l.plan(addWiki)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fwLog := len(l.fw.Log())
+	r := coretest.StreamRequest("apps", "RunAction", string(body))
+	r.Header.Set(coretest.PluginHeader, "apps")
+	ctx, leave := context.WithCancel(r.Context())
+	ended := make(chan struct{})
 	go func() {
-		ran <- l.try("RunAction", &appspb.RunActionRequest{Action: addWiki, Plan: plan, RunId: id}, nil)
+		defer close(ended)
+		l.h.Do(r.WithContext(ctx))
 	}()
 
-	const (
-		pending = appspb.StepState_STEP_STATE_PENDING
-		running = appspb.StepState_STEP_STATE_RUNNING
-		done    = appspb.StepState_STEP_STATE_DONE
-	)
-	want := []appspb.StepState{done, running, pending}
-	var got []appspb.StepState
-	for deadline := time.Now().Add(5 * time.Second); !slices.Equal(got, want) && time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
-		got = l.progress(id)
+	// pfSense holds its apply, after the alias was written.
+	for deadline := time.Now().Add(5 * time.Second); !slices.Contains(writes(l.fw.Log(), fwLog), pfAddAlias); time.Sleep(10 * time.Millisecond) {
+		if time.Now().After(deadline) {
+			t.Fatal("RunAction never wrote the alias")
+		}
 	}
-	if !slices.Equal(got, want) {
-		t.Errorf("GetRun while pfSense applies = %v, want %v", got, want)
-	}
+	leave()
 	close(release)
-	if err := <-ran; err != nil {
-		t.Fatalf("RunAction: %v", err)
+	<-ended
+
+	if !l.has("proxy:wiki.home.example") || l.app("proxy:wiki.home.example").GetName() != "Wiki" {
+		t.Error("Wiki wasn't added")
 	}
-	if got := l.progress(id); len(got) != 0 {
-		t.Errorf("GetRun once RunAction answered = %v, want nothing", got)
+	var outcomes []string
+	for _, e := range l.h.AuditLog() {
+		if e.Method == "RunAction" {
+			outcomes = append(outcomes, e.Outcome)
+		}
+	}
+	if !slices.Equal(outcomes, []string{"ok"}) {
+		t.Errorf("RunAction's Audit Log entries = %q, want one ok", outcomes)
+	}
+}
+
+// A Plan blocked from running is refused before any message.
+func TestABlockedPlanStreamsNothing(t *testing.T) {
+	l := newLab(t, labOptions{})
+	l.failPfSense.Store(true)
+	_ = l.try("Refresh", &appspb.RefreshRequest{}, nil)
+
+	msgs, err := l.runStream(addWiki, l.plan(addWiki))
+	if err == nil || err.code != "failed_precondition" || len(msgs) != 0 {
+		t.Errorf("RunAction = %q then %v, want failed_precondition before any message", states(msgs), err)
 	}
 }
