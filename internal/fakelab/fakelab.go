@@ -5,7 +5,8 @@
 //
 // Docker comes first; each later system adds itself to systems. A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
-// adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake). A
+// adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
+// calendars: calendarfake, whose dates follow the clock). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
 // system that has a sibling directory of that name.
 package fakelab
@@ -24,6 +25,8 @@ import (
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -104,6 +107,15 @@ var systems = []system{
 		},
 		// Sign-ins and Proxy Hosts are kept: writes stick.
 		serve: func(dir string) (http.Handler, error) { return npmfake.New(dir, npmfake.Options{Password: "fakelab"}) },
+	},
+	{
+		component: "calendar-api",
+		fixtures:  "components/calendar-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			return &calendarapipb.CalendarApiConfig{Calendars: "Home = http://" + addr + "/home.ics; Work = http://" + addr + "/work.ics"}
+		},
+		// The calendars' dates follow the clock: there is always a today.
+		serve: func(dir string) (http.Handler, error) { return calendarfake.New(dir, calendarfake.Options{}) },
 	},
 }
 

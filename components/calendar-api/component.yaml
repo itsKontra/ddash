@@ -1,0 +1,3 @@
+name: calendar-api
+description: Reads the Operator's calendars, read-only, from their secret iCal addresses.
+requires: []
