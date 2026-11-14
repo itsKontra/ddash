@@ -2,13 +2,13 @@ import { useQuery } from "@ddash/plugin";
 import { ComposeService, type Container, type Project, type Run } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService, type ComposeFile } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { ago } from "@ddash/display";
-import { Button, Checkbox, CodeBlock, DataTable, EmptyState, Facts, FormActions, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, Tabs, TextArea, type Column } from "@ddash/ui";
+import { ActionStrip, Button, Checkbox, CodeBlock, DataTable, EmptyState, Facts, FormActions, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, Tabs, TextArea, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { tones } from "./containers";
 import { ImageBadge, ProjectStatePill, shortDigest } from "./images";
 import { useNow } from "./now";
-import { ending, JobLog, PlanDialog, PlanSteps } from "./plan";
+import { ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "./plan";
 import { projectActions } from "./projects";
 
 // Relative to the route, so ".." is the Plugin's root.
@@ -73,6 +73,32 @@ const columns: readonly Column<Row>[] = [
 function rows(p: Project): Row[] {
   return p.services.flatMap((s) =>
     s.containers.length ? s.containers.map((c) => ({ service: s.name, image: s.image, ports: s.ports, container: c })) : [{ service: s.name, image: s.image, ports: s.ports }],
+  );
+}
+
+/** One Compose service's Actions: Start, or Restart and Stop, through the Project's Plan for just that service. */
+function ServiceStrip({ project: p, row: r, open, close }: { project: Project; row: Row; open: (d: ReactNode) => void; close: () => void }) {
+  const target = { host: p.host, project: p.name, services: [r.service] };
+  const running = r.container?.state === "running";
+  const dialog = (verb: "Start" | "Restart" | "Stop", action: ActionInit) =>
+    open(<PlanDialog title={`${verb} ${p.name} (${r.service})`} action={action} confirm={verb} danger={verb !== "Start"} onClose={close} />);
+  return (
+    <ActionStrip summary={r.container ? `${r.container.name}: ${r.container.status}` : "no container yet"}>
+      {running ? (
+        <>
+          <Button size="sm" variant="danger" disabled={!!p.runId} onClick={() => dialog("Restart", { action: { case: "restart", value: target } })}>
+            Restart
+          </Button>
+          <Button size="sm" variant="danger" disabled={!!p.runId} onClick={() => dialog("Stop", { action: { case: "stop", value: target } })}>
+            Stop
+          </Button>
+        </>
+      ) : (
+        <Button size="sm" disabled={!!p.runId} onClick={() => dialog("Start", { action: { case: "start", value: target } })}>
+          Start
+        </Button>
+      )}
+    </ActionStrip>
   );
 }
 
@@ -228,7 +254,15 @@ export function ProjectPage() {
         {p.error && <Notice tone="warn">{p.error}</Notice>}
         {run && <RunPanel run={run} />}
         <Panel title="Compose services" flush>
-          <DataTable rows={rows(p)} rowKey={(r) => r.service + (r.container?.id ?? "")} columns={columns} empty="The file defines no Compose services" />
+          <DataTable
+            rows={rows(p)}
+            rowKey={(r) => r.service + (r.container?.id ?? "")}
+            columns={columns}
+            empty="The file defines no Compose services"
+            rowLabel={(r) => r.service}
+            strip={(r) => <ServiceStrip project={p} row={r} open={setDialog} close={close} />}
+            busy={() => (p.runId ? "running" : undefined)}
+          />
         </Panel>
         <Panel title="Compose file" description="Saved only after `docker compose config` accepts it on the host; the previous file is kept as .bak.">
           <FileEditor project={p} open={setDialog} close={close} />

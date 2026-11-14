@@ -185,3 +185,14 @@ it("counts the updates waiting in the Widget", async () => {
   expect(reported.status?.summary).toBe("1 of 1 running · 1 update waiting");
   expect(screen.getByRole("group", { name: "update waiting" })).toBeTruthy();
 });
+
+it("restarts one Compose service from its row on the Compose Project's Page", async () => {
+  const calls = await showPlugin(plugin, docker, "/docker/projects/apps/media", {
+    answers: { ...base, GetComposeFile: () => Response.json({ file: { path: "/opt/stacks/media/compose.yaml", content: "services: {}\n", sha256: "a" } }), PlanAction: () => Response.json({ plan }) },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Actions for jellyfin" }));
+  fireEvent.click(within(screen.getByRole("group", { name: "Actions for jellyfin" })).getByRole("button", { name: "Restart" }));
+  await settle();
+  expect(screen.getByRole("dialog", { name: "Restart media (jellyfin)" })).toBeTruthy();
+  expect(calls.find((c) => c.method === "PlanAction")?.body).toEqual({ action: { restart: { host: "apps", project: "media", services: ["jellyfin"] } } });
+});
