@@ -43,6 +43,11 @@ service NtfyApiService {
   rpc SendTest(SendTestRequest) returns (SendTestResponse) {
     option (ddash.action) = {};
   }
+  // GetChannel names where Notifications go, from the config alone. It
+  // answers only once ntfy-api is configured.
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
 }
 
 message Notification {
@@ -72,4 +77,15 @@ message SendTestRequest {}
 message SendTestResponse {
   // The id ntfy gave the message.
   string id = 1;
+}
+
+message GetChannelRequest {}
+
+message GetChannelResponse {
+  // Always true: ntfy-api answers only once configured. It mirrors
+  // telegram-api's, which may be not set up.
+  bool set_up = 1;
+  // Where Notifications go: the server's host and the topic, e.g.
+  // "ntfy.sh/ddash-alerts".
+  string destination = 2;
 }
