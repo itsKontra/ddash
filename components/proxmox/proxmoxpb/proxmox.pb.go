@@ -7,12 +7,17 @@
 // proxmox is the logic behind the Proxmox Page's power Actions: it starts,
 // stops and restarts Workloads that aren't Protected, one power Action per
 // Workload at a time, and puts a Workload it stops or restarts into
-// Maintenance so ddash's own Actions don't page the Operator.
+// Maintenance so ddash's own Actions don't page the Operator. Through each
+// Workload's Host Agent (host-agent-api) it updates packages after a ddash
+// Snapshot, one Workload or every running one, and installs SSH Keys it
+// stores; it takes ddash Snapshots and backups through proxmox-api.
 
 package proxmoxpb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	job "github.com/itsKontra/ddash/proto/ddash/job"
 	workload "github.com/itsKontra/ddash/proto/ddash/workload"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -28,6 +33,75 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+type SkipReason int32
+
+const (
+	SkipReason_SKIP_REASON_UNSPECIFIED SkipReason = 0
+	// ddash holds no VM.PowerMgmt on it.
+	SkipReason_SKIP_REASON_PROTECTED     SkipReason = 1
+	SkipReason_SKIP_REASON_NO_HOST_AGENT SkipReason = 2
+	SkipReason_SKIP_REASON_STOPPED       SkipReason = 3
+	// Its Host Agent isn't paired, reachable or on ddash's Release.
+	SkipReason_SKIP_REASON_AGENT_NOT_READY SkipReason = 4
+	// Its setting wants a snapshot its storage can't take.
+	SkipReason_SKIP_REASON_SNAPSHOTS_NOT_SUPPORTED SkipReason = 5
+	// Nothing pending, as the Host Agent last read it.
+	SkipReason_SKIP_REASON_UP_TO_DATE SkipReason = 6
+	// An update already runs on it.
+	SkipReason_SKIP_REASON_BUSY SkipReason = 7
+)
+
+// Enum value maps for SkipReason.
+var (
+	SkipReason_name = map[int32]string{
+		0: "SKIP_REASON_UNSPECIFIED",
+		1: "SKIP_REASON_PROTECTED",
+		2: "SKIP_REASON_NO_HOST_AGENT",
+		3: "SKIP_REASON_STOPPED",
+		4: "SKIP_REASON_AGENT_NOT_READY",
+		5: "SKIP_REASON_SNAPSHOTS_NOT_SUPPORTED",
+		6: "SKIP_REASON_UP_TO_DATE",
+		7: "SKIP_REASON_BUSY",
+	}
+	SkipReason_value = map[string]int32{
+		"SKIP_REASON_UNSPECIFIED":             0,
+		"SKIP_REASON_PROTECTED":               1,
+		"SKIP_REASON_NO_HOST_AGENT":           2,
+		"SKIP_REASON_STOPPED":                 3,
+		"SKIP_REASON_AGENT_NOT_READY":         4,
+		"SKIP_REASON_SNAPSHOTS_NOT_SUPPORTED": 5,
+		"SKIP_REASON_UP_TO_DATE":              6,
+		"SKIP_REASON_BUSY":                    7,
+	}
+)
+
+func (x SkipReason) Enum() *SkipReason {
+	p := new(SkipReason)
+	*p = x
+	return p
+}
+
+func (x SkipReason) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (SkipReason) Descriptor() protoreflect.EnumDescriptor {
+	return file_proxmox_proxmox_proto_enumTypes[0].Descriptor()
+}
+
+func (SkipReason) Type() protoreflect.EnumType {
+	return &file_proxmox_proxmox_proto_enumTypes[0]
+}
+
+func (x SkipReason) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use SkipReason.Descriptor instead.
+func (SkipReason) EnumDescriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{0}
+}
 
 type PowerAction int32
 
@@ -65,11 +139,11 @@ func (x PowerAction) String() string {
 }
 
 func (PowerAction) Descriptor() protoreflect.EnumDescriptor {
-	return file_proxmox_proxmox_proto_enumTypes[0].Descriptor()
+	return file_proxmox_proxmox_proto_enumTypes[1].Descriptor()
 }
 
 func (PowerAction) Type() protoreflect.EnumType {
-	return &file_proxmox_proxmox_proto_enumTypes[0]
+	return &file_proxmox_proxmox_proto_enumTypes[1]
 }
 
 func (x PowerAction) Number() protoreflect.EnumNumber {
@@ -78,7 +152,7 @@ func (x PowerAction) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use PowerAction.Descriptor instead.
 func (PowerAction) EnumDescriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{0}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{1}
 }
 
 // proxmox has no config.
@@ -118,6 +192,2425 @@ func (*ProxmoxConfig) Descriptor() ([]byte, []int) {
 	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{0}
 }
 
+type GetSnapshotsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workload      *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSnapshotsRequest) Reset() {
+	*x = GetSnapshotsRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSnapshotsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSnapshotsRequest) ProtoMessage() {}
+
+func (x *GetSnapshotsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSnapshotsRequest.ProtoReflect.Descriptor instead.
+func (*GetSnapshotsRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *GetSnapshotsRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+type GetSnapshotsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Its storage can take a snapshot; false: "snapshots not supported".
+	Supported bool `protobuf:"varint,1,opt,name=supported,proto3" json:"supported,omitempty"`
+	// The ddash Snapshot; unset when there is none.
+	DdashSnapshot *Snapshot `protobuf:"bytes,2,opt,name=ddash_snapshot,json=ddashSnapshot,proto3" json:"ddash_snapshot,omitempty"`
+	// The snapshots ddash didn't take, which it never deletes.
+	Others        []*Snapshot `protobuf:"bytes,3,rep,name=others,proto3" json:"others,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetSnapshotsResponse) Reset() {
+	*x = GetSnapshotsResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetSnapshotsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetSnapshotsResponse) ProtoMessage() {}
+
+func (x *GetSnapshotsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetSnapshotsResponse.ProtoReflect.Descriptor instead.
+func (*GetSnapshotsResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetSnapshotsResponse) GetSupported() bool {
+	if x != nil {
+		return x.Supported
+	}
+	return false
+}
+
+func (x *GetSnapshotsResponse) GetDdashSnapshot() *Snapshot {
+	if x != nil {
+		return x.DdashSnapshot
+	}
+	return nil
+}
+
+func (x *GetSnapshotsResponse) GetOthers() []*Snapshot {
+	if x != nil {
+		return x.Others
+	}
+	return nil
+}
+
+type Snapshot struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// e.g. "Created by ddash before an update".
+	Description   string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	Created       *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created,proto3" json:"created,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Snapshot) Reset() {
+	*x = Snapshot{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Snapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Snapshot) ProtoMessage() {}
+
+func (x *Snapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Snapshot.ProtoReflect.Descriptor instead.
+func (*Snapshot) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Snapshot) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Snapshot) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *Snapshot) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Created
+	}
+	return nil
+}
+
+type TakeSnapshotRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workload      *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TakeSnapshotRequest) Reset() {
+	*x = TakeSnapshotRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TakeSnapshotRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TakeSnapshotRequest) ProtoMessage() {}
+
+func (x *TakeSnapshotRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TakeSnapshotRequest.ProtoReflect.Descriptor instead.
+func (*TakeSnapshotRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *TakeSnapshotRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+type TakeSnapshotResponse struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Snapshot *Snapshot              `protobuf:"bytes,1,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// The older ddash Snapshots deleted after it succeeded.
+	Deleted       []string `protobuf:"bytes,2,rep,name=deleted,proto3" json:"deleted,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TakeSnapshotResponse) Reset() {
+	*x = TakeSnapshotResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TakeSnapshotResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TakeSnapshotResponse) ProtoMessage() {}
+
+func (x *TakeSnapshotResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TakeSnapshotResponse.ProtoReflect.Descriptor instead.
+func (*TakeSnapshotResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *TakeSnapshotResponse) GetSnapshot() *Snapshot {
+	if x != nil {
+		return x.Snapshot
+	}
+	return nil
+}
+
+func (x *TakeSnapshotResponse) GetDeleted() []string {
+	if x != nil {
+		return x.Deleted
+	}
+	return nil
+}
+
+type BackupRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	// One of proxmox-api's ListBackupStorages.
+	Storage       string `protobuf:"bytes,2,opt,name=storage,proto3" json:"storage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackupRequest) Reset() {
+	*x = BackupRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackupRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackupRequest) ProtoMessage() {}
+
+func (x *BackupRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackupRequest.ProtoReflect.Descriptor instead.
+func (*BackupRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *BackupRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *BackupRequest) GetStorage() string {
+	if x != nil {
+		return x.Storage
+	}
+	return ""
+}
+
+type BackupResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backup        *BackupTask            `protobuf:"bytes,1,opt,name=backup,proto3" json:"backup,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackupResponse) Reset() {
+	*x = BackupResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackupResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackupResponse) ProtoMessage() {}
+
+func (x *BackupResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackupResponse.ProtoReflect.Descriptor instead.
+func (*BackupResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *BackupResponse) GetBackup() *BackupTask {
+	if x != nil {
+		return x.Backup
+	}
+	return nil
+}
+
+type ListBackupsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBackupsRequest) Reset() {
+	*x = ListBackupsRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBackupsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBackupsRequest) ProtoMessage() {}
+
+func (x *ListBackupsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBackupsRequest.ProtoReflect.Descriptor instead.
+func (*ListBackupsRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{8}
+}
+
+type ListBackupsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Backups       []*BackupTask          `protobuf:"bytes,1,rep,name=backups,proto3" json:"backups,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListBackupsResponse) Reset() {
+	*x = ListBackupsResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListBackupsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListBackupsResponse) ProtoMessage() {}
+
+func (x *ListBackupsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListBackupsResponse.ProtoReflect.Descriptor instead.
+func (*ListBackupsResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListBackupsResponse) GetBackups() []*BackupTask {
+	if x != nil {
+		return x.Backups
+	}
+	return nil
+}
+
+// A backup ddash started: a vzdump task in Proxmox.
+type BackupTask struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	// "LXC 201 docker-host".
+	Label   string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Storage string                 `protobuf:"bytes,3,opt,name=storage,proto3" json:"storage,omitempty"`
+	Upid    string                 `protobuf:"bytes,4,opt,name=upid,proto3" json:"upid,omitempty"`
+	State   job.State              `protobuf:"varint,5,opt,name=state,proto3,enum=ddash.job.State" json:"state,omitempty"`
+	Started *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=started,proto3" json:"started,omitempty"`
+	Ended   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=ended,proto3" json:"ended,omitempty"`
+	// Proxmox's exit status when it failed.
+	Error         string `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BackupTask) Reset() {
+	*x = BackupTask{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BackupTask) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BackupTask) ProtoMessage() {}
+
+func (x *BackupTask) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BackupTask.ProtoReflect.Descriptor instead.
+func (*BackupTask) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *BackupTask) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *BackupTask) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *BackupTask) GetStorage() string {
+	if x != nil {
+		return x.Storage
+	}
+	return ""
+}
+
+func (x *BackupTask) GetUpid() string {
+	if x != nil {
+		return x.Upid
+	}
+	return ""
+}
+
+func (x *BackupTask) GetState() job.State {
+	if x != nil {
+		return x.State
+	}
+	return job.State(0)
+}
+
+func (x *BackupTask) GetStarted() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Started
+	}
+	return nil
+}
+
+func (x *BackupTask) GetEnded() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Ended
+	}
+	return nil
+}
+
+func (x *BackupTask) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type ListUpdateSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUpdateSettingsRequest) Reset() {
+	*x = ListUpdateSettingsRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUpdateSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUpdateSettingsRequest) ProtoMessage() {}
+
+func (x *ListUpdateSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUpdateSettingsRequest.ProtoReflect.Descriptor instead.
+func (*ListUpdateSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{11}
+}
+
+type ListUpdateSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      []*UpdateSettings      `protobuf:"bytes,1,rep,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUpdateSettingsResponse) Reset() {
+	*x = ListUpdateSettingsResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUpdateSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUpdateSettingsResponse) ProtoMessage() {}
+
+func (x *ListUpdateSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUpdateSettingsResponse.ProtoReflect.Descriptor instead.
+func (*ListUpdateSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *ListUpdateSettingsResponse) GetSettings() []*UpdateSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type UpdateSettings struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Vmid  uint32                 `protobuf:"varint,1,opt,name=vmid,proto3" json:"vmid,omitempty"`
+	// Take a ddash Snapshot before each update: the default.
+	Snapshot      bool `protobuf:"varint,2,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSettings) Reset() {
+	*x = UpdateSettings{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSettings) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSettings) ProtoMessage() {}
+
+func (x *UpdateSettings) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSettings.ProtoReflect.Descriptor instead.
+func (*UpdateSettings) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateSettings) GetVmid() uint32 {
+	if x != nil {
+		return x.Vmid
+	}
+	return 0
+}
+
+func (x *UpdateSettings) GetSnapshot() bool {
+	if x != nil {
+		return x.Snapshot
+	}
+	return false
+}
+
+type SetUpdateSettingsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Settings      *UpdateSettings        `protobuf:"bytes,1,opt,name=settings,proto3" json:"settings,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetUpdateSettingsRequest) Reset() {
+	*x = SetUpdateSettingsRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetUpdateSettingsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetUpdateSettingsRequest) ProtoMessage() {}
+
+func (x *SetUpdateSettingsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetUpdateSettingsRequest.ProtoReflect.Descriptor instead.
+func (*SetUpdateSettingsRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *SetUpdateSettingsRequest) GetSettings() *UpdateSettings {
+	if x != nil {
+		return x.Settings
+	}
+	return nil
+}
+
+type SetUpdateSettingsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetUpdateSettingsResponse) Reset() {
+	*x = SetUpdateSettingsResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetUpdateSettingsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetUpdateSettingsResponse) ProtoMessage() {}
+
+func (x *SetUpdateSettingsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetUpdateSettingsResponse.ProtoReflect.Descriptor instead.
+func (*SetUpdateSettingsResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{15}
+}
+
+type PlanUpdateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workload      *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanUpdateRequest) Reset() {
+	*x = PlanUpdateRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanUpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanUpdateRequest) ProtoMessage() {}
+
+func (x *PlanUpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanUpdateRequest.ProtoReflect.Descriptor instead.
+func (*PlanUpdateRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *PlanUpdateRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+type PlanUpdateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Plan          *UpdatePlan            `protobuf:"bytes,1,opt,name=plan,proto3" json:"plan,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanUpdateResponse) Reset() {
+	*x = PlanUpdateResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanUpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanUpdateResponse) ProtoMessage() {}
+
+func (x *PlanUpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanUpdateResponse.ProtoReflect.Descriptor instead.
+func (*PlanUpdateResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *PlanUpdateResponse) GetPlan() *UpdatePlan {
+	if x != nil {
+		return x.Plan
+	}
+	return nil
+}
+
+// What updating one Workload does.
+type UpdatePlan struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	// "LXC 201 docker-host".
+	Label string `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// The pending updates, as the Host Agent last read them: the update
+	// installs these (and whatever turned up since).
+	Packages []*PackageUpdate `protobuf:"bytes,3,rep,name=packages,proto3" json:"packages,omitempty"`
+	// When the Host Agent last read them.
+	PackagesRead *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=packages_read,json=packagesRead,proto3" json:"packages_read,omitempty"`
+	// A ddash Snapshot is taken first: the Workload's setting.
+	Snapshot bool `protobuf:"varint,5,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// Its storage can take a snapshot.
+	SnapshotSupported bool `protobuf:"varint,6,opt,name=snapshot_supported,json=snapshotSupported,proto3" json:"snapshot_supported,omitempty"`
+	// The ddash Snapshot deleted once the new one succeeded; empty for none.
+	ReplacesSnapshot string `protobuf:"bytes,7,opt,name=replaces_snapshot,json=replacesSnapshot,proto3" json:"replaces_snapshot,omitempty"`
+	// The Workload is Protected: a single update needs override_protected.
+	Protected bool `protobuf:"varint,8,opt,name=protected,proto3" json:"protected,omitempty"`
+	// A reboot is already pending.
+	RebootRequired bool `protobuf:"varint,9,opt,name=reboot_required,json=rebootRequired,proto3" json:"reboot_required,omitempty"`
+	// Why it can't run now (no Host Agent, stopped, …); empty when it can.
+	Blocked       string `protobuf:"bytes,10,opt,name=blocked,proto3" json:"blocked,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePlan) Reset() {
+	*x = UpdatePlan{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePlan) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePlan) ProtoMessage() {}
+
+func (x *UpdatePlan) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePlan.ProtoReflect.Descriptor instead.
+func (*UpdatePlan) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *UpdatePlan) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *UpdatePlan) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *UpdatePlan) GetPackages() []*PackageUpdate {
+	if x != nil {
+		return x.Packages
+	}
+	return nil
+}
+
+func (x *UpdatePlan) GetPackagesRead() *timestamppb.Timestamp {
+	if x != nil {
+		return x.PackagesRead
+	}
+	return nil
+}
+
+func (x *UpdatePlan) GetSnapshot() bool {
+	if x != nil {
+		return x.Snapshot
+	}
+	return false
+}
+
+func (x *UpdatePlan) GetSnapshotSupported() bool {
+	if x != nil {
+		return x.SnapshotSupported
+	}
+	return false
+}
+
+func (x *UpdatePlan) GetReplacesSnapshot() string {
+	if x != nil {
+		return x.ReplacesSnapshot
+	}
+	return ""
+}
+
+func (x *UpdatePlan) GetProtected() bool {
+	if x != nil {
+		return x.Protected
+	}
+	return false
+}
+
+func (x *UpdatePlan) GetRebootRequired() bool {
+	if x != nil {
+		return x.RebootRequired
+	}
+	return false
+}
+
+func (x *UpdatePlan) GetBlocked() string {
+	if x != nil {
+		return x.Blocked
+	}
+	return ""
+}
+
+type PackageUpdate struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Current       string                 `protobuf:"bytes,2,opt,name=current,proto3" json:"current,omitempty"`
+	New           string                 `protobuf:"bytes,3,opt,name=new,proto3" json:"new,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PackageUpdate) Reset() {
+	*x = PackageUpdate{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PackageUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PackageUpdate) ProtoMessage() {}
+
+func (x *PackageUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PackageUpdate.ProtoReflect.Descriptor instead.
+func (*PackageUpdate) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *PackageUpdate) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *PackageUpdate) GetCurrent() string {
+	if x != nil {
+		return x.Current
+	}
+	return ""
+}
+
+func (x *PackageUpdate) GetNew() string {
+	if x != nil {
+		return x.New
+	}
+	return ""
+}
+
+type RunUpdateRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	// Take a ddash Snapshot first; unset: the Workload's setting.
+	Snapshot *bool `protobuf:"varint,2,opt,name=snapshot,proto3,oneof" json:"snapshot,omitempty"`
+	// Update a Protected Workload anyway.
+	OverrideProtected bool `protobuf:"varint,3,opt,name=override_protected,json=overrideProtected,proto3" json:"override_protected,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *RunUpdateRequest) Reset() {
+	*x = RunUpdateRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunUpdateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunUpdateRequest) ProtoMessage() {}
+
+func (x *RunUpdateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunUpdateRequest.ProtoReflect.Descriptor instead.
+func (*RunUpdateRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *RunUpdateRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *RunUpdateRequest) GetSnapshot() bool {
+	if x != nil && x.Snapshot != nil {
+		return *x.Snapshot
+	}
+	return false
+}
+
+func (x *RunUpdateRequest) GetOverrideProtected() bool {
+	if x != nil {
+		return x.OverrideProtected
+	}
+	return false
+}
+
+type RunUpdateResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Run           *UpdateRun             `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunUpdateResponse) Reset() {
+	*x = RunUpdateResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunUpdateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunUpdateResponse) ProtoMessage() {}
+
+func (x *RunUpdateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunUpdateResponse.ProtoReflect.Descriptor instead.
+func (*RunUpdateResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *RunUpdateResponse) GetRun() *UpdateRun {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+type PlanUpdateAllRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanUpdateAllRequest) Reset() {
+	*x = PlanUpdateAllRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanUpdateAllRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanUpdateAllRequest) ProtoMessage() {}
+
+func (x *PlanUpdateAllRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanUpdateAllRequest.ProtoReflect.Descriptor instead.
+func (*PlanUpdateAllRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{22}
+}
+
+type PlanUpdateAllResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Workloads it updates, in order.
+	Workloads     []*UpdatePlan      `protobuf:"bytes,1,rep,name=workloads,proto3" json:"workloads,omitempty"`
+	Skipped       []*SkippedWorkload `protobuf:"bytes,2,rep,name=skipped,proto3" json:"skipped,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PlanUpdateAllResponse) Reset() {
+	*x = PlanUpdateAllResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PlanUpdateAllResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanUpdateAllResponse) ProtoMessage() {}
+
+func (x *PlanUpdateAllResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanUpdateAllResponse.ProtoReflect.Descriptor instead.
+func (*PlanUpdateAllResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *PlanUpdateAllResponse) GetWorkloads() []*UpdatePlan {
+	if x != nil {
+		return x.Workloads
+	}
+	return nil
+}
+
+func (x *PlanUpdateAllResponse) GetSkipped() []*SkippedWorkload {
+	if x != nil {
+		return x.Skipped
+	}
+	return nil
+}
+
+type SkippedWorkload struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	Label    string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	Reason   SkipReason             `protobuf:"varint,3,opt,name=reason,proto3,enum=ddash.proxmox.SkipReason" json:"reason,omitempty"`
+	// e.g. the Host Agent's state.
+	Detail        string `protobuf:"bytes,4,opt,name=detail,proto3" json:"detail,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SkippedWorkload) Reset() {
+	*x = SkippedWorkload{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SkippedWorkload) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SkippedWorkload) ProtoMessage() {}
+
+func (x *SkippedWorkload) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SkippedWorkload.ProtoReflect.Descriptor instead.
+func (*SkippedWorkload) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *SkippedWorkload) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *SkippedWorkload) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *SkippedWorkload) GetReason() SkipReason {
+	if x != nil {
+		return x.Reason
+	}
+	return SkipReason_SKIP_REASON_UNSPECIFIED
+}
+
+func (x *SkippedWorkload) GetDetail() string {
+	if x != nil {
+		return x.Detail
+	}
+	return ""
+}
+
+type RunUpdateAllRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The Plan's Workloads, in its order.
+	Workloads     []*workload.WorkloadRef `protobuf:"bytes,1,rep,name=workloads,proto3" json:"workloads,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunUpdateAllRequest) Reset() {
+	*x = RunUpdateAllRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunUpdateAllRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunUpdateAllRequest) ProtoMessage() {}
+
+func (x *RunUpdateAllRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunUpdateAllRequest.ProtoReflect.Descriptor instead.
+func (*RunUpdateAllRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *RunUpdateAllRequest) GetWorkloads() []*workload.WorkloadRef {
+	if x != nil {
+		return x.Workloads
+	}
+	return nil
+}
+
+type RunUpdateAllResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Bulk          *BulkUpdate            `protobuf:"bytes,1,opt,name=bulk,proto3" json:"bulk,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunUpdateAllResponse) Reset() {
+	*x = RunUpdateAllResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunUpdateAllResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunUpdateAllResponse) ProtoMessage() {}
+
+func (x *RunUpdateAllResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunUpdateAllResponse.ProtoReflect.Descriptor instead.
+func (*RunUpdateAllResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *RunUpdateAllResponse) GetBulk() *BulkUpdate {
+	if x != nil {
+		return x.Bulk
+	}
+	return nil
+}
+
+type ListUpdatesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUpdatesRequest) Reset() {
+	*x = ListUpdatesRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUpdatesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUpdatesRequest) ProtoMessage() {}
+
+func (x *ListUpdatesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUpdatesRequest.ProtoReflect.Descriptor instead.
+func (*ListUpdatesRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{27}
+}
+
+type ListUpdatesResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The running or last update of each Workload, by VMID.
+	Runs []*UpdateRun `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
+	// The last "Update all running"; unset when none ran.
+	Bulk          *BulkUpdate `protobuf:"bytes,2,opt,name=bulk,proto3" json:"bulk,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListUpdatesResponse) Reset() {
+	*x = ListUpdatesResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListUpdatesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListUpdatesResponse) ProtoMessage() {}
+
+func (x *ListUpdatesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListUpdatesResponse.ProtoReflect.Descriptor instead.
+func (*ListUpdatesResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ListUpdatesResponse) GetRuns() []*UpdateRun {
+	if x != nil {
+		return x.Runs
+	}
+	return nil
+}
+
+func (x *ListUpdatesResponse) GetBulk() *BulkUpdate {
+	if x != nil {
+		return x.Bulk
+	}
+	return nil
+}
+
+// One Workload's update, running or ended.
+type UpdateRun struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Id       string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,2,opt,name=workload,proto3" json:"workload,omitempty"`
+	Label    string                 `protobuf:"bytes,3,opt,name=label,proto3" json:"label,omitempty"`
+	State    job.State              `protobuf:"varint,4,opt,name=state,proto3,enum=ddash.job.State" json:"state,omitempty"`
+	// Take a ddash Snapshot, Delete older ddash Snapshots, then the Host
+	// Agent's steps.
+	Steps   []*job.Step            `protobuf:"bytes,5,rep,name=steps,proto3" json:"steps,omitempty"`
+	Started *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=started,proto3" json:"started,omitempty"`
+	Ended   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=ended,proto3" json:"ended,omitempty"`
+	// Why it failed.
+	Error string `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	// The ddash Snapshot it took; empty when off.
+	Snapshot string `protobuf:"bytes,9,opt,name=snapshot,proto3" json:"snapshot,omitempty"`
+	// How many packages it updated.
+	Updated uint32 `protobuf:"varint,10,opt,name=updated,proto3" json:"updated,omitempty"`
+	// The Workload needs a reboot: Restart it when it suits.
+	RebootRequired bool `protobuf:"varint,11,opt,name=reboot_required,json=rebootRequired,proto3" json:"reboot_required,omitempty"`
+	// The "Update all running" it is part of; empty for a single update.
+	BulkId        string `protobuf:"bytes,12,opt,name=bulk_id,json=bulkId,proto3" json:"bulk_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateRun) Reset() {
+	*x = UpdateRun{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRun) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRun) ProtoMessage() {}
+
+func (x *UpdateRun) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateRun.ProtoReflect.Descriptor instead.
+func (*UpdateRun) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *UpdateRun) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateRun) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *UpdateRun) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *UpdateRun) GetState() job.State {
+	if x != nil {
+		return x.State
+	}
+	return job.State(0)
+}
+
+func (x *UpdateRun) GetSteps() []*job.Step {
+	if x != nil {
+		return x.Steps
+	}
+	return nil
+}
+
+func (x *UpdateRun) GetStarted() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Started
+	}
+	return nil
+}
+
+func (x *UpdateRun) GetEnded() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Ended
+	}
+	return nil
+}
+
+func (x *UpdateRun) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+func (x *UpdateRun) GetSnapshot() string {
+	if x != nil {
+		return x.Snapshot
+	}
+	return ""
+}
+
+func (x *UpdateRun) GetUpdated() uint32 {
+	if x != nil {
+		return x.Updated
+	}
+	return 0
+}
+
+func (x *UpdateRun) GetRebootRequired() bool {
+	if x != nil {
+		return x.RebootRequired
+	}
+	return false
+}
+
+func (x *UpdateRun) GetBulkId() string {
+	if x != nil {
+		return x.BulkId
+	}
+	return ""
+}
+
+// An "Update all running".
+type BulkUpdate struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Id      string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	State   job.State              `protobuf:"varint,2,opt,name=state,proto3,enum=ddash.job.State" json:"state,omitempty"`
+	Items   []*BulkItem            `protobuf:"bytes,3,rep,name=items,proto3" json:"items,omitempty"`
+	Skipped []*SkippedWorkload     `protobuf:"bytes,4,rep,name=skipped,proto3" json:"skipped,omitempty"`
+	Started *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started,proto3" json:"started,omitempty"`
+	Ended   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=ended,proto3" json:"ended,omitempty"`
+	// Why it stopped.
+	Error         string `protobuf:"bytes,7,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkUpdate) Reset() {
+	*x = BulkUpdate{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkUpdate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkUpdate) ProtoMessage() {}
+
+func (x *BulkUpdate) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkUpdate.ProtoReflect.Descriptor instead.
+func (*BulkUpdate) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *BulkUpdate) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *BulkUpdate) GetState() job.State {
+	if x != nil {
+		return x.State
+	}
+	return job.State(0)
+}
+
+func (x *BulkUpdate) GetItems() []*BulkItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *BulkUpdate) GetSkipped() []*SkippedWorkload {
+	if x != nil {
+		return x.Skipped
+	}
+	return nil
+}
+
+func (x *BulkUpdate) GetStarted() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Started
+	}
+	return nil
+}
+
+func (x *BulkUpdate) GetEnded() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Ended
+	}
+	return nil
+}
+
+func (x *BulkUpdate) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type BulkItem struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	Label    string                 `protobuf:"bytes,2,opt,name=label,proto3" json:"label,omitempty"`
+	// PENDING until its turn; SKIPPED when an earlier one failed.
+	State job.State `protobuf:"varint,3,opt,name=state,proto3,enum=ddash.job.State" json:"state,omitempty"`
+	// Its UpdateRun, once started.
+	RunId         string `protobuf:"bytes,4,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BulkItem) Reset() {
+	*x = BulkItem{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BulkItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BulkItem) ProtoMessage() {}
+
+func (x *BulkItem) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BulkItem.ProtoReflect.Descriptor instead.
+func (*BulkItem) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *BulkItem) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *BulkItem) GetLabel() string {
+	if x != nil {
+		return x.Label
+	}
+	return ""
+}
+
+func (x *BulkItem) GetState() job.State {
+	if x != nil {
+		return x.State
+	}
+	return job.State(0)
+}
+
+func (x *BulkItem) GetRunId() string {
+	if x != nil {
+		return x.RunId
+	}
+	return ""
+}
+
+type ListSSHKeysRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSSHKeysRequest) Reset() {
+	*x = ListSSHKeysRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSSHKeysRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSSHKeysRequest) ProtoMessage() {}
+
+func (x *ListSSHKeysRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSSHKeysRequest.ProtoReflect.Descriptor instead.
+func (*ListSSHKeysRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{32}
+}
+
+type ListSSHKeysResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Keys          []*SSHKey              `protobuf:"bytes,1,rep,name=keys,proto3" json:"keys,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListSSHKeysResponse) Reset() {
+	*x = ListSSHKeysResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListSSHKeysResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListSSHKeysResponse) ProtoMessage() {}
+
+func (x *ListSSHKeysResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListSSHKeysResponse.ProtoReflect.Descriptor instead.
+func (*ListSSHKeysResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *ListSSHKeysResponse) GetKeys() []*SSHKey {
+	if x != nil {
+		return x.Keys
+	}
+	return nil
+}
+
+// A named public key ddash stores and installs on Workloads.
+type SSHKey struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// Its authorized_keys line, "ssh-ed25519 AAAA… <name>".
+	PublicKey string `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	// e.g. "ssh-ed25519".
+	Type string `protobuf:"bytes,3,opt,name=type,proto3" json:"type,omitempty"`
+	// "SHA256:…".
+	Fingerprint string                 `protobuf:"bytes,4,opt,name=fingerprint,proto3" json:"fingerprint,omitempty"`
+	Created     *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=created,proto3" json:"created,omitempty"`
+	// ddash generated it (and gave its private key out once).
+	Generated     bool `protobuf:"varint,6,opt,name=generated,proto3" json:"generated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SSHKey) Reset() {
+	*x = SSHKey{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SSHKey) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SSHKey) ProtoMessage() {}
+
+func (x *SSHKey) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SSHKey.ProtoReflect.Descriptor instead.
+func (*SSHKey) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *SSHKey) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *SSHKey) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+func (x *SSHKey) GetType() string {
+	if x != nil {
+		return x.Type
+	}
+	return ""
+}
+
+func (x *SSHKey) GetFingerprint() string {
+	if x != nil {
+		return x.Fingerprint
+	}
+	return ""
+}
+
+func (x *SSHKey) GetCreated() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Created
+	}
+	return nil
+}
+
+func (x *SSHKey) GetGenerated() bool {
+	if x != nil {
+		return x.Generated
+	}
+	return false
+}
+
+type GenerateSSHKeyRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Letters, digits, ., _ and -, e.g. "laptop".
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateSSHKeyRequest) Reset() {
+	*x = GenerateSSHKeyRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateSSHKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateSSHKeyRequest) ProtoMessage() {}
+
+func (x *GenerateSSHKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateSSHKeyRequest.ProtoReflect.Descriptor instead.
+func (*GenerateSSHKeyRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *GenerateSSHKeyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GenerateSSHKeyResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Key   *SSHKey                `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	// The private key, OpenSSH PEM: shown once, never stored.
+	PrivateKey    string `protobuf:"bytes,2,opt,name=private_key,json=privateKey,proto3" json:"private_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GenerateSSHKeyResponse) Reset() {
+	*x = GenerateSSHKeyResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GenerateSSHKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GenerateSSHKeyResponse) ProtoMessage() {}
+
+func (x *GenerateSSHKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GenerateSSHKeyResponse.ProtoReflect.Descriptor instead.
+func (*GenerateSSHKeyResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{36}
+}
+
+func (x *GenerateSSHKeyResponse) GetKey() *SSHKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+func (x *GenerateSSHKeyResponse) GetPrivateKey() string {
+	if x != nil {
+		return x.PrivateKey
+	}
+	return ""
+}
+
+type AddSSHKeyRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	// An authorized_keys line, "ssh-ed25519 AAAA… comment".
+	PublicKey     string `protobuf:"bytes,2,opt,name=public_key,json=publicKey,proto3" json:"public_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddSSHKeyRequest) Reset() {
+	*x = AddSSHKeyRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddSSHKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddSSHKeyRequest) ProtoMessage() {}
+
+func (x *AddSSHKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddSSHKeyRequest.ProtoReflect.Descriptor instead.
+func (*AddSSHKeyRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{37}
+}
+
+func (x *AddSSHKeyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AddSSHKeyRequest) GetPublicKey() string {
+	if x != nil {
+		return x.PublicKey
+	}
+	return ""
+}
+
+type AddSSHKeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           *SSHKey                `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddSSHKeyResponse) Reset() {
+	*x = AddSSHKeyResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddSSHKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddSSHKeyResponse) ProtoMessage() {}
+
+func (x *AddSSHKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddSSHKeyResponse.ProtoReflect.Descriptor instead.
+func (*AddSSHKeyResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *AddSSHKeyResponse) GetKey() *SSHKey {
+	if x != nil {
+		return x.Key
+	}
+	return nil
+}
+
+type DeleteSSHKeyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSSHKeyRequest) Reset() {
+	*x = DeleteSSHKeyRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSSHKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSSHKeyRequest) ProtoMessage() {}
+
+func (x *DeleteSSHKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSSHKeyRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSSHKeyRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *DeleteSSHKeyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type DeleteSSHKeyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSSHKeyResponse) Reset() {
+	*x = DeleteSSHKeyResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSSHKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSSHKeyResponse) ProtoMessage() {}
+
+func (x *DeleteSSHKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSSHKeyResponse.ProtoReflect.Descriptor instead.
+func (*DeleteSSHKeyResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{40}
+}
+
+type InstallSSHKeyRequest struct {
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	Workload *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	// Stored SSH Keys' names.
+	Names []string `protobuf:"bytes,2,rep,name=names,proto3" json:"names,omitempty"`
+	// root, or a user with a login shell on the Workload.
+	User          string `protobuf:"bytes,3,opt,name=user,proto3" json:"user,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallSSHKeyRequest) Reset() {
+	*x = InstallSSHKeyRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallSSHKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallSSHKeyRequest) ProtoMessage() {}
+
+func (x *InstallSSHKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallSSHKeyRequest.ProtoReflect.Descriptor instead.
+func (*InstallSSHKeyRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *InstallSSHKeyRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+func (x *InstallSSHKeyRequest) GetNames() []string {
+	if x != nil {
+		return x.Names
+	}
+	return nil
+}
+
+func (x *InstallSSHKeyRequest) GetUser() string {
+	if x != nil {
+		return x.User
+	}
+	return ""
+}
+
+type InstallSSHKeyResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The keys the user already had, left as they were.
+	Already       []string `protobuf:"bytes,1,rep,name=already,proto3" json:"already,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InstallSSHKeyResponse) Reset() {
+	*x = InstallSSHKeyResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InstallSSHKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InstallSSHKeyResponse) ProtoMessage() {}
+
+func (x *InstallSSHKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InstallSSHKeyResponse.ProtoReflect.Descriptor instead.
+func (*InstallSSHKeyResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *InstallSSHKeyResponse) GetAlready() []string {
+	if x != nil {
+		return x.Already
+	}
+	return nil
+}
+
+type EnableSSHRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Workload      *workload.WorkloadRef  `protobuf:"bytes,1,opt,name=workload,proto3" json:"workload,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnableSSHRequest) Reset() {
+	*x = EnableSSHRequest{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnableSSHRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnableSSHRequest) ProtoMessage() {}
+
+func (x *EnableSSHRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnableSSHRequest.ProtoReflect.Descriptor instead.
+func (*EnableSSHRequest) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *EnableSSHRequest) GetWorkload() *workload.WorkloadRef {
+	if x != nil {
+		return x.Workload
+	}
+	return nil
+}
+
+type EnableSSHResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *job.Job               `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *EnableSSHResponse) Reset() {
+	*x = EnableSSHResponse{}
+	mi := &file_proxmox_proxmox_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *EnableSSHResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*EnableSSHResponse) ProtoMessage() {}
+
+func (x *EnableSSHResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_proxmox_proxmox_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use EnableSSHResponse.ProtoReflect.Descriptor instead.
+func (*EnableSSHResponse) Descriptor() ([]byte, []int) {
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *EnableSSHResponse) GetJob() *job.Job {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
 // Every power Action names its Workload by kind (LXC or VM) and VMID; the
 // node is read from proxmox-api, as the Workload may have moved.
 type StartWorkloadRequest struct {
@@ -129,7 +2622,7 @@ type StartWorkloadRequest struct {
 
 func (x *StartWorkloadRequest) Reset() {
 	*x = StartWorkloadRequest{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[1]
+	mi := &file_proxmox_proxmox_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +2634,7 @@ func (x *StartWorkloadRequest) String() string {
 func (*StartWorkloadRequest) ProtoMessage() {}
 
 func (x *StartWorkloadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[1]
+	mi := &file_proxmox_proxmox_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +2647,7 @@ func (x *StartWorkloadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartWorkloadRequest.ProtoReflect.Descriptor instead.
 func (*StartWorkloadRequest) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{1}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *StartWorkloadRequest) GetWorkload() *workload.WorkloadRef {
@@ -172,7 +2665,7 @@ type StartWorkloadResponse struct {
 
 func (x *StartWorkloadResponse) Reset() {
 	*x = StartWorkloadResponse{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[2]
+	mi := &file_proxmox_proxmox_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -184,7 +2677,7 @@ func (x *StartWorkloadResponse) String() string {
 func (*StartWorkloadResponse) ProtoMessage() {}
 
 func (x *StartWorkloadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[2]
+	mi := &file_proxmox_proxmox_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -197,7 +2690,7 @@ func (x *StartWorkloadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartWorkloadResponse.ProtoReflect.Descriptor instead.
 func (*StartWorkloadResponse) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{2}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{46}
 }
 
 type StopWorkloadRequest struct {
@@ -209,7 +2702,7 @@ type StopWorkloadRequest struct {
 
 func (x *StopWorkloadRequest) Reset() {
 	*x = StopWorkloadRequest{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[3]
+	mi := &file_proxmox_proxmox_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -221,7 +2714,7 @@ func (x *StopWorkloadRequest) String() string {
 func (*StopWorkloadRequest) ProtoMessage() {}
 
 func (x *StopWorkloadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[3]
+	mi := &file_proxmox_proxmox_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -234,7 +2727,7 @@ func (x *StopWorkloadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopWorkloadRequest.ProtoReflect.Descriptor instead.
 func (*StopWorkloadRequest) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{3}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *StopWorkloadRequest) GetWorkload() *workload.WorkloadRef {
@@ -252,7 +2745,7 @@ type StopWorkloadResponse struct {
 
 func (x *StopWorkloadResponse) Reset() {
 	*x = StopWorkloadResponse{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[4]
+	mi := &file_proxmox_proxmox_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +2757,7 @@ func (x *StopWorkloadResponse) String() string {
 func (*StopWorkloadResponse) ProtoMessage() {}
 
 func (x *StopWorkloadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[4]
+	mi := &file_proxmox_proxmox_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +2770,7 @@ func (x *StopWorkloadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopWorkloadResponse.ProtoReflect.Descriptor instead.
 func (*StopWorkloadResponse) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{4}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{48}
 }
 
 type RestartWorkloadRequest struct {
@@ -289,7 +2782,7 @@ type RestartWorkloadRequest struct {
 
 func (x *RestartWorkloadRequest) Reset() {
 	*x = RestartWorkloadRequest{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[5]
+	mi := &file_proxmox_proxmox_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -301,7 +2794,7 @@ func (x *RestartWorkloadRequest) String() string {
 func (*RestartWorkloadRequest) ProtoMessage() {}
 
 func (x *RestartWorkloadRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[5]
+	mi := &file_proxmox_proxmox_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -314,7 +2807,7 @@ func (x *RestartWorkloadRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartWorkloadRequest.ProtoReflect.Descriptor instead.
 func (*RestartWorkloadRequest) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{5}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *RestartWorkloadRequest) GetWorkload() *workload.WorkloadRef {
@@ -332,7 +2825,7 @@ type RestartWorkloadResponse struct {
 
 func (x *RestartWorkloadResponse) Reset() {
 	*x = RestartWorkloadResponse{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[6]
+	mi := &file_proxmox_proxmox_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -344,7 +2837,7 @@ func (x *RestartWorkloadResponse) String() string {
 func (*RestartWorkloadResponse) ProtoMessage() {}
 
 func (x *RestartWorkloadResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[6]
+	mi := &file_proxmox_proxmox_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -357,7 +2850,7 @@ func (x *RestartWorkloadResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartWorkloadResponse.ProtoReflect.Descriptor instead.
 func (*RestartWorkloadResponse) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{6}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{50}
 }
 
 type ListPowerTasksRequest struct {
@@ -368,7 +2861,7 @@ type ListPowerTasksRequest struct {
 
 func (x *ListPowerTasksRequest) Reset() {
 	*x = ListPowerTasksRequest{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[7]
+	mi := &file_proxmox_proxmox_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -380,7 +2873,7 @@ func (x *ListPowerTasksRequest) String() string {
 func (*ListPowerTasksRequest) ProtoMessage() {}
 
 func (x *ListPowerTasksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[7]
+	mi := &file_proxmox_proxmox_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -393,7 +2886,7 @@ func (x *ListPowerTasksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPowerTasksRequest.ProtoReflect.Descriptor instead.
 func (*ListPowerTasksRequest) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{7}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{51}
 }
 
 type ListPowerTasksResponse struct {
@@ -406,7 +2899,7 @@ type ListPowerTasksResponse struct {
 
 func (x *ListPowerTasksResponse) Reset() {
 	*x = ListPowerTasksResponse{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[8]
+	mi := &file_proxmox_proxmox_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -418,7 +2911,7 @@ func (x *ListPowerTasksResponse) String() string {
 func (*ListPowerTasksResponse) ProtoMessage() {}
 
 func (x *ListPowerTasksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[8]
+	mi := &file_proxmox_proxmox_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -431,7 +2924,7 @@ func (x *ListPowerTasksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListPowerTasksResponse.ProtoReflect.Descriptor instead.
 func (*ListPowerTasksResponse) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{8}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *ListPowerTasksResponse) GetTasks() []*PowerTask {
@@ -455,7 +2948,7 @@ type PowerTask struct {
 
 func (x *PowerTask) Reset() {
 	*x = PowerTask{}
-	mi := &file_proxmox_proxmox_proto_msgTypes[9]
+	mi := &file_proxmox_proxmox_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -467,7 +2960,7 @@ func (x *PowerTask) String() string {
 func (*PowerTask) ProtoMessage() {}
 
 func (x *PowerTask) ProtoReflect() protoreflect.Message {
-	mi := &file_proxmox_proxmox_proto_msgTypes[9]
+	mi := &file_proxmox_proxmox_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -480,7 +2973,7 @@ func (x *PowerTask) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PowerTask.ProtoReflect.Descriptor instead.
 func (*PowerTask) Descriptor() ([]byte, []int) {
-	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{9}
+	return file_proxmox_proxmox_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *PowerTask) GetWorkload() *workload.WorkloadRef {
@@ -508,8 +3001,159 @@ var File_proxmox_proxmox_proto protoreflect.FileDescriptor
 
 const file_proxmox_proxmox_proto_rawDesc = "" +
 	"\n" +
-	"\x15proxmox/proxmox.proto\x12\rddash.proxmox\x1a\x13ddash/options.proto\x1a\x1dddash/workload/workload.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0f\n" +
-	"\rProxmoxConfig\"O\n" +
+	"\x15proxmox/proxmox.proto\x12\rddash.proxmox\x1a\x19ddash/config/config.proto\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1dddash/workload/workload.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x0f\n" +
+	"\rProxmoxConfig\"N\n" +
+	"\x13GetSnapshotsRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"\xa5\x01\n" +
+	"\x14GetSnapshotsResponse\x12\x1c\n" +
+	"\tsupported\x18\x01 \x01(\bR\tsupported\x12>\n" +
+	"\x0eddash_snapshot\x18\x02 \x01(\v2\x17.ddash.proxmox.SnapshotR\rddashSnapshot\x12/\n" +
+	"\x06others\x18\x03 \x03(\v2\x17.ddash.proxmox.SnapshotR\x06others\"v\n" +
+	"\bSnapshot\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x124\n" +
+	"\acreated\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"N\n" +
+	"\x13TakeSnapshotRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"e\n" +
+	"\x14TakeSnapshotResponse\x123\n" +
+	"\bsnapshot\x18\x01 \x01(\v2\x17.ddash.proxmox.SnapshotR\bsnapshot\x12\x18\n" +
+	"\adeleted\x18\x02 \x03(\tR\adeleted\"b\n" +
+	"\rBackupRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x18\n" +
+	"\astorage\x18\x02 \x01(\tR\astorage\"C\n" +
+	"\x0eBackupResponse\x121\n" +
+	"\x06backup\x18\x01 \x01(\v2\x19.ddash.proxmox.BackupTaskR\x06backup\"\x14\n" +
+	"\x12ListBackupsRequest\"J\n" +
+	"\x13ListBackupsResponse\x123\n" +
+	"\abackups\x18\x01 \x03(\v2\x19.ddash.proxmox.BackupTaskR\abackups\"\xaf\x02\n" +
+	"\n" +
+	"BackupTask\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12\x18\n" +
+	"\astorage\x18\x03 \x01(\tR\astorage\x12\x12\n" +
+	"\x04upid\x18\x04 \x01(\tR\x04upid\x12&\n" +
+	"\x05state\x18\x05 \x01(\x0e2\x10.ddash.job.StateR\x05state\x124\n" +
+	"\astarted\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x120\n" +
+	"\x05ended\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x05ended\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error\"\x1b\n" +
+	"\x19ListUpdateSettingsRequest\"W\n" +
+	"\x1aListUpdateSettingsResponse\x129\n" +
+	"\bsettings\x18\x01 \x03(\v2\x1d.ddash.proxmox.UpdateSettingsR\bsettings\"@\n" +
+	"\x0eUpdateSettings\x12\x12\n" +
+	"\x04vmid\x18\x01 \x01(\rR\x04vmid\x12\x1a\n" +
+	"\bsnapshot\x18\x02 \x01(\bR\bsnapshot\"U\n" +
+	"\x18SetUpdateSettingsRequest\x129\n" +
+	"\bsettings\x18\x01 \x01(\v2\x1d.ddash.proxmox.UpdateSettingsR\bsettings\"\x1b\n" +
+	"\x19SetUpdateSettingsResponse\"L\n" +
+	"\x11PlanUpdateRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"C\n" +
+	"\x12PlanUpdateResponse\x12-\n" +
+	"\x04plan\x18\x01 \x01(\v2\x19.ddash.proxmox.UpdatePlanR\x04plan\"\xaf\x03\n" +
+	"\n" +
+	"UpdatePlan\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x128\n" +
+	"\bpackages\x18\x03 \x03(\v2\x1c.ddash.proxmox.PackageUpdateR\bpackages\x12?\n" +
+	"\rpackages_read\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\fpackagesRead\x12\x1a\n" +
+	"\bsnapshot\x18\x05 \x01(\bR\bsnapshot\x12-\n" +
+	"\x12snapshot_supported\x18\x06 \x01(\bR\x11snapshotSupported\x12+\n" +
+	"\x11replaces_snapshot\x18\a \x01(\tR\x10replacesSnapshot\x12\x1c\n" +
+	"\tprotected\x18\b \x01(\bR\tprotected\x12'\n" +
+	"\x0freboot_required\x18\t \x01(\bR\x0erebootRequired\x12\x18\n" +
+	"\ablocked\x18\n" +
+	" \x01(\tR\ablocked\"O\n" +
+	"\rPackageUpdate\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
+	"\acurrent\x18\x02 \x01(\tR\acurrent\x12\x10\n" +
+	"\x03new\x18\x03 \x01(\tR\x03new\"\xa8\x01\n" +
+	"\x10RunUpdateRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x1f\n" +
+	"\bsnapshot\x18\x02 \x01(\bH\x00R\bsnapshot\x88\x01\x01\x12-\n" +
+	"\x12override_protected\x18\x03 \x01(\bR\x11overrideProtectedB\v\n" +
+	"\t_snapshot\"?\n" +
+	"\x11RunUpdateResponse\x12*\n" +
+	"\x03run\x18\x01 \x01(\v2\x18.ddash.proxmox.UpdateRunR\x03run\"\x16\n" +
+	"\x14PlanUpdateAllRequest\"\x8a\x01\n" +
+	"\x15PlanUpdateAllResponse\x127\n" +
+	"\tworkloads\x18\x01 \x03(\v2\x19.ddash.proxmox.UpdatePlanR\tworkloads\x128\n" +
+	"\askipped\x18\x02 \x03(\v2\x1e.ddash.proxmox.SkippedWorkloadR\askipped\"\xab\x01\n" +
+	"\x0fSkippedWorkload\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x121\n" +
+	"\x06reason\x18\x03 \x01(\x0e2\x19.ddash.proxmox.SkipReasonR\x06reason\x12\x16\n" +
+	"\x06detail\x18\x04 \x01(\tR\x06detail\"P\n" +
+	"\x13RunUpdateAllRequest\x129\n" +
+	"\tworkloads\x18\x01 \x03(\v2\x1b.ddash.workload.WorkloadRefR\tworkloads\"E\n" +
+	"\x14RunUpdateAllResponse\x12-\n" +
+	"\x04bulk\x18\x01 \x01(\v2\x19.ddash.proxmox.BulkUpdateR\x04bulk\"\x14\n" +
+	"\x12ListUpdatesRequest\"r\n" +
+	"\x13ListUpdatesResponse\x12,\n" +
+	"\x04runs\x18\x01 \x03(\v2\x18.ddash.proxmox.UpdateRunR\x04runs\x12-\n" +
+	"\x04bulk\x18\x02 \x01(\v2\x19.ddash.proxmox.BulkUpdateR\x04bulk\"\xaf\x03\n" +
+	"\tUpdateRun\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x127\n" +
+	"\bworkload\x18\x02 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x14\n" +
+	"\x05label\x18\x03 \x01(\tR\x05label\x12&\n" +
+	"\x05state\x18\x04 \x01(\x0e2\x10.ddash.job.StateR\x05state\x12%\n" +
+	"\x05steps\x18\x05 \x03(\v2\x0f.ddash.job.StepR\x05steps\x124\n" +
+	"\astarted\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x120\n" +
+	"\x05ended\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\x05ended\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error\x12\x1a\n" +
+	"\bsnapshot\x18\t \x01(\tR\bsnapshot\x12\x18\n" +
+	"\aupdated\x18\n" +
+	" \x01(\rR\aupdated\x12'\n" +
+	"\x0freboot_required\x18\v \x01(\bR\x0erebootRequired\x12\x17\n" +
+	"\abulk_id\x18\f \x01(\tR\x06bulkId\"\xab\x02\n" +
+	"\n" +
+	"BulkUpdate\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12&\n" +
+	"\x05state\x18\x02 \x01(\x0e2\x10.ddash.job.StateR\x05state\x12-\n" +
+	"\x05items\x18\x03 \x03(\v2\x17.ddash.proxmox.BulkItemR\x05items\x128\n" +
+	"\askipped\x18\x04 \x03(\v2\x1e.ddash.proxmox.SkippedWorkloadR\askipped\x124\n" +
+	"\astarted\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x120\n" +
+	"\x05ended\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05ended\x12\x14\n" +
+	"\x05error\x18\a \x01(\tR\x05error\"\x98\x01\n" +
+	"\bBulkItem\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x14\n" +
+	"\x05label\x18\x02 \x01(\tR\x05label\x12&\n" +
+	"\x05state\x18\x03 \x01(\x0e2\x10.ddash.job.StateR\x05state\x12\x15\n" +
+	"\x06run_id\x18\x04 \x01(\tR\x05runId\"\x14\n" +
+	"\x12ListSSHKeysRequest\"@\n" +
+	"\x13ListSSHKeysResponse\x12)\n" +
+	"\x04keys\x18\x01 \x03(\v2\x15.ddash.proxmox.SSHKeyR\x04keys\"\xc5\x01\n" +
+	"\x06SSHKey\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\tR\tpublicKey\x12\x12\n" +
+	"\x04type\x18\x03 \x01(\tR\x04type\x12 \n" +
+	"\vfingerprint\x18\x04 \x01(\tR\vfingerprint\x124\n" +
+	"\acreated\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x12\x1c\n" +
+	"\tgenerated\x18\x06 \x01(\bR\tgenerated\"+\n" +
+	"\x15GenerateSSHKeyRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"j\n" +
+	"\x16GenerateSSHKeyResponse\x12'\n" +
+	"\x03key\x18\x01 \x01(\v2\x15.ddash.proxmox.SSHKeyR\x03key\x12'\n" +
+	"\vprivate_key\x18\x02 \x01(\tB\x06\x9a\xb5\x18\x02\x10\x01R\n" +
+	"privateKey\"E\n" +
+	"\x10AddSSHKeyRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
+	"\n" +
+	"public_key\x18\x02 \x01(\tR\tpublicKey\"<\n" +
+	"\x11AddSSHKeyResponse\x12'\n" +
+	"\x03key\x18\x01 \x01(\v2\x15.ddash.proxmox.SSHKeyR\x03key\")\n" +
+	"\x13DeleteSSHKeyRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x16\n" +
+	"\x14DeleteSSHKeyResponse\"y\n" +
+	"\x14InstallSSHKeyRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x12\x14\n" +
+	"\x05names\x18\x02 \x03(\tR\x05names\x12\x12\n" +
+	"\x04user\x18\x03 \x01(\tR\x04user\"1\n" +
+	"\x15InstallSSHKeyResponse\x12\x18\n" +
+	"\aalready\x18\x01 \x03(\tR\aalready\"K\n" +
+	"\x10EnableSSHRequest\x127\n" +
+	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"5\n" +
+	"\x11EnableSSHResponse\x12 \n" +
+	"\x03job\x18\x01 \x01(\v2\x0e.ddash.job.JobR\x03job\"O\n" +
 	"\x14StartWorkloadRequest\x127\n" +
 	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\"\x17\n" +
 	"\x15StartWorkloadResponse\"N\n" +
@@ -525,17 +3169,45 @@ const file_proxmox_proxmox_proto_rawDesc = "" +
 	"\tPowerTask\x127\n" +
 	"\bworkload\x18\x01 \x01(\v2\x1b.ddash.workload.WorkloadRefR\bworkload\x122\n" +
 	"\x06action\x18\x02 \x01(\x0e2\x1a.ddash.proxmox.PowerActionR\x06action\x124\n" +
-	"\astarted\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\astarted*t\n" +
+	"\astarted\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\astarted*\xf8\x01\n" +
+	"\n" +
+	"SkipReason\x12\x1b\n" +
+	"\x17SKIP_REASON_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15SKIP_REASON_PROTECTED\x10\x01\x12\x1d\n" +
+	"\x19SKIP_REASON_NO_HOST_AGENT\x10\x02\x12\x17\n" +
+	"\x13SKIP_REASON_STOPPED\x10\x03\x12\x1f\n" +
+	"\x1bSKIP_REASON_AGENT_NOT_READY\x10\x04\x12'\n" +
+	"#SKIP_REASON_SNAPSHOTS_NOT_SUPPORTED\x10\x05\x12\x1a\n" +
+	"\x16SKIP_REASON_UP_TO_DATE\x10\x06\x12\x14\n" +
+	"\x10SKIP_REASON_BUSY\x10\a*t\n" +
 	"\vPowerAction\x12\x1c\n" +
 	"\x18POWER_ACTION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12POWER_ACTION_START\x10\x01\x12\x15\n" +
 	"\x11POWER_ACTION_STOP\x10\x02\x12\x18\n" +
-	"\x14POWER_ACTION_RESTART\x10\x032\xa4\x03\n" +
+	"\x14POWER_ACTION_RESTART\x10\x032\xf2\x0f\n" +
 	"\x0eProxmoxService\x12`\n" +
 	"\rStartWorkload\x12#.ddash.proxmox.StartWorkloadRequest\x1a$.ddash.proxmox.StartWorkloadResponse\"\x04\x92\xb5\x18\x00\x12_\n" +
 	"\fStopWorkload\x12\".ddash.proxmox.StopWorkloadRequest\x1a#.ddash.proxmox.StopWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12h\n" +
 	"\x0fRestartWorkload\x12%.ddash.proxmox.RestartWorkloadRequest\x1a&.ddash.proxmox.RestartWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12e\n" +
-	"\x0eListPowerTasks\x12$.ddash.proxmox.ListPowerTasksRequest\x1a%.ddash.proxmox.ListPowerTasksResponse\"\x06\x8a\xb5\x18\x02\b\x02BCZAgithub.com/itsKontra/ddash/components/proxmox/proxmoxpb;proxmoxpbb\x06proto3"
+	"\x0eListPowerTasks\x12$.ddash.proxmox.ListPowerTasksRequest\x1a%.ddash.proxmox.ListPowerTasksResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12]\n" +
+	"\fGetSnapshots\x12\".ddash.proxmox.GetSnapshotsRequest\x1a#.ddash.proxmox.GetSnapshotsResponse\"\x04\x8a\xb5\x18\x00\x12]\n" +
+	"\fTakeSnapshot\x12\".ddash.proxmox.TakeSnapshotRequest\x1a#.ddash.proxmox.TakeSnapshotResponse\"\x04\x92\xb5\x18\x00\x12K\n" +
+	"\x06Backup\x12\x1c.ddash.proxmox.BackupRequest\x1a\x1d.ddash.proxmox.BackupResponse\"\x04\x92\xb5\x18\x00\x12\\\n" +
+	"\vListBackups\x12!.ddash.proxmox.ListBackupsRequest\x1a\".ddash.proxmox.ListBackupsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12o\n" +
+	"\x12ListUpdateSettings\x12(.ddash.proxmox.ListUpdateSettingsRequest\x1a).ddash.proxmox.ListUpdateSettingsResponse\"\x04\x8a\xb5\x18\x00\x12l\n" +
+	"\x11SetUpdateSettings\x12'.ddash.proxmox.SetUpdateSettingsRequest\x1a(.ddash.proxmox.SetUpdateSettingsResponse\"\x04\x92\xb5\x18\x00\x12Y\n" +
+	"\n" +
+	"PlanUpdate\x12 .ddash.proxmox.PlanUpdateRequest\x1a!.ddash.proxmox.PlanUpdateResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12V\n" +
+	"\tRunUpdate\x12\x1f.ddash.proxmox.RunUpdateRequest\x1a .ddash.proxmox.RunUpdateResponse\"\x06\x92\xb5\x18\x02\b\x01\x12b\n" +
+	"\rPlanUpdateAll\x12#.ddash.proxmox.PlanUpdateAllRequest\x1a$.ddash.proxmox.PlanUpdateAllResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12_\n" +
+	"\fRunUpdateAll\x12\".ddash.proxmox.RunUpdateAllRequest\x1a#.ddash.proxmox.RunUpdateAllResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
+	"\vListUpdates\x12!.ddash.proxmox.ListUpdatesRequest\x1a\".ddash.proxmox.ListUpdatesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12Z\n" +
+	"\vListSSHKeys\x12!.ddash.proxmox.ListSSHKeysRequest\x1a\".ddash.proxmox.ListSSHKeysResponse\"\x04\x8a\xb5\x18\x00\x12c\n" +
+	"\x0eGenerateSSHKey\x12$.ddash.proxmox.GenerateSSHKeyRequest\x1a%.ddash.proxmox.GenerateSSHKeyResponse\"\x04\x92\xb5\x18\x00\x12T\n" +
+	"\tAddSSHKey\x12\x1f.ddash.proxmox.AddSSHKeyRequest\x1a .ddash.proxmox.AddSSHKeyResponse\"\x04\x92\xb5\x18\x00\x12_\n" +
+	"\fDeleteSSHKey\x12\".ddash.proxmox.DeleteSSHKeyRequest\x1a#.ddash.proxmox.DeleteSSHKeyResponse\"\x06\x92\xb5\x18\x02\b\x01\x12`\n" +
+	"\rInstallSSHKey\x12#.ddash.proxmox.InstallSSHKeyRequest\x1a$.ddash.proxmox.InstallSSHKeyResponse\"\x04\x92\xb5\x18\x00\x12T\n" +
+	"\tEnableSSH\x12\x1f.ddash.proxmox.EnableSSHRequest\x1a .ddash.proxmox.EnableSSHResponse\"\x04\x92\xb5\x18\x00BCZAgithub.com/itsKontra/ddash/components/proxmox/proxmoxpb;proxmoxpbb\x06proto3"
 
 var (
 	file_proxmox_proxmox_proto_rawDescOnce sync.Once
@@ -549,44 +3221,175 @@ func file_proxmox_proxmox_proto_rawDescGZIP() []byte {
 	return file_proxmox_proxmox_proto_rawDescData
 }
 
-var file_proxmox_proxmox_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proxmox_proxmox_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_proxmox_proxmox_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_proxmox_proxmox_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_proxmox_proxmox_proto_goTypes = []any{
-	(PowerAction)(0),                // 0: ddash.proxmox.PowerAction
-	(*ProxmoxConfig)(nil),           // 1: ddash.proxmox.ProxmoxConfig
-	(*StartWorkloadRequest)(nil),    // 2: ddash.proxmox.StartWorkloadRequest
-	(*StartWorkloadResponse)(nil),   // 3: ddash.proxmox.StartWorkloadResponse
-	(*StopWorkloadRequest)(nil),     // 4: ddash.proxmox.StopWorkloadRequest
-	(*StopWorkloadResponse)(nil),    // 5: ddash.proxmox.StopWorkloadResponse
-	(*RestartWorkloadRequest)(nil),  // 6: ddash.proxmox.RestartWorkloadRequest
-	(*RestartWorkloadResponse)(nil), // 7: ddash.proxmox.RestartWorkloadResponse
-	(*ListPowerTasksRequest)(nil),   // 8: ddash.proxmox.ListPowerTasksRequest
-	(*ListPowerTasksResponse)(nil),  // 9: ddash.proxmox.ListPowerTasksResponse
-	(*PowerTask)(nil),               // 10: ddash.proxmox.PowerTask
-	(*workload.WorkloadRef)(nil),    // 11: ddash.workload.WorkloadRef
-	(*timestamppb.Timestamp)(nil),   // 12: google.protobuf.Timestamp
+	(SkipReason)(0),                    // 0: ddash.proxmox.SkipReason
+	(PowerAction)(0),                   // 1: ddash.proxmox.PowerAction
+	(*ProxmoxConfig)(nil),              // 2: ddash.proxmox.ProxmoxConfig
+	(*GetSnapshotsRequest)(nil),        // 3: ddash.proxmox.GetSnapshotsRequest
+	(*GetSnapshotsResponse)(nil),       // 4: ddash.proxmox.GetSnapshotsResponse
+	(*Snapshot)(nil),                   // 5: ddash.proxmox.Snapshot
+	(*TakeSnapshotRequest)(nil),        // 6: ddash.proxmox.TakeSnapshotRequest
+	(*TakeSnapshotResponse)(nil),       // 7: ddash.proxmox.TakeSnapshotResponse
+	(*BackupRequest)(nil),              // 8: ddash.proxmox.BackupRequest
+	(*BackupResponse)(nil),             // 9: ddash.proxmox.BackupResponse
+	(*ListBackupsRequest)(nil),         // 10: ddash.proxmox.ListBackupsRequest
+	(*ListBackupsResponse)(nil),        // 11: ddash.proxmox.ListBackupsResponse
+	(*BackupTask)(nil),                 // 12: ddash.proxmox.BackupTask
+	(*ListUpdateSettingsRequest)(nil),  // 13: ddash.proxmox.ListUpdateSettingsRequest
+	(*ListUpdateSettingsResponse)(nil), // 14: ddash.proxmox.ListUpdateSettingsResponse
+	(*UpdateSettings)(nil),             // 15: ddash.proxmox.UpdateSettings
+	(*SetUpdateSettingsRequest)(nil),   // 16: ddash.proxmox.SetUpdateSettingsRequest
+	(*SetUpdateSettingsResponse)(nil),  // 17: ddash.proxmox.SetUpdateSettingsResponse
+	(*PlanUpdateRequest)(nil),          // 18: ddash.proxmox.PlanUpdateRequest
+	(*PlanUpdateResponse)(nil),         // 19: ddash.proxmox.PlanUpdateResponse
+	(*UpdatePlan)(nil),                 // 20: ddash.proxmox.UpdatePlan
+	(*PackageUpdate)(nil),              // 21: ddash.proxmox.PackageUpdate
+	(*RunUpdateRequest)(nil),           // 22: ddash.proxmox.RunUpdateRequest
+	(*RunUpdateResponse)(nil),          // 23: ddash.proxmox.RunUpdateResponse
+	(*PlanUpdateAllRequest)(nil),       // 24: ddash.proxmox.PlanUpdateAllRequest
+	(*PlanUpdateAllResponse)(nil),      // 25: ddash.proxmox.PlanUpdateAllResponse
+	(*SkippedWorkload)(nil),            // 26: ddash.proxmox.SkippedWorkload
+	(*RunUpdateAllRequest)(nil),        // 27: ddash.proxmox.RunUpdateAllRequest
+	(*RunUpdateAllResponse)(nil),       // 28: ddash.proxmox.RunUpdateAllResponse
+	(*ListUpdatesRequest)(nil),         // 29: ddash.proxmox.ListUpdatesRequest
+	(*ListUpdatesResponse)(nil),        // 30: ddash.proxmox.ListUpdatesResponse
+	(*UpdateRun)(nil),                  // 31: ddash.proxmox.UpdateRun
+	(*BulkUpdate)(nil),                 // 32: ddash.proxmox.BulkUpdate
+	(*BulkItem)(nil),                   // 33: ddash.proxmox.BulkItem
+	(*ListSSHKeysRequest)(nil),         // 34: ddash.proxmox.ListSSHKeysRequest
+	(*ListSSHKeysResponse)(nil),        // 35: ddash.proxmox.ListSSHKeysResponse
+	(*SSHKey)(nil),                     // 36: ddash.proxmox.SSHKey
+	(*GenerateSSHKeyRequest)(nil),      // 37: ddash.proxmox.GenerateSSHKeyRequest
+	(*GenerateSSHKeyResponse)(nil),     // 38: ddash.proxmox.GenerateSSHKeyResponse
+	(*AddSSHKeyRequest)(nil),           // 39: ddash.proxmox.AddSSHKeyRequest
+	(*AddSSHKeyResponse)(nil),          // 40: ddash.proxmox.AddSSHKeyResponse
+	(*DeleteSSHKeyRequest)(nil),        // 41: ddash.proxmox.DeleteSSHKeyRequest
+	(*DeleteSSHKeyResponse)(nil),       // 42: ddash.proxmox.DeleteSSHKeyResponse
+	(*InstallSSHKeyRequest)(nil),       // 43: ddash.proxmox.InstallSSHKeyRequest
+	(*InstallSSHKeyResponse)(nil),      // 44: ddash.proxmox.InstallSSHKeyResponse
+	(*EnableSSHRequest)(nil),           // 45: ddash.proxmox.EnableSSHRequest
+	(*EnableSSHResponse)(nil),          // 46: ddash.proxmox.EnableSSHResponse
+	(*StartWorkloadRequest)(nil),       // 47: ddash.proxmox.StartWorkloadRequest
+	(*StartWorkloadResponse)(nil),      // 48: ddash.proxmox.StartWorkloadResponse
+	(*StopWorkloadRequest)(nil),        // 49: ddash.proxmox.StopWorkloadRequest
+	(*StopWorkloadResponse)(nil),       // 50: ddash.proxmox.StopWorkloadResponse
+	(*RestartWorkloadRequest)(nil),     // 51: ddash.proxmox.RestartWorkloadRequest
+	(*RestartWorkloadResponse)(nil),    // 52: ddash.proxmox.RestartWorkloadResponse
+	(*ListPowerTasksRequest)(nil),      // 53: ddash.proxmox.ListPowerTasksRequest
+	(*ListPowerTasksResponse)(nil),     // 54: ddash.proxmox.ListPowerTasksResponse
+	(*PowerTask)(nil),                  // 55: ddash.proxmox.PowerTask
+	(*workload.WorkloadRef)(nil),       // 56: ddash.workload.WorkloadRef
+	(*timestamppb.Timestamp)(nil),      // 57: google.protobuf.Timestamp
+	(job.State)(0),                     // 58: ddash.job.State
+	(*job.Step)(nil),                   // 59: ddash.job.Step
+	(*job.Job)(nil),                    // 60: ddash.job.Job
 }
 var file_proxmox_proxmox_proto_depIdxs = []int32{
-	11, // 0: ddash.proxmox.StartWorkloadRequest.workload:type_name -> ddash.workload.WorkloadRef
-	11, // 1: ddash.proxmox.StopWorkloadRequest.workload:type_name -> ddash.workload.WorkloadRef
-	11, // 2: ddash.proxmox.RestartWorkloadRequest.workload:type_name -> ddash.workload.WorkloadRef
-	10, // 3: ddash.proxmox.ListPowerTasksResponse.tasks:type_name -> ddash.proxmox.PowerTask
-	11, // 4: ddash.proxmox.PowerTask.workload:type_name -> ddash.workload.WorkloadRef
-	0,  // 5: ddash.proxmox.PowerTask.action:type_name -> ddash.proxmox.PowerAction
-	12, // 6: ddash.proxmox.PowerTask.started:type_name -> google.protobuf.Timestamp
-	2,  // 7: ddash.proxmox.ProxmoxService.StartWorkload:input_type -> ddash.proxmox.StartWorkloadRequest
-	4,  // 8: ddash.proxmox.ProxmoxService.StopWorkload:input_type -> ddash.proxmox.StopWorkloadRequest
-	6,  // 9: ddash.proxmox.ProxmoxService.RestartWorkload:input_type -> ddash.proxmox.RestartWorkloadRequest
-	8,  // 10: ddash.proxmox.ProxmoxService.ListPowerTasks:input_type -> ddash.proxmox.ListPowerTasksRequest
-	3,  // 11: ddash.proxmox.ProxmoxService.StartWorkload:output_type -> ddash.proxmox.StartWorkloadResponse
-	5,  // 12: ddash.proxmox.ProxmoxService.StopWorkload:output_type -> ddash.proxmox.StopWorkloadResponse
-	7,  // 13: ddash.proxmox.ProxmoxService.RestartWorkload:output_type -> ddash.proxmox.RestartWorkloadResponse
-	9,  // 14: ddash.proxmox.ProxmoxService.ListPowerTasks:output_type -> ddash.proxmox.ListPowerTasksResponse
-	11, // [11:15] is the sub-list for method output_type
-	7,  // [7:11] is the sub-list for method input_type
-	7,  // [7:7] is the sub-list for extension type_name
-	7,  // [7:7] is the sub-list for extension extendee
-	0,  // [0:7] is the sub-list for field type_name
+	56, // 0: ddash.proxmox.GetSnapshotsRequest.workload:type_name -> ddash.workload.WorkloadRef
+	5,  // 1: ddash.proxmox.GetSnapshotsResponse.ddash_snapshot:type_name -> ddash.proxmox.Snapshot
+	5,  // 2: ddash.proxmox.GetSnapshotsResponse.others:type_name -> ddash.proxmox.Snapshot
+	57, // 3: ddash.proxmox.Snapshot.created:type_name -> google.protobuf.Timestamp
+	56, // 4: ddash.proxmox.TakeSnapshotRequest.workload:type_name -> ddash.workload.WorkloadRef
+	5,  // 5: ddash.proxmox.TakeSnapshotResponse.snapshot:type_name -> ddash.proxmox.Snapshot
+	56, // 6: ddash.proxmox.BackupRequest.workload:type_name -> ddash.workload.WorkloadRef
+	12, // 7: ddash.proxmox.BackupResponse.backup:type_name -> ddash.proxmox.BackupTask
+	12, // 8: ddash.proxmox.ListBackupsResponse.backups:type_name -> ddash.proxmox.BackupTask
+	56, // 9: ddash.proxmox.BackupTask.workload:type_name -> ddash.workload.WorkloadRef
+	58, // 10: ddash.proxmox.BackupTask.state:type_name -> ddash.job.State
+	57, // 11: ddash.proxmox.BackupTask.started:type_name -> google.protobuf.Timestamp
+	57, // 12: ddash.proxmox.BackupTask.ended:type_name -> google.protobuf.Timestamp
+	15, // 13: ddash.proxmox.ListUpdateSettingsResponse.settings:type_name -> ddash.proxmox.UpdateSettings
+	15, // 14: ddash.proxmox.SetUpdateSettingsRequest.settings:type_name -> ddash.proxmox.UpdateSettings
+	56, // 15: ddash.proxmox.PlanUpdateRequest.workload:type_name -> ddash.workload.WorkloadRef
+	20, // 16: ddash.proxmox.PlanUpdateResponse.plan:type_name -> ddash.proxmox.UpdatePlan
+	56, // 17: ddash.proxmox.UpdatePlan.workload:type_name -> ddash.workload.WorkloadRef
+	21, // 18: ddash.proxmox.UpdatePlan.packages:type_name -> ddash.proxmox.PackageUpdate
+	57, // 19: ddash.proxmox.UpdatePlan.packages_read:type_name -> google.protobuf.Timestamp
+	56, // 20: ddash.proxmox.RunUpdateRequest.workload:type_name -> ddash.workload.WorkloadRef
+	31, // 21: ddash.proxmox.RunUpdateResponse.run:type_name -> ddash.proxmox.UpdateRun
+	20, // 22: ddash.proxmox.PlanUpdateAllResponse.workloads:type_name -> ddash.proxmox.UpdatePlan
+	26, // 23: ddash.proxmox.PlanUpdateAllResponse.skipped:type_name -> ddash.proxmox.SkippedWorkload
+	56, // 24: ddash.proxmox.SkippedWorkload.workload:type_name -> ddash.workload.WorkloadRef
+	0,  // 25: ddash.proxmox.SkippedWorkload.reason:type_name -> ddash.proxmox.SkipReason
+	56, // 26: ddash.proxmox.RunUpdateAllRequest.workloads:type_name -> ddash.workload.WorkloadRef
+	32, // 27: ddash.proxmox.RunUpdateAllResponse.bulk:type_name -> ddash.proxmox.BulkUpdate
+	31, // 28: ddash.proxmox.ListUpdatesResponse.runs:type_name -> ddash.proxmox.UpdateRun
+	32, // 29: ddash.proxmox.ListUpdatesResponse.bulk:type_name -> ddash.proxmox.BulkUpdate
+	56, // 30: ddash.proxmox.UpdateRun.workload:type_name -> ddash.workload.WorkloadRef
+	58, // 31: ddash.proxmox.UpdateRun.state:type_name -> ddash.job.State
+	59, // 32: ddash.proxmox.UpdateRun.steps:type_name -> ddash.job.Step
+	57, // 33: ddash.proxmox.UpdateRun.started:type_name -> google.protobuf.Timestamp
+	57, // 34: ddash.proxmox.UpdateRun.ended:type_name -> google.protobuf.Timestamp
+	58, // 35: ddash.proxmox.BulkUpdate.state:type_name -> ddash.job.State
+	33, // 36: ddash.proxmox.BulkUpdate.items:type_name -> ddash.proxmox.BulkItem
+	26, // 37: ddash.proxmox.BulkUpdate.skipped:type_name -> ddash.proxmox.SkippedWorkload
+	57, // 38: ddash.proxmox.BulkUpdate.started:type_name -> google.protobuf.Timestamp
+	57, // 39: ddash.proxmox.BulkUpdate.ended:type_name -> google.protobuf.Timestamp
+	56, // 40: ddash.proxmox.BulkItem.workload:type_name -> ddash.workload.WorkloadRef
+	58, // 41: ddash.proxmox.BulkItem.state:type_name -> ddash.job.State
+	36, // 42: ddash.proxmox.ListSSHKeysResponse.keys:type_name -> ddash.proxmox.SSHKey
+	57, // 43: ddash.proxmox.SSHKey.created:type_name -> google.protobuf.Timestamp
+	36, // 44: ddash.proxmox.GenerateSSHKeyResponse.key:type_name -> ddash.proxmox.SSHKey
+	36, // 45: ddash.proxmox.AddSSHKeyResponse.key:type_name -> ddash.proxmox.SSHKey
+	56, // 46: ddash.proxmox.InstallSSHKeyRequest.workload:type_name -> ddash.workload.WorkloadRef
+	56, // 47: ddash.proxmox.EnableSSHRequest.workload:type_name -> ddash.workload.WorkloadRef
+	60, // 48: ddash.proxmox.EnableSSHResponse.job:type_name -> ddash.job.Job
+	56, // 49: ddash.proxmox.StartWorkloadRequest.workload:type_name -> ddash.workload.WorkloadRef
+	56, // 50: ddash.proxmox.StopWorkloadRequest.workload:type_name -> ddash.workload.WorkloadRef
+	56, // 51: ddash.proxmox.RestartWorkloadRequest.workload:type_name -> ddash.workload.WorkloadRef
+	55, // 52: ddash.proxmox.ListPowerTasksResponse.tasks:type_name -> ddash.proxmox.PowerTask
+	56, // 53: ddash.proxmox.PowerTask.workload:type_name -> ddash.workload.WorkloadRef
+	1,  // 54: ddash.proxmox.PowerTask.action:type_name -> ddash.proxmox.PowerAction
+	57, // 55: ddash.proxmox.PowerTask.started:type_name -> google.protobuf.Timestamp
+	47, // 56: ddash.proxmox.ProxmoxService.StartWorkload:input_type -> ddash.proxmox.StartWorkloadRequest
+	49, // 57: ddash.proxmox.ProxmoxService.StopWorkload:input_type -> ddash.proxmox.StopWorkloadRequest
+	51, // 58: ddash.proxmox.ProxmoxService.RestartWorkload:input_type -> ddash.proxmox.RestartWorkloadRequest
+	53, // 59: ddash.proxmox.ProxmoxService.ListPowerTasks:input_type -> ddash.proxmox.ListPowerTasksRequest
+	3,  // 60: ddash.proxmox.ProxmoxService.GetSnapshots:input_type -> ddash.proxmox.GetSnapshotsRequest
+	6,  // 61: ddash.proxmox.ProxmoxService.TakeSnapshot:input_type -> ddash.proxmox.TakeSnapshotRequest
+	8,  // 62: ddash.proxmox.ProxmoxService.Backup:input_type -> ddash.proxmox.BackupRequest
+	10, // 63: ddash.proxmox.ProxmoxService.ListBackups:input_type -> ddash.proxmox.ListBackupsRequest
+	13, // 64: ddash.proxmox.ProxmoxService.ListUpdateSettings:input_type -> ddash.proxmox.ListUpdateSettingsRequest
+	16, // 65: ddash.proxmox.ProxmoxService.SetUpdateSettings:input_type -> ddash.proxmox.SetUpdateSettingsRequest
+	18, // 66: ddash.proxmox.ProxmoxService.PlanUpdate:input_type -> ddash.proxmox.PlanUpdateRequest
+	22, // 67: ddash.proxmox.ProxmoxService.RunUpdate:input_type -> ddash.proxmox.RunUpdateRequest
+	24, // 68: ddash.proxmox.ProxmoxService.PlanUpdateAll:input_type -> ddash.proxmox.PlanUpdateAllRequest
+	27, // 69: ddash.proxmox.ProxmoxService.RunUpdateAll:input_type -> ddash.proxmox.RunUpdateAllRequest
+	29, // 70: ddash.proxmox.ProxmoxService.ListUpdates:input_type -> ddash.proxmox.ListUpdatesRequest
+	34, // 71: ddash.proxmox.ProxmoxService.ListSSHKeys:input_type -> ddash.proxmox.ListSSHKeysRequest
+	37, // 72: ddash.proxmox.ProxmoxService.GenerateSSHKey:input_type -> ddash.proxmox.GenerateSSHKeyRequest
+	39, // 73: ddash.proxmox.ProxmoxService.AddSSHKey:input_type -> ddash.proxmox.AddSSHKeyRequest
+	41, // 74: ddash.proxmox.ProxmoxService.DeleteSSHKey:input_type -> ddash.proxmox.DeleteSSHKeyRequest
+	43, // 75: ddash.proxmox.ProxmoxService.InstallSSHKey:input_type -> ddash.proxmox.InstallSSHKeyRequest
+	45, // 76: ddash.proxmox.ProxmoxService.EnableSSH:input_type -> ddash.proxmox.EnableSSHRequest
+	48, // 77: ddash.proxmox.ProxmoxService.StartWorkload:output_type -> ddash.proxmox.StartWorkloadResponse
+	50, // 78: ddash.proxmox.ProxmoxService.StopWorkload:output_type -> ddash.proxmox.StopWorkloadResponse
+	52, // 79: ddash.proxmox.ProxmoxService.RestartWorkload:output_type -> ddash.proxmox.RestartWorkloadResponse
+	54, // 80: ddash.proxmox.ProxmoxService.ListPowerTasks:output_type -> ddash.proxmox.ListPowerTasksResponse
+	4,  // 81: ddash.proxmox.ProxmoxService.GetSnapshots:output_type -> ddash.proxmox.GetSnapshotsResponse
+	7,  // 82: ddash.proxmox.ProxmoxService.TakeSnapshot:output_type -> ddash.proxmox.TakeSnapshotResponse
+	9,  // 83: ddash.proxmox.ProxmoxService.Backup:output_type -> ddash.proxmox.BackupResponse
+	11, // 84: ddash.proxmox.ProxmoxService.ListBackups:output_type -> ddash.proxmox.ListBackupsResponse
+	14, // 85: ddash.proxmox.ProxmoxService.ListUpdateSettings:output_type -> ddash.proxmox.ListUpdateSettingsResponse
+	17, // 86: ddash.proxmox.ProxmoxService.SetUpdateSettings:output_type -> ddash.proxmox.SetUpdateSettingsResponse
+	19, // 87: ddash.proxmox.ProxmoxService.PlanUpdate:output_type -> ddash.proxmox.PlanUpdateResponse
+	23, // 88: ddash.proxmox.ProxmoxService.RunUpdate:output_type -> ddash.proxmox.RunUpdateResponse
+	25, // 89: ddash.proxmox.ProxmoxService.PlanUpdateAll:output_type -> ddash.proxmox.PlanUpdateAllResponse
+	28, // 90: ddash.proxmox.ProxmoxService.RunUpdateAll:output_type -> ddash.proxmox.RunUpdateAllResponse
+	30, // 91: ddash.proxmox.ProxmoxService.ListUpdates:output_type -> ddash.proxmox.ListUpdatesResponse
+	35, // 92: ddash.proxmox.ProxmoxService.ListSSHKeys:output_type -> ddash.proxmox.ListSSHKeysResponse
+	38, // 93: ddash.proxmox.ProxmoxService.GenerateSSHKey:output_type -> ddash.proxmox.GenerateSSHKeyResponse
+	40, // 94: ddash.proxmox.ProxmoxService.AddSSHKey:output_type -> ddash.proxmox.AddSSHKeyResponse
+	42, // 95: ddash.proxmox.ProxmoxService.DeleteSSHKey:output_type -> ddash.proxmox.DeleteSSHKeyResponse
+	44, // 96: ddash.proxmox.ProxmoxService.InstallSSHKey:output_type -> ddash.proxmox.InstallSSHKeyResponse
+	46, // 97: ddash.proxmox.ProxmoxService.EnableSSH:output_type -> ddash.proxmox.EnableSSHResponse
+	77, // [77:98] is the sub-list for method output_type
+	56, // [56:77] is the sub-list for method input_type
+	56, // [56:56] is the sub-list for extension type_name
+	56, // [56:56] is the sub-list for extension extendee
+	0,  // [0:56] is the sub-list for field type_name
 }
 
 func init() { file_proxmox_proxmox_proto_init() }
@@ -594,13 +3397,14 @@ func file_proxmox_proxmox_proto_init() {
 	if File_proxmox_proxmox_proto != nil {
 		return
 	}
+	file_proxmox_proxmox_proto_msgTypes[20].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proxmox_proxmox_proto_rawDesc), len(file_proxmox_proxmox_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   10,
+			NumEnums:      2,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

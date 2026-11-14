@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file proxmox-api/proxmox_api.proto.
  */
 export const file_proxmox_api_proxmox_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1wcm94bW94LWFwaS9wcm94bW94X2FwaS5wcm90bxIQZGRhc2gucHJveG1veGFwaSL8AgoQUHJveG1veEFwaUNvbmZpZxJ4CgN1cmwYASABKAlCa5q1GGcaA1VSTCJDVGhlIFByb3htb3ggQVBJIGJ5IGFkZHJlc3MsIHNvIGl0IHdvcmtzIHdoaWxlIEROUyBvciBuZ2lueCBpcyBkb3duLioXaHR0cHM6Ly8xOTguMTguMS4yOjgwMDYwATgBEoYBCg90bHNfc2VydmVyX25hbWUYAiABKAlCbZq1GGkaD1RMUyBzZXJ2ZXIgbmFtZSJCVGhlIG5hbWUgb24gdGhlIG5vZGUncyBjZXJ0aWZpY2F0ZSwgd2hlbiB0aGUgVVJMIHVzZXMgaXRzIGFkZHJlc3MuKhBwdmUuaG9tZS5leGFtcGxlOAISNwoIdG9rZW5faWQYAyABKAlCJZq1GCEaCFRva2VuIElEKhNkZGFzaEBwdmUhZGFzaGJvYXJkMAESLAoMdG9rZW5fc2VjcmV0GAQgASgJQhaatRgSEAEaDFRva2VuIHNlY3JldDABIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkYKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRItCgl3b3JrbG9hZHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLldvcmtsb2FkIpEDCghXb3JrbG9hZBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBHZtaWQYAiABKA0SDAoEbm9kZRgDIAEoCRIMCgRuYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIQCgh0ZW1wbGF0ZRgGIAEoCBIMCgR0YWdzGAcgAygJEgsKA2NwdRgIIAEoARIPCgdtYXhfY3B1GAkgASgNEgsKA21lbRgKIAEoBBIPCgdtYXhfbWVtGAsgASgEEgwKBGRpc2sYDCABKAQSEAoIbWF4X2Rpc2sYDSABKAQSDgoGbmV0X2luGA4gASgEEg8KB25ldF9vdXQYDyABKAQSFgoOdXB0aW1lX3NlY29uZHMYECABKAQSIwoEbmljcxgRIAMoCzIVLmRkYXNoLnByb3htb3hhcGkuTmljEjIKCWFkZHJlc3NlcxgSIAEoDjIfLmRkYXNoLnByb3htb3hhcGkuQWRkcmVzc1NvdXJjZRIXCg9hZGRyZXNzZXNfZXJyb3IYEyABKAkiLQoDTmljEgwKBG5hbWUYASABKAkSCwoDbWFjGAIgASgJEgsKA2lwcxgDIAMoCSIYChZMaXN0UGVybWlzc2lvbnNSZXF1ZXN0IlMKF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEjgKCXdvcmtsb2FkcxgBIAMoCzIlLmRkYXNoLnByb3htb3hhcGkuV29ya2xvYWRQZXJtaXNzaW9ucyI3ChNXb3JrbG9hZFBlcm1pc3Npb25zEgwKBHZtaWQYASABKA0SEgoKcHJpdmlsZWdlcxgCIAMoCSJKCgZUYXJnZXQSJAoEa2luZBgBIAEoDjIWLmRkYXNoLnByb3htb3hhcGkuS2luZBIMCgRub2RlGAIgASgJEgwKBHZtaWQYAyABKA0iQgoUU3RhcnRXb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldCIlChVTdGFydFdvcmtsb2FkUmVzcG9uc2USDAoEdXBpZBgBIAEoCSKFAQoXU2h1dGRvd25Xb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIqCgd0aW1lb3V0GAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhIKCmZvcmNlX3N0b3AYAyABKAgiKAoYU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlEgwKBHVwaWQYASABKAkiQwoVUmVib290V29ya2xvYWRSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQiJgoWUmVib290V29ya2xvYWRSZXNwb25zZRIMCgR1cGlkGAEgASgJIjQKFkxpc3RBY3RpdmVUYXNrc1JlcXVlc3QSDAoEbm9kZRgBIAEoCRIMCgR2bWlkGAIgASgNIkAKF0xpc3RBY3RpdmVUYXNrc1Jlc3BvbnNlEiUKBXRhc2tzGAEgAygLMhYuZGRhc2gucHJveG1veGFwaS5UYXNrIk8KBFRhc2sSDAoEdXBpZBgBIAEoCRIMCgR0eXBlGAIgASgJEisKB3N0YXJ0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKjcKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEgwKCEtJTkRfTFhDEAESCwoHS0lORF9WTRACKmMKDUFkZHJlc3NTb3VyY2USHgoaQUREUkVTU19TT1VSQ0VfVU5TUEVDSUZJRUQQABIXChNBRERSRVNTX1NPVVJDRV9MSVZFEAESGQoVQUREUkVTU19TT1VSQ0VfQ09ORklHEAIypQUKEVByb3htb3hBcGlTZXJ2aWNlEmgKDUxpc3RXb3JrbG9hZHMSJi5kZGFzaC5wcm94bW94YXBpLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GicuZGRhc2gucHJveG1veGFwaS5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBoq1GAIIAhJuCg9MaXN0UGVybWlzc2lvbnMSKC5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaKS5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIgaKtRgCCAISZgoNU3RhcnRXb3JrbG9hZBImLmRkYXNoLnByb3htb3hhcGkuU3RhcnRXb3JrbG9hZFJlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLlN0YXJ0V29ya2xvYWRSZXNwb25zZSIEkrUYABJxChBTaHV0ZG93bldvcmtsb2FkEikuZGRhc2gucHJveG1veGFwaS5TaHV0ZG93bldvcmtsb2FkUmVxdWVzdBoqLmRkYXNoLnByb3htb3hhcGkuU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlIgaStRgCCAESawoOUmVib290V29ya2xvYWQSJy5kZGFzaC5wcm94bW94YXBpLlJlYm9vdFdvcmtsb2FkUmVxdWVzdBooLmRkYXNoLnByb3htb3hhcGkuUmVib290V29ya2xvYWRSZXNwb25zZSIGkrUYAggBEm4KD0xpc3RBY3RpdmVUYXNrcxIoLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVxdWVzdBopLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVzcG9uc2UiBoq1GAIIA0JNWktnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3Byb3htb3gtYXBpL3Byb3htb3hhcGlwYjtwcm94bW94YXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("Ch1wcm94bW94LWFwaS9wcm94bW94X2FwaS5wcm90bxIQZGRhc2gucHJveG1veGFwaSL8AgoQUHJveG1veEFwaUNvbmZpZxJ4CgN1cmwYASABKAlCa5q1GGcaA1VSTCJDVGhlIFByb3htb3ggQVBJIGJ5IGFkZHJlc3MsIHNvIGl0IHdvcmtzIHdoaWxlIEROUyBvciBuZ2lueCBpcyBkb3duLioXaHR0cHM6Ly8xOTguMTguMS4yOjgwMDYwATgBEoYBCg90bHNfc2VydmVyX25hbWUYAiABKAlCbZq1GGkaD1RMUyBzZXJ2ZXIgbmFtZSJCVGhlIG5hbWUgb24gdGhlIG5vZGUncyBjZXJ0aWZpY2F0ZSwgd2hlbiB0aGUgVVJMIHVzZXMgaXRzIGFkZHJlc3MuKhBwdmUuaG9tZS5leGFtcGxlOAISNwoIdG9rZW5faWQYAyABKAlCJZq1GCEaCFRva2VuIElEKhNkZGFzaEBwdmUhZGFzaGJvYXJkMAESLAoMdG9rZW5fc2VjcmV0GAQgASgJQhaatRgSEAEaDFRva2VuIHNlY3JldDABIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkYKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRItCgl3b3JrbG9hZHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLldvcmtsb2FkIpEDCghXb3JrbG9hZBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBHZtaWQYAiABKA0SDAoEbm9kZRgDIAEoCRIMCgRuYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIQCgh0ZW1wbGF0ZRgGIAEoCBIMCgR0YWdzGAcgAygJEgsKA2NwdRgIIAEoARIPCgdtYXhfY3B1GAkgASgNEgsKA21lbRgKIAEoBBIPCgdtYXhfbWVtGAsgASgEEgwKBGRpc2sYDCABKAQSEAoIbWF4X2Rpc2sYDSABKAQSDgoGbmV0X2luGA4gASgEEg8KB25ldF9vdXQYDyABKAQSFgoOdXB0aW1lX3NlY29uZHMYECABKAQSIwoEbmljcxgRIAMoCzIVLmRkYXNoLnByb3htb3hhcGkuTmljEjIKCWFkZHJlc3NlcxgSIAEoDjIfLmRkYXNoLnByb3htb3hhcGkuQWRkcmVzc1NvdXJjZRIXCg9hZGRyZXNzZXNfZXJyb3IYEyABKAkiLQoDTmljEgwKBG5hbWUYASABKAkSCwoDbWFjGAIgASgJEgsKA2lwcxgDIAMoCSIYChZMaXN0UGVybWlzc2lvbnNSZXF1ZXN0IlMKF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEjgKCXdvcmtsb2FkcxgBIAMoCzIlLmRkYXNoLnByb3htb3hhcGkuV29ya2xvYWRQZXJtaXNzaW9ucyI3ChNXb3JrbG9hZFBlcm1pc3Npb25zEgwKBHZtaWQYASABKA0SEgoKcHJpdmlsZWdlcxgCIAMoCSJKCgZUYXJnZXQSJAoEa2luZBgBIAEoDjIWLmRkYXNoLnByb3htb3hhcGkuS2luZBIMCgRub2RlGAIgASgJEgwKBHZtaWQYAyABKA0iQgoUU3RhcnRXb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldCIlChVTdGFydFdvcmtsb2FkUmVzcG9uc2USDAoEdXBpZBgBIAEoCSKFAQoXU2h1dGRvd25Xb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIqCgd0aW1lb3V0GAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhIKCmZvcmNlX3N0b3AYAyABKAgiKAoYU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlEgwKBHVwaWQYASABKAkiQwoVUmVib290V29ya2xvYWRSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQiJgoWUmVib290V29ya2xvYWRSZXNwb25zZRIMCgR1cGlkGAEgASgJIjQKFkxpc3RBY3RpdmVUYXNrc1JlcXVlc3QSDAoEbm9kZRgBIAEoCRIMCgR2bWlkGAIgASgNIkAKF0xpc3RBY3RpdmVUYXNrc1Jlc3BvbnNlEiUKBXRhc2tzGAEgAygLMhYuZGRhc2gucHJveG1veGFwaS5UYXNrIk8KBFRhc2sSDAoEdXBpZBgBIAEoCRIMCgR0eXBlGAIgASgJEisKB3N0YXJ0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIiwKDkdldFRhc2tSZXF1ZXN0EgwKBG5vZGUYASABKAkSDAoEdXBpZBgCIAEoCSI9Cg9HZXRUYXNrUmVzcG9uc2USKgoEdGFzaxgBIAEoCzIcLmRkYXNoLnByb3htb3hhcGkuVGFza1N0YXR1cyJ7CgpUYXNrU3RhdHVzEgwKBHVwaWQYASABKAkSDAoEdHlwZRgCIAEoCRIPCgdzdG9wcGVkGAMgASgIEhMKC2V4aXRfc3RhdHVzGAQgASgJEisKB3N0YXJ0ZWQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkIKFExpc3RTbmFwc2hvdHNSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQiWQoVTGlzdFNuYXBzaG90c1Jlc3BvbnNlEi0KCXNuYXBzaG90cxgBIAMoCzIaLmRkYXNoLnByb3htb3hhcGkuU25hcHNob3QSEQoJc3VwcG9ydGVkGAIgASgIImoKCFNuYXBzaG90EgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSKwoHY3JlYXRlZBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGcGFyZW50GAQgASgJImYKFUNyZWF0ZVNuYXBzaG90UmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0EgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkiJgoWQ3JlYXRlU25hcHNob3RSZXNwb25zZRIMCgR1cGlkGAEgASgJIlEKFURlbGV0ZVNuYXBzaG90UmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0EgwKBG5hbWUYAiABKAkiJgoWRGVsZXRlU25hcHNob3RSZXNwb25zZRIMCgR1cGlkGAEgASgJIngKDUJhY2t1cFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIPCgdzdG9yYWdlGAIgASgJEioKBG1vZGUYAyABKA4yHC5kZGFzaC5wcm94bW94YXBpLkJhY2t1cE1vZGUiHgoOQmFja3VwUmVzcG9uc2USDAoEdXBpZBgBIAEoCSIpChlMaXN0QmFja3VwU3RvcmFnZXNSZXF1ZXN0EgwKBG5vZGUYASABKAkiSQoaTGlzdEJhY2t1cFN0b3JhZ2VzUmVzcG9uc2USKwoIc3RvcmFnZXMYASADKAsyGS5kZGFzaC5wcm94bW94YXBpLlN0b3JhZ2UiYwoHU3RvcmFnZRIMCgRuYW1lGAEgASgJEgwKBHR5cGUYAiABKAkSDgoGYWN0aXZlGAMgASgIEg4KBnNoYXJlZBgEIAEoCBINCgVhdmFpbBgFIAEoBBINCgV0b3RhbBgGIAEoBCo3CgRLaW5kEhQKEEtJTkRfVU5TUEVDSUZJRUQQABIMCghLSU5EX0xYQxABEgsKB0tJTkRfVk0QAipjCg1BZGRyZXNzU291cmNlEh4KGkFERFJFU1NfU09VUkNFX1VOU1BFQ0lGSUVEEAASFwoTQUREUkVTU19TT1VSQ0VfTElWRRABEhkKFUFERFJFU1NfU09VUkNFX0NPTkZJRxACKnIKCkJhY2t1cE1vZGUSGwoXQkFDS1VQX01PREVfVU5TUEVDSUZJRUQQABIYChRCQUNLVVBfTU9ERV9TTkFQU0hPVBABEhcKE0JBQ0tVUF9NT0RFX1NVU1BFTkQQAhIUChBCQUNLVVBfTU9ERV9TVE9QEAMyiQoKEVByb3htb3hBcGlTZXJ2aWNlEmgKDUxpc3RXb3JrbG9hZHMSJi5kZGFzaC5wcm94bW94YXBpLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GicuZGRhc2gucHJveG1veGFwaS5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBoq1GAIIAhJuCg9MaXN0UGVybWlzc2lvbnMSKC5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaKS5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIgaKtRgCCAISZgoNU3RhcnRXb3JrbG9hZBImLmRkYXNoLnByb3htb3hhcGkuU3RhcnRXb3JrbG9hZFJlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLlN0YXJ0V29ya2xvYWRSZXNwb25zZSIEkrUYABJxChBTaHV0ZG93bldvcmtsb2FkEikuZGRhc2gucHJveG1veGFwaS5TaHV0ZG93bldvcmtsb2FkUmVxdWVzdBoqLmRkYXNoLnByb3htb3hhcGkuU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlIgaStRgCCAESawoOUmVib290V29ya2xvYWQSJy5kZGFzaC5wcm94bW94YXBpLlJlYm9vdFdvcmtsb2FkUmVxdWVzdBooLmRkYXNoLnByb3htb3hhcGkuUmVib290V29ya2xvYWRSZXNwb25zZSIGkrUYAggBEm4KD0xpc3RBY3RpdmVUYXNrcxIoLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVxdWVzdBopLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVzcG9uc2UiBoq1GAIIAxJWCgdHZXRUYXNrEiAuZGRhc2gucHJveG1veGFwaS5HZXRUYXNrUmVxdWVzdBohLmRkYXNoLnByb3htb3hhcGkuR2V0VGFza1Jlc3BvbnNlIgaKtRgCCAMSaAoNTGlzdFNuYXBzaG90cxImLmRkYXNoLnByb3htb3hhcGkuTGlzdFNuYXBzaG90c1JlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLkxpc3RTbmFwc2hvdHNSZXNwb25zZSIGirUYAggDEmkKDkNyZWF0ZVNuYXBzaG90EicuZGRhc2gucHJveG1veGFwaS5DcmVhdGVTbmFwc2hvdFJlcXVlc3QaKC5kZGFzaC5wcm94bW94YXBpLkNyZWF0ZVNuYXBzaG90UmVzcG9uc2UiBJK1GAASawoORGVsZXRlU25hcHNob3QSJy5kZGFzaC5wcm94bW94YXBpLkRlbGV0ZVNuYXBzaG90UmVxdWVzdBooLmRkYXNoLnByb3htb3hhcGkuRGVsZXRlU25hcHNob3RSZXNwb25zZSIGkrUYAggBElEKBkJhY2t1cBIfLmRkYXNoLnByb3htb3hhcGkuQmFja3VwUmVxdWVzdBogLmRkYXNoLnByb3htb3hhcGkuQmFja3VwUmVzcG9uc2UiBJK1GAASdQoSTGlzdEJhY2t1cFN0b3JhZ2VzEisuZGRhc2gucHJveG1veGFwaS5MaXN0QmFja3VwU3RvcmFnZXNSZXF1ZXN0GiwuZGRhc2gucHJveG1veGFwaS5MaXN0QmFja3VwU3RvcmFnZXNSZXNwb25zZSIEirUYAEJNWktnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3Byb3htb3gtYXBpL3Byb3htb3hhcGlwYjtwcm94bW94YXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.proxmoxapi.ProxmoxApiConfig
@@ -521,6 +521,382 @@ export const TaskSchema: GenMessage<Task> = /*@__PURE__*/
   messageDesc(file_proxmox_api_proxmox_api, 17);
 
 /**
+ * @generated from message ddash.proxmoxapi.GetTaskRequest
+ */
+export type GetTaskRequest = Message<"ddash.proxmoxapi.GetTaskRequest"> & {
+  /**
+   * @generated from field: string node = 1;
+   */
+  node: string;
+
+  /**
+   * @generated from field: string upid = 2;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.GetTaskRequest.
+ * Use `create(GetTaskRequestSchema)` to create a new message.
+ */
+export const GetTaskRequestSchema: GenMessage<GetTaskRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 18);
+
+/**
+ * @generated from message ddash.proxmoxapi.GetTaskResponse
+ */
+export type GetTaskResponse = Message<"ddash.proxmoxapi.GetTaskResponse"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.TaskStatus task = 1;
+   */
+  task?: TaskStatus | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.GetTaskResponse.
+ * Use `create(GetTaskResponseSchema)` to create a new message.
+ */
+export const GetTaskResponseSchema: GenMessage<GetTaskResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 19);
+
+/**
+ * A task's status, from /nodes/{node}/tasks/{upid}/status.
+ *
+ * @generated from message ddash.proxmoxapi.TaskStatus
+ */
+export type TaskStatus = Message<"ddash.proxmoxapi.TaskStatus"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+
+  /**
+   * e.g. "vzdump", "vzsnapshot".
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * The task ended.
+   *
+   * @generated from field: bool stopped = 3;
+   */
+  stopped: boolean;
+
+  /**
+   * Proxmox's exit status once stopped: "OK", or why it failed.
+   *
+   * @generated from field: string exit_status = 4;
+   */
+  exitStatus: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started = 5;
+   */
+  started?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.TaskStatus.
+ * Use `create(TaskStatusSchema)` to create a new message.
+ */
+export const TaskStatusSchema: GenMessage<TaskStatus> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 20);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListSnapshotsRequest
+ */
+export type ListSnapshotsRequest = Message<"ddash.proxmoxapi.ListSnapshotsRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListSnapshotsRequest.
+ * Use `create(ListSnapshotsRequestSchema)` to create a new message.
+ */
+export const ListSnapshotsRequestSchema: GenMessage<ListSnapshotsRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 21);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListSnapshotsResponse
+ */
+export type ListSnapshotsResponse = Message<"ddash.proxmoxapi.ListSnapshotsResponse"> & {
+  /**
+   * Oldest first.
+   *
+   * @generated from field: repeated ddash.proxmoxapi.Snapshot snapshots = 1;
+   */
+  snapshots: Snapshot[];
+
+  /**
+   * Its storage can take a snapshot (Proxmox's snapshot feature).
+   *
+   * @generated from field: bool supported = 2;
+   */
+  supported: boolean;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListSnapshotsResponse.
+ * Use `create(ListSnapshotsResponseSchema)` to create a new message.
+ */
+export const ListSnapshotsResponseSchema: GenMessage<ListSnapshotsResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 22);
+
+/**
+ * @generated from message ddash.proxmoxapi.Snapshot
+ */
+export type Snapshot = Message<"ddash.proxmoxapi.Snapshot"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * When it was taken.
+   *
+   * @generated from field: google.protobuf.Timestamp created = 3;
+   */
+  created?: Timestamp | undefined;
+
+  /**
+   * The snapshot it was taken on top of; empty for the first.
+   *
+   * @generated from field: string parent = 4;
+   */
+  parent: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.Snapshot.
+ * Use `create(SnapshotSchema)` to create a new message.
+ */
+export const SnapshotSchema: GenMessage<Snapshot> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 23);
+
+/**
+ * @generated from message ddash.proxmoxapi.CreateSnapshotRequest
+ */
+export type CreateSnapshotRequest = Message<"ddash.proxmoxapi.CreateSnapshotRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+
+  /**
+   * Letters, digits, - and _, starting with a letter, at most 40.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string description = 3;
+   */
+  description: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.CreateSnapshotRequest.
+ * Use `create(CreateSnapshotRequestSchema)` to create a new message.
+ */
+export const CreateSnapshotRequestSchema: GenMessage<CreateSnapshotRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 24);
+
+/**
+ * @generated from message ddash.proxmoxapi.CreateSnapshotResponse
+ */
+export type CreateSnapshotResponse = Message<"ddash.proxmoxapi.CreateSnapshotResponse"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.CreateSnapshotResponse.
+ * Use `create(CreateSnapshotResponseSchema)` to create a new message.
+ */
+export const CreateSnapshotResponseSchema: GenMessage<CreateSnapshotResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 25);
+
+/**
+ * @generated from message ddash.proxmoxapi.DeleteSnapshotRequest
+ */
+export type DeleteSnapshotRequest = Message<"ddash.proxmoxapi.DeleteSnapshotRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.DeleteSnapshotRequest.
+ * Use `create(DeleteSnapshotRequestSchema)` to create a new message.
+ */
+export const DeleteSnapshotRequestSchema: GenMessage<DeleteSnapshotRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 26);
+
+/**
+ * @generated from message ddash.proxmoxapi.DeleteSnapshotResponse
+ */
+export type DeleteSnapshotResponse = Message<"ddash.proxmoxapi.DeleteSnapshotResponse"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.DeleteSnapshotResponse.
+ * Use `create(DeleteSnapshotResponseSchema)` to create a new message.
+ */
+export const DeleteSnapshotResponseSchema: GenMessage<DeleteSnapshotResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 27);
+
+/**
+ * @generated from message ddash.proxmoxapi.BackupRequest
+ */
+export type BackupRequest = Message<"ddash.proxmoxapi.BackupRequest"> & {
+  /**
+   * @generated from field: ddash.proxmoxapi.Target workload = 1;
+   */
+  workload?: Target | undefined;
+
+  /**
+   * A storage ListBackupStorages lists.
+   *
+   * @generated from field: string storage = 2;
+   */
+  storage: string;
+
+  /**
+   * @generated from field: ddash.proxmoxapi.BackupMode mode = 3;
+   */
+  mode: BackupMode;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.BackupRequest.
+ * Use `create(BackupRequestSchema)` to create a new message.
+ */
+export const BackupRequestSchema: GenMessage<BackupRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 28);
+
+/**
+ * @generated from message ddash.proxmoxapi.BackupResponse
+ */
+export type BackupResponse = Message<"ddash.proxmoxapi.BackupResponse"> & {
+  /**
+   * @generated from field: string upid = 1;
+   */
+  upid: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.BackupResponse.
+ * Use `create(BackupResponseSchema)` to create a new message.
+ */
+export const BackupResponseSchema: GenMessage<BackupResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 29);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListBackupStoragesRequest
+ */
+export type ListBackupStoragesRequest = Message<"ddash.proxmoxapi.ListBackupStoragesRequest"> & {
+  /**
+   * @generated from field: string node = 1;
+   */
+  node: string;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListBackupStoragesRequest.
+ * Use `create(ListBackupStoragesRequestSchema)` to create a new message.
+ */
+export const ListBackupStoragesRequestSchema: GenMessage<ListBackupStoragesRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 30);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListBackupStoragesResponse
+ */
+export type ListBackupStoragesResponse = Message<"ddash.proxmoxapi.ListBackupStoragesResponse"> & {
+  /**
+   * @generated from field: repeated ddash.proxmoxapi.Storage storages = 1;
+   */
+  storages: Storage[];
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListBackupStoragesResponse.
+ * Use `create(ListBackupStoragesResponseSchema)` to create a new message.
+ */
+export const ListBackupStoragesResponseSchema: GenMessage<ListBackupStoragesResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 31);
+
+/**
+ * @generated from message ddash.proxmoxapi.Storage
+ */
+export type Storage = Message<"ddash.proxmoxapi.Storage"> & {
+  /**
+   * e.g. "local", "pbs".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * e.g. "dir", "pbs", "nfs".
+   *
+   * @generated from field: string type = 2;
+   */
+  type: string;
+
+  /**
+   * @generated from field: bool active = 3;
+   */
+  active: boolean;
+
+  /**
+   * @generated from field: bool shared = 4;
+   */
+  shared: boolean;
+
+  /**
+   * Bytes free and in all; 0 when Proxmox doesn't say.
+   *
+   * @generated from field: uint64 avail = 5;
+   */
+  avail: bigint;
+
+  /**
+   * @generated from field: uint64 total = 6;
+   */
+  total: bigint;
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.Storage.
+ * Use `create(StorageSchema)` to create a new message.
+ */
+export const StorageSchema: GenMessage<Storage> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 32);
+
+/**
  * @generated from enum ddash.proxmoxapi.Kind
  */
 export enum Kind {
@@ -575,6 +951,45 @@ export enum AddressSource {
  */
 export const AddressSourceSchema: GenEnum<AddressSource> = /*@__PURE__*/
   enumDesc(file_proxmox_api_proxmox_api, 1);
+
+/**
+ * @generated from enum ddash.proxmoxapi.BackupMode
+ */
+export enum BackupMode {
+  /**
+   * Snapshot.
+   *
+   * @generated from enum value: BACKUP_MODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A live backup: the Workload keeps running.
+   *
+   * @generated from enum value: BACKUP_MODE_SNAPSHOT = 1;
+   */
+  SNAPSHOT = 1,
+
+  /**
+   * Suspends the Workload for the copy.
+   *
+   * @generated from enum value: BACKUP_MODE_SUSPEND = 2;
+   */
+  SUSPEND = 2,
+
+  /**
+   * Shuts the Workload down for the backup and starts it again.
+   *
+   * @generated from enum value: BACKUP_MODE_STOP = 3;
+   */
+  STOP = 3,
+}
+
+/**
+ * Describes the enum ddash.proxmoxapi.BackupMode.
+ */
+export const BackupModeSchema: GenEnum<BackupMode> = /*@__PURE__*/
+  enumDesc(file_proxmox_api_proxmox_api, 2);
 
 /**
  * @generated from service ddash.proxmoxapi.ProxmoxApiService
@@ -647,6 +1062,73 @@ export const ProxmoxApiService: GenService<{
     methodKind: "unary";
     input: typeof ListActiveTasksRequestSchema;
     output: typeof ListActiveTasksResponseSchema;
+  },
+  /**
+   * GetTask reads one task's status, never cached.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.GetTask
+   */
+  getTask: {
+    methodKind: "unary";
+    input: typeof GetTaskRequestSchema;
+    output: typeof GetTaskResponseSchema;
+  },
+  /**
+   * ListSnapshots returns a Workload's snapshots (without Proxmox's
+   * "current" entry) and whether its storage can take one, never cached.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.ListSnapshots
+   */
+  listSnapshots: {
+    methodKind: "unary";
+    input: typeof ListSnapshotsRequestSchema;
+    output: typeof ListSnapshotsResponseSchema;
+  },
+  /**
+   * CreateSnapshot takes a snapshot of a Workload and returns once
+   * Proxmox's task ended OK, like StartWorkload. A task that failed
+   * because the storage can't snapshot fails FAILED_PRECONDITION with
+   * "snapshots not supported".
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.CreateSnapshot
+   */
+  createSnapshot: {
+    methodKind: "unary";
+    input: typeof CreateSnapshotRequestSchema;
+    output: typeof CreateSnapshotResponseSchema;
+  },
+  /**
+   * DeleteSnapshot deletes one snapshot of a Workload and returns like
+   * CreateSnapshot.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.DeleteSnapshot
+   */
+  deleteSnapshot: {
+    methodKind: "unary";
+    input: typeof DeleteSnapshotRequestSchema;
+    output: typeof DeleteSnapshotResponseSchema;
+  },
+  /**
+   * Backup starts a vzdump of a Workload to a storage and returns its
+   * task's UPID at once: a backup outlasts an Action. GetTask follows it.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.Backup
+   */
+  backup: {
+    methodKind: "unary";
+    input: typeof BackupRequestSchema;
+    output: typeof BackupResponseSchema;
+  },
+  /**
+   * ListBackupStorages returns a node's enabled storages that hold
+   * backups.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.ListBackupStorages
+   */
+  listBackupStorages: {
+    methodKind: "unary";
+    input: typeof ListBackupStoragesRequestSchema;
+    output: typeof ListBackupStoragesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_proxmox_api_proxmox_api, 0);

@@ -7,7 +7,10 @@
 // proxmox is the logic behind the Proxmox Page's power Actions: it starts,
 // stops and restarts Workloads that aren't Protected, one power Action per
 // Workload at a time, and puts a Workload it stops or restarts into
-// Maintenance so ddash's own Actions don't page the Operator.
+// Maintenance so ddash's own Actions don't page the Operator. Through each
+// Workload's Host Agent (host-agent-api) it updates packages after a ddash
+// Snapshot, one Workload or every running one, and installs SSH Keys it
+// stores; it takes ddash Snapshots and backups through proxmox-api.
 
 package proxmoxpb
 
@@ -24,10 +27,27 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProxmoxService_StartWorkload_FullMethodName   = "/ddash.proxmox.ProxmoxService/StartWorkload"
-	ProxmoxService_StopWorkload_FullMethodName    = "/ddash.proxmox.ProxmoxService/StopWorkload"
-	ProxmoxService_RestartWorkload_FullMethodName = "/ddash.proxmox.ProxmoxService/RestartWorkload"
-	ProxmoxService_ListPowerTasks_FullMethodName  = "/ddash.proxmox.ProxmoxService/ListPowerTasks"
+	ProxmoxService_StartWorkload_FullMethodName      = "/ddash.proxmox.ProxmoxService/StartWorkload"
+	ProxmoxService_StopWorkload_FullMethodName       = "/ddash.proxmox.ProxmoxService/StopWorkload"
+	ProxmoxService_RestartWorkload_FullMethodName    = "/ddash.proxmox.ProxmoxService/RestartWorkload"
+	ProxmoxService_ListPowerTasks_FullMethodName     = "/ddash.proxmox.ProxmoxService/ListPowerTasks"
+	ProxmoxService_GetSnapshots_FullMethodName       = "/ddash.proxmox.ProxmoxService/GetSnapshots"
+	ProxmoxService_TakeSnapshot_FullMethodName       = "/ddash.proxmox.ProxmoxService/TakeSnapshot"
+	ProxmoxService_Backup_FullMethodName             = "/ddash.proxmox.ProxmoxService/Backup"
+	ProxmoxService_ListBackups_FullMethodName        = "/ddash.proxmox.ProxmoxService/ListBackups"
+	ProxmoxService_ListUpdateSettings_FullMethodName = "/ddash.proxmox.ProxmoxService/ListUpdateSettings"
+	ProxmoxService_SetUpdateSettings_FullMethodName  = "/ddash.proxmox.ProxmoxService/SetUpdateSettings"
+	ProxmoxService_PlanUpdate_FullMethodName         = "/ddash.proxmox.ProxmoxService/PlanUpdate"
+	ProxmoxService_RunUpdate_FullMethodName          = "/ddash.proxmox.ProxmoxService/RunUpdate"
+	ProxmoxService_PlanUpdateAll_FullMethodName      = "/ddash.proxmox.ProxmoxService/PlanUpdateAll"
+	ProxmoxService_RunUpdateAll_FullMethodName       = "/ddash.proxmox.ProxmoxService/RunUpdateAll"
+	ProxmoxService_ListUpdates_FullMethodName        = "/ddash.proxmox.ProxmoxService/ListUpdates"
+	ProxmoxService_ListSSHKeys_FullMethodName        = "/ddash.proxmox.ProxmoxService/ListSSHKeys"
+	ProxmoxService_GenerateSSHKey_FullMethodName     = "/ddash.proxmox.ProxmoxService/GenerateSSHKey"
+	ProxmoxService_AddSSHKey_FullMethodName          = "/ddash.proxmox.ProxmoxService/AddSSHKey"
+	ProxmoxService_DeleteSSHKey_FullMethodName       = "/ddash.proxmox.ProxmoxService/DeleteSSHKey"
+	ProxmoxService_InstallSSHKey_FullMethodName      = "/ddash.proxmox.ProxmoxService/InstallSSHKey"
+	ProxmoxService_EnableSSH_FullMethodName          = "/ddash.proxmox.ProxmoxService/EnableSSH"
 )
 
 // ProxmoxServiceClient is the client API for ProxmoxService service.
@@ -46,6 +66,64 @@ type ProxmoxServiceClient interface {
 	// ListPowerTasks returns the power Actions running now, one per Workload
 	// at most, from memory.
 	ListPowerTasks(ctx context.Context, in *ListPowerTasksRequest, opts ...grpc.CallOption) (*ListPowerTasksResponse, error)
+	// GetSnapshots returns a Workload's ddash Snapshot, the snapshots ddash
+	// didn't take, and whether its storage can snapshot.
+	GetSnapshots(ctx context.Context, in *GetSnapshotsRequest, opts ...grpc.CallOption) (*GetSnapshotsResponse, error)
+	// TakeSnapshot takes a ddash Snapshot ("ddash-<UTC time>") and, once its
+	// task succeeded, deletes every older ddash Snapshot of the Workload.
+	// When taking it fails, nothing is deleted; snapshots without the
+	// "ddash-" prefix are never touched.
+	TakeSnapshot(ctx context.Context, in *TakeSnapshotRequest, opts ...grpc.CallOption) (*TakeSnapshotResponse, error)
+	// Backup starts a vzdump of a Workload (snapshot mode) to a storage and
+	// returns once it started; ListBackups follows it to its end.
+	Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (*BackupResponse, error)
+	// ListBackups returns the backups ddash started since it last started,
+	// running and ended, newest first, from memory.
+	ListBackups(ctx context.Context, in *ListBackupsRequest, opts ...grpc.CallOption) (*ListBackupsResponse, error)
+	// ListUpdateSettings returns each Workload's update settings that differ
+	// from the default (a snapshot before each update).
+	ListUpdateSettings(ctx context.Context, in *ListUpdateSettingsRequest, opts ...grpc.CallOption) (*ListUpdateSettingsResponse, error)
+	// SetUpdateSettings sets a Workload's update settings.
+	SetUpdateSettings(ctx context.Context, in *SetUpdateSettingsRequest, opts ...grpc.CallOption) (*SetUpdateSettingsResponse, error)
+	// PlanUpdate builds a Workload's update Plan: the pending packages as
+	// its Host Agent last read them, the snapshot, Maintenance, and what
+	// blocks it.
+	PlanUpdate(ctx context.Context, in *PlanUpdateRequest, opts ...grpc.CallOption) (*PlanUpdateResponse, error)
+	// RunUpdate starts a Workload's update and returns once it started: in
+	// the background, the Workload in Maintenance, it takes a ddash
+	// Snapshot (unless off), prunes the older ddash Snapshots, has the Host
+	// Agent install the updates, and reports "reboot required". It never
+	// reboots. A Protected Workload is refused unless override_protected.
+	// ListUpdates shows its progress; its outcome is the Audit Log entry of
+	// the Host Agent job's collect, in this call's chain.
+	RunUpdate(ctx context.Context, in *RunUpdateRequest, opts ...grpc.CallOption) (*RunUpdateResponse, error)
+	// PlanUpdateAll lists the Workloads "Update all running" would update,
+	// in order, and those it skips with why.
+	PlanUpdateAll(ctx context.Context, in *PlanUpdateAllRequest, opts ...grpc.CallOption) (*PlanUpdateAllResponse, error)
+	// RunUpdateAll starts updating the Workloads its Plan listed, one at a
+	// time, each with a ddash Snapshot first unless its setting turns it
+	// off, and stops at the first failure. It refuses when the Plan no
+	// longer holds.
+	RunUpdateAll(ctx context.Context, in *RunUpdateAllRequest, opts ...grpc.CallOption) (*RunUpdateAllResponse, error)
+	// ListUpdates returns the update running or last run on each Workload,
+	// and the last "Update all running".
+	ListUpdates(ctx context.Context, in *ListUpdatesRequest, opts ...grpc.CallOption) (*ListUpdatesResponse, error)
+	// ListSSHKeys returns the stored SSH Keys, by name.
+	ListSSHKeys(ctx context.Context, in *ListSSHKeysRequest, opts ...grpc.CallOption) (*ListSSHKeysResponse, error)
+	// GenerateSSHKey creates an Ed25519 key pair, stores its public key and
+	// returns its private key, this once: ddash never keeps it.
+	GenerateSSHKey(ctx context.Context, in *GenerateSSHKeyRequest, opts ...grpc.CallOption) (*GenerateSSHKeyResponse, error)
+	// AddSSHKey stores an existing public key under a name.
+	AddSSHKey(ctx context.Context, in *AddSSHKeyRequest, opts ...grpc.CallOption) (*AddSSHKeyResponse, error)
+	// DeleteSSHKey forgets a stored SSH Key. It stays installed where it is.
+	DeleteSSHKey(ctx context.Context, in *DeleteSSHKeyRequest, opts ...grpc.CallOption) (*DeleteSSHKeyResponse, error)
+	// InstallSSHKey installs stored SSH Keys for a user on a Workload,
+	// through its Host Agent.
+	InstallSSHKey(ctx context.Context, in *InstallSSHKeyRequest, opts ...grpc.CallOption) (*InstallSSHKeyResponse, error)
+	// EnableSSH has a Workload's Host Agent install and start sshd, and
+	// returns once the job started; its outcome is the job's collect, in
+	// this call's chain.
+	EnableSSH(ctx context.Context, in *EnableSSHRequest, opts ...grpc.CallOption) (*EnableSSHResponse, error)
 }
 
 type proxmoxServiceClient struct {
@@ -96,6 +174,176 @@ func (c *proxmoxServiceClient) ListPowerTasks(ctx context.Context, in *ListPower
 	return out, nil
 }
 
+func (c *proxmoxServiceClient) GetSnapshots(ctx context.Context, in *GetSnapshotsRequest, opts ...grpc.CallOption) (*GetSnapshotsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetSnapshotsResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_GetSnapshots_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) TakeSnapshot(ctx context.Context, in *TakeSnapshotRequest, opts ...grpc.CallOption) (*TakeSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TakeSnapshotResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_TakeSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (*BackupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_Backup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) ListBackups(ctx context.Context, in *ListBackupsRequest, opts ...grpc.CallOption) (*ListBackupsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBackupsResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_ListBackups_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) ListUpdateSettings(ctx context.Context, in *ListUpdateSettingsRequest, opts ...grpc.CallOption) (*ListUpdateSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUpdateSettingsResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_ListUpdateSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) SetUpdateSettings(ctx context.Context, in *SetUpdateSettingsRequest, opts ...grpc.CallOption) (*SetUpdateSettingsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetUpdateSettingsResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_SetUpdateSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) PlanUpdate(ctx context.Context, in *PlanUpdateRequest, opts ...grpc.CallOption) (*PlanUpdateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PlanUpdateResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_PlanUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) RunUpdate(ctx context.Context, in *RunUpdateRequest, opts ...grpc.CallOption) (*RunUpdateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunUpdateResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_RunUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) PlanUpdateAll(ctx context.Context, in *PlanUpdateAllRequest, opts ...grpc.CallOption) (*PlanUpdateAllResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PlanUpdateAllResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_PlanUpdateAll_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) RunUpdateAll(ctx context.Context, in *RunUpdateAllRequest, opts ...grpc.CallOption) (*RunUpdateAllResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunUpdateAllResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_RunUpdateAll_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) ListUpdates(ctx context.Context, in *ListUpdatesRequest, opts ...grpc.CallOption) (*ListUpdatesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUpdatesResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_ListUpdates_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) ListSSHKeys(ctx context.Context, in *ListSSHKeysRequest, opts ...grpc.CallOption) (*ListSSHKeysResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSSHKeysResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_ListSSHKeys_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) GenerateSSHKey(ctx context.Context, in *GenerateSSHKeyRequest, opts ...grpc.CallOption) (*GenerateSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GenerateSSHKeyResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_GenerateSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) AddSSHKey(ctx context.Context, in *AddSSHKeyRequest, opts ...grpc.CallOption) (*AddSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddSSHKeyResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_AddSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) DeleteSSHKey(ctx context.Context, in *DeleteSSHKeyRequest, opts ...grpc.CallOption) (*DeleteSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSSHKeyResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_DeleteSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) InstallSSHKey(ctx context.Context, in *InstallSSHKeyRequest, opts ...grpc.CallOption) (*InstallSSHKeyResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(InstallSSHKeyResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_InstallSSHKey_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxServiceClient) EnableSSH(ctx context.Context, in *EnableSSHRequest, opts ...grpc.CallOption) (*EnableSSHResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EnableSSHResponse)
+	err := c.cc.Invoke(ctx, ProxmoxService_EnableSSH_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProxmoxServiceServer is the server API for ProxmoxService service.
 // All implementations must embed UnimplementedProxmoxServiceServer
 // for forward compatibility.
@@ -112,6 +360,64 @@ type ProxmoxServiceServer interface {
 	// ListPowerTasks returns the power Actions running now, one per Workload
 	// at most, from memory.
 	ListPowerTasks(context.Context, *ListPowerTasksRequest) (*ListPowerTasksResponse, error)
+	// GetSnapshots returns a Workload's ddash Snapshot, the snapshots ddash
+	// didn't take, and whether its storage can snapshot.
+	GetSnapshots(context.Context, *GetSnapshotsRequest) (*GetSnapshotsResponse, error)
+	// TakeSnapshot takes a ddash Snapshot ("ddash-<UTC time>") and, once its
+	// task succeeded, deletes every older ddash Snapshot of the Workload.
+	// When taking it fails, nothing is deleted; snapshots without the
+	// "ddash-" prefix are never touched.
+	TakeSnapshot(context.Context, *TakeSnapshotRequest) (*TakeSnapshotResponse, error)
+	// Backup starts a vzdump of a Workload (snapshot mode) to a storage and
+	// returns once it started; ListBackups follows it to its end.
+	Backup(context.Context, *BackupRequest) (*BackupResponse, error)
+	// ListBackups returns the backups ddash started since it last started,
+	// running and ended, newest first, from memory.
+	ListBackups(context.Context, *ListBackupsRequest) (*ListBackupsResponse, error)
+	// ListUpdateSettings returns each Workload's update settings that differ
+	// from the default (a snapshot before each update).
+	ListUpdateSettings(context.Context, *ListUpdateSettingsRequest) (*ListUpdateSettingsResponse, error)
+	// SetUpdateSettings sets a Workload's update settings.
+	SetUpdateSettings(context.Context, *SetUpdateSettingsRequest) (*SetUpdateSettingsResponse, error)
+	// PlanUpdate builds a Workload's update Plan: the pending packages as
+	// its Host Agent last read them, the snapshot, Maintenance, and what
+	// blocks it.
+	PlanUpdate(context.Context, *PlanUpdateRequest) (*PlanUpdateResponse, error)
+	// RunUpdate starts a Workload's update and returns once it started: in
+	// the background, the Workload in Maintenance, it takes a ddash
+	// Snapshot (unless off), prunes the older ddash Snapshots, has the Host
+	// Agent install the updates, and reports "reboot required". It never
+	// reboots. A Protected Workload is refused unless override_protected.
+	// ListUpdates shows its progress; its outcome is the Audit Log entry of
+	// the Host Agent job's collect, in this call's chain.
+	RunUpdate(context.Context, *RunUpdateRequest) (*RunUpdateResponse, error)
+	// PlanUpdateAll lists the Workloads "Update all running" would update,
+	// in order, and those it skips with why.
+	PlanUpdateAll(context.Context, *PlanUpdateAllRequest) (*PlanUpdateAllResponse, error)
+	// RunUpdateAll starts updating the Workloads its Plan listed, one at a
+	// time, each with a ddash Snapshot first unless its setting turns it
+	// off, and stops at the first failure. It refuses when the Plan no
+	// longer holds.
+	RunUpdateAll(context.Context, *RunUpdateAllRequest) (*RunUpdateAllResponse, error)
+	// ListUpdates returns the update running or last run on each Workload,
+	// and the last "Update all running".
+	ListUpdates(context.Context, *ListUpdatesRequest) (*ListUpdatesResponse, error)
+	// ListSSHKeys returns the stored SSH Keys, by name.
+	ListSSHKeys(context.Context, *ListSSHKeysRequest) (*ListSSHKeysResponse, error)
+	// GenerateSSHKey creates an Ed25519 key pair, stores its public key and
+	// returns its private key, this once: ddash never keeps it.
+	GenerateSSHKey(context.Context, *GenerateSSHKeyRequest) (*GenerateSSHKeyResponse, error)
+	// AddSSHKey stores an existing public key under a name.
+	AddSSHKey(context.Context, *AddSSHKeyRequest) (*AddSSHKeyResponse, error)
+	// DeleteSSHKey forgets a stored SSH Key. It stays installed where it is.
+	DeleteSSHKey(context.Context, *DeleteSSHKeyRequest) (*DeleteSSHKeyResponse, error)
+	// InstallSSHKey installs stored SSH Keys for a user on a Workload,
+	// through its Host Agent.
+	InstallSSHKey(context.Context, *InstallSSHKeyRequest) (*InstallSSHKeyResponse, error)
+	// EnableSSH has a Workload's Host Agent install and start sshd, and
+	// returns once the job started; its outcome is the job's collect, in
+	// this call's chain.
+	EnableSSH(context.Context, *EnableSSHRequest) (*EnableSSHResponse, error)
 	mustEmbedUnimplementedProxmoxServiceServer()
 }
 
@@ -133,6 +439,57 @@ func (UnimplementedProxmoxServiceServer) RestartWorkload(context.Context, *Resta
 }
 func (UnimplementedProxmoxServiceServer) ListPowerTasks(context.Context, *ListPowerTasksRequest) (*ListPowerTasksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPowerTasks not implemented")
+}
+func (UnimplementedProxmoxServiceServer) GetSnapshots(context.Context, *GetSnapshotsRequest) (*GetSnapshotsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetSnapshots not implemented")
+}
+func (UnimplementedProxmoxServiceServer) TakeSnapshot(context.Context, *TakeSnapshotRequest) (*TakeSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TakeSnapshot not implemented")
+}
+func (UnimplementedProxmoxServiceServer) Backup(context.Context, *BackupRequest) (*BackupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Backup not implemented")
+}
+func (UnimplementedProxmoxServiceServer) ListBackups(context.Context, *ListBackupsRequest) (*ListBackupsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBackups not implemented")
+}
+func (UnimplementedProxmoxServiceServer) ListUpdateSettings(context.Context, *ListUpdateSettingsRequest) (*ListUpdateSettingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUpdateSettings not implemented")
+}
+func (UnimplementedProxmoxServiceServer) SetUpdateSettings(context.Context, *SetUpdateSettingsRequest) (*SetUpdateSettingsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetUpdateSettings not implemented")
+}
+func (UnimplementedProxmoxServiceServer) PlanUpdate(context.Context, *PlanUpdateRequest) (*PlanUpdateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PlanUpdate not implemented")
+}
+func (UnimplementedProxmoxServiceServer) RunUpdate(context.Context, *RunUpdateRequest) (*RunUpdateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunUpdate not implemented")
+}
+func (UnimplementedProxmoxServiceServer) PlanUpdateAll(context.Context, *PlanUpdateAllRequest) (*PlanUpdateAllResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PlanUpdateAll not implemented")
+}
+func (UnimplementedProxmoxServiceServer) RunUpdateAll(context.Context, *RunUpdateAllRequest) (*RunUpdateAllResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunUpdateAll not implemented")
+}
+func (UnimplementedProxmoxServiceServer) ListUpdates(context.Context, *ListUpdatesRequest) (*ListUpdatesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListUpdates not implemented")
+}
+func (UnimplementedProxmoxServiceServer) ListSSHKeys(context.Context, *ListSSHKeysRequest) (*ListSSHKeysResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSSHKeys not implemented")
+}
+func (UnimplementedProxmoxServiceServer) GenerateSSHKey(context.Context, *GenerateSSHKeyRequest) (*GenerateSSHKeyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GenerateSSHKey not implemented")
+}
+func (UnimplementedProxmoxServiceServer) AddSSHKey(context.Context, *AddSSHKeyRequest) (*AddSSHKeyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddSSHKey not implemented")
+}
+func (UnimplementedProxmoxServiceServer) DeleteSSHKey(context.Context, *DeleteSSHKeyRequest) (*DeleteSSHKeyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteSSHKey not implemented")
+}
+func (UnimplementedProxmoxServiceServer) InstallSSHKey(context.Context, *InstallSSHKeyRequest) (*InstallSSHKeyResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method InstallSSHKey not implemented")
+}
+func (UnimplementedProxmoxServiceServer) EnableSSH(context.Context, *EnableSSHRequest) (*EnableSSHResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EnableSSH not implemented")
 }
 func (UnimplementedProxmoxServiceServer) mustEmbedUnimplementedProxmoxServiceServer() {}
 func (UnimplementedProxmoxServiceServer) testEmbeddedByValue()                        {}
@@ -227,6 +584,312 @@ func _ProxmoxService_ListPowerTasks_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProxmoxService_GetSnapshots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetSnapshotsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).GetSnapshots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_GetSnapshots_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).GetSnapshots(ctx, req.(*GetSnapshotsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_TakeSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TakeSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).TakeSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_TakeSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).TakeSnapshot(ctx, req.(*TakeSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_Backup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).Backup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_Backup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).Backup(ctx, req.(*BackupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_ListBackups_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBackupsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).ListBackups(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_ListBackups_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).ListBackups(ctx, req.(*ListBackupsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_ListUpdateSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUpdateSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).ListUpdateSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_ListUpdateSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).ListUpdateSettings(ctx, req.(*ListUpdateSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_SetUpdateSettings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetUpdateSettingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).SetUpdateSettings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_SetUpdateSettings_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).SetUpdateSettings(ctx, req.(*SetUpdateSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_PlanUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlanUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).PlanUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_PlanUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).PlanUpdate(ctx, req.(*PlanUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_RunUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).RunUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_RunUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).RunUpdate(ctx, req.(*RunUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_PlanUpdateAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PlanUpdateAllRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).PlanUpdateAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_PlanUpdateAll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).PlanUpdateAll(ctx, req.(*PlanUpdateAllRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_RunUpdateAll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunUpdateAllRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).RunUpdateAll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_RunUpdateAll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).RunUpdateAll(ctx, req.(*RunUpdateAllRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_ListUpdates_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUpdatesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).ListUpdates(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_ListUpdates_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).ListUpdates(ctx, req.(*ListUpdatesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_ListSSHKeys_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSSHKeysRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).ListSSHKeys(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_ListSSHKeys_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).ListSSHKeys(ctx, req.(*ListSSHKeysRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_GenerateSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GenerateSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).GenerateSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_GenerateSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).GenerateSSHKey(ctx, req.(*GenerateSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_AddSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).AddSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_AddSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).AddSSHKey(ctx, req.(*AddSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_DeleteSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).DeleteSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_DeleteSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).DeleteSSHKey(ctx, req.(*DeleteSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_InstallSSHKey_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InstallSSHKeyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).InstallSSHKey(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_InstallSSHKey_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).InstallSSHKey(ctx, req.(*InstallSSHKeyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxService_EnableSSH_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EnableSSHRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxServiceServer).EnableSSH(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxService_EnableSSH_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxServiceServer).EnableSSH(ctx, req.(*EnableSSHRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProxmoxService_ServiceDesc is the grpc.ServiceDesc for ProxmoxService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -249,6 +912,74 @@ var ProxmoxService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListPowerTasks",
 			Handler:    _ProxmoxService_ListPowerTasks_Handler,
+		},
+		{
+			MethodName: "GetSnapshots",
+			Handler:    _ProxmoxService_GetSnapshots_Handler,
+		},
+		{
+			MethodName: "TakeSnapshot",
+			Handler:    _ProxmoxService_TakeSnapshot_Handler,
+		},
+		{
+			MethodName: "Backup",
+			Handler:    _ProxmoxService_Backup_Handler,
+		},
+		{
+			MethodName: "ListBackups",
+			Handler:    _ProxmoxService_ListBackups_Handler,
+		},
+		{
+			MethodName: "ListUpdateSettings",
+			Handler:    _ProxmoxService_ListUpdateSettings_Handler,
+		},
+		{
+			MethodName: "SetUpdateSettings",
+			Handler:    _ProxmoxService_SetUpdateSettings_Handler,
+		},
+		{
+			MethodName: "PlanUpdate",
+			Handler:    _ProxmoxService_PlanUpdate_Handler,
+		},
+		{
+			MethodName: "RunUpdate",
+			Handler:    _ProxmoxService_RunUpdate_Handler,
+		},
+		{
+			MethodName: "PlanUpdateAll",
+			Handler:    _ProxmoxService_PlanUpdateAll_Handler,
+		},
+		{
+			MethodName: "RunUpdateAll",
+			Handler:    _ProxmoxService_RunUpdateAll_Handler,
+		},
+		{
+			MethodName: "ListUpdates",
+			Handler:    _ProxmoxService_ListUpdates_Handler,
+		},
+		{
+			MethodName: "ListSSHKeys",
+			Handler:    _ProxmoxService_ListSSHKeys_Handler,
+		},
+		{
+			MethodName: "GenerateSSHKey",
+			Handler:    _ProxmoxService_GenerateSSHKey_Handler,
+		},
+		{
+			MethodName: "AddSSHKey",
+			Handler:    _ProxmoxService_AddSSHKey_Handler,
+		},
+		{
+			MethodName: "DeleteSSHKey",
+			Handler:    _ProxmoxService_DeleteSSHKey_Handler,
+		},
+		{
+			MethodName: "InstallSSHKey",
+			Handler:    _ProxmoxService_InstallSSHKey_Handler,
+		},
+		{
+			MethodName: "EnableSSH",
+			Handler:    _ProxmoxService_EnableSSH_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -1,0 +1,369 @@
+syntax = "proto3";
+
+// host-agent-api reaches the Host Agents: the root service the Operator
+// installs on an LXC or VM ddash should update and set SSH up on. It pairs
+// with each Agent (one-time enrolment code, pinned certificate, token),
+// reads its OS, pending package updates and sshd state, and starts and
+// collects its jobs. It is only the access: what to do and when is the
+// proxmox Component's. Agents are named by their Workload's VMID.
+package ddash.hostagentapi;
+
+import "ddash/job/job.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb;hostagentapipb";
+
+// host-agent-api has no config: Host Agents are added on a Workload's
+// Page, and their pairing is kept in the Component's DB.
+message HostAgentApiConfig {}
+
+service HostAgentApiService {
+  // ListAgents returns every Host Agent added, with its pairing state and
+  // what it last reported, by VMID.
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // AddAgent adds a Workload's Host Agent and creates its one-time
+  // enrolment code. host-agent-api pairs with it once it answers.
+  rpc AddAgent(AddAgentRequest) returns (AddAgentResponse) {
+    option (ddash.action) = {};
+  }
+  // GetAgentSetup returns the command that installs the Agent, with its
+  // enrolment code while it isn't paired.
+  rpc GetAgentSetup(GetAgentSetupRequest) returns (GetAgentSetupResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // PairAgent tries to pair with an enrolling Agent now. With reset, it
+  // forgets the pairing (after the Agent's certificate changed, or its
+  // state was reset) and creates a new enrolment code.
+  rpc PairAgent(PairAgentRequest) returns (PairAgentResponse) {
+    option (ddash.action) = {};
+  }
+  // RemoveAgent forgets an Agent and says how to uninstall it.
+  rpc RemoveAgent(RemoveAgentRequest) returns (RemoveAgentResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // UpdateAgent has an Agent of another Release download this Release's
+  // Host Agent from ddash, check its SHA-256 and restart: the only
+  // operation such an Agent is allowed.
+  rpc UpdateAgent(UpdateAgentRequest) returns (UpdateAgentResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListPackages returns each paired Agent's pending package updates, as
+  // it last read them, and whether its host needs a reboot.
+  rpc ListPackages(ListPackagesRequest) returns (ListPackagesResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // RefreshPackages starts a job reading the pending updates now.
+  rpc RefreshPackages(RefreshPackagesRequest) returns (RefreshPackagesResponse) {
+    option (ddash.action) = {};
+  }
+  // UpgradePackages starts a job installing every pending update,
+  // non-interactively. It never reboots.
+  rpc UpgradePackages(UpgradePackagesRequest) returns (UpgradePackagesResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // GetSSH reads a Workload's sshd state and settings and the keys in its
+  // users' authorized_keys, never cached.
+  rpc GetSSH(GetSSHRequest) returns (GetSSHResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // EnableSSH starts a job installing OpenSSH where it is missing and
+  // enabling and starting sshd.
+  rpc EnableSSH(EnableSSHRequest) returns (EnableSSHResponse) {
+    option (ddash.action) = {};
+  }
+  // InstallKey adds a public key to a user's authorized_keys, marked
+  // "ddash:<name>"; ALREADY_EXISTS when the user has it.
+  rpc InstallKey(InstallKeyRequest) returns (InstallKeyResponse) {
+    option (ddash.action) = {};
+  }
+  // RemoveKey removes the key marked "ddash:<name>" from a user's
+  // authorized_keys; FAILED_PRECONDITION when it is the last way in.
+  rpc RemoveKey(RemoveKeyRequest) returns (RemoveKeyResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // SetSSHSettings sets PasswordAuthentication and PermitRootLogin through
+  // a drop-in, kept only when `sshd -t` accepts it, then reloads sshd.
+  // FAILED_PRECONDITION when the Agent refuses: password login off
+  // without a usable key, or sshd missing.
+  rpc SetSSHSettings(SetSSHSettingsRequest) returns (SetSSHSettingsResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListJobs returns every paired Agent's jobs, running and ended but not
+  // collected, never cached.
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  // CollectJob forgets an ended job on its Agent and returns it. It fails
+  // ABORTED with the job's error when the job failed, so the Audit Log
+  // entry of the collect records how the job ended.
+  rpc CollectJob(CollectJobRequest) returns (CollectJobResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message ListAgentsRequest {}
+
+message ListAgentsResponse {
+  repeated Agent agents = 1;
+}
+
+// A Host Agent, as ddash knows it.
+message Agent {
+  // The Workload it runs on, by VMID.
+  uint32 vmid = 1;
+  // The Workload's name when it was added, e.g. "docker-host".
+  string name = 2;
+  // The Agent's URL, e.g. "https://198.18.2.10:7444".
+  string url = 3;
+  AgentState state = 4;
+  // Why it is in its state, as the Operator reads it; empty when paired
+  // and fine.
+  string message = 5;
+  // What it last reported.
+  string release = 6;
+  string hostname = 7;
+  // amd64 or arm64.
+  string arch = 8;
+  OS os = 9;
+  // Its certificate's SHA-256, pinned at pairing.
+  string fingerprint = 10;
+  google.protobuf.Timestamp added = 11;
+  google.protobuf.Timestamp paired = 12;
+}
+
+enum AgentState {
+  AGENT_STATE_UNSPECIFIED = 0;
+  // Added, with an enrolment code, and not paired yet.
+  AGENT_STATE_ENROLLING = 1;
+  // Paired and answering on ddash's Release.
+  AGENT_STATE_PAIRED = 2;
+  // Paired, but on another Release: only Update Agent is allowed.
+  AGENT_STATE_OUTDATED = 3;
+  // Paired, but not answering now.
+  AGENT_STATE_UNREACHABLE = 4;
+  // Its certificate isn't the one pinned at pairing: ddash refuses it
+  // until the Operator pairs again.
+  AGENT_STATE_FINGERPRINT_CHANGED = 5;
+  // It refuses ddash's token: its state was reset.
+  AGENT_STATE_REFUSED = 6;
+}
+
+// The Agent's host, from /etc/os-release.
+message OS {
+  // ubuntu, debian, alpine, fedora or arch.
+  string id = 1;
+  string version = 2;
+  // e.g. "Debian GNU/Linux 12 (bookworm)".
+  string pretty = 3;
+  // apt, dnf, apk or pacman.
+  string package_manager = 4;
+  // systemd or openrc.
+  string init = 5;
+  // An update asks for a reboot.
+  bool reboot_required = 6;
+}
+
+message AddAgentRequest {
+  uint32 vmid = 1;
+  // The Workload's name, shown while it isn't paired.
+  string name = 2;
+  // The Agent's URL: https://<the Workload's address>:7444.
+  string url = 3;
+}
+
+message AddAgentResponse {
+  Agent agent = 1;
+  AgentSetup setup = 2;
+}
+
+message GetAgentSetupRequest {
+  uint32 vmid = 1;
+}
+
+message GetAgentSetupResponse {
+  AgentSetup setup = 1;
+}
+
+// What the Operator runs on the Workload to install a Host Agent.
+message AgentSetup {
+  // The one-time enrolment code; empty once paired.
+  string enrolment_code = 1;
+  // e.g. "curl -fsSL https://ddash.home.example/agent/host/install.sh |
+  // sudo sh -s -- --code ABCD-…"; empty once paired.
+  string install_command = 2;
+  // install.sh, to download and read before running it.
+  string script_url = 3;
+  // The Host Agent binaries' SHA256SUMS, which install.sh checks the
+  // download against.
+  string checksums_url = 4;
+  // What uninstalls it.
+  string uninstall_command = 5;
+}
+
+message PairAgentRequest {
+  uint32 vmid = 1;
+  bool reset = 2;
+}
+
+message PairAgentResponse {
+  Agent agent = 1;
+}
+
+message RemoveAgentRequest {
+  uint32 vmid = 1;
+}
+
+message RemoveAgentResponse {
+  // The commands to run on the Workload, as root, to uninstall it.
+  repeated string uninstall = 1;
+}
+
+message UpdateAgentRequest {
+  uint32 vmid = 1;
+}
+
+message UpdateAgentResponse {
+  ddash.job.Job job = 1;
+}
+
+message ListPackagesRequest {}
+
+message ListPackagesResponse {
+  // By VMID; an Agent that can't be read is listed with its error.
+  repeated HostPackages hosts = 1;
+}
+
+message HostPackages {
+  uint32 vmid = 1;
+  repeated Package packages = 2;
+  // When the Agent last refreshed its package index; unset: never.
+  google.protobuf.Timestamp read = 3;
+  // Why the last refresh failed, or why the Agent can't be read.
+  string error = 4;
+  bool reboot_required = 5;
+}
+
+// A pending package update.
+message Package {
+  string name = 1;
+  // Empty where the package manager doesn't say (dnf).
+  string current = 2;
+  string new = 3;
+}
+
+message RefreshPackagesRequest {
+  uint32 vmid = 1;
+}
+
+message RefreshPackagesResponse {
+  ddash.job.Job job = 1;
+}
+
+message UpgradePackagesRequest {
+  uint32 vmid = 1;
+}
+
+message UpgradePackagesResponse {
+  ddash.job.Job job = 1;
+}
+
+message GetSSHRequest {
+  uint32 vmid = 1;
+}
+
+message GetSSHResponse {
+  SSHState ssh = 1;
+}
+
+message SSHState {
+  // An sshd binary exists.
+  bool installed = 1;
+  bool running = 2;
+  // It starts at boot.
+  bool enabled = 3;
+  // The effective settings, from `sshd -T`.
+  bool password_authentication = 4;
+  // "yes", "prohibit-password" or "no".
+  string permit_root_login = 5;
+  // Every key in root's and login users' authorized_keys: those ddash
+  // installed have a name.
+  repeated AuthorizedKey keys = 6;
+  // The users keys can be installed for.
+  repeated string users = 7;
+}
+
+message AuthorizedKey {
+  string user = 1;
+  // The SSH Key's name, from its "ddash:<name>" comment; empty for a key
+  // ddash didn't install.
+  string name = 2;
+  // e.g. "ssh-ed25519".
+  string type = 3;
+  // "SHA256:…".
+  string fingerprint = 4;
+  string comment = 5;
+}
+
+message EnableSSHRequest {
+  uint32 vmid = 1;
+}
+
+message EnableSSHResponse {
+  ddash.job.Job job = 1;
+}
+
+message InstallKeyRequest {
+  uint32 vmid = 1;
+  // root, or a user with a login shell.
+  string user = 2;
+  // The SSH Key's name, without spaces.
+  string name = 3;
+  // Its authorized_keys line, "ssh-ed25519 AAAA…".
+  string public_key = 4;
+}
+
+message InstallKeyResponse {}
+
+message RemoveKeyRequest {
+  uint32 vmid = 1;
+  string user = 2;
+  string name = 3;
+}
+
+message RemoveKeyResponse {}
+
+message SetSSHSettingsRequest {
+  uint32 vmid = 1;
+  bool password_authentication = 2;
+  // "yes", "prohibit-password" or "no".
+  string permit_root_login = 3;
+}
+
+message SetSSHSettingsResponse {
+  SSHState ssh = 1;
+}
+
+message ListJobsRequest {}
+
+message ListJobsResponse {
+  repeated HostJobs hosts = 1;
+}
+
+message HostJobs {
+  uint32 vmid = 1;
+  repeated ddash.job.Job jobs = 2;
+  // Why the Agent's jobs can't be read.
+  string error = 3;
+}
+
+message CollectJobRequest {
+  uint32 vmid = 1;
+  string id = 2;
+}
+
+message CollectJobResponse {
+  ddash.job.Job job = 1;
+}
