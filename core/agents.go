@@ -29,7 +29,7 @@ func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the Host Agent is built for "+strings.Join(release.HostAgentArchs, " and "), http.StatusNotFound)
 		return
 	}
-	bin, err := h.release.Component(r.Context(), release.HostAgentFile(arch))
+	bin, err := h.release.File(r.Context(), release.HostAgentFile(arch))
 	if err != nil {
 		h.log.Warn("host agent download", "arch", arch, "err", err)
 		http.Error(w, "the Host Agent isn't available: "+err.Error(), http.StatusServiceUnavailable)
@@ -51,7 +51,7 @@ func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
 func (h *Host) hostAgentSums(w http.ResponseWriter, r *http.Request) {
 	var b strings.Builder
 	for _, arch := range release.HostAgentArchs {
-		bin, err := h.release.Component(r.Context(), release.HostAgentFile(arch))
+		bin, err := h.release.File(r.Context(), release.HostAgentFile(arch))
 		if err != nil {
 			http.Error(w, "the Host Agent isn't available: "+err.Error(), http.StatusServiceUnavailable)
 			return
@@ -67,7 +67,7 @@ func (h *Host) hostAgentSums(w http.ResponseWriter, r *http.Request) {
 func (h *Host) installScript(w http.ResponseWriter, r *http.Request) {
 	sums := map[string]string{}
 	for _, arch := range release.HostAgentArchs {
-		bin, err := h.release.Component(r.Context(), release.HostAgentFile(arch))
+		bin, err := h.release.File(r.Context(), release.HostAgentFile(arch))
 		if err != nil {
 			h.log.Warn("install.sh", "arch", arch, "err", err)
 			continue

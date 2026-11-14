@@ -281,7 +281,7 @@ func background(ctx context.Context, args ...string) (stop func(), err error) {
 func seed(ctx context.Context, data, dist string, lab *fakelab.Lab) error {
 	host, err := core.New(ctx, core.Options{
 		DataDir:  data,
-		Release:  runtime.Dir(dist),
+		Release:  runtime.Dir{Path: dist, Unpack: filepath.Join(data, "release-dir")},
 		Launcher: runtime.Subprocess(nil),
 	})
 	if err != nil {
@@ -293,7 +293,7 @@ func seed(ctx context.Context, data, dist string, lab *fakelab.Lab) error {
 			return err
 		}
 	}
-	cat, err := runtime.Dir(dist).Catalogue(ctx)
+	cat, err := runtime.Dir{Path: dist}.Catalogue(ctx)
 	if err != nil {
 		return err
 	}

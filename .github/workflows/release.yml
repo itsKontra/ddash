@@ -1,9 +1,10 @@
 name: Release
 
 # Pushing a tag vMAJOR.MINOR.PATCH cuts that Release: the core image
-# ghcr.io/itskontra/ddash:<tag>, then one GitHub release holding every
-# Component binary (static linux/amd64), every Plugin bundle,
-# catalogue.json and SHA256SUMS. `make smoke` runs by hand before the tag
+# ghcr.io/itskontra/ddash:<tag>, then one GitHub release holding one
+# <name>.ct per Component (a zip of its static linux/amd64 binary), one
+# <name>.app per Plugin (a zip of its built files), the Host Agent's
+# binaries, catalogue.json and SHA256SUMS. `make smoke` runs by hand before the tag
 # is pushed, never here (docs/releasing.md).
 
 on:

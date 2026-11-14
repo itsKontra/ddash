@@ -216,7 +216,7 @@ func TestACatalogueWithAnUnresolvedRequiresIsRefused(t *testing.T) {
 
 	_, err := core.New(t.Context(), core.Options{
 		DataDir:  t.TempDir(),
-		Release:  runtime.Dir(dir),
+		Release:  runtime.Dir{Path: dir},
 		Launcher: runtime.InProcess(slog.Default()),
 	})
 

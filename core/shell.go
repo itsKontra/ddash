@@ -14,8 +14,9 @@ import (
 	"github.com/itsKontra/ddash/core/icons"
 )
 
-// Plugin bundles are served at bundlePrefix<name>/<release>/ from the
-// Release's <name>.plugin.js and <name>.plugin.css.
+// Plugin bundles are served at bundlePrefix<name>/<release>/<file> from
+// the files in the Release's <name>.app, whose entry points are index.js
+// and index.css.
 const (
 	bundlePrefix = "/plugins/"
 	bundleScript = "index.js"
@@ -34,18 +35,11 @@ const (
 // Plugin's bundle of the running Release.
 func (h *Host) bundle(w http.ResponseWriter, r *http.Request) {
 	plugin, rel, file := r.PathValue("plugin"), r.PathValue("release"), r.PathValue("file")
-	var name string
-	switch file {
-	case bundleScript:
-		name = plugin + ".plugin.js"
-	case bundleStyle:
-		name = plugin + ".plugin.css"
-	}
-	if _, installed := h.runtime.PluginRequires(plugin); !installed || name == "" || rel != h.runtime.Release() {
+	if _, installed := h.runtime.PluginRequires(plugin); !installed || rel != h.runtime.Release() {
 		http.NotFound(w, r)
 		return
 	}
-	serveFile(w, r, h.release, name, versioned(rel))
+	serveFile(w, r, h.release, path.Join(plugin, file), versioned(rel))
 }
 
 // ReleasePlaceholder stands for the running Release in the shell's

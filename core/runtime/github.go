@@ -37,10 +37,12 @@ type GitHubOptions struct {
 // a Release dir's files. It downloads each file once into DataDir and
 // verifies it against the release's SHA256SUMS:
 //
-//	releases/<release>/catalogue.json           the Release's index, and
-//	releases/<release>/SHA256SUMS               its checksums
-//	components/<name>/<release>/<name>          Component binaries
-//	plugins/<name>/<release>/<name>.plugin.js   Plugin bundles, and .css
+//	releases/<release>/catalogue.json     the Release's index, and
+//	releases/<release>/SHA256SUMS         its checksums
+//	releases/<release>/<file>             other files, e.g. Host Agent binaries
+//	components/<name>/<release>/<name>.ct a Component's .ct, and
+//	components/<name>/<release>/<name>    its binary, unpacked from it
+//	plugins/<name>/<release>/<name>.app   a Plugin's .app, read in place
 //
 // What is already downloaded needs no network, so installed Plugins keep
 // running while GitHub is unreachable, and pinning a Release that ran
@@ -159,40 +161,52 @@ func (g *GitHubSource) readIndex(dir string) (cat Catalogue, b, sums []byte, err
 	return cat, b, sums, nil
 }
 
-// Component downloads the Component's binary, unless it already has it.
+// Component downloads the Component's .ct, unless it already has it, and
+// unpacks its binary next to it.
 func (g *GitHubSource) Component(ctx context.Context, name string) (Binary, error) {
-	dest := filepath.Join(g.o.DataDir, "components", name, g.o.Release, name)
-	sum, err := g.ensure(ctx, name, dest, 0o755)
+	dir := filepath.Join(g.o.DataDir, "components", name, g.o.Release)
+	ct := filepath.Join(dir, ComponentFile(name))
+	if _, err := g.ensure(ctx, ComponentFile(name), ct, 0o644); err != nil {
+		return Binary{}, err
+	}
+	dest := filepath.Join(dir, name)
+	sum, err := unpackComponent(ct, name, dest)
 	if err != nil {
 		return Binary{}, err
 	}
 	return Binary{Path: dest, Checksum: sum}, nil
 }
 
-// Plugin downloads the Plugin's bundles, unless it already has them.
-func (g *GitHubSource) Plugin(ctx context.Context, name string) error {
-	for _, file := range []string{name + ".plugin.js", name + ".plugin.css"} {
-		if _, err := g.ensure(ctx, file, g.bundlePath(name, file), 0o644); err != nil {
-			return err
-		}
+// File downloads the release's asset name, unless it already has it.
+func (g *GitHubSource) File(ctx context.Context, name string) (Binary, error) {
+	if !fs.ValidPath(name) || strings.Contains(name, "/") || name == SumsFile || name == CatalogueFile {
+		return Binary{}, fmt.Errorf("Release %s has no file %q", g.o.Release, name)
 	}
-	return nil
+	dest := filepath.Join(g.indexDir(), name)
+	sum, err := g.ensure(ctx, name, dest, 0o644)
+	if err != nil {
+		return Binary{}, err
+	}
+	return Binary{Path: dest, Checksum: sum}, nil
 }
 
-// Open opens a downloaded Plugin bundle, <name>.plugin.js or .css.
+// Plugin downloads the Plugin's .app, unless it already has it.
+func (g *GitHubSource) Plugin(ctx context.Context, name string) error {
+	_, err := g.ensure(ctx, AppFile(name), g.appPath(name), 0o644)
+	return err
+}
+
+// Open opens the downloaded Plugin's file "<plugin>/<file>" in its .app.
 func (g *GitHubSource) Open(name string) (fs.File, error) {
-	plugin, ok := strings.CutSuffix(name, ".plugin.js")
+	plugin, file, ok := splitAppPath(name)
 	if !ok {
-		plugin, ok = strings.CutSuffix(name, ".plugin.css")
-	}
-	if !ok || !fs.ValidPath(name) || strings.Contains(name, "/") {
 		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
 	}
-	return os.Open(g.bundlePath(plugin, name))
+	return openApp(g.appPath(plugin), file)
 }
 
-func (g *GitHubSource) bundlePath(plugin, file string) string {
-	return filepath.Join(g.o.DataDir, "plugins", plugin, g.o.Release, file)
+func (g *GitHubSource) appPath(plugin string) string {
+	return filepath.Join(g.o.DataDir, "plugins", plugin, g.o.Release, AppFile(plugin))
 }
 
 // Latest returns the tag of the repo's latest release.
