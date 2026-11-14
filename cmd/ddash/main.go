@@ -7,7 +7,7 @@
 //	DDASH_LISTEN       address to serve HTTP on (default :8080; make dev sets it)
 //	DDASH_DATA_DIR     the data dir (default /data; make dev sets it)
 //	DDASH_RELEASE_DIR         a local Release dir (catalogue.json, SHA256SUMS,
-//	                          the Component binaries and Plugin bundles) to run
+//	                          the Components' .ct and Plugins' .app files) to run
 //	                          instead of the GitHub release of this core's
 //	                          Release; required for the dev Release
 //	DDASH_GITHUB_TOKEN        authenticates the GitHub downloads (a private repo)
@@ -30,6 +30,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -167,12 +168,12 @@ func signInConfig(getenv func(string) string) (auth.OIDC, error) {
 // repo publishes every Release as a GitHub release.
 const repo = "itsKontra/ddash"
 
-// releaseSource is where Release rel comes from: DDASH_RELEASE_DIR, or the
-// GitHub release tagged rel, downloaded into dataDir with client (nil: the
-// default one).
+// releaseSource is where Release rel comes from: DDASH_RELEASE_DIR, its
+// Component binaries unpacked into dataDir, or the GitHub release tagged
+// rel, downloaded into dataDir with client (nil: the default one).
 func releaseSource(getenv func(string) string, rel, dataDir string, client *http.Client) (runtime.ReleaseSource, error) {
 	if dir := getenv("DDASH_RELEASE_DIR"); dir != "" {
-		return runtime.Dir(dir), nil
+		return runtime.Dir{Path: dir, Unpack: filepath.Join(dataDir, "release-dir")}, nil
 	}
 	if rel == "dev" {
 		return nil, errors.New("the dev Release isn't on GitHub: set DDASH_RELEASE_DIR")

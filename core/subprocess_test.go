@@ -90,8 +90,11 @@ func TestTheBuiltReleaseRunsAsSubprocessesAgainstFakelab(t *testing.T) {
 // requires greeter, a sample binary built for Release rel with ldflags.
 func sampleRelease(t *testing.T, rel string, ldflags ...string) string {
 	t.Helper()
-	dir := t.TempDir()
-	if err := release.Binary(t.Context(), repoRoot, "./core/internal/sample/cmd/sample", filepath.Join(dir, "greeter"), rel, ldflags...); err != nil {
+	dir, bins := t.TempDir(), t.TempDir()
+	if err := release.Binary(t.Context(), repoRoot, "./core/internal/sample/cmd/sample", filepath.Join(bins, "greeter"), rel, ldflags...); err != nil {
+		t.Fatal(err)
+	}
+	if err := runtime.PackFile(filepath.Join(dir, runtime.ComponentFile("greeter")), os.DirFS(bins)); err != nil {
 		t.Fatal(err)
 	}
 	catalogue := `{"release":"dev","plugins":[{"name":"hello","requires":["greeter"]}],"components":[{"name":"greeter"}]}`
@@ -115,9 +118,9 @@ func TestASubprocessStartsAndAnswers(t *testing.T) {
 	}
 }
 
-func TestABinaryThatDoesntMatchItsChecksumIsRefused(t *testing.T) {
+func TestAComponentFileThatDoesntMatchItsChecksumIsRefused(t *testing.T) {
 	dir := sampleRelease(t, "dev")
-	f, err := os.OpenFile(filepath.Join(dir, "greeter"), os.O_APPEND|os.O_WRONLY, 0)
+	f, err := os.OpenFile(filepath.Join(dir, runtime.ComponentFile("greeter")), os.O_APPEND|os.O_WRONLY, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,9 +131,9 @@ func TestABinaryThatDoesntMatchItsChecksumIsRefused(t *testing.T) {
 
 	h.Install("hello")
 
-	h.WaitState("greeter", runtime.Down)
+	h.WaitState("greeter", runtime.UpdatePending) // never launched
 	if got := h.Status("greeter"); !strings.Contains(got.Message, "checksum") {
-		t.Errorf("greeter is %v, want down for its checksum", got)
+		t.Errorf("greeter is %v, want update pending for its checksum", got)
 	}
 }
 

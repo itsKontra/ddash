@@ -141,5 +141,5 @@ func emptyRelease(t *testing.T) runtime.Dir {
 	if err := os.WriteFile(filepath.Join(dir, "catalogue.json"), []byte(`{"release":"dev"}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	return runtime.Dir(dir)
+	return runtime.Dir{Path: dir, Unpack: t.TempDir()}
 }

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/internal/fakegithub"
@@ -17,12 +18,24 @@ import (
 const repo = "itsKontra/ddash"
 
 // releaseDir lays out a Release dir of Release rel whose Plugin hello
-// requires greeter, with files (binaries and bundles) by name.
+// requires greeter, with files by name: a Component's binary ("greeter")
+// goes into its .ct, a Plugin's file ("hello/index.js") into its .app.
 func releaseDir(t *testing.T, rel string, files map[string]string) string {
 	t.Helper()
 	dir := t.TempDir()
+	packs := map[string]fstest.MapFS{}
 	for name, content := range files {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o600); err != nil {
+		if plugin, file, ok := strings.Cut(name, "/"); ok {
+			if packs[runtime.AppFile(plugin)] == nil {
+				packs[runtime.AppFile(plugin)] = fstest.MapFS{}
+			}
+			packs[runtime.AppFile(plugin)][file] = &fstest.MapFile{Data: []byte(content)}
+			continue
+		}
+		packs[runtime.ComponentFile(name)] = fstest.MapFS{name: {Data: []byte(content), Mode: 0o755}}
+	}
+	for name, fsys := range packs {
+		if err := runtime.PackFile(filepath.Join(dir, name), fsys); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -38,9 +51,9 @@ func releaseDir(t *testing.T, rel string, files map[string]string) string {
 
 // helloV1 is Release v1.0.0 of hello and greeter.
 var helloV1 = map[string]string{
-	"greeter":          "greeter binary v1",
-	"hello.plugin.js":  "export default {}",
-	"hello.plugin.css": ".hello {}",
+	"greeter":         "greeter binary v1",
+	"hello/index.js":  "export default {}",
+	"hello/index.css": ".hello {}",
 }
 
 func github(gh *fakegithub.Fake, data, rel string) runtime.ReleaseSource {
@@ -79,7 +92,7 @@ func TestGitHubDownloadsAComponentIntoTheDataDirVerified(t *testing.T) {
 func TestGitHubRefusesADownloadThatDoesntMatchItsChecksum(t *testing.T) {
 	gh := fakegithub.New(repo)
 	dir := releaseDir(t, "v1.0.0", helloV1)
-	if err := os.WriteFile(filepath.Join(dir, "greeter"), []byte("tampered"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "greeter.ct"), []byte("tampered"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	gh.Publish("v1.0.0", dir)
@@ -90,8 +103,10 @@ func TestGitHubRefusesADownloadThatDoesntMatchItsChecksum(t *testing.T) {
 	if !errors.Is(err, runtime.ErrDownload) || !strings.Contains(err.Error(), "checksum") {
 		t.Errorf("err = %v, want a failed download for its checksum", err)
 	}
-	if _, err := os.Stat(filepath.Join(data, "components", "greeter", "v1.0.0", "greeter")); !errors.Is(err, fs.ErrNotExist) {
-		t.Errorf("the tampered binary was kept: %v", err)
+	for _, kept := range []string{"greeter.ct", "greeter"} {
+		if _, err := os.Stat(filepath.Join(data, "components", "greeter", "v1.0.0", kept)); !errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("the tampered %s was kept: %v", kept, err)
+		}
 	}
 }
 
@@ -136,8 +151,8 @@ func TestGitHubKeepsWhatItDownloadedSoItNeedsNoNetworkAfterwards(t *testing.T) {
 	if err := again.Plugin(t.Context(), "hello"); err != nil {
 		t.Errorf("Plugin offline: %v", err)
 	}
-	if b, err := fs.ReadFile(again, "hello.plugin.js"); string(b) != "export default {}" {
-		t.Errorf("hello.plugin.js = %q, %v", b, err)
+	if b, err := fs.ReadFile(again, "hello/index.js"); string(b) != "export default {}" {
+		t.Errorf("hello/index.js = %q, %v", b, err)
 	}
 	if b, err := os.ReadFile(filepath.Join(data, "releases", "v1.0.0", "catalogue.json")); err != nil || !strings.Contains(string(b), `"v1.0.0"`) {
 		t.Errorf("/data/releases/v1.0.0/catalogue.json = %q, %v", b, err)
@@ -171,9 +186,9 @@ func TestGitHubRollsBackToADownloadedReleaseWithoutNetwork(t *testing.T) {
 	gh := fakegithub.New(repo)
 	gh.Publish("v1.0.0", releaseDir(t, "v1.0.0", helloV1))
 	gh.Publish("v1.1.0", releaseDir(t, "v1.1.0", map[string]string{
-		"greeter":          "greeter binary v1.1",
-		"hello.plugin.js":  "export default { v: 1.1 }",
-		"hello.plugin.css": ".hello {}",
+		"greeter":         "greeter binary v1.1",
+		"hello/index.js":  "export default { v: 1.1 }",
+		"hello/index.css": ".hello {}",
 	}))
 	data := t.TempDir()
 	for _, rel := range []string{"v1.0.0", "v1.1.0"} { // run v1.0.0, then update
@@ -202,8 +217,8 @@ func TestGitHubRollsBackToADownloadedReleaseWithoutNetwork(t *testing.T) {
 	if err := back.Plugin(t.Context(), "hello"); err != nil {
 		t.Errorf("Plugin offline: %v", err)
 	}
-	if b, err := fs.ReadFile(back, "hello.plugin.js"); string(b) != "export default {}" {
-		t.Errorf("hello.plugin.js = %q, %v; want v1.0.0's", b, err)
+	if b, err := fs.ReadFile(back, "hello/index.js"); string(b) != "export default {}" {
+		t.Errorf("hello/index.js = %q, %v; want v1.0.0's", b, err)
 	}
 }
 
@@ -217,7 +232,7 @@ func TestGitHubReadsTheIndexAnOlderCoreKeptAtTheDataRoot(t *testing.T) {
 	for src, dest := range map[string]string{
 		release.CatalogueFile: release.CatalogueFile,
 		release.SumsFile:      release.SumsFile,
-		"greeter":             filepath.Join("components", "greeter", "v1.0.0", "greeter"),
+		"greeter.ct":          filepath.Join("components", "greeter", "v1.0.0", "greeter.ct"),
 	} {
 		b, err := os.ReadFile(filepath.Join(dir, src))
 		if err != nil {

@@ -75,7 +75,7 @@ func catalogueStates(t *testing.T, h *coretest.Harness) map[string]string {
 	return states
 }
 
-func TestBumpingTheReleaseDownloadsItsBinariesAndBundlesIntoData(t *testing.T) {
+func TestBumpingTheReleaseDownloadsItsComponentsAndAppsIntoData(t *testing.T) {
 	gh := fakegithub.New(repo)
 	publish(t, gh, "v1.0.0", notebook())
 	publish(t, gh, "v1.1.0", notebook(addTag))
@@ -84,13 +84,13 @@ func TestBumpingTheReleaseDownloadsItsBinariesAndBundlesIntoData(t *testing.T) {
 	h := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
 
 	h.WaitState("greeter", runtime.OK)
-	for _, want := range []string{"components/greeter/v1.1.0/greeter", "plugins/hello/v1.1.0/hello.plugin.js", "plugins/hello/v1.1.0/hello.plugin.css"} {
+	for _, want := range []string{"components/greeter/v1.1.0/greeter.ct", "components/greeter/v1.1.0/greeter", "plugins/hello/v1.1.0/hello.app"} {
 		if _, err := os.Stat(filepath.Join(data, want)); err != nil {
 			t.Errorf("/data/%s: %v", want, err)
 		}
 	}
 	res := h.Get("/plugins/hello/v1.1.0/index.js")
-	if want := "/* hello.plugin.js of Release v1.1.0 */"; res.Code != http.StatusOK || res.Body.String() != want {
+	if want := "/* hello/index.js of Release v1.1.0 */"; res.Code != http.StatusOK || res.Body.String() != want {
 		t.Errorf("GET hello's bundle: %d %q, want %q", res.Code, res.Body, want)
 	}
 }
@@ -141,7 +141,7 @@ func TestRollingBackToTheLastReleaseWorksWhileGitHubIsUnreachable(t *testing.T) 
 		t.Errorf("notes = %v, want %v", got, want)
 	}
 	res := h.Get("/plugins/hello/v1.0.0/index.js")
-	if want := "/* hello.plugin.js of Release v1.0.0 */"; res.Code != http.StatusOK || res.Body.String() != want {
+	if want := "/* hello/index.js of Release v1.0.0 */"; res.Code != http.StatusOK || res.Body.String() != want {
 		t.Errorf("GET hello's bundle: %d %q, want %q", res.Code, res.Body, want)
 	}
 }
@@ -185,17 +185,17 @@ func TestAPluginWhoseBundlesFailToDownloadShowsUpdatePending(t *testing.T) {
 		publish(t, gh, "v1.0.0", notebook())
 		publish(t, gh, "v1.1.0", notebook(addTag))
 		data := installedFromGitHub(t, gh)
-		gh.FailAsset("hello.plugin.js", true)
+		gh.FailAsset("hello.app", true)
 
 		h := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
 		synctest.Wait()
 
 		hello := coreJSON(t, h, "ListCatalogue", `{}`)["plugins"].([]any)[0].(map[string]any)
-		if got, _ := hello["updatePending"].(string); !strings.Contains(got, "hello.plugin.js of Release v1.1.0") {
+		if got, _ := hello["updatePending"].(string); !strings.Contains(got, "hello.app of Release v1.1.0") {
 			t.Errorf("hello's updatePending = %q, want its bundle's download named", got)
 		}
 
-		gh.FailAsset("hello.plugin.js", false)
+		gh.FailAsset("hello.app", false)
 		time.Sleep(time.Minute)
 		synctest.Wait()
 
@@ -233,12 +233,12 @@ func TestAFailedDownloadLeavesTheComponentUpdatePendingRetriedWithBackoff(t *tes
 		publish(t, gh, "v1.0.0", notebook())
 		publish(t, gh, "v1.1.0", notebook(addTag))
 		data := installedFromGitHub(t, gh)
-		gh.FailAsset("greeter", true)
+		gh.FailAsset("greeter.ct", true)
 
 		h := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
 		synctest.Wait()
 
-		if got := h.Status("greeter"); got.State != runtime.UpdatePending || !strings.Contains(got.Message, "greeter of Release v1.1.0") {
+		if got := h.Status("greeter"); got.State != runtime.UpdatePending || !strings.Contains(got.Message, "greeter.ct of Release v1.1.0") {
 			t.Errorf("greeter is %v, want update pending naming its download", got)
 		}
 		if diff := cmp.Diff(map[string]string{"hello/greeter": "update pending"}, catalogueStates(t, h)); diff != "" {
@@ -246,7 +246,7 @@ func TestAFailedDownloadLeavesTheComponentUpdatePendingRetriedWithBackoff(t *tes
 		}
 		wantError(t, h.Call("hello", "greeter", "Act", `{}`), http.StatusServiceUnavailable, "unavailable", "")
 
-		gh.FailAsset("greeter", false)
+		gh.FailAsset("greeter.ct", false)
 		time.Sleep(time.Minute)
 		synctest.Wait()
 

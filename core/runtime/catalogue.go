@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -40,18 +41,21 @@ type ComponentEntry struct {
 }
 
 // A ReleaseSource provides one Release: its catalogue, its Component
-// binaries on local disk, and, as an fs.FS, its Plugin bundles by file name
-// (<name>.plugin.js and <name>.plugin.css).
+// binaries on local disk, and, as an fs.FS, its Plugins' files by
+// "<plugin>/<file>", e.g. "docker/index.js", each from the Plugin's .app.
 type ReleaseSource interface {
 	// Release names the Release, even while its catalogue can't be read.
 	Release() string
 	// Catalogue returns the Release's checked catalogue. An error wrapping
 	// ErrDownload is passing: the runtime retries.
 	Catalogue(ctx context.Context) (Catalogue, error)
-	// Component makes the Component's binary available on local disk,
-	// verified against the Release's SHA256SUMS.
+	// Component makes the Component's binary, unpacked from its .ct
+	// (verified against the Release's SHA256SUMS), available on local disk.
 	Component(ctx context.Context, name string) (Binary, error)
-	// Plugin makes the Plugin's bundles available through Open.
+	// File makes the Release's file name, verified against its SHA256SUMS,
+	// available on local disk as it is, e.g. a Host Agent binary.
+	File(ctx context.Context, name string) (Binary, error)
+	// Plugin makes the Plugin's .app available through Open.
 	Plugin(ctx context.Context, name string) error
 	fs.FS
 }
@@ -60,53 +64,93 @@ type ReleaseSource interface {
 // whoever asked retries.
 var ErrDownload = errors.New("download failed")
 
-// Binary is a Component's executable on local disk, with the checksum
-// SHA256SUMS gives it, which the subprocess launcher pins.
+// Binary is a file on local disk with its checksum: a Component's
+// executable, which the subprocess launcher pins to it, or a Release file.
 type Binary struct {
 	Path     string
 	Checksum []byte
 }
 
 // Dir is a Release laid out in a local directory, as DDASH_RELEASE_DIR names
-// it: catalogue.json, SHA256SUMS, the Component binaries and the Plugin
-// bundles, flat, as release assets. Nothing is copied: it is used in place.
-type Dir string
+// it: catalogue.json, SHA256SUMS, the .ct and .app files and the Host Agent
+// binaries, flat, as release assets. It is used in place, but for the
+// Component binaries, which are unpacked into Unpack.
+type Dir struct {
+	// Path is the Release dir. It may be read-only.
+	Path string
+	// Unpack is where Component binaries are unpacked, one per Component
+	// (<unpack>/<name>), e.g. under /data. Component needs it.
+	Unpack string
+}
 
-// Open opens the Release's file name.
-func (d Dir) Open(name string) (fs.File, error) { return os.DirFS(string(d)).Open(name) }
+// Open opens the Plugin's file "<plugin>/<file>" in its .app. In a dev
+// Release dir a .app may be a directory instead (a link to the Plugin's
+// dist/, rebuilt in place).
+func (d Dir) Open(name string) (fs.File, error) {
+	plugin, file, ok := splitAppPath(name)
+	if !ok {
+		return nil, &fs.PathError{Op: "open", Path: name, Err: fs.ErrNotExist}
+	}
+	return openApp(filepath.Join(d.Path, AppFile(plugin)), file)
+}
 
 // Release reads the Release's name from catalogue.json; "" when it can't.
 func (d Dir) Release() string {
 	var c Catalogue
-	b, _ := os.ReadFile(filepath.Join(string(d), CatalogueFile))
+	b, _ := os.ReadFile(filepath.Join(d.Path, CatalogueFile))
 	_ = json.Unmarshal(b, &c)
 	return c.Release
 }
 
 // Catalogue reads and checks the directory's catalogue.json.
 func (d Dir) Catalogue(context.Context) (Catalogue, error) {
-	b, err := os.ReadFile(filepath.Join(string(d), CatalogueFile))
+	b, err := os.ReadFile(filepath.Join(d.Path, CatalogueFile))
 	if err != nil {
 		return Catalogue{}, err
 	}
 	return parseCatalogue(b)
 }
 
-// Component returns the binary dir/<name> and its checksum from
-// dir/SHA256SUMS. go-plugin's SecureConfig verifies it when it runs.
-func (d Dir) Component(_ context.Context, name string) (Binary, error) {
-	sums, err := os.ReadFile(filepath.Join(string(d), SumsFile))
+// Component checks dir/<name>.ct against dir/SHA256SUMS and unpacks its
+// binary into d.Unpack.
+func (d Dir) Component(ctx context.Context, name string) (Binary, error) {
+	if d.Unpack == "" {
+		return Binary{}, fmt.Errorf("component %s: the Release dir has nowhere to unpack it", name)
+	}
+	ct, err := d.File(ctx, ComponentFile(name))
 	if err != nil {
 		return Binary{}, err
 	}
-	sum, err := checksum(sums, name)
+	dest := filepath.Join(d.Unpack, name)
+	sum, err := unpackComponent(ct.Path, name, dest)
 	if err != nil {
 		return Binary{}, err
 	}
-	return Binary{Path: filepath.Join(string(d), name), Checksum: sum}, nil
+	return Binary{Path: dest, Checksum: sum}, nil
 }
 
-// Plugin does nothing: the bundles are already in the dir.
+// File returns dir/<name>, checked against dir/SHA256SUMS.
+func (d Dir) File(_ context.Context, name string) (Binary, error) {
+	sums, err := os.ReadFile(filepath.Join(d.Path, SumsFile))
+	if err != nil {
+		return Binary{}, err
+	}
+	want, err := checksum(sums, name)
+	if err != nil {
+		return Binary{}, err
+	}
+	p := filepath.Join(d.Path, name)
+	got, err := fileSum(p)
+	if err != nil {
+		return Binary{}, err
+	}
+	if !bytes.Equal(got, want) {
+		return Binary{}, fmt.Errorf("%s doesn't match its checksum in %s", name, SumsFile)
+	}
+	return Binary{Path: p, Checksum: want}, nil
+}
+
+// Plugin does nothing: the .app files are already in the dir.
 func (d Dir) Plugin(context.Context, string) error { return nil }
 
 // CatalogueFile is the Release's catalogue, at the root of a Release dir.

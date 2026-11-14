@@ -36,9 +36,10 @@ func shelfOf(t *testing.T, release string) *coretest.Harness {
 			{Name: "checks", Title: "Checks", Requires: []string{"checks"}},
 		},
 		ReleaseFiles: map[string]string{
-			"docker.plugin.js":  "export default {}",
-			"docker.plugin.css": ".docker{}",
-			"checks.plugin.js":  "export default {}",
+			"docker/index.js":  "export default {}",
+			"docker/index.css": ".docker{}",
+			"docker/logo.svg":  "<svg/>",
+			"checks/index.js":  "export default {}",
 		},
 	})
 	h.Install("docker")
@@ -83,6 +84,7 @@ func TestTheCoreServesAnInstalledPluginsBundleImmutably(t *testing.T) {
 	}{
 		{"/plugins/docker/v1.2.3/index.js", "text/javascript; charset=utf-8", "export default {}"},
 		{"/plugins/docker/v1.2.3/index.css", "text/css; charset=utf-8", ".docker{}"},
+		{"/plugins/docker/v1.2.3/logo.svg", "image/svg+xml", "<svg/>"}, // any file in its .app
 	} {
 		res := h.Get(tc.path)
 
@@ -108,6 +110,7 @@ func TestTheCoreServesNoBundleOfAPluginNotInstalledOrOfAnotherRelease(t *testing
 		"/plugins/docker/v1.2.3/",
 		"/plugins/nope/v1.2.3/index.js",
 		"/plugins/docker.plugin.js",
+		"/plugins/docker.app",
 	} {
 		if res := h.Get(path); res.Code != http.StatusNotFound {
 			t.Errorf("GET %s: %d, want 404", path, res.Code)

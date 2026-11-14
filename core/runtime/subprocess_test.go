@@ -2,6 +2,7 @@ package runtime_test
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -18,14 +19,17 @@ import (
 // starts it with target.
 func launchSample(t *testing.T, target string) runtime.Process {
 	t.Helper()
-	dir := t.TempDir()
-	if err := release.Binary(t.Context(), "../..", "./core/internal/sample/cmd/sample", filepath.Join(dir, "greeter"), "dev"); err != nil {
+	dir, bins := t.TempDir(), t.TempDir()
+	if err := release.Binary(t.Context(), "../..", "./core/internal/sample/cmd/sample", filepath.Join(bins, "greeter"), "dev"); err != nil {
+		t.Fatal(err)
+	}
+	if err := runtime.PackFile(filepath.Join(dir, runtime.ComponentFile("greeter")), os.DirFS(bins)); err != nil {
 		t.Fatal(err)
 	}
 	if err := release.Sums(dir); err != nil {
 		t.Fatal(err)
 	}
-	bin, err := runtime.Dir(dir).Component(t.Context(), "greeter")
+	bin, err := runtime.Dir{Path: dir, Unpack: t.TempDir()}.Component(t.Context(), "greeter")
 	if err != nil {
 		t.Fatal(err)
 	}

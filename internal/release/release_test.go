@@ -1,7 +1,9 @@
 package release_test
 
 import (
+	"archive/zip"
 	"debug/elf"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -178,27 +181,71 @@ func widgetsOnly(t *testing.T, bundle map[string]string) string {
 	return tree(t, files)
 }
 
-func TestTheReleaseCarriesEachPluginsBundleWithItsChecksum(t *testing.T) {
-	root := widgetsOnly(t, map[string]string{"index.js": "export default {}", "index.css": ".d{}"})
+// files lists the Release dir out's file names.
+func files(t *testing.T, out string) []string {
+	t.Helper()
+	entries, err := os.ReadDir(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, e := range entries {
+		names = append(names, e.Name())
+	}
+	return names
+}
+
+func TestTheReleaseCarriesEachPluginAsOneAppWithItsChecksum(t *testing.T) {
+	root := widgetsOnly(t, map[string]string{"index.js": "export default {}", "index.css": ".d{}", "logo.svg": "<svg/>"})
 	out := t.TempDir()
 
 	if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "v1.2.3"}); err != nil {
 		t.Fatal(err)
 	}
 
-	for file, want := range map[string]string{"docker.plugin.js": "export default {}", "docker.plugin.css": ".d{}"} {
-		if b, err := os.ReadFile(filepath.Join(out, file)); err != nil || string(b) != want {
-			t.Errorf("%s: %q, %v; want %q", file, b, err, want)
+	if diff := cmp.Diff([]string{"SHA256SUMS", "catalogue.json", "docker.app"}, files(t, out)); diff != "" {
+		t.Errorf("Release dir (-want +got):\n%s", diff)
+	}
+	app, err := zip.OpenReader(filepath.Join(out, "docker.app"))
+	if err != nil {
+		t.Fatalf("docker.app isn't a zip: %v", err)
+	}
+	defer app.Close()
+	for file, want := range map[string]string{"index.js": "export default {}", "index.css": ".d{}", "logo.svg": "<svg/>"} {
+		if b, err := fs.ReadFile(app, file); err != nil || string(b) != want {
+			t.Errorf("docker.app's %s: %q, %v; want %q", file, b, err, want)
 		}
 	}
 	sums, err := os.ReadFile(filepath.Join(out, "SHA256SUMS"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"  docker.plugin.css\n", "  docker.plugin.js\n"} {
-		if !strings.Contains(string(sums), want) {
-			t.Errorf("SHA256SUMS lacks %q:\n%s", want, sums)
+	if want := "  docker.app\n"; !strings.Contains(string(sums), want) {
+		t.Errorf("SHA256SUMS lacks %q:\n%s", want, sums)
+	}
+}
+
+func TestBuildingTheSameReleaseTwiceGivesTheSameApp(t *testing.T) {
+	root := widgetsOnly(t, map[string]string{"index.js": "export default {}", "index.css": ".d{}"})
+	var apps []string
+	for range 2 {
+		out := t.TempDir()
+		if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "v1.2.3"}); err != nil {
+			t.Fatal(err)
 		}
+		b, err := os.ReadFile(filepath.Join(out, "docker.app"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		apps = append(apps, string(b))
+		// The second build's files are newer.
+		if err := os.Chtimes(filepath.Join(root, "plugins/docker/dist/index.js"), time.Now(), time.Now().Add(time.Hour)); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if apps[0] != apps[1] {
+		t.Error("docker.app differs between two builds of the same files")
 	}
 }
 
@@ -224,8 +271,11 @@ func TestALinkedReleaseShowsThePluginsRebuiltBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if b, err := os.ReadFile(filepath.Join(out, "docker.plugin.js")); err != nil || string(b) != "v2" {
-		t.Errorf("docker.plugin.js: %q, %v; want the rebuilt v2", b, err)
+	if b, err := fs.ReadFile(runtime.Dir{Path: out}, "docker/index.js"); err != nil || string(b) != "v2" {
+		t.Errorf("docker/index.js: %q, %v; want the rebuilt v2", b, err)
+	}
+	if err := release.Sums(out); err != nil {
+		t.Errorf("SHA256SUMS over a linked .app: %v", err)
 	}
 }
 
@@ -270,7 +320,14 @@ func TestAReleaseForAPlatformHoldsStaticBinariesForIt(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		f := executable(t, filepath.Join(out, "probe"))
+		if diff := cmp.Diff([]string{"SHA256SUMS", "catalogue.json", "probe.ct"}, files(t, out)); diff != "" {
+			t.Errorf("Release dir (-want +got):\n%s", diff)
+		}
+		bin, err := runtime.Dir{Path: out, Unpack: t.TempDir()}.Component(t.Context(), "probe")
+		if err != nil {
+			t.Fatal(err)
+		}
+		f := executable(t, bin.Path)
 		if f.Machine != machine {
 			t.Errorf("%s: machine %v, want %v", platform, f.Machine, machine)
 		}

@@ -1,15 +1,15 @@
 // Package release lays out a Release from the repo: catalogue.json merged
-// from every plugin.yaml and component.yaml, every Component's binary, every
-// Plugin's bundle, and SHA256SUMS over them. `make dev` and the subprocess
-// test build one into a local dir that the core reads as DDASH_RELEASE_DIR.
+// from every plugin.yaml and component.yaml, one file per Component and per
+// Plugin, and SHA256SUMS over them. `make dev` and the subprocess test build
+// one into a local dir that the core reads as DDASH_RELEASE_DIR.
 //
 // The layout is flat, like the assets of a GitHub release:
 //
 //	catalogue.json
 //	SHA256SUMS      sha256sum format: "<hex>  <file>"
-//	<component>     one static binary per Component, named after it
-//	<plugin>.plugin.js, <plugin>.plugin.css
-//	                each Plugin's bundle, built by Vite into plugins/<plugin>/dist/
+//	<component>.ct  a zip holding the Component's static binary, <component>
+//	<plugin>.app    a zip of the Plugin's built files, plugins/<plugin>/dist/
+//	                as Vite built it (index.js, index.css, …)
 //	ddash-host-agent-linux-<arch>
 //	                the Host Agent, static, for amd64 and arm64: ddash serves
 //	                it to install.sh at /agent/host/<arch>
@@ -19,10 +19,8 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path"
@@ -52,8 +50,9 @@ type Options struct {
 	// Platform is the GOOS/GOARCH to build the binaries for, e.g.
 	// "linux/amd64"; empty means this machine's.
 	Platform string
-	// LinkBundles symlinks each Plugin's bundle instead of copying it, so
-	// `vite build --watch` rebuilds show through (`make dev`).
+	// LinkBundles makes each <plugin>.app a symlink to the Plugin's dist/
+	// instead of a zip of it, so `vite build --watch` rebuilds show through
+	// (`make dev`).
 	LinkBundles bool
 	// AgentImage is the Docker Agent's image by digest, e.g.
 	// "ghcr.io/itskontra/ddash-docker-agent:v1.2.3@sha256:…", stamped into
@@ -68,9 +67,9 @@ var HostAgentArchs = []string{"amd64", "arm64"}
 // HostAgentFile is the Host Agent's binary for arch in a Release dir.
 func HostAgentFile(arch string) string { return "ddash-host-agent-linux-" + arch }
 
-// Build fills o.Out with the Release: catalogue.json, every Component's
-// binary (static, CGO off, for o.Platform), every
-// Plugin's bundle (which `make build` must have built) and SHA256SUMS.
+// Build fills o.Out with the Release: catalogue.json, every Component's .ct
+// (its binary static, CGO off, for o.Platform), every Plugin's .app (which
+// `make build` must have built) and SHA256SUMS.
 func Build(ctx context.Context, o Options) error {
 	if err := CheckName(o.Release); err != nil {
 		return err
@@ -86,10 +85,19 @@ func Build(ctx context.Context, o Options) error {
 	if o.AgentImage != "" {
 		stamp = append(stamp, "-X", "github.com/itsKontra/ddash/components/docker-agent-api.Image="+o.AgentImage)
 	}
+	bins, err := os.MkdirTemp("", "ddash-release-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(bins)
 	for _, c := range cat.Components {
 		pkg := "./" + path.Join("components", c.Name, "cmd")
-		if err := build(ctx, o.Root, pkg, filepath.Join(o.Out, c.Name), o.Release, o.Platform, stamp...); err != nil {
+		dir := filepath.Join(bins, c.Name)
+		if err := build(ctx, o.Root, pkg, filepath.Join(dir, c.Name), o.Release, o.Platform, stamp...); err != nil {
 			return err
+		}
+		if err := runtime.PackFile(filepath.Join(o.Out, runtime.ComponentFile(c.Name)), os.DirFS(dir)); err != nil {
+			return fmt.Errorf("component %s: %w", c.Name, err)
 		}
 	}
 	// A repo without the Host Agent (a test's) builds a Release without it.
@@ -138,39 +146,26 @@ func CheckName(rel string) error {
 	return fmt.Errorf("the Release %q is neither dev nor a tag vMAJOR.MINOR.PATCH (optionally -prerelease)", rel)
 }
 
-// bundle puts plugin's bundle, as Vite built it into plugins/<name>/dist/,
-// into the Release dir as <name>.plugin.js and <name>.plugin.css.
+// bundle puts plugin's built files, as Vite built them into
+// plugins/<name>/dist/, into the Release dir as <name>.app.
 func bundle(o Options, plugin string) error {
-	for _, ext := range []string{"js", "css"} {
-		src, err := filepath.Abs(filepath.Join(o.Root, "plugins", plugin, "dist", "index."+ext))
-		if err != nil {
-			return err
-		}
-		if _, err := os.Stat(src); err != nil {
-			return fmt.Errorf("plugin %s has no built bundle (run `make build`): %w", plugin, err)
-		}
-		dst := filepath.Join(o.Out, plugin+".plugin."+ext)
-		if err := os.Remove(dst); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return err
-		}
-		if o.LinkBundles {
-			err = os.Symlink(src, dst)
-		} else {
-			err = copyFile(src, dst)
-		}
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func copyFile(src, dst string) error {
-	b, err := os.ReadFile(src)
+	src, err := filepath.Abs(filepath.Join(o.Root, "plugins", plugin, "dist"))
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(dst, b, 0o644)
+	for _, entry := range []string{"index.js", "index.css"} {
+		if _, err := os.Stat(filepath.Join(src, entry)); err != nil {
+			return fmt.Errorf("plugin %s has no built bundle (run `make build`): %w", plugin, err)
+		}
+	}
+	dst := filepath.Join(o.Out, runtime.AppFile(plugin))
+	if err := os.RemoveAll(dst); err != nil {
+		return err
+	}
+	if o.LinkBundles {
+		return os.Symlink(src, dst)
+	}
+	return runtime.PackFile(dst, os.DirFS(src))
 }
 
 // Catalogue merges every plugins/*/plugin.yaml and components/*/component.yaml
@@ -265,7 +260,8 @@ func build(ctx context.Context, root, pkg, out, release, platform string, ldflag
 }
 
 // Sums writes dir's SHA256SUMS over every other file in it except
-// catalogue.json, in sha256sum's format.
+// catalogue.json, in sha256sum's format. A directory, even through a
+// symlink (a dev Release's .app), has none.
 func Sums(dir string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -273,7 +269,12 @@ func Sums(dir string) error {
 	}
 	var sums strings.Builder
 	for _, e := range entries { // ReadDir sorts
-		if e.IsDir() || e.Name() == SumsFile || e.Name() == CatalogueFile {
+		if e.Name() == SumsFile || e.Name() == CatalogueFile {
+			continue
+		}
+		if info, err := os.Stat(filepath.Join(dir, e.Name())); err != nil {
+			return err
+		} else if info.IsDir() {
 			continue
 		}
 		sum, err := fileSum(filepath.Join(dir, e.Name()))

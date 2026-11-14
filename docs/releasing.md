@@ -7,9 +7,14 @@ which produces one artifact set:
 
 - the core image `ghcr.io/itskontra/ddash:<tag>` (distroless/static, uid
   65532, port 8080, `ddash healthcheck` for `/healthz`);
-- one GitHub release `<tag>` holding every Component binary (static
-  `linux/amd64`, CGO off, stamped with the tag), every Plugin's bundle
-  (`<plugin>.plugin.js` and `.css`), `catalogue.json` and `SHA256SUMS`.
+- one GitHub release `<tag>` holding one file per Component and per Plugin,
+  plus `catalogue.json`, `SHA256SUMS` and the Host Agent's two binaries
+  (`ddash-host-agent-linux-amd64` and `-arm64`, which `install.sh` downloads
+  as they are):
+  - `<component>.ct`: a zip holding the Component's binary `<component>`
+    (static `linux/amd64`, CGO off, stamped with the tag);
+  - `<plugin>.app`: a zip of the Plugin's built `dist/` (`index.js`,
+    `index.css` and whatever else Vite emitted).
 
 ## Steps
 
@@ -103,4 +108,5 @@ docker run --rm ghcr.io/itskontra/ddash:v0.0.0-local version  # prints v0.0.0-lo
 
 To run that image against the local Release dir instead of GitHub, mount
 `dist/` and set `DDASH_RELEASE_DIR` to it (the dir must be readable by uid
-65532).
+65532; it may be read-only, since the Component binaries are unpacked into
+`/data/release-dir/`).

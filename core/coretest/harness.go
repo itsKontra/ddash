@@ -34,6 +34,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"google.golang.org/protobuf/proto"
@@ -75,8 +76,9 @@ type Options struct {
 	DataDir string
 	// Release names the test Release. Default sdk.Release.
 	Release string
-	// ReleaseFiles are written into the test Release dir, by file name,
-	// e.g. Plugin bundles ("docker.plugin.js").
+	// ReleaseFiles are written into the test Release dir, by file name; a
+	// "<plugin>/<file>" goes into that Plugin's .app instead, e.g. its
+	// bundle ("docker/index.js").
 	ReleaseFiles map[string]string
 	// Shell is the shell's built assets the host serves (web.Shell()).
 	// Default: none.
@@ -122,14 +124,14 @@ func New(t testing.TB, opts Options) *Harness {
 	var rel runtime.ReleaseSource
 	switch {
 	case opts.ReleaseDir != "":
-		rel = runtime.Dir(opts.ReleaseDir)
+		rel = runtime.Dir{Path: opts.ReleaseDir, Unpack: t.TempDir()}
 		if opts.Launcher == nil {
 			opts.Launcher = runtime.Subprocess(t.Output())
 		}
 	default:
 		rel = opts.Source
 		if rel == nil {
-			rel = runtime.Dir(ReleaseDir(t, opts))
+			rel = runtime.Dir{Path: ReleaseDir(t, opts), Unpack: t.TempDir()}
 		}
 		if opts.Launcher == nil {
 			opts.Launcher = runtime.InProcess(logger, opts.Components...)
@@ -165,9 +167,10 @@ func New(t testing.TB, opts Options) *Harness {
 
 // ReleaseDir lays out the test Release of opts in a temp dir, as release
 // assets: catalogue.json listing opts.Components and opts.Plugins of
-// Release opts.Release, a stand-in binary per Component (the in-process
-// launcher ignores it), stand-in bundles per Plugin unless ReleaseFiles has
-// them, the ReleaseFiles, and SHA256SUMS over them all.
+// Release opts.Release, a .ct per Component holding a stand-in binary (the
+// in-process launcher ignores it), a .app per Plugin holding its
+// ReleaseFiles and stand-in bundles for the ones it lacks, the other
+// ReleaseFiles, and SHA256SUMS over them all.
 func ReleaseDir(t testing.TB, opts Options) string {
 	cat := runtime.Catalogue{Release: cmp.Or(opts.Release, sdk.Release)}
 	for _, p := range opts.Plugins {
@@ -187,31 +190,53 @@ func ReleaseDir(t testing.TB, opts Options) string {
 	if err := os.WriteFile(filepath.Join(dir, "catalogue.json"), b, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	files := maps.Clone(opts.ReleaseFiles)
-	if files == nil {
-		files = map[string]string{}
+	files := map[string][]byte{}
+	apps := map[string]fstest.MapFS{}
+	for _, p := range opts.Plugins {
+		apps[p.Name] = fstest.MapFS{}
+		for _, file := range []string{"index.js", "index.css"} {
+			apps[p.Name][file] = &fstest.MapFile{Data: []byte("/* " + p.Name + "/" + file + " of Release " + cat.Release + " */")}
+		}
+	}
+	for name, content := range opts.ReleaseFiles {
+		plugin, file, ok := strings.Cut(name, "/")
+		if !ok {
+			files[name] = []byte(content)
+			continue
+		}
+		if apps[plugin] == nil {
+			apps[plugin] = fstest.MapFS{}
+		}
+		apps[plugin][file] = &fstest.MapFile{Data: []byte(content)}
+	}
+	for plugin, app := range apps {
+		files[runtime.AppFile(plugin)] = pack(t, app)
 	}
 	for _, d := range opts.Components {
-		files[d.Name()] = "stand-in for " + d.Name() + " of Release " + cat.Release
-	}
-	for _, p := range opts.Plugins {
-		for _, file := range []string{p.Name + ".plugin.js", p.Name + ".plugin.css"} {
-			if _, ok := files[file]; !ok {
-				files[file] = "/* " + file + " of Release " + cat.Release + " */"
-			}
-		}
+		files[runtime.ComponentFile(d.Name())] = pack(t, fstest.MapFS{
+			d.Name(): {Data: []byte("stand-in for " + d.Name() + " of Release " + cat.Release), Mode: 0o755},
+		})
 	}
 	var sums strings.Builder
 	for _, name := range slices.Sorted(maps.Keys(files)) {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(files[name]), 0o600); err != nil {
+		if err := os.WriteFile(filepath.Join(dir, name), files[name], 0o600); err != nil {
 			t.Fatal(err)
 		}
-		fmt.Fprintf(&sums, "%x  %s\n", sha256.Sum256([]byte(files[name])), name)
+		fmt.Fprintf(&sums, "%x  %s\n", sha256.Sum256(files[name]), name)
 	}
 	if err := os.WriteFile(filepath.Join(dir, runtime.SumsFile), []byte(sums.String()), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	return dir
+}
+
+// pack zips fsys as a .app or .ct.
+func pack(t testing.TB, fsys fs.FS) []byte {
+	var b bytes.Buffer
+	if err := runtime.Pack(&b, fsys); err != nil {
+		t.Fatal(err)
+	}
+	return b.Bytes()
 }
 
 // Shutdown shuts the host down as SIGTERM would. The test's cleanup does
