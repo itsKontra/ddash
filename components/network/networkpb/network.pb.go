@@ -153,9 +153,21 @@ type NetworkConfig struct {
 	// The firewall alias whose members may not reach the internet: the No
 	// Internet Devices. Optional: unset, no Device is No Internet. Like the
 	// bypass alias, network changes only its Devices' own addresses in it.
-	BlockAlias    string `protobuf:"bytes,3,opt,name=block_alias,json=blockAlias,proto3" json:"block_alias,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	BlockAlias string `protobuf:"bytes,3,opt,name=block_alias,json=blockAlias,proto3" json:"block_alias,omitempty"`
+	// Where a Remote Access peer ddash adds dials in from outside: the
+	// firewall's public hostname or address, with the tunnel's port unless
+	// it is the listen port (a port forward). Optional: unset, Add a device
+	// is refused.
+	RemoteAccessEndpoint string `protobuf:"bytes,4,opt,name=remote_access_endpoint,json=remoteAccessEndpoint,proto3" json:"remote_access_endpoint,omitempty"`
+	// The DNS servers a new peer's config names; none keeps the device's
+	// own.
+	RemoteAccessDns []string `protobuf:"bytes,5,rep,name=remote_access_dns,json=remoteAccessDns,proto3" json:"remote_access_dns,omitempty"`
+	// What a new peer sends through the tunnel (its config's AllowedIPs).
+	// Unset: the subnets of the firewall's interfaces without a gateway
+	// (LAN, the Remote Access subnet, ...), so only home traffic takes it.
+	RemoteAccessRoutes []string `protobuf:"bytes,6,rep,name=remote_access_routes,json=remoteAccessRoutes,proto3" json:"remote_access_routes,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *NetworkConfig) Reset() {
@@ -207,6 +219,27 @@ func (x *NetworkConfig) GetBlockAlias() string {
 		return x.BlockAlias
 	}
 	return ""
+}
+
+func (x *NetworkConfig) GetRemoteAccessEndpoint() string {
+	if x != nil {
+		return x.RemoteAccessEndpoint
+	}
+	return ""
+}
+
+func (x *NetworkConfig) GetRemoteAccessDns() []string {
+	if x != nil {
+		return x.RemoteAccessDns
+	}
+	return nil
+}
+
+func (x *NetworkConfig) GetRemoteAccessRoutes() []string {
+	if x != nil {
+		return x.RemoteAccessRoutes
+	}
+	return nil
 }
 
 type SetInternetPathRequest struct {
@@ -1512,6 +1545,118 @@ func (x *ThroughputSample) GetLanOutBytesPerSecond() float64 {
 	return 0
 }
 
+type AddRemoteAccessPeerRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The device's name, written as the peer's description, e.g. "Anna's
+	// phone".
+	Name          string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddRemoteAccessPeerRequest) Reset() {
+	*x = AddRemoteAccessPeerRequest{}
+	mi := &file_network_network_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddRemoteAccessPeerRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddRemoteAccessPeerRequest) ProtoMessage() {}
+
+func (x *AddRemoteAccessPeerRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddRemoteAccessPeerRequest.ProtoReflect.Descriptor instead.
+func (*AddRemoteAccessPeerRequest) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *AddRemoteAccessPeerRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type AddRemoteAccessPeerResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The peer as added: no handshake yet.
+	Peer *RemoteAccessPeer `protobuf:"bytes,1,opt,name=peer,proto3" json:"peer,omitempty"`
+	// The device's WireGuard config (wg-quick's format), private key and
+	// all: [Interface] PrivateKey, Address, DNS; [Peer] PublicKey, Endpoint,
+	// AllowedIPs, PersistentKeepalive. Returned this once.
+	Config string `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
+	// Set when pfSense holds the peer but applying it failed, so the device
+	// can't connect until WireGuard's changes are applied in pfSense.
+	Warning       string `protobuf:"bytes,3,opt,name=warning,proto3" json:"warning,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddRemoteAccessPeerResponse) Reset() {
+	*x = AddRemoteAccessPeerResponse{}
+	mi := &file_network_network_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddRemoteAccessPeerResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddRemoteAccessPeerResponse) ProtoMessage() {}
+
+func (x *AddRemoteAccessPeerResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_network_network_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddRemoteAccessPeerResponse.ProtoReflect.Descriptor instead.
+func (*AddRemoteAccessPeerResponse) Descriptor() ([]byte, []int) {
+	return file_network_network_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *AddRemoteAccessPeerResponse) GetPeer() *RemoteAccessPeer {
+	if x != nil {
+		return x.Peer
+	}
+	return nil
+}
+
+func (x *AddRemoteAccessPeerResponse) GetConfig() string {
+	if x != nil {
+		return x.Config
+	}
+	return ""
+}
+
+func (x *AddRemoteAccessPeerResponse) GetWarning() string {
+	if x != nil {
+		return x.Warning
+	}
+	return ""
+}
+
 type GetRemoteAccessRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1520,7 +1665,7 @@ type GetRemoteAccessRequest struct {
 
 func (x *GetRemoteAccessRequest) Reset() {
 	*x = GetRemoteAccessRequest{}
-	mi := &file_network_network_proto_msgTypes[23]
+	mi := &file_network_network_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1532,7 +1677,7 @@ func (x *GetRemoteAccessRequest) String() string {
 func (*GetRemoteAccessRequest) ProtoMessage() {}
 
 func (x *GetRemoteAccessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[23]
+	mi := &file_network_network_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1545,7 +1690,7 @@ func (x *GetRemoteAccessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRemoteAccessRequest.ProtoReflect.Descriptor instead.
 func (*GetRemoteAccessRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{23}
+	return file_network_network_proto_rawDescGZIP(), []int{25}
 }
 
 type GetRemoteAccessResponse struct {
@@ -1557,14 +1702,17 @@ type GetRemoteAccessResponse struct {
 	Interface string              `protobuf:"bytes,2,opt,name=interface,proto3" json:"interface,omitempty"`
 	Peers     []*RemoteAccessPeer `protobuf:"bytes,3,rep,name=peers,proto3" json:"peers,omitempty"`
 	// Why there's no Remote Access tunnel; empty when there is one.
-	Error         string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Error string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
+	// Why AddRemoteAccessPeer would be refused before trying (network's
+	// config names no Remote Access endpoint); empty when it can add.
+	AddUnavailable string `protobuf:"bytes,5,opt,name=add_unavailable,json=addUnavailable,proto3" json:"add_unavailable,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *GetRemoteAccessResponse) Reset() {
 	*x = GetRemoteAccessResponse{}
-	mi := &file_network_network_proto_msgTypes[24]
+	mi := &file_network_network_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1576,7 +1724,7 @@ func (x *GetRemoteAccessResponse) String() string {
 func (*GetRemoteAccessResponse) ProtoMessage() {}
 
 func (x *GetRemoteAccessResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[24]
+	mi := &file_network_network_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1589,7 +1737,7 @@ func (x *GetRemoteAccessResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetRemoteAccessResponse.ProtoReflect.Descriptor instead.
 func (*GetRemoteAccessResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{24}
+	return file_network_network_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetRemoteAccessResponse) GetTunnel() string {
@@ -1620,6 +1768,13 @@ func (x *GetRemoteAccessResponse) GetError() string {
 	return ""
 }
 
+func (x *GetRemoteAccessResponse) GetAddUnavailable() string {
+	if x != nil {
+		return x.AddUnavailable
+	}
+	return ""
+}
+
 type RemoteAccessPeer struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The peer's description in pfSense; may be empty.
@@ -1642,7 +1797,7 @@ type RemoteAccessPeer struct {
 
 func (x *RemoteAccessPeer) Reset() {
 	*x = RemoteAccessPeer{}
-	mi := &file_network_network_proto_msgTypes[25]
+	mi := &file_network_network_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1654,7 +1809,7 @@ func (x *RemoteAccessPeer) String() string {
 func (*RemoteAccessPeer) ProtoMessage() {}
 
 func (x *RemoteAccessPeer) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[25]
+	mi := &file_network_network_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1667,7 +1822,7 @@ func (x *RemoteAccessPeer) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoteAccessPeer.ProtoReflect.Descriptor instead.
 func (*RemoteAccessPeer) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{25}
+	return file_network_network_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *RemoteAccessPeer) GetName() string {
@@ -1748,7 +1903,7 @@ type Reach struct {
 
 func (x *Reach) Reset() {
 	*x = Reach{}
-	mi := &file_network_network_proto_msgTypes[26]
+	mi := &file_network_network_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1760,7 +1915,7 @@ func (x *Reach) String() string {
 func (*Reach) ProtoMessage() {}
 
 func (x *Reach) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[26]
+	mi := &file_network_network_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1773,7 +1928,7 @@ func (x *Reach) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reach.ProtoReflect.Descriptor instead.
 func (*Reach) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{26}
+	return file_network_network_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *Reach) GetDestination() string {
@@ -1819,7 +1974,7 @@ type GetVpnTunnelRequest struct {
 
 func (x *GetVpnTunnelRequest) Reset() {
 	*x = GetVpnTunnelRequest{}
-	mi := &file_network_network_proto_msgTypes[27]
+	mi := &file_network_network_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1831,7 +1986,7 @@ func (x *GetVpnTunnelRequest) String() string {
 func (*GetVpnTunnelRequest) ProtoMessage() {}
 
 func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[27]
+	mi := &file_network_network_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1844,7 +1999,7 @@ func (x *GetVpnTunnelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelRequest.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelRequest) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{27}
+	return file_network_network_proto_rawDescGZIP(), []int{29}
 }
 
 type GetVpnTunnelResponse struct {
@@ -1864,7 +2019,7 @@ type GetVpnTunnelResponse struct {
 
 func (x *GetVpnTunnelResponse) Reset() {
 	*x = GetVpnTunnelResponse{}
-	mi := &file_network_network_proto_msgTypes[28]
+	mi := &file_network_network_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1876,7 +2031,7 @@ func (x *GetVpnTunnelResponse) String() string {
 func (*GetVpnTunnelResponse) ProtoMessage() {}
 
 func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[28]
+	mi := &file_network_network_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1889,7 +2044,7 @@ func (x *GetVpnTunnelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetVpnTunnelResponse.ProtoReflect.Descriptor instead.
 func (*GetVpnTunnelResponse) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{28}
+	return file_network_network_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *GetVpnTunnelResponse) GetTier() Tier {
@@ -1941,7 +2096,7 @@ type TunnelGateway struct {
 
 func (x *TunnelGateway) Reset() {
 	*x = TunnelGateway{}
-	mi := &file_network_network_proto_msgTypes[29]
+	mi := &file_network_network_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1953,7 +2108,7 @@ func (x *TunnelGateway) String() string {
 func (*TunnelGateway) ProtoMessage() {}
 
 func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
-	mi := &file_network_network_proto_msgTypes[29]
+	mi := &file_network_network_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1966,7 +2121,7 @@ func (x *TunnelGateway) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TunnelGateway.ProtoReflect.Descriptor instead.
 func (*TunnelGateway) Descriptor() ([]byte, []int) {
-	return file_network_network_proto_rawDescGZIP(), []int{29}
+	return file_network_network_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *TunnelGateway) GetName() string {
@@ -2022,12 +2177,16 @@ var File_network_network_proto protoreflect.FileDescriptor
 
 const file_network_network_proto_rawDesc = "" +
 	"\n" +
-	"\x15network/network.proto\x12\rddash.network\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xbf\x04\n" +
+	"\x15network/network.proto\x12\rddash.network\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x83\n" +
+	"\n" +
 	"\rNetworkConfig\x12\x98\x01\n" +
 	"\fbypass_alias\x18\x01 \x01(\tBu\x9a\xb5\x18q\x1a\fBypass alias\"FThe firewall alias whose members skip the VPN Tunnel (Direct Devices).0\x01R\x17pfsense-api.ListAliasesR\vbypassAlias\x12\xb1\x01\n" +
 	"\x0ereserved_range\x18\x02 \x01(\tB\x89\x01\x9a\xb5\x18\x84\x01\x1a\x0eReserved range\"UWhere Adopt picks a New Device's reserved address. It must lie outside the DHCP pool.*\x17198.18.1.20-198.18.1.490\x018\x05R\rreservedRange\x12\xde\x01\n" +
 	"\vblock_alias\x18\x03 \x01(\tB\xbc\x01\x9a\xb5\x18\xb7\x01\x1a\x11No Internet alias\"\x88\x01The firewall alias whose members may not reach the internet (No Internet Devices). Create the alias and its block rule in pfSense first.R\x17pfsense-api.ListAliasesR\n" +
-	"blockAlias\"[\n" +
+	"blockAlias\x12\xfc\x01\n" +
+	"\x16remote_access_endpoint\x18\x04 \x01(\tB\xc5\x01\x9a\xb5\x18\xc0\x01\x1a\x16Remote Access endpoint\"\x8e\x01The public hostname (or address) a new Remote Access device dials, with :port when it isn't the tunnel's listen port. Needed for Add a device.*\x15vpn.example.org:51820R\x14remoteAccessEndpoint\x12\xb2\x01\n" +
+	"\x11remote_access_dns\x18\x05 \x03(\tB\x85\x01\x9a\xb5\x18\x80\x01\x1a\x11Remote Access DNS\"iThe DNS servers a new Remote Access device uses, e.g. AdGuard's address. Empty: the device keeps its own.8\x03R\x0fremoteAccessDns\x12\x8d\x02\n" +
+	"\x14remote_access_routes\x18\x06 \x03(\tB\xda\x01\x9a\xb5\x18\xd5\x01\x1a\x14Remote Access routes\"\xba\x01What a new Remote Access device sends through the tunnel (AllowedIPs). Empty: the firewall's internal subnets (those without a gateway), so only home traffic; 0.0.0.0/0 sends everything.8\x04R\x12remoteAccessRoutes\"[\n" +
 	"\x16SetInternetPathRequest\x12\x10\n" +
 	"\x03mac\x18\x01 \x01(\tR\x03mac\x12/\n" +
 	"\x04path\x18\x02 \x01(\x0e2\x1b.ddash.network.InternetPathR\x04path\"H\n" +
@@ -2109,13 +2268,20 @@ const file_network_network_proto_rawDesc = "" +
 	"\x17wan_in_bytes_per_second\x18\x02 \x01(\x01R\x13wanInBytesPerSecond\x126\n" +
 	"\x18wan_out_bytes_per_second\x18\x03 \x01(\x01R\x14wanOutBytesPerSecond\x124\n" +
 	"\x17lan_in_bytes_per_second\x18\x04 \x01(\x01R\x13lanInBytesPerSecond\x126\n" +
-	"\x18lan_out_bytes_per_second\x18\x05 \x01(\x01R\x14lanOutBytesPerSecond\"\x18\n" +
-	"\x16GetRemoteAccessRequest\"\x9c\x01\n" +
+	"\x18lan_out_bytes_per_second\x18\x05 \x01(\x01R\x14lanOutBytesPerSecond\"0\n" +
+	"\x1aAddRemoteAccessPeerRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\x8c\x01\n" +
+	"\x1bAddRemoteAccessPeerResponse\x123\n" +
+	"\x04peer\x18\x01 \x01(\v2\x1f.ddash.network.RemoteAccessPeerR\x04peer\x12\x1e\n" +
+	"\x06config\x18\x02 \x01(\tB\x06\x9a\xb5\x18\x02\x10\x01R\x06config\x12\x18\n" +
+	"\awarning\x18\x03 \x01(\tR\awarning\"\x18\n" +
+	"\x16GetRemoteAccessRequest\"\xc5\x01\n" +
 	"\x17GetRemoteAccessResponse\x12\x16\n" +
 	"\x06tunnel\x18\x01 \x01(\tR\x06tunnel\x12\x1c\n" +
 	"\tinterface\x18\x02 \x01(\tR\tinterface\x125\n" +
 	"\x05peers\x18\x03 \x03(\v2\x1f.ddash.network.RemoteAccessPeerR\x05peers\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"\xac\x02\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\x12'\n" +
+	"\x0fadd_unavailable\x18\x05 \x01(\tR\x0eaddUnavailable\"\xac\x02\n" +
 	"\x10RemoteAccessPeer\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1d\n" +
 	"\n" +
@@ -2157,12 +2323,13 @@ const file_network_network_proto_rawDesc = "" +
 	"\x10TIER_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eTIER_WIREGUARD\x10\x01\x12\x10\n" +
 	"\fTIER_OPENVPN\x10\x02\x12\r\n" +
-	"\tTIER_DOWN\x10\x032\xf9\a\n" +
+	"\tTIER_DOWN\x10\x032\xed\b\n" +
 	"\x0eNetworkService\x12_\n" +
 	"\fGetVpnTunnel\x12\".ddash.network.GetVpnTunnelRequest\x1a#.ddash.network.GetVpnTunnelResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Z\n" +
 	"\vListDevices\x12!.ddash.network.ListDevicesRequest\x1a\".ddash.network.ListDevicesResponse\"\x04\x8a\xb5\x18\x00\x12b\n" +
 	"\rGetThroughput\x12#.ddash.network.GetThroughputRequest\x1a$.ddash.network.GetThroughputResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12f\n" +
-	"\x0fGetRemoteAccess\x12%.ddash.network.GetRemoteAccessRequest\x1a&.ddash.network.GetRemoteAccessResponse\"\x04\x8a\xb5\x18\x00\x12t\n" +
+	"\x0fGetRemoteAccess\x12%.ddash.network.GetRemoteAccessRequest\x1a&.ddash.network.GetRemoteAccessResponse\"\x04\x8a\xb5\x18\x00\x12r\n" +
+	"\x13AddRemoteAccessPeer\x12).ddash.network.AddRemoteAccessPeerRequest\x1a*.ddash.network.AddRemoteAccessPeerResponse\"\x04\x92\xb5\x18\x00\x12t\n" +
 	"\x13NextReservedAddress\x12).ddash.network.NextReservedAddressRequest\x1a*.ddash.network.NextReservedAddressResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12Z\n" +
 	"\vAdoptDevice\x12!.ddash.network.AdoptDeviceRequest\x1a\".ddash.network.AdoptDeviceResponse\"\x04\x92\xb5\x18\x00\x12]\n" +
 	"\fRenameDevice\x12\".ddash.network.RenameDeviceRequest\x1a#.ddash.network.RenameDeviceResponse\"\x04\x92\xb5\x18\x00\x12f\n" +
@@ -2183,7 +2350,7 @@ func file_network_network_proto_rawDescGZIP() []byte {
 }
 
 var file_network_network_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_network_network_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_network_network_proto_goTypes = []any{
 	(InternetPath)(0),                   // 0: ddash.network.InternetPath
 	(Tier)(0),                           // 1: ddash.network.Tier
@@ -2210,14 +2377,16 @@ var file_network_network_proto_goTypes = []any{
 	(*GetThroughputRequest)(nil),        // 22: ddash.network.GetThroughputRequest
 	(*GetThroughputResponse)(nil),       // 23: ddash.network.GetThroughputResponse
 	(*ThroughputSample)(nil),            // 24: ddash.network.ThroughputSample
-	(*GetRemoteAccessRequest)(nil),      // 25: ddash.network.GetRemoteAccessRequest
-	(*GetRemoteAccessResponse)(nil),     // 26: ddash.network.GetRemoteAccessResponse
-	(*RemoteAccessPeer)(nil),            // 27: ddash.network.RemoteAccessPeer
-	(*Reach)(nil),                       // 28: ddash.network.Reach
-	(*GetVpnTunnelRequest)(nil),         // 29: ddash.network.GetVpnTunnelRequest
-	(*GetVpnTunnelResponse)(nil),        // 30: ddash.network.GetVpnTunnelResponse
-	(*TunnelGateway)(nil),               // 31: ddash.network.TunnelGateway
-	(*timestamppb.Timestamp)(nil),       // 32: google.protobuf.Timestamp
+	(*AddRemoteAccessPeerRequest)(nil),  // 25: ddash.network.AddRemoteAccessPeerRequest
+	(*AddRemoteAccessPeerResponse)(nil), // 26: ddash.network.AddRemoteAccessPeerResponse
+	(*GetRemoteAccessRequest)(nil),      // 27: ddash.network.GetRemoteAccessRequest
+	(*GetRemoteAccessResponse)(nil),     // 28: ddash.network.GetRemoteAccessResponse
+	(*RemoteAccessPeer)(nil),            // 29: ddash.network.RemoteAccessPeer
+	(*Reach)(nil),                       // 30: ddash.network.Reach
+	(*GetVpnTunnelRequest)(nil),         // 31: ddash.network.GetVpnTunnelRequest
+	(*GetVpnTunnelResponse)(nil),        // 32: ddash.network.GetVpnTunnelResponse
+	(*TunnelGateway)(nil),               // 33: ddash.network.TunnelGateway
+	(*timestamppb.Timestamp)(nil),       // 34: google.protobuf.Timestamp
 }
 var file_network_network_proto_depIdxs = []int32{
 	0,  // 0: ddash.network.SetInternetPathRequest.path:type_name -> ddash.network.InternetPath
@@ -2233,39 +2402,42 @@ var file_network_network_proto_depIdxs = []int32{
 	19, // 10: ddash.network.Device.lease:type_name -> ddash.network.DeviceLease
 	20, // 11: ddash.network.Device.reservation:type_name -> ddash.network.Reservation
 	21, // 12: ddash.network.Device.aliases:type_name -> ddash.network.DeviceAlias
-	32, // 13: ddash.network.GetThroughputRequest.since:type_name -> google.protobuf.Timestamp
+	34, // 13: ddash.network.GetThroughputRequest.since:type_name -> google.protobuf.Timestamp
 	24, // 14: ddash.network.GetThroughputResponse.samples:type_name -> ddash.network.ThroughputSample
-	32, // 15: ddash.network.ThroughputSample.at:type_name -> google.protobuf.Timestamp
-	27, // 16: ddash.network.GetRemoteAccessResponse.peers:type_name -> ddash.network.RemoteAccessPeer
-	32, // 17: ddash.network.RemoteAccessPeer.latest_handshake:type_name -> google.protobuf.Timestamp
-	28, // 18: ddash.network.RemoteAccessPeer.reaches:type_name -> ddash.network.Reach
-	1,  // 19: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
-	31, // 20: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
-	29, // 21: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
-	16, // 22: ddash.network.NetworkService.ListDevices:input_type -> ddash.network.ListDevicesRequest
-	22, // 23: ddash.network.NetworkService.GetThroughput:input_type -> ddash.network.GetThroughputRequest
-	25, // 24: ddash.network.NetworkService.GetRemoteAccess:input_type -> ddash.network.GetRemoteAccessRequest
-	10, // 25: ddash.network.NetworkService.NextReservedAddress:input_type -> ddash.network.NextReservedAddressRequest
-	12, // 26: ddash.network.NetworkService.AdoptDevice:input_type -> ddash.network.AdoptDeviceRequest
-	14, // 27: ddash.network.NetworkService.RenameDevice:input_type -> ddash.network.RenameDeviceRequest
-	3,  // 28: ddash.network.NetworkService.SetInternetPath:input_type -> ddash.network.SetInternetPathRequest
-	5,  // 29: ddash.network.NetworkService.GetNetworkInfo:input_type -> ddash.network.GetNetworkInfoRequest
-	8,  // 30: ddash.network.NetworkService.SetAdBlocking:input_type -> ddash.network.SetAdBlockingRequest
-	30, // 31: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
-	17, // 32: ddash.network.NetworkService.ListDevices:output_type -> ddash.network.ListDevicesResponse
-	23, // 33: ddash.network.NetworkService.GetThroughput:output_type -> ddash.network.GetThroughputResponse
-	26, // 34: ddash.network.NetworkService.GetRemoteAccess:output_type -> ddash.network.GetRemoteAccessResponse
-	11, // 35: ddash.network.NetworkService.NextReservedAddress:output_type -> ddash.network.NextReservedAddressResponse
-	13, // 36: ddash.network.NetworkService.AdoptDevice:output_type -> ddash.network.AdoptDeviceResponse
-	15, // 37: ddash.network.NetworkService.RenameDevice:output_type -> ddash.network.RenameDeviceResponse
-	4,  // 38: ddash.network.NetworkService.SetInternetPath:output_type -> ddash.network.SetInternetPathResponse
-	6,  // 39: ddash.network.NetworkService.GetNetworkInfo:output_type -> ddash.network.GetNetworkInfoResponse
-	9,  // 40: ddash.network.NetworkService.SetAdBlocking:output_type -> ddash.network.SetAdBlockingResponse
-	31, // [31:41] is the sub-list for method output_type
-	21, // [21:31] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	34, // 15: ddash.network.ThroughputSample.at:type_name -> google.protobuf.Timestamp
+	29, // 16: ddash.network.AddRemoteAccessPeerResponse.peer:type_name -> ddash.network.RemoteAccessPeer
+	29, // 17: ddash.network.GetRemoteAccessResponse.peers:type_name -> ddash.network.RemoteAccessPeer
+	34, // 18: ddash.network.RemoteAccessPeer.latest_handshake:type_name -> google.protobuf.Timestamp
+	30, // 19: ddash.network.RemoteAccessPeer.reaches:type_name -> ddash.network.Reach
+	1,  // 20: ddash.network.GetVpnTunnelResponse.tier:type_name -> ddash.network.Tier
+	33, // 21: ddash.network.GetVpnTunnelResponse.gateways:type_name -> ddash.network.TunnelGateway
+	31, // 22: ddash.network.NetworkService.GetVpnTunnel:input_type -> ddash.network.GetVpnTunnelRequest
+	16, // 23: ddash.network.NetworkService.ListDevices:input_type -> ddash.network.ListDevicesRequest
+	22, // 24: ddash.network.NetworkService.GetThroughput:input_type -> ddash.network.GetThroughputRequest
+	27, // 25: ddash.network.NetworkService.GetRemoteAccess:input_type -> ddash.network.GetRemoteAccessRequest
+	25, // 26: ddash.network.NetworkService.AddRemoteAccessPeer:input_type -> ddash.network.AddRemoteAccessPeerRequest
+	10, // 27: ddash.network.NetworkService.NextReservedAddress:input_type -> ddash.network.NextReservedAddressRequest
+	12, // 28: ddash.network.NetworkService.AdoptDevice:input_type -> ddash.network.AdoptDeviceRequest
+	14, // 29: ddash.network.NetworkService.RenameDevice:input_type -> ddash.network.RenameDeviceRequest
+	3,  // 30: ddash.network.NetworkService.SetInternetPath:input_type -> ddash.network.SetInternetPathRequest
+	5,  // 31: ddash.network.NetworkService.GetNetworkInfo:input_type -> ddash.network.GetNetworkInfoRequest
+	8,  // 32: ddash.network.NetworkService.SetAdBlocking:input_type -> ddash.network.SetAdBlockingRequest
+	32, // 33: ddash.network.NetworkService.GetVpnTunnel:output_type -> ddash.network.GetVpnTunnelResponse
+	17, // 34: ddash.network.NetworkService.ListDevices:output_type -> ddash.network.ListDevicesResponse
+	23, // 35: ddash.network.NetworkService.GetThroughput:output_type -> ddash.network.GetThroughputResponse
+	28, // 36: ddash.network.NetworkService.GetRemoteAccess:output_type -> ddash.network.GetRemoteAccessResponse
+	26, // 37: ddash.network.NetworkService.AddRemoteAccessPeer:output_type -> ddash.network.AddRemoteAccessPeerResponse
+	11, // 38: ddash.network.NetworkService.NextReservedAddress:output_type -> ddash.network.NextReservedAddressResponse
+	13, // 39: ddash.network.NetworkService.AdoptDevice:output_type -> ddash.network.AdoptDeviceResponse
+	15, // 40: ddash.network.NetworkService.RenameDevice:output_type -> ddash.network.RenameDeviceResponse
+	4,  // 41: ddash.network.NetworkService.SetInternetPath:output_type -> ddash.network.SetInternetPathResponse
+	6,  // 42: ddash.network.NetworkService.GetNetworkInfo:output_type -> ddash.network.GetNetworkInfoResponse
+	9,  // 43: ddash.network.NetworkService.SetAdBlocking:output_type -> ddash.network.SetAdBlockingResponse
+	33, // [33:44] is the sub-list for method output_type
+	22, // [22:33] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_network_network_proto_init() }
@@ -2273,14 +2445,14 @@ func file_network_network_proto_init() {
 	if File_network_network_proto != nil {
 		return
 	}
-	file_network_network_proto_msgTypes[29].OneofWrappers = []any{}
+	file_network_network_proto_msgTypes[31].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_network_network_proto_rawDesc), len(file_network_network_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   30,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -41,6 +41,9 @@ func (c *component) GetRemoteAccess(ctx context.Context, _ *networkpb.GetRemoteA
 		nets.aliases[a.GetName()] = a
 	}
 	out := &networkpb.GetRemoteAccessResponse{Tunnel: tunnel.GetName(), Interface: iface.GetDescription()}
+	if c.remote.host == "" {
+		out.AddUnavailable = errNoEndpoint
+	}
 	for _, p := range tunnel.GetPeers() {
 		out.Peers = append(out.Peers, &networkpb.RemoteAccessPeer{
 			Name:            p.GetDescription(),
