@@ -22,6 +22,7 @@ import (
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
@@ -29,12 +30,14 @@ import (
 )
 
 // The round trips of `make smoke-writes` (RunWrites). They run the real
-// Actions of pfsense-api, adguard-api, proxmox-api and
-// nginx-proxy-manager-api, and touch only the smoke targets: the
+// Actions of pfsense-api, adguard-api, proxmox-api,
+// nginx-proxy-manager-api and cloudflare-api, and touch only the smoke
+// targets: the
 // DDASH_SMOKE alias, a static mapping and an AdGuard client for
 // SMOKE_UNUSED_IP made with the smoke MAC and name, the Host Override
 // SMOKE_HOST_OVERRIDE with its alias, the stopped ddash-smoke LXC, and a
-// Proxy Host for SMOKE_PROXY_HOST forwarding to SMOKE_UNUSED_IP. What no
+// Proxy Host for SMOKE_PROXY_HOST forwarding to SMOKE_UNUSED_IP, and a
+// Public Hostname for SMOKE_PUBLIC_HOSTNAME (writes_cloudflare.go). What no
 // Action can undo (deleting the static
 // mapping and the client) goes to the system as a raw call. Each round
 // trip's cleanup runs before it, removing what an interrupted run left,
@@ -78,7 +81,7 @@ const (
 )
 
 // writeSystems are the system Components the round trips use.
-var writeSystems = []string{"pfsense-api", "adguard-api", "proxmox-api", "nginx-proxy-manager-api"}
+var writeSystems = []string{"pfsense-api", "adguard-api", "proxmox-api", "nginx-proxy-manager-api", "cloudflare-api"}
 
 // roundTrip is one reversible exercise of a system's Actions.
 type roundTrip struct {
@@ -100,6 +103,7 @@ var roundTrips = []roundTrip{
 	{component: "proxmox-api", name: SmokeLXC + " start and shutdown", run: (*writes).powerRoundTrip, undo: (*writes).forceSmokeDown},
 	{component: "proxmox-api", name: "Protected refusal", run: (*writes).protectedRefusal},
 	{component: "nginx-proxy-manager-api", name: "Proxy Host round trip", run: (*writes).proxyHostRoundTrip, undo: (*writes).deleteSmokeProxyHosts},
+	{component: "cloudflare-api", name: "Public Hostname round trip", run: (*writes).publicHostnameRoundTrip, undo: (*writes).deleteSmokePublicHostname},
 }
 
 // writes is what the round trips share: the started Components and what
@@ -118,6 +122,9 @@ type writes struct {
 	npm   nginxproxymanagerapipb.NginxProxyManagerApiServiceClient
 	// proxyHost is ProxyHostVar's hostname; empty when unset.
 	proxyHost string
+	cf        cloudflareapipb.CloudflareApiServiceClient
+	// publicHostname is PublicHostnameVar's hostname; empty when unset.
+	publicHostname string
 
 	// smoke is ddash-smoke once a start was sent to it: only then does
 	// cleanup shut it down.
@@ -146,8 +153,9 @@ func RunWrites(ctx context.Context, opts Options) error {
 
 	w := &writes{
 		ip: ip, http: &http.Client{Timeout: CallTimeout},
-		host:      strings.ToLower(strings.TrimSpace(opts.Env[HostOverrideVar])),
-		proxyHost: strings.TrimSpace(opts.Env[ProxyHostVar]),
+		host:           strings.ToLower(strings.TrimSpace(opts.Env[HostOverrideVar])),
+		proxyHost:      strings.TrimSpace(opts.Env[ProxyHostVar]),
+		publicHostname: strings.ToLower(strings.TrimSpace(opts.Env[PublicHostnameVar])),
 	}
 	var errs []error
 	fail := func(err error) {
@@ -157,6 +165,10 @@ func RunWrites(ctx context.Context, opts Options) error {
 	started := map[string]bool{}
 	for _, name := range writeSystems {
 		s := systemNamed(name)
+		if s.optional && strings.TrimSpace(opts.Env[EnvVar(name)]) == "" {
+			fmt.Fprintf(opts.Log, "skip %s: optional, and %s isn't set in smoke.env\n", name, EnvVar(name))
+			continue
+		}
 		cfg, err := configOf(s, opts.Env)
 		if err == nil {
 			conn, stop, lerr := launch(ctx, s.def, cfg, filepath.Join(opts.DataDir, name+".db"), opts.Log)
@@ -172,6 +184,8 @@ func RunWrites(ctx context.Context, opts Options) error {
 					w.px = proxmoxapipb.NewProxmoxApiServiceClient(conn)
 				case *nginxproxymanagerapipb.NginxProxyManagerApiConfig:
 					w.npm = nginxproxymanagerapipb.NewNginxProxyManagerApiServiceClient(conn)
+				case *cloudflareapipb.CloudflareApiConfig:
+					w.cf = cloudflareapipb.NewCloudflareApiServiceClient(conn)
 				}
 			}
 		}

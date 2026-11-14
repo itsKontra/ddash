@@ -4,7 +4,10 @@
 // does), runs each power request as a task that ends after a number of
 // status reads, can list a Workload's old status for a while after its
 // task ended (as /cluster/resources does until pvestatd refreshes it),
-// and records every request in order; anything else is
+// keeps each Workload's snapshots (seeded from a scenario's
+// snapshot.json) and runs their create and delete as tasks, fails a
+// snapshot on a Workload whose feature.json says the storage can't, runs
+// vzdump as a task, and records every request in order; anything else is
 // served from a scenario's fixtures (fixture.Scenario). proxmox-api's
 // tests and fakelab serve it.
 package proxmoxfake
@@ -61,6 +64,27 @@ type Proxmox struct {
 	seq       int
 	log       []string
 	startedAt time.Time
+	// snapshots are each Workload's, by VMID, oldest first.
+	snapshots map[int][]Snapshot
+	// noSnapshot are the Workloads whose storage can't snapshot.
+	noSnapshot map[int]bool
+	backups    []Backup
+}
+
+// Snapshot is one snapshot of a Workload, as the fake keeps it.
+type Snapshot struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	SnapTime    int64  `json:"snaptime"`
+	Parent      string `json:"parent,omitempty"`
+}
+
+// Backup is a vzdump the fake ran.
+type Backup struct {
+	VMID    int
+	Storage string
+	Mode    string
+	UPID    string
 }
 
 // staleGuest is a Workload as /cluster/resources still lists it for its
@@ -101,7 +125,199 @@ func New(dir string, opts Options) (*Proxmox, error) {
 	if err := seed(dir, permissionPath, &p.perms); err != nil {
 		return nil, err
 	}
+	p.snapshots, p.noSnapshot = map[int][]Snapshot{}, map[int]bool{}
+	for _, g := range p.guests {
+		id, _ := g["vmid"].(float64)
+		node, _ := g["node"].(string)
+		kind, _ := g["type"].(string)
+		base := fmt.Sprintf("%s/nodes/%s/%s/%d", api, node, kind, int(id))
+		var snaps []Snapshot
+		if seed(dir, base+"/snapshot", &snaps) == nil {
+			snaps = slices.DeleteFunc(snaps, func(s Snapshot) bool { return s.Name == "current" })
+			p.snapshots[int(id)] = snaps
+		}
+		var feature struct {
+			HasFeature int `json:"hasFeature"`
+		}
+		if seed(dir, base+"/feature", &feature) == nil && feature.HasFeature == 0 {
+			p.noSnapshot[int(id)] = true
+		}
+	}
 	return p, nil
+}
+
+// Snapshots returns a Workload's snapshots now, oldest first.
+func (p *Proxmox) Snapshots(vmid int) []Snapshot {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return slices.Clone(p.snapshots[vmid])
+}
+
+// SetSnapshots replaces a Workload's snapshots.
+func (p *Proxmox) SetSnapshots(vmid int, snaps []Snapshot) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.snapshots[vmid] = slices.Clone(snaps)
+}
+
+// SetSnapshotSupport says whether a Workload's storage can snapshot: a
+// snapshot task on one that can't fails as on LVM.
+func (p *Proxmox) SetSnapshotSupport(vmid int, ok bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.noSnapshot[vmid] = !ok
+}
+
+// Backups returns every vzdump the fake ran, in order.
+func (p *Proxmox) Backups() []Backup {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return slices.Clone(p.backups)
+}
+
+// target splits /nodes/{node}/{lxc|qemu}/{vmid}/… and finds its Workload.
+// Call with p.mu held.
+func (p *Proxmox) target(path string) (node, kind string, vmid int, rest []string, err error) {
+	parts := strings.Split(strings.TrimPrefix(path, api+"/"), "/")
+	if len(parts) < 5 || parts[0] != "nodes" {
+		return "", "", 0, nil, fmt.Errorf("no such method")
+	}
+	node, kind = parts[1], parts[2]
+	if vmid, err = strconv.Atoi(parts[3]); err != nil {
+		return "", "", 0, nil, fmt.Errorf("bad vmid")
+	}
+	g := p.guest(vmid)
+	if g == nil || g["node"] != node || g["type"] != kind {
+		return "", "", 0, nil, fmt.Errorf("Configuration file 'nodes/%s/%s/%d.conf' does not exist", node, kind, vmid) //nolint:staticcheck // Proxmox's own words
+	}
+	return node, kind, vmid, parts[4:], nil
+}
+
+// snapshot answers GET (list), POST (create) on
+// /nodes/{node}/{kind}/{vmid}/snapshot and DELETE on …/snapshot/{name},
+// each write as a task.
+func (p *Proxmox) snapshot(w http.ResponseWriter, method, path string, params map[string]any) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	node, kind, vmid, rest, err := p.target(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	prefix := "vz"
+	if kind == "qemu" {
+		prefix = "qm"
+	}
+	switch {
+	case method == http.MethodGet && len(rest) == 1:
+		list := []map[string]any{}
+		parent := ""
+		for _, s := range p.snapshots[vmid] {
+			e := map[string]any{"name": s.Name, "description": s.Description, "snaptime": s.SnapTime}
+			if s.Parent != "" {
+				e["parent"] = s.Parent
+			}
+			list = append(list, e)
+			parent = s.Name
+		}
+		current := map[string]any{"name": "current", "description": "You are here!", "running": 1}
+		if parent != "" {
+			current["parent"] = parent
+		}
+		b, err := json.Marshal(append(list, current))
+		reply(w, b, err)
+	case method == http.MethodPost && len(rest) == 1:
+		if !p.privileged(vmid, "VM.Snapshot") {
+			http.Error(w, fmt.Sprintf("Permission check failed (/vms/%d, VM.Snapshot)", vmid), http.StatusForbidden)
+			return
+		}
+		name, _ := params["snapname"].(string)
+		desc, _ := params["description"].(string)
+		if slices.ContainsFunc(p.snapshots[vmid], func(s Snapshot) bool { return s.Name == name }) {
+			http.Error(w, fmt.Sprintf("snapshot name '%s' already used", name), http.StatusInternalServerError)
+			return
+		}
+		t := p.newTask(node, prefix+"snapshot", vmid, func(map[string]any) {
+			parent := ""
+			if snaps := p.snapshots[vmid]; len(snaps) > 0 {
+				parent = snaps[len(snaps)-1].Name
+			}
+			p.snapshots[vmid] = append(p.snapshots[vmid], Snapshot{Name: name, Description: desc + "\n", SnapTime: p.now().Unix(), Parent: parent})
+		})
+		if p.noSnapshot[vmid] {
+			t.exit = "snapshot feature is not available"
+		}
+		b, err := json.Marshal(t.upid)
+		reply(w, b, err)
+	case method == http.MethodDelete && len(rest) == 2:
+		if !p.privileged(vmid, "VM.Snapshot") {
+			http.Error(w, fmt.Sprintf("Permission check failed (/vms/%d, VM.Snapshot)", vmid), http.StatusForbidden)
+			return
+		}
+		name := rest[1]
+		if !slices.ContainsFunc(p.snapshots[vmid], func(s Snapshot) bool { return s.Name == name }) {
+			http.Error(w, fmt.Sprintf("snapshot '%s' does not exist", name), http.StatusInternalServerError)
+			return
+		}
+		t := p.newTask(node, prefix+"delsnapshot", vmid, func(map[string]any) {
+			p.snapshots[vmid] = slices.DeleteFunc(p.snapshots[vmid], func(s Snapshot) bool { return s.Name == name })
+		})
+		b, err := json.Marshal(t.upid)
+		reply(w, b, err)
+	default:
+		http.Error(w, "no such method", http.StatusNotImplemented)
+	}
+}
+
+// now is the fake's clock for snapshot times.
+func (p *Proxmox) now() time.Time { return time.Now() }
+
+// feature answers GET /nodes/{node}/{kind}/{vmid}/feature?feature=snapshot.
+func (p *Proxmox) feature(w http.ResponseWriter, path string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	_, _, vmid, _, err := p.target(path)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	has := 1
+	if p.noSnapshot[vmid] {
+		has = 0
+	}
+	reply(w, fmt.Appendf(nil, `{"hasFeature":%d}`, has), nil)
+}
+
+// vzdump answers POST /nodes/{node}/vzdump with a task.
+func (p *Proxmox) vzdump(w http.ResponseWriter, path string, params map[string]any) {
+	node := strings.TrimSuffix(strings.TrimPrefix(path, api+"/nodes/"), "/vzdump")
+	vmid := 0
+	switch v := params["vmid"].(type) {
+	case float64:
+		vmid = int(v)
+	case string:
+		vmid, _ = strconv.Atoi(v)
+	}
+	storage, _ := params["storage"].(string)
+	mode, _ := params["mode"].(string)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if g := p.guest(vmid); g == nil || g["node"] != node {
+		http.Error(w, fmt.Sprintf("guest %d not found on node %s", vmid, node), http.StatusInternalServerError)
+		return
+	}
+	if !p.privileged(vmid, "VM.Backup") {
+		http.Error(w, fmt.Sprintf("Permission check failed (/vms/%d, VM.Backup)", vmid), http.StatusForbidden)
+		return
+	}
+	if storage == "" {
+		http.Error(w, "storage: property is missing", http.StatusBadRequest)
+		return
+	}
+	t := p.newTask(node, "vzdump", vmid, func(map[string]any) {})
+	p.backups = append(p.backups, Backup{VMID: vmid, Storage: storage, Mode: mode, UPID: t.upid})
+	b, err := json.Marshal(t.upid)
+	reply(w, b, err)
 }
 
 // seed decodes the data of path's fixture in dir, else in its sibling
@@ -181,7 +397,7 @@ func (p *Proxmox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := r.URL.Path
 	entry := r.Method + " " + path
 	var params map[string]any
-	if r.Method == http.MethodPost && r.Body != nil {
+	if (r.Method == http.MethodPost || r.Method == http.MethodDelete) && r.Body != nil {
 		_ = json.NewDecoder(r.Body).Decode(&params)
 		entry += paramText(params)
 	}
@@ -197,6 +413,12 @@ func (p *Proxmox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		reply(w, b, err)
 	case r.Method == http.MethodPost && strings.Contains(path, "/status/"):
 		p.power(w, path)
+	case strings.Contains(path, "/snapshot"):
+		p.snapshot(w, r.Method, path, params)
+	case r.Method == http.MethodGet && strings.HasSuffix(path, "/feature"):
+		p.feature(w, path)
+	case r.Method == http.MethodPost && strings.HasSuffix(path, "/vzdump"):
+		p.vzdump(w, path, params)
 	case r.Method == http.MethodGet && strings.HasSuffix(path, "/status") && strings.Contains(path, "/tasks/"):
 		p.taskStatus(w, path)
 	case r.Method == http.MethodGet && strings.HasSuffix(path, "/tasks"):
@@ -277,10 +499,18 @@ func (p *Proxmox) power(w http.ResponseWriter, path string) {
 		http.Error(w, "no such method", http.StatusNotImplemented)
 		return
 	}
+	t := p.newTask(node, prefix+action, vmid, effect)
+	b, err := json.Marshal(t.upid)
+	reply(w, b, err)
+}
+
+// newTask starts a task of type typ on vmid that applies effect when it
+// ends OK (or fails as FailNextTask said). Call with p.mu held.
+func (p *Proxmox) newTask(node, typ string, vmid int, effect func(g map[string]any)) *task {
 	p.seq++
 	started := p.startedAt.Add(time.Duration(p.seq) * time.Second)
 	t := &task{
-		node: node, typ: prefix + action, id: strconv.Itoa(vmid), vmid: vmid,
+		node: node, typ: typ, id: strconv.Itoa(vmid), vmid: vmid,
 		started: started, polls: p.polls, exit: "OK", effect: effect,
 	}
 	if p.failNext != "" {
@@ -288,8 +518,7 @@ func (p *Proxmox) power(w http.ResponseWriter, path string) {
 	}
 	t.upid = fmt.Sprintf("UPID:%s:%08X:%08X:%08X:%s:%s:ddash@pve!dashboard:", node, 0x1000+p.seq, 0x2000+p.seq, started.Unix(), t.typ, t.id)
 	p.tasks[t.upid] = t
-	b, err := json.Marshal(t.upid)
-	reply(w, b, err)
+	return t
 }
 
 // taskStatus answers GET /nodes/{node}/tasks/{upid}/status; the task ends
@@ -326,12 +555,31 @@ func (p *Proxmox) activeTasks(w http.ResponseWriter, r *http.Request) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	list := []map[string]any{}
-	if q.Get("source") == "active" {
+	switch q.Get("source") {
+	case "active":
 		for _, t := range p.tasks {
 			if t.done || t.node != node || (q.Get("vmid") != "" && q.Get("vmid") != t.id) {
 				continue
 			}
 			list = append(list, t.json())
+		}
+	case "all":
+		// Running and ended; a listing counts as a status read of each
+		// running task, so a task followed this way ends too.
+		for _, t := range p.tasks {
+			if t.node != node || (q.Get("vmid") != "" && q.Get("vmid") != t.id) {
+				continue
+			}
+			if !t.done {
+				if t.reads++; t.reads >= t.polls {
+					p.finish(t)
+				}
+			}
+			e := t.json()
+			if t.done {
+				e["status"], e["endtime"] = t.exit, t.started.Unix()+int64(t.reads)
+			}
+			list = append(list, e)
 		}
 	}
 	slices.SortFunc(list, func(a, b map[string]any) int { return strings.Compare(a["upid"].(string), b["upid"].(string)) })

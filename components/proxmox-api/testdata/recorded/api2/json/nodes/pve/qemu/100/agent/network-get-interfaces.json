@@ -1,0 +1,109 @@
+{
+  "data": {
+    "result": [
+      {
+        "name": "vtnet0",
+        "ip-addresses": [
+          {
+            "prefix": 64,
+            "ip-address": "2001:db8:30c:4464:1b7c:1928:f2fb:9983",
+            "ip-address-type": "ipv6"
+          },
+          {
+            "prefix": 24,
+            "ip-address": "203.0.113.53",
+            "ip-address-type": "ipv4"
+          }
+        ],
+        "hardware-address": "02:05:5b:bb:01:86"
+      },
+      {
+        "hardware-address": "02:25:70:dd:a6:01",
+        "ip-addresses": [
+          {
+            "ip-address-type": "ipv6",
+            "ip-address": "2001:db8:30c:4464:7594:20a3:7f79:221d",
+            "prefix": 64
+          },
+          {
+            "prefix": 24,
+            "ip-address-type": "ipv4",
+            "ip-address": "198.18.1.1"
+          }
+        ],
+        "name": "vtnet1"
+      },
+      {
+        "hardware-address": "00:00:00:00:00:00",
+        "name": "enc0"
+      },
+      {
+        "hardware-address": "00:00:00:00:00:00",
+        "ip-addresses": [
+          {
+            "prefix": 128,
+            "ip-address": "::1",
+            "ip-address-type": "ipv6"
+          },
+          {
+            "prefix": 64,
+            "ip-address": "2001:db8:30c:4464::1",
+            "ip-address-type": "ipv6"
+          },
+          {
+            "ip-address-type": "ipv4",
+            "ip-address": "127.0.0.1",
+            "prefix": 8
+          }
+        ],
+        "name": "lo0"
+      },
+      {
+        "name": "pflog0",
+        "hardware-address": "00:00:00:00:00:00"
+      },
+      {
+        "hardware-address": "00:00:00:00:00:00",
+        "name": "pfsync0"
+      },
+      {
+        "hardware-address": "00:00:00:00:00:00",
+        "ip-addresses": [
+          {
+            "ip-address": "2001:db8:30c:4464:1b7c:1928:f2fb:9983",
+            "ip-address-type": "ipv6",
+            "prefix": 64
+          },
+          {
+            "prefix": 16,
+            "ip-address-type": "ipv4",
+            "ip-address": "203.0.113.169"
+          }
+        ],
+        "name": "ovpnc1"
+      },
+      {
+        "ip-addresses": [
+          {
+            "prefix": 24,
+            "ip-address": "198.18.40.1",
+            "ip-address-type": "ipv4"
+          }
+        ],
+        "name": "tun_wg1",
+        "hardware-address": "00:00:00:00:00:00"
+      },
+      {
+        "name": "tun_wg2",
+        "ip-addresses": [
+          {
+            "ip-address": "198.18.30.2",
+            "ip-address-type": "ipv4",
+            "prefix": 24
+          }
+        ],
+        "hardware-address": "00:00:00:00:00:00"
+      }
+    ]
+  }
+}

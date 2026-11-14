@@ -83,7 +83,20 @@ export function resolve(p: ProxyDraft, certs: readonly Certificate[], host: stri
  * existing ones, and the flags. Nginx Proxy Manager's toggle rules show as
  * unchecked, disabled boxes.
  */
-export function ProxyFields({ value: p, onChange, host, certificates }: { value: ProxyDraft; onChange: (p: ProxyDraft) => void; host: string; certificates: readonly Certificate[] }) {
+export function ProxyFields({
+  value: p,
+  onChange,
+  host,
+  certificates,
+  upstream,
+}: {
+  value: ProxyDraft;
+  onChange: (p: ProxyDraft) => void;
+  host: string;
+  certificates: readonly Certificate[];
+  /** Set when ddash fills in the upstream's host and port (a new Compose Project's): shown, not typed. */
+  upstream?: string;
+}) {
   const set = (patch: Partial<ProxyDraft>) => onChange({ ...p, ...patch });
   const f = resolve(p, certificates, host);
   const covering = coveringCert(certificates, host);
@@ -97,14 +110,24 @@ export function ProxyFields({ value: p, onChange, host, certificates }: { value:
             <option value="https">https</option>
           </Select>
         </Field>
-        <div className="col-span-2">
-          <Field label="Upstream host">
-            <TextInput value={p.host} placeholder="198.18.2.10" onChange={(e) => set({ host: e.target.value })} />
-          </Field>
-        </div>
-        <Field label="Port">
-          <TextInput value={p.port} inputMode="numeric" onChange={(e) => set({ port: e.target.value })} />
-        </Field>
+        {upstream !== undefined ? (
+          <div className="col-span-3">
+            <Field label="Upstream" hint="The Docker host's address and the Compose service's published port.">
+              <TextInput value={upstream} placeholder="Pick the Docker host and Compose service" readOnly />
+            </Field>
+          </div>
+        ) : (
+          <>
+            <div className="col-span-2">
+              <Field label="Upstream host">
+                <TextInput value={p.host} placeholder="198.18.2.10" onChange={(e) => set({ host: e.target.value })} />
+              </Field>
+            </div>
+            <Field label="Port">
+              <TextInput value={p.port} inputMode="numeric" onChange={(e) => set({ port: e.target.value })} />
+            </Field>
+          </>
+        )}
       </div>
       <Field
         label="Certificate"

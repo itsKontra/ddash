@@ -2,7 +2,7 @@
   "name": "@ddash/plugin-docker",
   "private": true,
   "type": "module",
-  "description": "The docker Plugin's UI: containers per Docker host.",
+  "description": "The docker Plugin's UI: Compose Projects, Docker Agents and containers per Docker host.",
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
+    "@ddash/display": "workspace:*",
     "@ddash/plugin": "workspace:*",
     "@ddash/proto": "workspace:*",
     "@ddash/ui": "workspace:*"

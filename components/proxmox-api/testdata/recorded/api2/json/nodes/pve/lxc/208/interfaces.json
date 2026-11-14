@@ -1,0 +1,42 @@
+{
+  "data": [
+    {
+      "hardware-address": "00:00:00:00:00:00",
+      "inet6": "::1/128",
+      "hwaddr": "00:00:00:00:00:00",
+      "name": "lo",
+      "ip-addresses": [
+        {
+          "prefix": "8",
+          "ip-address": "127.0.0.1",
+          "ip-address-type": "inet"
+        },
+        {
+          "prefix": "128",
+          "ip-address-type": "inet6",
+          "ip-address": "::1"
+        }
+      ],
+      "inet": "127.0.0.1/8"
+    },
+    {
+      "name": "fw-network",
+      "ip-addresses": [
+        {
+          "prefix": "24",
+          "ip-address": "198.18.1.208",
+          "ip-address-type": "inet"
+        },
+        {
+          "prefix": "64",
+          "ip-address-type": "inet6",
+          "ip-address": "2001:db8:30c:4464:a7bf:330e:c60d:bf83"
+        }
+      ],
+      "inet": "198.18.1.208/24",
+      "hwaddr": "02:39:7e:6d:29:00",
+      "inet6": "2001:db8:30c:4464:a7bf:330e:c60d:bf83/64",
+      "hardware-address": "02:39:7e:6d:29:00"
+    }
+  ]
+}

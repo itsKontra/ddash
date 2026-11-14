@@ -22,8 +22,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	NtfyApiService_Send_FullMethodName     = "/ddash.ntfyapi.NtfyApiService/Send"
-	NtfyApiService_SendTest_FullMethodName = "/ddash.ntfyapi.NtfyApiService/SendTest"
+	NtfyApiService_Send_FullMethodName       = "/ddash.ntfyapi.NtfyApiService/Send"
+	NtfyApiService_SendTest_FullMethodName   = "/ddash.ntfyapi.NtfyApiService/SendTest"
+	NtfyApiService_GetChannel_FullMethodName = "/ddash.ntfyapi.NtfyApiService/GetChannel"
 )
 
 // NtfyApiServiceClient is the client API for NtfyApiService service.
@@ -35,6 +36,9 @@ type NtfyApiServiceClient interface {
 	// SendTest publishes a test Notification, so the Operator sees that
 	// Notifications reach the phone. It is the config form's test_action.
 	SendTest(ctx context.Context, in *SendTestRequest, opts ...grpc.CallOption) (*SendTestResponse, error)
+	// GetChannel names where Notifications go, from the config alone. It
+	// answers only once ntfy-api is configured.
+	GetChannel(ctx context.Context, in *GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse, error)
 }
 
 type ntfyApiServiceClient struct {
@@ -65,6 +69,16 @@ func (c *ntfyApiServiceClient) SendTest(ctx context.Context, in *SendTestRequest
 	return out, nil
 }
 
+func (c *ntfyApiServiceClient) GetChannel(ctx context.Context, in *GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetChannelResponse)
+	err := c.cc.Invoke(ctx, NtfyApiService_GetChannel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // NtfyApiServiceServer is the server API for NtfyApiService service.
 // All implementations must embed UnimplementedNtfyApiServiceServer
 // for forward compatibility.
@@ -74,6 +88,9 @@ type NtfyApiServiceServer interface {
 	// SendTest publishes a test Notification, so the Operator sees that
 	// Notifications reach the phone. It is the config form's test_action.
 	SendTest(context.Context, *SendTestRequest) (*SendTestResponse, error)
+	// GetChannel names where Notifications go, from the config alone. It
+	// answers only once ntfy-api is configured.
+	GetChannel(context.Context, *GetChannelRequest) (*GetChannelResponse, error)
 	mustEmbedUnimplementedNtfyApiServiceServer()
 }
 
@@ -89,6 +106,9 @@ func (UnimplementedNtfyApiServiceServer) Send(context.Context, *SendRequest) (*S
 }
 func (UnimplementedNtfyApiServiceServer) SendTest(context.Context, *SendTestRequest) (*SendTestResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SendTest not implemented")
+}
+func (UnimplementedNtfyApiServiceServer) GetChannel(context.Context, *GetChannelRequest) (*GetChannelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetChannel not implemented")
 }
 func (UnimplementedNtfyApiServiceServer) mustEmbedUnimplementedNtfyApiServiceServer() {}
 func (UnimplementedNtfyApiServiceServer) testEmbeddedByValue()                        {}
@@ -147,6 +167,24 @@ func _NtfyApiService_SendTest_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _NtfyApiService_GetChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NtfyApiServiceServer).GetChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NtfyApiService_GetChannel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NtfyApiServiceServer).GetChannel(ctx, req.(*GetChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // NtfyApiService_ServiceDesc is the grpc.ServiceDesc for NtfyApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,6 +199,10 @@ var NtfyApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendTest",
 			Handler:    _NtfyApiService_SendTest_Handler,
+		},
+		{
+			MethodName: "GetChannel",
+			Handler:    _NtfyApiService_GetChannel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

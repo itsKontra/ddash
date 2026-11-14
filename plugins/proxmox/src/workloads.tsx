@@ -1,11 +1,14 @@
 import { useQuery } from "@ddash/plugin";
 import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
-import { DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
-import { Link } from "react-router";
+import type { HostPackages } from "@ddash/proto/host-agent-api/host_agent_api_pb";
+import { Button, DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
+import { Link, useNavigate } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
 import { PowerStrip, taskOf } from "./power";
+import { BulkProgress, UpdateAll } from "./update-all";
+import { updatesText, usePackages, useUpdates } from "./updates";
 
 /** How each of Proxmox's statuses reads at a glance. */
 export const tones: Record<string, Tone> = {
@@ -72,7 +75,19 @@ export function Unlisted({ error }: { error: { rawMessage: string } }) {
   );
 }
 
-const columns: readonly Column<Workload>[] = [
+/** A Workload's pending updates and "reboot required", as its Host Agent last read them; "–" without one. */
+function PendingUpdates({ host }: { host?: HostPackages }) {
+  if (!host) return <span className="text-muted-foreground">–</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-1.5">
+      {host.packages.length > 0 && <Pill tone="info">{updatesText(host.packages.length)}</Pill>}
+      {host.rebootRequired && <Pill tone="warn">reboot required</Pill>}
+      {!host.packages.length && !host.rebootRequired && <span className="text-muted-foreground">up to date</span>}
+    </span>
+  );
+}
+
+const columnsWith = (packages: Map<number, HostPackages> | undefined): readonly Column<Workload>[] => [
   {
     id: "name",
     header: "Name",
@@ -111,7 +126,15 @@ const columns: readonly Column<Workload>[] = [
     sortValue: (w) => live(w, Number(w.uptimeSeconds)),
     cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span>,
   },
-  { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} /> },
+  { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} limit={3} /> },
+  {
+    id: "updates",
+    header: "Updates",
+    hideBelow: "sm",
+    sortable: true,
+    sortValue: (w) => packages?.get(w.vmid)?.packages.length ?? -1,
+    cell: (w) => <PendingUpdates host={packages?.get(w.vmid)} />,
+  },
 ];
 
 /** A running Workload's live value, else 0. */
@@ -141,8 +164,11 @@ const kinds = new Map([
  * each row's strip with its power Actions.
  */
 export function Workloads() {
+  const navigate = useNavigate();
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   const tasks = useQuery(ProxmoxService.method.listPowerTasks, {});
+  const packages = usePackages();
+  const bulk = useUpdates()?.bulk;
   // Read up front, so a strip opens on its power Actions, not on a skeleton.
   useQuery(ProxmoxApiService.method.listPermissions, {});
   const [q, setQ] = useQueryState("q", "");
@@ -155,7 +181,26 @@ export function Workloads() {
   const tabs = tabNames.map((t) => ({ id: t.id, label: t.label, count: searched.filter(t.has).length }));
   return (
     <div>
-      <PageTitle kicker="Infrastructure" title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
+      <PageTitle
+        kicker="Infrastructure"
+        title="Proxmox"
+        subtitle="Every LXC and VM, with its status, resources and IPs."
+        actions={
+          <span className="inline-flex flex-wrap gap-2">
+            <Button variant="outline" icon="key-round" onClick={() => void navigate("ssh-keys")}>
+              SSH Keys
+            </Button>
+            <UpdateAll />
+          </span>
+        }
+      />
+      {bulk && (
+        <div className="mb-6">
+          <Panel title="Update all running">
+            <BulkProgress bulk={bulk} />
+          </Panel>
+        </div>
+      )}
       {error && !data ? (
         <Unlisted error={error} />
       ) : (
@@ -176,7 +221,7 @@ export function Workloads() {
           <DataTable
             rows={searched.filter(shown.has)}
             rowKey={(w) => String(w.vmid)}
-            columns={columns}
+            columns={columnsWith(packages)}
             sortKey="sort"
             defaultSort="id"
             loading={!data}
@@ -192,15 +237,26 @@ export function Workloads() {
 }
 
 /** Its IPs, or each NIC's MAC when it has none; marked when from the config. */
-export function Addresses({ workload: w }: { workload: Workload }) {
+export function Addresses({ workload: w, limit }: { workload: Workload; limit?: number }) {
   if (w.addressesError) return <span className="text-warn-text">{w.addressesError}</span>;
-  const shown = w.nics.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
-  if (!shown.length) return <span className="text-muted-foreground">–</span>;
+  // A Docker host's bridges (docker0, br-…, veth…) aren't how it is reached: counted, not listed.
+  const bridge = (name: string) => /^(docker\d*|br-|veth|cni|flannel|virbr)/.test(name);
+  const own = w.nics.filter((n) => !bridge(n.name));
+  const bridges = w.nics.filter((n) => bridge(n.name)).flatMap((n) => n.ips).length;
+  const all = own.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
+  const shown = limit ? all.slice(0, limit) : all;
+  if (!all.length && !bridges) return <span className="text-muted-foreground">–</span>;
   return (
     <div className="flex flex-col">
       {shown.map((a) => (
         <span key={a}>{a}</span>
       ))}
+      {all.length > shown.length && <span className="font-sans text-xs text-muted-foreground">and {all.length - shown.length} more</span>}
+      {bridges > 0 && (
+        <span className="font-sans text-xs text-muted-foreground">
+          and {bridges} on Docker bridges
+        </span>
+      )}
       {w.addresses === AddressSource.CONFIG && <span className="font-sans text-xs text-muted-foreground">from config</span>}
     </div>
   );

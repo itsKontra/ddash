@@ -3,8 +3,8 @@ import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { WorkloadSchema } from "@ddash/proto/apps/apps_pb";
 import { Kind, WorkloadRefSchema } from "@ddash/proto/ddash/workload/workload_pb";
 import { Kind as GuestKind } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { expect, it } from "vitest";
-import { ago, bytes, kindLabel, workloadPage, workloadText } from "./index";
+import { describe, expect, it } from "vitest";
+import { ago, bytes, kindLabel, until, workloadPage, workloadText } from "./index";
 
 it("names Workload kinds, proxmox-api's guest kinds alike", () => {
   expect([Kind.LXC, Kind.VM, Kind.DOCKER, Kind.EXTERNAL, Kind.UNSPECIFIED].map(kindLabel)).toEqual(["LXC", "VM", "Docker", "External", "Workload"]);
@@ -34,4 +34,15 @@ it("says how long ago a time was, as of now", () => {
   expect(
     [at("2026-10-20T11:59:30Z"), at("2026-10-20T11:58:00Z"), at("2026-10-20T09:00:00Z"), at("2026-10-16T12:00:00Z"), undefined].map((t) => ago(t, now)),
   ).toEqual(["<1 min ago", "2 min ago", "3 h ago", "4 d ago", "never"]);
+});
+
+describe("until", () => {
+  const at = (ms: number) => timestampFromMs(ms);
+  it("says how long until a time", () => {
+    const now = Date.UTC(2026, 10, 14, 10);
+    expect(until(at(now + 30_000), now)).toBe("soon");
+    expect(until(at(now + 5 * 60_000), now)).toBe("in 5 min");
+    expect(until(at(now + 6 * 3_600_000), now)).toBe("in 6 h");
+    expect(until(undefined, now)).toBe("never");
+  });
 });

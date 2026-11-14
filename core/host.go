@@ -68,8 +68,10 @@ type Host struct {
 	runtime *runtime.Runtime
 	release runtime.ReleaseSource
 	shell   fs.FS
-	router  *router.Router
-	handler http.Handler
+	// publicURL is where the Operator (and install.sh) reaches ddash.
+	publicURL string
+	router    *router.Router
+	handler   http.Handler
 	// keycloak is sign-in, when the host runs with OIDC.
 	keycloak *auth.Keycloak
 
@@ -129,7 +131,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
-	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, log: opts.Logger}
+	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, publicURL: opts.PublicURL, log: opts.Logger}
 	guard := opts.Auth
 	if opts.OIDC != nil {
 		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
@@ -171,6 +173,11 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	mux.HandleFunc("GET "+iconsPath, h.icons) // public lucide data, so sign-in can draw icons
 	mux.HandleFunc("GET "+iconSearchPath, h.iconSearch)
 	mux.HandleFunc("GET "+appIconSearchPath, h.appIconSearch) // public upstream names, like the lucide search
+	// Public like the GitHub release they come from: a host fetches them
+	// before it is paired with anything.
+	mux.HandleFunc("GET "+installPath, h.installScript)
+	mux.HandleFunc("GET "+hostAgentPrefix+"SHA256SUMS", h.hostAgentSums)
+	mux.HandleFunc("GET "+hostAgentPrefix+"{arch}", h.hostAgentBinary)
 	if h.keycloak != nil {
 		mux.Handle("/auth/", h.keycloak.Handler())
 	}

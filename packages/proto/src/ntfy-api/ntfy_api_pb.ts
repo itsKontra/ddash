@@ -15,7 +15,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ntfy-api/ntfy_api.proto.
  */
 export const file_ntfy_api_ntfy_api: GenFile = /*@__PURE__*/
-  fileDesc("ChdudGZ5LWFwaS9udGZ5X2FwaS5wcm90bxINZGRhc2gubnRmeWFwaSKXAwoNTnRmeUFwaUNvbmZpZxJhCgZzZXJ2ZXIYASABKAlCTJq1GEgKD2h0dHBzOi8vbnRmeS5zaCIzVGhlIG50Znkgc2VydmVyIHRoZSBwaG9uZSdzIG50ZnkgYXBwIHN1YnNjcmliZXMgdG8uOAFIAIgBARKRAQoFdG9waWMYAiABKAlCgQGatRh9ImtMZXR0ZXJzLCBkaWdpdHMsIC0gYW5kIF8sIGF0IG1vc3QgNjQuIE9uIGEgc2VydmVyIHdpdGhvdXQgYWNjZXNzIGNvbnRyb2wgdGhlIHRvcGljIG5hbWUgaXMgdGhlIG9ubHkgc2VjcmV0LioMZGRhc2gtYWxlcnRzMAESdAoFdG9rZW4YAyABKAlCZZq1GGEQARoMQWNjZXNzIHRva2VuIk9BIHRva2VuICh0a1/igKYpIHdpdGggd3JpdGUgYWNjZXNzIHRvIHRoZSB0b3BpYy4gTGVhdmUgZW1wdHkgZm9yIGFuIG9wZW4gdG9waWMuOg6qtRgKEghTZW5kVGVzdEIJCgdfc2VydmVyIl0KDE5vdGlmaWNhdGlvbhINCgV0aXRsZRgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhAKCHByaW9yaXR5GAMgASgFEgwKBHRhZ3MYBCADKAkSDQoFY2xpY2sYBSABKAkiQAoLU2VuZFJlcXVlc3QSMQoMbm90aWZpY2F0aW9uGAEgASgLMhsuZGRhc2gubnRmeWFwaS5Ob3RpZmljYXRpb24iGgoMU2VuZFJlc3BvbnNlEgoKAmlkGAEgASgJIhEKD1NlbmRUZXN0UmVxdWVzdCIeChBTZW5kVGVzdFJlc3BvbnNlEgoKAmlkGAEgASgJMqoBCg5OdGZ5QXBpU2VydmljZRJFCgRTZW5kEhouZGRhc2gubnRmeWFwaS5TZW5kUmVxdWVzdBobLmRkYXNoLm50ZnlhcGkuU2VuZFJlc3BvbnNlIgSStRgAElEKCFNlbmRUZXN0Eh4uZGRhc2gubnRmeWFwaS5TZW5kVGVzdFJlcXVlc3QaHy5kZGFzaC5udGZ5YXBpLlNlbmRUZXN0UmVzcG9uc2UiBJK1GABCRFpCZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9udGZ5LWFwaS9udGZ5YXBpcGI7bnRmeWFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("ChdudGZ5LWFwaS9udGZ5X2FwaS5wcm90bxINZGRhc2gubnRmeWFwaSKXAwoNTnRmeUFwaUNvbmZpZxJhCgZzZXJ2ZXIYASABKAlCTJq1GEgKD2h0dHBzOi8vbnRmeS5zaCIzVGhlIG50Znkgc2VydmVyIHRoZSBwaG9uZSdzIG50ZnkgYXBwIHN1YnNjcmliZXMgdG8uOAFIAIgBARKRAQoFdG9waWMYAiABKAlCgQGatRh9ImtMZXR0ZXJzLCBkaWdpdHMsIC0gYW5kIF8sIGF0IG1vc3QgNjQuIE9uIGEgc2VydmVyIHdpdGhvdXQgYWNjZXNzIGNvbnRyb2wgdGhlIHRvcGljIG5hbWUgaXMgdGhlIG9ubHkgc2VjcmV0LioMZGRhc2gtYWxlcnRzMAESdAoFdG9rZW4YAyABKAlCZZq1GGEQARoMQWNjZXNzIHRva2VuIk9BIHRva2VuICh0a1/igKYpIHdpdGggd3JpdGUgYWNjZXNzIHRvIHRoZSB0b3BpYy4gTGVhdmUgZW1wdHkgZm9yIGFuIG9wZW4gdG9waWMuOg6qtRgKEghTZW5kVGVzdEIJCgdfc2VydmVyIl0KDE5vdGlmaWNhdGlvbhINCgV0aXRsZRgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhAKCHByaW9yaXR5GAMgASgFEgwKBHRhZ3MYBCADKAkSDQoFY2xpY2sYBSABKAkiQAoLU2VuZFJlcXVlc3QSMQoMbm90aWZpY2F0aW9uGAEgASgLMhsuZGRhc2gubnRmeWFwaS5Ob3RpZmljYXRpb24iGgoMU2VuZFJlc3BvbnNlEgoKAmlkGAEgASgJIhEKD1NlbmRUZXN0UmVxdWVzdCIeChBTZW5kVGVzdFJlc3BvbnNlEgoKAmlkGAEgASgJIhMKEUdldENoYW5uZWxSZXF1ZXN0IjkKEkdldENoYW5uZWxSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSEwoLZGVzdGluYXRpb24YAiABKAkygwIKDk50ZnlBcGlTZXJ2aWNlEkUKBFNlbmQSGi5kZGFzaC5udGZ5YXBpLlNlbmRSZXF1ZXN0GhsuZGRhc2gubnRmeWFwaS5TZW5kUmVzcG9uc2UiBJK1GAASUQoIU2VuZFRlc3QSHi5kZGFzaC5udGZ5YXBpLlNlbmRUZXN0UmVxdWVzdBofLmRkYXNoLm50ZnlhcGkuU2VuZFRlc3RSZXNwb25zZSIEkrUYABJXCgpHZXRDaGFubmVsEiAuZGRhc2gubnRmeWFwaS5HZXRDaGFubmVsUmVxdWVzdBohLmRkYXNoLm50ZnlhcGkuR2V0Q2hhbm5lbFJlc3BvbnNlIgSKtRgAQkRaQmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbnRmeS1hcGkvbnRmeWFwaXBiO250ZnlhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options]);
 
 /**
  * @generated from message ddash.ntfyapi.NtfyApiConfig
@@ -167,6 +167,47 @@ export const SendTestResponseSchema: GenMessage<SendTestResponse> = /*@__PURE__*
   messageDesc(file_ntfy_api_ntfy_api, 5);
 
 /**
+ * @generated from message ddash.ntfyapi.GetChannelRequest
+ */
+export type GetChannelRequest = Message<"ddash.ntfyapi.GetChannelRequest"> & {
+};
+
+/**
+ * Describes the message ddash.ntfyapi.GetChannelRequest.
+ * Use `create(GetChannelRequestSchema)` to create a new message.
+ */
+export const GetChannelRequestSchema: GenMessage<GetChannelRequest> = /*@__PURE__*/
+  messageDesc(file_ntfy_api_ntfy_api, 6);
+
+/**
+ * @generated from message ddash.ntfyapi.GetChannelResponse
+ */
+export type GetChannelResponse = Message<"ddash.ntfyapi.GetChannelResponse"> & {
+  /**
+   * Always true: ntfy-api answers only once configured. It mirrors
+   * telegram-api's, which may be not set up.
+   *
+   * @generated from field: bool set_up = 1;
+   */
+  setUp: boolean;
+
+  /**
+   * Where Notifications go: the server's host and the topic, e.g.
+   * "ntfy.sh/ddash-alerts".
+   *
+   * @generated from field: string destination = 2;
+   */
+  destination: string;
+};
+
+/**
+ * Describes the message ddash.ntfyapi.GetChannelResponse.
+ * Use `create(GetChannelResponseSchema)` to create a new message.
+ */
+export const GetChannelResponseSchema: GenMessage<GetChannelResponse> = /*@__PURE__*/
+  messageDesc(file_ntfy_api_ntfy_api, 7);
+
+/**
  * @generated from service ddash.ntfyapi.NtfyApiService
  */
 export const NtfyApiService: GenService<{
@@ -190,6 +231,17 @@ export const NtfyApiService: GenService<{
     methodKind: "unary";
     input: typeof SendTestRequestSchema;
     output: typeof SendTestResponseSchema;
+  },
+  /**
+   * GetChannel names where Notifications go, from the config alone. It
+   * answers only once ntfy-api is configured.
+   *
+   * @generated from rpc ddash.ntfyapi.NtfyApiService.GetChannel
+   */
+  getChannel: {
+    methodKind: "unary";
+    input: typeof GetChannelRequestSchema;
+    output: typeof GetChannelResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_ntfy_api_ntfy_api, 0);

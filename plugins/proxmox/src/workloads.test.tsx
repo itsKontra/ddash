@@ -96,7 +96,7 @@ it("has a column for each detail and none for power, which sits in each row's st
   await show("/proxmox");
 
   const headers = screen.getAllByRole("columnheader").map((h) => h.textContent);
-  expect(headers).toEqual(["Name", "Status", "ID", "Kind", "Tags", "CPU", "Memory", "Disk", "Network", "Uptime", "IPs", "Actions"]);
+  expect(headers).toEqual(["Name", "Status", "ID", "Kind", "Tags", "CPU", "Memory", "Disk", "Network", "Uptime", "IPs", "Updates", "Actions"]);
 });
 
 it("sorts by ID until another sort is chosen; Tags, Network and IPs don't sort", async () => {

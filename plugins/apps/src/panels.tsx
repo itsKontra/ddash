@@ -528,7 +528,45 @@ function DeviceLink({ mac, name }: { mac: string; name: string }) {
   return href ? <Link to={href}>{text}</Link> : <>{text}</>;
 }
 
-/** Network: how the App's Workload reaches the internet, read only, with the Device holding its address. */
+/** The Cloudflare Tunnel's Page, when that Plugin is installed, else just the words. */
+function TunnelLink() {
+  const href = usePluginLink("cloudflare-tunnel");
+  return href ? <Link to={href}>the Cloudflare Tunnel</Link> : <>the Cloudflare Tunnel</>;
+}
+
+/**
+ * On the internet: the App's hostnames the Cloudflare Tunnel serves, each a
+ * Public Hostname with the local service it forwards to. Nothing when it
+ * has none; a quiet line when cloudflare-api couldn't be read.
+ */
+function OnTheInternet({ app, list }: { app: App; list: ListAppsResponse }) {
+  if (app.publicHostnames.length > 0) {
+    return (
+      <Facts
+        items={[
+          {
+            label: "On the internet",
+            value: (
+              <>
+                Through <TunnelLink />:{" "}
+                {app.publicHostnames.map((p, i) => (
+                  <span key={p.hostname}>
+                    {i > 0 && ", "}
+                    <span className="font-mono text-xs">{p.hostname}</span> → <span className="font-mono text-xs">{p.service}</span>
+                  </span>
+                ))}
+              </>
+            ),
+          },
+        ]}
+      />
+    );
+  }
+  if (list.cloudflareError) return <p className="text-xs text-muted-foreground">On the internet unknown: {list.cloudflareError}</p>;
+  return null;
+}
+
+/** Network: how the App's Workload reaches the internet, read only, with the Device holding its address, and whether the Cloudflare Tunnel serves it. */
 export function NetworkPanel({ app, list }: { app: App; list: ListAppsResponse }) {
   const n = app.network;
   const docker = app.workload?.ref?.kind === Kind.DOCKER;
@@ -557,7 +595,10 @@ export function NetworkPanel({ app, list }: { app: App; list: ListAppsResponse }
   }
   return (
     <Panel title="Network" description="Changed on the Network Page.">
-      {body}
+      <div className="flex flex-col gap-3">
+        {body}
+        <OnTheInternet app={app} list={list} />
+      </div>
     </Panel>
   );
 }

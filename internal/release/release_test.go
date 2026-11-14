@@ -148,7 +148,8 @@ func TestReverseProxyRequiresNginxProxyManagerAndApps(t *testing.T) {
 }
 
 // The Proxmox Page reads proxmox-api's Workloads unchanged and runs its
-// power Actions through the proxmox logic Component.
+// power Actions through the proxmox logic Component, and reads the Host
+// Agents (pairing, packages, sshd) from host-agent-api.
 func TestProxmoxRequiresItsLogicComponentAndProxmoxAPI(t *testing.T) {
 	cat, err := release.Catalogue("../..", "dev")
 	if err != nil {
@@ -159,7 +160,7 @@ func TestProxmoxRequiresItsLogicComponentAndProxmoxAPI(t *testing.T) {
 			continue
 		}
 		got := slices.Sorted(slices.Values(p.Requires))
-		if want := []string{"proxmox", "proxmox-api"}; !slices.Equal(got, want) {
+		if want := []string{"host-agent-api", "proxmox", "proxmox-api"}; !slices.Equal(got, want) {
 			t.Errorf("proxmox requires %v, want %v", p.Requires, want)
 		}
 		return

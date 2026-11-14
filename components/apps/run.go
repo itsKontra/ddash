@@ -6,6 +6,7 @@ import (
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
@@ -27,7 +28,7 @@ func (c *component) PlanAction(ctx context.Context, req *appspb.PlanActionReques
 	if err := c.waitSynced(ctx); err != nil {
 		return nil, err
 	}
-	p, err := c.planning(ctx)
+	p, err := c.planning(ctx, req.GetAction())
 	if err != nil {
 		return nil, err
 	}
@@ -36,6 +37,7 @@ func (c *component) PlanAction(ctx context.Context, req *appspb.PlanActionReques
 
 func (c *component) RunAction(req *appspb.RunActionRequest, stream grpc.ServerStreamingServer[appspb.RunActionResponse]) error {
 	ctx := stream.Context()
+	begun := time.Now()
 	if err := c.waitSynced(ctx); err != nil {
 		return err
 	}
@@ -45,7 +47,7 @@ func (c *component) RunAction(req *appspb.RunActionRequest, stream grpc.ServerSt
 	// The fresh read: the Plan is built again from what the systems hold
 	// now. A source that can't be read blocks the Actions writing to it.
 	c.syncLocked(ctx, true)
-	p, err := c.planning(ctx)
+	p, err := c.planning(ctx, req.GetAction())
 	if err != nil {
 		return err
 	}
@@ -63,6 +65,11 @@ func (c *component) RunAction(req *appspb.RunActionRequest, stream grpc.ServerSt
 
 	progress := newProgress(stream, len(pl.plan.GetSteps()))
 	done := 0
+	if pl.compose != nil {
+		if done, err = c.runCompose(ctx, pl.compose, progress, begun); err != nil {
+			return c.stopped(ctx, pl, progress, done, err)
+		}
+	}
 	var written *npmpb.ProxyHost
 	if pl.npm != nil {
 		progress.mark(done, done+1, appspb.StepState_STEP_STATE_RUNNING)

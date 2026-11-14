@@ -27,6 +27,11 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
+	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
+	"github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network"
@@ -34,12 +39,14 @@ import (
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
+	"github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
@@ -110,6 +117,12 @@ type labOptions struct {
 	// resync bounds the sync ending an App Action; apps.ResyncTimeout
 	// when 0.
 	resync time.Duration
+	// composeWait bounds how long an Add App follows its new Compose
+	// Project; apps.ComposeWait when 0.
+	composeWait time.Duration
+	// cloudflare, when set, is the Cloudflare cloudflare-api reads;
+	// else cloudflare-api isn't set up.
+	cloudflare http.Handler
 }
 
 const npmEmail = "ddash@home.example"
@@ -175,10 +188,13 @@ func newLab(t *testing.T, o labOptions) *lab {
 
 	components := []sdk.Definition{
 		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), network.Definition(), adguardapi.Definition(),
-		ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
+		notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), cloudflareapi.Definition(), dockeragentapi.Definition(), apps.Definition(),
 	}
-	if o.resync != 0 {
+	switch {
+	case o.resync != 0:
 		components[len(components)-1] = apps.DefinitionResyncingWithin(o.resync)
+	case o.composeWait != 0:
+		components[len(components)-1] = apps.DefinitionWaitingWithin(o.composeWait)
 	}
 	if o.fixtureWorkloads {
 		components = append(components, proxmoxapi.Definition(), dockerapi.Definition())
@@ -193,8 +209,12 @@ func newLab(t *testing.T, o labOptions) *lab {
 	}
 	l.h = coretest.New(t, coretest.Options{
 		Components: components,
-		Plugins:    []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
-		DataDir:    o.dataDir,
+		Plugins: []coretest.Plugin{
+			{Name: "apps", Requires: []string{"apps", "checks"}},
+			// The Docker Page, pairing Docker Agents.
+			{Name: "docker", Requires: []string{"docker-agent-api"}},
+		},
+		DataDir: o.dataDir,
 	})
 	if !o.npmUnconfigured {
 		l.h.SeedConfig("nginx-proxy-manager-api", &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: srv.URL, Email: npmEmail, Password: npmfake.DefaultPassword})
@@ -213,6 +233,13 @@ func newLab(t *testing.T, o labOptions) *lab {
 		// The fake proxmox-api still has the real config's required
 		// fields: unconfigured, it would leave apps degraded.
 		l.h.SeedConfig("proxmox-api", &proxmoxapipb.ProxmoxApiConfig{Url: "https://198.18.1.2:8006", TokenId: "ddash@pve!test", TokenSecret: "test"})
+	}
+	if o.cloudflare != nil {
+		cf := httptest.NewServer(o.cloudflare)
+		t.Cleanup(cf.Close)
+		l.h.SeedConfig("cloudflare-api", &cloudflareapipb.CloudflareApiConfig{
+			AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: cloudflarefake.DefaultToken, ApiUrl: &cf.URL,
+		})
 	}
 	l.h.Install("apps")
 	l.waitStarted()
@@ -546,5 +573,25 @@ func dockerApiServing(f *dockerFake) sdk.Definition {
 		Manifest: []byte("name: docker-api\ndescription: A fake.\nrequires: []\n"),
 		Service:  &dockerapipb.DockerApiService_ServiceDesc,
 		New:      func() sdk.Component[*dockerapipb.DockerApiConfig] { return f },
+	})
+}
+
+// noAgents is a docker-agent-api Component without Docker Agents: every
+// read is Unimplemented.
+type noAgents struct {
+	dockeragentapipb.UnimplementedDockerAgentApiServiceServer
+}
+
+func (*noAgents) Start(context.Context, *sdk.Env, *dockeragentapipb.DockerAgentApiConfig) error {
+	return nil
+}
+
+func (*noAgents) Health(context.Context) sdk.Health { return sdk.Health{State: sdk.OK} }
+
+func noAgentsServing() sdk.Definition {
+	return sdk.Define(sdk.Spec[*dockeragentapipb.DockerAgentApiConfig]{
+		Manifest: []byte("name: docker-agent-api\ndescription: A fake.\nrequires: []\n"),
+		Service:  &dockeragentapipb.DockerAgentApiService_ServiceDesc,
+		New:      func() sdk.Component[*dockeragentapipb.DockerAgentApiConfig] { return &noAgents{} },
 	})
 }

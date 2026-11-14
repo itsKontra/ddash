@@ -51,6 +51,8 @@ type component struct {
 
 	// root is the server's URL with a trailing slash: JSON is published there.
 	root, topic, token string
+	// host is the server's host, for GetChannel.
+	host string
 
 	mu sync.Mutex
 	// lastErr is why the last delivery failed; nil once one succeeds.
@@ -72,8 +74,12 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *ntfyapipb.NtfyApiC
 		return err
 	}
 	c.root = strings.TrimSuffix(u.String(), "/") + "/"
-	c.topic, c.token = cfg.GetTopic(), cfg.GetToken()
+	c.topic, c.token, c.host = cfg.GetTopic(), cfg.GetToken(), u.Host
 	return nil
+}
+
+func (c *component) GetChannel(context.Context, *ntfyapipb.GetChannelRequest) (*ntfyapipb.GetChannelResponse, error) {
+	return &ntfyapipb.GetChannelResponse{SetUp: true, Destination: c.host + "/" + c.topic}, nil
 }
 
 // Health is down while the last delivery failed.

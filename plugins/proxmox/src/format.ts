@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /** An uptime to its two largest units: "1 d 1 h", "12 min". */
 export function uptime(seconds: bigint | number): string {
   const s = Number(seconds);
@@ -20,3 +22,13 @@ export function cpu(fraction: number, cpus: number): string {
   return `${(fraction * 100).toFixed(1)} % of ${cpus} ${cpus === 1 ? "CPU" : "CPUs"}`;
 }
 
+
+/** Now, in ms, re-read every minute: for ages such as "3 d ago". */
+export function useNow(): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}

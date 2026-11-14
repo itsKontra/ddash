@@ -341,6 +341,98 @@ func (x *SendTestResponse) GetId() string {
 	return ""
 }
 
+type GetChannelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChannelRequest) Reset() {
+	*x = GetChannelRequest{}
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChannelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChannelRequest) ProtoMessage() {}
+
+func (x *GetChannelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChannelRequest.ProtoReflect.Descriptor instead.
+func (*GetChannelRequest) Descriptor() ([]byte, []int) {
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{6}
+}
+
+type GetChannelResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Always true: ntfy-api answers only once configured. It mirrors
+	// telegram-api's, which may be not set up.
+	SetUp bool `protobuf:"varint,1,opt,name=set_up,json=setUp,proto3" json:"set_up,omitempty"`
+	// Where Notifications go: the server's host and the topic, e.g.
+	// "ntfy.sh/ddash-alerts".
+	Destination   string `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChannelResponse) Reset() {
+	*x = GetChannelResponse{}
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChannelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChannelResponse) ProtoMessage() {}
+
+func (x *GetChannelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChannelResponse.ProtoReflect.Descriptor instead.
+func (*GetChannelResponse) Descriptor() ([]byte, []int) {
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetChannelResponse) GetSetUp() bool {
+	if x != nil {
+		return x.SetUp
+	}
+	return false
+}
+
+func (x *GetChannelResponse) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
 var File_ntfy_api_ntfy_api_proto protoreflect.FileDescriptor
 
 const file_ntfy_api_ntfy_api_proto_rawDesc = "" +
@@ -365,10 +457,16 @@ const file_ntfy_api_ntfy_api_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x11\n" +
 	"\x0fSendTestRequest\"\"\n" +
 	"\x10SendTestResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id2\xaa\x01\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x13\n" +
+	"\x11GetChannelRequest\"M\n" +
+	"\x12GetChannelResponse\x12\x15\n" +
+	"\x06set_up\x18\x01 \x01(\bR\x05setUp\x12 \n" +
+	"\vdestination\x18\x02 \x01(\tR\vdestination2\x83\x02\n" +
 	"\x0eNtfyApiService\x12E\n" +
 	"\x04Send\x12\x1a.ddash.ntfyapi.SendRequest\x1a\x1b.ddash.ntfyapi.SendResponse\"\x04\x92\xb5\x18\x00\x12Q\n" +
-	"\bSendTest\x12\x1e.ddash.ntfyapi.SendTestRequest\x1a\x1f.ddash.ntfyapi.SendTestResponse\"\x04\x92\xb5\x18\x00BDZBgithub.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipbb\x06proto3"
+	"\bSendTest\x12\x1e.ddash.ntfyapi.SendTestRequest\x1a\x1f.ddash.ntfyapi.SendTestResponse\"\x04\x92\xb5\x18\x00\x12W\n" +
+	"\n" +
+	"GetChannel\x12 .ddash.ntfyapi.GetChannelRequest\x1a!.ddash.ntfyapi.GetChannelResponse\"\x04\x8a\xb5\x18\x00BDZBgithub.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipbb\x06proto3"
 
 var (
 	file_ntfy_api_ntfy_api_proto_rawDescOnce sync.Once
@@ -382,23 +480,27 @@ func file_ntfy_api_ntfy_api_proto_rawDescGZIP() []byte {
 	return file_ntfy_api_ntfy_api_proto_rawDescData
 }
 
-var file_ntfy_api_ntfy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ntfy_api_ntfy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_ntfy_api_ntfy_api_proto_goTypes = []any{
-	(*NtfyApiConfig)(nil),    // 0: ddash.ntfyapi.NtfyApiConfig
-	(*Notification)(nil),     // 1: ddash.ntfyapi.Notification
-	(*SendRequest)(nil),      // 2: ddash.ntfyapi.SendRequest
-	(*SendResponse)(nil),     // 3: ddash.ntfyapi.SendResponse
-	(*SendTestRequest)(nil),  // 4: ddash.ntfyapi.SendTestRequest
-	(*SendTestResponse)(nil), // 5: ddash.ntfyapi.SendTestResponse
+	(*NtfyApiConfig)(nil),      // 0: ddash.ntfyapi.NtfyApiConfig
+	(*Notification)(nil),       // 1: ddash.ntfyapi.Notification
+	(*SendRequest)(nil),        // 2: ddash.ntfyapi.SendRequest
+	(*SendResponse)(nil),       // 3: ddash.ntfyapi.SendResponse
+	(*SendTestRequest)(nil),    // 4: ddash.ntfyapi.SendTestRequest
+	(*SendTestResponse)(nil),   // 5: ddash.ntfyapi.SendTestResponse
+	(*GetChannelRequest)(nil),  // 6: ddash.ntfyapi.GetChannelRequest
+	(*GetChannelResponse)(nil), // 7: ddash.ntfyapi.GetChannelResponse
 }
 var file_ntfy_api_ntfy_api_proto_depIdxs = []int32{
 	1, // 0: ddash.ntfyapi.SendRequest.notification:type_name -> ddash.ntfyapi.Notification
 	2, // 1: ddash.ntfyapi.NtfyApiService.Send:input_type -> ddash.ntfyapi.SendRequest
 	4, // 2: ddash.ntfyapi.NtfyApiService.SendTest:input_type -> ddash.ntfyapi.SendTestRequest
-	3, // 3: ddash.ntfyapi.NtfyApiService.Send:output_type -> ddash.ntfyapi.SendResponse
-	5, // 4: ddash.ntfyapi.NtfyApiService.SendTest:output_type -> ddash.ntfyapi.SendTestResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
+	6, // 3: ddash.ntfyapi.NtfyApiService.GetChannel:input_type -> ddash.ntfyapi.GetChannelRequest
+	3, // 4: ddash.ntfyapi.NtfyApiService.Send:output_type -> ddash.ntfyapi.SendResponse
+	5, // 5: ddash.ntfyapi.NtfyApiService.SendTest:output_type -> ddash.ntfyapi.SendTestResponse
+	7, // 6: ddash.ntfyapi.NtfyApiService.GetChannel:output_type -> ddash.ntfyapi.GetChannelResponse
+	4, // [4:7] is the sub-list for method output_type
+	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
 	1, // [1:1] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
@@ -416,7 +518,7 @@ func file_ntfy_api_ntfy_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ntfy_api_ntfy_api_proto_rawDesc), len(file_ntfy_api_ntfy_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -5,9 +5,13 @@
 //
 // Docker comes first; each later system adds itself to systems. A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
-// adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake). A
+// adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
+// Cloudflare: cloudflarefake; Telegram: telegramfake; calendars:
+// calendarfake, whose dates follow the clock; Anthropic: anthropicfake,
+// a canned draft). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
-// system that has a sibling directory of that name.
+// system that has a sibling directory of that name. Beside the systems it
+// serves fake Host Agents (agentfake) on three of the baseline's Workloads.
 package fakelab
 
 import (
@@ -22,8 +26,16 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/itsKontra/ddash/agent"
+	"github.com/itsKontra/ddash/agent/agentfake"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/ai-helper/aihelperpb"
+	"github.com/itsKontra/ddash/components/ai-helper/anthropicfake"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -33,6 +45,8 @@ import (
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
+	"github.com/itsKontra/ddash/components/telegram-api/telegramapipb"
+	"github.com/itsKontra/ddash/components/telegram-api/telegramfake"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -64,6 +78,16 @@ var systems = []system{
 			server := "http://" + addr
 			return &ntfyapipb.NtfyApiConfig{Server: &server, Topic: "ddash-alerts"}
 		},
+	},
+	{
+		component: "telegram-api",
+		fixtures:  "components/telegram-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			server := "http://" + addr
+			return &telegramapipb.TelegramApiConfig{Server: &server, Token: telegramfake.DefaultToken, ChatId: telegramfake.DefaultChat}
+		},
+		// Messages sent are kept: what reached the chat can be read back.
+		serve: func(dir string) (http.Handler, error) { return telegramfake.New(dir, telegramfake.Options{}), nil },
 	},
 	{
 		component: "pfsense-api",
@@ -105,6 +129,37 @@ var systems = []system{
 		// Sign-ins and Proxy Hosts are kept: writes stick.
 		serve: func(dir string) (http.Handler, error) { return npmfake.New(dir, npmfake.Options{Password: "fakelab"}) },
 	},
+	{
+		component: "cloudflare-api",
+		fixtures:  "components/cloudflare-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			url := "http://" + addr
+			return &cloudflareapipb.CloudflareApiConfig{AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: "fakelab", ApiUrl: &url}
+		},
+		// The ingress and DNS records are kept: Public Hostname writes stick.
+		serve: func(dir string) (http.Handler, error) {
+			return cloudflarefake.New(dir, cloudflarefake.Options{Token: "fakelab"})
+		},
+	},
+	{
+		component: "calendar-api",
+		fixtures:  "components/calendar-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			return &calendarapipb.CalendarApiConfig{Calendars: "Home = http://" + addr + "/home.ics; Work = http://" + addr + "/work.ics"}
+		},
+		// The calendars' dates follow the clock: there is always a today.
+		serve: func(dir string) (http.Handler, error) { return calendarfake.New(dir, calendarfake.Options{}) },
+	},
+	{
+		component: "ai-helper",
+		fixtures:  "components/ai-helper/testdata/baseline",
+		config: func(addr string) proto.Message {
+			server := "http://" + addr
+			return &aihelperpb.AiHelperConfig{ApiKey: anthropicfake.DefaultKey, Server: &server}
+		},
+		// Every draft is the canned one: nothing reaches Anthropic.
+		serve: func(dir string) (http.Handler, error) { return anthropicfake.New(dir, anthropicfake.Options{}) },
+	},
 }
 
 // logicConfigs is the config of Components that reach no system
@@ -112,8 +167,65 @@ var systems = []system{
 // range), by Component.
 var logicConfigs = map[string]func() proto.Message{
 	"network": func() proto.Message {
-		return &networkpb.NetworkConfig{BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.150-198.18.1.199"}
+		return &networkpb.NetworkConfig{
+			BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.150-198.18.1.199",
+			RemoteAccessEndpoint: "vpn.example.org", RemoteAccessDns: []string{"198.18.1.53"},
+		}
 	},
+}
+
+// hostAgents are the fake Host Agents the lab serves, on Workloads of the
+// proxmox-api baseline, each on its port when free. host-agent-api has no
+// config and no fixtures, so it isn't one of the systems: `make dev`
+// registers these with it once the core runs.
+var hostAgents = []struct {
+	vmid    uint32
+	name    string
+	port    int
+	release string
+	seed    agentfake.HostSeed
+}{
+	{
+		// Debian, sshd with a key ddash didn't install, and pending updates
+		// whose libc6 and kernel ask for a reboot.
+		vmid: 201, name: "docker-host", port: 17451,
+		seed: agentfake.HostSeed{
+			Hostname: "docker-host", OS: "debian", SSHInstalled: true, SSHRunning: true, PasswordAuth: true,
+			Keys: map[string][]string{"root": {"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIb9fWw8x0x1s7I1m2k0q3rS7f0Uu2Zb8oH4cQm6n2aT old-laptop"}},
+			Pending: []agent.Package{
+				{Name: "libc6", Current: "2.36-9+deb12u7", New: "2.36-9+deb12u9"},
+				{Name: "linux-image-amd64", Current: "6.1.112-1", New: "6.1.119-1"},
+				{Name: "openssl", Current: "3.0.14-1~deb12u2", New: "3.0.15-1~deb12u1"},
+				{Name: "curl", Current: "7.88.1-10+deb12u7", New: "7.88.1-10+deb12u8"},
+				{Name: "docker-ce", Current: "5:27.3.1-1~debian.12~bookworm", New: "5:27.4.0-1~debian.12~bookworm"},
+			},
+		},
+	},
+	{
+		// Alpine without sshd, on storage that can't snapshot (207's
+		// feature.json).
+		vmid: 207, name: "telegraf", port: 17452,
+		seed: agentfake.HostSeed{
+			Hostname: "telegraf", OS: "alpine",
+			Pending: []agent.Package{{Name: "busybox", Current: "1.36.1-r29", New: "1.36.1-r31"}, {Name: "musl", Current: "1.2.5-r0", New: "1.2.5-r1"}},
+		},
+	},
+	{
+		// An Ubuntu VM whose Agent runs an older Release: only Update
+		// Agent is allowed.
+		vmid: 101, name: "homeassist", port: 17453, release: "v0.0.1",
+		seed: agentfake.HostSeed{Hostname: "homeassist", OS: "ubuntu", SSHInstalled: true, SSHRunning: true, PasswordAuth: true},
+	},
+}
+
+// HostAgent is a fake Host Agent the lab serves.
+type HostAgent struct {
+	*agentfake.Host
+	// VMID and Name are its Workload's in the proxmox-api baseline.
+	VMID uint32
+	Name string
+	// URL is where it answers, https.
+	URL string
 }
 
 // Lab is the faked homelab, serving until Close.
@@ -123,6 +235,33 @@ type Lab struct {
 	// Addrs maps each Component to the address of the system it talks to.
 	Addrs    map[string]string
 	handlers map[string]http.Handler
+	// DockerAgents are the lab's fake Docker Agents, for ddash to add.
+	DockerAgents []DockerAgent
+	// HostAgents are the fake Host Agents, in VMID order of hostAgents.
+	HostAgents []HostAgent
+	cleanup    []func()
+}
+
+// startHostAgents serves the fake Host Agents on host. Each keeps its
+// certificate and pairing under os.TempDir()/ddash-fakelab, so a ddash
+// that paired with it before still can after a restart.
+func (l *Lab) startHostAgents(host string) error {
+	for _, a := range hostAgents {
+		state := stateDir(fmt.Sprintf("host-agent-%d", a.vmid))
+		fake, err := agentfake.NewHost("", a.seed, agentfake.Options{StateDir: state, Release: a.release, StepDelay: 1500 * time.Millisecond})
+		if err != nil {
+			return err
+		}
+		root := fake.Root
+		l.cleanup = append(l.cleanup, func() { os.RemoveAll(root) })
+		u, stop, err := serveAgent(fake.Serve, host, a.port)
+		if err != nil {
+			return err
+		}
+		l.cleanup = append(l.cleanup, stop)
+		l.HostAgents = append(l.HostAgents, HostAgent{Host: fake, VMID: a.vmid, Name: a.name, URL: u})
+	}
+	return nil
 }
 
 // Handler is what serves the HTTP system component talks to, e.g. a
@@ -167,8 +306,16 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
 	}
+	if err := l.startDocker(host); err != nil {
+		l.Close()
+		return nil, err
+	}
 	if fw, ok := l.handlers["pfsense-api"].(*pfsensefake.Firewall); ok {
 		fw.EditHostOverrides(movedTo(host))
+	}
+	if err := l.startHostAgents(host); err != nil {
+		l.Close()
+		return nil, err
 	}
 	return l, nil
 }
@@ -233,5 +380,8 @@ func (l *Lab) Config() map[string]proto.Message { return l.config }
 func (l *Lab) Close() {
 	for _, srv := range l.servers {
 		srv.Close()
+	}
+	for _, f := range l.cleanup {
+		f()
 	}
 }

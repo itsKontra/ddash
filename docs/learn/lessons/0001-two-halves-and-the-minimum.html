@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Two Halves, One Contract</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script src="../assets/quiz.js" defer></script>
+</head>
+<body>
+<main>
+<nav class="crumbs"><span>ddash runtime · Lesson 1</span><a href="../reference/runtime-map.html">Reference: runtime map</a></nav>
+
+<h1>Two halves, one contract</h1>
+<p class="lede col">A Plugin is a browser bundle. A Component is a Go process. The core starts the processes and the shell imports the bundles. By the end of this lesson you can name the smallest set of files and symbols each half needs, and what breaks when one is missing.</p>
+
+<div class="with-notes">
+
+<h2>The picture</h2>
+<p>When the Operator installs a Plugin, two separate loaders do the work. Each has its own failure mode, so keep them apart in your head.</p>
+
+<aside class="note">This split is ADR 0001. The <a href="../../adr/0001-go-plugin-subprocesses-lockstep-releases.md">ADR</a> gives the reasons: crash isolation and no idle processes. <a href="https://github.com/itsKontra/ddash/issues/19">Issue #19</a> has the full decision.</aside>
+
+<div class="diagram" role="img" aria-label="The core host launches Component processes over go-plugin gRPC and serves Plugin bundles that the browser shell imports.">
+<svg viewBox="0 0 640 300" width="640" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="20" width="250" height="260" rx="4" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+  <text x="24" y="44" font-weight="600" style="fill:var(--accent)">CORE (Go, one process)</text>
+  <text x="24" y="72" font-size="13">runtime: reconcile loop</text>
+  <text x="24" y="92" font-size="13">  Install → order() → launch</text>
+  <text x="24" y="124" font-size="13">router: /api/c/&lt;component&gt;/…</text>
+  <text x="24" y="144" font-size="13">  Connect JSON → protobuf</text>
+  <text x="24" y="176" font-size="13">shell.go: /plugins/&lt;n&gt;/&lt;rel&gt;/</text>
+  <text x="24" y="196" font-size="13">  serves index.js + index.css</text>
+  <text x="24" y="228" font-size="13">api.go: ListInstalledPlugins</text>
+
+  <rect x="390" y="20" width="240" height="110" rx="4" fill="none" stroke="var(--accent-2)" stroke-width="1.5"/>
+  <text x="404" y="44" font-weight="600" style="fill:var(--accent-2)">COMPONENT (subprocess)</text>
+  <text x="404" y="70" font-size="13">main: sdk.Serve(Definition())</text>
+  <text x="404" y="90" font-size="13">LifecycleService +</text>
+  <text x="404" y="110" font-size="13">your gRPC service</text>
+
+  <rect x="390" y="170" width="240" height="110" rx="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+  <text x="404" y="194" font-weight="600" style="fill:var(--muted)">BROWSER SHELL</text>
+  <text x="404" y="220" font-size="13">import map: react, @ddash/ui…</text>
+  <text x="404" y="240" font-size="13">import(script) → default</text>
+  <text x="404" y="260" font-size="13">  export = definePlugin({…})</text>
+
+  <line x1="260" y1="82" x2="390" y2="75" stroke="var(--accent-2)" stroke-width="1.5"/>
+  <text x="285" y="66" font-size="12" style="fill:var(--accent-2)">go-plugin, gRPC</text>
+  <line x1="260" y1="186" x2="390" y2="230" stroke="var(--muted)" stroke-width="1.5"/>
+  <text x="280" y="226" font-size="12" style="fill:var(--muted)">HTTP: ESM bundle</text>
+</svg>
+</div>
+
+<h2>Half one: the Component process</h2>
+<p>A Component is a separate binary. The core runs it with <code>exec.Command</code> and talks to it through <a href="https://github.com/hashicorp/go-plugin">hashicorp/go-plugin</a> over gRPC. The binary's whole <code>main</code> is one line:</p>
+<pre><code>func main() { sdk.Serve(ntfyapi.Definition()) }</code></pre>
+<p class="cite">components/ntfy-api/cmd/main.go:9</p>
+
+<aside class="note">go-plugin starts the child, checks a magic cookie, and then hands both sides a gRPC connection. ddash's cookie is <code>DDASH_COMPONENT</code> (<code>sdk/serve.go:18-22</code>). The cookie stops someone running the binary by hand. It is not a security boundary: the SHA-256 <code>SecureConfig</code> is (<code>core/runtime/subprocess.go:51</code>).</aside>
+
+<p><code>Definition()</code> wraps an <code>sdk.Spec</code>. The domain code you write implements two methods (<code>sdk/component.go:43-53</code>):</p>
+<pre><code>Start(ctx context.Context, env *sdk.Env, cfg C) error
+Health(ctx context.Context) sdk.Health</code></pre>
+<p>The same value must also implement the gRPC server generated from your <code>.proto</code>. Embedding <code>Unimplemented…Server</code> is enough. <code>sdk.Define</code> checks this with reflection and panics if it doesn't hold (<code>sdk/component.go:100-136</code>). It also panics unless every RPC is unary and marked with exactly one of <code>(ddash.getter)</code> or <code>(ddash.action)</code>.</p>
+
+<aside class="note">These panics happen at <code>Define</code> time. A broken Component therefore fails in its own unit tests and in <code>release.Build</code>, before it can reach an Operator's machine.</aside>
+
+<p>Once the process is up, the core runs a fixed sequence in <code>Runtime.launch</code> (<code>core/runtime/reconcile.go:166</code>):</p>
+<ol>
+  <li><strong>Launch</strong>: go-plugin handshake, then <code>Dispense("component")</code> returns a <code>*grpc.ClientConn</code>.</li>
+  <li><strong>Describe</strong>: the Component reports its name, Release, <code>requires</code> and a <code>FileDescriptorSet</code>. The core refuses a wrong name or Release.</li>
+  <li><strong>Start</strong>: the core sends the stored config as protobuf bytes. An <code>InvalidArgument</code> error makes the Component <em>Unconfigured</em>. Any other error makes it <em>Down</em>.</li>
+  <li><strong>Health</strong>: polled every 30 s from then on.</li>
+</ol>
+
+<aside class="note">Until <code>Start</code> succeeds, every API method answers <code>FailedPrecondition "not configured"</code> (<code>sdk/instance.go:77-91</code>). The host never sees a half-started Component.</aside>
+
+<h2>Half two: the Plugin bundle</h2>
+<p>A Plugin has no backend code. It is a <code>plugin.yaml</code> plus one ESM file that Vite builds in library mode. React, react-router and <code>@ddash/ui</code> are left external, because the shell's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap">import map</a> supplies them. The shell loads it with a plain dynamic import:</p>
+<pre><code>export const importBundle = (url) =&gt; import(/* @vite-ignore */ url);</code></pre>
+<p class="cite">web/src/plugins.ts:8</p>
+<p>The URL comes from <code>ListInstalledPlugins</code> (<code>core/api.go:65</code>). The module's default export must be a <code>definePlugin({…})</code>. Otherwise the Plugin shows as broken with the message <q>its bundle has no definePlugin default export</q> (<code>web/src/plugins.ts:44</code>). <code>nav</code>, <code>pages</code> and <code>widgets</code> are all optional.</p>
+
+<aside class="note"><code>definePlugin</code> is an identity function (<code>packages/plugin/src/define.ts:56</code>). It exists only to type-check the object. The contract is the <em>shape</em> of the default export.</aside>
+
+<h2>The seam that joins them: <code>requires</code></h2>
+<p>A Plugin reaches Components only through the ones it lists in <code>requires</code>. That one list does three jobs:</p>
+<ul>
+  <li><strong>Install:</strong> the core takes the transitive closure, dependencies first, and launches those Components (<code>core/runtime/catalogue.go:194</code>, <code>installed.go:184-218</code>).</li>
+  <li><strong>Browser:</strong> the transport maps proto package <code>ddash.&lt;name-without-hyphens&gt;</code> to a required Component. Anything else is refused with PermissionDenied (<code>packages/plugin/src/transport.ts:58</code>).</li>
+  <li><strong>Host:</strong> the router checks the same rule a second time, using the <code>Ddash-Plugin</code> header (<code>core/router/router.go:185</code>).</li>
+</ul>
+
+<aside class="note">Watch out: the <code>ddash.&lt;name&gt;</code> package naming exists only as a convention in the TS transport. Nothing on the Go side enforces it. A Component whose proto package doesn't follow it installs and runs fine, but no Plugin can call it.</aside>
+
+<h2>The minimum</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Half</th><th>Must have</th><th>If missing</th></tr></thead>
+<tbody>
+<tr><td class="proc">Component</td><td><code>component.yaml</code>, with <code>name</code> equal to the directory name</td><td>Not in the Catalogue; <code>Define</code> panics without a name</td></tr>
+<tr><td class="proc">Component</td><td><code>.proto</code>: package <code>ddash.&lt;n&gt;</code>, a service, a config message, every RPC marked getter or action</td><td><code>Define</code> panics; Plugins can't route to it</td></tr>
+<tr><td class="proc">Component</td><td><code>Definition()</code> calling <code>sdk.Define(Spec{Manifest, Service, New})</code></td><td>Panic on a nil <code>Service</code> or <code>New</code></td></tr>
+<tr><td class="proc">Component</td><td>A type with <code>Start</code>, <code>Health</code> and the embedded generated server</td><td>Panic: “does not implement”</td></tr>
+<tr><td class="proc">Component</td><td><code>cmd/main.go</code>: <code>sdk.Serve(…)</code></td><td><code>release.Build</code> can't build <code>./components/&lt;n&gt;/cmd</code></td></tr>
+<tr><td class="host">Plugin</td><td><code>plugin.yaml</code>: <code>name</code>, <code>requires</code> (plus <code>title</code> and <code>icon</code> for the sidebar)</td><td>Not in the Catalogue; calls refused</td></tr>
+<tr><td class="host">Plugin</td><td><code>src/index.tsx</code>: <code>export default definePlugin({})</code></td><td>Shown as broken</td></tr>
+<tr><td class="host">Plugin</td><td><code>vite.config.ts</code>: <code>pluginConfig(import.meta.dirname)</code></td><td>No <code>dist/index.js</code>, so the Release build fails</td></tr>
+</tbody>
+</table>
+</div>
+<p><code>migrations/</code> is optional. Without it <code>env.DB</code> is <code>nil</code>. The smallest working Component in the repo is the SDK's own test fixture <code>echo</code> (<code>sdk/lifecycle_test.go:23-62</code>), which is worth reading in full.</p>
+
+<h2>Check yourself</h2>
+<p class="col">Answer from memory first. Scroll up only after you've committed to an answer.</p>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="2" data-why="Define validates at construction: the reflection check on the server interface (sdk/component.go:113) and checkMethods (line 123).">
+    <p>1. A Component's RPC has neither <code>(ddash.getter)</code> nor <code>(ddash.action)</code>. When does it fail?</p>
+    <div class="opts">
+      <button class="opt">On the first UI call to that method</button>
+      <button class="opt">During the Describe step at launch time</button>
+      <button class="opt">When sdk.Define builds the Definition</button>
+    </div>
+  </div>
+  <div class="q" data-answer="0" data-why="launch maps InvalidArgument and FieldErrors to Unconfigured; any other error is Down (reconcile.go:203-207).">
+    <p>2. <code>Start</code> returns <code>InvalidArgument</code>. Which state does the core give the Component?</p>
+    <div class="opts">
+      <button class="opt">Unconfigured, with per-field errors</button>
+      <button class="opt">Down, retried with backoff later</button>
+      <button class="opt">Starting, until Health first says OK</button>
+    </div>
+  </div>
+  <div class="q" data-answer="1" data-why="The shell imports it via import(url); a missing default export marks only that Plugin broken (web/src/plugins.ts:44). Its Component still runs because the core never looks at the bundle.">
+    <p>3. A Plugin bundle exports <code>definePlugin</code> as a named export, not the default. What happens?</p>
+    <div class="opts">
+      <button class="opt">The Release build rejects the bundle</button>
+      <button class="opt">The shell marks that Plugin as broken</button>
+      <button class="opt">The core refuses to launch Components</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="Both the TS transport (transport.ts:58) and router.inScope (router.go:185) check the Plugin's own requires list. Transitive Components are launched but not callable from that Plugin.">
+    <p>4. Plugin P requires Component A, and A requires B. Can P's UI call B directly?</p>
+    <div class="opts">
+      <button class="opt">Yes, B is launched so it's reachable</button>
+      <button class="opt">Yes, if B's proto package is ddash.b</button>
+      <button class="opt">No, only P's direct requires are callable</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h3>Recall drill</h3>
+<div class="recall">
+  <label for="recall-1">Without scrolling: list the five things a Component must ship, and the four lifecycle steps the core runs on it, in order.</label>
+  <textarea id="recall-1" placeholder="1. …"></textarea>
+  <details><summary>Reveal</summary>
+  <p>Ship: <code>component.yaml</code>, <code>.proto</code> (marked RPCs), <code>Definition()</code> via <code>sdk.Define</code>, a type with <code>Start</code>/<code>Health</code> and the embedded server, <code>cmd/main.go</code> calling <code>sdk.Serve</code>.<br>Lifecycle: Launch (handshake + Dispense) → Describe → Start → Health polling.</p>
+  </details>
+</div>
+
+<div class="source">
+  <p class="label">Primary source</p>
+  <p>Read <a href="../../adr/0001-go-plugin-subprocesses-lockstep-releases.md">ADR 0001</a> and <a href="../../adr/0002-host-routes-component-calls-from-descriptors.md">ADR 0002</a> again with this lesson's file map beside them. Then read hashicorp's <a href="https://github.com/hashicorp/go-plugin#architecture">go-plugin README, “Architecture”</a> to see what the library does for you between <code>exec</code> and <code>Dispense</code>.</p>
+</div>
+
+<p class="ask">If something here is unclear, ask me. I'm your teacher for this course. Good questions to start with: “What exactly happens inside <code>client.Client()</code>?” or “Why is Describe a separate RPC from Start?”</p>
+
+</div>
+
+<footer class="next">
+  <span>Next: <em>Lesson 2. Inside the handshake: from <code>exec</code> to a <code>*grpc.ClientConn</code>, and the broker channel back.</em></span>
+  <a href="../reference/runtime-map.html">Runtime map →</a>
+</footer>
+</main>
+</body>
+</html>

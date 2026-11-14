@@ -5,6 +5,34 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- **Docker Agents and Host Agents** (ADR-0005): ddash can now change what
+  runs on a host through an Agent you install there. Nothing changes until
+  you add one. Docker Page, **Docker Agents**: add a host, run the Compose
+  file ddash shows (`/opt/ddash-docker-agent`), and its Compose Projects
+  become editable, startable and updatable from ddash; ddash then reads that
+  host through the Agent and its socket-proxy can go. For an LXC or VM, the
+  Workload's **Host Agent** Panel gives the `install.sh` command
+  ([deployment](deployment.md#9-docker-agents-optional-per-docker-host)).
+  Allow ddash to reach port 7443 (Docker Agent) and 7444 (Host Agent).
+- Mark what reaching ddash depends on as Protected in its Compose file:
+  `labels: { ddash.protected: "true" }` on ddash itself and Keycloak.
+- Package updates take a ddash Snapshot first and backups run from ddash:
+  ddash's Proxmox role gains `VM.Snapshot`, `VM.Backup` and
+  `Datastore.AllocateSpace` on the backup storage, Protected Workloads
+  included ([deployment](deployment.md#7-proxmox-role-token-and-protected-acls)).
+- Notifications now go through a new `notify` Component to ntfy and, when
+  you set up `telegram-api`, Telegram; which Notifications each channel
+  gets is in notify's config. Checks Notifications reach ntfy as before.
+- Apps require `cloudflare-api` (for "On the internet") and
+  `docker-agent-api`; both start unconfigured and change nothing until set
+  up. New Plugins in the Catalogue: Cloudflare Tunnel, Calendar, AI App
+  helper. Remote Access gains **Add a device**: set network's Remote Access
+  endpoint, and give the pfSense user the WireGuard peer privileges
+  ([deployment](deployment.md)).
+- `make smoke` also reads Cloudflare and the calendars when `smoke.env` sets
+  `SMOKE_CLOUDFLARE_API` and `SMOKE_CALENDAR_API` (see `smoke.env.example`);
+  without them it skips both.
+
 ## v0.0.2-rc.4
 
 - An Action you confirmed now runs to its end even when you close the tab,

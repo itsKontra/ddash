@@ -36,6 +36,7 @@ const (
 	AppsService_PlanAction_FullMethodName      = "/ddash.apps.AppsService/PlanAction"
 	AppsService_RunAction_FullMethodName       = "/ddash.apps.AppsService/RunAction"
 	AppsService_ListWorkloads_FullMethodName   = "/ddash.apps.AppsService/ListWorkloads"
+	AppsService_ListDockerHosts_FullMethodName = "/ddash.apps.AppsService/ListDockerHosts"
 )
 
 // AppsServiceClient is the client API for AppsService service.
@@ -84,9 +85,12 @@ type AppsServiceClient interface {
 	// a time with every other App Action and sync. It reads both sources
 	// afresh and builds the Plan again: when that differs from the one
 	// confirmed, it refuses before any write with "changed since you looked"
-	// (ABORTED, the new Plan in the error's details). Otherwise it writes to
-	// Nginx Proxy Manager, then pfSense in one batch applied once, then the
-	// App record, and stops at the first failed step: the error names it and
+	// (ABORTED, the new Plan in the error's details). Otherwise it writes an
+	// Add App's new Compose Project and starts it through docker-agent-api
+	// (following the Agent's job and then the container for up to 40 s
+	// from its start, then stopping DEADLINE_EXCEEDED, "still starting"),
+	// writes to Nginx Proxy Manager, then pfSense in one batch applied once,
+	// then the App record, and stops at the first failed step: the error names it and
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
@@ -100,6 +104,10 @@ type AppsServiceClient interface {
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
 	ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error)
+	// ListDockerHosts returns the Docker hosts with a paired Docker Agent,
+	// as docker-agent-api lists them now, to add an App from a new Compose
+	// Project on: their address, Compose roots and Compose Projects.
+	ListDockerHosts(ctx context.Context, in *ListDockerHostsRequest, opts ...grpc.CallOption) (*ListDockerHostsResponse, error)
 }
 
 type appsServiceClient struct {
@@ -239,6 +247,16 @@ func (c *appsServiceClient) ListWorkloads(ctx context.Context, in *ListWorkloads
 	return out, nil
 }
 
+func (c *appsServiceClient) ListDockerHosts(ctx context.Context, in *ListDockerHostsRequest, opts ...grpc.CallOption) (*ListDockerHostsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListDockerHostsResponse)
+	err := c.cc.Invoke(ctx, AppsService_ListDockerHosts_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AppsServiceServer is the server API for AppsService service.
 // All implementations must embed UnimplementedAppsServiceServer
 // for forward compatibility.
@@ -285,9 +303,12 @@ type AppsServiceServer interface {
 	// a time with every other App Action and sync. It reads both sources
 	// afresh and builds the Plan again: when that differs from the one
 	// confirmed, it refuses before any write with "changed since you looked"
-	// (ABORTED, the new Plan in the error's details). Otherwise it writes to
-	// Nginx Proxy Manager, then pfSense in one batch applied once, then the
-	// App record, and stops at the first failed step: the error names it and
+	// (ABORTED, the new Plan in the error's details). Otherwise it writes an
+	// Add App's new Compose Project and starts it through docker-agent-api
+	// (following the Agent's job and then the container for up to 40 s
+	// from its start, then stopping DEADLINE_EXCEEDED, "still starting"),
+	// writes to Nginx Proxy Manager, then pfSense in one batch applied once,
+	// then the App record, and stops at the first failed step: the error names it and
 	// what was done, nothing is rolled back, and its details carry a
 	// RunActionResponse saying how many steps were done. Success or failure,
 	// it ends with a sync bounded to 10 s, which may report that it couldn't
@@ -301,6 +322,10 @@ type AppsServiceServer interface {
 	// now, to pick a Workload override from: containers by host, then
 	// Proxmox guests by VMID, templates left out.
 	ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error)
+	// ListDockerHosts returns the Docker hosts with a paired Docker Agent,
+	// as docker-agent-api lists them now, to add an App from a new Compose
+	// Project on: their address, Compose roots and Compose Projects.
+	ListDockerHosts(context.Context, *ListDockerHostsRequest) (*ListDockerHostsResponse, error)
 	mustEmbedUnimplementedAppsServiceServer()
 }
 
@@ -346,6 +371,9 @@ func (UnimplementedAppsServiceServer) RunAction(*RunActionRequest, grpc.ServerSt
 }
 func (UnimplementedAppsServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
+}
+func (UnimplementedAppsServiceServer) ListDockerHosts(context.Context, *ListDockerHostsRequest) (*ListDockerHostsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListDockerHosts not implemented")
 }
 func (UnimplementedAppsServiceServer) mustEmbedUnimplementedAppsServiceServer() {}
 func (UnimplementedAppsServiceServer) testEmbeddedByValue()                     {}
@@ -577,6 +605,24 @@ func _AppsService_ListWorkloads_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AppsService_ListDockerHosts_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListDockerHostsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).ListDockerHosts(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_ListDockerHosts_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).ListDockerHosts(ctx, req.(*ListDockerHostsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AppsService_ServiceDesc is the grpc.ServiceDesc for AppsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -627,6 +673,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWorkloads",
 			Handler:    _AppsService_ListWorkloads_Handler,
+		},
+		{
+			MethodName: "ListDockerHosts",
+			Handler:    _AppsService_ListDockerHosts_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

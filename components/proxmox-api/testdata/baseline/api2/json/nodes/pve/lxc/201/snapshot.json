@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "name": "before-docker-27",
+      "description": "Before upgrading Docker to 27\n",
+      "snaptime": 1788220800
+    },
+    {
+      "name": "ddash-20261020-031500",
+      "description": "Created by ddash before an update\n",
+      "snaptime": 1792466100,
+      "parent": "before-docker-27"
+    },
+    {
+      "name": "current",
+      "description": "You are here!",
+      "running": 1,
+      "parent": "ddash-20261020-031500",
+      "digest": "8a2c0e6f61b4a5bd2f0e0bd49d0f6a7a3c7e9d1a"
+    }
+  ]
+}

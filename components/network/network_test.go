@@ -49,6 +49,11 @@ type firewall struct {
 	readAt  func() time.Time
 	tunnels []*pfsenseapipb.WireguardTunnel
 	rules   []*pfsenseapipb.FirewallRule
+	// peers answers ListWireguardPeers, and CreateWireguardPeer adds to it
+	// (add_peer_test.go); createErr fails a create, applyFails its apply.
+	peers      []*pfsenseapipb.WireguardPeerConfig
+	createErr  error
+	applyFails bool
 
 	// writes is every write request received, in order (devices_test.go).
 	writes []proto.Message

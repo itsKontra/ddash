@@ -1,0 +1,122 @@
+/* ddash runtime course — shared stylesheet for every lesson and reference page.
+   Layout: one ~65ch text column with a right margin for sidenotes (Tufte), collapsing to one column on phones. */
+@import url("https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600;7..72,700&family=IBM+Plex+Sans+Condensed:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap");
+
+:root {
+  --paper: #f5f7f8;
+  --ink: #1b2329;
+  --muted: #5b6770;
+  --rule: #d5dde2;
+  --accent: #0b6f7a;      /* host / core */
+  --accent-2: #8a4b0f;    /* Component process */
+  --code-bg: #e9eef1;
+  --good: #1f7a3d;
+  --bad: #b3261e;
+
+  --f-body: "Literata", Georgia, "Times New Roman", serif;
+  --f-label: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --step--1: 0.85rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.3rem;
+  --step-2: 1.75rem;
+  --step-3: 2.4rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12181c; --ink: #e3e9ec; --muted: #94a3ad; --rule: #2a353c;
+    --accent: #5cc2cc; --accent-2: #e2a467; --code-bg: #1b2429;
+    --good: #6fcf8e; --bad: #f2867d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12181c; --ink: #e3e9ec; --muted: #94a3ad; --rule: #2a353c;
+  --accent: #5cc2cc; --accent-2: #e2a467; --code-bg: #1b2429;
+  --good: #6fcf8e; --bad: #f2867d; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 400 var(--step-0)/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 3rem 5rem;
+}
+main { max-width: 64rem; margin: 0 auto; }
+.col { max-width: 40rem; }
+
+.crumbs { font: 500 var(--step--1)/1.4 var(--f-label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: flex; gap: 1rem; flex-wrap: wrap; }
+.crumbs a { color: inherit; }
+h1, h2, h3 { text-wrap: balance; line-height: 1.2; }
+h1 { font-size: var(--step-3); font-weight: 700; margin: .4rem 0 1rem; }
+h2 { font-size: var(--step-2); font-weight: 600; margin: 3rem 0 .75rem; }
+h3 { font-size: var(--step-1); font-weight: 600; margin: 2rem 0 .5rem; }
+.lede { font-size: var(--step-1); color: var(--muted); line-height: 1.45; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+code, pre { font-family: var(--f-code); font-size: .86em; }
+code { background: var(--code-bg); padding: .08em .3em; border-radius: 3px; }
+pre { background: var(--code-bg); padding: 1rem 1.1rem; overflow-x: auto; line-height: 1.5; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+.cite { font: 500 var(--step--1)/1 var(--f-label); color: var(--muted); }
+
+/* Sidenotes: margin notes on wide screens, inline asides on phones */
+.with-notes { display: grid; grid-template-columns: minmax(0, 40rem) minmax(0, 18rem); gap: 0 3rem; align-items: start; }
+.with-notes > * { grid-column: 1; min-width: 0; }
+.with-notes > .note { grid-column: 2; font-size: var(--step--1); color: var(--muted); line-height: 1.5; border-top: 1px solid var(--rule); padding-top: .4rem; margin-top: 1.2rem; }
+@media (max-width: 52rem) {
+  .with-notes { grid-template-columns: minmax(0, 1fr); }
+  .with-notes > .note { grid-column: 1; }
+}
+
+.label { font: 600 var(--step--1)/1.3 var(--f-label); letter-spacing: .07em; text-transform: uppercase; }
+.host { color: var(--accent); }
+.proc { color: var(--accent-2); }
+
+table { border-collapse: collapse; width: 100%; font-size: var(--step--1); }
+.table-wrap { overflow-x: auto; }
+th, td { text-align: left; vertical-align: top; padding: .5rem .6rem; border-bottom: 1px solid var(--rule); }
+th { font: 600 var(--step--1)/1.3 var(--f-label); letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+td code { white-space: nowrap; }
+
+.diagram { overflow-x: auto; margin: 1.5rem 0; }
+.diagram svg { display: block; max-width: 100%; height: auto; }
+.diagram text { font-family: var(--f-label); fill: var(--ink); }
+
+.callout { border-left: 3px solid var(--accent); padding: .2rem 0 .2rem 1rem; margin: 1.5rem 0; }
+.source { border: 1px solid var(--rule); padding: 1rem 1.2rem; margin: 2rem 0; border-radius: 4px; }
+.ask { color: var(--muted); font-style: italic; }
+footer.next { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font: 500 var(--step--1)/1.6 var(--f-label); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+/* Quiz component (assets/quiz.js) */
+.quiz { display: grid; gap: 1.5rem; margin: 1.5rem 0; }
+.q { border-top: 1px solid var(--rule); padding-top: 1rem; }
+.q p { margin: 0 0 .6rem; font-weight: 600; }
+.q .opts { display: grid; gap: .4rem; }
+.q button.opt { text-align: left; font: 400 var(--step--1)/1.4 var(--f-code); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 4px; padding: .55rem .7rem; cursor: pointer; }
+.q button.opt:hover { border-color: var(--accent); }
+.q button.opt.right { border-color: var(--good); color: var(--good); }
+.q button.opt.wrong { border-color: var(--bad); color: var(--bad); text-decoration: line-through; }
+.q .why { font-size: var(--step--1); color: var(--muted); margin-top: .5rem; }
+.recall textarea { width: 100%; min-height: 5rem; font: 400 var(--step--1)/1.5 var(--f-code); background: var(--code-bg); color: var(--ink); border: 1px solid var(--rule); border-radius: 4px; padding: .6rem; }
+.recall button, .recall summary { font: 600 var(--step--1)/1 var(--f-label); cursor: pointer; color: var(--accent); }
+.score { font: 600 var(--step--1)/1 var(--f-label); color: var(--muted); }
+
+@media print {
+  body { background: #fff; color: #000; padding: 0; }
+  .with-notes { grid-template-columns: 1fr 14rem; }
+  .q button.opt { border-color: #999; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Ordering drill (assets/order.js) */
+.order-pool { display: grid; gap: .4rem; margin: 1rem 0 .5rem; }
+.order-step { display: flex; gap: .7rem; align-items: baseline; text-align: left; font: 400 var(--step--1)/1.4 var(--f-body); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 4px; padding: .55rem .7rem; cursor: pointer; }
+.order-step:hover:not(:disabled) { border-color: var(--accent); }
+.order-step .n { font: 600 var(--step--1)/1 var(--f-label); min-width: 1.2rem; color: var(--good); }
+.order-step.right { border-color: var(--good); cursor: default; }
+.order-step.wrong { animation: order-miss .4s; }
+@keyframes order-miss { 0%, 100% { border-color: var(--rule); } 30% { border-color: var(--bad); transform: translateX(-3px); } 60% { transform: translateX(3px); } }

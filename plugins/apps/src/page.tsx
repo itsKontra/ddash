@@ -1,5 +1,8 @@
 import { Button, EmptyState, Notice, PageTitle, Panel, Skeleton, useQueryState } from "@ddash/ui";
+import { useState } from "react";
+import { useLocation, useSearchParams } from "react-router";
 import { useApps } from "./apps";
+import { parseDraft } from "./draft";
 import { useAppChecks } from "./checks";
 import { AddApp } from "./add-app";
 import { AppList } from "./list";
@@ -11,14 +14,33 @@ const adding = "new";
 
 /**
  * The Apps Page, the split view: the list on the left and the App ?app=
- * names on the right, with the Notices over both.
+ * names on the right, with the Notices over both. ?add=compose opens Add
+ * App from a new Compose Project, filled in from the URL fragment's draft
+ * (#draft=…) when it has one.
  */
 export function AppsPage() {
   const { list, error, answeredAt } = useApps();
   const { byApp, error: checksError } = useAppChecks();
   const [q, setQ] = useQueryState("q", "");
   const [ignored, setIgnored] = useQueryState("ignored", "");
-  const [selected, select] = useQueryState("app", "");
+  const [params, setParams] = useSearchParams();
+  const { hash } = useLocation();
+  const selected = params.get("app") ?? "";
+  const fromCompose = params.get("add") === "compose";
+  // The draft as the page opened with it: the fragment may go.
+  const [draft] = useState(() => parseDraft(hash));
+  /** Shows the App id (none: nothing), leaving Add App and its draft. */
+  const select = (id: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("add");
+        if (id) next.set("app", id);
+        else next.delete("app");
+        return next;
+      },
+      { replace: true, preventScrollReset: true },
+    );
   const showIgnored = ignored === "1";
   const add = (
     <Button icon="plus" onClick={() => select(adding)}>
@@ -59,7 +81,9 @@ export function AppsPage() {
               </Panel>
             </div>
             <div className="min-w-0 flex-1">
-              {selected === adding ? (
+              {fromCompose ? (
+                <AddApp list={list} fromCompose draft={draft} onDone={(id) => select(id ?? "")} />
+              ) : selected === adding ? (
                 <AddApp list={list} onDone={(id) => select(id ?? "")} />
               ) : app ? (
                 <AppPane key={app.id} app={app} list={list} check={byApp?.get(app.id)} showIgnored={showIgnored} onGone={() => select("")} />

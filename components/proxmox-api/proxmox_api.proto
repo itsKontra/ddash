@@ -75,6 +75,39 @@ service ProxmoxApiService {
   rpc ListActiveTasks(ListActiveTasksRequest) returns (ListActiveTasksResponse) {
     option (ddash.getter) = {refresh: NONE};
   }
+  // ListTasks returns a Workload's recent tasks on a node, running and
+  // ended (with their exit status), newest first, never cached.
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // ListSnapshots returns a Workload's snapshots (without Proxmox's
+  // "current" entry) and whether its storage can take one, never cached.
+  rpc ListSnapshots(ListSnapshotsRequest) returns (ListSnapshotsResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // CreateSnapshot takes a snapshot of a Workload and returns once
+  // Proxmox's task ended OK, like StartWorkload. A task that failed
+  // because the storage can't snapshot fails FAILED_PRECONDITION with
+  // "snapshots not supported".
+  rpc CreateSnapshot(CreateSnapshotRequest) returns (CreateSnapshotResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteSnapshot deletes one snapshot of a Workload and returns like
+  // CreateSnapshot.
+  rpc DeleteSnapshot(DeleteSnapshotRequest) returns (DeleteSnapshotResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // Backup starts a vzdump of a Workload to a storage and returns its
+  // task's UPID at once: a backup outlasts an Action. ListTasks follows
+  // it.
+  rpc Backup(BackupRequest) returns (BackupResponse) {
+    option (ddash.action) = {};
+  }
+  // ListBackupStorages returns a node's enabled storages that hold
+  // backups.
+  rpc ListBackupStorages(ListBackupStoragesRequest) returns (ListBackupStoragesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
 }
 
 message ListWorkloadsRequest {}
@@ -201,4 +234,109 @@ message Task {
   // Proxmox's task type, e.g. "vzstart", "qmshutdown".
   string type = 2;
   google.protobuf.Timestamp started = 3;
+}
+
+message ListTasksRequest {
+  string node = 1;
+  uint32 vmid = 2;
+}
+
+message ListTasksResponse {
+  repeated TaskStatus tasks = 1;
+}
+
+// A task, from /nodes/{node}/tasks?source=all.
+message TaskStatus {
+  string upid = 1;
+  // e.g. "vzdump", "vzsnapshot".
+  string type = 2;
+  // The task ended.
+  bool stopped = 3;
+  // Proxmox's exit status once stopped: "OK", or why it failed.
+  string exit_status = 4;
+  google.protobuf.Timestamp started = 5;
+  // Unset while it runs.
+  google.protobuf.Timestamp ended = 6;
+}
+
+message ListSnapshotsRequest {
+  Target workload = 1;
+}
+
+message ListSnapshotsResponse {
+  // Oldest first.
+  repeated Snapshot snapshots = 1;
+  // Its storage can take a snapshot (Proxmox's snapshot feature).
+  bool supported = 2;
+}
+
+message Snapshot {
+  string name = 1;
+  string description = 2;
+  // When it was taken.
+  google.protobuf.Timestamp created = 3;
+  // The snapshot it was taken on top of; empty for the first.
+  string parent = 4;
+}
+
+message CreateSnapshotRequest {
+  Target workload = 1;
+  // Letters, digits, - and _, starting with a letter, at most 40.
+  string name = 2;
+  string description = 3;
+}
+
+message CreateSnapshotResponse {
+  string upid = 1;
+}
+
+message DeleteSnapshotRequest {
+  Target workload = 1;
+  string name = 2;
+}
+
+message DeleteSnapshotResponse {
+  string upid = 1;
+}
+
+message BackupRequest {
+  Target workload = 1;
+  // A storage ListBackupStorages lists.
+  string storage = 2;
+  BackupMode mode = 3;
+}
+
+enum BackupMode {
+  // Snapshot.
+  BACKUP_MODE_UNSPECIFIED = 0;
+  // A live backup: the Workload keeps running.
+  BACKUP_MODE_SNAPSHOT = 1;
+  // Suspends the Workload for the copy.
+  BACKUP_MODE_SUSPEND = 2;
+  // Shuts the Workload down for the backup and starts it again.
+  BACKUP_MODE_STOP = 3;
+}
+
+message BackupResponse {
+  string upid = 1;
+}
+
+message ListBackupStoragesRequest {
+  string node = 1;
+}
+
+message ListBackupStoragesResponse {
+  repeated Storage storages = 1;
+}
+
+message Storage {
+  // e.g. "local", "pbs".
+  string name = 1;
+  // e.g. "dir", "pbs", "nfs".
+  string type = 2;
+  bool active = 3;
+  bool shared = 4;
+  // Bytes free and in all; 0 when Proxmox doesn't say.
+  uint64 avail = 5;
+  uint64 total = 6;
 }

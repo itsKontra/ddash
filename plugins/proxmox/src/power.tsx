@@ -13,7 +13,7 @@ export const powerMgmt = "VM.PowerMgmt";
 export const workloadLabel = (w: Workload) => `${kindLabel(w.kind)} ${w.vmid} ${w.name}`;
 
 /** The Workload as the proxmox Component names it: kind, node and VMID. */
-const refOf = (w: Workload) => ({ kind: w.kind === Kind.VM ? RefKind.VM : RefKind.LXC, host: w.node, id: String(w.vmid) });
+export const refOf = (w: Workload) => ({ kind: w.kind === Kind.VM ? RefKind.VM : RefKind.LXC, host: w.node, id: String(w.vmid) });
 
 const running: Record<PowerAction, string> = {
   [PowerAction.UNSPECIFIED]: "busy",

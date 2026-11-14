@@ -1,8 +1,11 @@
-import { useQuery } from "@ddash/plugin";
-import { AppsService, Reach, type ListAppsResponse } from "@ddash/proto/apps/apps_pb";
+import { usePluginLink, useQuery } from "@ddash/plugin";
+import { AppsService, Reach, System, type ListAppsResponse, type Plan } from "@ddash/proto/apps/apps_pb";
 import { Button, Field, FormActions, Notice, Panel, Segmented, TextInput } from "@ddash/ui";
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router";
 import { groupsOf } from "./apps";
+import { ComposeFields, composeSource, newCompose, type ComposeDraft } from "./compose-fields";
+import type { Draft } from "./draft";
 import { GroupField, IconField, Text } from "./fields";
 import { blocking, NameNotes, PlanSteps, useRunAction, type ActionInit } from "./plan";
 import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";
@@ -18,6 +21,10 @@ const reachOf: Record<Way, Reach> = {
   "Host Override": Reach.NOT_PROXIED,
   "Link only": Reach.LINK_ONLY,
 };
+
+/** Where the App runs: an upstream that is already there, or a Compose Project ddash starts. */
+const sources = ["Existing upstream", "New Compose Project"] as const;
+type Source = (typeof sources)[number];
 
 const cantCheck = (source: string) => `Can't check ${source} right now: its last read failed.`;
 
@@ -57,27 +64,65 @@ function useSettled<T>(value: T): { settled: T; current: boolean } {
   return { settled: settled.value, current: key === settled.key };
 }
 
+/** The upstream a Plan's Proxy Host step writes, e.g. "http://198.18.2.10:8010"; "" for none. */
+const planUpstream = (plan?: Plan) =>
+  plan?.steps.find((s) => s.system === System.NGINX_PROXY_MANAGER)?.values.find((v) => v.label === "Upstream")?.after ?? "";
+
+/** A draft's Compose Project as the form's. */
+const composeOf = (d: Draft): ComposeDraft => ({
+  ...newCompose(),
+  host: d.host ?? "",
+  name: d.name,
+  directory: d.directory ?? "",
+  content: d.compose,
+  service: d.app?.service ?? "",
+  port: d.app?.port ? String(d.app.port) : "",
+});
+
 /**
- * Add App in the pane: the URL, Name, Icon and Group, the Reach (the
- * Proxy Host's fields for Reverse proxy, the Address for Host Override),
- * and beside them "ddash will": the server's Plan for what is typed,
- * asked for once typing pauses. Add runs the Plan on screen and shows
- * each step's progress; onDone gets the new App's id, or none on Cancel.
+ * Add App in the pane: the URL, Name, Icon and Group, the source (an
+ * existing upstream, or a new Compose Project ddash writes and starts on
+ * a Docker host first), the Reach (the Proxy Host's fields for Reverse
+ * proxy, the Address for Host Override), and beside them "ddash will":
+ * the server's Plan for what is typed, asked for once typing pauses. Add
+ * runs the Plan on screen and shows each step's progress; onDone gets the
+ * new App's id, or none on Cancel. A draft (from the AI App helper) fills
+ * in a new Compose Project and the fields; nothing runs until Add.
  */
-export function AddApp({ list, onDone }: { list: ListAppsResponse; onDone: (id?: string) => void }) {
+export function AddApp({
+  list,
+  onDone,
+  draft,
+  fromCompose: startFromCompose = !!draft,
+}: {
+  list: ListAppsResponse;
+  onDone: (id?: string) => void;
+  draft?: Draft;
+  /** Start with the New Compose Project source. */
+  fromCompose?: boolean;
+}) {
   const certificates = useCertificates();
   const { disabled, why } = unreadable(list);
-  const [url, setUrl] = useState("");
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState("");
-  const [group, setGroup] = useState("");
-  const [chosen, setChosen] = useState<Way>("Reverse proxy");
+  const [url, setUrl] = useState(draft?.app?.url ?? "");
+  const [name, setName] = useState(draft?.app?.name ?? "");
+  const [icon, setIcon] = useState(draft?.app?.icon ?? "");
+  const [group, setGroup] = useState(draft?.app?.group ?? "");
+  const [source, setSource] = useState<Source>(startFromCompose ? "New Compose Project" : "Existing upstream");
+  const [compose, setCompose] = useState<ComposeDraft>(() => (draft ? composeOf(draft) : newCompose()));
+  const [chosen, setChosen] = useState<Way>(() => {
+    const h = draft?.app?.url ? hostOf(draft.app.url) : "";
+    const home = homeDomain(list);
+    return h && home && h !== home && !h.endsWith(`.${home}`) ? "Link only" : "Reverse proxy";
+  });
   const [proxy, setProxy] = useState<ProxyDraft>(newProxy);
   const [address, setAddress] = useState("");
+  const drafting = usePluginLink("ai-helper");
   const firstOpen = reaches.find((r) => !disabled.includes(r))!;
   const way = disabled.includes(chosen) ? firstOpen : chosen;
   const host = hostOf(url);
+  const fromCompose = source === "New Compose Project";
 
+  const proxyHost = resolve(proxy, certificates, host);
   const action: ActionInit = {
     action: {
       case: "add",
@@ -87,8 +132,10 @@ export function AddApp({ list, onDone }: { list: ListAppsResponse; onDone: (id?:
         icon,
         group,
         reach: reachOf[way],
-        proxyHost: way === "Reverse proxy" ? resolve(proxy, certificates, host) : undefined,
+        // A new Compose Project's upstream is filled in by ddash.
+        proxyHost: way === "Reverse proxy" ? (fromCompose ? { ...proxyHost, forwardHost: "", forwardPort: 0 } : proxyHost) : undefined,
         address: way === "Host Override" ? address.trim() : "",
+        compose: fromCompose ? composeSource(compose) : undefined,
       },
     },
   };
@@ -133,53 +180,65 @@ export function AddApp({ list, onDone }: { list: ListAppsResponse; onDone: (id?:
         : "ddash keeps the link and its Check only.",
     ...why,
   ].join(" ");
+  const sourceHint = fromCompose
+    ? "ddash writes the Compose file on the Docker host and starts it, then adds the Proxy Host and DNS. The new container is the App's Workload."
+    : "The App runs already: ddash adds its Proxy Host and DNS.";
 
   return (
     <div className="flex flex-col gap-4 xl:flex-row xl:items-start">
       <div className="min-w-0 flex-1">
-      <Panel title="Add App">
-        <form onSubmit={(e) => void add(e)} className="flex flex-col gap-4">
-          <Field label="URL" hint={typed && plan && plan.names.length > 0 ? <NameNotes names={plan.names} /> : undefined}>
-            <TextInput autoFocus value={url} placeholder="https://jellyfin.home.example" onChange={(e) => typeUrl(e.target.value)} />
-          </Field>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <Text label="Name" value={name} onChange={edit(setName)} placeholder={host || "Jellyfin"} />
-            <IconField value={icon} onChange={edit(setIcon)} name={name || host} url={url} />
-            <GroupField value={group} onChange={edit(setGroup)} groups={groupsOf(list.apps)} />
-          </div>
-          <Field label="Reach" hint={reachHint}>
-            <Segmented label="Reach" value={way} options={reaches} disabled={disabled} onChange={edit(setChosen)} />
-          </Field>
-          {way === "Reverse proxy" && <ProxyFields value={proxy} onChange={edit(setProxy)} host={host} certificates={certificates} />}
-          {way === "Host Override" && <Text label="Address" value={address} onChange={edit(setAddress)} placeholder="198.18.1.60" />}
-          {typed && plan && plan.blocked.length > 0 && (
-            <Notice tone="warn">
-              {plan.blocked.map((b) => (
-                <p key={b}>{b}</p>
-              ))}
-            </Notice>
-          )}
-          {outcome?.kind === "changed" && <Notice tone="warn">Changed since you looked: ddash will now do what&apos;s beside. Check it, then add again.</Notice>}
-          {(outcome?.kind === "stopped" || outcome?.kind === "failed") && <Notice tone="down">{outcome.message}</Notice>}
-          {outcome?.kind === "done" && (
-            <Notice tone="warn">
-              Added. {outcome.result.reread}: the list catches up at the next sync.
-            </Notice>
-          )}
-          <FormActions>
-            <Button variant="ghost" onClick={() => onDone()} disabled={run.pending}>
-              {outcome?.kind === "done" ? "Close" : "Cancel"}
-            </Button>
-            {outcome?.kind === "done" ? (
-              <Button onClick={() => onDone(outcome.result.appId)}>Open the App</Button>
-            ) : (
-              <Button type="submit" disabled={!canAdd}>
-                Add App
-              </Button>
+        <Panel title="Add App" actions={drafting ? <Link to={drafting}>Draft with AI</Link> : undefined}>
+          <form onSubmit={(e) => void add(e)} className="flex flex-col gap-4">
+            {draft && <Notice tone="info">A draft from the AI App helper: check the Compose file and the fields. Nothing runs until you add it.</Notice>}
+            <Field label="URL" hint={typed && plan && plan.names.length > 0 ? <NameNotes names={plan.names} /> : undefined}>
+              <TextInput autoFocus value={url} placeholder="https://jellyfin.home.example" onChange={(e) => typeUrl(e.target.value)} />
+            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Text label="Name" value={name} onChange={edit(setName)} placeholder={host || "Jellyfin"} />
+              <IconField value={icon} onChange={edit(setIcon)} name={name || host} url={url} />
+              <GroupField value={group} onChange={edit(setGroup)} groups={groupsOf(list.apps)} />
+            </div>
+            <Field label="Source" hint={sourceHint}>
+              <Segmented label="Source" value={source} options={sources} onChange={edit(setSource)} />
+            </Field>
+            {fromCompose && <ComposeFields value={compose} onChange={edit(setCompose)} services={plan?.composeServices ?? []} />}
+            <Field label="Reach" hint={reachHint}>
+              <Segmented label="Reach" value={way} options={reaches} disabled={disabled} onChange={edit(setChosen)} />
+            </Field>
+            {way === "Reverse proxy" && (
+              <ProxyFields value={proxy} onChange={edit(setProxy)} host={host} certificates={certificates} upstream={fromCompose ? planUpstream(plan) : undefined} />
             )}
-          </FormActions>
-        </form>
-      </Panel>
+            {way === "Host Override" && (
+              <Text label="Address" value={address} onChange={edit(setAddress)} placeholder={fromCompose ? "The Docker host's address" : "198.18.1.60"} />
+            )}
+            {typed && plan && plan.blocked.length > 0 && (
+              <Notice tone="warn">
+                {plan.blocked.map((b) => (
+                  <p key={b}>{b}</p>
+                ))}
+              </Notice>
+            )}
+            {outcome?.kind === "changed" && <Notice tone="warn">Changed since you looked: ddash will now do what&apos;s beside. Check it, then add again.</Notice>}
+            {(outcome?.kind === "stopped" || outcome?.kind === "failed") && <Notice tone="down">{outcome.message}</Notice>}
+            {outcome?.kind === "done" && (
+              <Notice tone="warn">
+                Added. {outcome.result.reread}: the list catches up at the next sync.
+              </Notice>
+            )}
+            <FormActions>
+              <Button variant="ghost" onClick={() => onDone()} disabled={run.pending}>
+                {outcome?.kind === "done" ? "Close" : "Cancel"}
+              </Button>
+              {outcome?.kind === "done" ? (
+                <Button onClick={() => onDone(outcome.result.appId)}>Open the App</Button>
+              ) : (
+                <Button type="submit" disabled={!canAdd}>
+                  Add App
+                </Button>
+              )}
+            </FormActions>
+          </form>
+        </Panel>
       </div>
       <div className="xl:w-80 xl:shrink-0">
         <Panel title="ddash will" description={run.plan ? undefined : "Updates as you type."}>

@@ -5,10 +5,16 @@
 // proxmox is the logic behind the Proxmox Page's power Actions: it starts,
 // stops and restarts Workloads that aren't Protected, one power Action per
 // Workload at a time, and puts a Workload it stops or restarts into
-// Maintenance so ddash's own Actions don't page the Operator.
+// Maintenance so ddash's own Actions don't page the Operator. Through each
+// Workload's Host Agent (host-agent-api) it updates packages after a ddash
+// Snapshot, one Workload or every running one, and installs SSH Keys it
+// stores; it takes ddash Snapshots and backups through proxmox-api.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_ddash_config_config } from "../ddash/config/config_pb";
+import type { Job, State, Step } from "../ddash/job/job_pb";
+import { file_ddash_job_job } from "../ddash/job/job_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { WorkloadRef } from "../ddash/workload/workload_pb";
 import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
@@ -20,7 +26,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file proxmox/proxmox.proto.
  */
 export const file_proxmox_proxmox: GenFile = /*@__PURE__*/
-  fileDesc("ChVwcm94bW94L3Byb3htb3gucHJvdG8SDWRkYXNoLnByb3htb3giDwoNUHJveG1veENvbmZpZyJFChRTdGFydFdvcmtsb2FkUmVxdWVzdBItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIhcKFVN0YXJ0V29ya2xvYWRSZXNwb25zZSJEChNTdG9wV29ya2xvYWRSZXF1ZXN0Ei0KCHdvcmtsb2FkGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYiFgoUU3RvcFdvcmtsb2FkUmVzcG9uc2UiRwoWUmVzdGFydFdvcmtsb2FkUmVxdWVzdBItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIhkKF1Jlc3RhcnRXb3JrbG9hZFJlc3BvbnNlIhcKFUxpc3RQb3dlclRhc2tzUmVxdWVzdCJBChZMaXN0UG93ZXJUYXNrc1Jlc3BvbnNlEicKBXRhc2tzGAEgAygLMhguZGRhc2gucHJveG1veC5Qb3dlclRhc2sikwEKCVBvd2VyVGFzaxItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEioKBmFjdGlvbhgCIAEoDjIaLmRkYXNoLnByb3htb3guUG93ZXJBY3Rpb24SKwoHc3RhcnRlZBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAqdAoLUG93ZXJBY3Rpb24SHAoYUE9XRVJfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFgoSUE9XRVJfQUNUSU9OX1NUQVJUEAESFQoRUE9XRVJfQUNUSU9OX1NUT1AQAhIYChRQT1dFUl9BQ1RJT05fUkVTVEFSVBADMqQDCg5Qcm94bW94U2VydmljZRJgCg1TdGFydFdvcmtsb2FkEiMuZGRhc2gucHJveG1veC5TdGFydFdvcmtsb2FkUmVxdWVzdBokLmRkYXNoLnByb3htb3guU3RhcnRXb3JrbG9hZFJlc3BvbnNlIgSStRgAEl8KDFN0b3BXb3JrbG9hZBIiLmRkYXNoLnByb3htb3guU3RvcFdvcmtsb2FkUmVxdWVzdBojLmRkYXNoLnByb3htb3guU3RvcFdvcmtsb2FkUmVzcG9uc2UiBpK1GAIIARJoCg9SZXN0YXJ0V29ya2xvYWQSJS5kZGFzaC5wcm94bW94LlJlc3RhcnRXb3JrbG9hZFJlcXVlc3QaJi5kZGFzaC5wcm94bW94LlJlc3RhcnRXb3JrbG9hZFJlc3BvbnNlIgaStRgCCAESZQoOTGlzdFBvd2VyVGFza3MSJC5kZGFzaC5wcm94bW94Lkxpc3RQb3dlclRhc2tzUmVxdWVzdBolLmRkYXNoLnByb3htb3guTGlzdFBvd2VyVGFza3NSZXNwb25zZSIGirUYAggCQkNaQWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvcHJveG1veC9wcm94bW94cGI7cHJveG1veHBiYgZwcm90bzM", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_timestamp]);
+  fileDesc("ChVwcm94bW94L3Byb3htb3gucHJvdG8SDWRkYXNoLnByb3htb3giDwoNUHJveG1veENvbmZpZyJEChNHZXRTbmFwc2hvdHNSZXF1ZXN0Ei0KCHdvcmtsb2FkGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYigwEKFEdldFNuYXBzaG90c1Jlc3BvbnNlEhEKCXN1cHBvcnRlZBgBIAEoCBIvCg5kZGFzaF9zbmFwc2hvdBgCIAEoCzIXLmRkYXNoLnByb3htb3guU25hcHNob3QSJwoGb3RoZXJzGAMgAygLMhcuZGRhc2gucHJveG1veC5TbmFwc2hvdCJaCghTbmFwc2hvdBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEisKB2NyZWF0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkQKE1Rha2VTbmFwc2hvdFJlcXVlc3QSLQoId29ya2xvYWQYASABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiJSChRUYWtlU25hcHNob3RSZXNwb25zZRIpCghzbmFwc2hvdBgBIAEoCzIXLmRkYXNoLnByb3htb3guU25hcHNob3QSDwoHZGVsZXRlZBgCIAMoCSJPCg1CYWNrdXBSZXF1ZXN0Ei0KCHdvcmtsb2FkGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDwoHc3RvcmFnZRgCIAEoCSI7Cg5CYWNrdXBSZXNwb25zZRIpCgZiYWNrdXAYASABKAsyGS5kZGFzaC5wcm94bW94LkJhY2t1cFRhc2siFAoSTGlzdEJhY2t1cHNSZXF1ZXN0IkEKE0xpc3RCYWNrdXBzUmVzcG9uc2USKgoHYmFja3VwcxgBIAMoCzIZLmRkYXNoLnByb3htb3guQmFja3VwVGFzayLxAQoKQmFja3VwVGFzaxItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEg0KBWxhYmVsGAIgASgJEg8KB3N0b3JhZ2UYAyABKAkSDAoEdXBpZBgEIAEoCRIfCgVzdGF0ZRgFIAEoDjIQLmRkYXNoLmpvYi5TdGF0ZRIrCgdzdGFydGVkGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIpCgVlbmRlZBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFZXJyb3IYCCABKAkiGwoZTGlzdFVwZGF0ZVNldHRpbmdzUmVxdWVzdCJNChpMaXN0VXBkYXRlU2V0dGluZ3NSZXNwb25zZRIvCghzZXR0aW5ncxgBIAMoCzIdLmRkYXNoLnByb3htb3guVXBkYXRlU2V0dGluZ3MiMAoOVXBkYXRlU2V0dGluZ3MSDAoEdm1pZBgBIAEoDRIQCghzbmFwc2hvdBgCIAEoCCJLChhTZXRVcGRhdGVTZXR0aW5nc1JlcXVlc3QSLwoIc2V0dGluZ3MYASABKAsyHS5kZGFzaC5wcm94bW94LlVwZGF0ZVNldHRpbmdzIhsKGVNldFVwZGF0ZVNldHRpbmdzUmVzcG9uc2UiQgoRUGxhblVwZGF0ZVJlcXVlc3QSLQoId29ya2xvYWQYASABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiI9ChJQbGFuVXBkYXRlUmVzcG9uc2USJwoEcGxhbhgBIAEoCzIZLmRkYXNoLnByb3htb3guVXBkYXRlUGxhbiKzAgoKVXBkYXRlUGxhbhItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEg0KBWxhYmVsGAIgASgJEi4KCHBhY2thZ2VzGAMgAygLMhwuZGRhc2gucHJveG1veC5QYWNrYWdlVXBkYXRlEjEKDXBhY2thZ2VzX3JlYWQYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCHNuYXBzaG90GAUgASgIEhoKEnNuYXBzaG90X3N1cHBvcnRlZBgGIAEoCBIZChFyZXBsYWNlc19zbmFwc2hvdBgHIAEoCRIRCglwcm90ZWN0ZWQYCCABKAgSFwoPcmVib290X3JlcXVpcmVkGAkgASgIEg8KB2Jsb2NrZWQYCiABKAkiOwoNUGFja2FnZVVwZGF0ZRIMCgRuYW1lGAEgASgJEg8KB2N1cnJlbnQYAiABKAkSCwoDbmV3GAMgASgJIoEBChBSdW5VcGRhdGVSZXF1ZXN0Ei0KCHdvcmtsb2FkGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSFQoIc25hcHNob3QYAiABKAhIAIgBARIaChJvdmVycmlkZV9wcm90ZWN0ZWQYAyABKAhCCwoJX3NuYXBzaG90IjoKEVJ1blVwZGF0ZVJlc3BvbnNlEiUKA3J1bhgBIAEoCzIYLmRkYXNoLnByb3htb3guVXBkYXRlUnVuIhYKFFBsYW5VcGRhdGVBbGxSZXF1ZXN0InYKFVBsYW5VcGRhdGVBbGxSZXNwb25zZRIsCgl3b3JrbG9hZHMYASADKAsyGS5kZGFzaC5wcm94bW94LlVwZGF0ZVBsYW4SLwoHc2tpcHBlZBgCIAMoCzIeLmRkYXNoLnByb3htb3guU2tpcHBlZFdvcmtsb2FkIooBCg9Ta2lwcGVkV29ya2xvYWQSLQoId29ya2xvYWQYASABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZhINCgVsYWJlbBgCIAEoCRIpCgZyZWFzb24YAyABKA4yGS5kZGFzaC5wcm94bW94LlNraXBSZWFzb24SDgoGZGV0YWlsGAQgASgJIkUKE1J1blVwZGF0ZUFsbFJlcXVlc3QSLgoJd29ya2xvYWRzGAEgAygLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYiPwoUUnVuVXBkYXRlQWxsUmVzcG9uc2USJwoEYnVsaxgBIAEoCzIZLmRkYXNoLnByb3htb3guQnVsa1VwZGF0ZSIUChJMaXN0VXBkYXRlc1JlcXVlc3QiZgoTTGlzdFVwZGF0ZXNSZXNwb25zZRImCgRydW5zGAEgAygLMhguZGRhc2gucHJveG1veC5VcGRhdGVSdW4SJwoEYnVsaxgCIAEoCzIZLmRkYXNoLnByb3htb3guQnVsa1VwZGF0ZSLKAgoJVXBkYXRlUnVuEgoKAmlkGAEgASgJEi0KCHdvcmtsb2FkGAIgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDQoFbGFiZWwYAyABKAkSHwoFc3RhdGUYBCABKA4yEC5kZGFzaC5qb2IuU3RhdGUSHgoFc3RlcHMYBSADKAsyDy5kZGFzaC5qb2IuU3RlcBIrCgdzdGFydGVkGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIpCgVlbmRlZBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFZXJyb3IYCCABKAkSEAoIc25hcHNob3QYCSABKAkSDwoHdXBkYXRlZBgKIAEoDRIXCg9yZWJvb3RfcmVxdWlyZWQYCyABKAgSDwoHYnVsa19pZBgMIAEoCSL5AQoKQnVsa1VwZGF0ZRIKCgJpZBgBIAEoCRIfCgVzdGF0ZRgCIAEoDjIQLmRkYXNoLmpvYi5TdGF0ZRImCgVpdGVtcxgDIAMoCzIXLmRkYXNoLnByb3htb3guQnVsa0l0ZW0SLwoHc2tpcHBlZBgEIAMoCzIeLmRkYXNoLnByb3htb3guU2tpcHBlZFdvcmtsb2FkEisKB3N0YXJ0ZWQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEikKBWVuZGVkGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgHIAEoCSJ5CghCdWxrSXRlbRItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEg0KBWxhYmVsGAIgASgJEh8KBXN0YXRlGAMgASgOMhAuZGRhc2guam9iLlN0YXRlEg4KBnJ1bl9pZBgEIAEoCSIUChJMaXN0U1NIS2V5c1JlcXVlc3QiOgoTTGlzdFNTSEtleXNSZXNwb25zZRIjCgRrZXlzGAEgAygLMhUuZGRhc2gucHJveG1veC5TU0hLZXkijQEKBlNTSEtleRIMCgRuYW1lGAEgASgJEhIKCnB1YmxpY19rZXkYAiABKAkSDAoEdHlwZRgDIAEoCRITCgtmaW5nZXJwcmludBgEIAEoCRIrCgdjcmVhdGVkGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIRCglnZW5lcmF0ZWQYBiABKAgiJQoVR2VuZXJhdGVTU0hLZXlSZXF1ZXN0EgwKBG5hbWUYASABKAkiWQoWR2VuZXJhdGVTU0hLZXlSZXNwb25zZRIiCgNrZXkYASABKAsyFS5kZGFzaC5wcm94bW94LlNTSEtleRIbCgtwcml2YXRlX2tleRgCIAEoCUIGmrUYAhABIjQKEEFkZFNTSEtleVJlcXVlc3QSDAoEbmFtZRgBIAEoCRISCgpwdWJsaWNfa2V5GAIgASgJIjcKEUFkZFNTSEtleVJlc3BvbnNlEiIKA2tleRgBIAEoCzIVLmRkYXNoLnByb3htb3guU1NIS2V5IiMKE0RlbGV0ZVNTSEtleVJlcXVlc3QSDAoEbmFtZRgBIAEoCSIWChREZWxldGVTU0hLZXlSZXNwb25zZSJiChRJbnN0YWxsU1NIS2V5UmVxdWVzdBItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEg0KBW5hbWVzGAIgAygJEgwKBHVzZXIYAyABKAkiKAoVSW5zdGFsbFNTSEtleVJlc3BvbnNlEg8KB2FscmVhZHkYASADKAkiQQoQRW5hYmxlU1NIUmVxdWVzdBItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIjAKEUVuYWJsZVNTSFJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2IiRQoUU3RhcnRXb3JrbG9hZFJlcXVlc3QSLQoId29ya2xvYWQYASABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiIXChVTdGFydFdvcmtsb2FkUmVzcG9uc2UiRAoTU3RvcFdvcmtsb2FkUmVxdWVzdBItCgh3b3JrbG9hZBgBIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIhYKFFN0b3BXb3JrbG9hZFJlc3BvbnNlIkcKFlJlc3RhcnRXb3JrbG9hZFJlcXVlc3QSLQoId29ya2xvYWQYASABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiIZChdSZXN0YXJ0V29ya2xvYWRSZXNwb25zZSIXChVMaXN0UG93ZXJUYXNrc1JlcXVlc3QiQQoWTGlzdFBvd2VyVGFza3NSZXNwb25zZRInCgV0YXNrcxgBIAMoCzIYLmRkYXNoLnByb3htb3guUG93ZXJUYXNrIpMBCglQb3dlclRhc2sSLQoId29ya2xvYWQYASABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZhIqCgZhY3Rpb24YAiABKA4yGi5kZGFzaC5wcm94bW94LlBvd2VyQWN0aW9uEisKB3N0YXJ0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wKvgBCgpTa2lwUmVhc29uEhsKF1NLSVBfUkVBU09OX1VOU1BFQ0lGSUVEEAASGQoVU0tJUF9SRUFTT05fUFJPVEVDVEVEEAESHQoZU0tJUF9SRUFTT05fTk9fSE9TVF9BR0VOVBACEhcKE1NLSVBfUkVBU09OX1NUT1BQRUQQAxIfChtTS0lQX1JFQVNPTl9BR0VOVF9OT1RfUkVBRFkQBBInCiNTS0lQX1JFQVNPTl9TTkFQU0hPVFNfTk9UX1NVUFBPUlRFRBAFEhoKFlNLSVBfUkVBU09OX1VQX1RPX0RBVEUQBhIUChBTS0lQX1JFQVNPTl9CVVNZEAcqdAoLUG93ZXJBY3Rpb24SHAoYUE9XRVJfQUNUSU9OX1VOU1BFQ0lGSUVEEAASFgoSUE9XRVJfQUNUSU9OX1NUQVJUEAESFQoRUE9XRVJfQUNUSU9OX1NUT1AQAhIYChRQT1dFUl9BQ1RJT05fUkVTVEFSVBADMu4PCg5Qcm94bW94U2VydmljZRJgCg1TdGFydFdvcmtsb2FkEiMuZGRhc2gucHJveG1veC5TdGFydFdvcmtsb2FkUmVxdWVzdBokLmRkYXNoLnByb3htb3guU3RhcnRXb3JrbG9hZFJlc3BvbnNlIgSStRgAEl8KDFN0b3BXb3JrbG9hZBIiLmRkYXNoLnByb3htb3guU3RvcFdvcmtsb2FkUmVxdWVzdBojLmRkYXNoLnByb3htb3guU3RvcFdvcmtsb2FkUmVzcG9uc2UiBpK1GAIIARJoCg9SZXN0YXJ0V29ya2xvYWQSJS5kZGFzaC5wcm94bW94LlJlc3RhcnRXb3JrbG9hZFJlcXVlc3QaJi5kZGFzaC5wcm94bW94LlJlc3RhcnRXb3JrbG9hZFJlc3BvbnNlIgaStRgCCAESZQoOTGlzdFBvd2VyVGFza3MSJC5kZGFzaC5wcm94bW94Lkxpc3RQb3dlclRhc2tzUmVxdWVzdBolLmRkYXNoLnByb3htb3guTGlzdFBvd2VyVGFza3NSZXNwb25zZSIGirUYAggCEl0KDEdldFNuYXBzaG90cxIiLmRkYXNoLnByb3htb3guR2V0U25hcHNob3RzUmVxdWVzdBojLmRkYXNoLnByb3htb3guR2V0U25hcHNob3RzUmVzcG9uc2UiBIq1GAASXQoMVGFrZVNuYXBzaG90EiIuZGRhc2gucHJveG1veC5UYWtlU25hcHNob3RSZXF1ZXN0GiMuZGRhc2gucHJveG1veC5UYWtlU25hcHNob3RSZXNwb25zZSIEkrUYABJLCgZCYWNrdXASHC5kZGFzaC5wcm94bW94LkJhY2t1cFJlcXVlc3QaHS5kZGFzaC5wcm94bW94LkJhY2t1cFJlc3BvbnNlIgSStRgAElwKC0xpc3RCYWNrdXBzEiEuZGRhc2gucHJveG1veC5MaXN0QmFja3Vwc1JlcXVlc3QaIi5kZGFzaC5wcm94bW94Lkxpc3RCYWNrdXBzUmVzcG9uc2UiBoq1GAIIAhJvChJMaXN0VXBkYXRlU2V0dGluZ3MSKC5kZGFzaC5wcm94bW94Lkxpc3RVcGRhdGVTZXR0aW5nc1JlcXVlc3QaKS5kZGFzaC5wcm94bW94Lkxpc3RVcGRhdGVTZXR0aW5nc1Jlc3BvbnNlIgSKtRgAEmwKEVNldFVwZGF0ZVNldHRpbmdzEicuZGRhc2gucHJveG1veC5TZXRVcGRhdGVTZXR0aW5nc1JlcXVlc3QaKC5kZGFzaC5wcm94bW94LlNldFVwZGF0ZVNldHRpbmdzUmVzcG9uc2UiBJK1GAASWQoKUGxhblVwZGF0ZRIgLmRkYXNoLnByb3htb3guUGxhblVwZGF0ZVJlcXVlc3QaIS5kZGFzaC5wcm94bW94LlBsYW5VcGRhdGVSZXNwb25zZSIGirUYAggDElQKCVJ1blVwZGF0ZRIfLmRkYXNoLnByb3htb3guUnVuVXBkYXRlUmVxdWVzdBogLmRkYXNoLnByb3htb3guUnVuVXBkYXRlUmVzcG9uc2UiBJK1GAASYgoNUGxhblVwZGF0ZUFsbBIjLmRkYXNoLnByb3htb3guUGxhblVwZGF0ZUFsbFJlcXVlc3QaJC5kZGFzaC5wcm94bW94LlBsYW5VcGRhdGVBbGxSZXNwb25zZSIGirUYAggDEl0KDFJ1blVwZGF0ZUFsbBIiLmRkYXNoLnByb3htb3guUnVuVXBkYXRlQWxsUmVxdWVzdBojLmRkYXNoLnByb3htb3guUnVuVXBkYXRlQWxsUmVzcG9uc2UiBJK1GAASXAoLTGlzdFVwZGF0ZXMSIS5kZGFzaC5wcm94bW94Lkxpc3RVcGRhdGVzUmVxdWVzdBoiLmRkYXNoLnByb3htb3guTGlzdFVwZGF0ZXNSZXNwb25zZSIGirUYAggBEloKC0xpc3RTU0hLZXlzEiEuZGRhc2gucHJveG1veC5MaXN0U1NIS2V5c1JlcXVlc3QaIi5kZGFzaC5wcm94bW94Lkxpc3RTU0hLZXlzUmVzcG9uc2UiBIq1GAASYwoOR2VuZXJhdGVTU0hLZXkSJC5kZGFzaC5wcm94bW94LkdlbmVyYXRlU1NIS2V5UmVxdWVzdBolLmRkYXNoLnByb3htb3guR2VuZXJhdGVTU0hLZXlSZXNwb25zZSIEkrUYABJUCglBZGRTU0hLZXkSHy5kZGFzaC5wcm94bW94LkFkZFNTSEtleVJlcXVlc3QaIC5kZGFzaC5wcm94bW94LkFkZFNTSEtleVJlc3BvbnNlIgSStRgAEl8KDERlbGV0ZVNTSEtleRIiLmRkYXNoLnByb3htb3guRGVsZXRlU1NIS2V5UmVxdWVzdBojLmRkYXNoLnByb3htb3guRGVsZXRlU1NIS2V5UmVzcG9uc2UiBpK1GAIIARJgCg1JbnN0YWxsU1NIS2V5EiMuZGRhc2gucHJveG1veC5JbnN0YWxsU1NIS2V5UmVxdWVzdBokLmRkYXNoLnByb3htb3guSW5zdGFsbFNTSEtleVJlc3BvbnNlIgSStRgAElQKCUVuYWJsZVNTSBIfLmRkYXNoLnByb3htb3guRW5hYmxlU1NIUmVxdWVzdBogLmRkYXNoLnByb3htb3guRW5hYmxlU1NIUmVzcG9uc2UiBJK1GABCQ1pBZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9wcm94bW94L3Byb3htb3hwYjtwcm94bW94cGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_job_job, file_ddash_options, file_ddash_workload_workload, file_google_protobuf_timestamp]);
 
 /**
  * proxmox has no config.
@@ -36,6 +42,1131 @@ export type ProxmoxConfig = Message<"ddash.proxmox.ProxmoxConfig"> & {
  */
 export const ProxmoxConfigSchema: GenMessage<ProxmoxConfig> = /*@__PURE__*/
   messageDesc(file_proxmox_proxmox, 0);
+
+/**
+ * @generated from message ddash.proxmox.GetSnapshotsRequest
+ */
+export type GetSnapshotsRequest = Message<"ddash.proxmox.GetSnapshotsRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.GetSnapshotsRequest.
+ * Use `create(GetSnapshotsRequestSchema)` to create a new message.
+ */
+export const GetSnapshotsRequestSchema: GenMessage<GetSnapshotsRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 1);
+
+/**
+ * @generated from message ddash.proxmox.GetSnapshotsResponse
+ */
+export type GetSnapshotsResponse = Message<"ddash.proxmox.GetSnapshotsResponse"> & {
+  /**
+   * Its storage can take a snapshot; false: "snapshots not supported".
+   *
+   * @generated from field: bool supported = 1;
+   */
+  supported: boolean;
+
+  /**
+   * The ddash Snapshot; unset when there is none.
+   *
+   * @generated from field: ddash.proxmox.Snapshot ddash_snapshot = 2;
+   */
+  ddashSnapshot?: Snapshot | undefined;
+
+  /**
+   * The snapshots ddash didn't take, which it never deletes.
+   *
+   * @generated from field: repeated ddash.proxmox.Snapshot others = 3;
+   */
+  others: Snapshot[];
+};
+
+/**
+ * Describes the message ddash.proxmox.GetSnapshotsResponse.
+ * Use `create(GetSnapshotsResponseSchema)` to create a new message.
+ */
+export const GetSnapshotsResponseSchema: GenMessage<GetSnapshotsResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 2);
+
+/**
+ * @generated from message ddash.proxmox.Snapshot
+ */
+export type Snapshot = Message<"ddash.proxmox.Snapshot"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * e.g. "Created by ddash before an update".
+   *
+   * @generated from field: string description = 2;
+   */
+  description: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created = 3;
+   */
+  created?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.Snapshot.
+ * Use `create(SnapshotSchema)` to create a new message.
+ */
+export const SnapshotSchema: GenMessage<Snapshot> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 3);
+
+/**
+ * @generated from message ddash.proxmox.TakeSnapshotRequest
+ */
+export type TakeSnapshotRequest = Message<"ddash.proxmox.TakeSnapshotRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.TakeSnapshotRequest.
+ * Use `create(TakeSnapshotRequestSchema)` to create a new message.
+ */
+export const TakeSnapshotRequestSchema: GenMessage<TakeSnapshotRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 4);
+
+/**
+ * @generated from message ddash.proxmox.TakeSnapshotResponse
+ */
+export type TakeSnapshotResponse = Message<"ddash.proxmox.TakeSnapshotResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.Snapshot snapshot = 1;
+   */
+  snapshot?: Snapshot | undefined;
+
+  /**
+   * The older ddash Snapshots deleted after it succeeded.
+   *
+   * @generated from field: repeated string deleted = 2;
+   */
+  deleted: string[];
+};
+
+/**
+ * Describes the message ddash.proxmox.TakeSnapshotResponse.
+ * Use `create(TakeSnapshotResponseSchema)` to create a new message.
+ */
+export const TakeSnapshotResponseSchema: GenMessage<TakeSnapshotResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 5);
+
+/**
+ * @generated from message ddash.proxmox.BackupRequest
+ */
+export type BackupRequest = Message<"ddash.proxmox.BackupRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * One of proxmox-api's ListBackupStorages.
+   *
+   * @generated from field: string storage = 2;
+   */
+  storage: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.BackupRequest.
+ * Use `create(BackupRequestSchema)` to create a new message.
+ */
+export const BackupRequestSchema: GenMessage<BackupRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 6);
+
+/**
+ * @generated from message ddash.proxmox.BackupResponse
+ */
+export type BackupResponse = Message<"ddash.proxmox.BackupResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.BackupTask backup = 1;
+   */
+  backup?: BackupTask | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.BackupResponse.
+ * Use `create(BackupResponseSchema)` to create a new message.
+ */
+export const BackupResponseSchema: GenMessage<BackupResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 7);
+
+/**
+ * @generated from message ddash.proxmox.ListBackupsRequest
+ */
+export type ListBackupsRequest = Message<"ddash.proxmox.ListBackupsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.ListBackupsRequest.
+ * Use `create(ListBackupsRequestSchema)` to create a new message.
+ */
+export const ListBackupsRequestSchema: GenMessage<ListBackupsRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 8);
+
+/**
+ * @generated from message ddash.proxmox.ListBackupsResponse
+ */
+export type ListBackupsResponse = Message<"ddash.proxmox.ListBackupsResponse"> & {
+  /**
+   * @generated from field: repeated ddash.proxmox.BackupTask backups = 1;
+   */
+  backups: BackupTask[];
+};
+
+/**
+ * Describes the message ddash.proxmox.ListBackupsResponse.
+ * Use `create(ListBackupsResponseSchema)` to create a new message.
+ */
+export const ListBackupsResponseSchema: GenMessage<ListBackupsResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 9);
+
+/**
+ * A backup ddash started: a vzdump task in Proxmox.
+ *
+ * @generated from message ddash.proxmox.BackupTask
+ */
+export type BackupTask = Message<"ddash.proxmox.BackupTask"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * "LXC 201 docker-host".
+   *
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: string storage = 3;
+   */
+  storage: string;
+
+  /**
+   * @generated from field: string upid = 4;
+   */
+  upid: string;
+
+  /**
+   * @generated from field: ddash.job.State state = 5;
+   */
+  state: State;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started = 6;
+   */
+  started?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp ended = 7;
+   */
+  ended?: Timestamp | undefined;
+
+  /**
+   * Proxmox's exit status when it failed.
+   *
+   * @generated from field: string error = 8;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.BackupTask.
+ * Use `create(BackupTaskSchema)` to create a new message.
+ */
+export const BackupTaskSchema: GenMessage<BackupTask> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 10);
+
+/**
+ * @generated from message ddash.proxmox.ListUpdateSettingsRequest
+ */
+export type ListUpdateSettingsRequest = Message<"ddash.proxmox.ListUpdateSettingsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.ListUpdateSettingsRequest.
+ * Use `create(ListUpdateSettingsRequestSchema)` to create a new message.
+ */
+export const ListUpdateSettingsRequestSchema: GenMessage<ListUpdateSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 11);
+
+/**
+ * @generated from message ddash.proxmox.ListUpdateSettingsResponse
+ */
+export type ListUpdateSettingsResponse = Message<"ddash.proxmox.ListUpdateSettingsResponse"> & {
+  /**
+   * @generated from field: repeated ddash.proxmox.UpdateSettings settings = 1;
+   */
+  settings: UpdateSettings[];
+};
+
+/**
+ * Describes the message ddash.proxmox.ListUpdateSettingsResponse.
+ * Use `create(ListUpdateSettingsResponseSchema)` to create a new message.
+ */
+export const ListUpdateSettingsResponseSchema: GenMessage<ListUpdateSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 12);
+
+/**
+ * @generated from message ddash.proxmox.UpdateSettings
+ */
+export type UpdateSettings = Message<"ddash.proxmox.UpdateSettings"> & {
+  /**
+   * @generated from field: uint32 vmid = 1;
+   */
+  vmid: number;
+
+  /**
+   * Take a ddash Snapshot before each update: the default.
+   *
+   * @generated from field: bool snapshot = 2;
+   */
+  snapshot: boolean;
+};
+
+/**
+ * Describes the message ddash.proxmox.UpdateSettings.
+ * Use `create(UpdateSettingsSchema)` to create a new message.
+ */
+export const UpdateSettingsSchema: GenMessage<UpdateSettings> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 13);
+
+/**
+ * @generated from message ddash.proxmox.SetUpdateSettingsRequest
+ */
+export type SetUpdateSettingsRequest = Message<"ddash.proxmox.SetUpdateSettingsRequest"> & {
+  /**
+   * @generated from field: ddash.proxmox.UpdateSettings settings = 1;
+   */
+  settings?: UpdateSettings | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.SetUpdateSettingsRequest.
+ * Use `create(SetUpdateSettingsRequestSchema)` to create a new message.
+ */
+export const SetUpdateSettingsRequestSchema: GenMessage<SetUpdateSettingsRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 14);
+
+/**
+ * @generated from message ddash.proxmox.SetUpdateSettingsResponse
+ */
+export type SetUpdateSettingsResponse = Message<"ddash.proxmox.SetUpdateSettingsResponse"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.SetUpdateSettingsResponse.
+ * Use `create(SetUpdateSettingsResponseSchema)` to create a new message.
+ */
+export const SetUpdateSettingsResponseSchema: GenMessage<SetUpdateSettingsResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 15);
+
+/**
+ * @generated from message ddash.proxmox.PlanUpdateRequest
+ */
+export type PlanUpdateRequest = Message<"ddash.proxmox.PlanUpdateRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.PlanUpdateRequest.
+ * Use `create(PlanUpdateRequestSchema)` to create a new message.
+ */
+export const PlanUpdateRequestSchema: GenMessage<PlanUpdateRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 16);
+
+/**
+ * @generated from message ddash.proxmox.PlanUpdateResponse
+ */
+export type PlanUpdateResponse = Message<"ddash.proxmox.PlanUpdateResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.UpdatePlan plan = 1;
+   */
+  plan?: UpdatePlan | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.PlanUpdateResponse.
+ * Use `create(PlanUpdateResponseSchema)` to create a new message.
+ */
+export const PlanUpdateResponseSchema: GenMessage<PlanUpdateResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 17);
+
+/**
+ * What updating one Workload does.
+ *
+ * @generated from message ddash.proxmox.UpdatePlan
+ */
+export type UpdatePlan = Message<"ddash.proxmox.UpdatePlan"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * "LXC 201 docker-host".
+   *
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * The pending updates, as the Host Agent last read them: the update
+   * installs these (and whatever turned up since).
+   *
+   * @generated from field: repeated ddash.proxmox.PackageUpdate packages = 3;
+   */
+  packages: PackageUpdate[];
+
+  /**
+   * When the Host Agent last read them.
+   *
+   * @generated from field: google.protobuf.Timestamp packages_read = 4;
+   */
+  packagesRead?: Timestamp | undefined;
+
+  /**
+   * A ddash Snapshot is taken first: the Workload's setting.
+   *
+   * @generated from field: bool snapshot = 5;
+   */
+  snapshot: boolean;
+
+  /**
+   * Its storage can take a snapshot.
+   *
+   * @generated from field: bool snapshot_supported = 6;
+   */
+  snapshotSupported: boolean;
+
+  /**
+   * The ddash Snapshot deleted once the new one succeeded; empty for none.
+   *
+   * @generated from field: string replaces_snapshot = 7;
+   */
+  replacesSnapshot: string;
+
+  /**
+   * The Workload is Protected: a single update needs override_protected.
+   *
+   * @generated from field: bool protected = 8;
+   */
+  protected: boolean;
+
+  /**
+   * A reboot is already pending.
+   *
+   * @generated from field: bool reboot_required = 9;
+   */
+  rebootRequired: boolean;
+
+  /**
+   * Why it can't run now (no Host Agent, stopped, …); empty when it can.
+   *
+   * @generated from field: string blocked = 10;
+   */
+  blocked: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.UpdatePlan.
+ * Use `create(UpdatePlanSchema)` to create a new message.
+ */
+export const UpdatePlanSchema: GenMessage<UpdatePlan> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 18);
+
+/**
+ * @generated from message ddash.proxmox.PackageUpdate
+ */
+export type PackageUpdate = Message<"ddash.proxmox.PackageUpdate"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string current = 2;
+   */
+  current: string;
+
+  /**
+   * @generated from field: string new = 3;
+   */
+  new: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.PackageUpdate.
+ * Use `create(PackageUpdateSchema)` to create a new message.
+ */
+export const PackageUpdateSchema: GenMessage<PackageUpdate> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 19);
+
+/**
+ * @generated from message ddash.proxmox.RunUpdateRequest
+ */
+export type RunUpdateRequest = Message<"ddash.proxmox.RunUpdateRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * Take a ddash Snapshot first; unset: the Workload's setting.
+   *
+   * @generated from field: optional bool snapshot = 2;
+   */
+  snapshot?: boolean | undefined;
+
+  /**
+   * Update a Protected Workload anyway.
+   *
+   * @generated from field: bool override_protected = 3;
+   */
+  overrideProtected: boolean;
+};
+
+/**
+ * Describes the message ddash.proxmox.RunUpdateRequest.
+ * Use `create(RunUpdateRequestSchema)` to create a new message.
+ */
+export const RunUpdateRequestSchema: GenMessage<RunUpdateRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 20);
+
+/**
+ * @generated from message ddash.proxmox.RunUpdateResponse
+ */
+export type RunUpdateResponse = Message<"ddash.proxmox.RunUpdateResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.UpdateRun run = 1;
+   */
+  run?: UpdateRun | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.RunUpdateResponse.
+ * Use `create(RunUpdateResponseSchema)` to create a new message.
+ */
+export const RunUpdateResponseSchema: GenMessage<RunUpdateResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 21);
+
+/**
+ * @generated from message ddash.proxmox.PlanUpdateAllRequest
+ */
+export type PlanUpdateAllRequest = Message<"ddash.proxmox.PlanUpdateAllRequest"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.PlanUpdateAllRequest.
+ * Use `create(PlanUpdateAllRequestSchema)` to create a new message.
+ */
+export const PlanUpdateAllRequestSchema: GenMessage<PlanUpdateAllRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 22);
+
+/**
+ * @generated from message ddash.proxmox.PlanUpdateAllResponse
+ */
+export type PlanUpdateAllResponse = Message<"ddash.proxmox.PlanUpdateAllResponse"> & {
+  /**
+   * The Workloads it updates, in order.
+   *
+   * @generated from field: repeated ddash.proxmox.UpdatePlan workloads = 1;
+   */
+  workloads: UpdatePlan[];
+
+  /**
+   * @generated from field: repeated ddash.proxmox.SkippedWorkload skipped = 2;
+   */
+  skipped: SkippedWorkload[];
+};
+
+/**
+ * Describes the message ddash.proxmox.PlanUpdateAllResponse.
+ * Use `create(PlanUpdateAllResponseSchema)` to create a new message.
+ */
+export const PlanUpdateAllResponseSchema: GenMessage<PlanUpdateAllResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 23);
+
+/**
+ * @generated from message ddash.proxmox.SkippedWorkload
+ */
+export type SkippedWorkload = Message<"ddash.proxmox.SkippedWorkload"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * @generated from field: ddash.proxmox.SkipReason reason = 3;
+   */
+  reason: SkipReason;
+
+  /**
+   * e.g. the Host Agent's state.
+   *
+   * @generated from field: string detail = 4;
+   */
+  detail: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.SkippedWorkload.
+ * Use `create(SkippedWorkloadSchema)` to create a new message.
+ */
+export const SkippedWorkloadSchema: GenMessage<SkippedWorkload> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 24);
+
+/**
+ * @generated from message ddash.proxmox.RunUpdateAllRequest
+ */
+export type RunUpdateAllRequest = Message<"ddash.proxmox.RunUpdateAllRequest"> & {
+  /**
+   * The Plan's Workloads, in its order.
+   *
+   * @generated from field: repeated ddash.workload.WorkloadRef workloads = 1;
+   */
+  workloads: WorkloadRef[];
+};
+
+/**
+ * Describes the message ddash.proxmox.RunUpdateAllRequest.
+ * Use `create(RunUpdateAllRequestSchema)` to create a new message.
+ */
+export const RunUpdateAllRequestSchema: GenMessage<RunUpdateAllRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 25);
+
+/**
+ * @generated from message ddash.proxmox.RunUpdateAllResponse
+ */
+export type RunUpdateAllResponse = Message<"ddash.proxmox.RunUpdateAllResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.BulkUpdate bulk = 1;
+   */
+  bulk?: BulkUpdate | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.RunUpdateAllResponse.
+ * Use `create(RunUpdateAllResponseSchema)` to create a new message.
+ */
+export const RunUpdateAllResponseSchema: GenMessage<RunUpdateAllResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 26);
+
+/**
+ * @generated from message ddash.proxmox.ListUpdatesRequest
+ */
+export type ListUpdatesRequest = Message<"ddash.proxmox.ListUpdatesRequest"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.ListUpdatesRequest.
+ * Use `create(ListUpdatesRequestSchema)` to create a new message.
+ */
+export const ListUpdatesRequestSchema: GenMessage<ListUpdatesRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 27);
+
+/**
+ * @generated from message ddash.proxmox.ListUpdatesResponse
+ */
+export type ListUpdatesResponse = Message<"ddash.proxmox.ListUpdatesResponse"> & {
+  /**
+   * The running or last update of each Workload, by VMID.
+   *
+   * @generated from field: repeated ddash.proxmox.UpdateRun runs = 1;
+   */
+  runs: UpdateRun[];
+
+  /**
+   * The last "Update all running"; unset when none ran.
+   *
+   * @generated from field: ddash.proxmox.BulkUpdate bulk = 2;
+   */
+  bulk?: BulkUpdate | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.ListUpdatesResponse.
+ * Use `create(ListUpdatesResponseSchema)` to create a new message.
+ */
+export const ListUpdatesResponseSchema: GenMessage<ListUpdatesResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 28);
+
+/**
+ * One Workload's update, running or ended.
+ *
+ * @generated from message ddash.proxmox.UpdateRun
+ */
+export type UpdateRun = Message<"ddash.proxmox.UpdateRun"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 2;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * @generated from field: string label = 3;
+   */
+  label: string;
+
+  /**
+   * @generated from field: ddash.job.State state = 4;
+   */
+  state: State;
+
+  /**
+   * Take a ddash Snapshot, Delete older ddash Snapshots, then the Host
+   * Agent's steps.
+   *
+   * @generated from field: repeated ddash.job.Step steps = 5;
+   */
+  steps: Step[];
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started = 6;
+   */
+  started?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp ended = 7;
+   */
+  ended?: Timestamp | undefined;
+
+  /**
+   * Why it failed.
+   *
+   * @generated from field: string error = 8;
+   */
+  error: string;
+
+  /**
+   * The ddash Snapshot it took; empty when off.
+   *
+   * @generated from field: string snapshot = 9;
+   */
+  snapshot: string;
+
+  /**
+   * How many packages it updated.
+   *
+   * @generated from field: uint32 updated = 10;
+   */
+  updated: number;
+
+  /**
+   * The Workload needs a reboot: Restart it when it suits.
+   *
+   * @generated from field: bool reboot_required = 11;
+   */
+  rebootRequired: boolean;
+
+  /**
+   * The "Update all running" it is part of; empty for a single update.
+   *
+   * @generated from field: string bulk_id = 12;
+   */
+  bulkId: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.UpdateRun.
+ * Use `create(UpdateRunSchema)` to create a new message.
+ */
+export const UpdateRunSchema: GenMessage<UpdateRun> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 29);
+
+/**
+ * An "Update all running".
+ *
+ * @generated from message ddash.proxmox.BulkUpdate
+ */
+export type BulkUpdate = Message<"ddash.proxmox.BulkUpdate"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: ddash.job.State state = 2;
+   */
+  state: State;
+
+  /**
+   * @generated from field: repeated ddash.proxmox.BulkItem items = 3;
+   */
+  items: BulkItem[];
+
+  /**
+   * @generated from field: repeated ddash.proxmox.SkippedWorkload skipped = 4;
+   */
+  skipped: SkippedWorkload[];
+
+  /**
+   * @generated from field: google.protobuf.Timestamp started = 5;
+   */
+  started?: Timestamp | undefined;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp ended = 6;
+   */
+  ended?: Timestamp | undefined;
+
+  /**
+   * Why it stopped.
+   *
+   * @generated from field: string error = 7;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.BulkUpdate.
+ * Use `create(BulkUpdateSchema)` to create a new message.
+ */
+export const BulkUpdateSchema: GenMessage<BulkUpdate> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 30);
+
+/**
+ * @generated from message ddash.proxmox.BulkItem
+ */
+export type BulkItem = Message<"ddash.proxmox.BulkItem"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * @generated from field: string label = 2;
+   */
+  label: string;
+
+  /**
+   * PENDING until its turn; SKIPPED when an earlier one failed.
+   *
+   * @generated from field: ddash.job.State state = 3;
+   */
+  state: State;
+
+  /**
+   * Its UpdateRun, once started.
+   *
+   * @generated from field: string run_id = 4;
+   */
+  runId: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.BulkItem.
+ * Use `create(BulkItemSchema)` to create a new message.
+ */
+export const BulkItemSchema: GenMessage<BulkItem> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 31);
+
+/**
+ * @generated from message ddash.proxmox.ListSSHKeysRequest
+ */
+export type ListSSHKeysRequest = Message<"ddash.proxmox.ListSSHKeysRequest"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.ListSSHKeysRequest.
+ * Use `create(ListSSHKeysRequestSchema)` to create a new message.
+ */
+export const ListSSHKeysRequestSchema: GenMessage<ListSSHKeysRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 32);
+
+/**
+ * @generated from message ddash.proxmox.ListSSHKeysResponse
+ */
+export type ListSSHKeysResponse = Message<"ddash.proxmox.ListSSHKeysResponse"> & {
+  /**
+   * @generated from field: repeated ddash.proxmox.SSHKey keys = 1;
+   */
+  keys: SSHKey[];
+};
+
+/**
+ * Describes the message ddash.proxmox.ListSSHKeysResponse.
+ * Use `create(ListSSHKeysResponseSchema)` to create a new message.
+ */
+export const ListSSHKeysResponseSchema: GenMessage<ListSSHKeysResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 33);
+
+/**
+ * A named public key ddash stores and installs on Workloads.
+ *
+ * @generated from message ddash.proxmox.SSHKey
+ */
+export type SSHKey = Message<"ddash.proxmox.SSHKey"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Its authorized_keys line, "ssh-ed25519 AAAA… <name>".
+   *
+   * @generated from field: string public_key = 2;
+   */
+  publicKey: string;
+
+  /**
+   * e.g. "ssh-ed25519".
+   *
+   * @generated from field: string type = 3;
+   */
+  type: string;
+
+  /**
+   * "SHA256:…".
+   *
+   * @generated from field: string fingerprint = 4;
+   */
+  fingerprint: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created = 5;
+   */
+  created?: Timestamp | undefined;
+
+  /**
+   * ddash generated it (and gave its private key out once).
+   *
+   * @generated from field: bool generated = 6;
+   */
+  generated: boolean;
+};
+
+/**
+ * Describes the message ddash.proxmox.SSHKey.
+ * Use `create(SSHKeySchema)` to create a new message.
+ */
+export const SSHKeySchema: GenMessage<SSHKey> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 34);
+
+/**
+ * @generated from message ddash.proxmox.GenerateSSHKeyRequest
+ */
+export type GenerateSSHKeyRequest = Message<"ddash.proxmox.GenerateSSHKeyRequest"> & {
+  /**
+   * Letters, digits, ., _ and -, e.g. "laptop".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.GenerateSSHKeyRequest.
+ * Use `create(GenerateSSHKeyRequestSchema)` to create a new message.
+ */
+export const GenerateSSHKeyRequestSchema: GenMessage<GenerateSSHKeyRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 35);
+
+/**
+ * @generated from message ddash.proxmox.GenerateSSHKeyResponse
+ */
+export type GenerateSSHKeyResponse = Message<"ddash.proxmox.GenerateSSHKeyResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.SSHKey key = 1;
+   */
+  key?: SSHKey | undefined;
+
+  /**
+   * The private key, OpenSSH PEM: shown once, never stored.
+   *
+   * @generated from field: string private_key = 2;
+   */
+  privateKey: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.GenerateSSHKeyResponse.
+ * Use `create(GenerateSSHKeyResponseSchema)` to create a new message.
+ */
+export const GenerateSSHKeyResponseSchema: GenMessage<GenerateSSHKeyResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 36);
+
+/**
+ * @generated from message ddash.proxmox.AddSSHKeyRequest
+ */
+export type AddSSHKeyRequest = Message<"ddash.proxmox.AddSSHKeyRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * An authorized_keys line, "ssh-ed25519 AAAA… comment".
+   *
+   * @generated from field: string public_key = 2;
+   */
+  publicKey: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.AddSSHKeyRequest.
+ * Use `create(AddSSHKeyRequestSchema)` to create a new message.
+ */
+export const AddSSHKeyRequestSchema: GenMessage<AddSSHKeyRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 37);
+
+/**
+ * @generated from message ddash.proxmox.AddSSHKeyResponse
+ */
+export type AddSSHKeyResponse = Message<"ddash.proxmox.AddSSHKeyResponse"> & {
+  /**
+   * @generated from field: ddash.proxmox.SSHKey key = 1;
+   */
+  key?: SSHKey | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.AddSSHKeyResponse.
+ * Use `create(AddSSHKeyResponseSchema)` to create a new message.
+ */
+export const AddSSHKeyResponseSchema: GenMessage<AddSSHKeyResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 38);
+
+/**
+ * @generated from message ddash.proxmox.DeleteSSHKeyRequest
+ */
+export type DeleteSSHKeyRequest = Message<"ddash.proxmox.DeleteSSHKeyRequest"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.DeleteSSHKeyRequest.
+ * Use `create(DeleteSSHKeyRequestSchema)` to create a new message.
+ */
+export const DeleteSSHKeyRequestSchema: GenMessage<DeleteSSHKeyRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 39);
+
+/**
+ * @generated from message ddash.proxmox.DeleteSSHKeyResponse
+ */
+export type DeleteSSHKeyResponse = Message<"ddash.proxmox.DeleteSSHKeyResponse"> & {
+};
+
+/**
+ * Describes the message ddash.proxmox.DeleteSSHKeyResponse.
+ * Use `create(DeleteSSHKeyResponseSchema)` to create a new message.
+ */
+export const DeleteSSHKeyResponseSchema: GenMessage<DeleteSSHKeyResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 40);
+
+/**
+ * @generated from message ddash.proxmox.InstallSSHKeyRequest
+ */
+export type InstallSSHKeyRequest = Message<"ddash.proxmox.InstallSSHKeyRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+
+  /**
+   * Stored SSH Keys' names.
+   *
+   * @generated from field: repeated string names = 2;
+   */
+  names: string[];
+
+  /**
+   * root, or a user with a login shell on the Workload.
+   *
+   * @generated from field: string user = 3;
+   */
+  user: string;
+};
+
+/**
+ * Describes the message ddash.proxmox.InstallSSHKeyRequest.
+ * Use `create(InstallSSHKeyRequestSchema)` to create a new message.
+ */
+export const InstallSSHKeyRequestSchema: GenMessage<InstallSSHKeyRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 41);
+
+/**
+ * @generated from message ddash.proxmox.InstallSSHKeyResponse
+ */
+export type InstallSSHKeyResponse = Message<"ddash.proxmox.InstallSSHKeyResponse"> & {
+  /**
+   * The keys the user already had, left as they were.
+   *
+   * @generated from field: repeated string already = 1;
+   */
+  already: string[];
+};
+
+/**
+ * Describes the message ddash.proxmox.InstallSSHKeyResponse.
+ * Use `create(InstallSSHKeyResponseSchema)` to create a new message.
+ */
+export const InstallSSHKeyResponseSchema: GenMessage<InstallSSHKeyResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 42);
+
+/**
+ * @generated from message ddash.proxmox.EnableSSHRequest
+ */
+export type EnableSSHRequest = Message<"ddash.proxmox.EnableSSHRequest"> & {
+  /**
+   * @generated from field: ddash.workload.WorkloadRef workload = 1;
+   */
+  workload?: WorkloadRef | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.EnableSSHRequest.
+ * Use `create(EnableSSHRequestSchema)` to create a new message.
+ */
+export const EnableSSHRequestSchema: GenMessage<EnableSSHRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 43);
+
+/**
+ * @generated from message ddash.proxmox.EnableSSHResponse
+ */
+export type EnableSSHResponse = Message<"ddash.proxmox.EnableSSHResponse"> & {
+  /**
+   * @generated from field: ddash.job.Job job = 1;
+   */
+  job?: Job | undefined;
+};
+
+/**
+ * Describes the message ddash.proxmox.EnableSSHResponse.
+ * Use `create(EnableSSHResponseSchema)` to create a new message.
+ */
+export const EnableSSHResponseSchema: GenMessage<EnableSSHResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_proxmox, 44);
 
 /**
  * Every power Action names its Workload by kind (LXC or VM) and VMID; the
@@ -55,7 +1186,7 @@ export type StartWorkloadRequest = Message<"ddash.proxmox.StartWorkloadRequest">
  * Use `create(StartWorkloadRequestSchema)` to create a new message.
  */
 export const StartWorkloadRequestSchema: GenMessage<StartWorkloadRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 1);
+  messageDesc(file_proxmox_proxmox, 45);
 
 /**
  * @generated from message ddash.proxmox.StartWorkloadResponse
@@ -68,7 +1199,7 @@ export type StartWorkloadResponse = Message<"ddash.proxmox.StartWorkloadResponse
  * Use `create(StartWorkloadResponseSchema)` to create a new message.
  */
 export const StartWorkloadResponseSchema: GenMessage<StartWorkloadResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 2);
+  messageDesc(file_proxmox_proxmox, 46);
 
 /**
  * @generated from message ddash.proxmox.StopWorkloadRequest
@@ -85,7 +1216,7 @@ export type StopWorkloadRequest = Message<"ddash.proxmox.StopWorkloadRequest"> &
  * Use `create(StopWorkloadRequestSchema)` to create a new message.
  */
 export const StopWorkloadRequestSchema: GenMessage<StopWorkloadRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 3);
+  messageDesc(file_proxmox_proxmox, 47);
 
 /**
  * @generated from message ddash.proxmox.StopWorkloadResponse
@@ -98,7 +1229,7 @@ export type StopWorkloadResponse = Message<"ddash.proxmox.StopWorkloadResponse">
  * Use `create(StopWorkloadResponseSchema)` to create a new message.
  */
 export const StopWorkloadResponseSchema: GenMessage<StopWorkloadResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 4);
+  messageDesc(file_proxmox_proxmox, 48);
 
 /**
  * @generated from message ddash.proxmox.RestartWorkloadRequest
@@ -115,7 +1246,7 @@ export type RestartWorkloadRequest = Message<"ddash.proxmox.RestartWorkloadReque
  * Use `create(RestartWorkloadRequestSchema)` to create a new message.
  */
 export const RestartWorkloadRequestSchema: GenMessage<RestartWorkloadRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 5);
+  messageDesc(file_proxmox_proxmox, 49);
 
 /**
  * @generated from message ddash.proxmox.RestartWorkloadResponse
@@ -128,7 +1259,7 @@ export type RestartWorkloadResponse = Message<"ddash.proxmox.RestartWorkloadResp
  * Use `create(RestartWorkloadResponseSchema)` to create a new message.
  */
 export const RestartWorkloadResponseSchema: GenMessage<RestartWorkloadResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 6);
+  messageDesc(file_proxmox_proxmox, 50);
 
 /**
  * @generated from message ddash.proxmox.ListPowerTasksRequest
@@ -141,7 +1272,7 @@ export type ListPowerTasksRequest = Message<"ddash.proxmox.ListPowerTasksRequest
  * Use `create(ListPowerTasksRequestSchema)` to create a new message.
  */
 export const ListPowerTasksRequestSchema: GenMessage<ListPowerTasksRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 7);
+  messageDesc(file_proxmox_proxmox, 51);
 
 /**
  * @generated from message ddash.proxmox.ListPowerTasksResponse
@@ -160,7 +1291,7 @@ export type ListPowerTasksResponse = Message<"ddash.proxmox.ListPowerTasksRespon
  * Use `create(ListPowerTasksResponseSchema)` to create a new message.
  */
 export const ListPowerTasksResponseSchema: GenMessage<ListPowerTasksResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 8);
+  messageDesc(file_proxmox_proxmox, 52);
 
 /**
  * PowerTask is a power Action in flight: its buttons stay disabled, and
@@ -191,7 +1322,68 @@ export type PowerTask = Message<"ddash.proxmox.PowerTask"> & {
  * Use `create(PowerTaskSchema)` to create a new message.
  */
 export const PowerTaskSchema: GenMessage<PowerTask> = /*@__PURE__*/
-  messageDesc(file_proxmox_proxmox, 9);
+  messageDesc(file_proxmox_proxmox, 53);
+
+/**
+ * @generated from enum ddash.proxmox.SkipReason
+ */
+export enum SkipReason {
+  /**
+   * @generated from enum value: SKIP_REASON_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * ddash holds no VM.PowerMgmt on it.
+   *
+   * @generated from enum value: SKIP_REASON_PROTECTED = 1;
+   */
+  PROTECTED = 1,
+
+  /**
+   * @generated from enum value: SKIP_REASON_NO_HOST_AGENT = 2;
+   */
+  NO_HOST_AGENT = 2,
+
+  /**
+   * @generated from enum value: SKIP_REASON_STOPPED = 3;
+   */
+  STOPPED = 3,
+
+  /**
+   * Its Host Agent isn't paired, reachable or on ddash's Release.
+   *
+   * @generated from enum value: SKIP_REASON_AGENT_NOT_READY = 4;
+   */
+  AGENT_NOT_READY = 4,
+
+  /**
+   * Its setting wants a snapshot its storage can't take.
+   *
+   * @generated from enum value: SKIP_REASON_SNAPSHOTS_NOT_SUPPORTED = 5;
+   */
+  SNAPSHOTS_NOT_SUPPORTED = 5,
+
+  /**
+   * Nothing pending, as the Host Agent last read it.
+   *
+   * @generated from enum value: SKIP_REASON_UP_TO_DATE = 6;
+   */
+  UP_TO_DATE = 6,
+
+  /**
+   * An update already runs on it.
+   *
+   * @generated from enum value: SKIP_REASON_BUSY = 7;
+   */
+  BUSY = 7,
+}
+
+/**
+ * Describes the enum ddash.proxmox.SkipReason.
+ */
+export const SkipReasonSchema: GenEnum<SkipReason> = /*@__PURE__*/
+  enumDesc(file_proxmox_proxmox, 0);
 
 /**
  * @generated from enum ddash.proxmox.PowerAction
@@ -222,7 +1414,7 @@ export enum PowerAction {
  * Describes the enum ddash.proxmox.PowerAction.
  */
 export const PowerActionSchema: GenEnum<PowerAction> = /*@__PURE__*/
-  enumDesc(file_proxmox_proxmox, 0);
+  enumDesc(file_proxmox_proxmox, 1);
 
 /**
  * @generated from service ddash.proxmox.ProxmoxService
@@ -271,6 +1463,201 @@ export const ProxmoxService: GenService<{
     methodKind: "unary";
     input: typeof ListPowerTasksRequestSchema;
     output: typeof ListPowerTasksResponseSchema;
+  },
+  /**
+   * GetSnapshots returns a Workload's ddash Snapshot, the snapshots ddash
+   * didn't take, and whether its storage can snapshot.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.GetSnapshots
+   */
+  getSnapshots: {
+    methodKind: "unary";
+    input: typeof GetSnapshotsRequestSchema;
+    output: typeof GetSnapshotsResponseSchema;
+  },
+  /**
+   * TakeSnapshot takes a ddash Snapshot ("ddash-<UTC time>") and, once its
+   * task succeeded, deletes every older ddash Snapshot of the Workload.
+   * When taking it fails, nothing is deleted; snapshots without the
+   * "ddash-" prefix are never touched.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.TakeSnapshot
+   */
+  takeSnapshot: {
+    methodKind: "unary";
+    input: typeof TakeSnapshotRequestSchema;
+    output: typeof TakeSnapshotResponseSchema;
+  },
+  /**
+   * Backup starts a vzdump of a Workload (snapshot mode) to a storage and
+   * returns once it started; ListBackups follows it to its end.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.Backup
+   */
+  backup: {
+    methodKind: "unary";
+    input: typeof BackupRequestSchema;
+    output: typeof BackupResponseSchema;
+  },
+  /**
+   * ListBackups returns the backups ddash started since it last started,
+   * running and ended, newest first, from memory.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.ListBackups
+   */
+  listBackups: {
+    methodKind: "unary";
+    input: typeof ListBackupsRequestSchema;
+    output: typeof ListBackupsResponseSchema;
+  },
+  /**
+   * ListUpdateSettings returns each Workload's update settings that differ
+   * from the default (a snapshot before each update).
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.ListUpdateSettings
+   */
+  listUpdateSettings: {
+    methodKind: "unary";
+    input: typeof ListUpdateSettingsRequestSchema;
+    output: typeof ListUpdateSettingsResponseSchema;
+  },
+  /**
+   * SetUpdateSettings sets a Workload's update settings.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.SetUpdateSettings
+   */
+  setUpdateSettings: {
+    methodKind: "unary";
+    input: typeof SetUpdateSettingsRequestSchema;
+    output: typeof SetUpdateSettingsResponseSchema;
+  },
+  /**
+   * PlanUpdate builds a Workload's update Plan: the pending packages as
+   * its Host Agent last read them, the snapshot, Maintenance, and what
+   * blocks it.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.PlanUpdate
+   */
+  planUpdate: {
+    methodKind: "unary";
+    input: typeof PlanUpdateRequestSchema;
+    output: typeof PlanUpdateResponseSchema;
+  },
+  /**
+   * RunUpdate starts a Workload's update and returns once it started: in
+   * the background, the Workload in Maintenance, it takes a ddash
+   * Snapshot (unless off), prunes the older ddash Snapshots, has the Host
+   * Agent install the updates, and reports "reboot required". It never
+   * reboots. A Protected Workload is refused unless override_protected.
+   * ListUpdates shows its progress; its outcome is the Audit Log entry of
+   * the Host Agent job's collect, in this call's chain. Not disruptive:
+   * the Operator confirms its Plan, as for apps' RunAction.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.RunUpdate
+   */
+  runUpdate: {
+    methodKind: "unary";
+    input: typeof RunUpdateRequestSchema;
+    output: typeof RunUpdateResponseSchema;
+  },
+  /**
+   * PlanUpdateAll lists the Workloads "Update all running" would update,
+   * in order, and those it skips with why.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.PlanUpdateAll
+   */
+  planUpdateAll: {
+    methodKind: "unary";
+    input: typeof PlanUpdateAllRequestSchema;
+    output: typeof PlanUpdateAllResponseSchema;
+  },
+  /**
+   * RunUpdateAll starts updating the Workloads its Plan listed, one at a
+   * time, each with a ddash Snapshot first unless its setting turns it
+   * off, and stops at the first failure. It refuses when the Plan no
+   * longer holds.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.RunUpdateAll
+   */
+  runUpdateAll: {
+    methodKind: "unary";
+    input: typeof RunUpdateAllRequestSchema;
+    output: typeof RunUpdateAllResponseSchema;
+  },
+  /**
+   * ListUpdates returns the update running or last run on each Workload,
+   * and the last "Update all running".
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.ListUpdates
+   */
+  listUpdates: {
+    methodKind: "unary";
+    input: typeof ListUpdatesRequestSchema;
+    output: typeof ListUpdatesResponseSchema;
+  },
+  /**
+   * ListSSHKeys returns the stored SSH Keys, by name.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.ListSSHKeys
+   */
+  listSSHKeys: {
+    methodKind: "unary";
+    input: typeof ListSSHKeysRequestSchema;
+    output: typeof ListSSHKeysResponseSchema;
+  },
+  /**
+   * GenerateSSHKey creates an Ed25519 key pair, stores its public key and
+   * returns its private key, this once: ddash never keeps it.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.GenerateSSHKey
+   */
+  generateSSHKey: {
+    methodKind: "unary";
+    input: typeof GenerateSSHKeyRequestSchema;
+    output: typeof GenerateSSHKeyResponseSchema;
+  },
+  /**
+   * AddSSHKey stores an existing public key under a name.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.AddSSHKey
+   */
+  addSSHKey: {
+    methodKind: "unary";
+    input: typeof AddSSHKeyRequestSchema;
+    output: typeof AddSSHKeyResponseSchema;
+  },
+  /**
+   * DeleteSSHKey forgets a stored SSH Key. It stays installed where it is.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.DeleteSSHKey
+   */
+  deleteSSHKey: {
+    methodKind: "unary";
+    input: typeof DeleteSSHKeyRequestSchema;
+    output: typeof DeleteSSHKeyResponseSchema;
+  },
+  /**
+   * InstallSSHKey installs stored SSH Keys for a user on a Workload,
+   * through its Host Agent.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.InstallSSHKey
+   */
+  installSSHKey: {
+    methodKind: "unary";
+    input: typeof InstallSSHKeyRequestSchema;
+    output: typeof InstallSSHKeyResponseSchema;
+  },
+  /**
+   * EnableSSH has a Workload's Host Agent install and start sshd, and
+   * returns once the job started; its outcome is the job's collect, in
+   * this call's chain.
+   *
+   * @generated from rpc ddash.proxmox.ProxmoxService.EnableSSH
+   */
+  enableSSH: {
+    methodKind: "unary";
+    input: typeof EnableSSHRequestSchema;
+    output: typeof EnableSSHResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_proxmox_proxmox, 0);

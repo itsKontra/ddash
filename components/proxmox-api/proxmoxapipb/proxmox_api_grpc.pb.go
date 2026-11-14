@@ -22,12 +22,18 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ProxmoxApiService_ListWorkloads_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads"
-	ProxmoxApiService_ListPermissions_FullMethodName  = "/ddash.proxmoxapi.ProxmoxApiService/ListPermissions"
-	ProxmoxApiService_StartWorkload_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/StartWorkload"
-	ProxmoxApiService_ShutdownWorkload_FullMethodName = "/ddash.proxmoxapi.ProxmoxApiService/ShutdownWorkload"
-	ProxmoxApiService_RebootWorkload_FullMethodName   = "/ddash.proxmoxapi.ProxmoxApiService/RebootWorkload"
-	ProxmoxApiService_ListActiveTasks_FullMethodName  = "/ddash.proxmoxapi.ProxmoxApiService/ListActiveTasks"
+	ProxmoxApiService_ListWorkloads_FullMethodName      = "/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads"
+	ProxmoxApiService_ListPermissions_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/ListPermissions"
+	ProxmoxApiService_StartWorkload_FullMethodName      = "/ddash.proxmoxapi.ProxmoxApiService/StartWorkload"
+	ProxmoxApiService_ShutdownWorkload_FullMethodName   = "/ddash.proxmoxapi.ProxmoxApiService/ShutdownWorkload"
+	ProxmoxApiService_RebootWorkload_FullMethodName     = "/ddash.proxmoxapi.ProxmoxApiService/RebootWorkload"
+	ProxmoxApiService_ListActiveTasks_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/ListActiveTasks"
+	ProxmoxApiService_ListTasks_FullMethodName          = "/ddash.proxmoxapi.ProxmoxApiService/ListTasks"
+	ProxmoxApiService_ListSnapshots_FullMethodName      = "/ddash.proxmoxapi.ProxmoxApiService/ListSnapshots"
+	ProxmoxApiService_CreateSnapshot_FullMethodName     = "/ddash.proxmoxapi.ProxmoxApiService/CreateSnapshot"
+	ProxmoxApiService_DeleteSnapshot_FullMethodName     = "/ddash.proxmoxapi.ProxmoxApiService/DeleteSnapshot"
+	ProxmoxApiService_Backup_FullMethodName             = "/ddash.proxmoxapi.ProxmoxApiService/Backup"
+	ProxmoxApiService_ListBackupStorages_FullMethodName = "/ddash.proxmoxapi.ProxmoxApiService/ListBackupStorages"
 )
 
 // ProxmoxApiServiceClient is the client API for ProxmoxApiService service.
@@ -54,6 +60,27 @@ type ProxmoxApiServiceClient interface {
 	// ListActiveTasks returns the tasks ddash's token started on a Workload
 	// that are still running, never cached.
 	ListActiveTasks(ctx context.Context, in *ListActiveTasksRequest, opts ...grpc.CallOption) (*ListActiveTasksResponse, error)
+	// ListTasks returns a Workload's recent tasks on a node, running and
+	// ended (with their exit status), newest first, never cached.
+	ListTasks(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error)
+	// ListSnapshots returns a Workload's snapshots (without Proxmox's
+	// "current" entry) and whether its storage can take one, never cached.
+	ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error)
+	// CreateSnapshot takes a snapshot of a Workload and returns once
+	// Proxmox's task ended OK, like StartWorkload. A task that failed
+	// because the storage can't snapshot fails FAILED_PRECONDITION with
+	// "snapshots not supported".
+	CreateSnapshot(ctx context.Context, in *CreateSnapshotRequest, opts ...grpc.CallOption) (*CreateSnapshotResponse, error)
+	// DeleteSnapshot deletes one snapshot of a Workload and returns like
+	// CreateSnapshot.
+	DeleteSnapshot(ctx context.Context, in *DeleteSnapshotRequest, opts ...grpc.CallOption) (*DeleteSnapshotResponse, error)
+	// Backup starts a vzdump of a Workload to a storage and returns its
+	// task's UPID at once: a backup outlasts an Action. ListTasks follows
+	// it.
+	Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (*BackupResponse, error)
+	// ListBackupStorages returns a node's enabled storages that hold
+	// backups.
+	ListBackupStorages(ctx context.Context, in *ListBackupStoragesRequest, opts ...grpc.CallOption) (*ListBackupStoragesResponse, error)
 }
 
 type proxmoxApiServiceClient struct {
@@ -124,6 +151,66 @@ func (c *proxmoxApiServiceClient) ListActiveTasks(ctx context.Context, in *ListA
 	return out, nil
 }
 
+func (c *proxmoxApiServiceClient) ListTasks(ctx context.Context, in *ListTasksRequest, opts ...grpc.CallOption) (*ListTasksResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListTasksResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_ListTasks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) ListSnapshots(ctx context.Context, in *ListSnapshotsRequest, opts ...grpc.CallOption) (*ListSnapshotsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSnapshotsResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_ListSnapshots_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) CreateSnapshot(ctx context.Context, in *CreateSnapshotRequest, opts ...grpc.CallOption) (*CreateSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateSnapshotResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_CreateSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) DeleteSnapshot(ctx context.Context, in *DeleteSnapshotRequest, opts ...grpc.CallOption) (*DeleteSnapshotResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSnapshotResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_DeleteSnapshot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) Backup(ctx context.Context, in *BackupRequest, opts ...grpc.CallOption) (*BackupResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BackupResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_Backup_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) ListBackupStorages(ctx context.Context, in *ListBackupStoragesRequest, opts ...grpc.CallOption) (*ListBackupStoragesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListBackupStoragesResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_ListBackupStorages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProxmoxApiServiceServer is the server API for ProxmoxApiService service.
 // All implementations must embed UnimplementedProxmoxApiServiceServer
 // for forward compatibility.
@@ -148,6 +235,27 @@ type ProxmoxApiServiceServer interface {
 	// ListActiveTasks returns the tasks ddash's token started on a Workload
 	// that are still running, never cached.
 	ListActiveTasks(context.Context, *ListActiveTasksRequest) (*ListActiveTasksResponse, error)
+	// ListTasks returns a Workload's recent tasks on a node, running and
+	// ended (with their exit status), newest first, never cached.
+	ListTasks(context.Context, *ListTasksRequest) (*ListTasksResponse, error)
+	// ListSnapshots returns a Workload's snapshots (without Proxmox's
+	// "current" entry) and whether its storage can take one, never cached.
+	ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error)
+	// CreateSnapshot takes a snapshot of a Workload and returns once
+	// Proxmox's task ended OK, like StartWorkload. A task that failed
+	// because the storage can't snapshot fails FAILED_PRECONDITION with
+	// "snapshots not supported".
+	CreateSnapshot(context.Context, *CreateSnapshotRequest) (*CreateSnapshotResponse, error)
+	// DeleteSnapshot deletes one snapshot of a Workload and returns like
+	// CreateSnapshot.
+	DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error)
+	// Backup starts a vzdump of a Workload to a storage and returns its
+	// task's UPID at once: a backup outlasts an Action. ListTasks follows
+	// it.
+	Backup(context.Context, *BackupRequest) (*BackupResponse, error)
+	// ListBackupStorages returns a node's enabled storages that hold
+	// backups.
+	ListBackupStorages(context.Context, *ListBackupStoragesRequest) (*ListBackupStoragesResponse, error)
 	mustEmbedUnimplementedProxmoxApiServiceServer()
 }
 
@@ -175,6 +283,24 @@ func (UnimplementedProxmoxApiServiceServer) RebootWorkload(context.Context, *Reb
 }
 func (UnimplementedProxmoxApiServiceServer) ListActiveTasks(context.Context, *ListActiveTasksRequest) (*ListActiveTasksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListActiveTasks not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) ListTasks(context.Context, *ListTasksRequest) (*ListTasksResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListTasks not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) ListSnapshots(context.Context, *ListSnapshotsRequest) (*ListSnapshotsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListSnapshots not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) CreateSnapshot(context.Context, *CreateSnapshotRequest) (*CreateSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateSnapshot not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) DeleteSnapshot(context.Context, *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteSnapshot not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) Backup(context.Context, *BackupRequest) (*BackupResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Backup not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) ListBackupStorages(context.Context, *ListBackupStoragesRequest) (*ListBackupStoragesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListBackupStorages not implemented")
 }
 func (UnimplementedProxmoxApiServiceServer) mustEmbedUnimplementedProxmoxApiServiceServer() {}
 func (UnimplementedProxmoxApiServiceServer) testEmbeddedByValue()                           {}
@@ -305,6 +431,114 @@ func _ProxmoxApiService_ListActiveTasks_Handler(srv interface{}, ctx context.Con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProxmoxApiService_ListTasks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListTasksRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).ListTasks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_ListTasks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).ListTasks(ctx, req.(*ListTasksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_ListSnapshots_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSnapshotsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).ListSnapshots(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_ListSnapshots_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).ListSnapshots(ctx, req.(*ListSnapshotsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_CreateSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).CreateSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_CreateSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).CreateSnapshot(ctx, req.(*CreateSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_DeleteSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSnapshotRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).DeleteSnapshot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_DeleteSnapshot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).DeleteSnapshot(ctx, req.(*DeleteSnapshotRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_Backup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BackupRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).Backup(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_Backup_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).Backup(ctx, req.(*BackupRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_ListBackupStorages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListBackupStoragesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).ListBackupStorages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_ListBackupStorages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).ListBackupStorages(ctx, req.(*ListBackupStoragesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ProxmoxApiService_ServiceDesc is the grpc.ServiceDesc for ProxmoxApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -335,6 +569,30 @@ var ProxmoxApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListActiveTasks",
 			Handler:    _ProxmoxApiService_ListActiveTasks_Handler,
+		},
+		{
+			MethodName: "ListTasks",
+			Handler:    _ProxmoxApiService_ListTasks_Handler,
+		},
+		{
+			MethodName: "ListSnapshots",
+			Handler:    _ProxmoxApiService_ListSnapshots_Handler,
+		},
+		{
+			MethodName: "CreateSnapshot",
+			Handler:    _ProxmoxApiService_CreateSnapshot_Handler,
+		},
+		{
+			MethodName: "DeleteSnapshot",
+			Handler:    _ProxmoxApiService_DeleteSnapshot_Handler,
+		},
+		{
+			MethodName: "Backup",
+			Handler:    _ProxmoxApiService_Backup_Handler,
+		},
+		{
+			MethodName: "ListBackupStorages",
+			Handler:    _ProxmoxApiService_ListBackupStorages_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

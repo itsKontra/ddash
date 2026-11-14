@@ -1,0 +1,8 @@
+name: cloudflare-tunnel
+title: Cloudflare Tunnel
+description: The Cloudflare Tunnel's connectors and its Public Hostnames, each added, edited, removed, disabled and enabled through a Plan.
+icon: cloud
+author: itsKontra
+# cloudflare-tunnel lists the Public Hostnames and runs their Plans;
+# cloudflare-api's Tunnel and connectors are read unchanged.
+requires: [cloudflare-tunnel, cloudflare-api]

@@ -86,9 +86,25 @@ _Avoid_: Orphan App, stale App, overlay
 A unit of compute that runs software: a Docker container, a Proxmox LXC, a Proxmox VM, or an external host. One Workload can back zero or many Apps.
 _Avoid_: Container (when the kind is not specifically Docker), guest, instance
 
+**Compose Project**:
+The containers one Compose file defines, as Docker Compose names them, on a host with a Docker Agent. Its parts are **Compose services**, always qualified. Protected while any of its containers carries the label `ddash.protected=true`.
+_Avoid_: Stack, app (an App is something else)
+
 **Protected**:
 Said of a Workload that ddash may not start, stop or restart, because reaching ddash depends on it (such as the firewall or ddash's own host).
 _Avoid_: Locked, critical, excluded
+
+**Agent**:
+A ddash program, shipped in the Release, that the Operator installs on a host so ddash can change it: a **Docker Agent** (a container with the host's Docker socket) or a **Host Agent** (a root service on an LXC or VM, for package updates and SSH setup). It runs the core's Release, pairs with one ddash through a one-time enrolment code, and offers only named operations.
+_Avoid_: Daemon, helper, client
+
+**ddash Snapshot**:
+A Proxmox snapshot ddash took, named `ddash-<UTC time>` and described "Created by ddash before …". ddash keeps one per Workload: the only kind its retention deletes, and only once a newer one succeeded.
+_Avoid_: Backup (a backup is a `vzdump` archive), checkpoint
+
+**SSH Key**:
+A named public key ddash stores and installs on Workloads through their Host Agent, marked `ddash:<name>` in `authorized_keys`. ddash never keeps a private key: one it generates is handed out once.
+_Avoid_: Credential, identity
 
 **Proxy Host**:
 An nginx server block that forwards requests to an upstream. Each Proxy Host is the source of exactly one discovered App; its further hostnames are that App's aliases.
@@ -133,7 +149,7 @@ A period during which a Check's results don't count toward uptime and trigger no
 _Avoid_: Downtime, pause
 
 **Notification**:
-A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering.
+A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering. It goes out through each channel that is set up (ntfy, Telegram) and whose filter takes its category: Checks, image updates or Action outcomes.
 _Avoid_: Alert, push
 
 **Flapping**:
@@ -161,6 +177,10 @@ _Avoid_: Blocked, offline, isolated
 **Remote Access**:
 WireGuard connectivity that lets the operator's own devices reach the home network from outside it.
 _Avoid_: VPN (unqualified), road warrior
+
+**Public Hostname**:
+A hostname the Cloudflare Tunnel serves from the internet to a local address: one ingress rule of the Tunnel plus its proxied CNAME. A disabled one has neither, and ddash keeps its settings to enable it again. Always say "Cloudflare Tunnel", never bare "tunnel", because VPN Tunnel and Tunnelled mean the outbound path.
+_Avoid_: Tunnel route, public route, exposed host
 
 **Device**:
 A piece of hardware on the home network that the firewall hands addresses to, identified by its MAC address. Servers with fixed addresses and Remote Access peers are not Devices.

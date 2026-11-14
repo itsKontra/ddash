@@ -37,6 +37,10 @@ type lab struct {
 	hold     bool
 	released chan struct{}
 	active   map[uint32]bool
+	// snaps are each Workload's snapshots, oldest first (updates_test.go).
+	snaps        map[uint32][]*proxmoxapipb.Snapshot
+	noSnap       map[uint32]bool
+	failSnapshot string
 }
 
 func newLab() *lab {
@@ -49,6 +53,8 @@ func newLab() *lab {
 		protected: map[uint32]bool{101: true},
 		released:  make(chan struct{}),
 		active:    map[uint32]bool{},
+		snaps:     map[uint32][]*proxmoxapipb.Snapshot{},
+		noSnap:    map[uint32]bool{},
 	}
 }
 

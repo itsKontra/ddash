@@ -1,19 +1,28 @@
 // Package proxmox is the proxmox Component, the logic behind the Proxmox
-// Page's power Actions. It starts, stops and restarts LXCs and VMs through
+// Page's Actions. It starts, stops and restarts LXCs and VMs through
 // proxmox-api, refuses a Workload ddash holds no VM.PowerMgmt on
 // (Protected), runs one power Action per Workload at a time, and puts a
 // Workload it stops or restarts into Maintenance through checks, in the
 // Action's own Audit Log chain.
+//
+// It also updates packages through each Workload's Host Agent
+// (host-agent-api) after a ddash Snapshot (updates.go), takes ddash
+// Snapshots and backups (snapshots.go), and keeps SSH Keys and installs
+// them (sshkeys.go). Updates and backups outlast an Action: they run in
+// the background under the Component's life, in the starting Action's
+// Audit Log chain, and their outcome goes to notify.
 package proxmox
 
 import (
 	"context"
-	_ "embed"
+	"database/sql"
+	"embed"
 	"fmt"
 	"log/slog"
 	"maps"
 	"slices"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +32,8 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	"github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb"
+	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
 	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
@@ -54,37 +65,61 @@ const (
 // PowerMgmt is the Proxmox privilege a power Action needs.
 const PowerMgmt = "VM.PowerMgmt"
 
+//go:embed migrations/*.sql
+var migrations embed.FS
+
 // Definition is proxmox, ready for sdk.Serve.
 func Definition() sdk.Definition {
 	return sdk.Define(sdk.Spec[*proxmoxpb.ProxmoxConfig]{
-		Manifest: manifest,
-		Service:  &proxmoxpb.ProxmoxService_ServiceDesc,
+		Manifest:   manifest,
+		Service:    &proxmoxpb.ProxmoxService_ServiceDesc,
+		Migrations: migrations,
 		New: func() sdk.Component[*proxmoxpb.ProxmoxConfig] {
-			return &component{inFlight: map[uint32]*proxmoxpb.PowerTask{}}
+			return &component{
+				inFlight: map[uint32]*proxmoxpb.PowerTask{},
+				runs:     map[uint32]*tracked{},
+				busy:     map[uint32]string{},
+			}
 		},
 	})
 }
 
 type component struct {
 	proxmoxpb.UnimplementedProxmoxServiceServer
-	api    proxmoxapipb.ProxmoxApiServiceClient
-	checks checkspb.ChecksServiceClient
-	log    *slog.Logger
+	api       proxmoxapipb.ProxmoxApiServiceClient
+	checks    checkspb.ChecksServiceClient
+	agents    hostagentapipb.HostAgentApiServiceClient
+	notify    notifypb.NotifyServiceClient
+	db        *sql.DB
+	log       *slog.Logger
+	publicURL string
 	// life ends when the Component stops; a task followed past its
-	// Action's deadline is followed until then at most.
+	// Action's deadline is followed until then at most, and so is an
+	// update or a backup running in the background.
 	life context.Context
 
 	mu sync.Mutex
 	// inFlight is the power Action running on each Workload, by VMID.
 	inFlight map[uint32]*proxmoxpb.PowerTask
+	// runs is the update running or last run on each Workload, by VMID.
+	runs map[uint32]*tracked
+	// bulk is the last "Update all running".
+	bulk *proxmoxpb.BulkUpdate
+	// busy is what runs on a Workload besides a power Action ("an
+	// update", "a snapshot"), by VMID.
+	busy map[uint32]string
+	// backups are the backups started since the Component started.
+	backups []*proxmoxpb.BackupTask
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *proxmoxpb.ProxmoxConfig) error {
 	c.api = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
-	c.log = env.Log
+	c.agents = sdk.Require(env, hostagentapipb.NewHostAgentApiServiceClient)
+	c.notify = sdk.Require(env, notifypb.NewNotifyServiceClient)
+	c.db, c.log, c.publicURL = env.DB, env.Log, strings.TrimRight(env.PublicURL, "/")
 	c.life = ctx
-	return nil
+	return c.loadRuns(ctx)
 }
 
 // Health is always ok: proxmox keeps nothing that can fail.
@@ -183,6 +218,37 @@ func (c *component) run(ctx context.Context, ref *workloadpb.WorkloadRef, action
 // VMID: the node may have changed) and refuses one ddash holds no
 // VM.PowerMgmt on.
 func (c *component) resolve(ctx context.Context, ref *workloadpb.WorkloadRef) (workload, error) {
+	w, err := c.find(ctx, ref)
+	if err != nil {
+		return workload{}, err
+	}
+	protected, err := c.protected(ctx, w)
+	if err != nil {
+		return workload{}, err
+	}
+	if protected {
+		return workload{}, status.Errorf(codes.PermissionDenied, "%s is protected in Proxmox: ddash doesn't hold %s on it", w.label(), PowerMgmt)
+	}
+	return w, nil
+}
+
+// protected reports whether ddash holds no VM.PowerMgmt on w.
+func (c *component) protected(ctx context.Context, w workload) (bool, error) {
+	perms, err := c.api.ListPermissions(ctx, &proxmoxapipb.ListPermissionsRequest{})
+	if err != nil {
+		return false, err
+	}
+	for _, p := range perms.GetWorkloads() {
+		if p.GetVmid() == w.GetVmid() && slices.Contains(p.GetPrivileges(), PowerMgmt) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+// find finds the Workload ref names among proxmox-api's, by kind and
+// VMID: the node may have changed.
+func (c *component) find(ctx context.Context, ref *workloadpb.WorkloadRef) (workload, error) {
 	var kind proxmoxapipb.Kind
 	switch ref.GetKind() {
 	case workloadpb.Kind_KIND_LXC:
@@ -210,16 +276,16 @@ func (c *component) resolve(ctx context.Context, ref *workloadpb.WorkloadRef) (w
 		return workload{}, status.Errorf(codes.NotFound, "Proxmox lists no %s %d", map[proxmoxapipb.Kind]string{proxmoxapipb.Kind_KIND_LXC: "LXC", proxmoxapipb.Kind_KIND_VM: "VM"}[kind], vmid)
 	}
 	w.ref = &workloadpb.WorkloadRef{Kind: ref.GetKind(), Host: w.GetNode(), Id: strconv.FormatUint(vmid, 10)}
-	perms, err := c.api.ListPermissions(ctx, &proxmoxapipb.ListPermissionsRequest{})
-	if err != nil {
-		return workload{}, err
+	return w, nil
+}
+
+// workloadOf is l with its ref.
+func workloadOf(l *proxmoxapipb.Workload) workload {
+	kind := workloadpb.Kind_KIND_LXC
+	if l.GetKind() == proxmoxapipb.Kind_KIND_VM {
+		kind = workloadpb.Kind_KIND_VM
 	}
-	for _, p := range perms.GetWorkloads() {
-		if p.GetVmid() == w.GetVmid() && slices.Contains(p.GetPrivileges(), PowerMgmt) {
-			return w, nil
-		}
-	}
-	return workload{}, status.Errorf(codes.PermissionDenied, "%s is protected in Proxmox: ddash doesn't hold %s on it", w.label(), PowerMgmt)
+	return workload{Workload: l, ref: &workloadpb.WorkloadRef{Kind: kind, Host: l.GetNode(), Id: strconv.FormatUint(uint64(l.GetVmid()), 10)}}
 }
 
 // claim marks the Workload in flight, refusing a second power Action.
@@ -228,6 +294,9 @@ func (c *component) claim(w workload, action proxmoxpb.PowerAction) error {
 	defer c.mu.Unlock()
 	if t, ok := c.inFlight[w.GetVmid()]; ok {
 		return status.Errorf(codes.FailedPrecondition, "A %s is already running on %s", actionNames[t.GetAction()], w.label())
+	}
+	if what := c.busy[w.GetVmid()]; what != "" {
+		return status.Errorf(codes.FailedPrecondition, "%s is running on %s: wait for it to end", what, w.label())
 	}
 	c.inFlight[w.GetVmid()] = &proxmoxpb.PowerTask{Workload: w.ref, Action: action, Started: timestamppb.Now()}
 	return nil

@@ -3,9 +3,14 @@ syntax = "proto3";
 // proxmox is the logic behind the Proxmox Page's power Actions: it starts,
 // stops and restarts Workloads that aren't Protected, one power Action per
 // Workload at a time, and puts a Workload it stops or restarts into
-// Maintenance so ddash's own Actions don't page the Operator.
+// Maintenance so ddash's own Actions don't page the Operator. Through each
+// Workload's Host Agent (host-agent-api) it updates packages after a ddash
+// Snapshot, one Workload or every running one, and installs SSH Keys it
+// stores; it takes ddash Snapshots and backups through proxmox-api.
 package ddash.proxmox;
 
+import "ddash/config/config.proto";
+import "ddash/job/job.proto";
 import "ddash/options.proto";
 import "ddash/workload/workload.proto";
 import "google/protobuf/timestamp.proto";
@@ -36,6 +41,404 @@ service ProxmoxService {
   rpc ListPowerTasks(ListPowerTasksRequest) returns (ListPowerTasksResponse) {
     option (ddash.getter) = {refresh: FAST};
   }
+
+  // --- ddash Snapshots and backups ---
+
+  // GetSnapshots returns a Workload's ddash Snapshot, the snapshots ddash
+  // didn't take, and whether its storage can snapshot.
+  rpc GetSnapshots(GetSnapshotsRequest) returns (GetSnapshotsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // TakeSnapshot takes a ddash Snapshot ("ddash-<UTC time>") and, once its
+  // task succeeded, deletes every older ddash Snapshot of the Workload.
+  // When taking it fails, nothing is deleted; snapshots without the
+  // "ddash-" prefix are never touched.
+  rpc TakeSnapshot(TakeSnapshotRequest) returns (TakeSnapshotResponse) {
+    option (ddash.action) = {};
+  }
+  // Backup starts a vzdump of a Workload (snapshot mode) to a storage and
+  // returns once it started; ListBackups follows it to its end.
+  rpc Backup(BackupRequest) returns (BackupResponse) {
+    option (ddash.action) = {};
+  }
+  // ListBackups returns the backups ddash started since it last started,
+  // running and ended, newest first, from memory.
+  rpc ListBackups(ListBackupsRequest) returns (ListBackupsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+
+  // --- Package updates ---
+
+  // ListUpdateSettings returns each Workload's update settings that differ
+  // from the default (a snapshot before each update).
+  rpc ListUpdateSettings(ListUpdateSettingsRequest) returns (ListUpdateSettingsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // SetUpdateSettings sets a Workload's update settings.
+  rpc SetUpdateSettings(SetUpdateSettingsRequest) returns (SetUpdateSettingsResponse) {
+    option (ddash.action) = {};
+  }
+  // PlanUpdate builds a Workload's update Plan: the pending packages as
+  // its Host Agent last read them, the snapshot, Maintenance, and what
+  // blocks it.
+  rpc PlanUpdate(PlanUpdateRequest) returns (PlanUpdateResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // RunUpdate starts a Workload's update and returns once it started: in
+  // the background, the Workload in Maintenance, it takes a ddash
+  // Snapshot (unless off), prunes the older ddash Snapshots, has the Host
+  // Agent install the updates, and reports "reboot required". It never
+  // reboots. A Protected Workload is refused unless override_protected.
+  // ListUpdates shows its progress; its outcome is the Audit Log entry of
+  // the Host Agent job's collect, in this call's chain. Not disruptive:
+  // the Operator confirms its Plan, as for apps' RunAction.
+  rpc RunUpdate(RunUpdateRequest) returns (RunUpdateResponse) {
+    option (ddash.action) = {};
+  }
+  // PlanUpdateAll lists the Workloads "Update all running" would update,
+  // in order, and those it skips with why.
+  rpc PlanUpdateAll(PlanUpdateAllRequest) returns (PlanUpdateAllResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // RunUpdateAll starts updating the Workloads its Plan listed, one at a
+  // time, each with a ddash Snapshot first unless its setting turns it
+  // off, and stops at the first failure. It refuses when the Plan no
+  // longer holds.
+  rpc RunUpdateAll(RunUpdateAllRequest) returns (RunUpdateAllResponse) {
+    option (ddash.action) = {};
+  }
+  // ListUpdates returns the update running or last run on each Workload,
+  // and the last "Update all running".
+  rpc ListUpdates(ListUpdatesRequest) returns (ListUpdatesResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+
+  // --- SSH Keys ---
+
+  // ListSSHKeys returns the stored SSH Keys, by name.
+  rpc ListSSHKeys(ListSSHKeysRequest) returns (ListSSHKeysResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // GenerateSSHKey creates an Ed25519 key pair, stores its public key and
+  // returns its private key, this once: ddash never keeps it.
+  rpc GenerateSSHKey(GenerateSSHKeyRequest) returns (GenerateSSHKeyResponse) {
+    option (ddash.action) = {};
+  }
+  // AddSSHKey stores an existing public key under a name.
+  rpc AddSSHKey(AddSSHKeyRequest) returns (AddSSHKeyResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteSSHKey forgets a stored SSH Key. It stays installed where it is.
+  rpc DeleteSSHKey(DeleteSSHKeyRequest) returns (DeleteSSHKeyResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // InstallSSHKey installs stored SSH Keys for a user on a Workload,
+  // through its Host Agent.
+  rpc InstallSSHKey(InstallSSHKeyRequest) returns (InstallSSHKeyResponse) {
+    option (ddash.action) = {};
+  }
+  // EnableSSH has a Workload's Host Agent install and start sshd, and
+  // returns once the job started; its outcome is the job's collect, in
+  // this call's chain.
+  rpc EnableSSH(EnableSSHRequest) returns (EnableSSHResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+// --- ddash Snapshots and backups ---
+
+message GetSnapshotsRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message GetSnapshotsResponse {
+  // Its storage can take a snapshot; false: "snapshots not supported".
+  bool supported = 1;
+  // The ddash Snapshot; unset when there is none.
+  Snapshot ddash_snapshot = 2;
+  // The snapshots ddash didn't take, which it never deletes.
+  repeated Snapshot others = 3;
+}
+
+message Snapshot {
+  string name = 1;
+  // e.g. "Created by ddash before an update".
+  string description = 2;
+  google.protobuf.Timestamp created = 3;
+}
+
+message TakeSnapshotRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message TakeSnapshotResponse {
+  Snapshot snapshot = 1;
+  // The older ddash Snapshots deleted after it succeeded.
+  repeated string deleted = 2;
+}
+
+message BackupRequest {
+  ddash.workload.WorkloadRef workload = 1;
+  // One of proxmox-api's ListBackupStorages.
+  string storage = 2;
+}
+
+message BackupResponse {
+  BackupTask backup = 1;
+}
+
+message ListBackupsRequest {}
+
+message ListBackupsResponse {
+  repeated BackupTask backups = 1;
+}
+
+// A backup ddash started: a vzdump task in Proxmox.
+message BackupTask {
+  ddash.workload.WorkloadRef workload = 1;
+  // "LXC 201 docker-host".
+  string label = 2;
+  string storage = 3;
+  string upid = 4;
+  ddash.job.State state = 5;
+  google.protobuf.Timestamp started = 6;
+  google.protobuf.Timestamp ended = 7;
+  // Proxmox's exit status when it failed.
+  string error = 8;
+}
+
+// --- Package updates ---
+
+message ListUpdateSettingsRequest {}
+
+message ListUpdateSettingsResponse {
+  repeated UpdateSettings settings = 1;
+}
+
+message UpdateSettings {
+  uint32 vmid = 1;
+  // Take a ddash Snapshot before each update: the default.
+  bool snapshot = 2;
+}
+
+message SetUpdateSettingsRequest {
+  UpdateSettings settings = 1;
+}
+
+message SetUpdateSettingsResponse {}
+
+message PlanUpdateRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message PlanUpdateResponse {
+  UpdatePlan plan = 1;
+}
+
+// What updating one Workload does.
+message UpdatePlan {
+  ddash.workload.WorkloadRef workload = 1;
+  // "LXC 201 docker-host".
+  string label = 2;
+  // The pending updates, as the Host Agent last read them: the update
+  // installs these (and whatever turned up since).
+  repeated PackageUpdate packages = 3;
+  // When the Host Agent last read them.
+  google.protobuf.Timestamp packages_read = 4;
+  // A ddash Snapshot is taken first: the Workload's setting.
+  bool snapshot = 5;
+  // Its storage can take a snapshot.
+  bool snapshot_supported = 6;
+  // The ddash Snapshot deleted once the new one succeeded; empty for none.
+  string replaces_snapshot = 7;
+  // The Workload is Protected: a single update needs override_protected.
+  bool protected = 8;
+  // A reboot is already pending.
+  bool reboot_required = 9;
+  // Why it can't run now (no Host Agent, stopped, …); empty when it can.
+  string blocked = 10;
+}
+
+message PackageUpdate {
+  string name = 1;
+  string current = 2;
+  string new = 3;
+}
+
+message RunUpdateRequest {
+  ddash.workload.WorkloadRef workload = 1;
+  // Take a ddash Snapshot first; unset: the Workload's setting.
+  optional bool snapshot = 2;
+  // Update a Protected Workload anyway.
+  bool override_protected = 3;
+}
+
+message RunUpdateResponse {
+  UpdateRun run = 1;
+}
+
+message PlanUpdateAllRequest {}
+
+message PlanUpdateAllResponse {
+  // The Workloads it updates, in order.
+  repeated UpdatePlan workloads = 1;
+  repeated SkippedWorkload skipped = 2;
+}
+
+message SkippedWorkload {
+  ddash.workload.WorkloadRef workload = 1;
+  string label = 2;
+  SkipReason reason = 3;
+  // e.g. the Host Agent's state.
+  string detail = 4;
+}
+
+enum SkipReason {
+  SKIP_REASON_UNSPECIFIED = 0;
+  // ddash holds no VM.PowerMgmt on it.
+  SKIP_REASON_PROTECTED = 1;
+  SKIP_REASON_NO_HOST_AGENT = 2;
+  SKIP_REASON_STOPPED = 3;
+  // Its Host Agent isn't paired, reachable or on ddash's Release.
+  SKIP_REASON_AGENT_NOT_READY = 4;
+  // Its setting wants a snapshot its storage can't take.
+  SKIP_REASON_SNAPSHOTS_NOT_SUPPORTED = 5;
+  // Nothing pending, as the Host Agent last read it.
+  SKIP_REASON_UP_TO_DATE = 6;
+  // An update already runs on it.
+  SKIP_REASON_BUSY = 7;
+}
+
+message RunUpdateAllRequest {
+  // The Plan's Workloads, in its order.
+  repeated ddash.workload.WorkloadRef workloads = 1;
+}
+
+message RunUpdateAllResponse {
+  BulkUpdate bulk = 1;
+}
+
+message ListUpdatesRequest {}
+
+message ListUpdatesResponse {
+  // The running or last update of each Workload, by VMID.
+  repeated UpdateRun runs = 1;
+  // The last "Update all running"; unset when none ran.
+  BulkUpdate bulk = 2;
+}
+
+// One Workload's update, running or ended.
+message UpdateRun {
+  string id = 1;
+  ddash.workload.WorkloadRef workload = 2;
+  string label = 3;
+  ddash.job.State state = 4;
+  // Take a ddash Snapshot, Delete older ddash Snapshots, then the Host
+  // Agent's steps.
+  repeated ddash.job.Step steps = 5;
+  google.protobuf.Timestamp started = 6;
+  google.protobuf.Timestamp ended = 7;
+  // Why it failed.
+  string error = 8;
+  // The ddash Snapshot it took; empty when off.
+  string snapshot = 9;
+  // How many packages it updated.
+  uint32 updated = 10;
+  // The Workload needs a reboot: Restart it when it suits.
+  bool reboot_required = 11;
+  // The "Update all running" it is part of; empty for a single update.
+  string bulk_id = 12;
+}
+
+// An "Update all running".
+message BulkUpdate {
+  string id = 1;
+  ddash.job.State state = 2;
+  repeated BulkItem items = 3;
+  repeated SkippedWorkload skipped = 4;
+  google.protobuf.Timestamp started = 5;
+  google.protobuf.Timestamp ended = 6;
+  // Why it stopped.
+  string error = 7;
+}
+
+message BulkItem {
+  ddash.workload.WorkloadRef workload = 1;
+  string label = 2;
+  // PENDING until its turn; SKIPPED when an earlier one failed.
+  ddash.job.State state = 3;
+  // Its UpdateRun, once started.
+  string run_id = 4;
+}
+
+// --- SSH Keys ---
+
+message ListSSHKeysRequest {}
+
+message ListSSHKeysResponse {
+  repeated SSHKey keys = 1;
+}
+
+// A named public key ddash stores and installs on Workloads.
+message SSHKey {
+  string name = 1;
+  // Its authorized_keys line, "ssh-ed25519 AAAA… <name>".
+  string public_key = 2;
+  // e.g. "ssh-ed25519".
+  string type = 3;
+  // "SHA256:…".
+  string fingerprint = 4;
+  google.protobuf.Timestamp created = 5;
+  // ddash generated it (and gave its private key out once).
+  bool generated = 6;
+}
+
+message GenerateSSHKeyRequest {
+  // Letters, digits, ., _ and -, e.g. "laptop".
+  string name = 1;
+}
+
+message GenerateSSHKeyResponse {
+  SSHKey key = 1;
+  // The private key, OpenSSH PEM: shown once, never stored.
+  string private_key = 2 [(ddash.config.field) = {secret: true}];
+}
+
+message AddSSHKeyRequest {
+  string name = 1;
+  // An authorized_keys line, "ssh-ed25519 AAAA… comment".
+  string public_key = 2;
+}
+
+message AddSSHKeyResponse {
+  SSHKey key = 1;
+}
+
+message DeleteSSHKeyRequest {
+  string name = 1;
+}
+
+message DeleteSSHKeyResponse {}
+
+message InstallSSHKeyRequest {
+  ddash.workload.WorkloadRef workload = 1;
+  // Stored SSH Keys' names.
+  repeated string names = 2;
+  // root, or a user with a login shell on the Workload.
+  string user = 3;
+}
+
+message InstallSSHKeyResponse {
+  // The keys the user already had, left as they were.
+  repeated string already = 1;
+}
+
+message EnableSSHRequest {
+  ddash.workload.WorkloadRef workload = 1;
+}
+
+message EnableSSHResponse {
+  ddash.job.Job job = 1;
 }
 
 // Every power Action names its Workload by kind (LXC or VM) and VMID; the

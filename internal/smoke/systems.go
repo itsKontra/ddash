@@ -11,6 +11,10 @@ import (
 
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	calendarapi "github.com/itsKontra/ddash/components/calendar-api"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
+	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
@@ -38,6 +42,9 @@ type system struct {
 	// the real system's URL and the name its TLS certificate is checked
 	// as. Nil: the Component reaches its system some other way.
 	proxy func(cfg proto.Message, addr string) (upstream, tlsName string, err error)
+	// optional: an Operator may not use this system at all, so it is
+	// skipped, not failed, while smoke.env doesn't set it up.
+	optional bool
 }
 
 // A new system Component (one that talks to an external system) belongs
@@ -177,6 +184,29 @@ var systems = []system{
 				}
 				return nil, errors.New("ListWorkloads listed no Workload to read the tasks of")
 			},
+			// The first Workload's recent tasks, snapshots and its node's
+			// backup storages.
+			"ListTasks": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListTasksRequest{Node: ws[0].GetNode(), Vmid: ws[0].GetVmid()}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no Workload to read the tasks of")
+			},
+			"ListSnapshots": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListSnapshotsRequest{Workload: &proxmoxapipb.Target{Kind: ws[0].GetKind(), Node: ws[0].GetNode(), Vmid: ws[0].GetVmid()}}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no Workload to read the snapshots of")
+			},
+			"ListBackupStorages": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListBackupStoragesRequest{Node: ws[0].GetNode()}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no node to read the storages of")
+			},
 		},
 		checks: map[string]func(proto.Message) error{
 			"ListWorkloads":   atLeastOne("Workload", func(m proto.Message) int { return len(m.(*proxmoxapipb.ListWorkloadsResponse).GetWorkloads()) }),
@@ -219,6 +249,70 @@ var systems = []system{
 			cfg.Url = "http://" + addr
 			return upstream, "", nil
 		},
+	},
+	{
+		def:      cloudflareapi.Definition(),
+		optional: true,
+		service:  cloudflareapipb.CloudflareApiService_ServiceDesc.ServiceName,
+		config:   func() proto.Message { return &cloudflareapipb.CloudflareApiConfig{} },
+		requests: map[string]func(map[string]proto.Message) (proto.Message, error){
+			// The first zone's records.
+			"ListDnsRecords": func(answers map[string]proto.Message) (proto.Message, error) {
+				zones, _ := answers["ListZones"].(*cloudflareapipb.ListZonesResponse)
+				if zs := zones.GetZones(); len(zs) > 0 {
+					return &cloudflareapipb.ListDnsRecordsRequest{ZoneId: zs[0].GetId()}, nil
+				}
+				return nil, errors.New("ListZones listed no zone to read the DNS records of")
+			},
+		},
+		checks: map[string]func(proto.Message) error{
+			"GetTunnel": func(m proto.Message) error {
+				r := m.(*cloudflareapipb.GetTunnelResponse)
+				switch {
+				case !r.GetSetUp():
+					return errors.New("not set up: give it the account ID, the Tunnel's ID and an API token")
+				case !r.GetTunnel().GetRemotelyManaged():
+					return errors.New("the Tunnel is locally managed: ddash changes only a remotely managed one")
+				}
+				return nil
+			},
+			"GetConfiguration": func(m proto.Message) error {
+				if m.(*cloudflareapipb.GetConfigurationResponse).GetCatchAll() == "" {
+					return errors.New("the ingress has no catch-all rule")
+				}
+				return nil
+			},
+			"ListZones": atLeastOne("zone", func(m proto.Message) int { return len(m.(*cloudflareapipb.ListZonesResponse).GetZones()) }),
+		},
+		proxy: func(m proto.Message, addr string) (string, string, error) {
+			cfg := m.(*cloudflareapipb.CloudflareApiConfig)
+			upstream := cfg.GetApiUrl()
+			url := "http://" + addr
+			cfg.ApiUrl = &url
+			return upstream, "", nil
+		},
+	},
+	{
+		def:      calendarapi.Definition(),
+		optional: true,
+		service:  calendarapipb.CalendarApiService_ServiceDesc.ServiceName,
+		config:   func() proto.Message { return &calendarapipb.CalendarApiConfig{} },
+		checks: map[string]func(proto.Message) error{
+			"ListEvents": func(m proto.Message) error {
+				r := m.(*calendarapipb.ListEventsResponse)
+				if len(r.GetCalendars()) == 0 {
+					return errors.New("no calendar")
+				}
+				for _, c := range r.GetCalendars() {
+					if c.GetError() != "" {
+						return fmt.Errorf("calendar %s: %s", c.GetName(), c.GetError())
+					}
+				}
+				return nil
+			},
+		},
+		// Never recorded: a calendar is personal, and its address is a
+		// secret. calendarfake's fixtures are written by hand.
 	},
 }
 
