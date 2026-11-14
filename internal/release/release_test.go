@@ -203,24 +203,24 @@ func TestTheReleaseCarriesEachPluginAsOneAppWithItsChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if diff := cmp.Diff([]string{"SHA256SUMS", "catalogue.json", "docker.app"}, files(t, out)); diff != "" {
+	if diff := cmp.Diff([]string{"SHA256SUMS", "catalogue.json", "docker.ddapp"}, files(t, out)); diff != "" {
 		t.Errorf("Release dir (-want +got):\n%s", diff)
 	}
-	app, err := zip.OpenReader(filepath.Join(out, "docker.app"))
+	app, err := zip.OpenReader(filepath.Join(out, "docker.ddapp"))
 	if err != nil {
-		t.Fatalf("docker.app isn't a zip: %v", err)
+		t.Fatalf("docker.ddapp isn't a zip: %v", err)
 	}
 	defer app.Close()
 	for file, want := range map[string]string{"index.js": "export default {}", "index.css": ".d{}", "logo.svg": "<svg/>"} {
 		if b, err := fs.ReadFile(app, file); err != nil || string(b) != want {
-			t.Errorf("docker.app's %s: %q, %v; want %q", file, b, err, want)
+			t.Errorf("docker.ddapp's %s: %q, %v; want %q", file, b, err, want)
 		}
 	}
 	sums, err := os.ReadFile(filepath.Join(out, "SHA256SUMS"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "  docker.app\n"; !strings.Contains(string(sums), want) {
+	if want := "  docker.ddapp\n"; !strings.Contains(string(sums), want) {
 		t.Errorf("SHA256SUMS lacks %q:\n%s", want, sums)
 	}
 }
@@ -233,7 +233,7 @@ func TestBuildingTheSameReleaseTwiceGivesTheSameApp(t *testing.T) {
 		if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "v1.2.3"}); err != nil {
 			t.Fatal(err)
 		}
-		b, err := os.ReadFile(filepath.Join(out, "docker.app"))
+		b, err := os.ReadFile(filepath.Join(out, "docker.ddapp"))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -245,7 +245,7 @@ func TestBuildingTheSameReleaseTwiceGivesTheSameApp(t *testing.T) {
 	}
 
 	if apps[0] != apps[1] {
-		t.Error("docker.app differs between two builds of the same files")
+		t.Error("docker.ddapp differs between two builds of the same files")
 	}
 }
 
@@ -275,7 +275,7 @@ func TestALinkedReleaseShowsThePluginsRebuiltBundle(t *testing.T) {
 		t.Errorf("docker/index.js: %q, %v; want the rebuilt v2", b, err)
 	}
 	if err := release.Sums(out); err != nil {
-		t.Errorf("SHA256SUMS over a linked .app: %v", err)
+		t.Errorf("SHA256SUMS over a linked .ddapp: %v", err)
 	}
 }
 

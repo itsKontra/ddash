@@ -1,6 +1,6 @@
 // release builds a Release dir from the repo: catalogue.json merged from
 // every plugin.yaml and component.yaml, one <name>.ct per Component, one
-// <name>.app per Plugin and SHA256SUMS. It fails on a requires that doesn't
+// <name>.ddapp per Plugin and SHA256SUMS. It fails on a requires that doesn't
 // resolve. With -core it builds the core binary (the image's) instead.
 //
 //	go run ./cmd/release -out dist -release dev

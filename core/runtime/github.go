@@ -37,12 +37,12 @@ type GitHubOptions struct {
 // a Release dir's files. It downloads each file once into DataDir and
 // verifies it against the release's SHA256SUMS:
 //
-//	releases/<release>/catalogue.json     the Release's index, and
-//	releases/<release>/SHA256SUMS         its checksums
-//	releases/<release>/<file>             other files, e.g. Host Agent binaries
-//	components/<name>/<release>/<name>.ct a Component's .ct, and
-//	components/<name>/<release>/<name>    its binary, unpacked from it
-//	plugins/<name>/<release>/<name>.app   a Plugin's .app, read in place
+//	releases/<release>/catalogue.json       the Release's index, and
+//	releases/<release>/SHA256SUMS           its checksums
+//	releases/<release>/<file>               other files, e.g. Host Agent binaries
+//	components/<name>/<release>/<name>.ct   a Component's .ct, and
+//	components/<name>/<release>/<name>      its binary, unpacked from it
+//	plugins/<name>/<release>/<name>.ddapp   a Plugin's .ddapp, read in place
 //
 // What is already downloaded needs no network, so installed Plugins keep
 // running while GitHub is unreachable, and pinning a Release that ran
@@ -190,13 +190,13 @@ func (g *GitHubSource) File(ctx context.Context, name string) (Binary, error) {
 	return Binary{Path: dest, Checksum: sum}, nil
 }
 
-// Plugin downloads the Plugin's .app, unless it already has it.
+// Plugin downloads the Plugin's .ddapp, unless it already has it.
 func (g *GitHubSource) Plugin(ctx context.Context, name string) error {
 	_, err := g.ensure(ctx, AppFile(name), g.appPath(name), 0o644)
 	return err
 }
 
-// Open opens the downloaded Plugin's file "<plugin>/<file>" in its .app.
+// Open opens the downloaded Plugin's file "<plugin>/<file>" in its .ddapp.
 func (g *GitHubSource) Open(name string) (fs.File, error) {
 	plugin, file, ok := splitAppPath(name)
 	if !ok {

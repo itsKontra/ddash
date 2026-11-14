@@ -3,7 +3,7 @@
 // is a local Release dir, and its files are the release's assets.
 //
 //	gh := fakegithub.New("itsKontra/ddash")
-//	gh.Publish("v1.0.0", dir) // catalogue.json, SHA256SUMS, .ct and .app files
+//	gh.Publish("v1.0.0", dir) // catalogue.json, SHA256SUMS, .ct and .ddapp files
 //	src := runtime.GitHub(runtime.GitHubOptions{..., Client: gh.Client()})
 //
 // It answers in memory, so it works inside a testing/synctest bubble.

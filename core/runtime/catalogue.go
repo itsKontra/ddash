@@ -42,7 +42,7 @@ type ComponentEntry struct {
 
 // A ReleaseSource provides one Release: its catalogue, its Component
 // binaries on local disk, and, as an fs.FS, its Plugins' files by
-// "<plugin>/<file>", e.g. "docker/index.js", each from the Plugin's .app.
+// "<plugin>/<file>", e.g. "docker/index.js", each from the Plugin's .ddapp.
 type ReleaseSource interface {
 	// Release names the Release, even while its catalogue can't be read.
 	Release() string
@@ -55,7 +55,7 @@ type ReleaseSource interface {
 	// File makes the Release's file name, verified against its SHA256SUMS,
 	// available on local disk as it is, e.g. a Host Agent binary.
 	File(ctx context.Context, name string) (Binary, error)
-	// Plugin makes the Plugin's .app available through Open.
+	// Plugin makes the Plugin's .ddapp available through Open.
 	Plugin(ctx context.Context, name string) error
 	fs.FS
 }
@@ -72,7 +72,7 @@ type Binary struct {
 }
 
 // Dir is a Release laid out in a local directory, as DDASH_RELEASE_DIR names
-// it: catalogue.json, SHA256SUMS, the .ct and .app files and the Host Agent
+// it: catalogue.json, SHA256SUMS, the .ct and .ddapp files and the Host Agent
 // binaries, flat, as release assets. It is used in place, but for the
 // Component binaries, which are unpacked into Unpack.
 type Dir struct {
@@ -83,8 +83,8 @@ type Dir struct {
 	Unpack string
 }
 
-// Open opens the Plugin's file "<plugin>/<file>" in its .app. In a dev
-// Release dir a .app may be a directory instead (a link to the Plugin's
+// Open opens the Plugin's file "<plugin>/<file>" in its .ddapp. In a dev
+// Release dir a .ddapp may be a directory instead (a link to the Plugin's
 // dist/, rebuilt in place).
 func (d Dir) Open(name string) (fs.File, error) {
 	plugin, file, ok := splitAppPath(name)
@@ -150,7 +150,7 @@ func (d Dir) File(_ context.Context, name string) (Binary, error) {
 	return Binary{Path: p, Checksum: want}, nil
 }
 
-// Plugin does nothing: the .app files are already in the dir.
+// Plugin does nothing: the .ddapp files are already in the dir.
 func (d Dir) Plugin(context.Context, string) error { return nil }
 
 // CatalogueFile is the Release's catalogue, at the root of a Release dir.

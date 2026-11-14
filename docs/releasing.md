@@ -13,7 +13,7 @@ which produces one artifact set:
   as they are):
   - `<component>.ct`: a zip holding the Component's binary `<component>`
     (static `linux/amd64`, CGO off, stamped with the tag);
-  - `<plugin>.app`: a zip of the Plugin's built `dist/` (`index.js`,
+  - `<plugin>.ddapp`: a zip of the Plugin's built `dist/` (`index.js`,
     `index.css` and whatever else Vite emitted).
 
 ## Steps

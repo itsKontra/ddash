@@ -15,7 +15,7 @@ import (
 )
 
 // Plugin bundles are served at bundlePrefix<name>/<release>/<file> from
-// the files in the Release's <name>.app, whose entry points are index.js
+// the files in the Release's <name>.ddapp, whose entry points are index.js
 // and index.css.
 const (
 	bundlePrefix = "/plugins/"
