@@ -21,7 +21,8 @@ interface Row {
   container?: Container;
 }
 
-const ports = (c: Container) => c.ports.map((p) => `${p.ip ? `${p.ip}:` : ""}${p.publicPort}→${p.privatePort}/${p.protocol}`).join(", ");
+/** "8096→8096/tcp", once per port: a port published on every IPv4 and IPv6 address reads as one. */
+const ports = (c: Container) => [...new Set(c.ports.map((p) => `${p.ip && p.ip !== "0.0.0.0" && p.ip !== "::" ? `${p.ip}:` : ""}${p.publicPort}→${p.privatePort}/${p.protocol}`))].join(", ");
 
 const columns: readonly Column<Row>[] = [
   { id: "service", header: "Compose service", rowHeader: true, cell: (r) => r.service },

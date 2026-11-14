@@ -90,8 +90,9 @@ func TestEverySystemTheLabFakesWithGettersIsSmokeTested(t *testing.T) {
 	l := lab(t, repoRoot)
 	for c := range l.Addrs {
 		// Notification channels: their one getter echoes their config and
-		// reads nothing from the system.
-		if c == "ntfy-api" || c == "telegram-api" {
+		// reads nothing from the system. ai-helper: its one getter echoes
+		// its config too, and a smoke draft would bill the Operator.
+		if c == "ntfy-api" || c == "telegram-api" || c == "ai-helper" {
 			continue
 		}
 		if !slices.Contains(smoke.Components(), c) {
@@ -182,10 +183,12 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 	}
 
 	// The recording is a lab of its own: smoke passes against it too, with
-	// calendar-api's hand-written fixtures, which are never recorded.
-	calendars := "components/calendar-api/testdata"
-	if err := os.CopyFS(filepath.Join(root, calendars), os.DirFS(filepath.Join(repoRoot, calendars))); err != nil {
-		t.Fatal(err)
+	// calendar-api's and ai-helper's hand-written fixtures, which are
+	// never recorded.
+	for _, dir := range []string{"components/calendar-api/testdata", "components/ai-helper/testdata"} {
+		if err := os.CopyFS(filepath.Join(root, dir), os.DirFS(filepath.Join(repoRoot, dir))); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if log, err := run(t, envFor(t, lab(t, root)), nil); err != nil {
 		t.Errorf("smoke against the recording failed: %v\n%s", err, log)

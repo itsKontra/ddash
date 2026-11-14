@@ -1,0 +1,6 @@
+name: ai-helper
+title: AI App helper
+description: Drafts a new App with Claude from a sentence, a Compose file and the Add App fields, after showing exactly what it sends. The draft opens in Add Compose Project or Add App; nothing runs on its own.
+icon: wand-sparkles
+author: itsKontra
+requires: [ai-helper, compose]

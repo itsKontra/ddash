@@ -86,7 +86,7 @@ func (c *component) Health(ctx context.Context) sdk.Health {
 	}
 	var problems []string
 	for _, r := range rs {
-		if r.state != pb.AgentState_AGENT_STATE_PAIRED && r.state != pb.AgentState_AGENT_STATE_ENROLLING {
+		if r.state != pb.AgentState_AGENT_STATE_ENROLLING && r.message != "" {
 			problems = append(problems, r.name+": "+r.message)
 		}
 	}
@@ -206,11 +206,16 @@ func (c *component) read(ctx context.Context, r *reading) {
 		r.message = fmt.Sprintf("it runs Release %s and ddash runs %s: update the Agent", r.info.Release, sdk.Release)
 		return
 	}
-	if err := cl.Get(ctx, agent.PathProjects, nil, &r.projects); err != nil {
-		r.state, r.message = stateOf(err)
-		return
-	}
 	r.state = pb.AgentState_AGENT_STATE_PAIRED
+	if err := cl.Get(ctx, agent.PathProjects, nil, &r.projects); err != nil {
+		var refused *agent.APIError
+		if errors.As(err, &refused) && refused.Code == agent.CodeFailed {
+			// The Agent answers, its Docker doesn't.
+			r.message = "the Agent can't read Docker: " + refused.Message
+			return
+		}
+		r.state, r.message = stateOf(err)
+	}
 }
 
 // stateOf is the state an Agent is in when a call to it failed with err.
@@ -338,6 +343,9 @@ func setup(r row) *pb.AgentSetup {
 		fmt.Fprintf(&b, "      - %s:%s\n", root, root)
 	}
 	b.WriteString("      - state:/data\n")
+	b.WriteString("    # The Docker socket from a container: SELinux hosts (Fedora) refuse it\n")
+	b.WriteString("    # otherwise; elsewhere it changes nothing.\n")
+	b.WriteString("    security_opt: [\"label=disable\"]\n")
 	b.WriteString("    labels:\n")
 	b.WriteString("      # ddash never stops or recreates its own Agent without an override.\n")
 	b.WriteString("      " + agent.LabelProtected + ": \"true\"\n")
@@ -457,6 +465,9 @@ func (c *component) paired(ctx context.Context, host string) (*agent.Client, row
 		}
 		switch r.state {
 		case pb.AgentState_AGENT_STATE_PAIRED:
+			if r.message != "" {
+				return nil, row{}, status.Errorf(codes.Unavailable, "the Docker Agent on %s: %s", host, r.message)
+			}
 			return r.client(), r.row, nil
 		case pb.AgentState_AGENT_STATE_ENROLLING:
 			return nil, row{}, status.Errorf(codes.FailedPrecondition, "the Docker Agent on %s isn't paired yet", host)
@@ -522,10 +533,7 @@ func (c *component) ListContainers(ctx context.Context, _ *pb.ListContainersRequ
 		if r.state == pb.AgentState_AGENT_STATE_ENROLLING {
 			continue
 		}
-		h := &pb.HostContainers{Host: r.name, Address: r.address()}
-		if r.state != pb.AgentState_AGENT_STATE_PAIRED {
-			h.Error = r.message
-		}
+		h := &pb.HostContainers{Host: r.name, Address: r.address(), Error: r.message}
 		for _, ct := range r.projects.Containers {
 			h.Containers = append(h.Containers, containerProto(ct))
 		}
@@ -562,9 +570,7 @@ func (c *component) ListComposeProjects(ctx context.Context, _ *pb.ListComposePr
 		if len(r.info.Roots) > 0 {
 			h.Roots = r.info.Roots
 		}
-		if r.state != pb.AgentState_AGENT_STATE_PAIRED {
-			h.Error = r.message
-		}
+		h.Error = r.message
 		for _, p := range r.projects.Projects {
 			pp := &pb.Project{Name: p.Name, WorkingDir: p.WorkingDir, ConfigFiles: p.ConfigFiles, Found: p.Found, Error: p.Error}
 			for _, s := range p.Services {

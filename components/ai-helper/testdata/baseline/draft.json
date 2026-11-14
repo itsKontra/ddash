@@ -1,0 +1,16 @@
+{
+  "name": "paperless",
+  "compose": "services:\n  paperless:\n    image: ghcr.io/paperless-ngx/paperless-ngx:2.14.7\n    restart: unless-stopped\n    depends_on:\n      db:\n        condition: service_healthy\n      redis:\n        condition: service_healthy\n    ports:\n      - \"8010:8000\"\n    volumes:\n      - ./data:/usr/src/paperless/data\n      - ./media:/usr/src/paperless/media\n      - ./consume:/usr/src/paperless/consume\n    environment:\n      TZ: Etc/UTC\n      USERMAP_UID: 1000\n      USERMAP_GID: 1000\n      PAPERLESS_REDIS: redis://redis:6379\n      PAPERLESS_DBHOST: db\n      PAPERLESS_DBPASS: 9f3kQ7vT2mXw8LpZ\n      PAPERLESS_SECRET_KEY: c4Rt8sWq1zYx6NbV3mJk9hGf2dLp7Qe5\n  db:\n    image: postgres:16.6\n    restart: unless-stopped\n    volumes:\n      - ./postgres:/var/lib/postgresql/data\n    environment:\n      TZ: Etc/UTC\n      POSTGRES_DB: paperless\n      POSTGRES_USER: paperless\n      POSTGRES_PASSWORD: 9f3kQ7vT2mXw8LpZ\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U paperless\"]\n      interval: 10s\n      retries: 5\n  redis:\n    image: redis:7.4.2\n    restart: unless-stopped\n    volumes:\n      - ./redis:/data\n    environment:\n      TZ: Etc/UTC\n    healthcheck:\n      test: [\"CMD\", \"redis-cli\", \"ping\"]\n      interval: 10s\n      retries: 5\n",
+  "app": {
+    "url": "https://paperless.home.example",
+    "name": "Paperless-ngx",
+    "icon": "paperless-ngx",
+    "group": "Documents",
+    "service": "paperless",
+    "port": 8010
+  },
+  "notes": [
+    "Change PAPERLESS_DBPASS, POSTGRES_PASSWORD and PAPERLESS_SECRET_KEY before the first start.",
+    "Create the first user with: docker compose run --rm paperless createsuperuser"
+  ]
+}

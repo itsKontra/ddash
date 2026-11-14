@@ -30,6 +30,7 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	cfpb "github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -59,15 +60,16 @@ const (
 const ResyncTimeout = 10 * time.Second
 
 // Definition is apps, ready for sdk.Serve.
-func Definition() sdk.Definition { return define(ResyncTimeout) }
+func Definition() sdk.Definition { return define(ResyncTimeout, ComposeWait) }
 
-// define is apps bounding the sync that ends an App Action to resync.
-func define(resync time.Duration) sdk.Definition {
+// define is apps bounding the sync that ends an App Action to resync, and
+// how long an Add App follows its new Compose Project starting to wait.
+func define(resync, wait time.Duration) sdk.Definition {
 	return sdk.Define(sdk.Spec[*appspb.AppsConfig]{
 		Manifest:   manifest,
 		Service:    &appspb.AppsService_ServiceDesc,
 		Migrations: migrations,
-		New:        func() sdk.Component[*appspb.AppsConfig] { return &component{resync: resync} },
+		New:        func() sdk.Component[*appspb.AppsConfig] { return &component{resync: resync, composeWait: wait} },
 	})
 }
 
@@ -80,12 +82,16 @@ type component struct {
 	checks  checkspb.ChecksServiceClient
 	proxmox proxmoxapipb.ProxmoxApiServiceClient
 	docker  dockerapipb.DockerApiServiceClient
+	agents  dockeragentapipb.DockerAgentApiServiceClient
 	// cloudflare tells which hostnames the Cloudflare Tunnel serves.
 	cloudflare cfpb.CloudflareApiServiceClient
 	store      store
 	log        *slog.Logger
 	// resync bounds the sync ending an App Action.
 	resync time.Duration
+	// composeWait bounds how long an Add App follows its new Compose
+	// Project's start, from when the Action began.
+	composeWait time.Duration
 
 	// synced is closed once the first sync ended, so ListApps and Health
 	// never answer before the sources were first read.
@@ -116,6 +122,9 @@ type component struct {
 	certs map[int64]*appspb.Certificate
 	// src is the last read of the Workload sources.
 	src sources
+	// started are the containers Add Apps started, which docker-api may
+	// not list yet.
+	started []started
 	// checksErr is why the last SetAppChecks failed; empty once one worked.
 	checksErr string
 	// sent is the set checks last accepted, nil before the first since
@@ -163,6 +172,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfi
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.proxmox = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
 	c.docker = sdk.Require(env, dockerapipb.NewDockerApiServiceClient)
+	c.agents = sdk.Require(env, dockeragentapipb.NewDockerAgentApiServiceClient)
 	c.cloudflare = sdk.Require(env, cfpb.NewCloudflareApiServiceClient)
 	c.store = store{db: env.DB}
 	c.log = env.Log

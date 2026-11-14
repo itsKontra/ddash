@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+// ai-helper drafts a new App with Claude: from the Operator's description
+// and the context the browser showed them, a Compose file and the Add
+// App fields. It only drafts: the draft goes back to the browser, which
+// opens it in Add Compose Project or Add App for the normal Plan. It
+// never reads .env files and never calls a Docker Agent.
+package ddash.aihelper;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/ai-helper/aihelperpb;aihelperpb";
+
+// Empty is valid: the helper is then not set up, and DraftApp refuses.
+message AiHelperConfig {
+  // An Anthropic API key, write-only once saved.
+  string api_key = 1 [(ddash.config.field) = {
+    label: "Anthropic API key"
+    secret: true
+    placeholder: "sk-ant-…"
+    help: "From console.anthropic.com. Leave empty to not use the AI App helper. Drafts are billed to this key."
+  }];
+  // The Claude model drafting.
+  optional string model = 2 [(ddash.config.field) = {
+    label: "Model"
+    default: "claude-sonnet-5-5"
+    help: "The Claude model id that drafts, e.g. claude-sonnet-5-5 or claude-opus-5-5."
+  }];
+  // The Messages API's server; Anthropic's own unless a proxy.
+  optional string server = 3 [(ddash.config.field) = {
+    label: "API server"
+    default: "https://api.anthropic.com"
+    format: FORMAT_URL
+    help: "Leave as is unless you reach Anthropic through a proxy."
+  }];
+}
+
+service AiHelperService {
+  // GetStatus says whether the helper is set up (an API key is saved),
+  // from the config alone.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // DraftApp asks Claude for a draft of the App description describes,
+  // sending description and context and nothing else. It runs nothing:
+  // the draft is for the Operator to review in the normal forms. It fails
+  // with FailedPrecondition while the helper is not set up, and with
+  // Unavailable when Anthropic can't be reached or refuses.
+  rpc DraftApp(DraftAppRequest) returns (DraftAppResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  bool set_up = 1;
+  // The model drafting.
+  string model = 2;
+}
+
+message DraftAppRequest {
+  // What to run, in the Operator's words, e.g. "Paperless-ngx with
+  // Postgres and Redis".
+  string description = 1;
+  // What the Operator saw in the preview, sent along as is.
+  DraftContext context = 2;
+}
+
+// What Claude is told about the Docker host besides the description:
+// never a Compose file's or .env's content.
+message DraftContext {
+  // The Docker host's name.
+  string host = 1;
+  // Its Compose Projects' names.
+  repeated string projects = 2;
+  // The host ports already published there.
+  repeated uint32 used_ports = 3;
+  // Docker networks the new Compose Project may join.
+  repeated string networks = 4;
+  // The home domain the App's URL goes under, e.g. "home.example"; empty
+  // for none.
+  string home_domain = 5;
+}
+
+message DraftAppResponse {
+  Draft draft = 1;
+}
+
+// A draft of a new App: a Compose Project and the Add App fields. Nothing
+// in it has been checked against the host; the Plan does that.
+message Draft {
+  // The Compose Project's name, e.g. "paperless".
+  string name = 1;
+  // The Compose file's text.
+  string compose = 2;
+  DraftedApp app = 3;
+  // What the Operator should know or change before adding it, e.g. a
+  // password to set.
+  repeated string notes = 4;
+  // The model that drafted it.
+  string model = 5;
+}
+
+// The Add App fields of a draft.
+message DraftedApp {
+  // e.g. "https://paperless.home.example"; empty without a home domain.
+  string url = 1;
+  string name = 2;
+  // A dashboard-icons name, e.g. "paperless-ngx"; empty when not known.
+  string icon = 3;
+  string group = 4;
+  // The Compose service the App opens and its published port.
+  string service = 5;
+  uint32 port = 6;
+}

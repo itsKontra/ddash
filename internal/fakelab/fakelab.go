@@ -7,7 +7,8 @@
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
 // adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
 // Cloudflare: cloudflarefake; Telegram: telegramfake; calendars:
-// calendarfake, whose dates follow the clock). A
+// calendarfake, whose dates follow the clock; Anthropic: anthropicfake,
+// a canned draft). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
 // system that has a sibling directory of that name. Beside the systems it
 // serves fake Host Agents (agentfake) on three of the baseline's Workloads.
@@ -29,6 +30,8 @@ import (
 	"github.com/itsKontra/ddash/agent/agentfake"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/ai-helper/aihelperpb"
+	"github.com/itsKontra/ddash/components/ai-helper/anthropicfake"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
@@ -146,6 +149,16 @@ var systems = []system{
 		},
 		// The calendars' dates follow the clock: there is always a today.
 		serve: func(dir string) (http.Handler, error) { return calendarfake.New(dir, calendarfake.Options{}) },
+	},
+	{
+		component: "ai-helper",
+		fixtures:  "components/ai-helper/testdata/baseline",
+		config: func(addr string) proto.Message {
+			server := "http://" + addr
+			return &aihelperpb.AiHelperConfig{ApiKey: anthropicfake.DefaultKey, Server: &server}
+		},
+		// Every draft is the canned one: nothing reaches Anthropic.
+		serve: func(dir string) (http.Handler, error) { return anthropicfake.New(dir, anthropicfake.Options{}) },
 	},
 }
 
