@@ -7,7 +7,9 @@ ddash runs as one container on its own LXC: the core image
 The image holds only the core. On start, the core downloads its Release's
 Plugins and Components from the matching GitHub release into `/data`,
 verifies them against `SHA256SUMS` and runs each Component as a subprocess in
-the same container, as the same user. ddash never gets the Docker socket.
+the same container, as the same user. ddash's container never gets the
+Docker socket: a host ddash should change gets an Agent instead
+([ADR-0005](adr/0005-agents-hold-root-on-the-hosts-that-opt-in.md)).
 
 Placeholders: `<domain>` is the home domain, `<ddash-ip>` the ddash LXC,
 `<nginx-ip>` the nginx LXC, `<pve-ip>` the Proxmox node, `<docker-env-ip>` and
@@ -73,6 +75,12 @@ Do these by hand, in order, before first use.
       `IN ACCEPT -source <nginx-ip> -p tcp -dport 8080`, then
       `IN REJECT -p tcp -dport 8080`. Sign-in stays the real boundary; this
       only stops LAN clients from bypassing nginx.
+
+- [ ] A host with a Docker Agent (below): `IN ACCEPT -source <ddash-ip> -p
+      tcp -dport 7443`, then `IN REJECT -p tcp -dport 7443`. Its socket-proxy
+      and its 2375 rules can go once the Agent is paired: docker-api reads the
+      host through the Agent.
+- [ ] An LXC or VM with a Host Agent: the same for 7444.
 
 ### 6. The systems ddash reaches
 
@@ -251,6 +259,35 @@ them once:
       or DNS record holds, as `SMOKE_PUBLIC_HOSTNAME`. The round trip adds
       it as a Public Hostname (ingress rule and proxied CNAME, commented
       `ddash smoke-writes`), edits its service and removes both.
+
+### 9. Docker Agents (optional, per Docker host)
+
+A Docker Agent lets ddash list, edit, start, stop and update the host's
+Compose Projects and check its images. It mounts the Docker socket, so it has
+**root-equivalent control of its host**: install it only where ddash should
+have that.
+
+- [ ] Docker Page, **Docker Agents**, **Add a Docker Agent**: the host's name
+      (as docker-api named it, if it had a socket-proxy), its address, and the
+      directories holding its Compose Projects (each is mounted at the same
+      path, so relative paths and `.env` files resolve as on the host).
+- [ ] ddash shows a Compose file with a one-time enrolment code. On the host:
+      `mkdir -p /opt/ddash-docker-agent && cd /opt/ddash-docker-agent`, save
+      it as `compose.yaml`, `docker compose up -d`. ddash pairs with it within
+      10 s and pins its certificate.
+- [ ] Mark what reaching ddash depends on as **Protected** in its Compose
+      file: `labels: { ddash.protected: "true" }` (the Reverse Proxy,
+      Keycloak, ddash itself). ddash then stops, restarts or recreates it only
+      with an explicit override.
+- [ ] Image checks read each running container's image digest from its
+      registry every 6 hours, with one manifest `HEAD` per distinct image
+      (Docker Hub doesn't count those against its pull limit). Private images
+      need compose's **Registry credentials**; a pull-through mirror goes in
+      **Docker Hub registry**.
+- [ ] Removing an Agent from ddash forgets its token; ddash then shows how to
+      uninstall it: `cd /opt/ddash-docker-agent && docker compose down -v`.
+- [ ] An Agent from another Release is flagged; **Update Agent** recreates it
+      on this Release's image.
 
 ## Updating
 

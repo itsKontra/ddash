@@ -86,6 +86,10 @@ _Avoid_: Orphan App, stale App, overlay
 A unit of compute that runs software: a Docker container, a Proxmox LXC, a Proxmox VM, or an external host. One Workload can back zero or many Apps.
 _Avoid_: Container (when the kind is not specifically Docker), guest, instance
 
+**Compose Project**:
+The containers one Compose file defines, as Docker Compose names them, on a host with a Docker Agent. Its parts are **Compose services**, always qualified. Protected while any of its containers carries the label `ddash.protected=true`.
+_Avoid_: Stack, app (an App is something else)
+
 **Protected**:
 Said of a Workload that ddash may not start, stop or restart, because reaching ddash depends on it (such as the firewall or ddash's own host).
 _Avoid_: Locked, critical, excluded
