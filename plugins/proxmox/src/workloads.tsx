@@ -2,8 +2,8 @@ import { useQuery } from "@ddash/plugin";
 import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
 import type { HostPackages } from "@ddash/proto/host-agent-api/host_agent_api_pb";
-import { DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
-import { Link } from "react-router";
+import { Button, DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
+import { Link, useNavigate } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
 import { PowerStrip, taskOf } from "./power";
@@ -164,6 +164,7 @@ const kinds = new Map([
  * each row's strip with its power Actions.
  */
 export function Workloads() {
+  const navigate = useNavigate();
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   const tasks = useQuery(ProxmoxService.method.listPowerTasks, {});
   const packages = usePackages();
@@ -185,12 +186,12 @@ export function Workloads() {
         title="Proxmox"
         subtitle="Every LXC and VM, with its status, resources and IPs."
         actions={
-          <>
-            <UpdateAll />
-            <Link to="ssh-keys" className="text-sm font-semibold text-primary hover:underline">
+          <span className="inline-flex flex-wrap gap-2">
+            <Button variant="outline" icon="key-round" onClick={() => void navigate("ssh-keys")}>
               SSH Keys
-            </Link>
-          </>
+            </Button>
+            <UpdateAll />
+          </span>
         }
       />
       {bulk && (

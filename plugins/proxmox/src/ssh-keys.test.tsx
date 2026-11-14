@@ -17,7 +17,7 @@ const privateKey = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAA
 
 it("lists the stored SSH Keys, and is linked from the Workloads Page", async () => {
   await show("/proxmox", { ListSSHKeys: () => Response.json({ keys: [laptop] }) });
-  fireEvent.click(screen.getByRole("link", { name: "SSH Keys" }));
+  fireEvent.click(screen.getByRole("button", { name: "SSH Keys" }));
   await settle();
 
   expect(screen.getByRole("heading", { level: 1, name: "SSH Keys" })).toBeTruthy();
