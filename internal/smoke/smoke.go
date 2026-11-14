@@ -113,6 +113,10 @@ func runSystem(ctx context.Context, s system, opts Options) []error {
 		fmt.Fprintf(opts.Log, "FAIL %s\n", err)
 		return err
 	}
+	if s.optional && strings.TrimSpace(opts.Env[EnvVar(name)]) == "" {
+		fmt.Fprintf(opts.Log, "skip %s: optional, and %s isn't set in smoke.env\n", name, EnvVar(name))
+		return nil
+	}
 	cfg, err := configOf(s, opts.Env)
 	if err != nil {
 		return []error{fail("%v", err)}

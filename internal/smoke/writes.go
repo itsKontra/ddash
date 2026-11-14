@@ -165,6 +165,10 @@ func RunWrites(ctx context.Context, opts Options) error {
 	started := map[string]bool{}
 	for _, name := range writeSystems {
 		s := systemNamed(name)
+		if s.optional && strings.TrimSpace(opts.Env[EnvVar(name)]) == "" {
+			fmt.Fprintf(opts.Log, "skip %s: optional, and %s isn't set in smoke.env\n", name, EnvVar(name))
+			continue
+		}
 		cfg, err := configOf(s, opts.Env)
 		if err == nil {
 			conn, stop, lerr := launch(ctx, s.def, cfg, filepath.Join(opts.DataDir, name+".db"), opts.Log)

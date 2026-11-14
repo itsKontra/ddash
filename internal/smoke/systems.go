@@ -42,6 +42,9 @@ type system struct {
 	// the real system's URL and the name its TLS certificate is checked
 	// as. Nil: the Component reaches its system some other way.
 	proxy func(cfg proto.Message, addr string) (upstream, tlsName string, err error)
+	// optional: an Operator may not use this system at all, so it is
+	// skipped, not failed, while smoke.env doesn't set it up.
+	optional bool
 }
 
 // A new system Component (one that talks to an external system) belongs
@@ -248,9 +251,10 @@ var systems = []system{
 		},
 	},
 	{
-		def:     cloudflareapi.Definition(),
-		service: cloudflareapipb.CloudflareApiService_ServiceDesc.ServiceName,
-		config:  func() proto.Message { return &cloudflareapipb.CloudflareApiConfig{} },
+		def:      cloudflareapi.Definition(),
+		optional: true,
+		service:  cloudflareapipb.CloudflareApiService_ServiceDesc.ServiceName,
+		config:   func() proto.Message { return &cloudflareapipb.CloudflareApiConfig{} },
 		requests: map[string]func(map[string]proto.Message) (proto.Message, error){
 			// The first zone's records.
 			"ListDnsRecords": func(answers map[string]proto.Message) (proto.Message, error) {
@@ -289,9 +293,10 @@ var systems = []system{
 		},
 	},
 	{
-		def:     calendarapi.Definition(),
-		service: calendarapipb.CalendarApiService_ServiceDesc.ServiceName,
-		config:  func() proto.Message { return &calendarapipb.CalendarApiConfig{} },
+		def:      calendarapi.Definition(),
+		optional: true,
+		service:  calendarapipb.CalendarApiService_ServiceDesc.ServiceName,
+		config:   func() proto.Message { return &calendarapipb.CalendarApiConfig{} },
 		checks: map[string]func(proto.Message) error{
 			"ListEvents": func(m proto.Message) error {
 				r := m.(*calendarapipb.ListEventsResponse)

@@ -29,8 +29,9 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
   helper. Remote Access gains **Add a device**: set network's Remote Access
   endpoint, and give the pfSense user the WireGuard peer privileges
   ([deployment](deployment.md)).
-- `make smoke` reads Cloudflare and the calendars: add `SMOKE_CLOUDFLARE_API`
-  and `SMOKE_CALENDAR_API` to your `smoke.env` (see `smoke.env.example`).
+- `make smoke` also reads Cloudflare and the calendars when `smoke.env` sets
+  `SMOKE_CLOUDFLARE_API` and `SMOKE_CALENDAR_API` (see `smoke.env.example`);
+  without them it skips both.
 
 ## v0.0.2-rc.4
 
