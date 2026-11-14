@@ -188,7 +188,7 @@ func (p *Proxmox) target(path string) (node, kind string, vmid int, rest []strin
 	}
 	g := p.guest(vmid)
 	if g == nil || g["node"] != node || g["type"] != kind {
-		return "", "", 0, nil, fmt.Errorf("Configuration file 'nodes/%s/%s/%d.conf' does not exist", node, kind, vmid)
+		return "", "", 0, nil, fmt.Errorf("Configuration file 'nodes/%s/%s/%d.conf' does not exist", node, kind, vmid) //nolint:staticcheck // Proxmox's own words
 	}
 	return node, kind, vmid, parts[4:], nil
 }
