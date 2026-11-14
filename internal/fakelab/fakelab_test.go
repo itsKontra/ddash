@@ -18,9 +18,11 @@ import (
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
+	"github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/coretest"
@@ -53,7 +55,7 @@ func bootNetworkLabWith(t *testing.T, configure func(*networkpb.NetworkConfig), 
 	}
 	t.Cleanup(lab.Close)
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), ntfyapi.Definition()},
+		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), notify.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
 		Plugins:    []coretest.Plugin{{Name: "network", Requires: []string{"network", "pfsense-api", "adguard-api"}}},
 	})
 	for component, cfg := range lab.Config() {

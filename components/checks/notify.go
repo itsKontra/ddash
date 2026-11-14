@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
+	"github.com/itsKontra/ddash/components/notify/notifypb"
 )
 
 // The Notification pipeline's fixed timings.
@@ -107,7 +107,7 @@ type pending struct {
 	kind say
 	// n is the Notification when the item goes out on its own; line its
 	// line in a group's body, e.g. "NAS down: connection refused".
-	n    *ntfyapipb.Notification
+	n    *notifypb.Notification
 	line string
 	as   notified
 }
@@ -116,7 +116,7 @@ type pending struct {
 // alone, else a title counting by kind ("3 down, 1 up again"), a body
 // listing each item, the highest priority, the most severe kind's tags
 // and a Click to the Checks Page.
-func (c *component) group(todo []pending) *ntfyapipb.Notification {
+func (c *component) group(todo []pending) *notifypb.Notification {
 	if len(todo) == 1 {
 		return todo[0].n
 	}
@@ -124,7 +124,7 @@ func (c *component) group(todo []pending) *ntfyapipb.Notification {
 	slices.SortStableFunc(todo, func(a, b pending) int { return cmp.Compare(a.kind, b.kind) })
 	var counts [says]int
 	var lines []string
-	g := &ntfyapipb.Notification{Tags: todo[0].n.GetTags(), Click: c.link("/checks")}
+	g := &notifypb.Notification{Tags: todo[0].n.GetTags(), Click: c.link("/checks")}
 	for _, p := range todo {
 		counts[p.kind]++
 		lines = append(lines, p.line)
@@ -164,7 +164,9 @@ func (c *component) deliver(ctx context.Context) {
 	}
 	c.mu.Unlock()
 
-	_, err := c.ntfy.Send(ctx, &ntfyapipb.SendRequest{Notification: c.group(todo)})
+	n := c.group(todo)
+	n.Category = notifypb.Category_CATEGORY_CHECKS
+	_, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n})
 	if ctx.Err() != nil {
 		return
 	}
@@ -241,7 +243,7 @@ func (c *component) wanted(item string) (pending, want) {
 		last = notified{state: markUp}
 	}
 	at := now()
-	p := pending{item: item, n: &ntfyapipb.Notification{Click: c.link(sub.path)}}
+	p := pending{item: item, n: &notifypb.Notification{Click: c.link(sub.path)}}
 	if c.flapping(item, sub.since, at) {
 		if last.state == markFlapping {
 			return pending{}, hold
@@ -409,7 +411,7 @@ func (c *component) certWanted(item string) (pending, want) {
 	}
 	title, detail := ch.spec.shownName()+" certificate expiring", "expires in "+days(left)
 	p := pending{item: item, kind: sayExpiring, as: notified{state: markExpiring, since: exp}, line: joinLine(title, detail)}
-	p.n = &ntfyapipb.Notification{
+	p.n = &notifypb.Notification{
 		Title:    title,
 		Message:  "E" + detail[1:],
 		Priority: 3,

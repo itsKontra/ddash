@@ -19,7 +19,7 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
+	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -29,17 +29,17 @@ import (
 // status. "tls 240h" answers one HTTPS request with 200, its certificate
 // for the host issued by the lab's CA and expiring 240 h after the first
 // dial with that setting (later dials present the same certificate).
-// Notifications go to its fake ntfy-api.
+// Notifications go to its fake notify.
 type lab struct {
-	mu    sync.Mutex
-	hosts map[string]string // addr → "up", "up <duration>", "http <status>", "tls <expires in>", "refuse" or "hang"
-	ntfy  *fakeNtfy
+	mu     sync.Mutex
+	hosts  map[string]string // addr → "up", "up <duration>", "http <status>", "tls <expires in>", "refuse" or "hang"
+	notify *fakeNotify
 	// ca issues the "tls" certificates; startIn makes checks trust it.
 	ca    *testCA
 	certs map[string]tls.Certificate // by addr and setting
 }
 
-func newLab() *lab { return &lab{hosts: map[string]string{}, ntfy: &fakeNtfy{}} }
+func newLab() *lab { return &lab{hosts: map[string]string{}, notify: &fakeNotify{}} }
 
 func (l *lab) set(addr, how string) {
 	l.mu.Lock()
@@ -118,7 +118,7 @@ func answerHTTPS(conn net.Conn, cert tls.Certificate) {
 // startIn runs checks dialing through l. Call inside a synctest bubble.
 func startIn(t *testing.T, l *lab, opts ...sdktest.Option) (*sdktest.Harness, checkspb.ChecksServiceClient) {
 	t.Helper()
-	opts = append([]sdktest.Option{sdktest.WithClient[ntfyapipb.NtfyApiServiceClient](l.ntfy)}, opts...)
+	opts = append([]sdktest.Option{sdktest.WithClient[notifypb.NotifyServiceClient](l.notify)}, opts...)
 	def := checks.DefinitionDialing(l.dial)
 	if l.ca != nil {
 		def = checks.DefinitionDialingTrusting(l.dial, l.ca.pool)
