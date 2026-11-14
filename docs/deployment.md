@@ -121,6 +121,20 @@ Do these by hand, in order, before first use.
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
+- [ ] Cloudflare Tunnel (optional): ddash changes only a **remotely managed**
+      Tunnel (created in Zero Trust → Networks → Tunnels, configured in the
+      dashboard), never a locally managed `config.yml`. Create an API token
+      (My Profile → API Tokens → Create Custom Token) with:
+      - Account → **Cloudflare Tunnel: Edit** (reads the Tunnel, its
+        connectors and ingress, and PUTs the ingress back whole),
+      - Account → **Account Settings: Read** (lists the account's zones),
+      - Zone → **DNS: Edit**, on the zone of the Public Hostnames (each
+        Public Hostname's proxied CNAME to `<tunnel-id>.cfargotunnel.com`).
+
+      Give cloudflare-api the account ID, the Tunnel's ID and the token.
+      Left empty, it stays not set up and Apps show no "On the internet".
+      Disabling a Public Hostname keeps its settings in cloudflare-tunnel's
+      DB (back it up with the rest of the data directory).
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
 

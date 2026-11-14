@@ -162,6 +162,10 @@ _Avoid_: Blocked, offline, isolated
 WireGuard connectivity that lets the operator's own devices reach the home network from outside it.
 _Avoid_: VPN (unqualified), road warrior
 
+**Public Hostname**:
+A hostname the Cloudflare Tunnel serves from the internet to a local address: one ingress rule of the Tunnel plus its proxied CNAME. A disabled one has neither, and ddash keeps its settings to enable it again. Always say "Cloudflare Tunnel", never bare "tunnel", because VPN Tunnel and Tunnelled mean the outbound path.
+_Avoid_: Tunnel route, public route, exposed host
+
 **Device**:
 A piece of hardware on the home network that the firewall hands addresses to, identified by its MAC address. Servers with fixed addresses and Remote Access peers are not Devices.
 _Avoid_: Client, host, machine
