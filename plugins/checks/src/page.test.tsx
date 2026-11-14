@@ -3,7 +3,7 @@ import { metricValue, pending, renderScoped, settle, unavailable, type Answer } 
 import { useLocation } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import plugin from "./index";
-import { check, checks } from "./testing";
+import { channels, check, checks } from "./testing";
 
 afterEach(cleanup);
 afterEach(() => vi.useRealTimers());
@@ -52,17 +52,21 @@ let maintenance: unknown[];
 let actions: { method: string; body: unknown }[];
 let refusal: { code: string; message: string } | undefined;
 let listAnswer: Answer | undefined;
+// What notify answers ListChannels with; testing's channels unless a test sets it.
+let channelsAnswer: unknown;
 
 beforeEach(() => {
   actions = [];
   refusal = undefined;
   listAnswer = undefined;
   maintenance = [];
+  channelsAnswer = channels;
 });
 
 const answers = {
   ListChecks: (body: unknown) => (listAnswer ? listAnswer(body) : Response.json(listed)),
   ListMaintenance: () => Response.json({ maintenance }),
+  ListChannels: () => Response.json(channelsAnswer),
 };
 
 function answerAction(method: string, body: unknown) {
@@ -513,4 +517,43 @@ it("leaves the strip open under a Sheet it opened, and gives the focus back to i
     expect(screen.getByRole("group", { name: "Actions for nas" })).toBe(strip);
     expect(document.activeElement).toBe(opener);
   }
+});
+
+/** The Notifications Panel. */
+const notifications = () => screen.getByRole("region", { name: "Notifications" });
+
+it("shows where Checks' Notifications go: each channel, set up or not", async () => {
+  await open();
+
+  const panel = notifications();
+  expect(within(panel).getByText("ntfy.sh/ddash-alerts · gets Checks, image updates, Action outcomes")).toBeTruthy();
+  expect(within(panel).getByText("gets Checks")).toBeTruthy();
+  expect(within(panel).getByText("Telegram")).toBeTruthy();
+  expect(within(panel).getByText("not set up")).toBeTruthy();
+  expect(within(panel).getByText("Set it up in telegram-api's config.")).toBeTruthy();
+  expect(within(panel).getByRole("link", { name: "Plugins" }).getAttribute("href")).toBe("/plugins");
+  expect(within(panel).queryByText("No channel gets Checks' Notifications")).toBeNull();
+});
+
+it("warns when no channel set up takes Checks", async () => {
+  channelsAnswer = {
+    channels: [{ ...channels.channels[0], categories: ["CATEGORY_IMAGE_UPDATES"] }, channels.channels[1]],
+  };
+  await open();
+
+  const panel = notifications();
+  expect(within(panel).getByText("No channel gets Checks' Notifications")).toBeTruthy();
+  expect(within(panel).getByText("Checks filtered out")).toBeTruthy();
+  expect(within(panel).getByText("ntfy.sh/ddash-alerts · gets image updates")).toBeTruthy();
+});
+
+it("names the problem when a channel's state can't be read", async () => {
+  channelsAnswer = {
+    channels: [channels.channels[0], { ...channels.channels[1], problem: "telegram-api: not running" }],
+  };
+  await open();
+
+  const panel = notifications();
+  expect(within(panel).getByText("telegram-api: not running")).toBeTruthy();
+  expect(within(panel).getByText("unknown")).toBeTruthy();
 });
