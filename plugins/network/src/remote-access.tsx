@@ -3,18 +3,19 @@ import { ago, bytes } from "@ddash/display";
 import { useQuery } from "@ddash/plugin";
 import { NetworkService, type Reach, type RemoteAccessPeer } from "@ddash/proto/network/network_pb";
 import { DataTable, Notice, Panel, StatusDot, type Column, type Tone } from "@ddash/ui";
+import { AddDevice } from "./add-device";
 
 /** WireGuard handshakes every 2 minutes while a peer is connected. */
 const CONNECTED_WITHIN = 3 * 60_000;
 
-function connection(p: RemoteAccessPeer, now: number): { tone: Tone; label: string } {
+export function connection(p: RemoteAccessPeer, now: number): { tone: Tone; label: string } {
   if (!p.latestHandshake) return { tone: "idle", label: "never connected" };
   if (now - timestampMs(p.latestHandshake) <= CONNECTED_WITHIN) return { tone: "up", label: "connected" };
   return { tone: "idle", label: "not connected" };
 }
 
 /** A peer's name, or the start of its public key when it has none. */
-const peerName = (p: RemoteAccessPeer) => p.name || `${p.publicKey.slice(0, 8)}…`;
+export const peerName = (p: RemoteAccessPeer) => p.name || `${p.publicKey.slice(0, 8)}…`;
 
 function ReachItem({ reach }: { reach: Reach }) {
   return (
@@ -68,18 +69,22 @@ function peerColumns(now: number): Column<RemoteAccessPeer>[] {
   ];
 }
 
+/** The Remote Access read, refreshed every minute. */
+export const useRemoteAccess = () => useQuery(NetworkService.method.getRemoteAccess, {});
+
 /**
- * The Remote Access section: the peers (read-only), when each last shook
- * hands, its traffic, and what the pass rules on the Remote Access
- * interface let it reach.
+ * The Remote Access section: the peers, when each last shook hands, its
+ * traffic, and what the pass rules on the Remote Access interface let it
+ * reach; and Add a device.
  */
 export function RemoteAccessPeers() {
   // Handshake ages are as of the read, which refreshes every minute.
-  const { data, error, dataUpdatedAt: now } = useQuery(NetworkService.method.getRemoteAccess, {});
+  const { data, error, dataUpdatedAt: now } = useRemoteAccess();
   const failed = error && !data;
   return (
     <Panel
       title="Remote Access"
+      actions={data && !data.error && <AddDevice size="sm" unavailable={data.addUnavailable} />}
       description={
         data &&
         !data.error &&
