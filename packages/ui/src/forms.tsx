@@ -67,9 +67,16 @@ export function TextInput(props: Omit<InputHTMLAttributes<HTMLInputElement>, "cl
   return <input type="text" {...useWiring()} {...props} className={cx(control, "h-9 bg-card")} />;
 }
 
-/** A multi-line text box; inside a Field it takes the Field's label. */
-export function TextArea(props: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className">) {
-  return <textarea {...useWiring()} {...props} className={cx(control, "min-h-24 bg-card py-2")} />;
+/** A multi-line text box; inside a Field it takes the Field's label. mono makes it a code editor, e.g. a Compose file: monospace, no wrapping, no spellcheck. */
+export function TextArea({ mono, ...props }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "className"> & { mono?: boolean }) {
+  return (
+    <textarea
+      {...useWiring()}
+      {...(mono && { spellCheck: false, autoCapitalize: "off", autoCorrect: "off", wrap: "off" })}
+      {...props}
+      className={cx(control, "min-h-24 bg-card py-2", mono && "font-mono text-xs leading-relaxed whitespace-pre")}
+    />
+  );
 }
 
 /** A native checkbox with its label beside it, e.g. a table toolbar's "Blocked only". */

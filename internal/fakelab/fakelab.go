@@ -151,6 +151,9 @@ type Lab struct {
 	// Addrs maps each Component to the address of the system it talks to.
 	Addrs    map[string]string
 	handlers map[string]http.Handler
+	// DockerAgents are the lab's fake Docker Agents, for ddash to add.
+	DockerAgents []DockerAgent
+	cleanup      []func()
 }
 
 // Handler is what serves the HTTP system component talks to, e.g. a
@@ -194,6 +197,10 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		addr := ln.Addr().String()
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
+	}
+	if err := l.startDocker(host); err != nil {
+		l.Close()
+		return nil, err
 	}
 	if fw, ok := l.handlers["pfsense-api"].(*pfsensefake.Firewall); ok {
 		fw.EditHostOverrides(movedTo(host))
@@ -261,5 +268,8 @@ func (l *Lab) Config() map[string]proto.Message { return l.config }
 func (l *Lab) Close() {
 	for _, srv := range l.servers {
 		srv.Close()
+	}
+	for _, f := range l.cleanup {
+		f()
 	}
 }

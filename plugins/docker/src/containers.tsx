@@ -3,7 +3,7 @@ import { DockerApiService, type Container, type HostContainers } from "@ddash/pr
 import { DataTable, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, type Column, type Tone } from "@ddash/ui";
 
 /** How each of Docker's container states reads at a glance. */
-const tones: Record<string, Tone> = {
+export const tones: Record<string, Tone> = {
   running: "up",
   restarting: "warn",
   paused: "warn",
@@ -44,11 +44,13 @@ const columns: readonly Column<Container>[] = [
   { id: "status", header: "Status", cell: (c) => c.status },
 ];
 
-function Host({ host }: { host: HostContainers }) {
+/** A host read through a socket-proxy: its containers, read-only. readOnly says so, beside hosts with a Docker Agent. */
+export function Host({ host, readOnly }: { host: HostContainers; readOnly?: boolean }) {
   const running = host.containers.filter((c) => c.state === "running").length;
   return (
     <Panel
       title={host.host}
+      description={readOnly ? "Read-only, through a socket-proxy: a Docker Agent on it lets ddash manage its Compose Projects." : undefined}
       flush
       actions={
         !host.error && (
