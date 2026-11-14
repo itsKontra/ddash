@@ -105,6 +105,38 @@ func TestDraftAppSendsTheDescriptionAndContextAndReturnsTheDraft(t *testing.T) {
 	}
 }
 
+// The prompt is the description and the context as the browser's preview
+// writes it (JSON.stringify(context, null, 2)): plugins/ai-helper's test
+// expects the same text.
+func TestThePromptIsWhatThePreviewShows(t *testing.T) {
+	got, err := aihelper.Prompt(&aihelperpb.DraftAppRequest{
+		Description: "  Paperless-ngx with Postgres & Redis <fast>\n",
+		Context:     &aihelperpb.DraftContext{Host: "media", Projects: []string{"jellyfin"}, UsedPorts: []uint32{8096, 9000}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `Description:
+Paperless-ngx with Postgres & Redis <fast>
+
+Context:
+{
+  "host": "media",
+  "projects": [
+    "jellyfin"
+  ],
+  "used_ports": [
+    8096,
+    9000
+  ],
+  "networks": [],
+  "home_domain": ""
+}`
+	if got != want {
+		t.Errorf("prompt =\n%s\nwant\n%s", got, want)
+	}
+}
+
 // Without a key the helper starts, says so, and drafts nothing.
 func TestAnEmptyConfigIsNotSetUp(t *testing.T) {
 	c := start(t, &aihelperpb.AiHelperConfig{})

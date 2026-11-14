@@ -159,13 +159,17 @@ var draftSchema = map[string]any{
 }
 
 // Prompt is the user message sent for req: its description and its
-// context as JSON, exactly what the preview shows.
+// context as JSON indented by two spaces, exactly what the preview shows
+// (JSON.stringify(context, null, 2) in the browser).
 func Prompt(req *aihelperpb.DraftAppRequest) (string, error) {
-	ctx, err := json.MarshalIndent(contextJSON(req.GetContext()), "", "  ")
-	if err != nil {
+	var ctx strings.Builder
+	enc := json.NewEncoder(&ctx)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(contextJSON(req.GetContext())); err != nil {
 		return "", err
 	}
-	return "Description:\n" + strings.TrimSpace(req.GetDescription()) + "\n\nContext:\n" + string(ctx), nil
+	return "Description:\n" + strings.TrimSpace(req.GetDescription()) + "\n\nContext:\n" + strings.TrimSuffix(ctx.String(), "\n"), nil
 }
 
 // contextOut is DraftContext as sent: every field, empty ones too.
