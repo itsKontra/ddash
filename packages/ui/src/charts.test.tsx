@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { Bars, ColumnChart, Donut, LineChart, Meter, Ring, Sparkline, UptimeBars } from "./index";
 
@@ -228,4 +228,23 @@ it("ColumnChart stacks positive values up and negative ones down, and a column s
   expect(img.querySelectorAll('[data-column="2"] rect[data-colour]')).toHaveLength(1);
   screen.getByRole("button", { name: "Show day 2" }).click();
   expect(picked).toEqual([1]);
+});
+
+it("LineChart reads out the point under the pointer with valueFormat", () => {
+  render(
+    <LineChart
+      label="State of charge"
+      from={at(0)}
+      to={at(24)}
+      times={[at(12), at(12, 5)]}
+      series={[{ label: "State of charge", values: [65.23333333, 66], colour: "chart-3" }]}
+      format={(v) => `${v} %`}
+      valueFormat={(v) => `${Math.round(v)} %`}
+    />,
+  );
+
+  // The box is 640 px wide before layout: 12:00 lies half-way along the plot.
+  fireEvent.pointerMove(screen.getByRole("img", { name: "State of charge" }), { clientX: 48 + (640 - 58) / 2 });
+
+  expect(screen.getByRole("status").textContent).toContain("State of charge65 %");
 });

@@ -25,14 +25,17 @@ export const staleAfter = 5 * 60_000;
 /** Whether the flow has a reading from the last five minutes. */
 export const isFresh = (flow: GetFlowResponse, now = Date.now()) => !!flow.at && now - timestampDate(flow.at).getTime() < staleAfter;
 
-/** Each part's colour, the same on every chart. */
+/**
+ * Each part's colour, the same on every chart. Slot 5 is red in the Lagoon
+ * Theme, so it goes to the heat pump, never to the battery.
+ */
 export const colours = {
   solar: "chart-4",
   grid: "chart-1",
-  export: "chart-3",
-  battery: "chart-5",
+  export: "chart-6",
+  battery: "chart-3",
   house: "chart-2",
-  heatPump: "chart-6",
+  heatPump: "chart-5",
 } as const satisfies Record<string, ChartColour>;
 
 const number = (digits: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits });

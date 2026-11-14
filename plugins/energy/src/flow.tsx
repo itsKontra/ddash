@@ -57,6 +57,7 @@ const fill = {
 const ring = {
   "chart-1": "border-chart-1 text-chart-1",
   "chart-2": "border-chart-2 text-chart-2",
+  "chart-3": "border-chart-3 text-chart-3",
   "chart-4": "border-chart-4 text-chart-4",
   "chart-5": "border-chart-5 text-chart-5",
   "chart-6": "border-chart-6 text-chart-6",

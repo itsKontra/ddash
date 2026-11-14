@@ -292,6 +292,7 @@ function BatteryCurve({ p }: { p: GetPeriodResponse }) {
         times={p.samples.map((s) => (s.at ? timestampDate(s.at) : new Date(0)))}
         series={[{ label: "State of charge", colour: colours.battery, shape: "area", values: p.samples.map((s) => s.socPct) }]}
         format={(v) => `${v} %`}
+        valueFormat={(v) => `${Math.round(v)} %`}
         yMin={0}
         yMax={100}
         height={160}
