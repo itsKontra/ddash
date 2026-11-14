@@ -6,7 +6,7 @@ import {
   StepState,
   System,
   type ComposeActionSchema,
-  type Plan,
+  type PlanStep,
   type Run,
 } from "@ddash/proto/compose/compose_pb";
 import { State as JobState } from "@ddash/proto/ddash/job/job_pb";
@@ -36,8 +36,8 @@ const look: Record<StepState, { tone: Tone; aside?: string }> = {
 };
 
 /** A Plan's steps, each with its system, values and (once running) its state and detail. */
-export function PlanSteps({ plan, run }: { plan: Plan; run?: Run }) {
-  const steps = run?.steps.length ? run.steps : plan.steps;
+export function PlanSteps({ steps: planned, run }: { steps: readonly PlanStep[]; run?: Run }) {
+  const steps = run?.steps.length ? run.steps : planned;
   const items: StatusItem[] = steps.map((s, i) => {
     const state = run?.states[i] ?? StepState.PENDING;
     const detail = run?.details[i];
@@ -107,10 +107,10 @@ export function useRun(id: string | undefined): Run | undefined {
 }
 
 /** How a run ended, as one line, or undefined while it runs. */
-export function ending(run: Run | undefined): { tone: Tone; text: string } | undefined {
+export function ending(run: Run | undefined): { tone: "down" | "info"; text: string } | undefined {
   if (!run?.ended) return undefined;
   if (run.error) return { tone: "down", text: run.error };
-  return { tone: "up", text: run.outcome === "done" ? "Done." : `Done: ${run.outcome}.` };
+  return { tone: "info", text: run.outcome === "done" ? "Done." : `Done: ${run.outcome}.` };
 }
 
 /**
@@ -219,7 +219,7 @@ export function PlanDialog({
         {failed && <Notice tone="down">{failed}</Notice>}
         {ended && <Notice tone={ended.tone}>{ended.text}</Notice>}
         {plan?.diff && !run && <Diff diff={plan.diff} />}
-        {plan && <PlanSteps plan={plan} run={run} />}
+        {plan && <PlanSteps steps={plan.steps} run={run} />}
         {run && !run.ended && <JobLog run={run} />}
       </div>
     </Dialog>

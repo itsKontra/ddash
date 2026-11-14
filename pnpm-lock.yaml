@@ -239,6 +239,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin

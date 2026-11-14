@@ -1,0 +1,31 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "id": 0,
+      "name": "VPN_FAILOVER",
+      "trigger": "downloss",
+      "descr": "KILL_SWITCH WG, fallback KILL_SWITCH OpenVPN",
+      "ipprotocol": "inet",
+      "priorities": [
+        {
+          "parent_id": 0,
+          "id": 0,
+          "gateway": "WG_VPN",
+          "tier": 1,
+          "virtual_ip": "address"
+        },
+        {
+          "parent_id": 0,
+          "id": 1,
+          "gateway": "OVPN_VPN",
+          "tier": 2,
+          "virtual_ip": "address"
+        }
+      ]
+    }
+  ]
+}

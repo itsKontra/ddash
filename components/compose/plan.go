@@ -159,7 +159,7 @@ func (c *component) planSave(ctx context.Context, s *pb.SaveFile, override bool)
 		return nil, nil, err
 	}
 	isEnv := path.Base(s.GetPath()) == ".env"
-	if s.GetPath() != t.file() && !(isEnv && path.Dir(s.GetPath()) == path.Dir(t.file())) {
+	if s.GetPath() != t.file() && (!isEnv || path.Dir(s.GetPath()) != path.Dir(t.file())) {
 		return nil, nil, status.Errorf(codes.InvalidArgument, "%s is neither %s's Compose file nor its .env", s.GetPath(), t.project.GetName())
 	}
 	cur, err := c.agents.GetComposeFile(ctx, &dapb.GetComposeFileRequest{Host: s.GetHost(), Path: t.file()})

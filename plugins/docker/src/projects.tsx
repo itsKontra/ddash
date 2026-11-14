@@ -189,7 +189,7 @@ export function DockerPage() {
   const names = new Set(agentHosts.map((h) => h.name));
   const proxyHosts = containers.data?.hosts.filter((h) => !names.has(h.host)) ?? [];
   const enrolling = agents.data?.agents.filter((a) => !names.has(a.name)) ?? [];
-  const loading = !projects.data && !projects.error && !containers.data && !containers.error;
+  const loading = (!projects.data && !projects.error) || (!containers.data && !containers.error);
   const nothing = !loading && agentHosts.length === 0 && proxyHosts.length === 0 && enrolling.length === 0;
 
   return (

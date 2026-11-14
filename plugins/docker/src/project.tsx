@@ -91,7 +91,7 @@ function RunPanel({ run }: { run: Run }) {
     <Panel title={run.title} description={run.ended ? `Ended ${ago(run.ended, now)}${run.actor ? ` · ${run.actor.replace(/^operator:/, "")}` : ""}` : `Started ${ago(run.started, now)} · it goes on if you leave this Page`}>
       <div className="flex flex-col gap-4">
         {end ? <Notice tone={end.tone}>{end.text}</Notice> : null}
-        <PlanSteps plan={{ steps: run.steps, blocked: [], notes: [], diff: "", protected: [], upToDate: false } as never} run={run} />
+        <PlanSteps steps={run.steps} run={run} />
         {!run.ended && <JobLog run={run} />}
       </div>
     </Panel>
@@ -101,14 +101,18 @@ function RunPanel({ run }: { run: Run }) {
 type FileTab = "compose" | "env";
 
 /** The Compose file (and .env) viewer and editor: Edit, then Save through a Plan that validates it on the host. */
-function FileEditor({ project: p, open, close }: { project: Project; open: (d: ReactNode) => void; close: () => void }) {
-  const file = useQuery(DockerAgentApiService.method.getComposeFile, { host: p.host, path: p.configFile }, { enabled: !!p.configFile });
+function FileEditor(props: { project: Project; open: (d: ReactNode) => void; close: () => void }) {
+  if (!props.project.configFile) return <Notice tone="info">This Compose Project&apos;s file isn&apos;t known: it was started from a path the Docker Agent doesn&apos;t mount.</Notice>;
+  return <Editor {...props} />;
+}
+
+function Editor({ project: p, open, close }: { project: Project; open: (d: ReactNode) => void; close: () => void }) {
+  const file = useQuery(DockerAgentApiService.method.getComposeFile, { host: p.host, path: p.configFile });
   const [tab, setTab] = useState<FileTab>("compose");
   const [draft, setDraft] = useState<{ path: string; base: ComposeFile; text: string }>();
   const shown = tab === "env" ? file.data?.env : file.data?.file;
   const editing = draft && draft.path === shown?.path ? draft : undefined;
 
-  if (!p.configFile) return <Notice tone="info">This Compose Project&apos;s file isn&apos;t known: it was started from a path the Docker Agent doesn&apos;t mount.</Notice>;
   if (file.error) return <Notice tone="down">{file.error.rawMessage}</Notice>;
   if (!file.data) return <Skeleton height="lg" />;
 
