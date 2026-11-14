@@ -67,6 +67,9 @@ type component struct {
 	mu sync.Mutex
 	// pairErr is why the last pairing attempt of an enrolling Agent failed.
 	pairErr map[string]string
+	// pairing serialises pairing: the loop and PairAgent never pair the
+	// same Agent at once, which would leave it with the other's token.
+	pairing sync.Mutex
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, _ *pb.DockerAgentApiConfig) error {
@@ -379,7 +382,15 @@ func (c *component) pairPending(ctx context.Context) {
 
 // pair pairs with r's Agent, keeping why it failed for ListAgents.
 func (c *component) pair(ctx context.Context, r row) {
-	err := func() error {
+	c.pairing.Lock()
+	defer c.pairing.Unlock()
+	// What the caller read may be stale: another pairing may have won.
+	fresh, err := c.row(ctx, r.name)
+	if err != nil || fresh.token != "" || fresh.code == "" {
+		return
+	}
+	r = fresh
+	err = func() error {
 		ctx, cancel := context.WithTimeout(ctx, readTimeout)
 		defer cancel()
 		hello, fp, err := agent.Probe(ctx, r.url)
