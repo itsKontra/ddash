@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+// calendar-api reads the Operator's calendars, read-only, from their
+// secret iCal addresses (e.g. Google Calendar's "Secret address in iCal
+// format"). It never writes to a calendar.
+package ddash.calendarapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/calendar-api/calendarapipb;calendarapipb";
+
+message CalendarApiConfig {
+  // The calendars to read, each as "Name = address", several separated by
+  // ";" or line breaks. An address is a password to its calendar, so the
+  // whole list is one secret. Valid when empty: nothing is set up yet.
+  string calendars = 1 [(ddash.config.field) = {
+    label: "Calendars"
+    secret: true
+    placeholder: "Family = https://calendar.google.com/calendar/ical/…/basic.ics"
+    help: "Each calendar's secret iCal address as Name = address, several separated by ;. Anyone with an address can read that calendar; ddash only reads it."
+  }];
+  // How many days ahead the agenda reaches.
+  optional int64 days_ahead = 2 [(ddash.config.field) = {
+    label: "Days ahead"
+    default: "14"
+    min: 1
+    max: 90
+    help: "How far ahead the agenda reaches. Events of the last two days are always listed too."
+  }];
+}
+
+service CalendarApiService {
+  // ListEvents returns every calendar's events from two days ago to
+  // days_ahead days from now, recurring events expanded, sorted by start.
+  // A calendar that can't be read is listed with its error.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {
+    option (ddash.getter) = {};
+  }
+}
+
+message ListEventsRequest {}
+
+message ListEventsResponse {
+  // Every configured calendar, in config order.
+  repeated Calendar calendars = 1;
+  // The events of every calendar that could be read, overlapping
+  // [from, to), sorted by start: an all-day event by its first day's
+  // midnight in UTC.
+  repeated Event events = 2;
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+}
+
+message Calendar {
+  // The name the Operator gave it, e.g. "Family".
+  string name = 1;
+  // Why it couldn't be read; empty when it could. Never holds its address.
+  string error = 2;
+  // When its events were last read.
+  google.protobuf.Timestamp read_at = 3;
+}
+
+message Event {
+  // The name of the calendar it is on.
+  string calendar = 1;
+  // An id unique in the response: the event's UID and, for one occurrence
+  // of a recurring event, its original start.
+  string id = 2;
+  string title = 3;
+  // Where it takes place, as the calendar has it; empty when unset.
+  string location = 4;
+  // An all-day event spans whole days, wherever the Operator is: it has
+  // start_date and end_date, not start and end.
+  bool all_day = 5;
+  // A timed event's start and (exclusive) end.
+  google.protobuf.Timestamp start = 6;
+  google.protobuf.Timestamp end = 7;
+  // An all-day event's first day and the day after its last, as
+  // YYYY-MM-DD, e.g. "2026-11-14" and "2026-11-15" for one day.
+  string start_date = 8;
+  string end_date = 9;
+}
