@@ -1,0 +1,3 @@
+name: energy-api
+description: Reads the house's photovoltaic, grid, battery and consumption data, read-only, from InfluxDB, and counts it into energy and costs.
+requires: []

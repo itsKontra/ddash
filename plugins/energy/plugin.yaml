@@ -1,0 +1,6 @@
+name: energy
+title: Energy
+description: "The house's solar power, grid, battery and consumption: where the power flows right now, and any day, week, month or year with its totals and costs."
+icon: sun
+author: itsKontra
+requires: [energy-api]

@@ -1,6 +1,7 @@
 // The charts family: hand-rolled SVG, coloured by Theme classes.
 import { useOnHero } from "./surface";
-import { cx, toneFill, toneMark, toneStroke, type Tone } from "./tone";
+import { chartColours, colourBg, colourFill, colourStroke, type Colour } from "./chart-colours";
+import { cx, toneFill, type Tone } from "./tone";
 
 const sparkStroke = ["stroke-primary", "stroke-muted-foreground"];
 
@@ -97,42 +98,6 @@ export interface ChartItem {
   value: number;
   tone?: Tone;
 }
-
-const chartColours = ["chart-1", "chart-2", "chart-3", "chart-4", "chart-5", "chart-6"] as const;
-type Colour = (typeof chartColours)[number] | Tone | "muted";
-
-// Literal class names, so the shell's Tailwind build finds them. A tone
-// draws as its chart mark (tone.ts); "Other" is muted, like idle.
-const colourStroke: Record<Colour, string> = {
-  "chart-1": "stroke-chart-1",
-  "chart-2": "stroke-chart-2",
-  "chart-3": "stroke-chart-3",
-  "chart-4": "stroke-chart-4",
-  "chart-5": "stroke-chart-5",
-  "chart-6": "stroke-chart-6",
-  ...toneStroke,
-  muted: toneStroke.idle,
-};
-const colourFill: Record<Colour, string> = {
-  "chart-1": "fill-chart-1",
-  "chart-2": "fill-chart-2",
-  "chart-3": "fill-chart-3",
-  "chart-4": "fill-chart-4",
-  "chart-5": "fill-chart-5",
-  "chart-6": "fill-chart-6",
-  ...toneFill,
-  muted: toneFill.idle,
-};
-const colourBg: Record<Colour, string> = {
-  "chart-1": "bg-chart-1",
-  "chart-2": "bg-chart-2",
-  "chart-3": "bg-chart-3",
-  "chart-4": "bg-chart-4",
-  "chart-5": "bg-chart-5",
-  "chart-6": "bg-chart-6",
-  ...toneMark,
-  muted: toneMark.idle,
-};
 
 interface Coloured {
   label: string;

@@ -1,0 +1,178 @@
+syntax = "proto3";
+
+// energy-api reads the house's photovoltaic, grid, battery and consumption
+// data, read-only, from the InfluxDB v2 bucket Telegraf writes it to: the
+// Huawei SUN2000 inverter and its grid meter (measurements "kW" and "kWh")
+// and the Victron GX (measurement "victron"). It never writes to InfluxDB.
+//
+// Implausible readings are left out: a power beyond ±25 kW (the meter's
+// "invalid" sentinel reads 2147483.647), and a counter step that goes
+// backwards or would need more than 25 kW.
+package ddash.energyapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/energy-api/energyapipb;energyapipb";
+
+message EnergyApiConfig {
+  // The InfluxDB server. Valid when empty: nothing is set up yet.
+  string url = 1 [(ddash.config.field) = {
+    label: "InfluxDB address"
+    format: FORMAT_URL
+    placeholder: "https://influxdb.home.example"
+  }];
+  // An API token with read access to the bucket.
+  string token = 2 [(ddash.config.field) = {
+    label: "API token"
+    secret: true
+    help: "A read-only token for the bucket. ddash never writes to InfluxDB."
+  }];
+  // The bucket Telegraf writes to.
+  optional string bucket = 3 [(ddash.config.field) = {
+    default: "PV"
+  }];
+  // What a kWh from the grid costs, in € with a decimal point; empty
+  // leaves costs out.
+  string buy_price = 4 [(ddash.config.field) = {
+    label: "Grid price (€/kWh)"
+    placeholder: "0.2418"
+    help: "What a kWh bought from the grid costs, taxes included. Leave empty to show no costs."
+  }];
+  // What a kWh fed into the grid earns, in € with a decimal point.
+  string sell_price = 5 [(ddash.config.field) = {
+    label: "Feed-in tariff (€/kWh)"
+    placeholder: "0.05786"
+    help: "What a kWh fed into the grid earns."
+  }];
+}
+
+service EnergyApiService {
+  // GetFlow returns the power flowing now: each reading's latest value
+  // from the last five minutes. A reading without one is left unset.
+  rpc GetFlow(GetFlowRequest) returns (GetFlowResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // GetPeriod returns one day, week, month or year: its totals, each of
+  // its buckets' totals, and for a day or a week its power curve.
+  rpc GetPeriod(GetPeriodRequest) returns (GetPeriodResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+}
+
+message GetFlowRequest {}
+
+message GetFlowResponse {
+  // False while no InfluxDB is set up; nothing else is then set.
+  bool set_up = 1;
+  // When the latest reading was taken.
+  google.protobuf.Timestamp at = 2;
+  Power power = 3;
+  Battery battery = 4;
+}
+
+// Power in kW, each unset when it has no plausible reading.
+message Power {
+  // What the PV inverter puts out (AC).
+  optional double solar = 1;
+  // At the grid meter: positive while importing, negative while exporting.
+  optional double grid = 2;
+  // At the battery: positive while charging, negative while discharging.
+  optional double battery = 3;
+  // What the house uses on the Victron's output (the essential loads).
+  optional double house = 4;
+  // What the heat pump uses on the Victron's input side (the AC loads).
+  optional double heat_pump = 5;
+  // house plus heat_pump, as the Victron measures them.
+  optional double loads = 6;
+  // Everything used: solar + grid - battery. Exceeds loads by the
+  // inverters' conversion losses.
+  optional double consumption = 7;
+}
+
+message Battery {
+  // State of charge, 0 to 100.
+  optional double soc_pct = 1;
+  optional double voltage = 2;
+}
+
+message GetPeriodRequest {
+  Span span = 1;
+  // A day in the period, as YYYY-MM-DD; today when empty.
+  string date = 2;
+  // The IANA zone its days are counted in, e.g. "Europe/Vienna"; UTC
+  // when empty.
+  string time_zone = 3;
+}
+
+enum Span {
+  SPAN_UNSPECIFIED = 0;
+  // A day in hours, with a power curve every 5 minutes.
+  SPAN_DAY = 1;
+  // A week from Monday in days, with a power curve every 15 minutes.
+  SPAN_WEEK = 2;
+  // A month in days.
+  SPAN_MONTH = 3;
+  // A year in months.
+  SPAN_YEAR = 4;
+}
+
+message GetPeriodResponse {
+  bool set_up = 1;
+  Span span = 2;
+  // The period, [from, to).
+  google.protobuf.Timestamp from = 3;
+  google.protobuf.Timestamp to = 4;
+  // The day before and after it as YYYY-MM-DD, to step through periods.
+  string previous = 5;
+  string next = 6;
+  // The period as a whole.
+  Totals totals = 7;
+  // Its hours, days or months, in order; one that hasn't begun is left out.
+  repeated Bucket buckets = 8;
+  // A day's or week's power curve, each sample the mean over its step.
+  repeated Sample samples = 9;
+  // The prices costs are counted at; unset while none is configured.
+  Prices prices = 10;
+  // The first day with data, as YYYY-MM-DD, so the UI stops there.
+  string first_day = 11;
+}
+
+message Bucket {
+  google.protobuf.Timestamp from = 1;
+  google.protobuf.Timestamp to = 2;
+  Totals totals = 3;
+}
+
+// Energy in kWh, and money in € when prices are configured.
+message Totals {
+  // From the inverter's, the grid meter's and the battery's counters.
+  double solar = 1;
+  double grid_import = 2;
+  double grid_export = 3;
+  double battery_charged = 4;
+  double battery_discharged = 5;
+  // Everything used: solar + import - export - charged + discharged.
+  double consumption = 6;
+  // From the Victron's power readings, integrated: zero where it has none.
+  double house = 7;
+  double heat_pump = 8;
+  // import × buy price, and export × sell price.
+  double cost = 9;
+  double revenue = 10;
+  // What the PV system saved: (consumption - import) × buy price + revenue.
+  double savings = 11;
+}
+
+message Sample {
+  google.protobuf.Timestamp at = 1;
+  Power power = 2;
+  optional double soc_pct = 3;
+}
+
+message Prices {
+  // € per kWh.
+  double buy = 1;
+  double sell = 2;
+}

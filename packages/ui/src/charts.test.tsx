@@ -1,6 +1,6 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Bars, Donut, Meter, Ring, Sparkline, UptimeBars } from "./index";
+import { Bars, ColumnChart, Donut, LineChart, Meter, Ring, Sparkline, UptimeBars } from "./index";
 
 afterEach(cleanup);
 
@@ -173,4 +173,78 @@ it("Meter is a meter named by its label, filled to its ratio in its tone and cla
   expect(disk.getAttribute("aria-valuenow")).toBe("42");
   expect(disk.querySelector("[data-colour]")?.getAttribute("data-colour")).toBe("warn");
   expect(screen.getByRole("meter", { name: "Over" }).getAttribute("aria-valuenow")).toBe("100");
+});
+
+const at = (h: number, m = 0) => new Date(2026, 10, 14, h, m);
+
+it("LineChart draws each series between from and to, breaking a line at a gap, with a legend", () => {
+  render(
+    <LineChart
+      label="Today's power"
+      from={at(0)}
+      to={at(24)}
+      times={[at(10), at(10, 5), at(10, 10), at(12), at(12, 5)]}
+      series={[
+        { label: "Solar", values: [1, 2, 3, 4, 5], colour: "chart-4", shape: "area" },
+        { label: "Grid", values: [-1, null, -1, -1, -1], colour: "chart-1" },
+      ]}
+      format={(v) => `${v} kW`}
+    />,
+  );
+
+  const img = screen.getByRole("img", { name: "Today's power" });
+  const runs = (name: string) => img.querySelectorAll(`[data-series="${name}"] polyline`).length;
+  // Solar breaks only at the gap from 10:10 to 12:00, Grid also at its missing value.
+  expect([runs("Solar"), runs("Grid")]).toEqual([2, 3]);
+  expect(img.querySelectorAll('[data-series="Solar"] polygon')).toHaveLength(2);
+  expect(legendOf("Today's power")).toEqual([
+    { text: "Solar", colour: "chart-4" },
+    { text: "Grid", colour: "chart-1" },
+  ]);
+  expect(img.textContent).toContain("-2 kW");
+});
+
+it("ColumnChart stacks positive values up and negative ones down, and a column selects", () => {
+  const picked: number[] = [];
+  render(
+    <ColumnChart
+      label="Energy by day"
+      categories={["1", "2"]}
+      series={[
+        { label: "Solar", values: [4, 0], colour: "chart-4" },
+        { label: "Grid", values: [2, 6], colour: "chart-1" },
+        { label: "Export", values: [-3, 0], colour: "chart-3" },
+      ]}
+      format={(v) => `${v} kWh`}
+      onSelect={(i) => picked.push(i)}
+      selectLabel={(i) => `Show day ${i + 1}`}
+    />,
+  );
+
+  const img = screen.getByRole("img", { name: "Energy by day" });
+  const first = [...img.querySelectorAll('[data-column="1"] rect[data-colour]')].map((r) => r.getAttribute("data-colour"));
+  expect(first).toEqual(["chart-4", "chart-1", "chart-3"]);
+  // A zero draws nothing.
+  expect(img.querySelectorAll('[data-column="2"] rect[data-colour]')).toHaveLength(1);
+  screen.getByRole("button", { name: "Show day 2" }).click();
+  expect(picked).toEqual([1]);
+});
+
+it("LineChart reads out the point under the pointer with valueFormat", () => {
+  render(
+    <LineChart
+      label="State of charge"
+      from={at(0)}
+      to={at(24)}
+      times={[at(12), at(12, 5)]}
+      series={[{ label: "State of charge", values: [65.23333333, 66], colour: "chart-3" }]}
+      format={(v) => `${v} %`}
+      valueFormat={(v) => `${Math.round(v)} %`}
+    />,
+  );
+
+  // The box is 640 px wide before layout: 12:00 lies half-way along the plot.
+  fireEvent.pointerMove(screen.getByRole("img", { name: "State of charge" }), { clientX: 48 + (640 - 58) / 2 });
+
+  expect(screen.getByRole("status").textContent).toContain("State of charge65 %");
 });

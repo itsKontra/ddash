@@ -7,8 +7,9 @@
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
 // adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
 // Cloudflare: cloudflarefake; Telegram: telegramfake; calendars:
-// calendarfake, whose dates follow the clock; Anthropic: anthropicfake,
-// a canned draft). A
+// calendarfake, whose dates follow the clock; InfluxDB: energyfake, a
+// simulated house up to the clock; Anthropic: anthropicfake, a canned
+// draft). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
 // system that has a sibling directory of that name. Beside the systems it
 // serves fake Host Agents (agentfake) on three of the baseline's Workloads.
@@ -37,6 +38,8 @@ import (
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
+	"github.com/itsKontra/ddash/components/energy-api/energyapipb"
+	"github.com/itsKontra/ddash/components/energy-api/energyfake"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
@@ -149,6 +152,16 @@ var systems = []system{
 		},
 		// The calendars' dates follow the clock: there is always a today.
 		serve: func(dir string) (http.Handler, error) { return calendarfake.New(dir, calendarfake.Options{}) },
+	},
+	{
+		component: "energy-api",
+		// No fixtures: the house is simulated.
+		fixtures: "components/energy-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			return &energyapipb.EnergyApiConfig{Url: "http://" + addr, Token: "fake-token", BuyPrice: "0.2418", SellPrice: "0.05786"}
+		},
+		// The readings follow the clock: there is always a today.
+		serve: func(string) (http.Handler, error) { return energyfake.New(energyfake.Options{}), nil },
 	},
 	{
 		component: "ai-helper",
