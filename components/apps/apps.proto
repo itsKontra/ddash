@@ -618,6 +618,8 @@ message NewComposeProject {
   // The service's published port the App's traffic goes to; 0 for its
   // first.
   uint32 port = 6;
+  // The .env written beside the Compose file, owner-only; empty for none.
+  string env = 7;
 }
 
 // An App Action's Plan: its steps in the order they run, the "name is

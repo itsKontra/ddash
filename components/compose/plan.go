@@ -167,14 +167,20 @@ func (c *component) planSave(ctx context.Context, s *pb.SaveFile, override bool)
 		return nil, nil, err
 	}
 	file := cur.GetFile()
+	// A .env not there yet is created: from nothing, expecting nothing.
+	create := false
 	if isEnv {
 		file = cur.GetEnv()
 		if file == nil {
-			return nil, nil, status.Errorf(codes.NotFound, "%s has no .env", t.project.GetName())
+			create = true
+			file = &dapb.ComposeFile{Path: path.Join(path.Dir(t.file()), ".env")}
 		}
 	}
 	p := &pb.Plan{Diff: unifiedDiff(file.GetPath(), file.GetContent(), s.GetContent())}
-	if file.GetSha256() != s.GetExpectSha256() {
+	switch {
+	case create && s.GetExpectSha256() != "":
+		p.Blocked = append(p.Blocked, file.GetPath()+" was deleted on disk since you opened it: reload it, then edit again.")
+	case file.GetSha256() != s.GetExpectSha256():
 		p.Blocked = append(p.Blocked, file.GetPath()+" changed on disk since you opened it: reload it to see the change, then edit again.")
 	}
 	if file.GetContent() == s.GetContent() {
@@ -190,10 +196,20 @@ func (c *component) planSave(ctx context.Context, s *pb.SaveFile, override bool)
 		}
 	}
 	w := &work{title: "Save " + path.Base(file.GetPath()) + " of " + t.project.GetName(), tgt: t}
-	p.Steps = append(p.Steps, &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Write " + file.GetPath(), Values: []*pb.PlanValue{
-		{Label: "Previous content", After: file.GetPath() + ".bak"},
-		{Label: "Validated", After: "docker compose config, on " + s.GetHost()},
-	}})
+	step := &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Write " + file.GetPath()}
+	switch {
+	case create:
+		step.Title = "Create " + file.GetPath()
+		step.Values = []*pb.PlanValue{{Label: "Readable by", After: "its owner only"}}
+	case isEnv:
+		step.Values = []*pb.PlanValue{{Label: "Previous content", After: file.GetPath() + ".bak"}}
+	default:
+		step.Values = []*pb.PlanValue{
+			{Label: "Previous content", After: file.GetPath() + ".bak"},
+			{Label: "Validated", After: "docker compose config, on " + s.GetHost()},
+		}
+	}
+	p.Steps = append(p.Steps, step)
 	w.steps = append(w.steps, stepWork{jobStep: -1, run: func(ctx context.Context, r *run, i int) error {
 		_, err := c.agents.WriteComposeFile(ctx, &dapb.WriteComposeFileRequest{Host: s.GetHost(), Path: file.GetPath(), Content: s.GetContent(), ExpectSha256: s.GetExpectSha256(), Project: t.project.GetName()})
 		return err
@@ -394,7 +410,7 @@ func (c *component) planAdd(ctx context.Context, a *pb.AddProject) (*pb.Plan, *w
 	}
 	file := path.Join(dir, "compose.yaml")
 	if len(p.Blocked) == 0 {
-		v, err := c.agents.ValidateComposeFile(ctx, &dapb.ValidateComposeFileRequest{Host: a.GetHost(), Path: file, Content: a.GetContent(), Project: a.GetName()})
+		v, err := c.agents.ValidateComposeFile(ctx, &dapb.ValidateComposeFileRequest{Host: a.GetHost(), Path: file, Content: a.GetContent(), Project: a.GetName(), Env: a.GetEnv()})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -403,9 +419,13 @@ func (c *component) planAdd(ctx context.Context, a *pb.AddProject) (*pb.Plan, *w
 		}
 	}
 	w := &work{title: "Add " + a.GetName(), tgt: t}
-	p.Steps = append(p.Steps, &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Create " + file, Values: []*pb.PlanValue{{Label: "Compose Project", After: a.GetName()}}})
+	create := &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Create " + file, Values: []*pb.PlanValue{{Label: "Compose Project", After: a.GetName()}}}
+	if a.GetEnv() != "" {
+		create.Values = append(create.Values, &pb.PlanValue{Label: ".env", After: path.Join(dir, ".env") + ", readable by its owner only"})
+	}
+	p.Steps = append(p.Steps, create)
 	w.steps = append(w.steps, stepWork{jobStep: -1, run: func(ctx context.Context, r *run, i int) error {
-		_, err := c.agents.CreateComposeProject(ctx, &dapb.CreateComposeProjectRequest{Host: a.GetHost(), Name: a.GetName(), Directory: dir, Content: a.GetContent()})
+		_, err := c.agents.CreateComposeProject(ctx, &dapb.CreateComposeProjectRequest{Host: a.GetHost(), Name: a.GetName(), Directory: dir, Content: a.GetContent(), Env: a.GetEnv()})
 		return err
 	}})
 	if a.GetStart() {

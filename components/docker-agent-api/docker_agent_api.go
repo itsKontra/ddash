@@ -619,7 +619,7 @@ func (c *component) ValidateComposeFile(ctx context.Context, req *pb.ValidateCom
 		return nil, err
 	}
 	var v agent.ValidateResponse
-	if err := cl.Post(ctx, agent.PathValidate, agent.ValidateRequest{Path: req.GetPath(), Content: req.GetContent(), Project: req.GetProject()}, &v); err != nil {
+	if err := cl.Post(ctx, agent.PathValidate, agent.ValidateRequest{Path: req.GetPath(), Content: req.GetContent(), Project: req.GetProject(), Env: req.GetEnv()}, &v); err != nil {
 		return nil, agentErr(err)
 	}
 	return &pb.ValidateComposeFileResponse{Ok: v.OK, Error: v.Error}, nil
@@ -645,13 +645,17 @@ func (c *component) CreateComposeProject(ctx context.Context, req *pb.CreateComp
 	}
 	defer c.reads.Invalidate()
 	var f agent.File
-	if err := cl.Post(ctx, agent.PathCreate, agent.CreateRequest{Name: req.GetName(), Directory: req.GetDirectory(), Content: req.GetContent()}, &f); err != nil {
+	if err := cl.Post(ctx, agent.PathCreate, agent.CreateRequest{Name: req.GetName(), Directory: req.GetDirectory(), Content: req.GetContent(), Env: req.GetEnv()}, &f); err != nil {
 		if agent.CodeOf(err) == agent.CodeConflict {
 			return nil, status.Error(codes.AlreadyExists, err.Error())
 		}
 		return nil, agentErr(err)
 	}
-	return &pb.CreateComposeProjectResponse{File: &pb.ComposeFile{Path: f.Path, Content: f.Content, Sha256: f.SHA256}}, nil
+	out := &pb.CreateComposeProjectResponse{File: &pb.ComposeFile{Path: f.Path, Content: f.Content, Sha256: f.SHA256}}
+	if f.Env != nil {
+		out.Env = &pb.ComposeFile{Path: f.Env.Path, Content: f.Env.Content, Sha256: f.Env.SHA256}
+	}
+	return out, nil
 }
 
 // compose starts a Compose job on the target's Agent.

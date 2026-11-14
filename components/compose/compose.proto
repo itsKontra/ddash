@@ -212,7 +212,8 @@ message ComposeAction {
 // Save a Compose Project's Compose file, or the .env beside it: validated
 // with `docker compose config` on the host, the previous content kept as
 // <file>.bak, refused when the file changed on disk since expect_sha256
-// was read.
+// was read. A .env that isn't there yet is created when expect_sha256 is
+// empty.
 message SaveFile {
   string host = 1;
   string project = 2;
@@ -250,8 +251,8 @@ message Update {
   string project = 2;
 }
 
-// A new Compose Project: its directory under one of the host's roots and
-// its Compose file, then optionally `up -d`.
+// A new Compose Project: its directory under one of the host's roots, its
+// Compose file and optionally its .env, then optionally `up -d`.
 message AddProject {
   string host = 1;
   // Lower-case letters, digits, - and _.
@@ -259,6 +260,8 @@ message AddProject {
   string directory = 3;
   string content = 4;
   bool start = 5;
+  // The .env beside the Compose file; empty for none.
+  string env = 6;
 }
 
 message Plan {

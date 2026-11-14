@@ -1778,7 +1778,10 @@ type ValidateComposeFileRequest struct {
 	Path    string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
 	Content string                 `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
 	// The Compose project's name to validate as; empty: Compose's default.
-	Project       string `protobuf:"bytes,4,opt,name=project,proto3" json:"project,omitempty"`
+	Project string `protobuf:"bytes,4,opt,name=project,proto3" json:"project,omitempty"`
+	// A new Compose Project's .env, validated with as if beside the file;
+	// empty: the .env on disk, if any.
+	Env           string `protobuf:"bytes,5,opt,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1841,6 +1844,13 @@ func (x *ValidateComposeFileRequest) GetProject() string {
 	return ""
 }
 
+func (x *ValidateComposeFileRequest) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
+}
+
 type ValidateComposeFileResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Ok    bool                   `protobuf:"varint,1,opt,name=ok,proto3" json:"ok,omitempty"`
@@ -1898,8 +1908,9 @@ type WriteComposeFileRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Host  string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// The Compose file, or the .env beside it.
-	Path          string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
-	Content       string `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	Path    string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Content string `protobuf:"bytes,3,opt,name=content,proto3" json:"content,omitempty"`
+	// Empty creates a .env that isn't there yet.
 	ExpectSha256  string `protobuf:"bytes,4,opt,name=expect_sha256,json=expectSha256,proto3" json:"expect_sha256,omitempty"`
 	Project       string `protobuf:"bytes,5,opt,name=project,proto3" json:"project,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -2020,8 +2031,11 @@ type CreateComposeProjectRequest struct {
 	Host  string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	// Absolute, under one of the Agent's roots.
-	Directory     string `protobuf:"bytes,3,opt,name=directory,proto3" json:"directory,omitempty"`
-	Content       string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	Directory string `protobuf:"bytes,3,opt,name=directory,proto3" json:"directory,omitempty"`
+	Content   string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	// The .env written beside the Compose file, owner-only, before it is
+	// validated; empty for none.
+	Env           string `protobuf:"bytes,5,opt,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2084,9 +2098,18 @@ func (x *CreateComposeProjectRequest) GetContent() string {
 	return ""
 }
 
+func (x *CreateComposeProjectRequest) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
+}
+
 type CreateComposeProjectResponse struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	File          *ComposeFile           `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	File  *ComposeFile           `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	// The .env written, when one was.
+	Env           *ComposeFile `protobuf:"bytes,2,opt,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2124,6 +2147,13 @@ func (*CreateComposeProjectResponse) Descriptor() ([]byte, []int) {
 func (x *CreateComposeProjectResponse) GetFile() *ComposeFile {
 	if x != nil {
 		return x.File
+	}
+	return nil
+}
+
+func (x *CreateComposeProjectResponse) GetEnv() *ComposeFile {
+	if x != nil {
+		return x.Env
 	}
 	return nil
 }
@@ -3022,12 +3052,13 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\vComposeFile\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x02 \x01(\tR\acontent\x12\x16\n" +
-	"\x06sha256\x18\x03 \x01(\tR\x06sha256\"x\n" +
+	"\x06sha256\x18\x03 \x01(\tR\x06sha256\"\x8a\x01\n" +
 	"\x1aValidateComposeFileRequest\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x18\n" +
 	"\acontent\x18\x03 \x01(\tR\acontent\x12\x18\n" +
-	"\aproject\x18\x04 \x01(\tR\aproject\"C\n" +
+	"\aproject\x18\x04 \x01(\tR\aproject\x12\x10\n" +
+	"\x03env\x18\x05 \x01(\tR\x03env\"C\n" +
 	"\x1bValidateComposeFileResponse\x12\x0e\n" +
 	"\x02ok\x18\x01 \x01(\bR\x02ok\x12\x14\n" +
 	"\x05error\x18\x02 \x01(\tR\x05error\"\x9a\x01\n" +
@@ -3038,14 +3069,16 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\rexpect_sha256\x18\x04 \x01(\tR\fexpectSha256\x12\x18\n" +
 	"\aproject\x18\x05 \x01(\tR\aproject\"Q\n" +
 	"\x18WriteComposeFileResponse\x125\n" +
-	"\x04file\x18\x01 \x01(\v2!.ddash.dockeragentapi.ComposeFileR\x04file\"}\n" +
+	"\x04file\x18\x01 \x01(\v2!.ddash.dockeragentapi.ComposeFileR\x04file\"\x8f\x01\n" +
 	"\x1bCreateComposeProjectRequest\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
 	"\tdirectory\x18\x03 \x01(\tR\tdirectory\x12\x18\n" +
-	"\acontent\x18\x04 \x01(\tR\acontent\"U\n" +
+	"\acontent\x18\x04 \x01(\tR\acontent\x12\x10\n" +
+	"\x03env\x18\x05 \x01(\tR\x03env\"\x8a\x01\n" +
 	"\x1cCreateComposeProjectResponse\x125\n" +
-	"\x04file\x18\x01 \x01(\v2!.ddash.dockeragentapi.ComposeFileR\x04file\"\x8e\x01\n" +
+	"\x04file\x18\x01 \x01(\v2!.ddash.dockeragentapi.ComposeFileR\x04file\x123\n" +
+	"\x03env\x18\x02 \x01(\v2!.ddash.dockeragentapi.ComposeFileR\x03env\"\x8e\x01\n" +
 	"\rComposeTarget\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x18\n" +
 	"\aproject\x18\x02 \x01(\tR\aproject\x12\x1f\n" +
@@ -3212,62 +3245,63 @@ var file_docker_agent_api_docker_agent_api_proto_depIdxs = []int32{
 	28, // 19: ddash.dockeragentapi.GetComposeFileResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
 	28, // 20: ddash.dockeragentapi.WriteComposeFileResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
 	28, // 21: ddash.dockeragentapi.CreateComposeProjectResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
-	35, // 22: ddash.dockeragentapi.UpProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	53, // 23: ddash.dockeragentapi.UpProjectResponse.job:type_name -> ddash.job.Job
-	35, // 24: ddash.dockeragentapi.DownProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	53, // 25: ddash.dockeragentapi.DownProjectResponse.job:type_name -> ddash.job.Job
-	35, // 26: ddash.dockeragentapi.RestartProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	53, // 27: ddash.dockeragentapi.RestartProjectResponse.job:type_name -> ddash.job.Job
-	35, // 28: ddash.dockeragentapi.PullProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	53, // 29: ddash.dockeragentapi.PullProjectResponse.job:type_name -> ddash.job.Job
-	35, // 30: ddash.dockeragentapi.UpdateProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	53, // 31: ddash.dockeragentapi.UpdateProjectResponse.job:type_name -> ddash.job.Job
-	48, // 32: ddash.dockeragentapi.ListJobsResponse.hosts:type_name -> ddash.dockeragentapi.HostJobs
-	53, // 33: ddash.dockeragentapi.HostJobs.jobs:type_name -> ddash.job.Job
-	53, // 34: ddash.dockeragentapi.CollectJobResponse.job:type_name -> ddash.job.Job
-	2,  // 35: ddash.dockeragentapi.DockerAgentApiService.ListAgents:input_type -> ddash.dockeragentapi.ListAgentsRequest
-	5,  // 36: ddash.dockeragentapi.DockerAgentApiService.AddAgent:input_type -> ddash.dockeragentapi.AddAgentRequest
-	7,  // 37: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:input_type -> ddash.dockeragentapi.GetAgentSetupRequest
-	10, // 38: ddash.dockeragentapi.DockerAgentApiService.PairAgent:input_type -> ddash.dockeragentapi.PairAgentRequest
-	12, // 39: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:input_type -> ddash.dockeragentapi.RemoveAgentRequest
-	14, // 40: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:input_type -> ddash.dockeragentapi.UpdateAgentRequest
-	16, // 41: ddash.dockeragentapi.DockerAgentApiService.ListContainers:input_type -> ddash.dockeragentapi.ListContainersRequest
-	21, // 42: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:input_type -> ddash.dockeragentapi.ListComposeProjectsRequest
-	26, // 43: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:input_type -> ddash.dockeragentapi.GetComposeFileRequest
-	29, // 44: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:input_type -> ddash.dockeragentapi.ValidateComposeFileRequest
-	31, // 45: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:input_type -> ddash.dockeragentapi.WriteComposeFileRequest
-	33, // 46: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:input_type -> ddash.dockeragentapi.CreateComposeProjectRequest
-	36, // 47: ddash.dockeragentapi.DockerAgentApiService.UpProject:input_type -> ddash.dockeragentapi.UpProjectRequest
-	38, // 48: ddash.dockeragentapi.DockerAgentApiService.DownProject:input_type -> ddash.dockeragentapi.DownProjectRequest
-	40, // 49: ddash.dockeragentapi.DockerAgentApiService.RestartProject:input_type -> ddash.dockeragentapi.RestartProjectRequest
-	42, // 50: ddash.dockeragentapi.DockerAgentApiService.PullProject:input_type -> ddash.dockeragentapi.PullProjectRequest
-	44, // 51: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:input_type -> ddash.dockeragentapi.UpdateProjectRequest
-	46, // 52: ddash.dockeragentapi.DockerAgentApiService.ListJobs:input_type -> ddash.dockeragentapi.ListJobsRequest
-	49, // 53: ddash.dockeragentapi.DockerAgentApiService.CollectJob:input_type -> ddash.dockeragentapi.CollectJobRequest
-	3,  // 54: ddash.dockeragentapi.DockerAgentApiService.ListAgents:output_type -> ddash.dockeragentapi.ListAgentsResponse
-	6,  // 55: ddash.dockeragentapi.DockerAgentApiService.AddAgent:output_type -> ddash.dockeragentapi.AddAgentResponse
-	8,  // 56: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:output_type -> ddash.dockeragentapi.GetAgentSetupResponse
-	11, // 57: ddash.dockeragentapi.DockerAgentApiService.PairAgent:output_type -> ddash.dockeragentapi.PairAgentResponse
-	13, // 58: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:output_type -> ddash.dockeragentapi.RemoveAgentResponse
-	15, // 59: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:output_type -> ddash.dockeragentapi.UpdateAgentResponse
-	17, // 60: ddash.dockeragentapi.DockerAgentApiService.ListContainers:output_type -> ddash.dockeragentapi.ListContainersResponse
-	22, // 61: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:output_type -> ddash.dockeragentapi.ListComposeProjectsResponse
-	27, // 62: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:output_type -> ddash.dockeragentapi.GetComposeFileResponse
-	30, // 63: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:output_type -> ddash.dockeragentapi.ValidateComposeFileResponse
-	32, // 64: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:output_type -> ddash.dockeragentapi.WriteComposeFileResponse
-	34, // 65: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:output_type -> ddash.dockeragentapi.CreateComposeProjectResponse
-	37, // 66: ddash.dockeragentapi.DockerAgentApiService.UpProject:output_type -> ddash.dockeragentapi.UpProjectResponse
-	39, // 67: ddash.dockeragentapi.DockerAgentApiService.DownProject:output_type -> ddash.dockeragentapi.DownProjectResponse
-	41, // 68: ddash.dockeragentapi.DockerAgentApiService.RestartProject:output_type -> ddash.dockeragentapi.RestartProjectResponse
-	43, // 69: ddash.dockeragentapi.DockerAgentApiService.PullProject:output_type -> ddash.dockeragentapi.PullProjectResponse
-	45, // 70: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:output_type -> ddash.dockeragentapi.UpdateProjectResponse
-	47, // 71: ddash.dockeragentapi.DockerAgentApiService.ListJobs:output_type -> ddash.dockeragentapi.ListJobsResponse
-	50, // 72: ddash.dockeragentapi.DockerAgentApiService.CollectJob:output_type -> ddash.dockeragentapi.CollectJobResponse
-	54, // [54:73] is the sub-list for method output_type
-	35, // [35:54] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	28, // 22: ddash.dockeragentapi.CreateComposeProjectResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
+	35, // 23: ddash.dockeragentapi.UpProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 24: ddash.dockeragentapi.UpProjectResponse.job:type_name -> ddash.job.Job
+	35, // 25: ddash.dockeragentapi.DownProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 26: ddash.dockeragentapi.DownProjectResponse.job:type_name -> ddash.job.Job
+	35, // 27: ddash.dockeragentapi.RestartProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 28: ddash.dockeragentapi.RestartProjectResponse.job:type_name -> ddash.job.Job
+	35, // 29: ddash.dockeragentapi.PullProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 30: ddash.dockeragentapi.PullProjectResponse.job:type_name -> ddash.job.Job
+	35, // 31: ddash.dockeragentapi.UpdateProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 32: ddash.dockeragentapi.UpdateProjectResponse.job:type_name -> ddash.job.Job
+	48, // 33: ddash.dockeragentapi.ListJobsResponse.hosts:type_name -> ddash.dockeragentapi.HostJobs
+	53, // 34: ddash.dockeragentapi.HostJobs.jobs:type_name -> ddash.job.Job
+	53, // 35: ddash.dockeragentapi.CollectJobResponse.job:type_name -> ddash.job.Job
+	2,  // 36: ddash.dockeragentapi.DockerAgentApiService.ListAgents:input_type -> ddash.dockeragentapi.ListAgentsRequest
+	5,  // 37: ddash.dockeragentapi.DockerAgentApiService.AddAgent:input_type -> ddash.dockeragentapi.AddAgentRequest
+	7,  // 38: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:input_type -> ddash.dockeragentapi.GetAgentSetupRequest
+	10, // 39: ddash.dockeragentapi.DockerAgentApiService.PairAgent:input_type -> ddash.dockeragentapi.PairAgentRequest
+	12, // 40: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:input_type -> ddash.dockeragentapi.RemoveAgentRequest
+	14, // 41: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:input_type -> ddash.dockeragentapi.UpdateAgentRequest
+	16, // 42: ddash.dockeragentapi.DockerAgentApiService.ListContainers:input_type -> ddash.dockeragentapi.ListContainersRequest
+	21, // 43: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:input_type -> ddash.dockeragentapi.ListComposeProjectsRequest
+	26, // 44: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:input_type -> ddash.dockeragentapi.GetComposeFileRequest
+	29, // 45: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:input_type -> ddash.dockeragentapi.ValidateComposeFileRequest
+	31, // 46: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:input_type -> ddash.dockeragentapi.WriteComposeFileRequest
+	33, // 47: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:input_type -> ddash.dockeragentapi.CreateComposeProjectRequest
+	36, // 48: ddash.dockeragentapi.DockerAgentApiService.UpProject:input_type -> ddash.dockeragentapi.UpProjectRequest
+	38, // 49: ddash.dockeragentapi.DockerAgentApiService.DownProject:input_type -> ddash.dockeragentapi.DownProjectRequest
+	40, // 50: ddash.dockeragentapi.DockerAgentApiService.RestartProject:input_type -> ddash.dockeragentapi.RestartProjectRequest
+	42, // 51: ddash.dockeragentapi.DockerAgentApiService.PullProject:input_type -> ddash.dockeragentapi.PullProjectRequest
+	44, // 52: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:input_type -> ddash.dockeragentapi.UpdateProjectRequest
+	46, // 53: ddash.dockeragentapi.DockerAgentApiService.ListJobs:input_type -> ddash.dockeragentapi.ListJobsRequest
+	49, // 54: ddash.dockeragentapi.DockerAgentApiService.CollectJob:input_type -> ddash.dockeragentapi.CollectJobRequest
+	3,  // 55: ddash.dockeragentapi.DockerAgentApiService.ListAgents:output_type -> ddash.dockeragentapi.ListAgentsResponse
+	6,  // 56: ddash.dockeragentapi.DockerAgentApiService.AddAgent:output_type -> ddash.dockeragentapi.AddAgentResponse
+	8,  // 57: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:output_type -> ddash.dockeragentapi.GetAgentSetupResponse
+	11, // 58: ddash.dockeragentapi.DockerAgentApiService.PairAgent:output_type -> ddash.dockeragentapi.PairAgentResponse
+	13, // 59: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:output_type -> ddash.dockeragentapi.RemoveAgentResponse
+	15, // 60: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:output_type -> ddash.dockeragentapi.UpdateAgentResponse
+	17, // 61: ddash.dockeragentapi.DockerAgentApiService.ListContainers:output_type -> ddash.dockeragentapi.ListContainersResponse
+	22, // 62: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:output_type -> ddash.dockeragentapi.ListComposeProjectsResponse
+	27, // 63: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:output_type -> ddash.dockeragentapi.GetComposeFileResponse
+	30, // 64: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:output_type -> ddash.dockeragentapi.ValidateComposeFileResponse
+	32, // 65: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:output_type -> ddash.dockeragentapi.WriteComposeFileResponse
+	34, // 66: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:output_type -> ddash.dockeragentapi.CreateComposeProjectResponse
+	37, // 67: ddash.dockeragentapi.DockerAgentApiService.UpProject:output_type -> ddash.dockeragentapi.UpProjectResponse
+	39, // 68: ddash.dockeragentapi.DockerAgentApiService.DownProject:output_type -> ddash.dockeragentapi.DownProjectResponse
+	41, // 69: ddash.dockeragentapi.DockerAgentApiService.RestartProject:output_type -> ddash.dockeragentapi.RestartProjectResponse
+	43, // 70: ddash.dockeragentapi.DockerAgentApiService.PullProject:output_type -> ddash.dockeragentapi.PullProjectResponse
+	45, // 71: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:output_type -> ddash.dockeragentapi.UpdateProjectResponse
+	47, // 72: ddash.dockeragentapi.DockerAgentApiService.ListJobs:output_type -> ddash.dockeragentapi.ListJobsResponse
+	50, // 73: ddash.dockeragentapi.DockerAgentApiService.CollectJob:output_type -> ddash.dockeragentapi.CollectJobResponse
+	55, // [55:74] is the sub-list for method output_type
+	36, // [36:55] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_docker_agent_api_docker_agent_api_proto_init() }

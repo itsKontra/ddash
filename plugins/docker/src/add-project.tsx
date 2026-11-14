@@ -1,9 +1,9 @@
+import { PlanDialog } from "@ddash/compose-ui";
 import { usePluginLink, useQuery } from "@ddash/plugin";
 import { ComposeService } from "@ddash/proto/compose/compose_pb";
 import { Button, Checkbox, Field, FormActions, Notice, PageTitle, Panel, Select, Skeleton, TextArea, TextInput } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { PlanDialog } from "./plan";
 import { projectPath } from "./projects";
 
 const back = { href: "..", label: "Docker" };
@@ -14,6 +14,7 @@ export interface Draft {
   name?: string;
   directory?: string;
   compose?: string;
+  env?: string;
 }
 
 /** Reads #draft=… : base64url of the draft's JSON; undefined when absent or unreadable. */
@@ -37,7 +38,7 @@ const starter = `services:
     ports: ["8080:80"]
 `;
 
-/** Add Compose Project (/docker/projects/new): host, name, directory and Compose file, then a Plan that validates it on the host. */
+/** Add Compose Project (/docker/projects/new): host, name, directory, Compose file and .env, then a Plan that validates them on the host. */
 export function AddProjectPage() {
   const { data, error } = useQuery(ComposeService.method.listProjects, {});
   const location = useLocation();
@@ -49,6 +50,7 @@ export function AddProjectPage() {
   const [name, setName] = useState(draft?.name ?? "");
   const [directory, setDirectory] = useState(draft?.directory ?? "");
   const [content, setContent] = useState(draft?.compose ?? starter);
+  const [env, setEnv] = useState(typeof draft?.env === "string" ? draft.env : "");
   const [start, setStart] = useState(true);
   const [dialog, setDialog] = useState<ReactNode>();
 
@@ -62,7 +64,7 @@ export function AddProjectPage() {
     setDialog(
       <PlanDialog
         title={`Add ${name}`}
-        action={{ action: { case: "add", value: { host: chosen.name, name, directory: dir, content, start } } }}
+        action={{ action: { case: "add", value: { host: chosen.name, name, directory: dir, content, env, start } } }}
         confirm={start ? "Add and start" : "Add"}
         onClose={() => setDialog(undefined)}
         onDone={() => void navigate(`../../${projectPath(chosen.name, name)}`, { relative: "path" })}
@@ -115,6 +117,9 @@ export function AddProjectPage() {
             </Field>
             <Field label="Compose file" hint="Checked with `docker compose config` on the host before anything is written.">
               <TextArea mono rows={18} value={content} onChange={(e) => setContent(e.target.value)} />
+            </Field>
+            <Field label=".env" hint="Optional. Written beside compose.yaml, readable by its owner only; Compose reads it for the Compose file's variables.">
+              <TextArea mono rows={5} value={env} placeholder={"TZ=Europe/Berlin\nDB_PASSWORD=…"} onChange={(e) => setEnv(e.target.value)} />
             </Field>
             <Checkbox label="Start it once it's added (docker compose up -d)" checked={start} onChange={(e) => setStart(e.target.checked)} />
             <FormActions>

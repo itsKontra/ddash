@@ -330,7 +330,7 @@ export const certificates = {
 };
 
 /** The apps Plugin's scope in tests. */
-export const apps = { name: "apps", requires: ["apps", "checks", "nginx-proxy-manager-api"] };
+export const apps = { name: "apps", requires: ["apps", "checks", "nginx-proxy-manager-api", "compose", "docker-agent-api"] };
 
 /**
  * Renders children in the apps Plugin's scope against apps answering by
@@ -353,7 +353,7 @@ export const renderScoped = (children: React.ReactNode, answers: Answers = {}, i
     path,
   });
 
-const getters = new Set(["ListApps", "ListChecks", "ListWorkloads", "GetHistory", "ListCertificates", "PlanAction", "ListDockerHosts"]);
+const getters = new Set(["ListApps", "ListChecks", "ListWorkloads", "GetHistory", "ListCertificates", "PlanAction", "ListDockerHosts", "ListProjects", "GetComposeFile", "ListRuns"]);
 
 /** The calls to Actions, i.e. anything but the getters, each as its method and body. */
 export const actions = (calls: Call[]) => calls.filter((c) => !getters.has(c.method)).map(({ method, body }) => ({ method, body }));

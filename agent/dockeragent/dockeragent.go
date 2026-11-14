@@ -352,14 +352,27 @@ func (a *Agent) validate(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, err.Error())
 		return
 	}
-	agent.WriteJSON(w, http.StatusOK, a.Validate(r.Context(), req.Path, req.Project, req.Content))
+	agent.WriteJSON(w, http.StatusOK, a.Validate(r.Context(), req.Path, req.Project, req.Content, req.Env))
 }
 
 // Validate runs `docker compose config` on content as if it were path:
 // from a temporary file beside it, so its .env and relative paths resolve.
-func (a *Agent) Validate(ctx context.Context, path, project, content string) agent.ValidateResponse {
+// With env, it is a new Project's: both go in a temporary directory under
+// its root, the .env as .env.
+func (a *Agent) Validate(ctx context.Context, path, project, content, env string) agent.ValidateResponse {
 	dir := filepath.Dir(path)
-	if _, err := os.Stat(dir); err != nil {
+	projectDir := dir
+	if env != "" {
+		tmpDir, err := os.MkdirTemp(a.rootOf(path), ".ddash-validate-*")
+		if err != nil {
+			return agent.ValidateResponse{Error: "can't validate: " + err.Error()}
+		}
+		defer os.RemoveAll(tmpDir)
+		if err := os.WriteFile(filepath.Join(tmpDir, ".env"), []byte(env), 0o600); err != nil {
+			return agent.ValidateResponse{Error: "can't validate: " + err.Error()}
+		}
+		dir, projectDir = tmpDir, tmpDir
+	} else if _, err := os.Stat(dir); err != nil {
 		// A new Project's directory: validate from its root instead.
 		dir = a.rootOf(path)
 	}
@@ -377,14 +390,15 @@ func (a *Agent) Validate(ctx context.Context, path, project, content string) age
 		project = projectNameFromContent(content, filepath.Dir(path))
 	}
 	var lines []string
-	args := []string{"-p", project, "--project-directory", filepath.Dir(path), "-f", tmp.Name(), "config", "--quiet"}
+	args := []string{"-p", project, "--project-directory", projectDir, "-f", tmp.Name(), "config", "--quiet"}
 	if err := a.o.Compose.Run(ctx, dir, args, func(l string) { lines = append(lines, l) }); err != nil {
 		msg := strings.Join(lines, "\n")
 		if msg == "" {
 			msg = err.Error()
 		}
-		// Compose names the temporary file; the Operator knows the real one.
-		return agent.ValidateResponse{Error: strings.ReplaceAll(msg, tmp.Name(), path)}
+		// Compose names the temporary files; the Operator knows the real ones.
+		msg = strings.ReplaceAll(msg, tmp.Name(), path)
+		return agent.ValidateResponse{Error: strings.ReplaceAll(msg, projectDir, filepath.Dir(path))}
 	}
 	return agent.ValidateResponse{OK: true}
 }
@@ -437,26 +451,34 @@ func (a *Agent) write(w http.ResponseWriter, r *http.Request) {
 	}
 	defer a.lock(req.Path)()
 	old, err := os.ReadFile(req.Path)
-	if err != nil {
+	// A .env not there yet is created, with nothing to back up.
+	create := isEnv && errors.Is(err, os.ErrNotExist) && req.ExpectSHA256 == ""
+	switch {
+	case create:
+	case err != nil:
 		agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, "can't read "+req.Path+": "+err.Error())
 		return
-	}
-	if sum(old) != req.ExpectSHA256 {
+	case sum(old) != req.ExpectSHA256:
 		agent.WriteError(w, http.StatusConflict, agent.CodeConflict, req.Path+" changed on disk since it was read")
 		return
 	}
 	if !isEnv {
-		if v := a.Validate(r.Context(), req.Path, req.Project, req.Content); !v.OK {
+		if v := a.Validate(r.Context(), req.Path, req.Project, req.Content, ""); !v.OK {
 			agent.WriteError(w, http.StatusUnprocessableEntity, agent.CodeInvalid, v.Error)
 			return
 		}
 	}
-	fi, _ := os.Stat(req.Path)
-	if err := agent.WriteFileAtomic(req.Path+".bak", old, fi.Mode().Perm()); err != nil {
-		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, "can't keep the backup: "+err.Error())
-		return
+	// A .env holds secrets: readable by its owner only.
+	perm := os.FileMode(0o600)
+	if !create {
+		fi, _ := os.Stat(req.Path)
+		perm = fi.Mode().Perm()
+		if err := agent.WriteFileAtomic(req.Path+".bak", old, perm); err != nil {
+			agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, "can't keep the backup: "+err.Error())
+			return
+		}
 	}
-	if err := agent.WriteFileAtomic(req.Path, []byte(req.Content), fi.Mode().Perm()); err != nil {
+	if err := agent.WriteFileAtomic(req.Path, []byte(req.Content), perm); err != nil {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
@@ -479,13 +501,17 @@ func (a *Agent) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer a.lock(path)()
-	for _, n := range composeNames {
+	names := composeNames
+	if req.Env != "" {
+		names = append(slices.Clip(names), ".env")
+	}
+	for _, n := range names {
 		if _, err := os.Stat(filepath.Join(dir, n)); err == nil {
 			agent.WriteError(w, http.StatusConflict, agent.CodeConflict, filepath.Join(dir, n)+" already exists")
 			return
 		}
 	}
-	if v := a.Validate(r.Context(), path, req.Name, req.Content); !v.OK {
+	if v := a.Validate(r.Context(), path, req.Name, req.Content, req.Env); !v.OK {
 		agent.WriteError(w, http.StatusUnprocessableEntity, agent.CodeInvalid, v.Error)
 		return
 	}
@@ -493,11 +519,22 @@ func (a *Agent) create(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
+	var out agent.File
+	if req.Env != "" {
+		env := filepath.Join(dir, ".env")
+		// A .env holds secrets: readable by its owner only.
+		if err := agent.WriteFileAtomic(env, []byte(req.Env), 0o600); err != nil {
+			agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
+			return
+		}
+		out.Env = &agent.File{Path: env, Content: req.Env, SHA256: sum([]byte(req.Env))}
+	}
 	if err := agent.WriteFileAtomic(path, []byte(req.Content), 0o644); err != nil {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
-	agent.WriteJSON(w, http.StatusOK, agent.File{Path: path, Content: req.Content, SHA256: sum([]byte(req.Content))})
+	out.Path, out.Content, out.SHA256 = path, req.Content, sum([]byte(req.Content))
+	agent.WriteJSON(w, http.StatusOK, out)
 }
 
 var opTitles = map[agent.ComposeOp]string{

@@ -284,6 +284,9 @@ type ValidateRequest struct {
 	// Project is the Compose project name to validate as; empty: the
 	// directory's.
 	Project string `json:"project,omitempty"`
+	// Env is a new Project's .env, to validate with as if beside it;
+	// empty: the .env on disk, if any.
+	Env string `json:"env,omitempty"`
 }
 
 // ValidateResponse says whether it passed and, when not, Compose's error.
@@ -294,7 +297,8 @@ type ValidateResponse struct {
 
 // WriteRequest is POST /v1/projects/write: validate content, keep the
 // file's current content as <path>.bak and replace it, unless its SHA-256
-// is no longer ExpectSHA256 (409 conflict).
+// is no longer ExpectSHA256 (409 conflict). A .env that isn't there yet is
+// created when ExpectSHA256 is empty.
 type WriteRequest struct {
 	Path         string `json:"path"`
 	Content      string `json:"content"`
@@ -303,12 +307,15 @@ type WriteRequest struct {
 }
 
 // CreateRequest is POST /v1/projects/create: a new Compose Project's
-// directory (under a root) and its compose.yaml; refused when the file
-// exists.
+// directory (under a root), its compose.yaml and optionally its .env;
+// refused when the file exists. The answer's Env is the .env written.
 type CreateRequest struct {
 	Name      string `json:"name"`
 	Directory string `json:"directory"`
 	Content   string `json:"content"`
+	// Env is the .env's content, validated with the Compose file and
+	// written owner-only; empty for none.
+	Env string `json:"env,omitempty"`
 }
 
 // ComposeOp is a Compose operation a job runs.

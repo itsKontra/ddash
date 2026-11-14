@@ -354,6 +354,45 @@ func TestSave(t *testing.T) {
 	}
 }
 
+func TestSaveCreatesEnv(t *testing.T) {
+	ctx := context.Background()
+	l := setup(t)
+	env := filepath.Join(l.docker.Root, "idle/.env")
+	a := &pb.ComposeAction{Action: &pb.ComposeAction_Save{Save: &pb.SaveFile{Host: "apps", Project: "idle", Path: env, Content: "TZ=Europe/Berlin\n"}}}
+	plan, err := l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := plan.GetPlan()
+	if len(p.GetBlocked()) > 0 || p.GetSteps()[0].GetTitle() != "Create "+env || !strings.Contains(p.GetDiff(), "+TZ=Europe/Berlin") {
+		t.Fatalf("plan = %v", p)
+	}
+	r, err := l.run(t, a)
+	if err != nil || r.GetError() != "" {
+		t.Fatalf("save: %v %v", r, err)
+	}
+	if fi, err := os.Stat(env); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf(".env: %v %v", fi, err)
+	}
+	// There now: a create expecting none is stale.
+	if plan, _ = l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a}); !strings.Contains(strings.Join(plan.GetPlan().GetBlocked(), " "), "changed on disk") {
+		t.Fatalf("again: %v", plan.GetPlan().GetBlocked())
+	}
+}
+
+func TestAddProjectWithEnv(t *testing.T) {
+	l := setup(t)
+	dir := filepath.Join(l.docker.Root, "paperless")
+	a := &pb.ComposeAction{Action: &pb.ComposeAction_Add{Add: &pb.AddProject{Host: "apps", Name: "paperless", Directory: dir, Content: "services:\n  web:\n    image: redis:7.4\n", Env: "SECRET=x\n"}}}
+	r, err := l.run(t, a)
+	if err != nil || r.GetError() != "" {
+		t.Fatalf("add: %v %v", r, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(dir, ".env")); string(b) != "SECRET=x\n" {
+		t.Fatalf(".env = %q", b)
+	}
+}
+
 func TestFailedStepStops(t *testing.T) {
 	l := setup(t)
 	l.docker.FailNext("restart", "Error response from daemon: driver failed programming external connectivity")

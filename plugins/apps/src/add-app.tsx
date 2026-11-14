@@ -75,6 +75,7 @@ const composeOf = (d: Draft): ComposeDraft => ({
   name: d.name,
   directory: d.directory ?? "",
   content: d.compose,
+  env: d.env ?? "",
   service: d.app?.service ?? "",
   port: d.app?.port ? String(d.app.port) : "",
 });
@@ -181,7 +182,7 @@ export function AddApp({
     ...why,
   ].join(" ");
   const sourceHint = fromCompose
-    ? "ddash writes the Compose file on the Docker host and starts it, then adds the Proxy Host and DNS. The new container is the App's Workload."
+    ? "ddash writes the Compose file and its .env on the Docker host and starts it, then adds the Proxy Host and DNS. The new container is the App's Workload."
     : "The App runs already: ddash adds its Proxy Host and DNS.";
 
   return (

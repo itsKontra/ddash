@@ -1,14 +1,13 @@
+import { ComposeFiles, ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "@ddash/compose-ui";
 import { useQuery } from "@ddash/plugin";
 import { ComposeService, ImageState, type Container, type Project, type Run } from "@ddash/proto/compose/compose_pb";
-import { DockerAgentApiService, type ComposeFile } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { ago } from "@ddash/display";
-import { ActionStrip, Button, Checkbox, CodeBlock, DataTable, EmptyState, Facts, FormActions, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, Tabs, TextArea, type Column } from "@ddash/ui";
+import { ActionStrip, Button, DataTable, EmptyState, Facts, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { tones } from "./containers";
 import { ImageBadge, ProjectStatePill, shortDigest } from "./images";
 import { useNow } from "./now";
-import { ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "./plan";
 import { projectActions } from "./projects";
 
 // Relative to the route, so ".." is the Plugin's root.
@@ -134,80 +133,6 @@ function RunPanel({ run }: { run: Run }) {
   );
 }
 
-type FileTab = "compose" | "env";
-
-/** The Compose file (and .env) viewer and editor: Edit, then Save through a Plan that validates it on the host. */
-function FileEditor(props: { project: Project; open: (d: ReactNode) => void; close: () => void }) {
-  if (!props.project.configFile) return <Notice tone="info">This Compose Project&apos;s file isn&apos;t known: it was started from a path the Docker Agent doesn&apos;t mount.</Notice>;
-  return <Editor {...props} />;
-}
-
-function Editor({ project: p, open, close }: { project: Project; open: (d: ReactNode) => void; close: () => void }) {
-  const file = useQuery(DockerAgentApiService.method.getComposeFile, { host: p.host, path: p.configFile });
-  const [tab, setTab] = useState<FileTab>("compose");
-  const [draft, setDraft] = useState<{ path: string; base: ComposeFile; text: string }>();
-  const shown = tab === "env" ? file.data?.env : file.data?.file;
-  const editing = draft && draft.path === shown?.path ? draft : undefined;
-
-  if (file.error) return <Notice tone="down">{file.error.rawMessage}</Notice>;
-  if (!file.data) return <Skeleton height="lg" />;
-
-  const save = () => {
-    if (!editing) return;
-    open(<SaveDialog project={p} file={editing.base} content={editing.text} onClose={close} onDone={() => setDraft(undefined)} />);
-  };
-  const tabs = [
-    { id: "compose" as const, label: file.data.file?.path.split("/").pop() ?? "Compose file" },
-    ...(file.data.env ? [{ id: "env" as const, label: ".env" }] : []),
-  ];
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Tabs label="File" value={tab} options={tabs} onChange={(t) => setTab(t)} />
-        {!editing ? (
-          <Button size="sm" variant="outline" icon="pencil" onClick={() => shown && setDraft({ path: shown.path, base: shown, text: shown.content })}>
-            Edit
-          </Button>
-        ) : null}
-      </div>
-      <p className="font-mono text-xs break-all text-muted-foreground">{shown?.path}</p>
-      {editing ? (
-        <>
-          <TextArea mono rows={Math.min(32, Math.max(12, editing.text.split("\n").length + 2))} aria-label={`Edit ${shown?.path}`} value={editing.text} onChange={(e) => setDraft({ ...editing, text: e.target.value })} />
-          <FormActions>
-            <Button variant="ghost" onClick={() => setDraft(undefined)}>
-              Discard
-            </Button>
-            <Button disabled={editing.text === editing.base.content} onClick={save}>
-              Save…
-            </Button>
-          </FormActions>
-        </>
-      ) : (
-        <CodeBlock label={shown?.path} copy>
-          {shown?.content ?? ""}
-        </CodeBlock>
-      )}
-    </div>
-  );
-}
-
-/** Save's Plan: the diff, the validation, and whether to recreate the changed Compose services now. */
-function SaveDialog({ project: p, file, content, onClose, onDone }: { project: Project; file: ComposeFile; content: string; onClose: () => void; onDone: () => void }) {
-  const [recreate, setRecreate] = useState(false);
-  return (
-    <PlanDialog
-      title={`Save ${file.path.split("/").pop()}`}
-      action={{ action: { case: "save", value: { host: p.host, project: p.name, path: file.path, content, expectSha256: file.sha256, recreate } } }}
-      confirm={recreate ? "Save and recreate" : "Save"}
-      danger={recreate}
-      onClose={onClose}
-      onDone={onDone}
-      extra={<Checkbox label="Recreate the changed Compose services now (docker compose up -d)" checked={recreate} onChange={(e) => setRecreate(e.target.checked)} />}
-    />
-  );
-}
-
 /** A Compose Project's Page (/docker/projects/:host/:name): its Actions, its last run, its Compose services and images, its Compose file. */
 export function ProjectPage() {
   const { host = "", name = "" } = useParams();
@@ -275,7 +200,7 @@ export function ProjectPage() {
           />
         </Panel>
         <Panel title="Compose file" description="Saved only after `docker compose config` accepts it on the host; the previous file is kept as .bak.">
-          <FileEditor project={p} open={setDialog} close={close} />
+          <ComposeFiles project={p} />
         </Panel>
       </div>
       {dialog}

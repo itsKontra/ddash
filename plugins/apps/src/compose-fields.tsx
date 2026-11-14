@@ -10,13 +10,15 @@ export interface ComposeDraft {
   name: string;
   directory: string;
   content: string;
+  /** The .env beside the Compose file; "" for none. */
+  env: string;
   /** "" for the first Compose service publishing a port. */
   service: string;
   /** "" for the service's first published port. */
   port: string;
 }
 
-export const newCompose = (): ComposeDraft => ({ host: "", name: "", directory: "", content: "", service: "", port: "" });
+export const newCompose = (): ComposeDraft => ({ host: "", name: "", directory: "", content: "", env: "", service: "", port: "" });
 
 /** The draft as AddApp's compose field. */
 export const composeSource = (c: ComposeDraft) => ({
@@ -24,6 +26,7 @@ export const composeSource = (c: ComposeDraft) => ({
   name: c.name.trim(),
   directory: c.directory.trim(),
   content: c.content,
+  env: c.env,
   service: c.service,
   port: Number(c.port) || 0,
 });
@@ -31,7 +34,7 @@ export const composeSource = (c: ComposeDraft) => ({
 /**
  * The New Compose Project source's fields: the Docker host (a paired
  * Docker Agent's, from ListDockerHosts), the Compose Project's name and
- * directory, its Compose file, and the Compose service and published
+ * directory, its Compose file and .env, and the Compose service and published
  * port the App opens, picked from what the Plan read in the file.
  */
 export function ComposeFields({ value: c, onChange, services }: { value: ComposeDraft; onChange: (c: ComposeDraft) => void; services: readonly ComposeService[] }) {
@@ -84,9 +87,14 @@ export function ComposeFields({ value: c, onChange, services }: { value: Compose
         </Field>
       </div>
       {host?.error && <Notice tone="warn">{host.name}&apos;s Docker Agent can&apos;t be reached: {host.error}</Notice>}
-      <Field label="Compose file" hint="Written as compose.yaml in the directory, then started with docker compose up -d. Never an .env: add one on the host.">
+      <Field label="Compose file" hint="Written as compose.yaml in the directory, then started with docker compose up -d.">
         <div className="font-mono text-xs">
           <TextArea mono value={c.content} rows={14} placeholder={"services:\n  app:\n    image: …"} onChange={(e) => set({ content: e.target.value })} />
+        </div>
+      </Field>
+      <Field label=".env" hint="Optional. Written beside compose.yaml, readable by its owner only; Compose reads it for the Compose file's variables.">
+        <div className="font-mono text-xs">
+          <TextArea mono value={c.env} rows={5} placeholder={"TZ=Europe/Berlin\nDB_PASSWORD=…"} onChange={(e) => set({ env: e.target.value })} />
         </div>
       </Field>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

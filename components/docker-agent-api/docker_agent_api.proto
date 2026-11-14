@@ -342,6 +342,9 @@ message ValidateComposeFileRequest {
   string content = 3;
   // The Compose project's name to validate as; empty: Compose's default.
   string project = 4;
+  // A new Compose Project's .env, validated with as if beside the file;
+  // empty: the .env on disk, if any.
+  string env = 5;
 }
 
 message ValidateComposeFileResponse {
@@ -355,6 +358,7 @@ message WriteComposeFileRequest {
   // The Compose file, or the .env beside it.
   string path = 2;
   string content = 3;
+  // Empty creates a .env that isn't there yet.
   string expect_sha256 = 4;
   string project = 5;
 }
@@ -369,10 +373,15 @@ message CreateComposeProjectRequest {
   // Absolute, under one of the Agent's roots.
   string directory = 3;
   string content = 4;
+  // The .env written beside the Compose file, owner-only, before it is
+  // validated; empty for none.
+  string env = 5;
 }
 
 message CreateComposeProjectResponse {
   ComposeFile file = 1;
+  // The .env written, when one was.
+  ComposeFile env = 2;
 }
 
 // The Compose Project a Compose operation acts on.

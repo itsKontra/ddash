@@ -1,3 +1,4 @@
+import { PlanDialog, type ActionInit } from "@ddash/compose-ui";
 import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
 import { ComposeService, ProjectState, type Container, type Host, type ImageChecks, type Project } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
@@ -8,7 +9,6 @@ import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { Host as ProxyHost, tones } from "./containers";
 import { containersOf, ImageBadge, ProjectStatePill, stale } from "./images";
-import { PlanDialog, type ActionInit } from "./plan";
 import { useNow } from "./now";
 
 /** The link to a Compose Project's Page. */
