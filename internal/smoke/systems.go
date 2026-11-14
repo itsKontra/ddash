@@ -6,6 +6,7 @@ import (
 	"net/netip"
 	"net/url"
 	"slices"
+	"time"
 
 	"google.golang.org/protobuf/proto"
 
@@ -17,6 +18,8 @@ import (
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
+	energyapi "github.com/itsKontra/ddash/components/energy-api"
+	"github.com/itsKontra/ddash/components/energy-api/energyapipb"
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
@@ -313,6 +316,47 @@ var systems = []system{
 		},
 		// Never recorded: a calendar is personal, and its address is a
 		// secret. calendarfake's fixtures are written by hand.
+	},
+	{
+		def:      energyapi.Definition(),
+		optional: true,
+		service:  energyapipb.EnergyApiService_ServiceDesc.ServiceName,
+		config:   func() proto.Message { return &energyapipb.EnergyApiConfig{} },
+		requests: map[string]func(map[string]proto.Message) (proto.Message, error){
+			"GetPeriod": func(map[string]proto.Message) (proto.Message, error) {
+				return &energyapipb.GetPeriodRequest{Span: energyapipb.Span_SPAN_DAY}, nil
+			},
+		},
+		checks: map[string]func(proto.Message) error{
+			"GetFlow": func(m proto.Message) error {
+				r := m.(*energyapipb.GetFlowResponse)
+				switch {
+				case !r.GetSetUp():
+					return errors.New("not set up")
+				case r.GetAt() == nil:
+					return errors.New("no reading in the last 5 minutes")
+				case r.GetPower().Consumption == nil:
+					return errors.New("no solar or grid reading")
+				}
+				return nil
+			},
+			"GetPeriod": func(m proto.Message) error {
+				r := m.(*energyapipb.GetPeriodResponse)
+				t := r.GetTotals()
+				hours := time.Since(r.GetFrom().AsTime()).Hours() + 1
+				switch {
+				case len(r.GetBuckets()) == 0 || len(r.GetSamples()) == 0:
+					return errors.New("today has no hours or no curve")
+				case t.GetConsumption() <= 0:
+					return errors.New("nothing was used today")
+				case t.GetGridImport() > 25*hours || t.GetGridExport() > 25*hours || t.GetSolar() > 25*hours:
+					return fmt.Errorf("implausible totals: %v", t)
+				}
+				return nil
+			},
+		},
+		// Never recorded: the house's readings are personal. energyfake
+		// simulates a house instead.
 	},
 }
 

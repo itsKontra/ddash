@@ -78,6 +78,8 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok cloudflare-api GetTunnel",
 		"ok cloudflare-api ListDnsRecords",
 		"ok calendar-api ListEvents",
+		"ok energy-api GetFlow",
+		"ok energy-api GetPeriod",
 		"ok network GetNetworkInfo",
 	} {
 		if !strings.Contains(log, want+"\n") {
