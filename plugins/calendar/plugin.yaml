@@ -1,0 +1,6 @@
+name: calendar
+title: Calendar
+description: The next events from the Operator's calendars, as an agenda for the coming days.
+icon: calendar
+author: itsKontra
+requires: [calendar-api]
