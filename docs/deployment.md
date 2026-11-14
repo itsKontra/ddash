@@ -121,6 +121,23 @@ Do these by hand, in order, before first use.
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
+- [ ] Calendar (optional): each calendar's **secret iCal address**. In
+      Google Calendar on the web: Settings, the calendar under *Settings
+      for my calendars*, *Integrate calendar*, **Secret address in iCal
+      format**. Enter them in calendar-api's **Calendars** as
+      `Name = address`, separated by `;`, e.g.
+      `Family = https://calendar.google.com/calendar/ical/…/private-…/basic.ics; Work = https://…`.
+      Any calendar's `.ics` subscription address works; `webcal://` is
+      read as `https://`. There is no OAuth: no Google Cloud project or
+      consent screen is needed.
+
+      The address alone lets anyone read the whole calendar, without a
+      sign-in: treat it as a password. ddash keeps it as a secret (the form
+      never shows it again, errors name only its host) and only reads it,
+      at most every 5 minutes; it can't change the calendar. If it leaks,
+      reset it in the same place in Google Calendar and enter the new one.
+      Google refreshes the file every few hours, so a new event can take a
+      while to show. ddash needs outbound HTTPS to the calendar's host.
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
 
