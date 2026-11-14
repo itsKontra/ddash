@@ -126,7 +126,7 @@ const columnsWith = (packages: Map<number, HostPackages> | undefined): readonly 
     sortValue: (w) => live(w, Number(w.uptimeSeconds)),
     cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span>,
   },
-  { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} /> },
+  { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} limit={3} /> },
   {
     id: "updates",
     header: "Updates",
@@ -237,19 +237,21 @@ export function Workloads() {
 }
 
 /** Its IPs, or each NIC's MAC when it has none; marked when from the config. */
-export function Addresses({ workload: w }: { workload: Workload }) {
+export function Addresses({ workload: w, limit }: { workload: Workload; limit?: number }) {
   if (w.addressesError) return <span className="text-warn-text">{w.addressesError}</span>;
   // A Docker host's bridges (docker0, br-…, veth…) aren't how it is reached: counted, not listed.
   const bridge = (name: string) => /^(docker\d*|br-|veth|cni|flannel|virbr)/.test(name);
   const own = w.nics.filter((n) => !bridge(n.name));
   const bridges = w.nics.filter((n) => bridge(n.name)).flatMap((n) => n.ips).length;
-  const shown = own.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
-  if (!shown.length && !bridges) return <span className="text-muted-foreground">–</span>;
+  const all = own.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
+  const shown = limit ? all.slice(0, limit) : all;
+  if (!all.length && !bridges) return <span className="text-muted-foreground">–</span>;
   return (
     <div className="flex flex-col">
       {shown.map((a) => (
         <span key={a}>{a}</span>
       ))}
+      {all.length > shown.length && <span className="font-sans text-xs text-muted-foreground">and {all.length - shown.length} more</span>}
       {bridges > 0 && (
         <span className="font-sans text-xs text-muted-foreground">
           and {bridges} on Docker bridges
