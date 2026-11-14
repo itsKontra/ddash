@@ -13,7 +13,7 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
+	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -41,11 +41,11 @@ func TestANotificationIsHeldForTheGroupingWindow(t *testing.T) {
 		l.set("nas:22", "refuse")
 		untilState(t, c, id, checkspb.State_STATE_DOWN)
 		after(checks.GroupWindow - 5*time.Second)
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Fatalf("sent %v %v after the down, want it held for %v", titles(got), checks.GroupWindow-5*time.Second, checks.GroupWindow)
 		}
 		after(5*time.Second + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
 			t.Errorf("sent %v once the window closed, want the single down", got)
 		}
 	})
@@ -79,16 +79,16 @@ func TestAReportedItemIsNotifiedWhenItGoesDownAndWhenItRecovers(t *testing.T) {
 		report(t, c, emerg)
 		after(checks.GroupWindow + tick11())
 		click := sdktest.PublicURL + "/reverse-proxy"
-		want := []*ntfyapipb.Notification{{Title: "Nginx Proxy Manager down", Message: emerg, Priority: 4, Tags: []string{"red_circle"}, Click: click}}
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		want := []*notifypb.Notification{{Title: "Nginx Proxy Manager down", Message: emerg, Priority: 4, Tags: []string{"red_circle"}, Click: click}}
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Fatalf("after the read failed (-want +got):\n%s", diff)
 		}
 
 		after(4 * time.Minute)
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
-		want = append(want, &ntfyapipb.Notification{Title: "Nginx Proxy Manager up again", Message: "Down for 5 min (" + emerg + ")", Priority: 3, Tags: []string{"green_circle"}, Click: click})
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		want = append(want, &notifypb.Notification{Title: "Nginx Proxy Manager up again", Message: "Down for 5 min (" + emerg + ")", Priority: 3, Tags: []string{"green_circle"}, Click: click})
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("after it recovered (-want +got):\n%s", diff)
 		}
 	})
@@ -100,7 +100,7 @@ func TestAReportedItemFirstReportedUpSendsNothing(t *testing.T) {
 		_, c := startIn(t, l)
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v, want nothing for an item that was never down", titles(got))
 		}
 	})
@@ -110,15 +110,15 @@ func TestAReportedItemsStateSurvivesARestartOfChecks(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		l := newLab()
 		h, c := startIn(t, l)
-		l.ntfy.setDown(true)
+		l.notify.setDown(true)
 		report(t, c, emerg)
 		synctest.Wait()
 
 		h.Stop()
-		l.ntfy.setDown(false)
+		l.notify.setDown(false)
 		startIn(t, l, sdktest.WithDB(h.DBPath))
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
 			t.Errorf("sent %v after the restart, want the down that wasn't delivered before it", got)
 		}
 	})
@@ -146,7 +146,7 @@ func TestAGroupsTitleCountsByKindAndItsPriorityIsTheHighest(t *testing.T) {
 		_, c := startIn(t, l)
 		reportItem(t, c, "a", "Plex", "timeout")
 		after(checks.GroupWindow + tick11())
-		l.ntfy.sent = nil
+		l.notify.sent = nil
 
 		reportItem(t, c, "b", "Grafana", "HTTP 502")
 		reportItem(t, c, "a", "Plex", "")
@@ -154,14 +154,14 @@ func TestAGroupsTitleCountsByKindAndItsPriorityIsTheHighest(t *testing.T) {
 		reportItem(t, c, "d", "Sonarr", "HTTP 503")
 		after(checks.GroupWindow + tick11())
 
-		want := []*ntfyapipb.Notification{{
+		want := []*notifypb.Notification{{
 			Title:    "3 down, 1 up again",
 			Message:  "Grafana down: HTTP 502\nJellyfin down: connection refused\nSonarr down: HTTP 503\nPlex up again: down for 1 min (timeout)",
 			Priority: 4,
 			Tags:     []string{"red_circle"},
 			Click:    sdktest.PublicURL + "/checks",
 		}}
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("(-want +got):\n%s", diff)
 		}
 	})
@@ -178,7 +178,7 @@ func TestAnItemThatChangesTwiceSendsOnlyItsLatestState(t *testing.T) {
 		report(t, c, "nginx: [emerg] host not found in upstream")
 		after(checks.GroupWindow + tick11())
 
-		if got := l.ntfy.notifications(); len(got) != 1 || got[0].GetMessage() != "nginx: [emerg] host not found in upstream" {
+		if got := l.notify.notifications(); len(got) != 1 || got[0].GetMessage() != "nginx: [emerg] host not found in upstream" {
 			t.Errorf("sent %v, want the one down in its latest state", got)
 		}
 	})
@@ -193,7 +193,7 @@ func TestAnItemBackWhereItWasLastNotifiedSendsNothing(t *testing.T) {
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
 
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v, want nothing: it ended up as last notified", titles(got))
 		}
 	})
@@ -231,11 +231,11 @@ func TestTheThirdDownWithinAnHourMakesACheckFlappingWithOneNotification(t *testi
 		}
 		after(checks.GroupWindow + tick11())
 
-		got := l.ntfy.notifications()
+		got := l.notify.notifications()
 		if want := []string{"NAS down", "NAS up again", "NAS down", "NAS up again", "NAS flapping"}; !cmp.Equal(titles(got), want) {
 			t.Fatalf("sent %v, want %v", titles(got), want)
 		}
-		want := &ntfyapipb.Notification{
+		want := &notifypb.Notification{
 			Title:    "NAS flapping",
 			Message:  "Down 3 times within 1 h. Next Notification once it has been up or down for 30 min.",
 			Priority: 4,
@@ -258,25 +258,25 @@ func TestAFlappingChecksNotificationsAreHeldUntilItStaysInOneStateFor30Min(t *te
 		bounce(t, l, c, id, "nas:22")
 		bounce(t, l, c, id, "nas:22")
 		bounce(t, l, c, id, "nas:22") // Flapping from its 3rd down
-		sent := len(l.ntfy.notifications())
+		sent := len(l.notify.notifications())
 
 		// More bouncing sends nothing.
 		bounce(t, l, c, id, "nas:22")
 		l.set("nas:22", "refuse")
 		untilState(t, c, id, checkspb.State_STATE_DOWN)
 		after(checks.GroupWindow + tick11())
-		if got := l.ntfy.notifications()[sent:]; len(got) != 0 {
+		if got := l.notify.notifications()[sent:]; len(got) != 0 {
 			t.Fatalf("sent %v while Flapping, want nothing", titles(got))
 		}
 
 		l.set("nas:22", "up")
 		untilState(t, c, id, checkspb.State_STATE_UP)
 		after(checks.FlapHold - time.Minute)
-		if got := l.ntfy.notifications()[sent:]; len(got) != 0 || !find(t, c, id).GetFlapping() {
+		if got := l.notify.notifications()[sent:]; len(got) != 0 || !find(t, c, id).GetFlapping() {
 			t.Fatalf("up for 29 min: sent %v, flapping %v; want nothing yet, still Flapping", titles(got), find(t, c, id).GetFlapping())
 		}
 		after(time.Minute + checks.GroupWindow + 2*tick11())
-		got := l.ntfy.notifications()[sent:]
+		got := l.notify.notifications()[sent:]
 		if len(got) != 1 || got[0].GetTitle() != "NAS up again" || got[0].GetMessage() != "Up for 31 min after Flapping" {
 			t.Errorf("sent %v once up for 30 min, want one up again", got)
 		}
@@ -323,13 +323,13 @@ func TestAReportedItemFlapsLikeACheck(t *testing.T) {
 			after(checks.GroupWindow + tick11())
 		}
 		want := []string{"Nginx Proxy Manager down", "Nginx Proxy Manager up again", "Nginx Proxy Manager down", "Nginx Proxy Manager up again", "Nginx Proxy Manager flapping"}
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, want) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, want) {
 			t.Fatalf("sent %v, want %v", got, want)
 		}
 
 		after(checks.FlapHold + checks.GroupWindow + tick11())
 		want = append(want, "Nginx Proxy Manager up again")
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, want) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, want) {
 			t.Errorf("sent %v once up for 30 min, want %v", got, want)
 		}
 	})
@@ -353,17 +353,17 @@ func TestNothingIsSentInMaintenanceAndItsEndNotifiesWhatChanged(t *testing.T) {
 		maintain(t, c, checkScope(id), 0)
 		goDown(l, "nas:22")
 		after(checks.GroupWindow + tick11())
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Fatalf("sent %v in Maintenance, want nothing", titles(got))
 		}
 
 		endMaintenance(t, c, checkScope(id))
 		after(checks.GroupWindow - 5*time.Second)
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Fatalf("sent %v right as Maintenance ended, want it grouped", titles(got))
 		}
 		after(5*time.Second + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
 			t.Errorf("sent %v after Maintenance, want the down it kept quiet", got)
 		}
 	})
@@ -385,7 +385,7 @@ func TestTheEndOfMaintenanceSendsNothingWhenTheStateIsAsLastNotified(t *testing.
 			t.Fatalf("after 30 min: maintenance %v, state %v; want it ended and up", ch.GetMaintenance(), ch.GetState())
 		}
 		after(checks.GroupWindow + tick11())
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v, want nothing: up, as last notified", titles(got))
 		}
 	})
@@ -402,19 +402,19 @@ func TestMaintenanceOnEverythingSilencesReportedItems(t *testing.T) {
 		maintain(t, c, checkScope(id), 0)
 		report(t, c, emerg)
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
 			t.Fatalf("sent %v with only a Check in Maintenance, want the reported down", got)
 		}
 
 		maintain(t, c, everything(), 0)
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down"}) {
 			t.Fatalf("sent %v in Maintenance on everything, want nothing more", got)
 		}
 		endMaintenance(t, c, everything())
 		after(checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down", "Nginx Proxy Manager up again"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"Nginx Proxy Manager down", "Nginx Proxy Manager up again"}) {
 			t.Errorf("sent %v after Maintenance, want the recovery", got)
 		}
 	})
@@ -437,7 +437,7 @@ func TestDownsInMaintenanceDontMakeACheckFlapping(t *testing.T) {
 		if ch := find(t, c, id); ch.GetFlapping() {
 			t.Error("Flapping from downs in Maintenance, want only downs that count")
 		}
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down", "NAS up again"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NAS down", "NAS up again"}) {
 			t.Errorf("sent %v, want the down and up after Maintenance", got)
 		}
 	})
@@ -465,14 +465,14 @@ func TestOneNotificationWhenACertificateExpiresWithin14Days(t *testing.T) {
 		after(checks.GroupWindow + tick11())
 
 		id := appCheck(t, c, secure().GetAppId()).GetId()
-		want := []*ntfyapipb.Notification{{
+		want := []*notifypb.Notification{{
 			Title:    "Jellyfin certificate expiring",
 			Message:  "Expires in 10 days",
 			Priority: 3,
 			Tags:     []string{"warning"},
 			Click:    fmt.Sprintf("%s/checks/%d", sdktest.PublicURL, id),
 		}}
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Fatalf("(-want +got):\n%s", diff)
 		}
 
@@ -481,7 +481,7 @@ func TestOneNotificationWhenACertificateExpiresWithin14Days(t *testing.T) {
 		h.Stop()
 		startIn(t, l, sdktest.WithDB(h.DBPath))
 		after(10 * Interval11())
-		if n := len(l.ntfy.notifications()); n != 1 {
+		if n := len(l.notify.notifications()); n != 1 {
 			t.Errorf("%d Notifications, want the one", n)
 		}
 	})
@@ -493,7 +493,7 @@ func TestACertificateFarFromExpiryIsntNotified(t *testing.T) {
 		_, c := startIn(t, l)
 		setApps(t, c, secure())
 		after(3 * Interval11())
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v, want nothing 30 days before expiry", titles(got))
 		}
 	})
@@ -516,7 +516,7 @@ func TestMuteSilencesEveryNotificationOfItsCheck(t *testing.T) {
 			bounce(t, l, c, nas, "nas:22") // down, up, then flapping
 		}
 		after(time.Hour)
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v for muted Checks, want nothing", titles(got))
 		}
 	})
@@ -535,14 +535,14 @@ func TestNotificationsWithinTheWindowAreSentAsOneGroup(t *testing.T) {
 		goDown(l, "store:22")
 		after(checks.GroupWindow + tick11())
 
-		want := []*ntfyapipb.Notification{{
+		want := []*notifypb.Notification{{
 			Title:    "2 down",
 			Message:  "NAS down: connection refused\nNVR down: connection refused",
 			Priority: 4,
 			Tags:     []string{"red_circle"},
 			Click:    sdktest.PublicURL + "/checks",
 		}}
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("(-want +got):\n%s", diff)
 		}
 	})

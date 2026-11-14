@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ddash Runtime Map</title>
+<link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+<nav class="crumbs"><span>ddash runtime · Reference</span><a href="../lessons/0001-two-halves-and-the-minimum.html">Lesson 1</a></nav>
+<h1>Runtime map</h1>
+<p class="lede col">Which file owns each step, from Catalogue to rendered Widget. Line numbers are as of commit <code>59db643</code>.</p>
+
+<h2>Install → running Component</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Step</th><th>Owner</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Build Release</td><td><code>internal/release/release.go</code></td><td>Globs manifests, <code>go build ./components/&lt;n&gt;/cmd</code> with <code>-X sdk.Release</code>, then writes <code>catalogue.json</code> and <code>SHA256SUMS</code></td></tr>
+<tr><td>Release source</td><td><code>core/runtime/catalogue.go:45</code>, <code>github.go</code></td><td><code>Dir</code> (from <code>DDASH_RELEASE_DIR</code>) or <code>GitHub</code>, which downloads and verifies into <code>/data</code></td></tr>
+<tr><td>Check catalogue</td><td><code>catalogue.go:148</code> <code>Check</code></td><td>Rejects reserved names, unknown requires and cycles</td></tr>
+<tr><td>Dependency order</td><td><code>catalogue.go:194</code> <code>startOrder</code></td><td>DFS topological sort, dependencies first</td></tr>
+<tr><td>Install</td><td><code>core/runtime/installed.go:29</code></td><td>Inserts into <code>installed_plugin</code>, then <code>poke()</code></td></tr>
+<tr><td>Wanted set</td><td><code>installed.go:184</code> <code>wanted</code>, <code>:198</code> <code>order</code></td><td>Union of every installed Plugin's requires</td></tr>
+<tr><td>Reconcile</td><td><code>core/runtime/reconcile.go:59</code></td><td>Launches each missing Component in order; retries back off from 1 s to 5 min</td></tr>
+<tr><td>Launch</td><td><code>reconcile.go:166</code> <code>launch</code></td><td>Launch, Describe, watch, Start, pollHealth</td></tr>
+<tr><td>Subprocess</td><td><code>core/runtime/subprocess.go:41</code></td><td>Sets <code>DDASH_COMPONENT_DB</code>, but go-plugin also appends the whole host env (<code>SkipHostEnv</code> unset); SHA-256 <code>SecureConfig</code> before exec; AutoMTLS; broker multiplex</td></tr>
+<tr><td>Describe</td><td><code>core/runtime/process.go:185</code></td><td>Checks name and Release; builds <code>dynamicpb</code> types</td></tr>
+<tr><td>Start</td><td><code>process.go:229</code></td><td>60 s timeout; <code>InvalidArgument</code> gives Unconfigured, anything else gives Down</td></tr>
+<tr><td>Crashes</td><td><code>process.go</code></td><td>Restarts with exponential backoff; held down after 5 crashes in 10 min</td></tr>
+</tbody></table></div>
+
+<h2>Component side (SDK)</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Symbol</th><th>Where</th><th>Contract</th></tr></thead>
+<tbody>
+<tr><td><code>Handshake</code></td><td><code>sdk/serve.go:18</code></td><td>ProtocolVersion 1, cookie <code>DDASH_COMPONENT</code></td></tr>
+<tr><td>Handshake line</td><td>go-plugin <code>server.go:425</code></td><td>First stdout line: <code>CORE|APP|net|addr|grpc|cert|multiplex</code>. Never print to stdout before it.</td></tr>
+<tr><td><code>Serve</code></td><td><code>sdk/serve.go:38</code></td><td>Serves the one plugin, <code>"component"</code></td></tr>
+<tr><td><code>HostBrokerID</code></td><td><code>sdk/serve.go:57</code></td><td>Broker channel 1: the host's proxy for calls to other Components</td></tr>
+<tr><td><code>Component[C]</code></td><td><code>sdk/component.go:43</code></td><td><code>Start(ctx, env, cfg) error</code>, <code>Health(ctx) Health</code></td></tr>
+<tr><td><code>Spec[C]</code></td><td><code>sdk/component.go:56</code></td><td><code>Manifest</code>, <code>Service</code>, <code>Migrations</code> (optional), <code>New</code></td></tr>
+<tr><td><code>Define</code></td><td><code>sdk/component.go:100</code></td><td>Panics on a bad manifest, a missing server impl, or unmarked or streaming RPCs</td></tr>
+<tr><td><code>Instance.Register</code></td><td><code>sdk/instance.go:77</code></td><td>API answers <code>FailedPrecondition</code> until Start succeeds</td></tr>
+<tr><td><code>Require</code></td><td><code>sdk/require.go</code></td><td>A client for another Component, routed through the host</td></tr>
+<tr><td>Lifecycle proto</td><td><code>proto/ddash/component/component.proto:11</code></td><td><code>Describe</code>, <code>Start</code>, <code>Health</code></td></tr>
+<tr><td>Method options</td><td><code>proto/ddash/options.proto</code></td><td><code>(ddash.getter)</code> with <code>refresh</code>; <code>(ddash.action)</code> with <code>disruptive</code></td></tr>
+</tbody></table></div>
+
+<h2>Plugin side (browser)</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Step</th><th>Where</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Build</td><td><code>packages/vite-preset/src/index.ts</code></td><td>Library mode; externals are react, react-dom, react-router, <code>@ddash/ui</code> and <code>@ddash/plugin</code></td></tr>
+<tr><td>Import map</td><td><code>web/vite.config.ts:37</code>, <code>core/shell.go:49</code></td><td><code>/vendor/__DDASH_RELEASE__/…</code>, with the Release filled in by the core</td></tr>
+<tr><td>List</td><td><code>core/api.go:65</code></td><td>Returns <code>script</code> and <code>style</code> as <code>/plugins/&lt;n&gt;/&lt;rel&gt;/index.{js,css}</code></td></tr>
+<tr><td>Serve bundle</td><td><code>core/shell.go:31</code></td><td>Only for installed Plugins on the matching Release</td></tr>
+<tr><td>Import</td><td><code>web/src/plugins.ts:8</code>, <code>:31</code></td><td><code>import(url)</code>; the default export must be a definition</td></tr>
+<tr><td>Contract</td><td><code>packages/plugin/src/define.ts:43</code></td><td><code>{ nav?, pages?, widgets? }</code></td></tr>
+<tr><td>CI check</td><td><code>packages/plugin-check/src/contract.ts</code></td><td><code>nav</code> needs an index page; each widget needs a unique id, valid sizes and <code>useStatus</code></td></tr>
+<tr><td>Transport</td><td><code>packages/plugin/src/transport.ts:50</code></td><td>Sets the <code>Ddash-Plugin</code> header; maps package <code>ddash.&lt;n&gt;</code> to a required Component</td></tr>
+<tr><td>Route</td><td><code>core/router/router.go:185</code> <code>inScope</code></td><td>Only the Plugin's direct requires; Connect JSON is turned into protobuf via <code>dynamicpb</code></td></tr>
+<tr><td>CSRF + session</td><td><code>core/host.go:177</code>, <code>:196</code></td><td><code>guard</code>, then the <code>Connect-Protocol-Version: 1</code> requirement on <code>/api/</code></td></tr>
+<tr><td>Gate</td><td><code>core/appstate/appstate.go:73</code> <code>Admit</code></td><td>Actions get an audit row <em>before</em> the call (fails closed: Unavailable); getters pass straight through; secrets redacted; request cut at 4 KiB</td></tr>
+<tr><td>Chain</td><td><code>router.go:158</code> <code>onward</code>, <code>proxy.go:131</code> <code>forwarded</code>, <code>sdk/call.go</code></td><td>Actor and chain id ride in gRPC metadata across hops</td></tr>
+<tr><td>Errors</td><td><code>core/router/errors.go:41</code></td><td>gRPC code to Connect name and HTTP status, as <code>{code, message}</code></td></tr>
+<tr><td>Component → Component</td><td><code>core/router/proxy.go</code></td><td>Transparent proxy: <code>UnknownServiceHandler</code> with a raw codec</td></tr>
+</tbody></table></div>
+
+<h2>Component states (runtime.go:33)</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Cause</th><th>State</th><th>Recovery</th></tr></thead>
+<tbody>
+<tr><td>Started, no Health answer yet</td><td><code>starting</code></td><td>First pollHealth, right after Start</td></tr>
+<tr><td>Download failed</td><td><code>update pending</code></td><td>Loop retry timer, 1 s doubling to 5 min</td></tr>
+<tr><td>Launch or Describe failed</td><td><code>down</code></td><td>Loop retry timer (<code>proc</code> is nil)</td></tr>
+<tr><td>Start: InvalidArgument</td><td><code>unconfigured</code></td><td>Reconfigure</td></tr>
+<tr><td>Start: any other error</td><td><code>down</code></td><td>Restart or Reconfigure only; the loop skips it</td></tr>
+<tr><td>Process exited</td><td><code>crashed</code></td><td>Restarts after 1, 2, 4, 8 s</td></tr>
+<tr><td>5 crashes in 10 min</td><td><code>crashed</code> + held</td><td>Restart from the Catalogue</td></tr>
+</tbody></table></div>
+<p>A pass skips a Component when <code>proc != nil || held || now &lt; notBefore</code> (<code>reconcile.go:86</code>). Install only pokes the loop, and Uninstall stops Components itself.</p>
+
+<h2>Releases and updates</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Piece</th><th>Where</th><th>Note</th></tr></thead>
+<tbody>
+<tr><td>Lockstep stamp</td><td><code>internal/release/release.go:224</code></td><td><code>-X sdk.Release=&lt;rel&gt;</code> on the core and every Component; checked by Describe (<code>process.go:195</code>)</td></tr>
+<tr><td>Trust</td><td><code>core/runtime/github.go:74</code>, <code>:179</code></td><td>HTTPS anchors <code>SHA256SUMS</code> and <code>catalogue.json</code>; <code>ensure</code> verifies every asset, and SecureConfig checks again at launch</td></tr>
+<tr><td>Index files</td><td><code>github.go</code> <code>keptIndex</code></td><td>Kept per Release in <code>/data/releases/&lt;rel&gt;/</code>, so a rollback to a Release that ran before needs no GitHub. A data-root index from an older core is copied there and left in place (#66, commit <code>68a3af4</code>)</td></tr>
+<tr><td>Snapshot or restore</td><td><code>core/runtime/snapshot.go:19</code></td><td>On any Release change: restore the target's snapshot (current DB moved to <code>aside/</code>), else snapshot the current DB, keeping one generation</td></tr>
+<tr><td>Migrations</td><td><code>sdk/migrate/migrate.go:46</code></td><td>Forward only, tracked in <code>PRAGMA user_version</code>; <code>ErrSchemaAhead</code> means Start fails and the Component stays Down</td></tr>
+</tbody></table></div>
+
+<h2>Minimum viable</h2>
+<pre><code># Component
+components/&lt;n&gt;/component.yaml     name, description, requires
+components/&lt;n&gt;/&lt;n&gt;.proto          package ddash.&lt;n-no-hyphens&gt;; service; config msg; every rpc getter|action
+components/&lt;n&gt;/&lt;n&gt;.go             Definition() = sdk.Define(Spec{Manifest, Service, New})
+                                  type with Start, Health, embedded Unimplemented…Server
+components/&lt;n&gt;/cmd/main.go        sdk.Serve(&lt;n&gt;.Definition())
+
+# Plugin
+plugins/&lt;n&gt;/plugin.yaml           name, title, icon, requires
+plugins/&lt;n&gt;/src/index.tsx         export default definePlugin({})
+plugins/&lt;n&gt;/vite.config.ts        export default pluginConfig(import.meta.dirname)
+plugins/&lt;n&gt;/package.json</code></pre>
+</main>
+</body>
+</html>

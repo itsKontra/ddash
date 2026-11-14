@@ -133,7 +133,7 @@ A period during which a Check's results don't count toward uptime and trigger no
 _Avoid_: Downtime, pause
 
 **Notification**:
-A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering.
+A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering. It goes out through each channel that is set up (ntfy, Telegram) and whose filter takes its category: Checks, image updates or Action outcomes.
 _Avoid_: Alert, push
 
 **Flapping**:

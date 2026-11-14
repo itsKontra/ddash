@@ -87,7 +87,9 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 func TestEverySystemTheLabFakesWithGettersIsSmokeTested(t *testing.T) {
 	l := lab(t, repoRoot)
 	for c := range l.Addrs {
-		if c == "ntfy-api" { // Actions only: nothing to read
+		// Notification channels: their one getter echoes their config and
+		// reads nothing from the system.
+		if c == "ntfy-api" || c == "telegram-api" {
 			continue
 		}
 		if !slices.Contains(smoke.Components(), c) {

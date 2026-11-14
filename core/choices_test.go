@@ -9,9 +9,11 @@ import (
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/network"
+	notifycomponent "github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
@@ -35,7 +37,7 @@ func formField(t *testing.T, form map[string]any, name string) map[string]any {
 
 func TestAFieldsChoicesComeFromTheGetterItsChoicesFromNames(t *testing.T) {
 	srv := fixture.Server(t, "../components/pfsense-api/testdata/baseline")
-	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), ntfyapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), notifycomponent.Definition(), ntfyapi.Definition(), telegramapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
 	h.SeedConfig("pfsense-api", &pfsenseapipb.PfsenseApiConfig{Url: srv.URL, ApiKey: "key"})
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.OK)
@@ -68,7 +70,7 @@ func TestAFieldsChoicesComeFromTheGetterItsChoicesFromNames(t *testing.T) {
 }
 
 func TestAFieldWhoseChoicesCantBeReadIsFreeTextWithANote(t *testing.T) {
-	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), ntfyapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), notifycomponent.Definition(), ntfyapi.Definition(), telegramapi.Definition()}, Plugins: []coretest.Plugin{networkPlugin}})
 	h.Install("network")
 	h.WaitState("pfsense-api", runtime.Unconfigured)
 	h.WaitState("network", runtime.Unconfigured)

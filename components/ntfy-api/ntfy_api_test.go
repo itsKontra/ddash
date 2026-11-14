@@ -216,3 +216,12 @@ func TestABadServerOrTopicIsRefusedPerField(t *testing.T) {
 		}
 	}
 }
+
+func TestGetChannelNamesTheServerAndTopic(t *testing.T) {
+	_, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr("https://ntfy.home.example/"), Topic: "ddash-alerts"})
+
+	ch, err := c.GetChannel(t.Context(), &ntfyapipb.GetChannelRequest{})
+	if err != nil || !ch.GetSetUp() || ch.GetDestination() != "ntfy.home.example/ddash-alerts" {
+		t.Errorf("GetChannel = %v, %v, want set up to ntfy.home.example/ddash-alerts", ch, err)
+	}
+}

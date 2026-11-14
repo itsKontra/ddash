@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Browser Side</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script src="../assets/quiz.js" defer></script>
+<script src="../assets/order.js" defer></script>
+</head>
+<body>
+<main>
+<nav class="crumbs"><a href="0004-the-router.html">← Lesson 4</a><span>ddash runtime · Lesson 5</span><a href="../reference/runtime-map.html">Reference: runtime map</a></nav>
+
+<h1>The browser side</h1>
+<p class="lede col">How a Plugin's code gets from <code>/data</code> into the running shell, why it has to share React and <code>@ddash/plugin</code> with the shell, and how each Plugin's calls reach only its own Components. By the end you can say why a Plugin page is blank, broken or refused, and which file to look in.</p>
+
+<div class="with-notes">
+
+<h2>Warm-up</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="2" data-why="The proxy decodes only Actions, for the audit entry; getter bytes pass through raw (Lesson 4).">
+    <p>A Component calls a getter on another Component. Does the host decode the request?</p>
+    <div class="opts">
+      <button class="opt">Yes, to check it against the requires list</button>
+      <button class="opt">Yes, to write it into the Audit Log first</button>
+      <button class="opt">No, getter bytes pass through the proxy raw</button>
+    </div>
+  </div>
+  <div class="q" data-answer="0" data-why="go-plugin compares the binary's SHA-256 with SecureConfig before exec (Lesson 2).">
+    <p>When is a Component binary's checksum verified?</p>
+    <div class="opts">
+      <button class="opt">Just before exec, by go-plugin's SecureConfig</button>
+      <button class="opt">At Describe, against the Release in catalogue</button>
+      <button class="opt">Once only, when the GitHub download completes</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h2>What a bundle looks like</h2>
+<p>Here are the first three lines of <code>plugins/docker/dist/index.js</code>, as <code>pluginConfig</code> built it (<code>packages/vite-preset/src/index.ts</code>):</p>
+<pre><code>import { definePlugin as e, useQuery as t } from "@ddash/plugin";
+import { Badge as n, PageHeader as r, Stat as i, StatusDot as a } from "@ddash/ui";
+import { jsx as o, jsxs as s } from "react/jsx-runtime";</code></pre>
+<p>And its last line:</p>
+<pre><code>export { Tn as default };</code></pre>
+<p>Those imports are <em>bare specifiers</em>. A browser can't resolve them by itself. Something has to say what URL <code>"@ddash/ui"</code> stands for, and that something is the import map.</p>
+<aside class="note">Everything <em>not</em> in the map is bundled into the Plugin. That includes <code>@bufbuild/protobuf</code> and the Plugin's generated <code>@ddash/proto</code> clients. That's why the docker bundle is about 90 KB although its own code is small.</aside>
+
+<h2>The import map makes one React</h2>
+<p><code>importMapPackages</code> (<code>packages/vite-preset/src/index.ts:12-20</code>) lists seven packages: <code>react</code>, <code>react/jsx-runtime</code>, <code>react-dom</code>, <code>react-dom/client</code>, <code>react-router</code>, <code>@ddash/ui</code> and <code>@ddash/plugin</code>. The shell's Vite build puts a static <code>&lt;script type="importmap"&gt;</code> mapping each one to <code>/vendor/__DDASH_RELEASE__/&lt;file&gt;.js</code> (<code>web/vite.config.ts:19-41</code>). The core replaces the placeholder with the running Release when it serves <code>index.html</code> (<code>core/shell.go:73-84</code>).</p>
+<p>The shell itself imports those packages through the same map (<code>web/vite.config.ts</code> marks them external too). The shell and every Plugin therefore run against the <em>same module instances</em>.</p>
+<aside class="note">Why it must be one instance: React context is matched by object identity. <code>PluginScope</code> puts a <code>TransportProvider</code> in the tree using <code>@ddash/plugin</code>'s context objects. If a Plugin bundled its own copy of <code>@ddash/plugin</code>, its <code>useClient</code> would read a <em>different</em> context and find no transport. Two copies of React would break hooks outright. The <a href="https://react.dev/warnings/invalid-hook-call-warning#duplicate-react">React docs on duplicate React</a> describe this failure.</aside>
+
+<h3>Caching follows from the Release in the URL</h3>
+<p>Every <code>/vendor/&lt;rel&gt;/</code> and <code>/plugins/&lt;name&gt;/&lt;rel&gt;/</code> response is sent with <code>immutable</code>, cached for a year. <code>index.html</code> is sent with <code>no-cache</code> (<code>core/shell.go:22-27</code>, <code>versioned</code>). An update changes the Release, which changes every URL, so browsers fetch fresh files with no cache busting. The <code>dev</code> Release is the exception, because <code>make dev</code> rebuilds in place.</p>
+<p>The core also refuses a bundle or vendor file for any other Release with 404 (<code>core/shell.go:41</code>, <code>:56</code>). An old tab can't mix new and old code.</p>
+
+<h2>Loading, step by step</h2>
+<p>Put these in the order they happen when the Operator opens <code>/docker</code>:</p>
+<div class="order" data-why="Note that steps 4 and 5 run once per Plugin, in parallel, as soon as the list arrives; the route only waits on its own Plugin.">
+  <ol class="order-items">
+    <li>The core serves <code>index.html</code> with the Release filled into the import map</li>
+    <li>The shell boots, importing React and <code>@ddash/plugin</code> from <code>/vendor/&lt;rel&gt;/</code></li>
+    <li><code>usePlugins</code> calls <code>ListInstalledPlugins</code>, which returns each Plugin's script and style URL</li>
+    <li>The shell appends a <code>&lt;link rel="stylesheet"&gt;</code> for the Plugin's <code>index.css</code></li>
+    <li><code>import(script)</code>: the browser fetches the bundle and resolves its bare imports through the map</li>
+    <li>The default export is checked; the Plugin is stored as <code>definition</code>, or as <code>error</code></li>
+    <li><code>:plugin/*</code> renders <code>PluginPage</code>: <code>PluginScope</code>, then <code>ErrorBoundary</code>, then <code>useRoutes(pages)</code></li>
+  </ol>
+</div>
+<p class="cite">core/shell.go:73 · web/src/plugins.ts:31-54 · core/api.go:65 · web/src/app.tsx:152-167</p>
+
+<aside class="note">The shell's runtime check is loose. <code>isDefinition</code> (<code>web/src/plugins.ts:56-58</code>) only asks whether the export is a non-null object. The structural contract (an index page when <code>nav</code> is set, valid widget sizes, unique ids, <code>useStatus</code>) is enforced at build time by <code>packages/plugin-check/src/contract.ts</code>. Since Releases are lockstep and built by CI, the shell never needs to check it again.</aside>
+
+<h2>Three ways a Plugin can fail in the browser</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Failure</th><th>Where caught</th><th>What the Operator sees</th></tr></thead>
+<tbody>
+<tr><td><code>import()</code> rejects (404, syntax error), or no default export</td><td><code>usePlugins</code> sets <code>error</code></td><td>The sidebar link has a <q>failed to load</q> dot; the page shows <q>&lt;title&gt; failed to load</q></td></tr>
+<tr><td>A Page throws while rendering</td><td><code>ErrorBoundary</code> in <code>PluginPage</code>, reset on navigation</td><td><q>&lt;title&gt; crashed</q>; the rest of the shell keeps working</td></tr>
+<tr><td>A Nav Entry's <code>useBadge</code> throws</td><td>Its own <code>ErrorBoundary</code> with a <code>null</code> fallback</td><td>The badge disappears; the link still works</td></tr>
+</tbody></table></div>
+<p class="cite">web/src/app.tsx:89-97, 160-165 · web/src/nav.ts:21-36</p>
+<aside class="note">Each piece of Plugin UI gets its own boundary <em>and</em> its own <code>PluginScope</code>, even the little badge in the sidebar. A badge's calls go out under its own Plugin's name, so <code>inScope</code> holds for them too.</aside>
+
+<h2>The per-Plugin transport</h2>
+<p><code>PluginScope</code> (<code>packages/plugin/src/scope.tsx:64-74</code>) creates a <code>pluginTransport</code> from the Plugin's name and <code>requires</code>. Plugin code then calls <code>useClient(SomeService)</code> without saying which Component it means. The transport works that out (<code>packages/plugin/src/transport.ts:50-80</code>):</p>
+<ol>
+  <li>It takes the service's proto package, for example <code>ddash.dockerapi</code>.</li>
+  <li>It finds the required Component whose name without hyphens matches: <code>docker-api</code>. If none matches, it throws <code>PermissionDenied</code> in the browser, before any request.</li>
+  <li>It sends the call over a Connect transport with base URL <code>/api/c/docker-api</code> and the <code>Ddash-Plugin</code> header.</li>
+  <li>It refuses streaming calls: ddash methods are unary only.</li>
+</ol>
+<p>Every transport also runs <code>requireConfirm</code>. A call to a <code>disruptive</code> Action without a confirm text fails with <code>FailedPrecondition</code>, which makes a forgotten confirm dialog fail during development.</p>
+<aside class="note">Only the browser enforces confirmation. The router (Lesson 4) records <code>disruptive</code> in the Audit Log but doesn't check that a confirm happened. As with the <code>Ddash-Plugin</code> header, this guards against mistakes, not attacks.</aside>
+
+<h2>Check yourself</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="1" data-why="A second @ddash/plugin has its own context objects, so useTransport finds no provider from the shell's copy.">
+    <p>1. A Plugin's build accidentally bundles its own copy of <code>@ddash/plugin</code>. What breaks first?</p>
+    <div class="opts">
+      <button class="opt">The import map refuses to load the bundle</button>
+      <button class="opt">useClient finds no transport in its context</button>
+      <button class="opt">The router rejects the Ddash-Plugin header</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="A Plugin's bundle and vendor URLs carry the Release; the core 404s any other Release (core/shell.go:41).">
+    <p>2. A tab opened before an update tries to load a Plugin it hadn't loaded yet. What happens?</p>
+    <div class="opts">
+      <button class="opt">It gets the new bundle, mixed with the old React</button>
+      <button class="opt">It gets the old bundle from the immutable cache</button>
+      <button class="opt">The old-Release URL 404s; the Plugin fails to load</button>
+    </div>
+  </div>
+  <div class="q" data-answer="0" data-why="The transport maps package ddash.<name-without-hyphens> to a required Component; no match is PermissionDenied in the browser (transport.ts:58).">
+    <p>3. A new Component <code>ups-api</code> declares proto package <code>ddash.ups</code>. A Plugin requiring it calls its service. Result?</p>
+    <div class="opts">
+      <button class="opt">PermissionDenied in the browser, before any request</button>
+      <button class="opt">PermissionDenied from the router's inScope check</button>
+      <button class="opt">The call works, since the Plugin requires ups-api</button>
+    </div>
+  </div>
+  <div class="q" data-answer="1" data-why="A Page error is caught by PluginPage's ErrorBoundary; the shell and other Plugins keep working, and navigation resets it.">
+    <p>4. A Page component throws on render. How much of the UI goes down?</p>
+    <div class="opts">
+      <button class="opt">The whole shell, until the Operator reloads</button>
+      <button class="opt">Only that Plugin's page, until navigation</button>
+      <button class="opt">That Plugin's page, widgets and sidebar link</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h3>Try it</h3>
+<div class="recall">
+  <label for="recall-5">Open ddash in a browser, open devtools, and run <code>document.querySelector('script[type=importmap]').textContent</code>. Predict the seven keys and the URL pattern before you press Enter. Then check the Network tab for which requests are cached.</label>
+  <textarea id="recall-5" placeholder="Keys: …&#10;URL: /vendor/…"></textarea>
+  <details><summary>Reveal</summary>
+  <p>Keys: <code>react</code>, <code>react/jsx-runtime</code>, <code>react-dom</code>, <code>react-dom/client</code>, <code>react-router</code>, <code>@ddash/ui</code>, <code>@ddash/plugin</code>.<br>URLs: <code>/vendor/&lt;release&gt;/react-jsx-runtime.js</code> and so on. <code>vendorFile</code> drops the <code>@</code> and turns <code>/</code> into <code>-</code>. Under <code>make dev</code> the Release is <code>dev</code> and nothing is cached.</p>
+  </details>
+</div>
+
+<div class="source">
+  <p class="label">Primary source</p>
+  <p>Read MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type/importmap">import map reference</a>, particularly how bare specifiers and prefix keys resolve. Then read <code>web/src/plugins.ts</code> and <code>packages/plugin/src/transport.ts</code> in full. They're short.</p>
+</div>
+
+<p class="ask">Ask me anything that's unclear. Good follow-ups: “Why not Module Federation?” and “Should the router check confirmation for disruptive Actions too?”</p>
+
+</div>
+
+<footer class="next">
+  <span>Next: <em>Lesson 6. Releases and updates: <code>release.Build</code>, the GitHub source, <code>switchRelease</code>, and snapshots before migrations.</em></span>
+  <a href="../reference/runtime-map.html">Runtime map →</a>
+</footer>
+</main>
+</body>
+</html>

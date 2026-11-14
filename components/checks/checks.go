@@ -1,8 +1,8 @@
 // Package checks is the checks Component: it probes Checks on fixed
 // defaults, decides when each is up or down, records every beat in
 // check_event and serves the Checks' states from memory. It sends a
-// Notification through ntfy-api when a Check is confirmed down and when it
-// recovers.
+// Notification through notify (category Checks) when a Check is confirmed
+// down and when it recovers.
 package checks
 
 import (
@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
+	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -83,7 +83,7 @@ type component struct {
 	ctx       context.Context
 	db        *store
 	log       *slog.Logger
-	ntfy      ntfyapipb.NtfyApiServiceClient
+	notify    notifypb.NotifyServiceClient
 	publicURL string
 
 	mu     sync.Mutex
@@ -132,7 +132,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	c.ctx, c.log, c.publicURL = ctx, env.Log, env.PublicURL
 	c.web = webClient(ctx, c.dial, c.roots)
 	c.db = &store{env.DB}
-	c.ntfy = sdk.Require(env, ntfyapipb.NewNtfyApiServiceClient)
+	c.notify = sdk.Require(env, notifypb.NewNotifyServiceClient)
 	loaded, err := c.db.load(ctx)
 	if err != nil {
 		return err

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Reconcile Loop</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script src="../assets/quiz.js" defer></script>
+</head>
+<body>
+<main>
+<nav class="crumbs"><a href="0002-the-handshake.html">← Lesson 2</a><span>ddash runtime · Lesson 3</span><a href="../reference/runtime-map.html">Reference: runtime map</a></nav>
+
+<h1>The reconcile loop</h1>
+<p class="lede col">How the core decides which Components should run, and what it does when one fails, crashes or won't start. By the end you can take a failure scenario and name the state the Component ends in and what brings it back.</p>
+
+<div class="with-notes">
+
+<h2>Warm-up</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="2" data-why="Both the TS transport and router.inScope check the Plugin's own requires list (Lesson 1).">
+    <p>Plugin P requires A, and A requires B. Which Components can P's UI call?</p>
+    <div class="opts">
+      <button class="opt">A and B, since both of them run</button>
+      <button class="opt">Only B, the leaf of the chain</button>
+      <button class="opt">Only A, its direct requirement</button>
+    </div>
+  </div>
+  <div class="q" data-answer="0" data-why="go-plugin reads the first stdout line as the handshake (Lesson 2).">
+    <p>Why must a Component never print to stdout during <code>init()</code>?</p>
+    <div class="opts">
+      <button class="opt">The host parses it as the handshake</button>
+      <button class="opt">The host's mTLS dial rejects output</button>
+      <button class="opt">The magic cookie check then fails</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h2>Desired state, actual state, one loop</h2>
+<p>The runtime doesn't start Components when you install a Plugin. <code>Install</code> (<code>core/runtime/installed.go:29</code>) writes a row to <code>installed_plugin</code>, adds the manifest to <code>r.installed</code> and calls <code>poke()</code>. That's all it does. The launching happens elsewhere, in a single loop that compares two maps:</p>
+<ul>
+  <li><strong>Desired:</strong> <code>order()</code> (<code>installed.go:198</code>). It walks every installed Plugin's <code>requires</code> through the catalogue's <code>startOrder</code>, giving the transitive closure with dependencies first.</li>
+  <li><strong>Actual:</strong> <code>r.components</code>. Each entry has a <code>proc</code> (nil until launched), a <code>status</code>, its crash times, <code>held</code> and <code>notBefore</code>.</li>
+</ul>
+<p>Each pass of <code>reconcile</code> (<code>reconcile.go:59</code>) walks the desired order and launches every Component that isn't running yet. The check is one line (<code>reconcile.go:86</code>):</p>
+<pre><code>skip := c.proc != nil || c.held || time.Now().Before(c.notBefore)</code></pre>
+<aside class="note">This style is called <em>level-triggered</em>, the same idea as a Kubernetes controller. The loop doesn't react to individual events. Every pass recomputes the full gap between desired and actual. A missed or duplicated <code>poke()</code> therefore does no harm, which is why <code>poke</code> is a non-blocking send on a channel with a buffer of one (<code>reconcile.go:24</code>, <code>runtime.go:178</code>). Several pokes in a row collapse into one pass.</aside>
+
+<h3>What wakes the loop</h3>
+<p>The loop sleeps in a <code>select</code> (<code>reconcile.go:31-51</code>) until one of three things happens:</p>
+<ul>
+  <li><code>poke()</code>: called by Install, Restart, the runtime's own Start, and a crash timer when its delay ends.</li>
+  <li><strong>The retry timer:</strong> armed only when the pass failed to launch something. It backs off from 1 s, doubling up to 5 min, and resets after a clean pass.</li>
+  <li><strong>Shutdown:</strong> the context is cancelled.</li>
+</ul>
+<aside class="note">One detail: the timer is created <em>before</em> the pass runs (<code>reconcile.go:35</code>). Launches are sequential, and each <code>Start</code> may take up to 60 s, so a slow pass can use up the backoff by itself. The next retry then comes right after it.</aside>
+
+<h3>Uninstall works differently</h3>
+<p>Nothing in <code>reconcile</code> stops a Component. <code>Uninstall</code> (<code>installed.go:72</code>) does that directly. It deletes the row, recomputes <code>wanted()</code>, takes every Component no longer wanted out of <code>r.components</code>, and stops them in parallel within <code>StopTimeout</code>. Both functions hold the <code>changing</code> mutex, so a Component can never be launched and removed at the same time.</p>
+
+<h2>The states</h2>
+<p>A Component's <code>State</code> (<code>runtime.go:33-54</code>) combines the Component's own health (OK, Degraded, Down) with states that only the host can know. Each failure has its own way back:</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th>What happened</th><th>State</th><th>How it comes back</th></tr></thead>
+<tbody>
+<tr><td>Launched and started, no Health answer yet</td><td><code>starting</code></td><td>The first <code>pollHealth</code>, fired right after Start (<code>reconcile.go:217</code>)</td></tr>
+<tr><td>Binary or catalogue couldn't be downloaded</td><td><code>update pending</code></td><td>The loop's retry timer (<code>launchFailed</code>, <code>reconcile.go:231</code>)</td></tr>
+<tr><td>Launch or Describe failed (handshake, wrong name or Release)</td><td><code>down</code></td><td>The loop's retry timer: <code>proc</code> is still nil, so the next pass tries again</td></tr>
+<tr><td><code>Start</code> rejected the config</td><td><code>unconfigured</code></td><td>The Operator saves a config, which calls <code>Reconfigure</code></td></tr>
+<tr><td><code>Start</code> failed for any other reason</td><td><code>down</code></td><td><strong>Not retried by the loop.</strong> See below.</td></tr>
+<tr><td>Process exited by itself</td><td><code>crashed</code></td><td>Automatic restart after 1 s, 2 s, 4 s, 8 s</td></tr>
+<tr><td>5th crash within 10 min</td><td><code>crashed</code> + held</td><td>Only <code>Restart</code> from the Catalogue</td></tr>
+</tbody></table></div>
+
+<h3>The two kinds of Down</h3>
+<p>When <code>Start</code> fails, <code>launch</code> leaves the process running and returns the error as <code>startErr</code>, not <code>err</code> (<code>reconcile.go:212</code>). <code>reconcile</code> looks only at <code>err</code>, so it doesn't schedule a retry. On later passes, <code>c.proc != nil</code> means the Component is skipped. It stays Down until the Operator restarts or reconfigures it.</p>
+<aside class="note">This matches the SDK's contract for <code>Start</code> (<code>sdk/component.go:44-47</code>): <q>Start fails only for local reasons … report an unreachable upstream through Health instead.</q> Retrying a local failure wouldn't fix it. A Component that returns an error from <code>Start</code> because its upstream is unreachable breaks this contract, and the runtime will never recover it on its own.</aside>
+<p>Health polling keeps running for a Component that failed to start. The SDK remembers the start error and answers <code>Health</code> with Down plus that message (<code>sdk/instance.go:153-162</code>), so the state doesn't drift back to Starting.</p>
+
+<h3>Crash backoff</h3>
+<p><code>watch</code> (<code>process.go:53</code>) waits on <code>proc.Done()</code>. When the process exits, <code>watch</code> checks whether the runtime stopped it on purpose by comparing <code>c.proc != proc</code> and checking the context. If not, it records a crash time, dropping times older than 10 minutes. With 5 or more crashes in that window it sets <code>held</code>. Otherwise it sets <code>notBefore = now + 1s &lt;&lt; (n−1)</code> and pokes the loop once the delay has passed (<code>process.go:72-91</code>).</p>
+
+<h2>Order is not readiness</h2>
+<p><code>reconcile</code> launches in dependency order but <em>does not wait for health</em>. Launches are sequential, so B's <code>Start</code> has returned before A launches. B may still be Down or Degraded at that point. If B is held or backing off, A starts anyway, and any call A makes to B through <code>sdk.Require</code> gets <code>Unavailable</code>. Components are written to tolerate this: they report it through their own Health and don't fail <code>Start</code>.</p>
+
+<h2>Check yourself</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="1" data-why="Start errors are startErr: the process stays, proc != nil, so reconcile skips it. Only Restart or Reconfigure clear it (reconcile.go:86, 212).">
+    <p>1. <code>Start</code> returns <code>Internal</code> because a local file is missing. Then the file appears. What happens?</p>
+    <div class="opts">
+      <button class="opt">The next retry pass relaunches it, and it goes OK</button>
+      <button class="opt">It stays Down until the Operator restarts it</button>
+      <button class="opt">The next Health poll notices, and it goes OK</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="Crashes 1–4 back off 1s, 2s, 4s, 8s; the 5th within crashWindow sets held (process.go:72-77).">
+    <p>2. A Component crashes 5 times in 3 minutes. What is its state after the 5th?</p>
+    <div class="opts">
+      <button class="opt">Crashed, restarting again after 16 seconds</button>
+      <button class="opt">Down, retried by the loop's own retry timer</button>
+      <button class="opt">Crashed and held until a Catalogue Restart</button>
+    </div>
+  </div>
+  <div class="q" data-answer="0" data-why="The send is non-blocking into a 1-buffered channel; extra pokes are dropped, and one pass recomputes everything.">
+    <p>3. Three Plugins are installed in quick succession. How many reconcile passes run, at minimum?</p>
+    <div class="opts">
+      <button class="opt">One, if the pokes arrive during a pass</button>
+      <button class="opt">Three, one for each Install's own poke</button>
+      <button class="opt">Zero, Install launches them right away</button>
+    </div>
+  </div>
+  <div class="q" data-answer="1" data-why="Uninstall stops unwanted Components itself, under the changing mutex; reconcile only ever launches.">
+    <p>4. Which code stops a Component that no installed Plugin wants anymore?</p>
+    <div class="opts">
+      <button class="opt">reconcile, on its next pass after a poke</button>
+      <button class="opt">Uninstall, directly, before it returns</button>
+      <button class="opt">watch, once it notices the process exit</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h3>Recall drill</h3>
+<div class="recall">
+  <label for="recall-3">From memory: the three things that wake the reconcile loop, and the three conditions under which a pass skips a wanted Component.</label>
+  <textarea id="recall-3" placeholder="Wakes: …&#10;Skips: …"></textarea>
+  <details><summary>Reveal</summary>
+  <p>Wakes: <code>poke()</code>, the retry timer (only after a failed pass), context cancellation.<br>Skips: <code>c.proc != nil</code> (already launched), <code>c.held</code> (crashed too often), <code>now &lt; c.notBefore</code> (crash backoff).</p>
+  </details>
+</div>
+
+<div class="source">
+  <p class="label">Primary source</p>
+  <p>Read <code>core/runtime/reconcile.go</code> and <code>process.go</code> top to bottom. Together they are about 530 lines, and you now have a map for every branch. For the general pattern, read the Kubernetes docs on <a href="https://kubernetes.io/docs/concepts/architecture/controller/">controllers and the control loop</a>. ddash's loop is a one-process version of the same idea.</p>
+</div>
+
+<p class="ask">Ask me about anything unclear. Good follow-ups: “Should a Down-from-Start ever retry on its own?” and “What does <code>switchRelease</code> do inside <code>launch</code> during an update?”</p>
+
+</div>
+
+<footer class="next">
+  <span>Next: <em>Lesson 4. The router: Connect JSON to dynamicpb, the gate, and the transparent proxy (ADR 0002).</em></span>
+  <a href="../reference/runtime-map.html">Runtime map →</a>
+</footer>
+</main>
+</body>
+</html>
