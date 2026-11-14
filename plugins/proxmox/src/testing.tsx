@@ -4,7 +4,7 @@ import { Route, Routes, useLocation, useNavigate, useRoutes } from "react-router
 import plugin from "./index";
 
 /** The proxmox Plugin's scope in tests. */
-export const proxmox = { name: "proxmox", requires: ["proxmox", "proxmox-api"] };
+export const proxmox = { name: "proxmox", requires: ["proxmox", "proxmox-api", "host-agent-api"] };
 
 const GiB = 1024 ** 3;
 
@@ -91,6 +91,27 @@ export const permissions = {
     { vmid: 9000, privileges: control },
   ],
 };
+
+/** A time n days before now, as Connect JSON writes a Timestamp. */
+export const daysAgo = (n: number) => new Date(Date.now() - n * 86_400_000).toISOString();
+
+/** host-agent-api's ListAgents with one Agent on vmid in state (e.g. "AGENT_STATE_PAIRED"). */
+export const agents = (vmid: number, state: string, extra: Record<string, unknown> = {}) => ({
+  agents: [
+    {
+      vmid,
+      name: listed.workloads.find((w) => w.vmid === vmid)?.name,
+      url: `https://198.18.2.10:7444`,
+      state,
+      release: "v0.0.3",
+      hostname: "media-stack",
+      arch: "amd64",
+      os: { id: "debian", version: "12", pretty: "Debian GNU/Linux 12 (bookworm)", packageManager: "apt", init: "systemd" },
+      added: daysAgo(10),
+      ...extra,
+    },
+  ],
+});
 
 /** The URL search show's router is at, as the Page last wrote it. */
 export let search = "";

@@ -3,7 +3,12 @@ import { ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxm
 import { EmptyState, Facts, PageTitle, Panel, Skeleton } from "@ddash/ui";
 import { useParams } from "react-router";
 import { kindLabel } from "@ddash/display";
+import { AgentState } from "@ddash/proto/host-agent-api/host_agent_api_pb";
+import { HostAgent, useHostAgent } from "./agent";
 import { PowerButtons } from "./power";
+import { SnapshotsAndBackups } from "./snapshots";
+import { SSH } from "./ssh";
+import { Updates } from "./updates";
 import { Addresses, resources, StatusPill, Tags, Unlisted } from "./workloads";
 
 // Relative to the route, so ".." is the Plugin's root, the Workloads.
@@ -40,8 +45,37 @@ export function WorkloadDetail() {
         <Panel title="Details">
           <Facts items={facts(w)} />
         </Panel>
+        {!w.template && <AgentPanels workload={w} />}
+        {!w.template && (
+          <Panel title="Snapshots & backups">
+            <SnapshotsAndBackups workload={w} />
+          </Panel>
+        )}
       </div>
     </div>
+  );
+}
+
+/** The Host Agent Panel, and the Panels that work through a paired one: Updates and SSH. */
+function AgentPanels({ workload: w }: { workload: Workload }) {
+  const agent = useHostAgent(w);
+  const paired = agent?.state === AgentState.PAIRED;
+  return (
+    <>
+      <Panel title="Host Agent" description="What lets ddash update this Workload's packages and set up SSH, without logging in.">
+        <HostAgent workload={w} />
+      </Panel>
+      {paired && (
+        <Panel title="Updates" description="Package updates through the Host Agent, after a ddash Snapshot.">
+          <Updates workload={w} />
+        </Panel>
+      )}
+      {paired && (
+        <Panel title="SSH" description="sshd and the keys that let you in, through the Host Agent.">
+          <SSH workload={w} />
+        </Panel>
+      )}
+    </>
   );
 }
 

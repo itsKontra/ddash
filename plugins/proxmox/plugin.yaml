@@ -1,8 +1,10 @@
 name: proxmox
 title: Proxmox
-description: Every LXC and VM on Proxmox, with its status, resources and IPs.
+description: Every LXC and VM on Proxmox, with its status, resources and IPs; package updates, ddash Snapshots, backups and SSH Keys.
 icon: server
 author: itsKontra
-# proxmox runs the power Actions; proxmox-api's Workloads and permissions
-# are read unchanged.
-requires: [proxmox, proxmox-api]
+# proxmox runs the power Actions, updates, snapshots, backups and SSH Keys;
+# proxmox-api's Workloads, permissions and backup storages and
+# host-agent-api's Host Agents, packages and sshd are read unchanged, and
+# the Host Agents are added and paired through host-agent-api.
+requires: [proxmox, proxmox-api, host-agent-api]

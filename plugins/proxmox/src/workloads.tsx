@@ -1,11 +1,14 @@
 import { useQuery } from "@ddash/plugin";
 import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
+import type { HostPackages } from "@ddash/proto/host-agent-api/host_agent_api_pb";
 import { DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
 import { PowerStrip, taskOf } from "./power";
+import { BulkProgress, UpdateAll } from "./update-all";
+import { updatesText, usePackages, useUpdates } from "./updates";
 
 /** How each of Proxmox's statuses reads at a glance. */
 export const tones: Record<string, Tone> = {
@@ -72,7 +75,19 @@ export function Unlisted({ error }: { error: { rawMessage: string } }) {
   );
 }
 
-const columns: readonly Column<Workload>[] = [
+/** A Workload's pending updates and "reboot required", as its Host Agent last read them; "–" without one. */
+function PendingUpdates({ host }: { host?: HostPackages }) {
+  if (!host) return <span className="text-muted-foreground">–</span>;
+  return (
+    <span className="inline-flex flex-wrap gap-1.5">
+      {host.packages.length > 0 && <Pill tone="info">{updatesText(host.packages.length)}</Pill>}
+      {host.rebootRequired && <Pill tone="warn">reboot required</Pill>}
+      {!host.packages.length && !host.rebootRequired && <span className="text-muted-foreground">up to date</span>}
+    </span>
+  );
+}
+
+const columnsWith = (packages: Map<number, HostPackages> | undefined): readonly Column<Workload>[] => [
   {
     id: "name",
     header: "Name",
@@ -112,6 +127,14 @@ const columns: readonly Column<Workload>[] = [
     cell: (w) => <span className="tabular-nums">{resources(w).uptime}</span>,
   },
   { id: "ips", header: "IPs", mono: true, cell: (w) => <Addresses workload={w} /> },
+  {
+    id: "updates",
+    header: "Updates",
+    hideBelow: "sm",
+    sortable: true,
+    sortValue: (w) => packages?.get(w.vmid)?.packages.length ?? -1,
+    cell: (w) => <PendingUpdates host={packages?.get(w.vmid)} />,
+  },
 ];
 
 /** A running Workload's live value, else 0. */
@@ -143,6 +166,8 @@ const kinds = new Map([
 export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   const tasks = useQuery(ProxmoxService.method.listPowerTasks, {});
+  const packages = usePackages();
+  const bulk = useUpdates()?.bulk;
   // Read up front, so a strip opens on its power Actions, not on a skeleton.
   useQuery(ProxmoxApiService.method.listPermissions, {});
   const [q, setQ] = useQueryState("q", "");
@@ -155,7 +180,26 @@ export function Workloads() {
   const tabs = tabNames.map((t) => ({ id: t.id, label: t.label, count: searched.filter(t.has).length }));
   return (
     <div>
-      <PageTitle kicker="Infrastructure" title="Proxmox" subtitle="Every LXC and VM, with its status, resources and IPs." />
+      <PageTitle
+        kicker="Infrastructure"
+        title="Proxmox"
+        subtitle="Every LXC and VM, with its status, resources and IPs."
+        actions={
+          <>
+            <UpdateAll />
+            <Link to="ssh-keys" className="text-sm font-semibold text-primary hover:underline">
+              SSH Keys
+            </Link>
+          </>
+        }
+      />
+      {bulk && (
+        <div className="mb-6">
+          <Panel title="Update all running">
+            <BulkProgress bulk={bulk} />
+          </Panel>
+        </div>
+      )}
       {error && !data ? (
         <Unlisted error={error} />
       ) : (
@@ -176,7 +220,7 @@ export function Workloads() {
           <DataTable
             rows={searched.filter(shown.has)}
             rowKey={(w) => String(w.vmid)}
-            columns={columns}
+            columns={columnsWith(packages)}
             sortKey="sort"
             defaultSort="id"
             loading={!data}
