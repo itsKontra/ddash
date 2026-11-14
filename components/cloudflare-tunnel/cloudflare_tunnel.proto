@@ -1,0 +1,220 @@
+syntax = "proto3";
+
+// cloudflare-tunnel keeps the Cloudflare Tunnel's Public Hostnames: each
+// one ingress rule plus its proxied CNAME to the Tunnel, read through
+// cloudflare-api, and the settings of the disabled ones in its own DB.
+// Every change runs through a Plan (PlanAction, RunAction).
+package ddash.cloudflaretunnel;
+
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/cloudflare-tunnel/cloudflaretunnelpb;cloudflaretunnelpb";
+
+// cloudflare-tunnel has nothing to configure: cloudflare-api names the
+// Tunnel.
+message CloudflareTunnelConfig {}
+
+service CloudflareTunnelService {
+  // ListPublicHostnames returns every Public Hostname: those the Tunnel
+  // serves, in its ingress order, each with the state of its DNS record,
+  // then the disabled ones ddash keeps, by hostname. It reads through
+  // cloudflare-api's caches; while Cloudflare can't be read, it fails
+  // with cloudflare-api's error.
+  rpc ListPublicHostnames(ListPublicHostnamesRequest) returns (ListPublicHostnamesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // PlanAction builds a Tunnel Action's Plan from cloudflare-api's cached
+  // reads and the kept settings, and changes nothing. A Plan that can't
+  // run says why.
+  rpc PlanAction(PlanActionRequest) returns (PlanActionResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // RunAction runs a Tunnel Action whose Plan the Operator confirmed, one
+  // at a time. It reads Cloudflare afresh and builds the Plan again: when
+  // that differs from the one confirmed, it refuses before any write with
+  // "changed since you looked" (ABORTED, the new Plan in the error's
+  // details); a Plan that can't run is FAILED_PRECONDITION. Otherwise it
+  // runs the steps in order and stops at the first that fails: the error
+  // names it and what was done, nothing is rolled back, and its details
+  // carry a RunActionResponse saying how many steps were done. It streams
+  // every step's state each time one changes, and its last message, the
+  // result, has done set.
+  rpc RunAction(RunActionRequest) returns (stream RunActionResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message ListPublicHostnamesRequest {}
+
+message ListPublicHostnamesResponse {
+  // cloudflare-api names a Tunnel. False: nothing else is set.
+  bool set_up = 1;
+  // The Tunnel's ingress is configured in Cloudflare, so ddash can change
+  // it. A locally managed Tunnel is listed, read only.
+  bool remotely_managed = 2;
+  repeated PublicHostname public_hostnames = 3;
+  // The catch-all rule's service, e.g. "http_status:404".
+  string catch_all = 4;
+  // The account's zones by name: a Public Hostname is in one of them.
+  repeated string zones = 5;
+  // What a Public Hostname's CNAME points at.
+  string cname_target = 6;
+}
+
+// A hostname the Cloudflare Tunnel serves from the internet to a local
+// address, or one disabled with its settings kept.
+message PublicHostname {
+  PublicHostnameFields fields = 1;
+  // Served by the Tunnel; false for a disabled one, which ddash keeps.
+  bool enabled = 2;
+  // Its DNS record's state; unspecified for a disabled one.
+  DnsState dns = 3;
+  // DNS_STATE_ELSEWHERE: the records holding the name, e.g.
+  // "A 203.0.113.7".
+  string dns_detail = 4;
+  // The zone it is in, e.g. "home.example"; empty for none.
+  string zone = 5;
+}
+
+// What the Operator sets of a Public Hostname.
+message PublicHostnameFields {
+  // e.g. "request.home.example".
+  string hostname = 1;
+  // A path regex the rule matches; empty for every path.
+  string path = 2;
+  // The local service it forwards to, e.g. "http://198.18.1.212:5055".
+  string service = 3;
+}
+
+// A Public Hostname by its hostname and path.
+message PublicHostnameName {
+  string hostname = 1;
+  string path = 2;
+}
+
+enum DnsState {
+  DNS_STATE_UNSPECIFIED = 0;
+  // A proxied CNAME to the Tunnel.
+  DNS_STATE_OK = 1;
+  // A CNAME to the Tunnel, DNS only: Cloudflare doesn't route it to the
+  // Tunnel.
+  DNS_STATE_NOT_PROXIED = 2;
+  // No record: the name doesn't resolve.
+  DNS_STATE_MISSING = 3;
+  // Another record holds the name.
+  DNS_STATE_ELSEWHERE = 4;
+  // The hostname is in no zone of the account.
+  DNS_STATE_NO_ZONE = 5;
+}
+
+// A change to the Public Hostnames: it runs through a Plan.
+message TunnelAction {
+  oneof action {
+    AddPublicHostname add = 1;
+    EditPublicHostname edit = 2;
+    RemovePublicHostname remove = 3;
+    DisablePublicHostname disable = 4;
+    EnablePublicHostname enable = 5;
+  }
+}
+
+// Add a Public Hostname: its ingress rule, last before the catch-all,
+// then its proxied CNAME.
+message AddPublicHostname {
+  PublicHostnameFields fields = 1;
+}
+
+// Change a Public Hostname's hostname, path or service, keeping its
+// place and its other settings. A new hostname gets its CNAME and the old
+// one loses its own. A disabled one changes in ddash only.
+message EditPublicHostname {
+  PublicHostnameName name = 1;
+  PublicHostnameFields fields = 2;
+}
+
+// Remove a Public Hostname: its CNAME, then its ingress rule. A disabled
+// one's kept settings are forgotten.
+message RemovePublicHostname {
+  PublicHostnameName name = 1;
+}
+
+// Disable a Public Hostname: keep its settings in ddash, then remove its
+// CNAME and its ingress rule.
+message DisablePublicHostname {
+  PublicHostnameName name = 1;
+}
+
+// Enable a disabled Public Hostname: its ingress rule and CNAME again,
+// then forget the kept settings.
+message EnablePublicHostname {
+  PublicHostnameName name = 1;
+}
+
+// A Tunnel Action's Plan: its steps in the order they run, why it can't
+// run, if it can't, and what else to know.
+message Plan {
+  repeated PlanStep steps = 1;
+  // Why it can't run now, as the Operator reads it; empty when it can.
+  repeated string blocked = 2;
+  // What to know before confirming that doesn't keep it from running.
+  repeated string notes = 3;
+}
+
+// One step of a Plan: a write to one system, with the values it expects
+// to find there and those it writes.
+message PlanStep {
+  System system = 1;
+  // e.g. "Add the ingress rule for grafana.home.example".
+  string title = 2;
+  repeated PlanValue values = 3;
+}
+
+enum System {
+  SYSTEM_UNSPECIFIED = 0;
+  // ddash's kept settings of disabled Public Hostnames.
+  SYSTEM_DDASH = 1;
+  // The Tunnel's ingress configuration.
+  SYSTEM_CLOUDFLARE_TUNNEL = 2;
+  // Cloudflare's DNS records.
+  SYSTEM_CLOUDFLARE_DNS = 3;
+}
+
+message PlanValue {
+  string label = 1;
+  // What the step expects to find; empty for nothing.
+  string before = 2;
+  // What it writes; empty for nothing (removed).
+  string after = 3;
+}
+
+message PlanActionRequest {
+  TunnelAction action = 1;
+}
+
+message PlanActionResponse {
+  Plan plan = 1;
+}
+
+message RunActionRequest {
+  TunnelAction action = 1;
+  // The Plan the Operator confirmed, as PlanAction gave it.
+  Plan plan = 2;
+}
+
+enum StepState {
+  STEP_STATE_UNSPECIFIED = 0;
+  STEP_STATE_PENDING = 1;
+  STEP_STATE_RUNNING = 2;
+  STEP_STATE_DONE = 3;
+  STEP_STATE_FAILED = 4;
+}
+
+// How far a Tunnel Action has got; also the details of the error of one
+// that stopped at a failed step, without its steps.
+message RunActionResponse {
+  // How many of the Plan's steps were done, from the first; set on the
+  // last message only.
+  int32 done = 1;
+  // Each Plan step's state, in the Plan's order.
+  repeated StepState steps = 2;
+}

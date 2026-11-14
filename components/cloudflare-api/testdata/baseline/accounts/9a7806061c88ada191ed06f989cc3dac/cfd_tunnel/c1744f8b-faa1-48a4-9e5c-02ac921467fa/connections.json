@@ -1,0 +1,80 @@
+{
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result": [
+    {
+      "id": "5d1c0f3a-8e2b-4c7d-9a61-3b2e4f5a6c01",
+      "features": [
+        "ha-origin",
+        "serialized_headers",
+        "support_datagram_v3_2"
+      ],
+      "version": "2025.10.0",
+      "arch": "linux_amd64",
+      "config_version": 7,
+      "run_at": "2026-11-10T06:01:09.112Z",
+      "conns": [
+        {
+          "colo_name": "fra06",
+          "id": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e01",
+          "is_pending_reconnect": false,
+          "origin_ip": "203.0.113.7",
+          "opened_at": "2026-11-10T06:01:12.551Z",
+          "client_id": "5d1c0f3a-8e2b-4c7d-9a61-3b2e4f5a6c01",
+          "client_version": "2025.10.0",
+          "uuid": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e01"
+        },
+        {
+          "colo_name": "ams08",
+          "id": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e02",
+          "is_pending_reconnect": false,
+          "origin_ip": "203.0.113.7",
+          "opened_at": "2026-11-10T06:01:12.733Z",
+          "client_id": "5d1c0f3a-8e2b-4c7d-9a61-3b2e4f5a6c01",
+          "client_version": "2025.10.0",
+          "uuid": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e02"
+        }
+      ]
+    },
+    {
+      "id": "7a2e9b4c-1d3f-4e5a-8b6c-9d0e1f2a3b02",
+      "features": [
+        "ha-origin",
+        "serialized_headers"
+      ],
+      "version": "2025.9.1",
+      "arch": "linux_arm64",
+      "config_version": 7,
+      "run_at": "2026-11-12T19:44:00.871Z",
+      "conns": [
+        {
+          "colo_name": "fra10",
+          "id": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e03",
+          "is_pending_reconnect": false,
+          "origin_ip": "203.0.113.7",
+          "opened_at": "2026-11-12T19:44:03.104Z",
+          "client_id": "7a2e9b4c-1d3f-4e5a-8b6c-9d0e1f2a3b02",
+          "client_version": "2025.9.1",
+          "uuid": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e03"
+        },
+        {
+          "colo_name": "ams01",
+          "id": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e04",
+          "is_pending_reconnect": false,
+          "origin_ip": "203.0.113.7",
+          "opened_at": "2026-11-12T19:44:03.390Z",
+          "client_id": "7a2e9b4c-1d3f-4e5a-8b6c-9d0e1f2a3b02",
+          "client_version": "2025.9.1",
+          "uuid": "0e1b8f9e-5a43-4cbe-9d3a-1f2b3c4d5e04"
+        }
+      ]
+    }
+  ],
+  "result_info": {
+    "count": 2,
+    "page": 1,
+    "per_page": 20,
+    "total_count": 2
+  }
+}

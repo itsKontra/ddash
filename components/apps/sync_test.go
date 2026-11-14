@@ -10,6 +10,7 @@ import (
 	"github.com/itsKontra/ddash/components/apps"
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks"
+	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/notify"
@@ -128,7 +129,7 @@ func TestANewSourceReachesAppsWithinAMinute(t *testing.T) {
 					New:      func() sdk.Component[*networkpb.NetworkConfig] { return &networkFake{} },
 				}),
 				notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
-				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}),
+				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}), cloudflareapi.Definition(),
 			},
 			Plugins: []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 		})

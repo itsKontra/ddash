@@ -150,3 +150,23 @@ it("says why there's no network info while network can't answer, and hides Ads A
   await open("proxy:grafana.home.example", ["apps"], { ListApps: () => Response.json({ ...split, adguardError: "can't read AdGuard's clients: timeout" }) });
   expect(within(panel("Network")).queryByText(/Ads/)?.textContent).toBe("Ads Allowed unknown: can't read AdGuard's clients: timeout");
 });
+
+it("shows an App the Cloudflare Tunnel serves as on the internet, linking to its Page", async () => {
+  const online = {
+    ...split,
+    apps: split.apps.map((a) => (a.id === "proxy:jellyfin.home.example" ? { ...a, publicHostnames: [{ hostname: "jellyfin.home.example", service: "http://198.18.2.10:8096" }] } : a)),
+  };
+  await open("proxy:jellyfin.home.example", ["apps", "cloudflare-tunnel"], { ListApps: () => Response.json(online) });
+
+  expect(facts("Network")["On the internet"]).toBe("Through the Cloudflare Tunnel: jellyfin.home.example → http://198.18.2.10:8096");
+  expect(within(panel("Network")).getByRole("link", { name: "the Cloudflare Tunnel" }).getAttribute("href")).toBe("/cloudflare-tunnel");
+});
+
+it("shows no On the internet for an App the Cloudflare Tunnel doesn't serve, and says when it can't tell", async () => {
+  await open("proxy:grafana.home.example");
+  expect(facts("Network")["On the internet"]).toBeUndefined();
+
+  cleanup();
+  await open("proxy:grafana.home.example", ["apps"], { ListApps: () => Response.json({ ...split, cloudflareError: "Cloudflare unreachable: timeout" }) });
+  expect(within(panel("Network")).getByText("On the internet unknown: Cloudflare unreachable: timeout")).toBeTruthy();
+});

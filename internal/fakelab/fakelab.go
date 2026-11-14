@@ -6,8 +6,8 @@
 // Docker comes first; each later system adds itself to systems. A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
 // adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
-// Telegram: telegramfake; calendars: calendarfake, whose dates follow
-// the clock). A
+// Cloudflare: cloudflarefake; Telegram: telegramfake; calendars:
+// calendarfake, whose dates follow the clock). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
 // system that has a sibling directory of that name.
 package fakelab
@@ -28,6 +28,8 @@ import (
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -120,6 +122,18 @@ var systems = []system{
 		},
 		// Sign-ins and Proxy Hosts are kept: writes stick.
 		serve: func(dir string) (http.Handler, error) { return npmfake.New(dir, npmfake.Options{Password: "fakelab"}) },
+	},
+	{
+		component: "cloudflare-api",
+		fixtures:  "components/cloudflare-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			url := "http://" + addr
+			return &cloudflareapipb.CloudflareApiConfig{AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: "fakelab", ApiUrl: &url}
+		},
+		// The ingress and DNS records are kept: Public Hostname writes stick.
+		serve: func(dir string) (http.Handler, error) {
+			return cloudflarefake.New(dir, cloudflarefake.Options{Token: "fakelab"})
+		},
 	},
 	{
 		component: "calendar-api",

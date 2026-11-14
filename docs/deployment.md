@@ -145,6 +145,20 @@ Do these by hand, in order, before first use.
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
+- [ ] Cloudflare Tunnel (optional): ddash changes only a **remotely managed**
+      Tunnel (created in Zero Trust → Networks → Tunnels, configured in the
+      dashboard), never a locally managed `config.yml`. Create an API token
+      (My Profile → API Tokens → Create Custom Token) with:
+      - Account → **Cloudflare Tunnel: Edit** (reads the Tunnel, its
+        connectors and ingress, and PUTs the ingress back whole),
+      - Account → **Account Settings: Read** (lists the account's zones),
+      - Zone → **DNS: Edit**, on the zone of the Public Hostnames (each
+        Public Hostname's proxied CNAME to `<tunnel-id>.cfargotunnel.com`).
+
+      Give cloudflare-api the account ID, the Tunnel's ID and the token.
+      Left empty, it stays not set up and Apps show no "On the internet".
+      Disabling a Public Hostname keeps its settings in cloudflare-tunnel's
+      DB (back it up with the rest of the data directory).
 - [ ] Calendar (optional): each calendar's **secret iCal address**. In
       Google Calendar on the web: Settings, the calendar under *Settings
       for my calendars*, *Integrate calendar*, **Secret address in iCal
@@ -233,6 +247,10 @@ them once:
 - [ ] A hostname no Proxy Host, Redirection Host or 404 Host holds (e.g.
       `ddash-smoke.<domain>`) as `SMOKE_PROXY_HOST`. It needs no DNS record:
       the round trip only creates and deletes its Proxy Host.
+- [ ] With a Cloudflare Tunnel: a hostname in its zone that no ingress rule
+      or DNS record holds, as `SMOKE_PUBLIC_HOSTNAME`. The round trip adds
+      it as a Public Hostname (ingress rule and proxied CNAME, commented
+      `ddash smoke-writes`), edits its service and removes both.
 
 ## Updating
 
