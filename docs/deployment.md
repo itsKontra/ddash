@@ -121,6 +121,25 @@ Do these by hand, in order, before first use.
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
+- [ ] Telegram (optional, a second Notification channel beside ntfy):
+      1. In Telegram, message **@BotFather**, send `/newbot`, and pick a
+         name and a username ending in `bot`. BotFather answers with the
+         bot token (`123456789:AAH…`): it is telegram-api's **Bot token**.
+      2. Open a chat with the new bot and send it any message (a bot
+         can't write to anyone who hasn't). For a group, add the bot to it
+         and send `/start@<bot username>` there.
+      3. Open `https://api.telegram.org/bot<token>/getUpdates` in a
+         browser: `result[].message.chat.id` is the **Chat ID** (your user
+         ID for the private chat, a negative number for a group). For a
+         channel, make the bot an admin and use its `@username`.
+      4. Save both in telegram-api's config form and press **Send test**.
+
+      Left empty, telegram-api is "not set up" and Notifications go to
+      ntfy only; ntfy-api unconfigured likewise sends to Telegram only.
+- [ ] Which Notifications each channel gets: notify's config form, one
+      switch per channel and category (Checks, image updates, Action
+      outcomes). Everything goes everywhere by default. The Checks Page's
+      Notifications panel shows which channels are set up and take Checks.
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
 
