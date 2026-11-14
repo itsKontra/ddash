@@ -86,6 +86,10 @@ _Avoid_: Orphan App, stale App, overlay
 A unit of compute that runs software: a Docker container, a Proxmox LXC, a Proxmox VM, or an external host. One Workload can back zero or many Apps.
 _Avoid_: Container (when the kind is not specifically Docker), guest, instance
 
+**Compose Project**:
+The containers one Compose file defines, as Docker Compose names them, on a host with a Docker Agent. Its parts are **Compose services**, always qualified. Protected while any of its containers carries the label `ddash.protected=true`.
+_Avoid_: Stack, app (an App is something else)
+
 **Protected**:
 Said of a Workload that ddash may not start, stop or restart, because reaching ddash depends on it (such as the firewall or ddash's own host).
 _Avoid_: Locked, critical, excluded
@@ -161,6 +165,10 @@ _Avoid_: Blocked, offline, isolated
 **Remote Access**:
 WireGuard connectivity that lets the operator's own devices reach the home network from outside it.
 _Avoid_: VPN (unqualified), road warrior
+
+**Public Hostname**:
+A hostname the Cloudflare Tunnel serves from the internet to a local address: one ingress rule of the Tunnel plus its proxied CNAME. A disabled one has neither, and ddash keeps its settings to enable it again. Always say "Cloudflare Tunnel", never bare "tunnel", because VPN Tunnel and Tunnelled mean the outbound path.
+_Avoid_: Tunnel route, public route, exposed host
 
 **Device**:
 A piece of hardware on the home network that the firewall hands addresses to, identified by its MAC address. Servers with fixed addresses and Remote Access peers are not Devices.

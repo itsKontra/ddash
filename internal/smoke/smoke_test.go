@@ -75,6 +75,8 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok nginx-proxy-manager-api ListCertificates",
 		"ok nginx-proxy-manager-api GetStatus",
 		"ok nginx-proxy-manager-api health",
+		"ok cloudflare-api GetTunnel",
+		"ok cloudflare-api ListDnsRecords",
 		"ok calendar-api ListEvents",
 		"ok network GetNetworkInfo",
 	} {

@@ -1,0 +1,15 @@
+{
+  "data": {
+    "net0": "name=eth0,bridge=vmbr1,gw=198.18.1.1,hwaddr=02:CD:4C:1C:08:FA,ip=198.18.1.122/24,type=veth",
+    "swap": 2048,
+    "features": "nesting=1",
+    "digest": "6d7b5a9295c1a3c8e72d68c03813748ab184af6f",
+    "memory": 8192,
+    "arch": "amd64",
+    "unprivileged": 1,
+    "ostype": "ubuntu",
+    "cores": 10,
+    "hostname": "devenv",
+    "rootfs": "nvme-storage:subvol-122-disk-0,size=32G"
+  }
+}

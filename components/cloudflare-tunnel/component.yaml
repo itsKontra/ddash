@@ -1,0 +1,3 @@
+name: cloudflare-tunnel
+description: The Cloudflare Tunnel's Public Hostnames, each an ingress rule with its proxied CNAME, added, edited, removed, disabled and enabled through a Plan, with the settings of the disabled ones kept.
+requires: [cloudflare-api]

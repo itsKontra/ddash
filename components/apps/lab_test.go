@@ -27,6 +27,9 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
 	"github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
@@ -117,6 +120,9 @@ type labOptions struct {
 	// composeWait bounds how long an Add App follows its new Compose
 	// Project; apps.ComposeWait when 0.
 	composeWait time.Duration
+	// cloudflare, when set, is the Cloudflare cloudflare-api reads;
+	// else cloudflare-api isn't set up.
+	cloudflare http.Handler
 }
 
 const npmEmail = "ddash@home.example"
@@ -182,7 +188,7 @@ func newLab(t *testing.T, o labOptions) *lab {
 
 	components := []sdk.Definition{
 		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), network.Definition(), adguardapi.Definition(),
-		notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), dockeragentapi.Definition(), apps.Definition(),
+		notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), cloudflareapi.Definition(), dockeragentapi.Definition(), apps.Definition(),
 	}
 	switch {
 	case o.resync != 0:
@@ -208,7 +214,7 @@ func newLab(t *testing.T, o labOptions) *lab {
 			// The Docker Page, pairing Docker Agents.
 			{Name: "docker", Requires: []string{"docker-agent-api"}},
 		},
-		DataDir:    o.dataDir,
+		DataDir: o.dataDir,
 	})
 	if !o.npmUnconfigured {
 		l.h.SeedConfig("nginx-proxy-manager-api", &nginxproxymanagerapipb.NginxProxyManagerApiConfig{Url: srv.URL, Email: npmEmail, Password: npmfake.DefaultPassword})
@@ -227,6 +233,13 @@ func newLab(t *testing.T, o labOptions) *lab {
 		// The fake proxmox-api still has the real config's required
 		// fields: unconfigured, it would leave apps degraded.
 		l.h.SeedConfig("proxmox-api", &proxmoxapipb.ProxmoxApiConfig{Url: "https://198.18.1.2:8006", TokenId: "ddash@pve!test", TokenSecret: "test"})
+	}
+	if o.cloudflare != nil {
+		cf := httptest.NewServer(o.cloudflare)
+		t.Cleanup(cf.Close)
+		l.h.SeedConfig("cloudflare-api", &cloudflareapipb.CloudflareApiConfig{
+			AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: cloudflarefake.DefaultToken, ApiUrl: &cf.URL,
+		})
 	}
 	l.h.Install("apps")
 	l.waitStarted()

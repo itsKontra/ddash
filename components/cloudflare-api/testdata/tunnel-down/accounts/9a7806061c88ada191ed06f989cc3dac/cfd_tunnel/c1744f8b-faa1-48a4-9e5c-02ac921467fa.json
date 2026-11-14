@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result": {
+    "id": "c1744f8b-faa1-48a4-9e5c-02ac921467fa",
+    "account_tag": "9a7806061c88ada191ed06f989cc3dac",
+    "created_at": "2025-03-02T10:14:51.918265Z",
+    "deleted_at": null,
+    "name": "home",
+    "connections": [],
+    "conns_active_at": null,
+    "conns_inactive_at": "2026-11-13T22:10:40.120Z",
+    "tun_type": "cfd_tunnel",
+    "metadata": {},
+    "status": "down",
+    "remote_config": true,
+    "config_src": "cloudflare"
+  }
+}

@@ -41,7 +41,7 @@ type API struct {
 	requests []Request
 	// fails are the status codes the next requests are answered with.
 	fails []int
-	stop   string
+	stop  string
 }
 
 // New serves the draft in dir/draft.json.

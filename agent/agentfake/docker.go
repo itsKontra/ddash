@@ -259,7 +259,7 @@ func (e *Engine) ImageDigests(_ context.Context, ref string) (string, []string, 
 	defer e.mu.Unlock()
 	id, ok := e.images[ref]
 	if !ok {
-		return "", nil, fmt.Errorf("No such image: %s", ref)
+		return "", nil, fmt.Errorf("no such image: %s", ref)
 	}
 	return id, e.digests(ref), nil
 }

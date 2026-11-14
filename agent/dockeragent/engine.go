@@ -18,7 +18,7 @@ type Engine struct {
 // NewEngine connects to the Engine at host ("unix:///var/run/docker.sock"),
 // negotiating the API version.
 func NewEngine(host string) (*Engine, error) {
-	c, err := client.New(client.WithHost(host), client.WithAPIVersionNegotiation())
+	c, err := client.New(client.WithHost(host))
 	if err != nil {
 		return nil, err
 	}

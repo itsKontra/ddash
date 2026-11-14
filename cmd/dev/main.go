@@ -23,17 +23,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -123,7 +127,53 @@ func run(ctx context.Context, listen, data, dist string, scenarios []string) err
 		<-ctx.Done()
 		srv.Process.Signal(syscall.SIGTERM) //nolint:errcheck // it may have exited
 	}()
+	go addAgents(ctx, "http://"+listen, lab)
 	return srv.Wait()
+}
+
+// addAgents adds the lab's Docker Agents to docker-agent-api once the core
+// answers, as the Operator would on the Docker Page; one added on an
+// earlier run is already there.
+func addAgents(ctx context.Context, core string, lab *fakelab.Lab) {
+	for _, a := range lab.DockerAgents {
+		body, _ := json.Marshal(map[string]any{"name": a.Name, "url": a.URL, "roots": a.Roots})
+		for attempt := 0; attempt < 60 && ctx.Err() == nil; attempt++ {
+			if addAgent(ctx, core, a.Name, body) {
+				break
+			}
+			select {
+			case <-ctx.Done():
+			case <-time.After(time.Second):
+			}
+		}
+	}
+}
+
+// addAgent makes one AddAgent call, reporting whether it is settled
+// (added, there already, or refused for good) rather than worth retrying
+// while the core starts.
+func addAgent(ctx context.Context, core, name string, body []byte) bool {
+	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, core+"/api/c/docker-agent-api/AddAgent", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	req.Header.Set("Ddash-Plugin", "docker")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return false
+	}
+	b, _ := io.ReadAll(res.Body)
+	res.Body.Close()
+	switch {
+	case res.StatusCode == http.StatusOK:
+		slog.Info("added the lab's Docker Agent", "agent", name)
+		return true
+	case bytes.Contains(b, []byte("already_exists")):
+		return true
+	case res.StatusCode == http.StatusServiceUnavailable || bytes.Contains(b, []byte("unavailable")):
+		return false
+	}
+	slog.Warn("can't add the lab's Docker Agent", "agent", name, "status", res.Status, "answer", string(b))
+	return true
 }
 
 // pnpmCommand is how to run the repo's pinned pnpm: npx with the version

@@ -231,11 +231,36 @@ importers:
         specifier: workspace:*
         version: link:../../packages/vite-preset
 
+  plugins/cloudflare-tunnel:
+    dependencies:
+      '@bufbuild/protobuf':
+        specifier: 2.16.0
+        version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
+      '@ddash/plugin':
+        specifier: workspace:*
+        version: link:../../packages/plugin
+      '@ddash/proto':
+        specifier: workspace:*
+        version: link:../../packages/proto
+      '@ddash/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+    devDependencies:
+      '@ddash/vite-preset':
+        specifier: workspace:*
+        version: link:../../packages/vite-preset
+
   plugins/docker:
     dependencies:
       '@bufbuild/protobuf':
         specifier: 2.16.0
         version: 2.16.0
+      '@ddash/display':
+        specifier: workspace:*
+        version: link:../../packages/display
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
