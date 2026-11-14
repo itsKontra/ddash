@@ -2,7 +2,7 @@ import { useQuery } from "@ddash/plugin";
 import { ComposeService, type Container, type Project, type Run } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService, type ComposeFile } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { ago } from "@ddash/display";
-import { Button, CodeBlock, DataTable, EmptyState, Facts, FormActions, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, Switch, Tabs, TextArea, type Column } from "@ddash/ui";
+import { Button, Checkbox, CodeBlock, DataTable, EmptyState, Facts, FormActions, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, Tabs, TextArea, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { tones } from "./containers";
@@ -167,7 +167,7 @@ function SaveDialog({ project: p, file, content, onClose, onDone }: { project: P
       danger={recreate}
       onClose={onClose}
       onDone={onDone}
-      extra={<Switch label="Recreate the changed Compose services now" checked={recreate} onChange={setRecreate} />}
+      extra={<Checkbox label="Recreate the changed Compose services now (docker compose up -d)" checked={recreate} onChange={(e) => setRecreate(e.target.checked)} />}
     />
   );
 }
@@ -215,6 +215,7 @@ export function ProjectPage() {
         }
       />
       <div className="flex flex-col gap-6">
+        <Panel title="Details">
         <Facts
           items={[
             { label: "State", value: <ProjectStatePill project={p} /> },
@@ -223,6 +224,7 @@ export function ProjectPage() {
             { label: "Compose file", value: p.configFile || "unknown", mono: true },
           ]}
         />
+        </Panel>
         {p.error && <Notice tone="warn">{p.error}</Notice>}
         {run && <RunPanel run={run} />}
         <Panel title="Compose services" flush>

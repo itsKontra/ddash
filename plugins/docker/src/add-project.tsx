@@ -1,6 +1,6 @@
 import { usePluginLink, useQuery } from "@ddash/plugin";
 import { ComposeService } from "@ddash/proto/compose/compose_pb";
-import { Button, Field, FormActions, Notice, PageTitle, Panel, Select, Skeleton, Switch, TextArea, TextInput } from "@ddash/ui";
+import { Button, Checkbox, Field, FormActions, Notice, PageTitle, Panel, Select, Skeleton, TextArea, TextInput } from "@ddash/ui";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { PlanDialog } from "./plan";
@@ -116,7 +116,7 @@ export function AddProjectPage() {
             <Field label="Compose file" hint="Checked with `docker compose config` on the host before anything is written.">
               <TextArea mono rows={18} value={content} onChange={(e) => setContent(e.target.value)} />
             </Field>
-            <Switch label="Start it once it's added (docker compose up -d)" checked={start} onChange={setStart} />
+            <Checkbox label="Start it once it's added (docker compose up -d)" checked={start} onChange={(e) => setStart(e.target.checked)} />
             <FormActions>
               <Button variant="ghost" type="button" onClick={() => void navigate("../..", { relative: "path" })}>
                 Cancel

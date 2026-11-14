@@ -2,7 +2,7 @@ import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
 import { ComposeService, ProjectState, type Container, type Host, type ImageChecks, type Project } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
-import { ago } from "@ddash/display";
+import { ago, until } from "@ddash/display";
 import { ActionStrip, Button, DataTable, EmptyState, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
@@ -156,7 +156,7 @@ function ImageCheckBar({ checks }: { checks?: ImageChecks }) {
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted-foreground">
         <span>
           {busy ? "Checking images against their registries…" : checks.last ? `Images checked ${ago(checks.last, now)}` : "Images not checked yet"}
-          {!busy && checks.next && checks.last ? ` · next check ${ago(checks.next, now).replace(" ago", "")}` : ""}
+          {!busy && checks.next && checks.last ? ` · next check ${until(checks.next, now)}` : ""}
         </span>
         <Button size="sm" variant="outline" icon="refresh-cw" disabled={busy} onClick={() => void check.run({})}>
           Check now
