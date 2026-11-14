@@ -86,7 +86,7 @@ export function ComposeFields({ value: c, onChange, services }: { value: Compose
       {host?.error && <Notice tone="warn">{host.name}&apos;s Docker Agent can&apos;t be reached: {host.error}</Notice>}
       <Field label="Compose file" hint="Written as compose.yaml in the directory, then started with docker compose up -d. Never an .env: add one on the host.">
         <div className="font-mono text-xs">
-          <TextArea value={c.content} rows={14} spellCheck={false} placeholder={"services:\n  app:\n    image: …"} onChange={(e) => set({ content: e.target.value })} />
+          <TextArea mono value={c.content} rows={14} placeholder={"services:\n  app:\n    image: …"} onChange={(e) => set({ content: e.target.value })} />
         </div>
       </Field>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
