@@ -21,13 +21,17 @@ import (
 // The one Plan builder: every App Action, shown (PlanAction) or run
 // (RunAction), gets its Plan from planning.build. A planned Action holds
 // its Plan as the Operator sees it and how each of its steps runs, in the
-// one order every App Action has: the Nginx Proxy Manager write, then one
-// ChangeHostOverrides batch, then the App record. A new kind of App Action
+// one order every App Action has: a new Compose Project's Docker steps,
+// then the Nginx Proxy Manager write, then one ChangeHostOverrides batch,
+// then the App record. A new kind of App Action
 // is a case in build returning a planned.
 
 // planned is an App Action's Plan and its steps, ready to run.
 type planned struct {
 	plan *appspb.Plan
+	// compose is the new Compose Project an Add App writes and starts,
+	// the Plan's first three steps; nil for none.
+	compose *composeRun
 	// npm is the Nginx Proxy Manager write, returning the Proxy Host as
 	// written (nil for a delete); nil for none. It is the Plan's first
 	// step.
@@ -79,6 +83,9 @@ type planning struct {
 	// readOnly: Nginx Proxy Manager refuses ddash's Proxy Host writes.
 	readOnly bool
 	devices  []device
+	// docker is the read of the Docker Agents' hosts, for an Add App from
+	// a new Compose Project; nil for other Actions.
+	docker *dockerRead
 }
 
 // device is a Device's reservation as "the name is free" sees it.
@@ -88,15 +95,20 @@ type device struct {
 	hostname, name, mac string
 }
 
-// planning reads what a Plan is built from now: the records, the last
-// good reads, and the DHCP servers through pfsense-api's cache.
-func (c *component) planning(ctx context.Context) (planning, error) {
+// planning reads what action's Plan is built from now: the records, the
+// last good reads, the DHCP servers through pfsense-api's cache, and for
+// an Add App from a new Compose Project the Docker Agents' hosts through
+// docker-agent-api's.
+func (c *component) planning(ctx context.Context, action *appspb.AppAction) (planning, error) {
 	recs, err := c.store.records(ctx)
 	if err != nil {
 		return planning{}, err
 	}
 	servers, devicesErr := c.pfsense.ListDhcpServers(ctx, &pfpb.ListDhcpServersRequest{})
 	p := planning{recs: recs, v: c.view(), devices: devicesOf(servers)}
+	if action.GetAdd().GetCompose() != nil {
+		p.docker = c.readDocker(ctx)
+	}
 	c.mu.Lock()
 	p.npmRead = c.hosts != nil && c.hostsRead.err == nil
 	p.pfRead = c.overrides != nil && c.overridesRead.err == nil && devicesErr == nil
@@ -149,7 +161,8 @@ func (p planning) build(action *appspb.AppAction) *planned {
 	return &planned{plan: &appspb.Plan{Blocked: []string{"Choose what to do."}}}
 }
 
-// add plans Add App: for Reverse proxy a Proxy Host and an alias of the
+// add plans Add App: from a new Compose Project its Compose file and
+// start first; then for Reverse proxy a Proxy Host and an alias of the
 // Reverse Proxy's Host Override, for Host Override a Host Override of its
 // own, then the App record, which reattaches orphaned App settings kept
 // for the hostname.
@@ -201,9 +214,19 @@ func (p planning) add(a *appspb.AddApp) *planned {
 		}
 	}
 
+	// A new Compose Project's steps come first, and fill in the upstream.
+	in, address := a.GetProxyHost(), a.GetAddress()
+	if a.GetCompose() != nil {
+		r := p.newCompose(out, a.GetCompose(), reach)
+		in = r.upstream(in)
+		if strings.TrimSpace(address) == "" {
+			address = r.address
+		}
+	}
+
 	switch reach {
 	case appspb.Reach_REACH_PROXIED:
-		f, why := proxyHostFields(a.GetProxyHost())
+		f, why := proxyHostFields(in)
 		if why != "" {
 			out.block(why)
 		}
@@ -217,7 +240,7 @@ func (p planning) add(a *appspb.AddApp) *planned {
 			out.addDNS(addAlias(rp, host))
 		}
 	case appspb.Reach_REACH_NOT_PROXIED:
-		ip, ok, atRP := p.ownAddress(a.GetAddress())
+		ip, ok, atRP := p.ownAddress(address)
 		switch {
 		case !ok:
 			out.block("Give the address the Host Override resolves to, e.g. 198.18.1.60.")

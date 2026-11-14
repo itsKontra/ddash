@@ -79,9 +79,12 @@ service AppsService {
   // a time with every other App Action and sync. It reads both sources
   // afresh and builds the Plan again: when that differs from the one
   // confirmed, it refuses before any write with "changed since you looked"
-  // (ABORTED, the new Plan in the error's details). Otherwise it writes to
-  // Nginx Proxy Manager, then pfSense in one batch applied once, then the
-  // App record, and stops at the first failed step: the error names it and
+  // (ABORTED, the new Plan in the error's details). Otherwise it writes an
+  // Add App's new Compose Project and starts it through docker-agent-api
+  // (following the Agent's job and then the container for up to 40 s
+  // from its start, then stopping DEADLINE_EXCEEDED, "still starting"),
+  // writes to Nginx Proxy Manager, then pfSense in one batch applied once,
+  // then the App record, and stops at the first failed step: the error names it and
   // what was done, nothing is rolled back, and its details carry a
   // RunActionResponse saying how many steps were done. Success or failure,
   // it ends with a sync bounded to 10 s, which may report that it couldn't
@@ -98,6 +101,12 @@ service AppsService {
   // Proxmox guests by VMID, templates left out.
   rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
     option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListDockerHosts returns the Docker hosts with a paired Docker Agent,
+  // as docker-agent-api lists them now, to add an App from a new Compose
+  // Project on: their address, Compose roots and Compose Projects.
+  rpc ListDockerHosts(ListDockerHostsRequest) returns (ListDockerHostsResponse) {
+    option (ddash.getter) = {refresh: FAST};
   }
 }
 
@@ -565,8 +574,34 @@ message AddApp {
   Reach reach = 5;
   // PROXIED: the new Proxy Host's fields.
   ddash.proxyhost.ProxyHostFields proxy_host = 6;
-  // NOT_PROXIED: the address the Host Override resolves to.
+  // NOT_PROXIED: the address the Host Override resolves to. With a new
+  // Compose Project, empty for its Docker host's address.
   string address = 7;
+  // Set for the source "New Compose Project": the Plan writes its Compose
+  // file and brings it up on the Docker host before the Proxy Host and
+  // DNS steps. Proxied, an empty upstream host is the Docker host's
+  // address and a zero upstream port the Compose service's port.
+  NewComposeProject compose = 8;
+}
+
+// A new Compose Project an App runs from, on a Docker host with a paired
+// Docker Agent.
+message NewComposeProject {
+  // The Docker Agent's name.
+  string host = 1;
+  // The Compose Project's name: lower-case letters, digits, - and _.
+  string name = 2;
+  // Its directory, absolute, under one of the Agent's Compose roots;
+  // empty for <first root>/<name>.
+  string directory = 3;
+  // The Compose file's text, written as <directory>/compose.yaml.
+  string content = 4;
+  // The Compose service the App opens; empty for the first one that
+  // publishes a port.
+  string service = 5;
+  // The service's published port the App's traffic goes to; 0 for its
+  // first.
+  uint32 port = 6;
 }
 
 // An App Action's Plan: its steps in the order they run, the "name is
@@ -583,6 +618,17 @@ message Plan {
   // What the Operator should know before confirming that doesn't keep it
   // from running, e.g. names a deleted Proxy Host leaves registered.
   repeated string notes = 4;
+  // Add App from a new Compose Project: the Compose services its file
+  // defines, by name, to pick the App's service and port from; empty
+  // otherwise, or while the file doesn't parse.
+  repeated ComposeService compose_services = 5;
+}
+
+// A Compose service of a new Compose Project's file.
+message ComposeService {
+  string name = 1;
+  // The host ports it publishes (tcp), in the file's order.
+  repeated uint32 ports = 2;
 }
 
 // One step of a Plan: a write to one system, with the values it expects
@@ -601,6 +647,8 @@ enum System {
   SYSTEM_DDASH = 1;
   SYSTEM_NGINX_PROXY_MANAGER = 2;
   SYSTEM_PFSENSE = 3;
+  // A Docker host, through its Docker Agent.
+  SYSTEM_DOCKER = 4;
 }
 
 // A value a step expects to find and the one it writes.
@@ -701,4 +749,27 @@ message ListWorkloadsRequest {}
 
 message ListWorkloadsResponse {
   repeated Workload workloads = 1;
+}
+
+message ListDockerHostsRequest {}
+
+message ListDockerHostsResponse {
+  repeated DockerHost hosts = 1;
+}
+
+// A Docker host with a paired Docker Agent.
+message DockerHost {
+  // The Docker Agent's name.
+  string name = 1;
+  // Where its published ports answer: the host part of the Agent's URL.
+  string address = 2;
+  // The Compose roots its Agent mounts: a new Compose Project goes under
+  // one.
+  repeated string roots = 3;
+  // Its Compose Projects' names, sorted.
+  repeated string projects = 4;
+  // The host ports its containers publish, sorted.
+  repeated uint32 used_ports = 5;
+  // Why it can't be read now; empty when it can.
+  string error = 6;
 }

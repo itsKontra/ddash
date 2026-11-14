@@ -87,6 +87,7 @@ func (c *component) readSources(ctx context.Context) sources {
 			}
 			s.docker = append(s.docker, h)
 		}
+		s.docker = c.withStarted(s.docker)
 	}
 	return s
 }

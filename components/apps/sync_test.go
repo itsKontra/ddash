@@ -128,7 +128,7 @@ func TestANewSourceReachesAppsWithinAMinute(t *testing.T) {
 					New:      func() sdk.Component[*networkpb.NetworkConfig] { return &networkFake{} },
 				}),
 				notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
-				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}),
+				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}), noAgentsServing(),
 			},
 			Plugins: []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},
 		})

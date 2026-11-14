@@ -22,7 +22,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file apps/apps.proto.
  */
 export const file_apps_apps: GenFile = /*@__PURE__*/
-  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLOAwoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nEiwKA2RucxgQIAMoCzIfLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlT3JBbGlhcxIoCgduZXR3b3JrGBEgASgLMhcuZGRhc2guYXBwcy5OZXR3b3JrSW5mbyKPAQoLTmV0d29ya0luZm8SDwoHYWRkcmVzcxgBIAEoCRIvCg1pbnRlcm5ldF9wYXRoGAIgASgOMhguZGRhc2guYXBwcy5JbnRlcm5ldFBhdGgSEwoLYWRzX2FsbG93ZWQYAyABKAgSKQoGZGV2aWNlGAQgASgLMhkuZGRhc2guYXBwcy5OZXR3b3JrRGV2aWNlIioKDU5ldHdvcmtEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkidwoLQXBwU2V0dGluZ3MSDAoEbmFtZRgBIAEoCRIMCgRpY29uGAIgASgJEg0KBWdyb3VwGAMgASgJEg4KBmhpZGRlbhgEIAEoCBItCgh3b3JrbG9hZBgFIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIlMKBUxpbmtzEhUKDXByb3h5X2hvc3RfaWQYASABKAMSMwoNaG9zdF9vdmVycmlkZRgCIAEoCzIcLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlTmFtZSIwChBIb3N0T3ZlcnJpZGVOYW1lEgwKBGhvc3QYASABKAkSDgoGZG9tYWluGAIgASgJIm4KE0hvc3RPdmVycmlkZU9yQWxpYXMSDAoEaG9zdBgBIAEoCRIOCgZkb21haW4YAiABKAkSLAoGcGFyZW50GAMgASgLMhwuZGRhc2guYXBwcy5Ib3N0T3ZlcnJpZGVOYW1lEgsKA2lwcxgEIAMoCSKuAQoJUHJveHlIb3N0EgoKAmlkGAEgASgDEjAKBmZpZWxkcxgCIAEoCzIgLmRkYXNoLnByb3h5aG9zdC5Qcm94eUhvc3RGaWVsZHMSDwoHZW5hYmxlZBgDIAEoCBIPCgdvZmZsaW5lGAQgASgIEhMKC25naW54X2Vycm9yGAUgASgJEiwKC2NlcnRpZmljYXRlGAYgASgLMhcuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZSJZCgtDZXJ0aWZpY2F0ZRIMCgRuYW1lGAEgASgJEisKBXN0YXRlGAIgASgOMhwuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZVN0YXRlEg8KB21lc3NhZ2UYAyABKAkihAEKB1dhcm5pbmcSJQoEa2luZBgBIAEoDjIXLmRkYXNoLmFwcHMuV2FybmluZ0tpbmQSDwoHaWdub3JlZBgCIAEoCBIOCgZkZXRhaWwYAyABKAkSEQoJaG9zdG5hbWVzGAQgAygJEh4KBWZpeGVzGAUgAygLMg8uZGRhc2guYXBwcy5GaXgimQEKA0ZpeBIhCgRraW5kGAEgASgOMhMuZGRhc2guYXBwcy5GaXhLaW5kEhAKCGhvc3RuYW1lGAIgASgJEjYKDWhvc3Rfb3ZlcnJpZGUYAyABKAsyHy5kZGFzaC5hcHBzLkhvc3RPdmVycmlkZU9yQWxpYXMSDgoGYXBwX2lkGAQgASgJEhUKDXByb3h5X2hvc3RfaWQYBSABKAMiYwoIV29ya2xvYWQSKAoDcmVmGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghvdmVycmlkZRgEIAEoCCKmAQoKU291cmNlUmVhZBIrCgdyZWFkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgCIAEoCRIxCg1mYWlsaW5nX3NpbmNlGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5ub3RfY29uZmlndXJlZBgEIAEoCBIRCglyZWFkX29ubHkYBSABKAgiEQoPTGlzdEFwcHNSZXF1ZXN0Iu0BChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBIrCgtwcm94eV9ob3N0cxgCIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIuCg5ob3N0X292ZXJyaWRlcxgDIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIvCg1yZXZlcnNlX3Byb3h5GAQgASgLMhguZGRhc2guYXBwcy5SZXZlcnNlUHJveHkSFQoNbmV0d29ya19lcnJvchgFIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAYgASgJIkcKDFJldmVyc2VQcm94eRIPCgdhZGRyZXNzGAEgASgJEhYKDmhvc3Rfb3ZlcnJpZGVzGAIgAygJEg4KBm5vdGljZRgDIAEoCSIQCg5SZWZyZXNoUmVxdWVzdCIRCg9SZWZyZXNoUmVzcG9uc2UiSwoSU2V0U2V0dGluZ3NSZXF1ZXN0EgoKAmlkGAEgASgJEikKCHNldHRpbmdzGAIgASgLMhcuZGRhc2guYXBwcy5BcHBTZXR0aW5ncyIVChNTZXRTZXR0aW5nc1Jlc3BvbnNlIkkKFElnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhcKFUlnbm9yZVdhcm5pbmdSZXNwb25zZSJLChZVbmlnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhkKF1VuaWdub3JlV2FybmluZ1Jlc3BvbnNlIikKD1JlYXR0YWNoUmVxdWVzdBIKCgJpZBgBIAEoCRIKCgJ0bxgCIAEoCSISChBSZWF0dGFjaFJlc3BvbnNlIiEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSCgoCaWQYASABKAkiFgoURGVsZXRlUmVjb3JkUmVzcG9uc2UiMAoTUHJvbW90ZUFsaWFzUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVhbGlhcxgCIAEoCSIWChRQcm9tb3RlQWxpYXNSZXNwb25zZSIoCgxNZXJnZVJlcXVlc3QSCgoCaWQYASABKAkSDAoEZnJvbRgCIAEoCSIPCg1NZXJnZVJlc3BvbnNlIvECCglBcHBBY3Rpb24SIQoDYWRkGAEgASgLMhIuZGRhc2guYXBwcy5BZGRBcHBIABIzCg5jaGFuZ2VfYWRkcmVzcxgCIAEoCzIZLmRkYXNoLmFwcHMuQ2hhbmdlQWRkcmVzc0gAEjgKEWNoYW5nZV9wcm94eV9ob3N0GAMgASgLMhsuZGRhc2guYXBwcy5DaGFuZ2VQcm94eUhvc3RIABI4ChFhZGRfcmV2ZXJzZV9wcm94eRgEIAEoCzIbLmRkYXNoLmFwcHMuQWRkUmV2ZXJzZVByb3h5SAASPgoUcmVtb3ZlX3JldmVyc2VfcHJveHkYBSABKAsyHi5kZGFzaC5hcHBzLlJlbW92ZVJldmVyc2VQcm94eUgAEicKBmRlbGV0ZRgGIAEoCzIVLmRkYXNoLmFwcHMuRGVsZXRlQXBwSAASJQoDZml4GAcgASgLMhYuZGRhc2guYXBwcy5GaXhXYXJuaW5nSABCCAoGYWN0aW9uIjkKDUNoYW5nZUFkZHJlc3MSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg8KB2FsaWFzZXMYAyADKAkiUwoPQ2hhbmdlUHJveHlIb3N0EgoKAmlkGAEgASgJEjQKCnByb3h5X2hvc3QYAiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzIlMKD0FkZFJldmVyc2VQcm94eRIKCgJpZBgBIAEoCRI0Cgpwcm94eV9ob3N0GAIgASgLMiAuZGRhc2gucHJveHlob3N0LlByb3h5SG9zdEZpZWxkcyIxChJSZW1vdmVSZXZlcnNlUHJveHkSCgoCaWQYASABKAkSDwoHYWRkcmVzcxgCIAEoCSIXCglEZWxldGVBcHASCgoCaWQYASABKAkiNgoKRml4V2FybmluZxIKCgJpZBgBIAEoCRIcCgNmaXgYAiABKAsyDy5kZGFzaC5hcHBzLkZpeCKpAQoGQWRkQXBwEgsKA3VybBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSIAoFcmVhY2gYBSABKA4yES5kZGFzaC5hcHBzLlJlYWNoEjQKCnByb3h5X2hvc3QYBiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzEg8KB2FkZHJlc3MYByABKAkicAoEUGxhbhIjCgVzdGVwcxgBIAMoCzIULmRkYXNoLmFwcHMuUGxhblN0ZXASIwoFbmFtZXMYAiADKAsyFC5kZGFzaC5hcHBzLk5hbWVOb3RlEg8KB2Jsb2NrZWQYAyADKAkSDQoFbm90ZXMYBCADKAkiZAoIUGxhblN0ZXASIgoGc3lzdGVtGAEgASgOMhIuZGRhc2guYXBwcy5TeXN0ZW0SDQoFdGl0bGUYAiABKAkSJQoGdmFsdWVzGAMgAygLMhUuZGRhc2guYXBwcy5QbGFuVmFsdWUiOQoJUGxhblZhbHVlEg0KBWxhYmVsGAEgASgJEg4KBmJlZm9yZRgCIAEoCRINCgVhZnRlchgDIAEoCSKUAQoITmFtZU5vdGUSEAoIaG9zdG5hbWUYASABKAkSJgoEa2luZBgCIAEoDjIYLmRkYXNoLmFwcHMuTmFtZU5vdGVLaW5kEgwKBHRleHQYAyABKAkSDgoGYXBwX2lkGAQgASgJEgwKBG5hbWUYBSABKAkSDgoGaGlkZGVuGAYgASgIEhIKCmRldmljZV9tYWMYByABKAkiOgoRUGxhbkFjdGlvblJlcXVlc3QSJQoGYWN0aW9uGAEgASgLMhUuZGRhc2guYXBwcy5BcHBBY3Rpb24iNAoSUGxhbkFjdGlvblJlc3BvbnNlEh4KBHBsYW4YASABKAsyEC5kZGFzaC5hcHBzLlBsYW4iWQoQUnVuQWN0aW9uUmVxdWVzdBIlCgZhY3Rpb24YASABKAsyFS5kZGFzaC5hcHBzLkFwcEFjdGlvbhIeCgRwbGFuGAIgASgLMhAuZGRhc2guYXBwcy5QbGFuImcKEVJ1bkFjdGlvblJlc3BvbnNlEg4KBmFwcF9pZBgBIAEoCRIMCgRkb25lGAIgASgFEg4KBnJlcmVhZBgDIAEoCRIkCgVzdGVwcxgEIAMoDjIVLmRkYXNoLmFwcHMuU3RlcFN0YXRlIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkAKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRInCgl3b3JrbG9hZHMYASADKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkKoMBCgxJbnRlcm5ldFBhdGgSHQoZSU5URVJORVRfUEFUSF9VTlNQRUNJRklFRBAAEhsKF0lOVEVSTkVUX1BBVEhfVFVOTkVMTEVEEAESGAoUSU5URVJORVRfUEFUSF9ESVJFQ1QQAhIdChlJTlRFUk5FVF9QQVRIX05PX0lOVEVSTkVUEAMqXQoFUmVhY2gSFQoRUkVBQ0hfVU5TUEVDSUZJRUQQABIRCg1SRUFDSF9QUk9YSUVEEAESEwoPUkVBQ0hfTElOS19PTkxZEAISFQoRUkVBQ0hfTk9UX1BST1hJRUQQAyq2AQoQQ2VydGlmaWNhdGVTdGF0ZRIhCh1DRVJUSUZJQ0FURV9TVEFURV9VTlNQRUNJRklFRBAAEhgKFENFUlRJRklDQVRFX1NUQVRFX09LEAESIgoeQ0VSVElGSUNBVEVfU1RBVEVfTk9UX1JFTkVXSU5HEAISIgoeQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFU19TT09OEAMSHQoZQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFRBAEKqkDCgdGaXhLaW5kEhgKFEZJWF9LSU5EX1VOU1BFQ0lGSUVEEAASFQoRRklYX0tJTkRfUkVHSVNURVIQARIXChNGSVhfS0lORF9ERUxFVEVfQVBQEAISHgoaRklYX0tJTkRfQUREX1JFVkVSU0VfUFJPWFkQAxIYChRGSVhfS0lORF9SRU1PVkVfTkFNRRAEEiIKHkZJWF9LSU5EX1NFVF9XT1JLTE9BRF9PVkVSUklERRAFEh0KGUZJWF9LSU5EX1BJQ0tfQ0VSVElGSUNBVEUQBhIXChNGSVhfS0lORF9TQVZFX0FHQUlOEAcSFwoTRklYX0tJTkRfVVNFX0FTX1VSTBAIEiMKH0ZJWF9LSU5EX1BPSU5UX0FUX1JFVkVSU0VfUFJPWFkQCRIeChpGSVhfS0lORF9ERUxFVEVfUFJPWFlfSE9TVBAKEhkKFUZJWF9LSU5EX0RFTEVURV9FTlRSWRALEhIKDkZJWF9LSU5EX01FUkdFEAwSFQoRRklYX0tJTkRfUkVBVFRBQ0gQDRIaChZGSVhfS0lORF9ERUxFVEVfT1JQSEFOEA4q9AIKC1dhcm5pbmdLaW5kEhwKGFdBUk5JTkdfS0lORF9VTlNQRUNJRklFRBAAEhwKGFdBUk5JTkdfS0lORF9OT19XT1JLTE9BRBABEhcKE1dBUk5JTkdfS0lORF9OT19UTFMQAhIjCh9XQVJOSU5HX0tJTkRfUFJPWFlfSE9TVF9PRkZMSU5FEAMSJgoiV0FSTklOR19LSU5EX1VSTF9OT1RfT05fUFJPWFlfSE9TVBAEEhkKFVdBUk5JTkdfS0lORF9PUlBIQU5FRBAFEh8KG1dBUk5JTkdfS0lORF9OT1RfUkVHSVNURVJFRBAGEh4KGldBUk5JTkdfS0lORF9OT19QUk9YWV9IT1NUEAcSHQoZV0FSTklOR19LSU5EX0ROU19CWVBBU1NFUxAIEiEKHVdBUk5JTkdfS0lORF9SRUdJU1RFUkVEX1RXSUNFEAkSJQohV0FSTklOR19LSU5EX0hPU1ROQU1FX09OX1RXT19BUFBTEAoqZgoGU3lzdGVtEhYKElNZU1RFTV9VTlNQRUNJRklFRBAAEhAKDFNZU1RFTV9EREFTSBABEh4KGlNZU1RFTV9OR0lOWF9QUk9YWV9NQU5BR0VSEAISEgoOU1lTVEVNX1BGU0VOU0UQAyqfAgoMTmFtZU5vdGVLaW5kEh4KGk5BTUVfTk9URV9LSU5EX1VOU1BFQ0lGSUVEEAASIQodTkFNRV9OT1RFX0tJTkRfTk9UX0FfSE9TVE5BTUUQARIWChJOQU1FX05PVEVfS0lORF9BUFAQAhIgChxOQU1FX05PVEVfS0lORF9SRVZFUlNFX1BST1hZEAMSIAocTkFNRV9OT1RFX0tJTkRfSE9TVF9PVkVSUklERRAEEh0KGU5BTUVfTk9URV9LSU5EX1BST1hZX0hPU1QQBRIZChVOQU1FX05PVEVfS0lORF9ERVZJQ0UQBhIbChdOQU1FX05PVEVfS0lORF9SRUFUVEFDSBAHEhkKFU5BTUVfTk9URV9LSU5EX09SUEhBThAIKoMBCglTdGVwU3RhdGUSGgoWU1RFUF9TVEFURV9VTlNQRUNJRklFRBAAEhYKElNURVBfU1RBVEVfUEVORElORxABEhYKElNURVBfU1RBVEVfUlVOTklORxACEhMKD1NURVBfU1RBVEVfRE9ORRADEhUKEVNURVBfU1RBVEVfRkFJTEVEEAQygggKC0FwcHNTZXJ2aWNlEksKCExpc3RBcHBzEhsuZGRhc2guYXBwcy5MaXN0QXBwc1JlcXVlc3QaHC5kZGFzaC5hcHBzLkxpc3RBcHBzUmVzcG9uc2UiBIq1GAASSAoHUmVmcmVzaBIaLmRkYXNoLmFwcHMuUmVmcmVzaFJlcXVlc3QaGy5kZGFzaC5hcHBzLlJlZnJlc2hSZXNwb25zZSIEkrUYABJUCgtTZXRTZXR0aW5ncxIeLmRkYXNoLmFwcHMuU2V0U2V0dGluZ3NSZXF1ZXN0Gh8uZGRhc2guYXBwcy5TZXRTZXR0aW5nc1Jlc3BvbnNlIgSStRgAEloKDUlnbm9yZVdhcm5pbmcSIC5kZGFzaC5hcHBzLklnbm9yZVdhcm5pbmdSZXF1ZXN0GiEuZGRhc2guYXBwcy5JZ25vcmVXYXJuaW5nUmVzcG9uc2UiBJK1GAASYAoPVW5pZ25vcmVXYXJuaW5nEiIuZGRhc2guYXBwcy5Vbmlnbm9yZVdhcm5pbmdSZXF1ZXN0GiMuZGRhc2guYXBwcy5Vbmlnbm9yZVdhcm5pbmdSZXNwb25zZSIEkrUYABJLCghSZWF0dGFjaBIbLmRkYXNoLmFwcHMuUmVhdHRhY2hSZXF1ZXN0GhwuZGRhc2guYXBwcy5SZWF0dGFjaFJlc3BvbnNlIgSStRgAElkKDERlbGV0ZVJlY29yZBIfLmRkYXNoLmFwcHMuRGVsZXRlUmVjb3JkUmVxdWVzdBogLmRkYXNoLmFwcHMuRGVsZXRlUmVjb3JkUmVzcG9uc2UiBpK1GAIIARJXCgxQcm9tb3RlQWxpYXMSHy5kZGFzaC5hcHBzLlByb21vdGVBbGlhc1JlcXVlc3QaIC5kZGFzaC5hcHBzLlByb21vdGVBbGlhc1Jlc3BvbnNlIgSStRgAEkQKBU1lcmdlEhguZGRhc2guYXBwcy5NZXJnZVJlcXVlc3QaGS5kZGFzaC5hcHBzLk1lcmdlUmVzcG9uc2UiBpK1GAIIARJTCgpQbGFuQWN0aW9uEh0uZGRhc2guYXBwcy5QbGFuQWN0aW9uUmVxdWVzdBoeLmRkYXNoLmFwcHMuUGxhbkFjdGlvblJlc3BvbnNlIgaKtRgCCAMSUAoJUnVuQWN0aW9uEhwuZGRhc2guYXBwcy5SdW5BY3Rpb25SZXF1ZXN0Gh0uZGRhc2guYXBwcy5SdW5BY3Rpb25SZXNwb25zZSIEkrUYADABEloKDUxpc3RXb3JrbG9hZHMSIC5kZGFzaC5hcHBzLkxpc3RXb3JrbG9hZHNSZXF1ZXN0GiEuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVzcG9uc2UiBIq1GABCOlo4Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9hcHBzL2FwcHNwYjthcHBzcGJiBnByb3RvMw", [file_ddash_options, file_ddash_proxyhost_proxy_host, file_ddash_workload_workload, file_google_protobuf_timestamp]);
+  fileDesc("Cg9hcHBzL2FwcHMucHJvdG8SCmRkYXNoLmFwcHMiDAoKQXBwc0NvbmZpZyLOAwoDQXBwEgoKAmlkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2FsaWFzZXMYBCADKAkSDAoEaWNvbhgFIAEoCRINCgVncm91cBgGIAEoCRIOCgZoaWRkZW4YByABKAgSIAoFcmVhY2gYCCABKA4yES5kZGFzaC5hcHBzLlJlYWNoEhAKCG9ycGhhbmVkGAkgASgIEg8KB3RvdWNoZWQYCiABKAgSKQoIc2V0dGluZ3MYCyABKAsyFy5kZGFzaC5hcHBzLkFwcFNldHRpbmdzEiAKBWxpbmtzGAwgASgLMhEuZGRhc2guYXBwcy5MaW5rcxIpCgpwcm94eV9ob3N0GA0gASgLMhUuZGRhc2guYXBwcy5Qcm94eUhvc3QSJgoId29ya2xvYWQYDiABKAsyFC5kZGFzaC5hcHBzLldvcmtsb2FkEiUKCHdhcm5pbmdzGA8gAygLMhMuZGRhc2guYXBwcy5XYXJuaW5nEiwKA2RucxgQIAMoCzIfLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlT3JBbGlhcxIoCgduZXR3b3JrGBEgASgLMhcuZGRhc2guYXBwcy5OZXR3b3JrSW5mbyKPAQoLTmV0d29ya0luZm8SDwoHYWRkcmVzcxgBIAEoCRIvCg1pbnRlcm5ldF9wYXRoGAIgASgOMhguZGRhc2guYXBwcy5JbnRlcm5ldFBhdGgSEwoLYWRzX2FsbG93ZWQYAyABKAgSKQoGZGV2aWNlGAQgASgLMhkuZGRhc2guYXBwcy5OZXR3b3JrRGV2aWNlIioKDU5ldHdvcmtEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkidwoLQXBwU2V0dGluZ3MSDAoEbmFtZRgBIAEoCRIMCgRpY29uGAIgASgJEg0KBWdyb3VwGAMgASgJEg4KBmhpZGRlbhgEIAEoCBItCgh3b3JrbG9hZBgFIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmIlMKBUxpbmtzEhUKDXByb3h5X2hvc3RfaWQYASABKAMSMwoNaG9zdF9vdmVycmlkZRgCIAEoCzIcLmRkYXNoLmFwcHMuSG9zdE92ZXJyaWRlTmFtZSIwChBIb3N0T3ZlcnJpZGVOYW1lEgwKBGhvc3QYASABKAkSDgoGZG9tYWluGAIgASgJIm4KE0hvc3RPdmVycmlkZU9yQWxpYXMSDAoEaG9zdBgBIAEoCRIOCgZkb21haW4YAiABKAkSLAoGcGFyZW50GAMgASgLMhwuZGRhc2guYXBwcy5Ib3N0T3ZlcnJpZGVOYW1lEgsKA2lwcxgEIAMoCSKuAQoJUHJveHlIb3N0EgoKAmlkGAEgASgDEjAKBmZpZWxkcxgCIAEoCzIgLmRkYXNoLnByb3h5aG9zdC5Qcm94eUhvc3RGaWVsZHMSDwoHZW5hYmxlZBgDIAEoCBIPCgdvZmZsaW5lGAQgASgIEhMKC25naW54X2Vycm9yGAUgASgJEiwKC2NlcnRpZmljYXRlGAYgASgLMhcuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZSJZCgtDZXJ0aWZpY2F0ZRIMCgRuYW1lGAEgASgJEisKBXN0YXRlGAIgASgOMhwuZGRhc2guYXBwcy5DZXJ0aWZpY2F0ZVN0YXRlEg8KB21lc3NhZ2UYAyABKAkihAEKB1dhcm5pbmcSJQoEa2luZBgBIAEoDjIXLmRkYXNoLmFwcHMuV2FybmluZ0tpbmQSDwoHaWdub3JlZBgCIAEoCBIOCgZkZXRhaWwYAyABKAkSEQoJaG9zdG5hbWVzGAQgAygJEh4KBWZpeGVzGAUgAygLMg8uZGRhc2guYXBwcy5GaXgimQEKA0ZpeBIhCgRraW5kGAEgASgOMhMuZGRhc2guYXBwcy5GaXhLaW5kEhAKCGhvc3RuYW1lGAIgASgJEjYKDWhvc3Rfb3ZlcnJpZGUYAyABKAsyHy5kZGFzaC5hcHBzLkhvc3RPdmVycmlkZU9yQWxpYXMSDgoGYXBwX2lkGAQgASgJEhUKDXByb3h5X2hvc3RfaWQYBSABKAMiYwoIV29ya2xvYWQSKAoDcmVmGAEgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSDAoEbmFtZRgCIAEoCRINCgVzdGF0ZRgDIAEoCRIQCghvdmVycmlkZRgEIAEoCCKmAQoKU291cmNlUmVhZBIrCgdyZWFkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBINCgVlcnJvchgCIAEoCRIxCg1mYWlsaW5nX3NpbmNlGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIWCg5ub3RfY29uZmlndXJlZBgEIAEoCBIRCglyZWFkX29ubHkYBSABKAgiEQoPTGlzdEFwcHNSZXF1ZXN0Iu0BChBMaXN0QXBwc1Jlc3BvbnNlEh0KBGFwcHMYASADKAsyDy5kZGFzaC5hcHBzLkFwcBIrCgtwcm94eV9ob3N0cxgCIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIuCg5ob3N0X292ZXJyaWRlcxgDIAEoCzIWLmRkYXNoLmFwcHMuU291cmNlUmVhZBIvCg1yZXZlcnNlX3Byb3h5GAQgASgLMhguZGRhc2guYXBwcy5SZXZlcnNlUHJveHkSFQoNbmV0d29ya19lcnJvchgFIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAYgASgJIkcKDFJldmVyc2VQcm94eRIPCgdhZGRyZXNzGAEgASgJEhYKDmhvc3Rfb3ZlcnJpZGVzGAIgAygJEg4KBm5vdGljZRgDIAEoCSIQCg5SZWZyZXNoUmVxdWVzdCIRCg9SZWZyZXNoUmVzcG9uc2UiSwoSU2V0U2V0dGluZ3NSZXF1ZXN0EgoKAmlkGAEgASgJEikKCHNldHRpbmdzGAIgASgLMhcuZGRhc2guYXBwcy5BcHBTZXR0aW5ncyIVChNTZXRTZXR0aW5nc1Jlc3BvbnNlIkkKFElnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhcKFUlnbm9yZVdhcm5pbmdSZXNwb25zZSJLChZVbmlnbm9yZVdhcm5pbmdSZXF1ZXN0EgoKAmlkGAEgASgJEiUKBGtpbmQYAiABKA4yFy5kZGFzaC5hcHBzLldhcm5pbmdLaW5kIhkKF1VuaWdub3JlV2FybmluZ1Jlc3BvbnNlIikKD1JlYXR0YWNoUmVxdWVzdBIKCgJpZBgBIAEoCRIKCgJ0bxgCIAEoCSISChBSZWF0dGFjaFJlc3BvbnNlIiEKE0RlbGV0ZVJlY29yZFJlcXVlc3QSCgoCaWQYASABKAkiFgoURGVsZXRlUmVjb3JkUmVzcG9uc2UiMAoTUHJvbW90ZUFsaWFzUmVxdWVzdBIKCgJpZBgBIAEoCRINCgVhbGlhcxgCIAEoCSIWChRQcm9tb3RlQWxpYXNSZXNwb25zZSIoCgxNZXJnZVJlcXVlc3QSCgoCaWQYASABKAkSDAoEZnJvbRgCIAEoCSIPCg1NZXJnZVJlc3BvbnNlIvECCglBcHBBY3Rpb24SIQoDYWRkGAEgASgLMhIuZGRhc2guYXBwcy5BZGRBcHBIABIzCg5jaGFuZ2VfYWRkcmVzcxgCIAEoCzIZLmRkYXNoLmFwcHMuQ2hhbmdlQWRkcmVzc0gAEjgKEWNoYW5nZV9wcm94eV9ob3N0GAMgASgLMhsuZGRhc2guYXBwcy5DaGFuZ2VQcm94eUhvc3RIABI4ChFhZGRfcmV2ZXJzZV9wcm94eRgEIAEoCzIbLmRkYXNoLmFwcHMuQWRkUmV2ZXJzZVByb3h5SAASPgoUcmVtb3ZlX3JldmVyc2VfcHJveHkYBSABKAsyHi5kZGFzaC5hcHBzLlJlbW92ZVJldmVyc2VQcm94eUgAEicKBmRlbGV0ZRgGIAEoCzIVLmRkYXNoLmFwcHMuRGVsZXRlQXBwSAASJQoDZml4GAcgASgLMhYuZGRhc2guYXBwcy5GaXhXYXJuaW5nSABCCAoGYWN0aW9uIjkKDUNoYW5nZUFkZHJlc3MSCgoCaWQYASABKAkSCwoDdXJsGAIgASgJEg8KB2FsaWFzZXMYAyADKAkiUwoPQ2hhbmdlUHJveHlIb3N0EgoKAmlkGAEgASgJEjQKCnByb3h5X2hvc3QYAiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzIlMKD0FkZFJldmVyc2VQcm94eRIKCgJpZBgBIAEoCRI0Cgpwcm94eV9ob3N0GAIgASgLMiAuZGRhc2gucHJveHlob3N0LlByb3h5SG9zdEZpZWxkcyIxChJSZW1vdmVSZXZlcnNlUHJveHkSCgoCaWQYASABKAkSDwoHYWRkcmVzcxgCIAEoCSIXCglEZWxldGVBcHASCgoCaWQYASABKAkiNgoKRml4V2FybmluZxIKCgJpZBgBIAEoCRIcCgNmaXgYAiABKAsyDy5kZGFzaC5hcHBzLkZpeCLZAQoGQWRkQXBwEgsKA3VybBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSIAoFcmVhY2gYBSABKA4yES5kZGFzaC5hcHBzLlJlYWNoEjQKCnByb3h5X2hvc3QYBiABKAsyIC5kZGFzaC5wcm94eWhvc3QuUHJveHlIb3N0RmllbGRzEg8KB2FkZHJlc3MYByABKAkSLgoHY29tcG9zZRgIIAEoCzIdLmRkYXNoLmFwcHMuTmV3Q29tcG9zZVByb2plY3QicgoRTmV3Q29tcG9zZVByb2plY3QSDAoEaG9zdBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWRpcmVjdG9yeRgDIAEoCRIPCgdjb250ZW50GAQgASgJEg8KB3NlcnZpY2UYBSABKAkSDAoEcG9ydBgGIAEoDSKmAQoEUGxhbhIjCgVzdGVwcxgBIAMoCzIULmRkYXNoLmFwcHMuUGxhblN0ZXASIwoFbmFtZXMYAiADKAsyFC5kZGFzaC5hcHBzLk5hbWVOb3RlEg8KB2Jsb2NrZWQYAyADKAkSDQoFbm90ZXMYBCADKAkSNAoQY29tcG9zZV9zZXJ2aWNlcxgFIAMoCzIaLmRkYXNoLmFwcHMuQ29tcG9zZVNlcnZpY2UiLQoOQ29tcG9zZVNlcnZpY2USDAoEbmFtZRgBIAEoCRINCgVwb3J0cxgCIAMoDSJkCghQbGFuU3RlcBIiCgZzeXN0ZW0YASABKA4yEi5kZGFzaC5hcHBzLlN5c3RlbRINCgV0aXRsZRgCIAEoCRIlCgZ2YWx1ZXMYAyADKAsyFS5kZGFzaC5hcHBzLlBsYW5WYWx1ZSI5CglQbGFuVmFsdWUSDQoFbGFiZWwYASABKAkSDgoGYmVmb3JlGAIgASgJEg0KBWFmdGVyGAMgASgJIpQBCghOYW1lTm90ZRIQCghob3N0bmFtZRgBIAEoCRImCgRraW5kGAIgASgOMhguZGRhc2guYXBwcy5OYW1lTm90ZUtpbmQSDAoEdGV4dBgDIAEoCRIOCgZhcHBfaWQYBCABKAkSDAoEbmFtZRgFIAEoCRIOCgZoaWRkZW4YBiABKAgSEgoKZGV2aWNlX21hYxgHIAEoCSI6ChFQbGFuQWN0aW9uUmVxdWVzdBIlCgZhY3Rpb24YASABKAsyFS5kZGFzaC5hcHBzLkFwcEFjdGlvbiI0ChJQbGFuQWN0aW9uUmVzcG9uc2USHgoEcGxhbhgBIAEoCzIQLmRkYXNoLmFwcHMuUGxhbiJZChBSdW5BY3Rpb25SZXF1ZXN0EiUKBmFjdGlvbhgBIAEoCzIVLmRkYXNoLmFwcHMuQXBwQWN0aW9uEh4KBHBsYW4YAiABKAsyEC5kZGFzaC5hcHBzLlBsYW4iZwoRUnVuQWN0aW9uUmVzcG9uc2USDgoGYXBwX2lkGAEgASgJEgwKBGRvbmUYAiABKAUSDgoGcmVyZWFkGAMgASgJEiQKBXN0ZXBzGAQgAygOMhUuZGRhc2guYXBwcy5TdGVwU3RhdGUiFgoUTGlzdFdvcmtsb2Fkc1JlcXVlc3QiQAoVTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlEicKCXdvcmtsb2FkcxgBIAMoCzIULmRkYXNoLmFwcHMuV29ya2xvYWQiGAoWTGlzdERvY2tlckhvc3RzUmVxdWVzdCJAChdMaXN0RG9ja2VySG9zdHNSZXNwb25zZRIlCgVob3N0cxgBIAMoCzIWLmRkYXNoLmFwcHMuRG9ja2VySG9zdCJvCgpEb2NrZXJIb3N0EgwKBG5hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRINCgVyb290cxgDIAMoCRIQCghwcm9qZWN0cxgEIAMoCRISCgp1c2VkX3BvcnRzGAUgAygNEg0KBWVycm9yGAYgASgJKoMBCgxJbnRlcm5ldFBhdGgSHQoZSU5URVJORVRfUEFUSF9VTlNQRUNJRklFRBAAEhsKF0lOVEVSTkVUX1BBVEhfVFVOTkVMTEVEEAESGAoUSU5URVJORVRfUEFUSF9ESVJFQ1QQAhIdChlJTlRFUk5FVF9QQVRIX05PX0lOVEVSTkVUEAMqXQoFUmVhY2gSFQoRUkVBQ0hfVU5TUEVDSUZJRUQQABIRCg1SRUFDSF9QUk9YSUVEEAESEwoPUkVBQ0hfTElOS19PTkxZEAISFQoRUkVBQ0hfTk9UX1BST1hJRUQQAyq2AQoQQ2VydGlmaWNhdGVTdGF0ZRIhCh1DRVJUSUZJQ0FURV9TVEFURV9VTlNQRUNJRklFRBAAEhgKFENFUlRJRklDQVRFX1NUQVRFX09LEAESIgoeQ0VSVElGSUNBVEVfU1RBVEVfTk9UX1JFTkVXSU5HEAISIgoeQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFU19TT09OEAMSHQoZQ0VSVElGSUNBVEVfU1RBVEVfRVhQSVJFRBAEKqkDCgdGaXhLaW5kEhgKFEZJWF9LSU5EX1VOU1BFQ0lGSUVEEAASFQoRRklYX0tJTkRfUkVHSVNURVIQARIXChNGSVhfS0lORF9ERUxFVEVfQVBQEAISHgoaRklYX0tJTkRfQUREX1JFVkVSU0VfUFJPWFkQAxIYChRGSVhfS0lORF9SRU1PVkVfTkFNRRAEEiIKHkZJWF9LSU5EX1NFVF9XT1JLTE9BRF9PVkVSUklERRAFEh0KGUZJWF9LSU5EX1BJQ0tfQ0VSVElGSUNBVEUQBhIXChNGSVhfS0lORF9TQVZFX0FHQUlOEAcSFwoTRklYX0tJTkRfVVNFX0FTX1VSTBAIEiMKH0ZJWF9LSU5EX1BPSU5UX0FUX1JFVkVSU0VfUFJPWFkQCRIeChpGSVhfS0lORF9ERUxFVEVfUFJPWFlfSE9TVBAKEhkKFUZJWF9LSU5EX0RFTEVURV9FTlRSWRALEhIKDkZJWF9LSU5EX01FUkdFEAwSFQoRRklYX0tJTkRfUkVBVFRBQ0gQDRIaChZGSVhfS0lORF9ERUxFVEVfT1JQSEFOEA4q9AIKC1dhcm5pbmdLaW5kEhwKGFdBUk5JTkdfS0lORF9VTlNQRUNJRklFRBAAEhwKGFdBUk5JTkdfS0lORF9OT19XT1JLTE9BRBABEhcKE1dBUk5JTkdfS0lORF9OT19UTFMQAhIjCh9XQVJOSU5HX0tJTkRfUFJPWFlfSE9TVF9PRkZMSU5FEAMSJgoiV0FSTklOR19LSU5EX1VSTF9OT1RfT05fUFJPWFlfSE9TVBAEEhkKFVdBUk5JTkdfS0lORF9PUlBIQU5FRBAFEh8KG1dBUk5JTkdfS0lORF9OT1RfUkVHSVNURVJFRBAGEh4KGldBUk5JTkdfS0lORF9OT19QUk9YWV9IT1NUEAcSHQoZV0FSTklOR19LSU5EX0ROU19CWVBBU1NFUxAIEiEKHVdBUk5JTkdfS0lORF9SRUdJU1RFUkVEX1RXSUNFEAkSJQohV0FSTklOR19LSU5EX0hPU1ROQU1FX09OX1RXT19BUFBTEAoqeQoGU3lzdGVtEhYKElNZU1RFTV9VTlNQRUNJRklFRBAAEhAKDFNZU1RFTV9EREFTSBABEh4KGlNZU1RFTV9OR0lOWF9QUk9YWV9NQU5BR0VSEAISEgoOU1lTVEVNX1BGU0VOU0UQAxIRCg1TWVNURU1fRE9DS0VSEAQqnwIKDE5hbWVOb3RlS2luZBIeChpOQU1FX05PVEVfS0lORF9VTlNQRUNJRklFRBAAEiEKHU5BTUVfTk9URV9LSU5EX05PVF9BX0hPU1ROQU1FEAESFgoSTkFNRV9OT1RFX0tJTkRfQVBQEAISIAocTkFNRV9OT1RFX0tJTkRfUkVWRVJTRV9QUk9YWRADEiAKHE5BTUVfTk9URV9LSU5EX0hPU1RfT1ZFUlJJREUQBBIdChlOQU1FX05PVEVfS0lORF9QUk9YWV9IT1NUEAUSGQoVTkFNRV9OT1RFX0tJTkRfREVWSUNFEAYSGwoXTkFNRV9OT1RFX0tJTkRfUkVBVFRBQ0gQBxIZChVOQU1FX05PVEVfS0lORF9PUlBIQU4QCCqDAQoJU3RlcFN0YXRlEhoKFlNURVBfU1RBVEVfVU5TUEVDSUZJRUQQABIWChJTVEVQX1NUQVRFX1BFTkRJTkcQARIWChJTVEVQX1NUQVRFX1JVTk5JTkcQAhITCg9TVEVQX1NUQVRFX0RPTkUQAxIVChFTVEVQX1NUQVRFX0ZBSUxFRBAEMuYICgtBcHBzU2VydmljZRJLCghMaXN0QXBwcxIbLmRkYXNoLmFwcHMuTGlzdEFwcHNSZXF1ZXN0GhwuZGRhc2guYXBwcy5MaXN0QXBwc1Jlc3BvbnNlIgSKtRgAEkgKB1JlZnJlc2gSGi5kZGFzaC5hcHBzLlJlZnJlc2hSZXF1ZXN0GhsuZGRhc2guYXBwcy5SZWZyZXNoUmVzcG9uc2UiBJK1GAASVAoLU2V0U2V0dGluZ3MSHi5kZGFzaC5hcHBzLlNldFNldHRpbmdzUmVxdWVzdBofLmRkYXNoLmFwcHMuU2V0U2V0dGluZ3NSZXNwb25zZSIEkrUYABJaCg1JZ25vcmVXYXJuaW5nEiAuZGRhc2guYXBwcy5JZ25vcmVXYXJuaW5nUmVxdWVzdBohLmRkYXNoLmFwcHMuSWdub3JlV2FybmluZ1Jlc3BvbnNlIgSStRgAEmAKD1VuaWdub3JlV2FybmluZxIiLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVxdWVzdBojLmRkYXNoLmFwcHMuVW5pZ25vcmVXYXJuaW5nUmVzcG9uc2UiBJK1GAASSwoIUmVhdHRhY2gSGy5kZGFzaC5hcHBzLlJlYXR0YWNoUmVxdWVzdBocLmRkYXNoLmFwcHMuUmVhdHRhY2hSZXNwb25zZSIEkrUYABJZCgxEZWxldGVSZWNvcmQSHy5kZGFzaC5hcHBzLkRlbGV0ZVJlY29yZFJlcXVlc3QaIC5kZGFzaC5hcHBzLkRlbGV0ZVJlY29yZFJlc3BvbnNlIgaStRgCCAESVwoMUHJvbW90ZUFsaWFzEh8uZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXF1ZXN0GiAuZGRhc2guYXBwcy5Qcm9tb3RlQWxpYXNSZXNwb25zZSIEkrUYABJECgVNZXJnZRIYLmRkYXNoLmFwcHMuTWVyZ2VSZXF1ZXN0GhkuZGRhc2guYXBwcy5NZXJnZVJlc3BvbnNlIgaStRgCCAESUwoKUGxhbkFjdGlvbhIdLmRkYXNoLmFwcHMuUGxhbkFjdGlvblJlcXVlc3QaHi5kZGFzaC5hcHBzLlBsYW5BY3Rpb25SZXNwb25zZSIGirUYAggDElAKCVJ1bkFjdGlvbhIcLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVxdWVzdBodLmRkYXNoLmFwcHMuUnVuQWN0aW9uUmVzcG9uc2UiBJK1GAAwARJaCg1MaXN0V29ya2xvYWRzEiAuZGRhc2guYXBwcy5MaXN0V29ya2xvYWRzUmVxdWVzdBohLmRkYXNoLmFwcHMuTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlIgSKtRgAEmIKD0xpc3REb2NrZXJIb3N0cxIiLmRkYXNoLmFwcHMuTGlzdERvY2tlckhvc3RzUmVxdWVzdBojLmRkYXNoLmFwcHMuTGlzdERvY2tlckhvc3RzUmVzcG9uc2UiBoq1GAIIAkI6WjhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FwcHMvYXBwc3BiO2FwcHNwYmIGcHJvdG8z", [file_ddash_options, file_ddash_proxyhost_proxy_host, file_ddash_workload_workload, file_google_protobuf_timestamp]);
 
 /**
  * apps has nothing to configure: Apps come from its sources.
@@ -1332,11 +1332,22 @@ export type AddApp = Message<"ddash.apps.AddApp"> & {
   proxyHost?: ProxyHostFields | undefined;
 
   /**
-   * NOT_PROXIED: the address the Host Override resolves to.
+   * NOT_PROXIED: the address the Host Override resolves to. With a new
+   * Compose Project, empty for its Docker host's address.
    *
    * @generated from field: string address = 7;
    */
   address: string;
+
+  /**
+   * Set for the source "New Compose Project": the Plan writes its Compose
+   * file and brings it up on the Docker host before the Proxy Host and
+   * DNS steps. Proxied, an empty upstream host is the Docker host's
+   * address and a zero upstream port the Compose service's port.
+   *
+   * @generated from field: ddash.apps.NewComposeProject compose = 8;
+   */
+  compose?: NewComposeProject | undefined;
 };
 
 /**
@@ -1345,6 +1356,66 @@ export type AddApp = Message<"ddash.apps.AddApp"> & {
  */
 export const AddAppSchema: GenMessage<AddApp> = /*@__PURE__*/
   messageDesc(file_apps_apps, 40);
+
+/**
+ * A new Compose Project an App runs from, on a Docker host with a paired
+ * Docker Agent.
+ *
+ * @generated from message ddash.apps.NewComposeProject
+ */
+export type NewComposeProject = Message<"ddash.apps.NewComposeProject"> & {
+  /**
+   * The Docker Agent's name.
+   *
+   * @generated from field: string host = 1;
+   */
+  host: string;
+
+  /**
+   * The Compose Project's name: lower-case letters, digits, - and _.
+   *
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * Its directory, absolute, under one of the Agent's Compose roots;
+   * empty for <first root>/<name>.
+   *
+   * @generated from field: string directory = 3;
+   */
+  directory: string;
+
+  /**
+   * The Compose file's text, written as <directory>/compose.yaml.
+   *
+   * @generated from field: string content = 4;
+   */
+  content: string;
+
+  /**
+   * The Compose service the App opens; empty for the first one that
+   * publishes a port.
+   *
+   * @generated from field: string service = 5;
+   */
+  service: string;
+
+  /**
+   * The service's published port the App's traffic goes to; 0 for its
+   * first.
+   *
+   * @generated from field: uint32 port = 6;
+   */
+  port: number;
+};
+
+/**
+ * Describes the message ddash.apps.NewComposeProject.
+ * Use `create(NewComposeProjectSchema)` to create a new message.
+ */
+export const NewComposeProjectSchema: GenMessage<NewComposeProject> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 41);
 
 /**
  * An App Action's Plan: its steps in the order they run, the "name is
@@ -1382,6 +1453,15 @@ export type Plan = Message<"ddash.apps.Plan"> & {
    * @generated from field: repeated string notes = 4;
    */
   notes: string[];
+
+  /**
+   * Add App from a new Compose Project: the Compose services its file
+   * defines, by name, to pick the App's service and port from; empty
+   * otherwise, or while the file doesn't parse.
+   *
+   * @generated from field: repeated ddash.apps.ComposeService compose_services = 5;
+   */
+  composeServices: ComposeService[];
 };
 
 /**
@@ -1389,7 +1469,33 @@ export type Plan = Message<"ddash.apps.Plan"> & {
  * Use `create(PlanSchema)` to create a new message.
  */
 export const PlanSchema: GenMessage<Plan> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 41);
+  messageDesc(file_apps_apps, 42);
+
+/**
+ * A Compose service of a new Compose Project's file.
+ *
+ * @generated from message ddash.apps.ComposeService
+ */
+export type ComposeService = Message<"ddash.apps.ComposeService"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * The host ports it publishes (tcp), in the file's order.
+   *
+   * @generated from field: repeated uint32 ports = 2;
+   */
+  ports: number[];
+};
+
+/**
+ * Describes the message ddash.apps.ComposeService.
+ * Use `create(ComposeServiceSchema)` to create a new message.
+ */
+export const ComposeServiceSchema: GenMessage<ComposeService> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 43);
 
 /**
  * One step of a Plan: a write to one system, with the values it expects
@@ -1421,7 +1527,7 @@ export type PlanStep = Message<"ddash.apps.PlanStep"> & {
  * Use `create(PlanStepSchema)` to create a new message.
  */
 export const PlanStepSchema: GenMessage<PlanStep> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 42);
+  messageDesc(file_apps_apps, 44);
 
 /**
  * A value a step expects to find and the one it writes.
@@ -1456,7 +1562,7 @@ export type PlanValue = Message<"ddash.apps.PlanValue"> & {
  * Use `create(PlanValueSchema)` to create a new message.
  */
 export const PlanValueSchema: GenMessage<PlanValue> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 43);
+  messageDesc(file_apps_apps, 45);
 
 /**
  * Why a hostname an Action adds isn't free, or that it reattaches
@@ -1517,7 +1623,7 @@ export type NameNote = Message<"ddash.apps.NameNote"> & {
  * Use `create(NameNoteSchema)` to create a new message.
  */
 export const NameNoteSchema: GenMessage<NameNote> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 44);
+  messageDesc(file_apps_apps, 46);
 
 /**
  * @generated from message ddash.apps.PlanActionRequest
@@ -1534,7 +1640,7 @@ export type PlanActionRequest = Message<"ddash.apps.PlanActionRequest"> & {
  * Use `create(PlanActionRequestSchema)` to create a new message.
  */
 export const PlanActionRequestSchema: GenMessage<PlanActionRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 45);
+  messageDesc(file_apps_apps, 47);
 
 /**
  * @generated from message ddash.apps.PlanActionResponse
@@ -1551,7 +1657,7 @@ export type PlanActionResponse = Message<"ddash.apps.PlanActionResponse"> & {
  * Use `create(PlanActionResponseSchema)` to create a new message.
  */
 export const PlanActionResponseSchema: GenMessage<PlanActionResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 46);
+  messageDesc(file_apps_apps, 48);
 
 /**
  * @generated from message ddash.apps.RunActionRequest
@@ -1575,7 +1681,7 @@ export type RunActionRequest = Message<"ddash.apps.RunActionRequest"> & {
  * Use `create(RunActionRequestSchema)` to create a new message.
  */
 export const RunActionRequestSchema: GenMessage<RunActionRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 47);
+  messageDesc(file_apps_apps, 49);
 
 /**
  * How far an App Action has got, and once it ended what it did; also the
@@ -1622,7 +1728,7 @@ export type RunActionResponse = Message<"ddash.apps.RunActionResponse"> & {
  * Use `create(RunActionResponseSchema)` to create a new message.
  */
 export const RunActionResponseSchema: GenMessage<RunActionResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 48);
+  messageDesc(file_apps_apps, 50);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsRequest
@@ -1635,7 +1741,7 @@ export type ListWorkloadsRequest = Message<"ddash.apps.ListWorkloadsRequest"> & 
  * Use `create(ListWorkloadsRequestSchema)` to create a new message.
  */
 export const ListWorkloadsRequestSchema: GenMessage<ListWorkloadsRequest> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 49);
+  messageDesc(file_apps_apps, 51);
 
 /**
  * @generated from message ddash.apps.ListWorkloadsResponse
@@ -1652,7 +1758,94 @@ export type ListWorkloadsResponse = Message<"ddash.apps.ListWorkloadsResponse"> 
  * Use `create(ListWorkloadsResponseSchema)` to create a new message.
  */
 export const ListWorkloadsResponseSchema: GenMessage<ListWorkloadsResponse> = /*@__PURE__*/
-  messageDesc(file_apps_apps, 50);
+  messageDesc(file_apps_apps, 52);
+
+/**
+ * @generated from message ddash.apps.ListDockerHostsRequest
+ */
+export type ListDockerHostsRequest = Message<"ddash.apps.ListDockerHostsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.apps.ListDockerHostsRequest.
+ * Use `create(ListDockerHostsRequestSchema)` to create a new message.
+ */
+export const ListDockerHostsRequestSchema: GenMessage<ListDockerHostsRequest> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 53);
+
+/**
+ * @generated from message ddash.apps.ListDockerHostsResponse
+ */
+export type ListDockerHostsResponse = Message<"ddash.apps.ListDockerHostsResponse"> & {
+  /**
+   * @generated from field: repeated ddash.apps.DockerHost hosts = 1;
+   */
+  hosts: DockerHost[];
+};
+
+/**
+ * Describes the message ddash.apps.ListDockerHostsResponse.
+ * Use `create(ListDockerHostsResponseSchema)` to create a new message.
+ */
+export const ListDockerHostsResponseSchema: GenMessage<ListDockerHostsResponse> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 54);
+
+/**
+ * A Docker host with a paired Docker Agent.
+ *
+ * @generated from message ddash.apps.DockerHost
+ */
+export type DockerHost = Message<"ddash.apps.DockerHost"> & {
+  /**
+   * The Docker Agent's name.
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Where its published ports answer: the host part of the Agent's URL.
+   *
+   * @generated from field: string address = 2;
+   */
+  address: string;
+
+  /**
+   * The Compose roots its Agent mounts: a new Compose Project goes under
+   * one.
+   *
+   * @generated from field: repeated string roots = 3;
+   */
+  roots: string[];
+
+  /**
+   * Its Compose Projects' names, sorted.
+   *
+   * @generated from field: repeated string projects = 4;
+   */
+  projects: string[];
+
+  /**
+   * The host ports its containers publish, sorted.
+   *
+   * @generated from field: repeated uint32 used_ports = 5;
+   */
+  usedPorts: number[];
+
+  /**
+   * Why it can't be read now; empty when it can.
+   *
+   * @generated from field: string error = 6;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message ddash.apps.DockerHost.
+ * Use `create(DockerHostSchema)` to create a new message.
+ */
+export const DockerHostSchema: GenMessage<DockerHost> = /*@__PURE__*/
+  messageDesc(file_apps_apps, 55);
 
 /**
  * The internet path, as network names it.
@@ -2000,6 +2193,13 @@ export enum System {
    * @generated from enum value: SYSTEM_PFSENSE = 3;
    */
   PFSENSE = 3,
+
+  /**
+   * A Docker host, through its Docker Agent.
+   *
+   * @generated from enum value: SYSTEM_DOCKER = 4;
+   */
+  DOCKER = 4,
 }
 
 /**
@@ -2254,9 +2454,12 @@ export const AppsService: GenService<{
    * a time with every other App Action and sync. It reads both sources
    * afresh and builds the Plan again: when that differs from the one
    * confirmed, it refuses before any write with "changed since you looked"
-   * (ABORTED, the new Plan in the error's details). Otherwise it writes to
-   * Nginx Proxy Manager, then pfSense in one batch applied once, then the
-   * App record, and stops at the first failed step: the error names it and
+   * (ABORTED, the new Plan in the error's details). Otherwise it writes an
+   * Add App's new Compose Project and starts it through docker-agent-api
+   * (following the Agent's job and then the container for up to 40 s
+   * from its start, then stopping DEADLINE_EXCEEDED, "still starting"),
+   * writes to Nginx Proxy Manager, then pfSense in one batch applied once,
+   * then the App record, and stops at the first failed step: the error names it and
    * what was done, nothing is rolled back, and its details carry a
    * RunActionResponse saying how many steps were done. Success or failure,
    * it ends with a sync bounded to 10 s, which may report that it couldn't
@@ -2284,6 +2487,18 @@ export const AppsService: GenService<{
     methodKind: "unary";
     input: typeof ListWorkloadsRequestSchema;
     output: typeof ListWorkloadsResponseSchema;
+  },
+  /**
+   * ListDockerHosts returns the Docker hosts with a paired Docker Agent,
+   * as docker-agent-api lists them now, to add an App from a new Compose
+   * Project on: their address, Compose roots and Compose Projects.
+   *
+   * @generated from rpc ddash.apps.AppsService.ListDockerHosts
+   */
+  listDockerHosts: {
+    methodKind: "unary";
+    input: typeof ListDockerHostsRequestSchema;
+    output: typeof ListDockerHostsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_apps_apps, 0);
