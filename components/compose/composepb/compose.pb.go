@@ -1311,7 +1311,8 @@ func (*ComposeAction_Update) isComposeAction_Action() {}
 
 func (*ComposeAction_Add) isComposeAction_Action() {}
 
-// Save a Compose Project's Compose file, or the .env beside it: validated
+// Save a Compose Project's Compose file, the .env beside it, or a
+// Dockerfile its Compose services build from: a Compose file validated
 // with `docker compose config` on the host, the previous content kept as
 // <file>.bak, refused when the file changed on disk since expect_sha256
 // was read. A .env that isn't there yet is created when expect_sha256 is
@@ -1320,12 +1321,13 @@ type SaveFile struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Host    string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	Project string                 `protobuf:"bytes,2,opt,name=project,proto3" json:"project,omitempty"`
-	// The Compose file or its .env.
+	// The Compose file, its .env or one of its Dockerfiles.
 	Path         string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	Content      string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	ExpectSha256 string `protobuf:"bytes,5,opt,name=expect_sha256,json=expectSha256,proto3" json:"expect_sha256,omitempty"`
 	// Then `docker compose up -d`, which recreates the Compose services
-	// whose config changed.
+	// whose config changed; for a Dockerfile, `docker compose up -d
+	// --build` of the Compose services built from it.
 	Recreate      bool `protobuf:"varint,6,opt,name=recreate,proto3" json:"recreate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

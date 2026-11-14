@@ -43,3 +43,32 @@ it("says so when the Docker Agent doesn't mount the Compose file", async () => {
   await settle();
   expect(screen.getByText(/file isn't known/)).toBeTruthy();
 });
+
+it("shows the Dockerfile a Compose service builds from, and saves it rebuilding that Compose service", async () => {
+  const dockerfile = "FROM node:22-alpine\nCMD [\"node\", \"server.js\"]\n";
+  const calls = await show({
+    GetComposeFile: () =>
+      Response.json({
+        file: { path: project.configFile, content: "services:\n  app:\n    build: ./app\n", sha256: "c1" },
+        dockerfiles: [{ file: { path: "/srv/compose/media/app/Dockerfile", content: dockerfile, sha256: "d1" }, services: ["app"] }],
+      }),
+    PlanAction: () => Response.json({ plan: { steps: [{ system: "SYSTEM_DOCKER_AGENT", title: "Rebuild and recreate app" }] } }),
+  });
+
+  fireEvent.click(screen.getByRole("tab", { name: "app/Dockerfile" }));
+  expect(screen.getByText(/builds app/)).toBeTruthy();
+  expect(document.body.textContent).toContain('CMD ["node", "server.js"]');
+  fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+  fireEvent.change(screen.getByLabelText("Edit /srv/compose/media/app/Dockerfile"), { target: { value: "FROM node:24-alpine\n" } });
+  fireEvent.click(screen.getByRole("button", { name: "Save…" }));
+  await settle();
+
+  const dialog = within(screen.getByRole("dialog"));
+  expect(dialog.getByRole("heading", { name: "Save Dockerfile" })).toBeTruthy();
+  fireEvent.click(dialog.getByLabelText(/Rebuild and recreate app now \(docker compose up -d --build app\)/));
+  await settle();
+  expect(dialog.getByRole("button", { name: "Save and rebuild" })).toBeTruthy();
+  expect(calls.filter((c) => c.method === "PlanAction").at(-1)?.body).toEqual({
+    action: { save: { host: "media", project: "media", path: "/srv/compose/media/app/Dockerfile", content: "FROM node:24-alpine\n", expectSha256: "d1", recreate: true } },
+  });
+});

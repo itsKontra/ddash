@@ -274,6 +274,18 @@ type File struct {
 	SHA256 string `json:"sha256"`
 	// Env is the Project's .env beside it, when there is one.
 	Env *File `json:"env,omitempty"`
+	// Dockerfiles are those its Compose services build from (build:),
+	// when under a Compose root and there.
+	Dockerfiles []Dockerfile `json:"dockerfiles,omitempty"`
+}
+
+// Dockerfile is a Dockerfile some Compose services build from.
+type Dockerfile struct {
+	Path    string `json:"path"`
+	Content string `json:"content"`
+	SHA256  string `json:"sha256"`
+	// Services are the Compose services built from it.
+	Services []string `json:"services"`
 }
 
 // ValidateRequest is POST /v1/projects/validate: would content, as path,
@@ -298,12 +310,15 @@ type ValidateResponse struct {
 // WriteRequest is POST /v1/projects/write: validate content, keep the
 // file's current content as <path>.bak and replace it, unless its SHA-256
 // is no longer ExpectSHA256 (409 conflict). A .env that isn't there yet is
-// created when ExpectSHA256 is empty.
+// created when ExpectSHA256 is empty. A Dockerfile is written only when
+// File, its Compose file, builds from it; it isn't validated.
 type WriteRequest struct {
 	Path         string `json:"path"`
 	Content      string `json:"content"`
 	ExpectSHA256 string `json:"expect_sha256"`
 	Project      string `json:"project,omitempty"`
+	// File is the Compose file that builds from the Dockerfile at Path.
+	File string `json:"file,omitempty"`
 }
 
 // CreateRequest is POST /v1/projects/create: a new Compose Project's
@@ -347,6 +362,8 @@ type ComposeRequest struct {
 	Pull bool `json:"pull,omitempty"`
 	// Wait: an Up waits until its containers run (`--wait`, 60 s).
 	Wait bool `json:"wait,omitempty"`
+	// Build: an Up builds the images first (`--build`).
+	Build bool `json:"build,omitempty"`
 }
 
 // --- Host Agent ---

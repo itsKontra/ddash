@@ -540,7 +540,8 @@ export const ComposeActionSchema: GenMessage<ComposeAction> = /*@__PURE__*/
   messageDesc(file_compose_compose, 13);
 
 /**
- * Save a Compose Project's Compose file, or the .env beside it: validated
+ * Save a Compose Project's Compose file, the .env beside it, or a
+ * Dockerfile its Compose services build from: a Compose file validated
  * with `docker compose config` on the host, the previous content kept as
  * <file>.bak, refused when the file changed on disk since expect_sha256
  * was read. A .env that isn't there yet is created when expect_sha256 is
@@ -560,7 +561,7 @@ export type SaveFile = Message<"ddash.compose.SaveFile"> & {
   project: string;
 
   /**
-   * The Compose file or its .env.
+   * The Compose file, its .env or one of its Dockerfiles.
    *
    * @generated from field: string path = 3;
    */
@@ -578,7 +579,8 @@ export type SaveFile = Message<"ddash.compose.SaveFile"> & {
 
   /**
    * Then `docker compose up -d`, which recreates the Compose services
-   * whose config changed.
+   * whose config changed; for a Dockerfile, `docker compose up -d
+   * --build` of the Compose services built from it.
    *
    * @generated from field: bool recreate = 6;
    */

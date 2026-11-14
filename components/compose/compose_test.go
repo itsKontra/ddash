@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -93,7 +94,7 @@ func setup(t *testing.T) lab {
 		Stacks: []agentfake.Stack{
 			{Dir: "media", Compose: media, Running: true},
 			{Dir: "infra", Compose: infra, Running: true},
-			{Dir: "homebrew", Compose: homebrew, Running: true},
+			{Dir: "homebrew", Compose: homebrew, Dockerfile: "FROM alpine:3.20\n", Running: true},
 			{Dir: "idle", Compose: "services:\n  web:\n    image: nginx:1.27\n"},
 		},
 		Images: []agentfake.Image{
@@ -377,6 +378,46 @@ func TestSaveCreatesEnv(t *testing.T) {
 	// There now: a create expecting none is stale.
 	if plan, _ = l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a}); !strings.Contains(strings.Join(plan.GetPlan().GetBlocked(), " "), "changed on disk") {
 		t.Fatalf("again: %v", plan.GetPlan().GetBlocked())
+	}
+}
+
+func TestSaveDockerfileRebuilds(t *testing.T) {
+	ctx := context.Background()
+	l := setup(t)
+	file := filepath.Join(l.docker.Root, "homebrew/Dockerfile")
+	b, _ := os.ReadFile(file)
+	before := l.project(t, "homebrew").GetServices()[0].GetContainers()[0].GetId()
+	a := &pb.ComposeAction{Action: &pb.ComposeAction_Save{Save: &pb.SaveFile{Host: "apps", Project: "homebrew", Path: file, Content: "FROM alpine:3.21\n", ExpectSha256: sha(b), Recreate: true}}}
+	plan, err := l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var titles []string
+	for _, s := range plan.GetPlan().GetSteps() {
+		titles = append(titles, s.GetTitle())
+	}
+	// Not validated as a Compose file; only its Compose services rebuilt.
+	if p := plan.GetPlan(); len(p.GetBlocked()) > 0 || !slices.Contains(titles, "Write "+file) || titles[len(titles)-1] != "Rebuild and recreate app" {
+		t.Fatalf("plan = %v", p)
+	}
+	r, err := l.run(t, a)
+	if err != nil || r.GetError() != "" {
+		t.Fatalf("save: %v %v", r, err)
+	}
+	if got, _ := os.ReadFile(file); string(got) != "FROM alpine:3.21\n" {
+		t.Fatalf("Dockerfile = %q", got)
+	}
+	if !slices.Contains(l.docker.Calls(), "up homebrew -d --remove-orphans --build app") {
+		t.Fatalf("calls = %v", l.docker.Calls())
+	}
+	if after := l.project(t, "homebrew").GetServices()[0].GetContainers()[0].GetId(); after == before {
+		t.Fatal("app wasn't recreated from its new image")
+	}
+
+	// Only a Dockerfile its Compose file builds from.
+	a.GetSave().Path = filepath.Join(l.docker.Root, "homebrew/main.go")
+	if _, err := l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("main.go: %v", err)
 	}
 }
 

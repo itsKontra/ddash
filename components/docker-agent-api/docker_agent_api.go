@@ -610,6 +610,9 @@ func (c *component) GetComposeFile(ctx context.Context, req *pb.GetComposeFileRe
 	if f.Env != nil {
 		out.Env = &pb.ComposeFile{Path: f.Env.Path, Content: f.Env.Content, Sha256: f.Env.SHA256}
 	}
+	for _, d := range f.Dockerfiles {
+		out.Dockerfiles = append(out.Dockerfiles, &pb.Dockerfile{File: &pb.ComposeFile{Path: d.Path, Content: d.Content, Sha256: d.SHA256}, Services: d.Services})
+	}
 	return out, nil
 }
 
@@ -632,7 +635,7 @@ func (c *component) WriteComposeFile(ctx context.Context, req *pb.WriteComposeFi
 	}
 	defer c.reads.Invalidate()
 	var f agent.File
-	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: req.GetPath(), Content: req.GetContent(), ExpectSHA256: req.GetExpectSha256(), Project: req.GetProject()}, &f); err != nil {
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: req.GetPath(), Content: req.GetContent(), ExpectSHA256: req.GetExpectSha256(), Project: req.GetProject(), File: req.GetComposeFile()}, &f); err != nil {
 		return nil, agentErr(err)
 	}
 	return &pb.WriteComposeFileResponse{File: &pb.ComposeFile{Path: f.Path, Content: f.Content, Sha256: f.SHA256}}, nil
@@ -659,7 +662,7 @@ func (c *component) CreateComposeProject(ctx context.Context, req *pb.CreateComp
 }
 
 // compose starts a Compose job on the target's Agent.
-func (c *component) compose(ctx context.Context, op agent.ComposeOp, t *pb.ComposeTarget, pull, wait bool) (*agent.Job, string, error) {
+func (c *component) compose(ctx context.Context, op agent.ComposeOp, t *pb.ComposeTarget, pull, wait, build bool) (*agent.Job, string, error) {
 	cl, r, err := c.paired(ctx, t.GetHost())
 	if err != nil {
 		return nil, "", err
@@ -668,7 +671,7 @@ func (c *component) compose(ctx context.Context, op agent.ComposeOp, t *pb.Compo
 	var ref agent.JobRef
 	err = cl.Post(ctx, agent.PathCompose, agent.ComposeRequest{
 		Op: op, Project: t.GetProject(), WorkingDir: t.GetWorkingDir(), File: t.GetFile(),
-		Services: t.GetServices(), Pull: pull, Wait: wait,
+		Services: t.GetServices(), Pull: pull, Wait: wait, Build: build,
 	}, &ref)
 	if err != nil {
 		return nil, "", agentErr(err)
@@ -677,7 +680,7 @@ func (c *component) compose(ctx context.Context, op agent.ComposeOp, t *pb.Compo
 }
 
 func (c *component) UpProject(ctx context.Context, req *pb.UpProjectRequest) (*pb.UpProjectResponse, error) {
-	j, host, err := c.compose(ctx, agent.Up, req.GetTarget(), req.GetPull(), req.GetWait())
+	j, host, err := c.compose(ctx, agent.Up, req.GetTarget(), req.GetPull(), req.GetWait(), req.GetBuild())
 	if err != nil {
 		return nil, err
 	}
@@ -685,7 +688,7 @@ func (c *component) UpProject(ctx context.Context, req *pb.UpProjectRequest) (*p
 }
 
 func (c *component) DownProject(ctx context.Context, req *pb.DownProjectRequest) (*pb.DownProjectResponse, error) {
-	j, host, err := c.compose(ctx, agent.Down, req.GetTarget(), false, false)
+	j, host, err := c.compose(ctx, agent.Down, req.GetTarget(), false, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -693,7 +696,7 @@ func (c *component) DownProject(ctx context.Context, req *pb.DownProjectRequest)
 }
 
 func (c *component) RestartProject(ctx context.Context, req *pb.RestartProjectRequest) (*pb.RestartProjectResponse, error) {
-	j, host, err := c.compose(ctx, agent.Restart, req.GetTarget(), false, false)
+	j, host, err := c.compose(ctx, agent.Restart, req.GetTarget(), false, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -701,7 +704,7 @@ func (c *component) RestartProject(ctx context.Context, req *pb.RestartProjectRe
 }
 
 func (c *component) PullProject(ctx context.Context, req *pb.PullProjectRequest) (*pb.PullProjectResponse, error) {
-	j, host, err := c.compose(ctx, agent.Pull, req.GetTarget(), false, false)
+	j, host, err := c.compose(ctx, agent.Pull, req.GetTarget(), false, false, false)
 	if err != nil {
 		return nil, err
 	}
@@ -709,7 +712,7 @@ func (c *component) PullProject(ctx context.Context, req *pb.PullProjectRequest)
 }
 
 func (c *component) UpdateProject(ctx context.Context, req *pb.UpdateProjectRequest) (*pb.UpdateProjectResponse, error) {
-	j, host, err := c.compose(ctx, agent.Update, req.GetTarget(), false, false)
+	j, host, err := c.compose(ctx, agent.Update, req.GetTarget(), false, false, false)
 	if err != nil {
 		return nil, err
 	}

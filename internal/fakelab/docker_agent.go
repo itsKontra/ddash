@@ -96,6 +96,13 @@ var dockerSeed = agentfake.DockerSeed{
     build: .
     restart: unless-stopped
     ports: ["3001:3000"]
+`, Dockerfile: `FROM node:22-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
+COPY . .
+EXPOSE 3000
+CMD ["node", "server.js"]
 `},
 		{Dir: "uptime", Compose: `services:
   kuma:

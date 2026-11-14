@@ -12,20 +12,21 @@ export interface ComposeProjectFiles {
   configFile: string;
 }
 
-type FileTab = "compose" | "env";
-
 /** A file as the editor saves it: an empty sha256 is a .env not there yet. */
 interface Base {
   path: string;
   content: string;
   sha256: string;
+  /** A Dockerfile's: the Compose services built from it. */
+  builds?: string[];
 }
 
 /**
- * A Compose Project's Compose file and its .env: shown, then edited and
- * saved through a Plan (the compose Component validates a Compose file on
- * the host and keeps the previous content as .bak). A Compose Project
- * without a .env offers to add one.
+ * A Compose Project's Compose file, its .env and the Dockerfiles its
+ * Compose services build from: shown, then edited and saved through a
+ * Plan (the compose Component validates a Compose file on the host and
+ * keeps the previous content as .bak). A Compose Project without a .env
+ * offers to add one.
  */
 export function ComposeFiles({ project }: { project: ComposeProjectFiles }) {
   if (!project.configFile) return <Notice tone="info">This Compose Project&apos;s file isn&apos;t known: it was started from a path the Docker Agent doesn&apos;t mount.</Notice>;
@@ -34,7 +35,8 @@ export function ComposeFiles({ project }: { project: ComposeProjectFiles }) {
 
 function Editor({ project: p }: { project: ComposeProjectFiles }) {
   const file = useQuery(DockerAgentApiService.method.getComposeFile, { host: p.host, path: p.configFile });
-  const [tab, setTab] = useState<FileTab>("compose");
+  /** "compose", "env", or a Dockerfile's path. */
+  const [tab, setTab] = useState("compose");
   const [draft, setDraft] = useState<{ base: Base; text: string }>();
   const [dialog, setDialog] = useState<ReactNode>();
 
@@ -42,15 +44,18 @@ function Editor({ project: p }: { project: ComposeProjectFiles }) {
   if (!file.data) return <Skeleton height="lg" />;
 
   const env = file.data.env;
-  const envPath = `${p.configFile.slice(0, p.configFile.lastIndexOf("/"))}/.env`;
-  const shown: Base | undefined = tab === "env" ? (env ?? { path: envPath, content: "", sha256: "" }) : file.data.file;
+  const dir = p.configFile.slice(0, p.configFile.lastIndexOf("/"));
+  const envPath = `${dir}/.env`;
+  const dockerfiles: Base[] = file.data.dockerfiles.flatMap((d) => (d.file ? [{ ...d.file, builds: d.services }] : []));
+  const shown: Base | undefined =
+    tab === "env" ? (env ?? { path: envPath, content: "", sha256: "" }) : (dockerfiles.find((d) => d.path === tab) ?? file.data.file);
   const editing = draft && draft.base.path === shown?.path ? draft : undefined;
   const adding = !env && (tab === "env" || editing?.base.path === envPath);
 
   const close = () => setDialog(undefined);
   const discard = () => {
     setDraft(undefined);
-    if (!env) setTab("compose");
+    if (adding) setTab("compose");
   };
   const save = () => {
     if (!editing) return;
@@ -58,7 +63,8 @@ function Editor({ project: p }: { project: ComposeProjectFiles }) {
   };
   const tabs = [
     { id: "compose" as const, label: file.data.file?.path.split("/").pop() ?? "Compose file" },
-    ...(env || adding ? [{ id: "env" as const, label: ".env" }] : []),
+    ...(env || adding ? [{ id: "env", label: ".env" }] : []),
+    ...dockerfiles.map((d) => ({ id: d.path, label: d.path.startsWith(`${dir}/`) ? d.path.slice(dir.length + 1) : d.path })),
   ];
   return (
     <div className="flex flex-col gap-3">
@@ -88,6 +94,7 @@ function Editor({ project: p }: { project: ComposeProjectFiles }) {
       <p className="font-mono text-xs break-all text-muted-foreground">
         {shown?.path}
         {adding ? " (not there yet)" : ""}
+        {shown?.builds ? ` · builds ${shown.builds.join(", ")}` : ""}
       </p>
       {editing ? (
         <>
@@ -119,19 +126,31 @@ function Editor({ project: p }: { project: ComposeProjectFiles }) {
   );
 }
 
-/** Save's Plan: the diff, the validation, and whether to recreate the changed Compose services now. */
+/** Save's Plan: the diff, the validation, and whether to recreate the changed Compose services now (for a Dockerfile: rebuild those built from it). */
 function SaveDialog({ project: p, file, content, onClose, onDone }: { project: ComposeProjectFiles; file: Base; content: string; onClose: () => void; onDone: () => void }) {
   const [recreate, setRecreate] = useState(false);
   const name = file.path.split("/").pop();
+  const services = file.builds?.join(" ");
+  const built = file.builds?.join(", ");
   return (
     <PlanDialog
       title={file.sha256 ? `Save ${name}` : `Add ${name}`}
       action={{ action: { case: "save", value: { host: p.host, project: p.name, path: file.path, content, expectSha256: file.sha256, recreate } } }}
-      confirm={recreate ? "Save and recreate" : "Save"}
+      confirm={recreate ? (services ? "Save and rebuild" : "Save and recreate") : "Save"}
       danger={recreate}
       onClose={onClose}
       onDone={onDone}
-      extra={<Checkbox label="Recreate the changed Compose services now (docker compose up -d)" checked={recreate} onChange={(e) => setRecreate(e.target.checked)} />}
+      extra={
+        <Checkbox
+          label={
+            services
+              ? `Rebuild and recreate ${built} now (docker compose up -d --build ${services})`
+              : "Recreate the changed Compose services now (docker compose up -d)"
+          }
+          checked={recreate}
+          onChange={(e) => setRecreate(e.target.checked)}
+        />
+      }
     />
   );
 }

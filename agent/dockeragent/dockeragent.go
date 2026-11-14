@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	"os"
 	"os/exec"
@@ -340,7 +341,67 @@ func (a *Agent) file(w http.ResponseWriter, r *http.Request) {
 	if e, err := os.ReadFile(env); err == nil {
 		out.Env = &agent.File{Path: env, Content: string(e), SHA256: sum(e)}
 	}
+	builds := a.dockerfiles(path, b)
+	for _, f := range slices.Sorted(maps.Keys(builds)) {
+		if d, err := os.ReadFile(f); err == nil {
+			out.Dockerfiles = append(out.Dockerfiles, agent.Dockerfile{Path: f, Content: string(d), SHA256: sum(d), Services: builds[f]})
+		}
+	}
 	agent.WriteJSON(w, http.StatusOK, out)
+}
+
+// dockerfiles maps each Dockerfile the Compose file at path (content b)
+// builds from to the Compose services built from it: build's context,
+// relative to the file's directory, joined with its dockerfile
+// (Dockerfile by default). Remote contexts, inline Dockerfiles, paths
+// with variables and paths outside the roots are left out.
+func (a *Agent) dockerfiles(path string, b []byte) map[string][]string {
+	var doc struct {
+		Services map[string]struct {
+			Build any `yaml:"build"`
+		} `yaml:"services"`
+	}
+	if yaml.Unmarshal(b, &doc) != nil {
+		return nil
+	}
+	out := map[string][]string{}
+	for name, s := range doc.Services {
+		var dir, file string
+		switch v := s.Build.(type) {
+		case string:
+			dir = v
+		case map[string]any:
+			if _, inline := v["dockerfile_inline"]; inline {
+				continue
+			}
+			dir, _ = v["context"].(string)
+			file, _ = v["dockerfile"].(string)
+		default:
+			continue
+		}
+		if dir == "" {
+			dir = "."
+		}
+		if file == "" {
+			file = "Dockerfile"
+		}
+		if strings.Contains(dir+file, "$") || strings.Contains(dir, "://") || strings.HasPrefix(dir, "git@") || strings.HasPrefix(dir, "github.com/") {
+			continue
+		}
+		if !filepath.IsAbs(dir) {
+			dir = filepath.Join(filepath.Dir(path), dir)
+		}
+		if !filepath.IsAbs(file) {
+			file = filepath.Join(dir, file)
+		}
+		if file = filepath.Clean(file); a.inRoots(file) {
+			out[file] = append(out[file], name)
+		}
+	}
+	for _, s := range out {
+		slices.Sort(s)
+	}
+	return out
 }
 
 func (a *Agent) validate(w http.ResponseWriter, r *http.Request) {
@@ -441,13 +502,29 @@ func (a *Agent) write(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isEnv := filepath.Base(req.Path) == ".env"
+	// A Dockerfile is written only when its Compose file builds from it.
+	isDockerfile := req.File != "" && req.File != req.Path && !isEnv
 	check := req.Path
-	if isEnv {
+	switch {
+	case isEnv:
 		check = filepath.Join(filepath.Dir(req.Path), "compose.yaml")
+	case isDockerfile:
+		check = req.File
 	}
 	if err := a.composeFile(check); err != nil {
 		agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, err.Error())
 		return
+	}
+	if isDockerfile {
+		b, err := os.ReadFile(req.File)
+		if err != nil {
+			agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, "can't read "+req.File+": "+err.Error())
+			return
+		}
+		if _, ok := a.dockerfiles(req.File, b)[filepath.Clean(req.Path)]; !ok {
+			agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, req.Path+" isn't a Dockerfile "+req.File+" builds from")
+			return
+		}
 	}
 	defer a.lock(req.Path)()
 	old, err := os.ReadFile(req.Path)
@@ -462,7 +539,7 @@ func (a *Agent) write(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusConflict, agent.CodeConflict, req.Path+" changed on disk since it was read")
 		return
 	}
-	if !isEnv {
+	if !isEnv && !isDockerfile {
 		if v := a.Validate(r.Context(), req.Path, req.Project, req.Content, ""); !v.OK {
 			agent.WriteError(w, http.StatusUnprocessableEntity, agent.CodeInvalid, v.Error)
 			return
@@ -613,6 +690,9 @@ func (a *Agent) op(req agent.ComposeRequest) ([]string, agent.Run) {
 		}
 		if req.Wait {
 			args = append(args, "--wait", "--wait-timeout", "60")
+		}
+		if req.Build {
+			args = append(args, "--build")
 		}
 		return steps, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
 			if err := run(ctx, p, 0, append(args, svc...)...); err != nil {
