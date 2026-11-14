@@ -3,7 +3,6 @@ package checks_test
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 	"testing"
 	"testing/synctest"
@@ -13,56 +12,64 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
+	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
-// fakeNtfy is ntfy-api as checks sees it: it records the Notifications
-// handed to Send, and fails them while down.
-type fakeNtfy struct {
-	ntfyapipb.NtfyApiServiceClient
+// fakeNotify is notify as checks sees it: it records the Notifications
+// handed to Send, without their category, and fails them while down
+// (every channel failed). Like notify it refuses a Notification without
+// a category, and so does it one in any category but Checks.
+type fakeNotify struct {
+	notifypb.NotifyServiceClient
 
 	mu       sync.Mutex
-	sent     []*ntfyapipb.Notification
+	sent     []*notifypb.Notification
 	attempts []time.Time
 	down     bool
 }
 
-func (f *fakeNtfy) Send(_ context.Context, req *ntfyapipb.SendRequest, _ ...grpc.CallOption) (*ntfyapipb.SendResponse, error) {
+func (f *fakeNotify) Send(_ context.Context, req *notifypb.SendRequest, _ ...grpc.CallOption) (*notifypb.SendResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.attempts = append(f.attempts, time.Now())
-	if f.down {
-		return nil, status.Error(codes.Unavailable, "ntfy answered 502: bad gateway")
+	n := proto.CloneOf(req.GetNotification())
+	if n.GetCategory() != notifypb.Category_CATEGORY_CHECKS {
+		return nil, status.Errorf(codes.InvalidArgument, "category %v, want Checks", n.GetCategory())
 	}
-	f.sent = append(f.sent, req.GetNotification())
-	return &ntfyapipb.SendResponse{Id: strconv.Itoa(len(f.sent))}, nil
+	if f.down {
+		return nil, status.Error(codes.Unavailable, "ntfy: ntfy answered 502: bad gateway; Telegram: Telegram answered 502: Bad Gateway")
+	}
+	n.Category = notifypb.Category_CATEGORY_UNSPECIFIED
+	f.sent = append(f.sent, n)
+	return &notifypb.SendResponse{Deliveries: []*notifypb.Delivery{{Channel: "ntfy", State: notifypb.DeliveryState_DELIVERY_STATE_SENT}}}, nil
 }
 
-func (f *fakeNtfy) setDown(down bool) {
+func (f *fakeNotify) setDown(down bool) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.down = down
 }
 
 // notifications returns what was delivered so far.
-func (f *fakeNtfy) notifications() []*ntfyapipb.Notification {
+func (f *fakeNotify) notifications() []*notifypb.Notification {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]*ntfyapipb.Notification(nil), f.sent...)
+	return append([]*notifypb.Notification(nil), f.sent...)
 }
 
-func (f *fakeNtfy) tries() []time.Time {
+func (f *fakeNotify) tries() []time.Time {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return append([]time.Time(nil), f.attempts...)
 }
 
-func titles(ns []*ntfyapipb.Notification) []string {
+func titles(ns []*notifypb.Notification) []string {
 	var out []string
 	for _, n := range ns {
 		out = append(out, n.GetTitle())
@@ -107,7 +114,7 @@ func TestOneNotificationOnConfirmedDownAndOneOnRecovery(t *testing.T) {
 
 		l.set("nas:22", "refuse")
 		after(2 * Interval11())
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Fatalf("sent %v while pending, want nothing before down is confirmed", titles(got))
 		}
 		nextBeat(t, c, id)
@@ -118,8 +125,8 @@ func TestOneNotificationOnConfirmedDownAndOneOnRecovery(t *testing.T) {
 		nextBeat(t, c, id)
 
 		click := fmt.Sprintf("%s/checks/%d", sdktest.PublicURL, id)
-		want := []*ntfyapipb.Notification{{Title: "NAS down", Message: "connection refused", Priority: 4, Tags: []string{"red_circle"}, Click: click}}
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		want := []*notifypb.Notification{{Title: "NAS down", Message: "connection refused", Priority: 4, Tags: []string{"red_circle"}, Click: click}}
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Fatalf("after 2 more down beats (-want +got):\n%s", diff)
 		}
 
@@ -128,12 +135,12 @@ func TestOneNotificationOnConfirmedDownAndOneOnRecovery(t *testing.T) {
 		after(checks.GroupWindow + tick11())
 
 		// Up 3 beats after it went down: 180 to 198 s.
-		want = append(want, &ntfyapipb.Notification{Title: "NAS up again", Message: "Down for 3 min (connection refused)", Priority: 3, Tags: []string{"green_circle"}, Click: click})
-		if diff := cmp.Diff(want, l.ntfy.notifications(), protocmp.Transform()); diff != "" {
+		want = append(want, &notifypb.Notification{Title: "NAS up again", Message: "Down for 3 min (connection refused)", Priority: 3, Tags: []string{"green_circle"}, Click: click})
+		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("after recovering (-want +got):\n%s", diff)
 		}
 		after(10 * Interval11())
-		if n := len(l.ntfy.notifications()); n != 2 {
+		if n := len(l.notify.notifications()); n != 2 {
 			t.Errorf("%d Notifications, want no more while up", n)
 		}
 	})
@@ -148,7 +155,7 @@ func TestACheckThatWasNeverDownSendsNothingWhenItComesUp(t *testing.T) {
 		l.set("nas:22", "up")
 		after(Interval11())
 
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v, want nothing: it was pending, never down", titles(got))
 		}
 	})
@@ -169,7 +176,7 @@ func TestAMutedCheckSendsNoNotification(t *testing.T) {
 		l.set("nas:22", "up")
 		after(Interval11())
 
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v for a muted Check, want nothing", titles(got))
 		}
 	})
@@ -189,13 +196,13 @@ func TestTheLastNotifiedStateSurvivesARestart(t *testing.T) {
 		after(5 * time.Minute)
 		startIn(t, l, sdktest.WithDB(h.DBPath))
 		after(3 * Interval11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
 			t.Fatalf("sent %v across the restart, want the one down", got)
 		}
 
 		l.set("nas:22", "up")
 		after(Interval11() + checks.GroupWindow + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down", "NAS up again"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NAS down", "NAS up again"}) {
 			t.Errorf("sent %v, want the recovery after the restart", got)
 		}
 	})
@@ -208,11 +215,11 @@ func TestAnUnsentNotificationIsRetriedWithBackoff(t *testing.T) {
 		_, c := startIn(t, l)
 		create(t, c, named("NAS", "nas:22"))
 		synctest.Wait()
-		l.ntfy.setDown(true)
+		l.notify.setDown(true)
 
 		goDown(l, "nas:22")
 		after(20 * time.Minute)
-		tries := l.ntfy.tries()
+		tries := l.notify.tries()
 		if len(tries) < 3 {
 			t.Fatalf("%d attempts in 20 min, want retries", len(tries))
 		}
@@ -225,10 +232,10 @@ func TestAnUnsentNotificationIsRetriedWithBackoff(t *testing.T) {
 			t.Errorf("retry gap %v, want at most %v", gap, checks.RetryMax)
 		}
 
-		l.ntfy.setDown(false)
+		l.notify.setDown(false)
 		after(checks.RetryMax + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
-			t.Errorf("sent %v once ntfy works again, want the down", got)
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NAS down"}) {
+			t.Errorf("sent %v once notify works again, want the down", got)
 		}
 	})
 }
@@ -242,7 +249,7 @@ func TestTheQueueIsCollapsedToTheCurrentStateBeforeEachAttempt(t *testing.T) {
 		create(t, c, named("NAS", "nas:22"))
 		create(t, c, named("NVR", "nvr:554"))
 		synctest.Wait()
-		l.ntfy.setDown(true)
+		l.notify.setDown(true)
 
 		// NAS goes down and comes back; NVR goes down and stays down.
 		l.set("nvr:554", "refuse")
@@ -250,9 +257,9 @@ func TestTheQueueIsCollapsedToTheCurrentStateBeforeEachAttempt(t *testing.T) {
 		l.set("nas:22", "up")
 		after(Interval11())
 
-		l.ntfy.setDown(false)
+		l.notify.setDown(false)
 		after(checks.RetryMax + tick11())
-		if got := titles(l.ntfy.notifications()); !cmp.Equal(got, []string{"NVR down"}) {
+		if got := titles(l.notify.notifications()); !cmp.Equal(got, []string{"NVR down"}) {
 			t.Errorf("sent %v, want only NVR's down: NAS is back where it was last notified", got)
 		}
 	})
@@ -265,24 +272,24 @@ func TestAnUnsentNotificationIsDroppedAfterAnHour(t *testing.T) {
 		_, c := startIn(t, l)
 		create(t, c, named("NAS", "nas:22"))
 		synctest.Wait()
-		l.ntfy.setDown(true)
+		l.notify.setDown(true)
 
 		goDown(l, "nas:22")
 		after(checks.GiveUpAfter)
-		l.ntfy.setDown(false)
-		before := len(l.ntfy.tries())
+		l.notify.setDown(false)
+		before := len(l.notify.tries())
 		after(time.Hour)
 
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v after an hour of failures, want it dropped", titles(got))
 		}
-		if n := len(l.ntfy.tries()); n != before {
+		if n := len(l.notify.tries()); n != before {
 			t.Errorf("%d more attempts after the hour, want none", n-before)
 		}
 		// Never notified down, so its recovery sends nothing either.
 		l.set("nas:22", "up")
 		after(Interval11())
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v on recovery, want nothing", titles(got))
 		}
 	})
@@ -313,15 +320,15 @@ func TestAHiddenDisabledOrGoneChecksQueuedNotificationIsDropped(t *testing.T) {
 				setApps(t, c, a)
 				synctest.Wait()
 				id := appCheck(t, c, a.GetAppId()).GetId()
-				l.ntfy.setDown(true)
+				l.notify.setDown(true)
 				l.set("printer.home.example:8080", "refuse")
 				untilState(t, c, id, checkspb.State_STATE_DOWN)
 
 				silence(t, c, a, id)
-				l.ntfy.setDown(false)
+				l.notify.setDown(false)
 				after(checks.RetryMax + checks.GroupWindow + tick11())
 
-				if got := l.ntfy.notifications(); len(got) != 0 {
+				if got := l.notify.notifications(); len(got) != 0 {
 					t.Errorf("sent %v for a %s App Check, want nothing", titles(got), name)
 				}
 			})
@@ -336,16 +343,16 @@ func TestADeletedChecksQueuedNotificationIsDropped(t *testing.T) {
 		_, c := startIn(t, l)
 		id := create(t, c, named("NAS", "nas:22")).GetId()
 		synctest.Wait()
-		l.ntfy.setDown(true)
+		l.notify.setDown(true)
 		goDown(l, "nas:22")
 
 		if _, err := c.DeleteCheck(t.Context(), &checkspb.DeleteCheckRequest{Id: id}); err != nil {
 			t.Fatal(err)
 		}
-		l.ntfy.setDown(false)
+		l.notify.setDown(false)
 		after(checks.RetryMax + tick11())
 
-		if got := l.ntfy.notifications(); len(got) != 0 {
+		if got := l.notify.notifications(); len(got) != 0 {
 			t.Errorf("sent %v for a deleted Check, want nothing", titles(got))
 		}
 	})

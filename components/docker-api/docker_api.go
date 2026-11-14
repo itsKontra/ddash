@@ -1,6 +1,9 @@
 // Package dockerapi is the docker-api Component: it lists the containers on
 // each configured Docker host, read through that host's read-only
-// linuxserver/socket-proxy with the official Docker Go client.
+// linuxserver/socket-proxy with the official Docker Go client, and on each
+// host with a paired Docker Agent, read through docker-agent-api. A host
+// with an Agent is read only through it: a socket-proxy host of the same
+// name is dropped.
 package dockerapi
 
 import (
@@ -8,6 +11,7 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/url"
 	"strings"
 	"sync"
@@ -16,6 +20,7 @@ import (
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 
+	"github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -44,6 +49,8 @@ type component struct {
 	dockerapipb.UnimplementedDockerApiServiceServer
 	hosts      []host
 	containers *sdk.Cache[snapshot]
+	agents     dockeragentapipb.DockerAgentApiServiceClient
+	log        *slog.Logger
 }
 
 type host struct {
@@ -60,10 +67,12 @@ type snapshot struct {
 	problems []string
 }
 
-func (c *component) Start(ctx context.Context, _ *sdk.Env, cfg *dockerapipb.DockerApiConfig) error {
+func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *dockerapipb.DockerApiConfig) error {
 	if err := validate(cfg); err != nil {
 		return err
 	}
+	c.agents = sdk.Require(env, dockeragentapipb.NewDockerAgentApiServiceClient)
+	c.log = env.Log
 	for _, h := range cfg.GetHosts() {
 		cli, err := client.New(client.WithHost(h.GetUrl()), client.WithAPIVersion(apiVersion))
 		if err != nil {
@@ -129,9 +138,24 @@ func (c *component) fetch(ctx context.Context) (snapshot, error) {
 	for i, h := range c.hosts {
 		wg.Go(func() { hosts[i], errs[i] = h.list(ctx) })
 	}
+	var agentHosts []*dockerapipb.HostContainers
+	wg.Go(func() { agentHosts = c.agentHosts(ctx) })
 	wg.Wait()
-	s := snapshot{resp: &dockerapipb.ListContainersResponse{Hosts: hosts}}
+	s := snapshot{resp: &dockerapipb.ListContainersResponse{}}
+	byAgent := map[string]bool{}
+	for _, h := range agentHosts {
+		byAgent[h.GetHost()] = true
+	}
+	for _, h := range hosts {
+		if !byAgent[h.GetHost()] {
+			s.resp.Hosts = append(s.resp.Hosts, h)
+		}
+	}
+	s.resp.Hosts = append(s.resp.Hosts, agentHosts...)
 	for i, err := range errs {
+		if byAgent[c.hosts[i].name] {
+			continue
+		}
 		switch {
 		case err == nil:
 		case client.IsErrConnectionFailed(err) || errors.Is(err, context.DeadlineExceeded):
@@ -141,6 +165,32 @@ func (c *component) fetch(ctx context.Context) (snapshot, error) {
 		}
 	}
 	return s, nil
+}
+
+// agentHosts reads the hosts with a paired Docker Agent. docker-agent-api
+// failing (or not running) leaves them out: the socket-proxy hosts still
+// list.
+func (c *component) agentHosts(ctx context.Context) []*dockerapipb.HostContainers {
+	ctx, cancel := context.WithTimeout(ctx, hostTimeout)
+	defer cancel()
+	res, err := c.agents.ListContainers(ctx, &dockeragentapipb.ListContainersRequest{})
+	if err != nil {
+		c.log.Warn("can't read the Docker Agents", "err", err)
+		return nil
+	}
+	var out []*dockerapipb.HostContainers
+	for _, h := range res.GetHosts() {
+		hc := &dockerapipb.HostContainers{Host: h.GetHost(), Address: h.GetAddress(), Error: h.GetError()}
+		for _, ct := range h.GetContainers() {
+			c := &dockerapipb.Container{Id: ct.GetId(), Name: ct.GetName(), Image: ct.GetImage(), State: ct.GetState(), Status: ct.GetStatus()}
+			for _, p := range ct.GetPorts() {
+				c.Ports = append(c.Ports, &dockerapipb.Port{Ip: p.GetIp(), PublicPort: p.GetPublicPort(), PrivatePort: p.GetPrivatePort(), Protocol: p.GetProtocol()})
+			}
+			hc.Containers = append(hc.Containers, c)
+		}
+		out = append(out, hc)
+	}
+	return out
 }
 
 // list reads one host's containers. On error the host is listed with it.

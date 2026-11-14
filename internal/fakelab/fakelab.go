@@ -6,7 +6,8 @@
 // Docker comes first; each later system adds itself to systems. A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
 // adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
-// Cloudflare: cloudflarefake). A
+// Cloudflare: cloudflarefake; Telegram: telegramfake; calendars:
+// calendarfake, whose dates follow the clock). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
 // system that has a sibling directory of that name.
 package fakelab
@@ -25,6 +26,8 @@ import (
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
@@ -36,6 +39,8 @@ import (
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
+	"github.com/itsKontra/ddash/components/telegram-api/telegramapipb"
+	"github.com/itsKontra/ddash/components/telegram-api/telegramfake"
 	"github.com/itsKontra/ddash/sdk/fixture"
 )
 
@@ -67,6 +72,16 @@ var systems = []system{
 			server := "http://" + addr
 			return &ntfyapipb.NtfyApiConfig{Server: &server, Topic: "ddash-alerts"}
 		},
+	},
+	{
+		component: "telegram-api",
+		fixtures:  "components/telegram-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			server := "http://" + addr
+			return &telegramapipb.TelegramApiConfig{Server: &server, Token: telegramfake.DefaultToken, ChatId: telegramfake.DefaultChat}
+		},
+		// Messages sent are kept: what reached the chat can be read back.
+		serve: func(dir string) (http.Handler, error) { return telegramfake.New(dir, telegramfake.Options{}), nil },
 	},
 	{
 		component: "pfsense-api",
@@ -120,6 +135,15 @@ var systems = []system{
 			return cloudflarefake.New(dir, cloudflarefake.Options{Token: "fakelab"})
 		},
 	},
+	{
+		component: "calendar-api",
+		fixtures:  "components/calendar-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			return &calendarapipb.CalendarApiConfig{Calendars: "Home = http://" + addr + "/home.ics; Work = http://" + addr + "/work.ics"}
+		},
+		// The calendars' dates follow the clock: there is always a today.
+		serve: func(dir string) (http.Handler, error) { return calendarfake.New(dir, calendarfake.Options{}) },
+	},
 }
 
 // logicConfigs is the config of Components that reach no system
@@ -127,7 +151,10 @@ var systems = []system{
 // range), by Component.
 var logicConfigs = map[string]func() proto.Message{
 	"network": func() proto.Message {
-		return &networkpb.NetworkConfig{BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.150-198.18.1.199"}
+		return &networkpb.NetworkConfig{
+			BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.150-198.18.1.199",
+			RemoteAccessEndpoint: "vpn.example.org", RemoteAccessDns: []string{"198.18.1.53"},
+		}
 	},
 }
 

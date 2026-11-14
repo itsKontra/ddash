@@ -2,7 +2,7 @@
 // Page. It watches the firewall's failover gateway group and derives the
 // VPN Tunnel's tier from it (reporting the VPN Tunnel item to checks, so
 // both tiers down is notified), samples WAN and LAN throughput into an
-// in-memory ring, reads Remote Access, and turns a Device's ad-blocking off
+// in-memory ring, reads Remote Access and adds its peers, and turns a Device's ad-blocking off
 // or on through AdGuard.
 package network
 
@@ -74,6 +74,9 @@ type component struct {
 	reservedLo, reservedHi netip.Addr
 
 	throughput throughput
+
+	// What new Remote Access peers get (add_peer.go).
+	remote remoteAccessConfig
 }
 
 func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.NetworkConfig) error {
@@ -81,6 +84,9 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.Netw
 	c.adguard = sdk.Require(env, adguardapipb.NewAdguardApiServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.log = env.Log
+	if err := c.startRemoteAccess(cfg); err != nil {
+		return err
+	}
 	if err := c.startDevices(ctx, env, cfg); err != nil {
 		return err
 	}

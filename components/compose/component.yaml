@@ -1,0 +1,3 @@
+name: compose
+description: Lists the Docker Agents' Compose Projects, checks every running container's image against its registry, and runs Compose Project Actions through a Plan.
+requires: [docker-agent-api, checks, notify]

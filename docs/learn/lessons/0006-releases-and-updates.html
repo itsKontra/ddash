@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Releases and Updates</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script src="../assets/quiz.js" defer></script>
+<script src="../assets/order.js" defer></script>
+</head>
+<body>
+<main>
+<nav class="crumbs"><a href="0005-the-browser-side.html">← Lesson 5</a><span>ddash runtime · Lesson 6</span><a href="../reference/runtime-map.html">Reference: runtime map</a></nav>
+
+<h1>Releases and updates</h1>
+<p class="lede col">ADR 0001 promises lockstep Releases, checksum-verified installs, and instant rollback by pinning the old image tag. This lesson follows each promise to the code that keeps it, and to one place where the code doesn't quite keep it. By the end you can walk an update or a rollback through every file it touches, and predict what happens to a Component's DB.</p>
+
+<div class="with-notes">
+
+<h2>Warm-up</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="0" data-why="Release-versioned URLs; the core 404s any other Release (Lesson 5).">
+    <p>Why can't an old browser tab mix old and new Plugin code after an update?</p>
+    <div class="opts">
+      <button class="opt">Bundle URLs carry the Release; old ones 404</button>
+      <button class="opt">The shell reloads itself when the Release changes</button>
+      <button class="opt">The import map is fetched again on each navigation</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="Start errors leave the process running, so reconcile skips it (Lesson 3).">
+    <p>A Component's <code>Start</code> fails with a plain error. What gets it running again?</p>
+    <div class="opts">
+      <button class="opt">The reconcile loop's retry timer, with backoff</button>
+      <button class="opt">The next Health poll, if the cause has gone away</button>
+      <button class="opt">A Restart or Reconfigure, or a Release change</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h2>What a Release is</h2>
+<p><code>release.Build</code> (<code>internal/release/release.go:60</code>) produces one flat directory, laid out like the assets of a GitHub release (doc comment at lines 1-12):</p>
+<pre><code>catalogue.json        every plugin.yaml + component.yaml, merged and Check()ed
+SHA256SUMS            "&lt;hex&gt;  &lt;file&gt;" for every file except these two
+&lt;component&gt;           one static binary each (CGO off, -trimpath)
+&lt;plugin&gt;.plugin.js    copied from plugins/&lt;plugin&gt;/dist/
+&lt;plugin&gt;.plugin.css</code></pre>
+<p>Every binary, including the core, is built with <code>-X github.com/itsKontra/ddash/sdk.Release=&lt;rel&gt;</code> (<code>release.go:224</code>). Lockstep comes down to that one string, and four places check it:</p>
+<ul>
+  <li><strong>Core:</strong> <code>cmd/ddash</code> picks its release source from its own <code>sdk.Release</code> (<code>cmd/ddash/main.go:75</code>).</li>
+  <li><strong>Catalogue:</strong> the GitHub source refuses a <code>catalogue.json</code> whose <code>release</code> differs from that tag (<code>github.go:93</code>).</li>
+  <li><strong>Component:</strong> <code>describe</code> refuses a binary that reports another Release (<code>process.go:195</code>).</li>
+  <li><strong>Browser:</strong> bundle and vendor URLs carry the Release and 404 otherwise (Lesson 5).</li>
+</ul>
+
+<h2>The trust chain</h2>
+<p><code>GitHubSource.Catalogue</code> (<code>core/runtime/github.go:74-107</code>) downloads <code>SHA256SUMS</code> first, then <code>catalogue.json</code>. It verifies neither against anything; the trust anchor is HTTPS to GitHub. After that, <code>ensure</code> (<code>github.go:179-208</code>) checks every binary and bundle against <code>SHA256SUMS</code> before writing it to <code>/data</code>. Lesson 2's <code>SecureConfig</code> then checks each binary <em>again</em> at every launch.</p>
+<aside class="note">This matches issue #19: <q>HTTPS + checksums are the trust anchor; no signing in v1.</q> The checksums catch a corrupt or truncated download, and a binary changed on disk after it was written. They can't catch a tampered GitHub release, because the attacker would publish a matching <code>SHA256SUMS</code>. That's what signing would add.</aside>
+<p>A file already on disk with the right checksum is never downloaded again (<code>github.go:194</code>). That's why installed Plugins keep running while GitHub is unreachable.</p>
+
+<h2>An update, step by step</h2>
+<p>The Operator changes the image tag in compose from <code>v1.4.0</code> to <code>v1.5.0</code> and restarts. Put the steps in order:</p>
+<div class="order" data-why="Notice that the snapshot happens in the core (step 5) before the new binary migrates (step 7). The core never runs a migration itself.">
+  <ol class="order-items">
+    <li>The new core starts with <code>sdk.Release = v1.5.0</code> and builds a GitHub source for that tag</li>
+    <li>The catalogue on disk is v1.4.0, so <code>SHA256SUMS</code> and <code>catalogue.json</code> are fetched for v1.5.0, overwriting the old ones</li>
+    <li>The reconcile loop fetches each installed Plugin's v1.5.0 bundles</li>
+    <li><code>launch</code> downloads each Component's v1.5.0 binary into <code>components/&lt;n&gt;/v1.5.0/</code></li>
+    <li><code>switchRelease</code> copies the DB to <code>db/snapshots/&lt;n&gt;.v1.4.0.db</code></li>
+    <li>The new binary is exec'd, verified by <code>SecureConfig</code>, and passes Describe</li>
+    <li>The SDK applies the new migrations during <code>Start</code></li>
+  </ol>
+</div>
+<p class="cite">cmd/ddash/main.go:75 · github.go:74 · reconcile.go:59, 166-177 · snapshot.go:19-66 · sdk/instance.go:180-192</p>
+
+<h3>Snapshots: one generation, and nothing deleted</h3>
+<p><code>switchRelease</code> (<code>core/runtime/snapshot.go:19</code>) runs before every launch and compares the Release with the <code>component_release</code> row:</p>
+<ul>
+  <li><strong>Same Release:</strong> it does nothing.</li>
+  <li><strong>There's a snapshot <em>of the target Release</em>:</strong> this is a rollback. It moves the current DB into <code>db/aside/</code> and restores the snapshot.</li>
+  <li><strong>Otherwise:</strong> this is an upgrade. It copies the current DB to <code>&lt;n&gt;.&lt;old&gt;.db</code> and deletes any older snapshot, keeping one generation.</li>
+</ul>
+<p>DBs in <code>aside/</code> are never deleted, so a rollback loses no data on disk. Anything written after the upgrade does stop being <em>live</em>, though.</p>
+<aside class="note">ADR 0001 says <q>snapshots the old DB before a migrating update</q>. The code snapshots on <em>every</em> Release change, migrating or not. That's simpler and safer, and it costs one DB copy per Component per update.</aside>
+
+<h3>Migrations only go forward</h3>
+<p><code>migrate.Apply</code> (<code>sdk/migrate/migrate.go:46</code>) keeps the count of applied migrations in SQLite's <code>PRAGMA user_version</code>, and each migration runs in its own transaction. A DB that has seen <em>more</em> migrations than the binary knows fails with <code>ErrSchemaAhead</code>: <q>Roll back by restoring the snapshot, never by migrating down.</q> When the SDK's <code>openDB</code> fails, so does Start: <q>the Component is down until the Release changes</q> (<code>sdk/instance.go:178-179</code>). Lesson 3 explained why that Down is never retried.</p>
+
+<h2>Exercise: is rollback really instant?</h2>
+<p>ADR 0001: <q>The previous Release stays on disk for rollback</q>, and <q>rolling back (pinning the old image tag) is instant</q>.</p>
+<div class="recall">
+  <label for="recall-6">After an update from v1.4.0 to v1.5.0, the Operator pins v1.4.0 again <strong>while GitHub is unreachable</strong>. Read <code>GitHubSource.local</code> and <code>Catalogue</code> (<code>github.go:74-130</code>) and predict what each installed Component's state will be.</label>
+  <textarea id="recall-6" placeholder="Prediction: …"></textarea>
+  <details><summary>Reveal</summary>
+  <p>The binaries and bundles for v1.4.0 are still on disk, under per-Release directories. But <code>catalogue.json</code> and <code>SHA256SUMS</code> live at the <strong>root</strong> of <code>/data</code>, and the update <em>overwrote</em> them with v1.5.0's (<code>github.go:96-101</code>). On rollback, <code>local()</code> sees a catalogue of the wrong Release and returns an error (<code>github.go:123-124</code>), so <code>Catalogue</code> goes to GitHub and fails. <code>haveCatalogue</code> then marks every wanted Component <code>update pending</code> and keeps retrying (<code>reconcile.go:109-137</code>). Nothing runs until GitHub answers. When it does, only the two small index files are downloaded; every binary passes the checksum check in <code>ensure</code> and is reused.</p>
+  <p><strong>Update:</strong> fixed in commit <code>68a3af4</code> (#66). The index is now kept per Release in <code>/data/releases/&lt;rel&gt;/</code>. The analysis below describes the code as it was when you took this lesson.</p>
+  <p>So rollback avoids downloading binaries, but it isn't offline. A per-Release copy of the two index files (for example <code>/data/releases/&lt;rel&gt;/catalogue.json</code>) would make it work offline. Whether that's worth doing is your decision; it's the kind of ADR-versus-code gap the mission is about.</p>
+  </details>
+</div>
+
+<h2>Check yourself</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="1" data-why="v1.4.0→v1.5.0 snapshots the v1.4.0 DB; v1.5.0→v1.6.0 snapshots v1.5.0 and deletes the v1.4.0 one (one generation). Rolling back to v1.4.0 then finds no snapshot of v1.4.0, so it snapshots the v1.6.0 DB and launches v1.4.0 on it: ErrSchemaAhead if migrations were added.">
+    <p>1. Updates go v1.4.0 → v1.5.0 → v1.6.0, each adding a migration. Then the Operator pins v1.4.0. What happens?</p>
+    <div class="opts">
+      <button class="opt">The v1.4.0 snapshot is restored; the Component runs</button>
+      <button class="opt">No v1.4.0 snapshot is left; Start fails, schema ahead</button>
+      <button class="opt">The SDK migrates the DB down to v1.4.0's schema</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="ensure verifies the download against SHA256SUMS before writing (github.go:202-203). SecureConfig is the second check, at launch.">
+    <p>2. A download is truncated by a network fault. Where is that caught first?</p>
+    <div class="opts">
+      <button class="opt">By SecureConfig, when go-plugin execs the binary</button>
+      <button class="opt">By Describe, when the binary reports its Release</button>
+      <button class="opt">By ensure, before the file is written to /data</button>
+    </div>
+  </div>
+  <div class="q" data-answer="0" data-why="Restoring moves the current DB into db/aside/, which is never deleted (snapshot.go:38-47).">
+    <p>3. A rollback restores a snapshot. Where does the DB with the Operator's newer data go?</p>
+    <div class="opts">
+      <button class="opt">Into db/aside/, kept indefinitely</button>
+      <button class="opt">Into db/snapshots/, replacing the old one</button>
+      <button class="opt">It is deleted, after the snapshot is restored</button>
+    </div>
+  </div>
+  <div class="q" data-answer="1" data-why="Describe compares the Component's stamped sdk.Release with the runtime's Release and refuses a mismatch (process.go:195).">
+    <p>4. Someone copies a v1.5.0 binary into <code>components/x/v1.4.0/</code> and edits <code>SHA256SUMS</code> to match. What stops it?</p>
+    <div class="opts">
+      <button class="opt">SecureConfig, because its checksum doesn't match</button>
+      <button class="opt">Describe, because it reports Release v1.5.0</button>
+      <button class="opt">Nothing; it launches and runs under v1.4.0</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<div class="source">
+  <p class="label">Primary source</p>
+  <p>Read the “Releases and versions” and “What install / update / uninstall physically do” sections of <a href="https://github.com/itsKontra/ddash/issues/19">issue #19</a> next to <code>core/runtime/snapshot.go</code> and <code>github.go</code>, and mark each promise <em>kept</em>, <em>changed</em> or <em>gap</em>. For the database side, SQLite's <a href="https://www.sqlite.org/pragma.html#pragma_user_version">user_version pragma</a> is the whole migration-version mechanism.</p>
+</div>
+
+<p class="ask">Ask me anything that's unclear. Good follow-ups: “Should a rollback refuse to start rather than hit ErrSchemaAhead?” and “Would keeping two snapshot generations be enough, or do we need one per Release?”</p>
+
+</div>
+
+<footer class="next">
+  <span>That's the end of the planned path. Next: <em>a mixed review drawing on all six lessons, once you've told me how the quizzes went.</em></span>
+  <a href="../reference/runtime-map.html">Runtime map →</a>
+</footer>
+</main>
+</body>
+</html>

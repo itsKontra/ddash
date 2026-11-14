@@ -11,6 +11,8 @@ import (
 
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	calendarapi "github.com/itsKontra/ddash/components/calendar-api"
+	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
 	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
@@ -262,6 +264,27 @@ var systems = []system{
 			cfg.ApiUrl = &url
 			return upstream, "", nil
 		},
+	},
+	{
+		def:     calendarapi.Definition(),
+		service: calendarapipb.CalendarApiService_ServiceDesc.ServiceName,
+		config:  func() proto.Message { return &calendarapipb.CalendarApiConfig{} },
+		checks: map[string]func(proto.Message) error{
+			"ListEvents": func(m proto.Message) error {
+				r := m.(*calendarapipb.ListEventsResponse)
+				if len(r.GetCalendars()) == 0 {
+					return errors.New("no calendar")
+				}
+				for _, c := range r.GetCalendars() {
+					if c.GetError() != "" {
+						return fmt.Errorf("calendar %s: %s", c.GetName(), c.GetError())
+					}
+				}
+				return nil
+			},
+		},
+		// Never recorded: a calendar is personal, and its address is a
+		// secret. calendarfake's fixtures are written by hand.
 	},
 }
 

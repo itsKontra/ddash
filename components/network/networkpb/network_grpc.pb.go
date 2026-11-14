@@ -27,6 +27,7 @@ const (
 	NetworkService_ListDevices_FullMethodName         = "/ddash.network.NetworkService/ListDevices"
 	NetworkService_GetThroughput_FullMethodName       = "/ddash.network.NetworkService/GetThroughput"
 	NetworkService_GetRemoteAccess_FullMethodName     = "/ddash.network.NetworkService/GetRemoteAccess"
+	NetworkService_AddRemoteAccessPeer_FullMethodName = "/ddash.network.NetworkService/AddRemoteAccessPeer"
 	NetworkService_NextReservedAddress_FullMethodName = "/ddash.network.NetworkService/NextReservedAddress"
 	NetworkService_AdoptDevice_FullMethodName         = "/ddash.network.NetworkService/AdoptDevice"
 	NetworkService_RenameDevice_FullMethodName        = "/ddash.network.NetworkService/RenameDevice"
@@ -56,6 +57,14 @@ type NetworkServiceClient interface {
 	// handshake and traffic, and the hosts each can reach per the pass
 	// rules on the Remote Access interface.
 	GetRemoteAccess(ctx context.Context, in *GetRemoteAccessRequest, opts ...grpc.CallOption) (*GetRemoteAccessResponse, error)
+	// AddRemoteAccessPeer adds a device to Remote Access: it generates a
+	// WireGuard key pair, creates the peer on the Remote Access tunnel with
+	// its public key only, at the lowest free address of the tunnel's subnet
+	// (not the firewall's, nor any configured peer's), applies, and returns
+	// the device's config. The private key is in that config alone: network
+	// keeps, logs and records no copy, so it can't be shown again. Refused
+	// until network's config names the Remote Access endpoint.
+	AddRemoteAccessPeer(ctx context.Context, in *AddRemoteAccessPeerRequest, opts ...grpc.CallOption) (*AddRemoteAccessPeerResponse, error)
 	// NextReservedAddress returns the lowest address in the reserved range
 	// that no static mapping and no current lease holds: what Adopt offers.
 	NextReservedAddress(ctx context.Context, in *NextReservedAddressRequest, opts ...grpc.CallOption) (*NextReservedAddressResponse, error)
@@ -130,6 +139,16 @@ func (c *networkServiceClient) GetRemoteAccess(ctx context.Context, in *GetRemot
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetRemoteAccessResponse)
 	err := c.cc.Invoke(ctx, NetworkService_GetRemoteAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *networkServiceClient) AddRemoteAccessPeer(ctx context.Context, in *AddRemoteAccessPeerRequest, opts ...grpc.CallOption) (*AddRemoteAccessPeerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddRemoteAccessPeerResponse)
+	err := c.cc.Invoke(ctx, NetworkService_AddRemoteAccessPeer_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -217,6 +236,14 @@ type NetworkServiceServer interface {
 	// handshake and traffic, and the hosts each can reach per the pass
 	// rules on the Remote Access interface.
 	GetRemoteAccess(context.Context, *GetRemoteAccessRequest) (*GetRemoteAccessResponse, error)
+	// AddRemoteAccessPeer adds a device to Remote Access: it generates a
+	// WireGuard key pair, creates the peer on the Remote Access tunnel with
+	// its public key only, at the lowest free address of the tunnel's subnet
+	// (not the firewall's, nor any configured peer's), applies, and returns
+	// the device's config. The private key is in that config alone: network
+	// keeps, logs and records no copy, so it can't be shown again. Refused
+	// until network's config names the Remote Access endpoint.
+	AddRemoteAccessPeer(context.Context, *AddRemoteAccessPeerRequest) (*AddRemoteAccessPeerResponse, error)
 	// NextReservedAddress returns the lowest address in the reserved range
 	// that no static mapping and no current lease holds: what Adopt offers.
 	NextReservedAddress(context.Context, *NextReservedAddressRequest) (*NextReservedAddressResponse, error)
@@ -268,6 +295,9 @@ func (UnimplementedNetworkServiceServer) GetThroughput(context.Context, *GetThro
 }
 func (UnimplementedNetworkServiceServer) GetRemoteAccess(context.Context, *GetRemoteAccessRequest) (*GetRemoteAccessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetRemoteAccess not implemented")
+}
+func (UnimplementedNetworkServiceServer) AddRemoteAccessPeer(context.Context, *AddRemoteAccessPeerRequest) (*AddRemoteAccessPeerResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddRemoteAccessPeer not implemented")
 }
 func (UnimplementedNetworkServiceServer) NextReservedAddress(context.Context, *NextReservedAddressRequest) (*NextReservedAddressResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method NextReservedAddress not implemented")
@@ -376,6 +406,24 @@ func _NetworkService_GetRemoteAccess_Handler(srv interface{}, ctx context.Contex
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(NetworkServiceServer).GetRemoteAccess(ctx, req.(*GetRemoteAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _NetworkService_AddRemoteAccessPeer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddRemoteAccessPeerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(NetworkServiceServer).AddRemoteAccessPeer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: NetworkService_AddRemoteAccessPeer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(NetworkServiceServer).AddRemoteAccessPeer(ctx, req.(*AddRemoteAccessPeerRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -510,6 +558,10 @@ var NetworkService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRemoteAccess",
 			Handler:    _NetworkService_GetRemoteAccess_Handler,
+		},
+		{
+			MethodName: "AddRemoteAccessPeer",
+			Handler:    _NetworkService_AddRemoteAccessPeer_Handler,
 		},
 		{
 			MethodName: "NextReservedAddress",

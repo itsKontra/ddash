@@ -124,6 +124,70 @@ service PfsenseApiService {
   rpc ChangeHostOverrides(ChangeHostOverridesRequest) returns (ChangeHostOverridesResponse) {
     option (ddash.action) = {};
   }
+  // ListWireguardPeers returns every WireGuard peer as configured
+  // (vpn/wireguard/peers), in pfSense's order. Unlike ListWireguardTunnels'
+  // live status, it holds disabled peers and peers not applied yet.
+  rpc ListWireguardPeers(ListWireguardPeersRequest) returns (ListWireguardPeersResponse) {
+    option (ddash.getter) = {};
+  }
+  // CreateWireguardPeer adds an enabled peer with a dynamic endpoint to a
+  // tunnel by its public key (vpn/wireguard/peer), then applies
+  // (vpn/wireguard/apply), which reloads that tunnel. It runs in the write
+  // queue and reads the configured peers right before it is sent: it
+  // refuses a public key any peer has, and an allowed IP overlapping one
+  // of another peer on the tunnel. When the apply fails, pfSense holds the
+  // peer anyway; the error's status details carry a
+  // CreateWireguardPeerResponse with apply_failed.
+  rpc CreateWireguardPeer(CreateWireguardPeerRequest) returns (CreateWireguardPeerResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message ListWireguardPeersRequest {
+  // Read pfSense now rather than from the cache, and refill the cache.
+  bool fresh = 1;
+}
+
+message ListWireguardPeersResponse {
+  repeated WireguardPeerConfig peers = 1;
+}
+
+// A WireGuard peer as pfSense's config holds it. pfSense keeps the peer's
+// public key only.
+message WireguardPeerConfig {
+  // Its tunnel's device, e.g. "tun_wg1"; "unassigned" for none.
+  string tunnel = 1;
+  bool enabled = 2;
+  string public_key = 3;
+  string description = 4;
+  // The addresses routed to it, e.g. "198.18.40.2/32".
+  repeated string allowed_ips = 5;
+  // Its fixed endpoint (host:port); empty for a dynamic one, which a
+  // roaming peer has.
+  string endpoint = 6;
+  // Seconds between keepalives pfSense sends it; 0 for none.
+  int32 persistent_keepalive = 7;
+}
+
+message CreateWireguardPeerRequest {
+  // The tunnel's device, e.g. "tun_wg1".
+  string tunnel = 1;
+  // The peer's public key, base64 (44 characters).
+  string public_key = 2;
+  // Its description, e.g. "Anna's phone".
+  string description = 3;
+  // The addresses routed to it, e.g. "198.18.40.4/32".
+  repeated string allowed_ips = 4;
+}
+
+// The answer of a create that succeeded, and the status detail of one whose
+// apply failed.
+message CreateWireguardPeerResponse {
+  // The peer as pfSense holds it after the write.
+  WireguardPeerConfig peer = 1;
+  // Applying it failed: pfSense holds the peer, but the tunnel doesn't
+  // know it until WireGuard's changes are applied.
+  bool apply_failed = 2;
 }
 
 message ListHostOverridesRequest {
@@ -468,6 +532,8 @@ message WireguardTunnel {
   uint64 rx_bytes = 5;
   uint64 tx_bytes = 6;
   repeated WireguardPeer peers = 7;
+  // The tunnel's public key, which its peers name it by.
+  string public_key = 8;
 }
 
 message WireguardPeer {

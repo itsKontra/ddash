@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Router</title>
+<link rel="stylesheet" href="../assets/course.css">
+<script src="../assets/quiz.js" defer></script>
+<script src="../assets/order.js" defer></script>
+</head>
+<body>
+<main>
+<nav class="crumbs"><a href="0003-the-reconcile-loop.html">← Lesson 3</a><span>ddash runtime · Lesson 4</span><a href="../reference/runtime-map.html">Reference: runtime map</a></nav>
+
+<h1>The router</h1>
+<p class="lede col">Every call that reaches a Component goes through <code>core/router</code>, whether it comes from a Plugin's UI or from another Component. By the end you can trace one call through either entrance, step by step, and say where it would be refused and whether the Audit Log records it.</p>
+
+<div class="with-notes">
+
+<h2>Warm-up</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="1" data-why="A failed Start leaves the process running (proc != nil), so reconcile skips it (Lesson 3).">
+    <p>Why doesn't the reconcile loop retry a Component whose <code>Start</code> returned <code>Internal</code>?</p>
+    <div class="opts">
+      <button class="opt">Its crash count already reached the limit</button>
+      <button class="opt">Its process is still running, so it's skipped</button>
+      <button class="opt">Its notBefore time is set far in the future</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="Describe returns a FileDescriptorSet; the host builds dynamicpb types from it (Lesson 1, process.go:185).">
+    <p>Where does the host get a Component's message types, given that it has no generated Go code for them?</p>
+    <div class="opts">
+      <button class="opt">From the Release's catalogue.json manifest</button>
+      <button class="opt">From the shared @ddash/proto npm package</button>
+      <button class="opt">From the descriptors returned by Describe</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<h2>Two entrances, one set of rules</h2>
+<p>The package comment (<code>core/router/router.go:1-7</code>) describes the whole design. A call can arrive through two entrances, and the router applies the same four rules at both: enforce <code>requires</code>, set the deadline, pass the actor and chain id on, and send Actions through the gate.</p>
+
+<div class="table-wrap"><table>
+<thead><tr><th></th><th>UI → Component</th><th>Component → Component</th></tr></thead>
+<tbody>
+<tr><td>Entry point</td><td><code>ServeHTTP</code> at <code>/api/c/</code> (<code>router.go:69</code>)</td><td><code>HostServer</code> on broker ID 1 (<code>proxy.go:32</code>)</td></tr>
+<tr><td>Wire format in</td><td>Connect unary JSON</td><td>gRPC protobuf bytes</td></tr>
+<tr><td>Decoding</td><td>Always: <code>protojson</code> into <code>dynamicpb</code></td><td>Only for Actions, and only to write the audit entry</td></tr>
+<tr><td>Who the caller is</td><td><code>Ddash-Plugin</code> header, checked by <code>inScope</code></td><td>Fixed per broker server: the <code>caller</code> argument</td></tr>
+<tr><td>Actor</td><td>The signed-in session (<code>auth.ActorFrom</code>)</td><td>Taken from gRPC metadata, trusted (<code>forwarded</code>, <code>proxy.go:131</code>)</td></tr>
+</tbody></table></div>
+
+<aside class="note">The two entrances establish the caller differently. Over the broker, the caller is whichever process the runtime gave that <code>HostServer</code> to, so a Component can't claim to be another one. Over HTTP, the <code>Ddash-Plugin</code> header comes from the browser and could say anything. The code says so itself: <q>Plugins are first-party, so this guards against mistakes, not attacks</q> (<code>router.go:183</code>).</aside>
+
+<h2>Door one: a UI call, step by step</h2>
+<p>Before the router runs at all, the host's mux applies two checks to every <code>/api/</code> request (<code>core/host.go:177</code>): <code>guard</code> requires a valid session, and <code>requireConnectHeader</code> requires <code>Connect-Protocol-Version: 1</code>. That header doubles as CSRF protection. A browser won't send a custom header cross-site without a CORS preflight, and ddash never grants one (<code>host.go:196-199</code>).</p>
+<p>After those checks, <code>ServeHTTP</code> does the rest. Put its steps in order:</p>
+
+<div class="order" data-why="Note step 4: the scope check runs before the gate, but a refused Action is still audited as a failed entry.">
+  <ol class="order-items">
+    <li>Refuse anything that isn't <code>POST</code> with <code>application/json</code></li>
+    <li>Split the path into component and method, and compute <code>inScope</code> (but don't fail yet)</li>
+    <li>Get the Endpoint and look up the method in the Component's service descriptor</li>
+    <li>Read at most 1 MiB and decode the JSON into a <code>dynamicpb</code> message (unknown fields dropped)</li>
+    <li><code>gate.Admit</code>: write an Audit Log entry if this is an Action</li>
+    <li>If refused earlier, complete the entry as failed and return the error</li>
+    <li>Invoke over <code>ep.Conn</code> with actor and chain metadata, under a 10 s or 60 s deadline</li>
+    <li>Encode the response back to JSON with the same type resolver</li>
+  </ol>
+</div>
+
+<aside class="note">Why delay the refusal? The comment at <code>router.go:84-85</code> says it: <q>A refusal for scope or an undecodable request still passes an Action through the gate, as a failed entry.</q> The Audit Log is meant to show attempts, not just successes. There's one gap: if the Endpoint lookup fails (the Component is down), the router returns at line 89, before the gate, and that attempt isn't recorded.</aside>
+
+<h2>The gate audits before running</h2>
+<p><code>Gate.Admit</code> (<code>core/appstate/appstate.go:73</code>) is where the descriptor from Describe pays off. <code>IsAction(md)</code> checks for the <code>(ddash.action)</code> method option (<code>appstate.go:139</code>):</p>
+<ul>
+  <li><strong>Getter:</strong> admitted with a no-op <code>done</code>. Getters are never audited.</li>
+  <li><strong>Action:</strong> an <code>INSERT</code> into <code>audit_entry</code> runs <em>before</em> the call. It stores the actor, the chain, the <code>disruptive</code> flag and the request, with fields marked secret redacted and the rest cut at 4 KiB. If the insert fails, the Action is refused with <code>Unavailable "audit log unavailable"</code>. The gate fails closed: no audit record, no Action.</li>
+  <li><code>done(err)</code> fills in the outcome and duration afterwards, and only while the entry is still running. On startup, <code>Open</code> marks entries left running by the previous host as <code>interrupted</code>.</li>
+</ul>
+<aside class="note">This is the payoff of ADR 0002's choice. Because the host has each method's descriptor, it can tell getters from Actions and redact <code>secret</code> fields without any per-Component code. With an opaque <code>Invoke(method, json)</code>, it couldn't.</aside>
+
+<h2>Door two: the transparent proxy</h2>
+<p><code>HostServer</code> builds a gRPC server with no registered services, just an <code>UnknownServiceHandler</code> and a raw codec (<code>proxy.go:32-38</code>). Every call becomes a stream of opaque <code>frame</code> bytes, and the codec's <code>Name()</code> is <code>"proto"</code> (<code>proxy.go:174</code>) so it matches what a normal gRPC peer expects.</p>
+<p>For each call, <code>proxy</code> (<code>proxy.go:40</code>):</p>
+<ol>
+  <li><code>route</code>s the service name among the caller's <code>requires</code>.</li>
+  <li>Unmarshals the request only if the method is an Action, for the audit entry.</li>
+  <li>Calls <code>Admit</code>.</li>
+  <li>Forwards the original bytes unchanged.</li>
+</ol>
+<p>A getter's request and response are never decoded at all.</p>
+<aside class="note"><code>route</code> has one subtlety (<code>proxy.go:92-114</code>). A required Component that isn't up yet can't report which service it serves. If some required Component is down, the caller gets <em>that Component's</em> error rather than PermissionDenied. Only when all its requires are up does a mismatched service mean the caller is out of scope.</aside>
+
+<h3>Chains link the hops</h3>
+<p>Suppose a UI Action makes Component A call B. The router creates a chain id at the first hop and passes it on as gRPC metadata (<code>onward</code>, <code>router.go:158</code>). A's SDK copies it onto its outgoing calls, and <code>forwarded</code> reads it back at the proxy. Both hops then share a chain in the Audit Log, under the original Operator as actor. A call that arrives without metadata is A's own background work. Its actor is the Component, and it gets a new chain.</p>
+
+<h2>Errors speak Connect</h2>
+<p><code>WriteError</code> (<code>errors.go:41</code>) maps each gRPC code to Connect's name and HTTP status and writes <code>{"code","message"}</code>. ADR 0002 requires this mapping to be exact, because Plugins use the stock <code>@connectrpc/connect-web</code> client and decode errors by those names.</p>
+
+<h2>Check yourself</h2>
+<div>
+<div class="quiz">
+  <div class="q" data-answer="0" data-why="Admit inserts before the call and refuses with Unavailable on failure (appstate.go:73-91); getters skip the insert entirely.">
+    <p>1. The core DB is locked and every <code>INSERT</code> fails. What happens to getters and Actions?</p>
+    <div class="opts">
+      <button class="opt">Getters still work; Actions are refused</button>
+      <button class="opt">Both still work; audit writes are retried</button>
+      <button class="opt">Both are refused until the database recovers</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="The proxy decodes only Actions (proxy.go:64); a getter's bytes are forwarded as raw frames.">
+    <p>2. Component A calls a <em>getter</em> on B. How many times is the request decoded into a message?</p>
+    <div class="opts">
+      <button class="opt">Once, by the proxy, to log it for the audit</button>
+      <button class="opt">Twice, once by the proxy and once by B itself</button>
+      <button class="opt">Once, by B only; the proxy just moves bytes</button>
+    </div>
+  </div>
+  <div class="q" data-answer="1" data-why="inScope is computed first but the refusal is held until after Admit, which writes a failed entry for an Action (router.go:84-131).">
+    <p>3. A Plugin calls a <em>disruptive Action</em> on a Component it doesn't require. Is anything audited?</p>
+    <div class="opts">
+      <button class="opt">No, the scope check stops it before the gate</button>
+      <button class="opt">Yes, as a failed PermissionDenied entry</button>
+      <button class="opt">Yes, as a running entry that never finishes</button>
+    </div>
+  </div>
+  <div class="q" data-answer="2" data-why="A browser won't send a custom header cross-site without a CORS preflight, which ddash never grants (host.go:196-199).">
+    <p>4. What does requiring <code>Connect-Protocol-Version: 1</code> on <code>/api/</code> protect against?</p>
+    <div class="opts">
+      <button class="opt">Old clients speaking an earlier wire format</button>
+      <button class="opt">Plugins calling Components outside requires</button>
+      <button class="opt">Cross-site requests riding on the session cookie</button>
+    </div>
+  </div>
+</div>
+<p class="score"></p>
+</div>
+
+<div class="source">
+  <p class="label">Primary source</p>
+  <p>Re-read <a href="../../adr/0002-host-routes-component-calls-from-descriptors.md">ADR 0002</a>. Every sentence should now point to a line you've seen. Then read the <a href="https://connectrpc.com/docs/protocol/#unary-request">Connect protocol's unary section</a>, which is the spec <code>ServeHTTP</code> and <code>WriteError</code> implement. To see it all run, read <code>core/router_test.go</code>.</p>
+</div>
+
+<p class="ask">Ask me anything that's unclear. Good follow-ups: “Should a call to a down Component still be audited?” and “What stops a Component from forging the actor metadata, and does that matter?”</p>
+
+</div>
+
+<footer class="next">
+  <span>Next: <em>Lesson 5. The browser side: import map, <code>usePlugins</code>, <code>PluginScope</code> and the per-Plugin transport.</em></span>
+  <a href="../reference/runtime-map.html">Runtime map →</a>
+</footer>
+</main>
+</body>
+</html>

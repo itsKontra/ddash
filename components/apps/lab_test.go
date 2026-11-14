@@ -37,12 +37,14 @@ import (
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
+	"github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/sdk"
@@ -181,7 +183,7 @@ func newLab(t *testing.T, o labOptions) *lab {
 
 	components := []sdk.Definition{
 		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), network.Definition(), adguardapi.Definition(),
-		ntfyapi.Definition(), checks.DefinitionDialing(refuse), cloudflareapi.Definition(), apps.Definition(),
+		notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), cloudflareapi.Definition(), apps.Definition(),
 	}
 	if o.resync != 0 {
 		components[len(components)-1] = apps.DefinitionResyncingWithin(o.resync)

@@ -1,0 +1,62 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ddash//calendarfake//EN
+CALSCALE:GREGORIAN
+X-WR-CALNAME:Home
+BEGIN:VEVENT
+UID:dentist@home.example
+DTSTAMP:{{stamp}}
+DTSTART:{{at -1 "10:00"}}
+DTEND:{{at -1 "11:00"}}
+SUMMARY:Dentist
+LOCATION:Main Street 12
+END:VEVENT
+BEGIN:VEVENT
+UID:bins@home.example
+DTSTAMP:{{stamp}}
+DTSTART;VALUE=DATE:{{date 0}}
+DTEND;VALUE=DATE:{{date 1}}
+SUMMARY:Put the bins out
+END:VEVENT
+BEGIN:VEVENT
+UID:football@home.example
+DTSTAMP:{{stamp}}
+DTSTART:{{at -21 "18:00"}}
+DTEND:{{at -21 "19:30"}}
+RRULE:FREQ=WEEKLY
+EXDATE:{{at 7 "18:00"}}
+SUMMARY:Football training
+LOCATION:Sports ground
+END:VEVENT
+BEGIN:VEVENT
+UID:football@home.example
+RECURRENCE-ID:{{at 14 "18:00"}}
+DTSTAMP:{{stamp}}
+DTSTART:{{at 14 "19:00"}}
+DTEND:{{at 14 "20:30"}}
+SUMMARY:Football training (late pitch)
+LOCATION:Sports ground
+END:VEVENT
+BEGIN:VEVENT
+UID:birthday@home.example
+DTSTAMP:{{stamp}}
+DTSTART;VALUE=DATE:{{date 2}}
+DTEND;VALUE=DATE:{{date 3}}
+SUMMARY:Grandma's birthday
+END:VEVENT
+BEGIN:VEVENT
+UID:mountains@home.example
+DTSTAMP:{{stamp}}
+DTSTART;VALUE=DATE:{{date 4}}
+DTEND;VALUE=DATE:{{date 7}}
+SUMMARY:Weekend in the mountains
+LOCATION:Alpine hut
+END:VEVENT
+BEGIN:VEVENT
+UID:dinner@home.example
+DTSTAMP:{{stamp}}
+DTSTART:{{at 1 "19:30"}}
+DTEND:{{at 1 "22:00"}}
+SUMMARY:Dinner with friends
+END:VEVENT
+END:VCALENDAR

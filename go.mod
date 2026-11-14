@@ -12,6 +12,7 @@ tool (
 require (
 	connectrpc.com/connect/v2 v2.0.1
 	github.com/coreos/go-oidc/v3 v3.21.0
+	github.com/emersion/go-ical v0.0.0-20261112170022-46c5b53a1723
 	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/go-cmp v0.7.0
 	github.com/hashicorp/go-hclog v1.6.3
@@ -20,6 +21,7 @@ require (
 	github.com/moby/moby/api v1.56.1
 	github.com/moby/moby/client v0.6.2
 	github.com/prometheus-community/pro-bing v0.9.1
+	github.com/teambition/rrule-go v1.8.2
 	go.yaml.in/yaml/v3 v3.0.5
 	golang.org/x/mod v0.42.0
 	golang.org/x/net v0.61.0

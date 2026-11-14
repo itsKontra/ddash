@@ -34,6 +34,8 @@ func (c *component) write(ctx context.Context, fn func() error) error {
 	defer c.leases.Invalidate()
 	defer c.aliases.Invalidate()
 	defer c.overrides.Invalidate()
+	defer c.peers.Invalidate()
+	defer c.tunnels.Invalidate()
 	return fn()
 }
 

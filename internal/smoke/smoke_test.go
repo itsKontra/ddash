@@ -77,6 +77,7 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 		"ok nginx-proxy-manager-api health",
 		"ok cloudflare-api GetTunnel",
 		"ok cloudflare-api ListDnsRecords",
+		"ok calendar-api ListEvents",
 		"ok network GetNetworkInfo",
 	} {
 		if !strings.Contains(log, want+"\n") {
@@ -88,7 +89,9 @@ func TestSmokePassesAgainstTheBaselineLab(t *testing.T) {
 func TestEverySystemTheLabFakesWithGettersIsSmokeTested(t *testing.T) {
 	l := lab(t, repoRoot)
 	for c := range l.Addrs {
-		if c == "ntfy-api" { // Actions only: nothing to read
+		// Notification channels: their one getter echoes their config and
+		// reads nothing from the system.
+		if c == "ntfy-api" || c == "telegram-api" {
 			continue
 		}
 		if !slices.Contains(smoke.Components(), c) {
@@ -178,7 +181,12 @@ func TestRecordWritesScrubbedFixturesAnotherSmokeRunPassesAgainst(t *testing.T) 
 		t.Errorf("the sign-in's token wasn't redacted:\n%s", token)
 	}
 
-	// The recording is a lab of its own: smoke passes against it too.
+	// The recording is a lab of its own: smoke passes against it too, with
+	// calendar-api's hand-written fixtures, which are never recorded.
+	calendars := "components/calendar-api/testdata"
+	if err := os.CopyFS(filepath.Join(root, calendars), os.DirFS(filepath.Join(repoRoot, calendars))); err != nil {
+		t.Fatal(err)
+	}
 	if log, err := run(t, envFor(t, lab(t, root)), nil); err != nil {
 		t.Errorf("smoke against the recording failed: %v\n%s", err, log)
 	}

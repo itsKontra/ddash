@@ -31,6 +31,7 @@ import {
 } from "@ddash/ui";
 import { useId, useState, type FormEvent } from "react";
 import { useParams } from "react-router";
+import { ChannelList } from "./channels";
 import { latency, shownName, stateLabel, tally, toneOf, useChecks } from "./checks";
 import { CheckDetail } from "./detail";
 import { MaintenanceList, MaintenancePill, MaintenanceSheet } from "./maintenance";
@@ -104,6 +105,7 @@ export function ChecksPage() {
         ) : (
           <Explorer checks={data?.checks} now={dataUpdatedAt} onEdit={setEditing} onShow={(c) => setShown(c.id)} onMaintain={setMaintaining} />
         )}
+        <ChannelList />
       </div>
       <Presence>{editing !== undefined && <CheckForm check={editing ?? undefined} onClose={() => setEditing(undefined)} />}</Presence>
       <Presence>

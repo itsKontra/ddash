@@ -1,0 +1,452 @@
+syntax = "proto3";
+
+// docker-agent-api reaches the Docker Agents: the container the Operator
+// runs on each Docker host ddash should control. It pairs with each Agent
+// (one-time enrolment code, pinned certificate, token), reads its
+// containers and Compose Projects, reads and writes Compose files, and
+// starts and collects the Agent's Compose jobs. It is only the access:
+// what to do and when is the compose Component's.
+package ddash.dockeragentapi;
+
+import "ddash/job/job.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb;dockeragentapipb";
+
+// docker-agent-api has no config: Docker Agents are added on the Docker
+// Page, and their pairing is kept in the Component's DB.
+message DockerAgentApiConfig {}
+
+service DockerAgentApiService {
+  // ListAgents returns every Docker Agent added, with its pairing state
+  // and what it last reported, by name.
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // AddAgent adds a Docker host's Agent and creates its one-time
+  // enrolment code. docker-agent-api pairs with it once it answers.
+  rpc AddAgent(AddAgentRequest) returns (AddAgentResponse) {
+    option (ddash.action) = {};
+  }
+  // GetAgentSetup returns the Compose file that runs the Agent, with its
+  // enrolment code while it isn't paired.
+  rpc GetAgentSetup(GetAgentSetupRequest) returns (GetAgentSetupResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // PairAgent tries to pair with an enrolling Agent now. With reset, it
+  // forgets the pairing (after the Agent's certificate changed, or its
+  // state was reset) and creates a new enrolment code.
+  rpc PairAgent(PairAgentRequest) returns (PairAgentResponse) {
+    option (ddash.action) = {};
+  }
+  // RemoveAgent forgets an Agent and says how to uninstall it.
+  rpc RemoveAgent(RemoveAgentRequest) returns (RemoveAgentResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // UpdateAgent has an Agent of another Release recreate itself on this
+  // Release's image: the only operation such an Agent is allowed.
+  rpc UpdateAgent(UpdateAgentRequest) returns (UpdateAgentResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListContainers returns every paired Agent's containers. An Agent that
+  // can't be read is listed with its error.
+  rpc ListContainers(ListContainersRequest) returns (ListContainersResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // ListComposeProjects returns every paired Agent's Compose Projects
+  // (from container labels and Compose files under its roots) and its
+  // containers.
+  rpc ListComposeProjects(ListComposeProjectsRequest) returns (ListComposeProjectsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // GetComposeFile reads a Compose file and its .env, never cached.
+  rpc GetComposeFile(GetComposeFileRequest) returns (GetComposeFileResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // ValidateComposeFile runs `docker compose config` on content, as the
+  // file at path, on the host. It writes nothing.
+  rpc ValidateComposeFile(ValidateComposeFileRequest) returns (ValidateComposeFileResponse) {
+    option (ddash.action) = {};
+  }
+  // WriteComposeFile validates content, keeps the file's current content
+  // as <path>.bak and replaces it; ABORTED when the file's SHA-256 is no
+  // longer expect_sha256, INVALID_ARGUMENT with Compose's error when it
+  // doesn't validate.
+  rpc WriteComposeFile(WriteComposeFileRequest) returns (WriteComposeFileResponse) {
+    option (ddash.action) = {};
+  }
+  // CreateComposeProject creates a new Compose Project's directory under
+  // a root and its compose.yaml, validated; ALREADY_EXISTS when there is
+  // a Compose file there.
+  rpc CreateComposeProject(CreateComposeProjectRequest) returns (CreateComposeProjectResponse) {
+    option (ddash.action) = {};
+  }
+  // UpProject starts a job running `docker compose up -d` (of services).
+  rpc UpProject(UpProjectRequest) returns (UpProjectResponse) {
+    option (ddash.action) = {};
+  }
+  // DownProject starts a job running `docker compose down` (or `stop`
+  // of services).
+  rpc DownProject(DownProjectRequest) returns (DownProjectResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // RestartProject starts a job running `docker compose restart`.
+  rpc RestartProject(RestartProjectRequest) returns (RestartProjectResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // PullProject starts a job running `docker compose pull`.
+  rpc PullProject(PullProjectRequest) returns (PullProjectResponse) {
+    option (ddash.action) = {};
+  }
+  // UpdateProject starts a job that pulls, then recreates only the
+  // Compose services whose image changed.
+  rpc UpdateProject(UpdateProjectRequest) returns (UpdateProjectResponse) {
+    option (ddash.action) = {disruptive: true};
+  }
+  // ListJobs returns every paired Agent's jobs, running and ended but not
+  // collected, never cached.
+  rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+  // CollectJob forgets an ended job on its Agent and returns it. It fails
+  // ABORTED with the job's error when the job failed, so the Audit Log
+  // entry of the collect records how the job ended.
+  rpc CollectJob(CollectJobRequest) returns (CollectJobResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message ListAgentsRequest {}
+
+message ListAgentsResponse {
+  repeated Agent agents = 1;
+}
+
+// A Docker Agent, as ddash knows it.
+message Agent {
+  // The Docker host's name, e.g. "media": docker-api and Workloads name
+  // the host by it.
+  string name = 1;
+  // The Agent's URL, e.g. "https://198.18.2.10:7443".
+  string url = 2;
+  // The host part of url: where published ports answer.
+  string address = 3;
+  AgentState state = 4;
+  // Why it is in its state, as the Operator reads it; empty when paired
+  // and fine.
+  string message = 5;
+  // The Compose roots the Agent mounts (what it reported, else what was
+  // asked for at setup).
+  repeated string roots = 6;
+  // What it last reported.
+  string release = 7;
+  string hostname = 8;
+  string docker_version = 9;
+  string compose_version = 10;
+  // Its certificate's SHA-256, pinned at pairing.
+  string fingerprint = 11;
+  google.protobuf.Timestamp added = 12;
+  google.protobuf.Timestamp paired = 13;
+}
+
+enum AgentState {
+  AGENT_STATE_UNSPECIFIED = 0;
+  // Added, with an enrolment code, and not paired yet.
+  AGENT_STATE_ENROLLING = 1;
+  // Paired and answering on ddash's Release.
+  AGENT_STATE_PAIRED = 2;
+  // Paired, but on another Release: only Update Agent is allowed.
+  AGENT_STATE_OUTDATED = 3;
+  // Paired, but not answering now.
+  AGENT_STATE_UNREACHABLE = 4;
+  // Its certificate isn't the one pinned at pairing: ddash refuses it
+  // until the Operator pairs again.
+  AGENT_STATE_FINGERPRINT_CHANGED = 5;
+  // It refuses ddash's token: its state was reset.
+  AGENT_STATE_REFUSED = 6;
+}
+
+message AddAgentRequest {
+  // A short name the Operator knows the host by: lower-case letters,
+  // digits and -.
+  string name = 1;
+  // The Agent's URL: https://<host address>:7443.
+  string url = 2;
+  // The host's directories holding Compose Projects, absolute.
+  repeated string roots = 3;
+}
+
+message AddAgentResponse {
+  Agent agent = 1;
+  AgentSetup setup = 2;
+}
+
+message GetAgentSetupRequest {
+  string name = 1;
+}
+
+message GetAgentSetupResponse {
+  AgentSetup setup = 1;
+}
+
+// What the Operator runs on the host to install an Agent.
+message AgentSetup {
+  // The Compose file running the Agent, its image pinned by digest when
+  // the Release knows it.
+  string compose_file = 1;
+  // The one-time enrolment code in it; empty once paired.
+  string enrolment_code = 2;
+  // Where to put it and what to run, e.g.
+  // "mkdir -p /opt/ddash-docker-agent && cd /opt/ddash-docker-agent".
+  repeated string commands = 3;
+  // The image it runs.
+  string image = 4;
+}
+
+message PairAgentRequest {
+  string name = 1;
+  // Forget the pairing and create a new enrolment code.
+  bool reset = 2;
+}
+
+message PairAgentResponse {
+  Agent agent = 1;
+}
+
+message RemoveAgentRequest {
+  string name = 1;
+}
+
+message RemoveAgentResponse {
+  // How to uninstall it from the host, e.g. "cd /opt/ddash-docker-agent
+  // && docker compose down -v".
+  repeated string uninstall = 1;
+}
+
+message UpdateAgentRequest {
+  string name = 1;
+}
+
+message UpdateAgentResponse {
+  ddash.job.Job job = 1;
+}
+
+message ListContainersRequest {}
+
+message ListContainersResponse {
+  repeated HostContainers hosts = 1;
+}
+
+message HostContainers {
+  // The Agent's name.
+  string host = 1;
+  // The host part of its URL.
+  string address = 2;
+  repeated Container containers = 3;
+  // Why it couldn't be read; empty when it could.
+  string error = 4;
+}
+
+message Container {
+  string id = 1;
+  string name = 2;
+  string image = 3;
+  // Docker's state: created, running, paused, restarting, removing, exited or dead.
+  string state = 4;
+  string status = 5;
+  repeated Port ports = 6;
+  // The local image's id and its "<repo>@sha256:…" digests: none for an
+  // image built locally.
+  string image_id = 7;
+  repeated string repo_digests = 8;
+  map<string, string> labels = 9;
+  // Its Compose Project and service, from its labels; empty for one not
+  // started by Compose.
+  string project = 10;
+  string service = 11;
+  google.protobuf.Timestamp created = 12;
+}
+
+message Port {
+  string ip = 1;
+  uint32 public_port = 2;
+  uint32 private_port = 3;
+  string protocol = 4;
+}
+
+message ListComposeProjectsRequest {}
+
+message ListComposeProjectsResponse {
+  repeated HostProjects hosts = 1;
+}
+
+message HostProjects {
+  string host = 1;
+  string address = 2;
+  repeated Project projects = 3;
+  // Every container on the host, those of no Compose Project too.
+  repeated Container containers = 4;
+  // The Compose roots the Agent mounts.
+  repeated string roots = 5;
+  string error = 6;
+}
+
+// A Compose Project, in Compose's own terms.
+message Project {
+  string name = 1;
+  string working_dir = 2;
+  // Its Compose files, absolute; the first is the one ddash reads and
+  // writes.
+  repeated string config_files = 3;
+  // Its Compose services, by name.
+  repeated Service services = 4;
+  // How it was found: "labels" (it has containers), "scan" (its file is
+  // under a root), or both.
+  repeated string found = 5;
+  // Why its file couldn't be read; it is still listed.
+  string error = 6;
+}
+
+message Service {
+  string name = 1;
+  // The image as the file names it (variables unresolved).
+  string image = 2;
+  // Its published ports as the file writes them, e.g. "8096:8096".
+  repeated string ports = 3;
+  // Its containers' ids.
+  repeated string container_ids = 4;
+}
+
+message GetComposeFileRequest {
+  string host = 1;
+  string path = 2;
+}
+
+message GetComposeFileResponse {
+  ComposeFile file = 1;
+  // Its .env beside it, when there is one.
+  ComposeFile env = 2;
+}
+
+message ComposeFile {
+  string path = 1;
+  string content = 2;
+  // The content's SHA-256 in hex: a write expects it.
+  string sha256 = 3;
+}
+
+message ValidateComposeFileRequest {
+  string host = 1;
+  string path = 2;
+  string content = 3;
+  // The Compose project's name to validate as; empty: Compose's default.
+  string project = 4;
+}
+
+message ValidateComposeFileResponse {
+  bool ok = 1;
+  // Compose's error, when it isn't.
+  string error = 2;
+}
+
+message WriteComposeFileRequest {
+  string host = 1;
+  // The Compose file, or the .env beside it.
+  string path = 2;
+  string content = 3;
+  string expect_sha256 = 4;
+  string project = 5;
+}
+
+message WriteComposeFileResponse {
+  ComposeFile file = 1;
+}
+
+message CreateComposeProjectRequest {
+  string host = 1;
+  string name = 2;
+  // Absolute, under one of the Agent's roots.
+  string directory = 3;
+  string content = 4;
+}
+
+message CreateComposeProjectResponse {
+  ComposeFile file = 1;
+}
+
+// The Compose Project a Compose operation acts on.
+message ComposeTarget {
+  string host = 1;
+  string project = 2;
+  string working_dir = 3;
+  // The Compose file.
+  string file = 4;
+  // Its Compose services to act on; empty: all of them.
+  repeated string services = 5;
+}
+
+message UpProjectRequest {
+  ComposeTarget target = 1;
+  // Pull first.
+  bool pull = 2;
+  // Wait until the containers run.
+  bool wait = 3;
+}
+
+message UpProjectResponse {
+  ddash.job.Job job = 1;
+}
+
+message DownProjectRequest {
+  ComposeTarget target = 1;
+}
+
+message DownProjectResponse {
+  ddash.job.Job job = 1;
+}
+
+message RestartProjectRequest {
+  ComposeTarget target = 1;
+}
+
+message RestartProjectResponse {
+  ddash.job.Job job = 1;
+}
+
+message PullProjectRequest {
+  ComposeTarget target = 1;
+}
+
+message PullProjectResponse {
+  ddash.job.Job job = 1;
+}
+
+message UpdateProjectRequest {
+  ComposeTarget target = 1;
+}
+
+message UpdateProjectResponse {
+  ddash.job.Job job = 1;
+}
+
+message ListJobsRequest {}
+
+message ListJobsResponse {
+  repeated HostJobs hosts = 1;
+}
+
+message HostJobs {
+  string host = 1;
+  repeated ddash.job.Job jobs = 2;
+  string error = 3;
+}
+
+message CollectJobRequest {
+  string host = 1;
+  string id = 2;
+}
+
+message CollectJobResponse {
+  ddash.job.Job job = 1;
+}

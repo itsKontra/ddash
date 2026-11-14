@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+// A job: a long operation an Agent runs on its own, so it outlasts the
+// Action that started it and ddash's Action deadline. Shared by the Agent
+// API Components and the Components that start jobs through them.
+package ddash.job;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/job;jobpb";
+
+message Job {
+  string id = 1;
+  // e.g. "compose.update", "packages.upgrade".
+  string op = 2;
+  // e.g. "Update media".
+  string title = 3;
+  // What it acts on, e.g. "project:media".
+  string target = 4;
+  State state = 5;
+  repeated Step steps = 6;
+  google.protobuf.Timestamp start = 7;
+  google.protobuf.Timestamp end = 8;
+  // Why it failed; empty unless state is FAILED.
+  string error = 9;
+  // The operation's own outcome, e.g. an update's changed Compose
+  // services, each "<old digest> <new digest>", or "unchanged": "true".
+  map<string, string> result = 10;
+  // The Agent it runs on: a Docker Agent's name, or a Host Agent's VMID.
+  string agent = 11;
+}
+
+message Step {
+  string title = 1;
+  State state = 2;
+  // e.g. "3 packages", or why it failed.
+  string detail = 3;
+  // Its last output lines.
+  repeated string log = 4;
+}
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  STATE_PENDING = 1;
+  STATE_RUNNING = 2;
+  STATE_DONE = 3;
+  STATE_FAILED = 4;
+  // A step that didn't need to run, e.g. recreating when no image changed.
+  STATE_SKIPPED = 5;
+}

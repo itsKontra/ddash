@@ -13,9 +13,11 @@ import (
 	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
+	"github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfpb "github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
@@ -126,7 +128,7 @@ func TestANewSourceReachesAppsWithinAMinute(t *testing.T) {
 					Service:  &networkpb.NetworkService_ServiceDesc,
 					New:      func() sdk.Component[*networkpb.NetworkConfig] { return &networkFake{} },
 				}),
-				ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
+				notify.Definition(), ntfyapi.Definition(), telegramapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
 				proxmoxApiServing(&proxmoxFake{}), dockerApiServing(&dockerFake{}), cloudflareapi.Definition(),
 			},
 			Plugins: []coretest.Plugin{{Name: "apps", Requires: []string{"apps", "checks"}}},

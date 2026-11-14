@@ -11,10 +11,12 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	"github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	"github.com/itsKontra/ddash/components/proxmox"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/internal/fakelab"
@@ -31,7 +33,7 @@ func bootProxmoxLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fake
 	}
 	t.Cleanup(lab.Close)
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{proxmox.Definition(), proxmoxapi.Definition(), checks.Definition(), ntfyapi.Definition()},
+		Components: []sdk.Definition{proxmox.Definition(), proxmoxapi.Definition(), checks.Definition(), notify.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
 		Plugins: []coretest.Plugin{
 			{Name: "proxmox", Requires: []string{"proxmox", "proxmox-api"}},
 			{Name: "checks", Requires: []string{"checks"}},

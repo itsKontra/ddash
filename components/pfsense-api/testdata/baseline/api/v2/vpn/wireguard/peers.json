@@ -1,0 +1,84 @@
+{
+  "code": 200,
+  "status": "ok",
+  "response_id": "SUCCESS",
+  "message": "",
+  "data": [
+    {
+      "id": 0,
+      "enabled": true,
+      "tun": "tun_wg1",
+      "endpoint": null,
+      "port": "51820",
+      "descr": "Phone",
+      "persistentkeepalive": null,
+      "publickey": "BEYg670lDINWndm6HepeqvFcG1Vtu9i213Oz43fsmP4=",
+      "allowedips": [
+        {
+          "parent_id": 0,
+          "id": 0,
+          "address": "198.18.40.2",
+          "mask": 32,
+          "descr": ""
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "enabled": true,
+      "tun": "tun_wg1",
+      "endpoint": null,
+      "port": "51820",
+      "descr": "Laptop",
+      "persistentkeepalive": null,
+      "publickey": "3DSY1uvmxh/dJZxoYlkRe4+x/ziorV+tX79ngdO2dR4=",
+      "allowedips": [
+        {
+          "parent_id": 1,
+          "id": 0,
+          "address": "198.18.40.3",
+          "mask": 32,
+          "descr": ""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "enabled": false,
+      "tun": "tun_wg1",
+      "endpoint": null,
+      "port": "51820",
+      "descr": "Old tablet",
+      "persistentkeepalive": null,
+      "publickey": "q4WZt7iaUU1OeeuBdFw6eJbLkMfNaSyEa+OJ34mbOVY=",
+      "allowedips": [
+        {
+          "parent_id": 2,
+          "id": 0,
+          "address": "198.18.40.4",
+          "mask": 32,
+          "descr": ""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "enabled": true,
+      "tun": "tun_wg2",
+      "endpoint": "203.0.113.195",
+      "port": "51820",
+      "descr": "KILL_SWITCH AT#38",
+      "persistentkeepalive": 25,
+      "publickey": "o822xaDT9sDiY64O140R4zsB3eQYmMTjjQVuXcvw2Lc=",
+      "allowedips": [
+        {
+          "parent_id": 3,
+          "id": 0,
+          "address": "0.0.0.0",
+          "mask": 0,
+          "descr": ""
+        }
+      ]
+    }
+  ]
+}

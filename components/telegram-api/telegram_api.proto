@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+// telegram-api sends Notifications to one Telegram chat through a bot. It
+// is only the transport: what to send and to which channels is notify's.
+package ddash.telegramapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/telegram-api/telegramapipb;telegramapipb";
+
+// Empty is valid: Telegram is then not set up, and Send refuses.
+message TelegramApiConfig {
+  option (ddash.config.form) = {test_action: "SendTest"};
+
+  // The Bot API server; Telegram's own unless self-hosted.
+  optional string server = 1 [(ddash.config.field) = {
+    label: "Bot API server"
+    default: "https://api.telegram.org"
+    format: FORMAT_URL
+    help: "Leave as is unless you run your own Bot API server."
+  }];
+  // The token @BotFather gave the bot.
+  string token = 2 [(ddash.config.field) = {
+    label: "Bot token"
+    secret: true
+    placeholder: "123456789:AAH…"
+    help: "The token @BotFather gives for /newbot. Leave this and the chat ID empty to not use Telegram."
+  }];
+  // The chat the bot writes to: a user's ID for a private chat, a group's
+  // (negative) ID, or a channel's @username.
+  string chat_id = 3 [(ddash.config.field) = {
+    label: "Chat ID"
+    placeholder: "123456789"
+    help: "Your user ID for a private chat with the bot, a group's ID (it starts with -), or a channel's @username. Send the bot a message first."
+  }];
+}
+
+service TelegramApiService {
+  // Send sends one Notification to the chat. It fails with
+  // FailedPrecondition while Telegram is not set up.
+  rpc Send(SendRequest) returns (SendResponse) {
+    option (ddash.action) = {};
+  }
+  // SendTest sends a test Notification, so the Operator sees that
+  // Notifications reach the chat. It is the config form's test_action.
+  rpc SendTest(SendTestRequest) returns (SendTestResponse) {
+    option (ddash.action) = {};
+  }
+  // GetChannel says whether Telegram is set up and which chat it writes
+  // to, from the config alone.
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+}
+
+message Notification {
+  // e.g. "Jellyfin down"; shown in bold.
+  string title = 1;
+  // The message body, e.g. "timeout".
+  string message = 2;
+  // 1 (min) to 5 (max), as ntfy's; 1 and 2 arrive silently. 0 is 3.
+  int32 priority = 3;
+  // ntfy's emoji shortcodes ("red_circle", "green_circle", "warning",
+  // "white_check_mark"); a known one leads the title as its emoji.
+  repeated string tags = 4;
+  // The URL the message's "Open in ddash" link opens; empty for none.
+  string click = 5;
+}
+
+message SendRequest {
+  Notification notification = 1;
+}
+
+message SendResponse {
+  // The id Telegram gave the message in its chat.
+  int64 message_id = 1;
+}
+
+message SendTestRequest {}
+
+message SendTestResponse {
+  // The id Telegram gave the message in its chat.
+  int64 message_id = 1;
+}
+
+message GetChannelRequest {}
+
+message GetChannelResponse {
+  // A bot token and a chat ID are set.
+  bool set_up = 1;
+  // Where Notifications go, e.g. "chat 123456789"; empty while not set up.
+  string destination = 2;
+}

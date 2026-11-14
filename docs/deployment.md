@@ -89,7 +89,8 @@ Do these by hand, in order, before first use.
         `api-v2-services-dhcp-servers-get`, `api-v2-firewall-aliases-get`,
         `api-v2-status-interfaces-get`,
         `api-v2-status-wireguard-tunnels-get`, `api-v2-firewall-rules-get`,
-        `api-v2-services-dns-resolver-host-overrides-get`;
+        `api-v2-services-dns-resolver-host-overrides-get`,
+        `api-v2-vpn-wireguard-peers-get`;
       - Adopt and rename: `api-v2-services-dhcp-server-static-mapping-post`,
         `api-v2-services-dhcp-server-static-mapping-patch`;
       - the internet path (Tunnelled, Direct, No Internet):
@@ -102,6 +103,9 @@ Do these by hand, in order, before first use.
         `api-v2-services-dns-resolver-host-override-alias-post`,
         `api-v2-services-dns-resolver-host-override-alias-delete`,
         `api-v2-services-dns-resolver-apply-post`;
+      - Remote Access peers (Add a device writes the peer, then applies
+        WireGuard, which reloads the Remote Access tunnel):
+        `api-v2-vpn-wireguard-peer-post`, `api-v2-vpn-wireguard-apply-post`;
       - `make smoke-writes` only (its cleanup and pending checks):
         `api-v2-services-dhcp-server-static-mapping-delete`,
         `api-v2-services-dhcp-server-apply-get`,
@@ -116,6 +120,26 @@ Do these by hand, in order, before first use.
       Devices and a rule blocking its members from the internet, then pick
       the alias as network's **No Internet alias**. ddash never creates
       either.
+- [ ] pfSense, for Add a device (optional): the Remote Access tunnel (a
+      WireGuard tunnel assigned to an interface without a gateway, e.g.
+      `tun_wg1` on `REMOTEACCESS`) with its interface address and subnet,
+      the WAN rule passing its listen port, and the rules on its interface.
+      Then, in network's config:
+      - **Remote Access endpoint**: the public hostname (or address) a
+        device dials, with `:port` when it isn't the tunnel's listen port
+        (a port forward). Without it, Add a device is refused.
+      - **Remote Access DNS** (optional): the DNS servers a device uses,
+        e.g. AdGuard's address; empty keeps the device's own.
+      - **Remote Access routes** (optional): what a device sends through
+        the tunnel (its `AllowedIPs`). Empty means the subnets of the
+        firewall's interfaces without a gateway (LAN, the Remote Access
+        subnet, ...), so only home traffic; `0.0.0.0/0` sends everything.
+
+      A device gets the lowest free address of the tunnel's subnet (not the
+      firewall's, nor any configured peer's, disabled ones included) and a
+      `PersistentKeepalive` of 25 s. ddash generates its key pair and gives
+      pfSense the public key only; the config with the private key is shown
+      once, as a QR code and as text, and kept nowhere.
 - [ ] Proxmox: the role and token, plus the **Protected ACLs** below.
 - [ ] Nginx Proxy Manager: a dedicated user for ddash (Users). Permissions:
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
@@ -135,6 +159,42 @@ Do these by hand, in order, before first use.
       Left empty, it stays not set up and Apps show no "On the internet".
       Disabling a Public Hostname keeps its settings in cloudflare-tunnel's
       DB (back it up with the rest of the data directory).
+- [ ] Calendar (optional): each calendar's **secret iCal address**. In
+      Google Calendar on the web: Settings, the calendar under *Settings
+      for my calendars*, *Integrate calendar*, **Secret address in iCal
+      format**. Enter them in calendar-api's **Calendars** as
+      `Name = address`, separated by `;`, e.g.
+      `Family = https://calendar.google.com/calendar/ical/…/private-…/basic.ics; Work = https://…`.
+      Any calendar's `.ics` subscription address works; `webcal://` is
+      read as `https://`. There is no OAuth: no Google Cloud project or
+      consent screen is needed.
+
+      The address alone lets anyone read the whole calendar, without a
+      sign-in: treat it as a password. ddash keeps it as a secret (the form
+      never shows it again, errors name only its host) and only reads it,
+      at most every 5 minutes; it can't change the calendar. If it leaks,
+      reset it in the same place in Google Calendar and enter the new one.
+      Google refreshes the file every few hours, so a new event can take a
+      while to show. ddash needs outbound HTTPS to the calendar's host.
+- [ ] Telegram (optional, a second Notification channel beside ntfy):
+      1. In Telegram, message **@BotFather**, send `/newbot`, and pick a
+         name and a username ending in `bot`. BotFather answers with the
+         bot token (`123456789:AAH…`): it is telegram-api's **Bot token**.
+      2. Open a chat with the new bot and send it any message (a bot
+         can't write to anyone who hasn't). For a group, add the bot to it
+         and send `/start@<bot username>` there.
+      3. Open `https://api.telegram.org/bot<token>/getUpdates` in a
+         browser: `result[].message.chat.id` is the **Chat ID** (your user
+         ID for the private chat, a negative number for a group). For a
+         channel, make the bot an admin and use its `@username`.
+      4. Save both in telegram-api's config form and press **Send test**.
+
+      Left empty, telegram-api is "not set up" and Notifications go to
+      ntfy only; ntfy-api unconfigured likewise sends to Telegram only.
+- [ ] Which Notifications each channel gets: notify's config form, one
+      switch per channel and category (Checks, image updates, Action
+      outcomes). Everything goes everywhere by default. The Checks Page's
+      Notifications panel shows which channels are set up and take Checks.
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
 
