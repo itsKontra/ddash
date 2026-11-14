@@ -14,8 +14,6 @@ import (
 	"github.com/itsKontra/ddash/agent"
 	"github.com/itsKontra/ddash/agent/agentfake"
 	"github.com/itsKontra/ddash/components/checks"
-	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
-	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	hostagentapi "github.com/itsKontra/ddash/components/host-agent-api"
 	"github.com/itsKontra/ddash/components/notify"
@@ -23,10 +21,13 @@ import (
 	"github.com/itsKontra/ddash/components/proxmox"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
+	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
 	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
+	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/internal/fakelab"
+	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -200,6 +201,10 @@ func TestAnUpdateRunsInTheBackgroundInItsActionsChain(t *testing.T) {
 		t.Errorf("201's snapshots = %v, want the manual one and the new ddash Snapshot", names)
 	}
 
+	// The outcome's Notification follows the run's end.
+	waitFor(t, func() bool {
+		return slices.ContainsFunc(componentHops(h), func(e appstate.Entry) bool { return e.Target == "notify" && e.Outcome != "" })
+	})
 	var hops []string
 	chains := map[string]bool{}
 	for _, e := range componentHops(h) {

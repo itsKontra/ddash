@@ -12,6 +12,7 @@ import (
 	"testing/synctest"
 	"time"
 
+	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/core"
@@ -29,7 +30,7 @@ var docker = coretest.Plugin{Name: "docker", Requires: []string{"docker-api"}}
 func TestInstallingDockerServesDockerApiContainersToTheUI(t *testing.T) {
 	media := fixture.Server(t, "../components/docker-api/testdata/baseline")
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{dockerapi.Definition()},
+		Components: []sdk.Definition{dockerapi.Definition(), dockeragentapi.Definition()},
 		Plugins:    []coretest.Plugin{docker},
 	})
 	h.SeedConfig("docker-api", &dockerapipb.DockerApiConfig{Hosts: []*dockerapipb.Host{

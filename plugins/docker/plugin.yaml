@@ -1,6 +1,9 @@
 name: docker
 title: Docker
-description: Containers on every Docker host, with their state and ports.
+description: Compose Projects on every Docker host with a Docker Agent, their image updates, editing and Actions; containers behind read-only socket-proxies.
 icon: container
 author: itsKontra
-requires: [docker-api]
+# compose runs the Compose Project Actions and image checks; docker-agent-api
+# pairs the Agents and reads Compose files; docker-api reads every host's
+# containers, socket-proxy hosts too.
+requires: [docker-api, docker-agent-api, compose]

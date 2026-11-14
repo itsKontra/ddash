@@ -33,7 +33,7 @@ function Entries({ day }: { day: Day }) {
     <ul className="flex flex-col divide-y divide-border">
       {day.entries.map((e) => (
         <li key={e.timed.event.id} className="flex items-start gap-4 py-2.5 first:pt-0 last:pb-0">
-          <span className="w-32 shrink-0 text-sm text-muted-foreground tabular-nums">{entryTime(e)}</span>
+          <span className="w-24 shrink-0 text-sm text-muted-foreground tabular-nums sm:w-44 sm:whitespace-nowrap">{entryTime(e)}</span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold break-words">{e.timed.event.title || "(no title)"}</p>
             {e.timed.event.location && <p className="mt-0.5 text-xs break-words text-muted-foreground">{e.timed.event.location}</p>}

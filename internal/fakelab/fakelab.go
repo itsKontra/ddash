@@ -6,8 +6,8 @@
 // Docker comes first; each later system adds itself to systems. A system whose Actions must stick is served by a
 // stateful fake over its fixtures (pfSense: pfsensefake; AdGuard:
 // adguardfake; Proxmox: proxmoxfake; Nginx Proxy Manager: npmfake;
-// Telegram: telegramfake; calendars: calendarfake, whose dates follow
-// the clock). A
+// Cloudflare: cloudflarefake; Telegram: telegramfake; calendars:
+// calendarfake, whose dates follow the clock). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
 // system that has a sibling directory of that name. Beside the systems it
 // serves fake Host Agents (agentfake) on three of the baseline's Workloads.
@@ -31,6 +31,8 @@ import (
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -125,6 +127,18 @@ var systems = []system{
 		serve: func(dir string) (http.Handler, error) { return npmfake.New(dir, npmfake.Options{Password: "fakelab"}) },
 	},
 	{
+		component: "cloudflare-api",
+		fixtures:  "components/cloudflare-api/testdata/baseline",
+		config: func(addr string) proto.Message {
+			url := "http://" + addr
+			return &cloudflareapipb.CloudflareApiConfig{AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: "fakelab", ApiUrl: &url}
+		},
+		// The ingress and DNS records are kept: Public Hostname writes stick.
+		serve: func(dir string) (http.Handler, error) {
+			return cloudflarefake.New(dir, cloudflarefake.Options{Token: "fakelab"})
+		},
+	},
+	{
 		component: "calendar-api",
 		fixtures:  "components/calendar-api/testdata/baseline",
 		config: func(addr string) proto.Message {
@@ -208,9 +222,11 @@ type Lab struct {
 	// Addrs maps each Component to the address of the system it talks to.
 	Addrs    map[string]string
 	handlers map[string]http.Handler
-	// HostAgents are the fake Host Agents, by VMID order.
+	// DockerAgents are the lab's fake Docker Agents, for ddash to add.
+	DockerAgents []DockerAgent
+	// HostAgents are the fake Host Agents, in VMID order of hostAgents.
 	HostAgents []HostAgent
-	stops      []func()
+	cleanup    []func()
 }
 
 // startHostAgents serves the fake Host Agents on host. Each keeps its
@@ -218,20 +234,18 @@ type Lab struct {
 // that paired with it before still can after a restart.
 func (l *Lab) startHostAgents(host string) error {
 	for _, a := range hostAgents {
-		state := filepath.Join(os.TempDir(), "ddash-fakelab", fmt.Sprintf("host-agent-%d", a.vmid))
+		state := stateDir(fmt.Sprintf("host-agent-%d", a.vmid))
 		fake, err := agentfake.NewHost("", a.seed, agentfake.Options{StateDir: state, Release: a.release, StepDelay: 1500 * time.Millisecond})
 		if err != nil {
 			return err
 		}
-		u, stop, err := fake.Serve(net.JoinHostPort(host, fmt.Sprint(a.port)))
-		if err != nil {
-			// Taken (another lab, a test): any free port.
-			if u, stop, err = fake.Serve(net.JoinHostPort(host, "0")); err != nil {
-				return err
-			}
-		}
 		root := fake.Root
-		l.stops = append(l.stops, stop, func() { os.RemoveAll(root) })
+		l.cleanup = append(l.cleanup, func() { os.RemoveAll(root) })
+		u, stop, err := fake.Serve(listen(host, a.port))
+		if err != nil {
+			return err
+		}
+		l.cleanup = append(l.cleanup, stop)
 		l.HostAgents = append(l.HostAgents, HostAgent{Host: fake, VMID: a.vmid, Name: a.name, URL: u})
 	}
 	return nil
@@ -278,6 +292,10 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		addr := ln.Addr().String()
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
+	}
+	if err := l.startDocker(host); err != nil {
+		l.Close()
+		return nil, err
 	}
 	if fw, ok := l.handlers["pfsense-api"].(*pfsensefake.Firewall); ok {
 		fw.EditHostOverrides(movedTo(host))
@@ -350,7 +368,7 @@ func (l *Lab) Close() {
 	for _, srv := range l.servers {
 		srv.Close()
 	}
-	for _, stop := range l.stops {
-		stop()
+	for _, f := range l.cleanup {
+		f()
 	}
 }

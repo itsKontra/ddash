@@ -1,0 +1,3 @@
+name: cloudflare-api
+description: Reads and writes one remotely managed Cloudflare Tunnel through Cloudflare's API with an API token, its connectors and ingress rules, and the DNS records of the account's zones.
+requires: []

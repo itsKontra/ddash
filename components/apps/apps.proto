@@ -147,6 +147,19 @@ message App {
   // address (a container's Docker host's); unset without a Workload with
   // an IP address, or while network can't answer.
   NetworkInfo network = 17;
+  // Its hostnames the Cloudflare Tunnel serves from the internet, each a
+  // Public Hostname, in the Tunnel's order: the App is on the internet.
+  // Empty while cloudflare-api isn't set up or can't be read.
+  repeated PublicHostname public_hostnames = 18;
+}
+
+// A Public Hostname of the Cloudflare Tunnel serving one of an App's
+// hostnames.
+message PublicHostname {
+  string hostname = 1;
+  // The local service the Cloudflare Tunnel forwards it to, e.g.
+  // "http://198.18.1.212:5055".
+  string service = 2;
 }
 
 // An App's network info: read only, changed on the Network Page.
@@ -405,6 +418,9 @@ message ListAppsResponse {
   // Why AdGuard couldn't be read, so no App shows Ads Allowed; empty when
   // it could.
   string adguard_error = 6;
+  // Why cloudflare-api couldn't be read, so no App shows whether it is on
+  // the internet; empty when it could, or isn't set up.
+  string cloudflare_error = 7;
 }
 
 // The Reverse Proxy as Apps see it: its address, and the Host Overrides

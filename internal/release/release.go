@@ -92,9 +92,12 @@ func Build(ctx context.Context, o Options) error {
 			return err
 		}
 	}
-	for _, arch := range HostAgentArchs {
-		if err := build(ctx, o.Root, "./cmd/ddash-host-agent", filepath.Join(o.Out, HostAgentFile(arch)), o.Release, "linux/"+arch); err != nil {
-			return err
+	// A repo without the Host Agent (a test's) builds a Release without it.
+	if _, err := os.Stat(filepath.Join(o.Root, "cmd", "ddash-host-agent")); err == nil {
+		for _, arch := range HostAgentArchs {
+			if err := build(ctx, o.Root, "./cmd/ddash-host-agent", filepath.Join(o.Out, HostAgentFile(arch)), o.Release, "linux/"+arch); err != nil {
+				return err
+			}
 		}
 	}
 	for _, p := range cat.Plugins {

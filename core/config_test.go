@@ -13,6 +13,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/proto"
 
+	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
@@ -346,7 +347,7 @@ func TestInstallAnswersTheComponentsItAdds(t *testing.T) {
 
 func TestAComponentValidOnDefaultsStartsRightAfterInstall(t *testing.T) {
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{dockerapi.Definition()},
+		Components: []sdk.Definition{dockerapi.Definition(), dockeragentapi.Definition()},
 		Plugins:    []coretest.Plugin{{Name: "docker", Requires: []string{"docker-api"}}},
 	})
 
@@ -405,7 +406,7 @@ func TestTheThemeIsACoreSettingSavedLikeAnyConfig(t *testing.T) {
 
 func TestDockerApisHostsAreATableFormThatSavesIntoAListOfContainers(t *testing.T) {
 	media := fixture.Server(t, "../components/docker-api/testdata/baseline")
-	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{dockerapi.Definition()}, Plugins: []coretest.Plugin{docker}})
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{dockerapi.Definition(), dockeragentapi.Definition()}, Plugins: []coretest.Plugin{docker}})
 	h.Install("docker")
 	h.WaitState("docker-api", runtime.OK)
 

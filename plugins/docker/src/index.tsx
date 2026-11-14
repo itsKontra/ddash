@@ -1,11 +1,19 @@
 import { definePlugin } from "@ddash/plugin";
-import { Containers } from "./containers";
+import { AddProjectPage } from "./add-project";
+import { AgentsPage } from "./agents";
 import "./index.css";
+import { ProjectPage } from "./project";
+import { DockerPage } from "./projects";
 import { containers } from "./widget";
 
 export default definePlugin({
   // Label and icon (container) come from plugin.yaml.
   nav: { order: 50 },
-  pages: [{ index: true, Component: Containers }],
+  pages: [
+    { index: true, Component: DockerPage },
+    { path: "agents", Component: AgentsPage },
+    { path: "projects/new", Component: AddProjectPage },
+    { path: "projects/:host/:name", Component: ProjectPage },
+  ],
   widgets: [containers],
 });

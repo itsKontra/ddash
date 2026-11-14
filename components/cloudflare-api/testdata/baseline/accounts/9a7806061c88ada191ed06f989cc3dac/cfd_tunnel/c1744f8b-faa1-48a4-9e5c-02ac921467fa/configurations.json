@@ -1,0 +1,41 @@
+{
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result": {
+    "account_id": "9a7806061c88ada191ed06f989cc3dac",
+    "tunnel_id": "c1744f8b-faa1-48a4-9e5c-02ac921467fa",
+    "version": 7,
+    "config": {
+      "ingress": [
+        {
+          "hostname": "request.home.example",
+          "service": "http://198.18.1.212:5055",
+          "originRequest": {}
+        },
+        {
+          "hostname": "video.home.example",
+          "service": "http://198.18.1.212:8096",
+          "originRequest": {
+            "connectTimeout": 30,
+            "keepAliveTimeout": 90
+          }
+        },
+        {
+          "hostname": "ha.home.example",
+          "service": "http://198.18.1.101:8123",
+          "originRequest": {}
+        },
+        {
+          "service": "http_status:404"
+        }
+      ],
+      "originRequest": {},
+      "warp-routing": {
+        "enabled": false
+      }
+    },
+    "source": "cloudflare",
+    "created_at": "2026-10-28T17:20:45.004113Z"
+  }
+}

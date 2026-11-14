@@ -1,0 +1,357 @@
+syntax = "proto3";
+
+// compose is the logic behind the Docker Plugin's Compose Projects: it
+// lists each Docker Agent's Compose Projects with their Compose services,
+// containers and image state, checks every running container's image
+// against its registry, and runs the Compose Project Actions (save the
+// Compose file, start, stop, restart, update, add a Compose Project)
+// through a Plan, each as a run that outlasts the Action's deadline.
+package ddash.compose;
+
+import "ddash/config/config.proto";
+import "ddash/job/job.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/compose/composepb;composepb";
+
+message ComposeConfig {
+  // Where docker.io images' digests are read: Docker Hub, or a
+  // pull-through mirror of it.
+  optional string docker_hub_registry = 1 [(ddash.config.field) = {
+    label: "Docker Hub registry"
+    default: "https://registry-1.docker.io"
+    format: FORMAT_URL
+    help: "Where ddash reads docker.io images' digests: Docker Hub, or a pull-through mirror of it."
+  }];
+  // Credentials for private registries: "<registry> <user>:<token>"
+  // entries separated by ";" or line breaks.
+  string registry_credentials = 2 [(ddash.config.field) = {
+    label: "Registry credentials"
+    secret: true
+    placeholder: "ghcr.io me:ghp_…; registry.home.example ddash:…"
+    help: "Optional, for private images: <registry> <user>:<token>, separated by ;. Public images are read anonymously."
+  }];
+}
+
+service ComposeService {
+  // ListProjects returns every Docker Agent's Compose Projects and the
+  // containers no Compose Project started, with each image's state from
+  // the last registry check.
+  rpc ListProjects(ListProjectsRequest) returns (ListProjectsResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // CheckImages checks every running container's image against its
+  // registry now, as the 6-hourly check does.
+  rpc CheckImages(CheckImagesRequest) returns (CheckImagesResponse) {
+    option (ddash.action) = {};
+  }
+  // PlanAction builds a Compose Project Action's Plan from fresh reads
+  // and changes nothing. A Plan that can't run says why.
+  rpc PlanAction(PlanActionRequest) returns (PlanActionResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+  // RunAction runs a Compose Project Action whose Plan the Operator
+  // confirmed. It builds the Plan again and refuses with "changed since
+  // you looked" (ABORTED, the new Plan in the error's details) when it
+  // differs. Otherwise it starts a run, which goes on after the Action
+  // returns: it streams the run's state each time a step changes for up
+  // to 45 s; a run still going then is followed in ListRuns. It stops at
+  // the first failed step, with nothing rolled back.
+  rpc RunAction(RunActionRequest) returns (stream RunActionResponse) {
+    option (ddash.action) = {};
+  }
+  // ListRuns returns the runs in flight and those that ended in the last
+  // 15 minutes, from memory.
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
+    option (ddash.getter) = {refresh: LIVE};
+  }
+}
+
+message ListProjectsRequest {}
+
+message ListProjectsResponse {
+  repeated Host hosts = 1;
+  ImageChecks checks = 2;
+}
+
+// A Docker host with a Docker Agent.
+message Host {
+  // The Docker Agent's name.
+  string name = 1;
+  // Where its published ports answer.
+  string address = 2;
+  // Why it couldn't be read; empty when it could.
+  string error = 3;
+  // The Compose roots its Agent mounts: new Compose Projects go under one.
+  repeated string roots = 4;
+  repeated Project projects = 5;
+  // Its containers that no Compose Project started.
+  repeated Container containers = 6;
+}
+
+message Project {
+  string host = 1;
+  string name = 2;
+  string working_dir = 3;
+  // The Compose file ddash reads and writes.
+  string config_file = 4;
+  ProjectState state = 5;
+  repeated Service services = 6;
+  // Some running container's image is stale.
+  bool update_available = 7;
+  // Some container is Protected (label ddash.protected=true): Stop,
+  // Restart, Update and a save that recreates need an override.
+  bool protected = 8;
+  // Why its file couldn't be read.
+  string error = 9;
+  // The run in flight on it, if any.
+  string run_id = 10;
+}
+
+enum ProjectState {
+  PROJECT_STATE_UNSPECIFIED = 0;
+  // Every Compose service has a running container.
+  PROJECT_STATE_RUNNING = 1;
+  // Some do, some don't.
+  PROJECT_STATE_PARTIAL = 2;
+  // It has containers, none running.
+  PROJECT_STATE_STOPPED = 3;
+  // Its file is there, without containers.
+  PROJECT_STATE_NOT_STARTED = 4;
+}
+
+message Service {
+  string name = 1;
+  // The image as the file names it.
+  string image = 2;
+  // Its published ports as the file writes them.
+  repeated string ports = 3;
+  repeated Container containers = 4;
+}
+
+message Container {
+  string id = 1;
+  string name = 2;
+  string image = 3;
+  string state = 4;
+  string status = 5;
+  repeated Port ports = 6;
+  ImageStatus image_status = 7;
+  bool protected = 8;
+  google.protobuf.Timestamp created = 9;
+}
+
+message Port {
+  string ip = 1;
+  uint32 public_port = 2;
+  uint32 private_port = 3;
+  string protocol = 4;
+}
+
+// Whether a container's image is the newest for its tag.
+message ImageStatus {
+  ImageState state = 1;
+  // Why it is NOT_CHECKED or ERROR, as the Operator reads it, e.g.
+  // "pinned by digest", "rate limited by registry-1.docker.io".
+  string reason = 2;
+  // The container's image digest and the registry's for the same tag.
+  string current_digest = 3;
+  string latest_digest = 4;
+  google.protobuf.Timestamp checked = 5;
+}
+
+enum ImageState {
+  IMAGE_STATE_UNSPECIFIED = 0;
+  // Not checked yet since ddash started, or the container isn't running.
+  IMAGE_STATE_UNKNOWN = 1;
+  IMAGE_STATE_UP_TO_DATE = 2;
+  // The registry has a newer image for its tag.
+  IMAGE_STATE_STALE = 3;
+  // ddash can't know: pinned by digest, or built locally.
+  IMAGE_STATE_NOT_CHECKED = 4;
+  // The registry couldn't be asked.
+  IMAGE_STATE_ERROR = 5;
+}
+
+message ImageChecks {
+  google.protobuf.Timestamp last = 1;
+  google.protobuf.Timestamp next = 2;
+  // Registries that refused or failed in the last check.
+  repeated RegistryProblem problems = 3;
+  // How many registry requests the last check made.
+  int32 requests = 4;
+  bool running = 5;
+}
+
+message RegistryProblem {
+  string registry = 1;
+  string message = 2;
+}
+
+message CheckImagesRequest {}
+
+message CheckImagesResponse {
+  ImageChecks checks = 1;
+}
+
+// A Compose Project Action.
+message ComposeAction {
+  oneof action {
+    SaveFile save = 1;
+    Start start = 2;
+    Stop stop = 3;
+    Restart restart = 4;
+    Update update = 5;
+    AddProject add = 6;
+  }
+  // Run it although a container of the Project is Protected.
+  bool override_protected = 7;
+}
+
+// Save a Compose Project's Compose file, or the .env beside it: validated
+// with `docker compose config` on the host, the previous content kept as
+// <file>.bak, refused when the file changed on disk since expect_sha256
+// was read.
+message SaveFile {
+  string host = 1;
+  string project = 2;
+  // The Compose file or its .env.
+  string path = 3;
+  string content = 4;
+  string expect_sha256 = 5;
+  // Then `docker compose up -d`, which recreates the Compose services
+  // whose config changed.
+  bool recreate = 6;
+}
+
+message Start {
+  string host = 1;
+  string project = 2;
+  // Empty: every Compose service.
+  repeated string services = 3;
+}
+
+message Stop {
+  string host = 1;
+  string project = 2;
+  repeated string services = 3;
+}
+
+message Restart {
+  string host = 1;
+  string project = 2;
+  repeated string services = 3;
+}
+
+// Pull, then recreate only the Compose services whose image changed.
+message Update {
+  string host = 1;
+  string project = 2;
+}
+
+// A new Compose Project: its directory under one of the host's roots and
+// its Compose file, then optionally `up -d`.
+message AddProject {
+  string host = 1;
+  // Lower-case letters, digits, - and _.
+  string name = 2;
+  string directory = 3;
+  string content = 4;
+  bool start = 5;
+}
+
+message Plan {
+  repeated PlanStep steps = 1;
+  // Why it can't run now; empty when it can.
+  repeated string blocked = 2;
+  // What to know before confirming.
+  repeated string notes = 3;
+  // SaveFile: the change as a unified diff.
+  string diff = 4;
+  // The Protected containers the Action would touch; it runs only with
+  // override_protected.
+  repeated string protected = 5;
+  // Update: nothing to pull is known to be newer. It still runs: a pull
+  // may find more than the last check.
+  bool up_to_date = 6;
+}
+
+message PlanStep {
+  System system = 1;
+  // e.g. "Pull images", "Stop paperless".
+  string title = 2;
+  repeated PlanValue values = 3;
+}
+
+enum System {
+  SYSTEM_UNSPECIFIED = 0;
+  // The Docker Agent on the host.
+  SYSTEM_DOCKER_AGENT = 1;
+  // ddash's Checks: Maintenance.
+  SYSTEM_DDASH = 2;
+}
+
+message PlanValue {
+  string label = 1;
+  string before = 2;
+  string after = 3;
+}
+
+message PlanActionRequest {
+  ComposeAction action = 1;
+}
+
+message PlanActionResponse {
+  Plan plan = 1;
+}
+
+message RunActionRequest {
+  ComposeAction action = 1;
+  Plan plan = 2;
+}
+
+enum StepState {
+  STEP_STATE_UNSPECIFIED = 0;
+  STEP_STATE_PENDING = 1;
+  STEP_STATE_RUNNING = 2;
+  STEP_STATE_DONE = 3;
+  STEP_STATE_FAILED = 4;
+  // Not needed, e.g. recreating when no image changed.
+  STEP_STATE_SKIPPED = 5;
+}
+
+// How far a run has got.
+message RunActionResponse {
+  Run run = 1;
+}
+
+// A Compose Project Action's run.
+message Run {
+  string id = 1;
+  string host = 2;
+  string project = 3;
+  // e.g. "Update paperless".
+  string title = 4;
+  // Its Plan's steps, each with its state and detail.
+  repeated PlanStep steps = 5;
+  repeated StepState states = 6;
+  repeated string details = 7;
+  // The Agent's job for the step running now, with its output.
+  ddash.job.Job job = 8;
+  google.protobuf.Timestamp started = 9;
+  google.protobuf.Timestamp ended = 10;
+  // Why it stopped; empty while it runs and when it ended well.
+  string error = 11;
+  // How it ended, as the Operator reads it, e.g. "already up to date",
+  // "2 Compose services updated".
+  string outcome = 12;
+  // Who started it.
+  string actor = 13;
+}
+
+message ListRunsRequest {}
+
+message ListRunsResponse {
+  repeated Run runs = 1;
+}

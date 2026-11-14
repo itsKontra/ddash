@@ -7,7 +7,9 @@ ddash runs as one container on its own LXC: the core image
 The image holds only the core. On start, the core downloads its Release's
 Plugins and Components from the matching GitHub release into `/data`,
 verifies them against `SHA256SUMS` and runs each Component as a subprocess in
-the same container, as the same user. ddash never gets the Docker socket.
+the same container, as the same user. ddash's container never gets the
+Docker socket: a host ddash should change gets an Agent instead
+([ADR-0005](adr/0005-agents-hold-root-on-the-hosts-that-opt-in.md)).
 
 Placeholders: `<domain>` is the home domain, `<ddash-ip>` the ddash LXC,
 `<nginx-ip>` the nginx LXC, `<pve-ip>` the Proxmox node, `<docker-env-ip>` and
@@ -73,6 +75,12 @@ Do these by hand, in order, before first use.
       `IN ACCEPT -source <nginx-ip> -p tcp -dport 8080`, then
       `IN REJECT -p tcp -dport 8080`. Sign-in stays the real boundary; this
       only stops LAN clients from bypassing nginx.
+
+- [ ] A host with a Docker Agent (below): `IN ACCEPT -source <ddash-ip> -p
+      tcp -dport 7443`, then `IN REJECT -p tcp -dport 7443`. Its socket-proxy
+      and its 2375 rules can go once the Agent is paired: docker-api reads the
+      host through the Agent.
+- [ ] An LXC or VM with a Host Agent: the same for 7444.
 
 ### 6. The systems ddash reaches
 
@@ -145,6 +153,20 @@ Do these by hand, in order, before first use.
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
 - [ ] ntfy: a reserved ntfy.sh topic and an access token.
+- [ ] Cloudflare Tunnel (optional): ddash changes only a **remotely managed**
+      Tunnel (created in Zero Trust → Networks → Tunnels, configured in the
+      dashboard), never a locally managed `config.yml`. Create an API token
+      (My Profile → API Tokens → Create Custom Token) with:
+      - Account → **Cloudflare Tunnel: Edit** (reads the Tunnel, its
+        connectors and ingress, and PUTs the ingress back whole),
+      - Account → **Account Settings: Read** (lists the account's zones),
+      - Zone → **DNS: Edit**, on the zone of the Public Hostnames (each
+        Public Hostname's proxied CNAME to `<tunnel-id>.cfargotunnel.com`).
+
+      Give cloudflare-api the account ID, the Tunnel's ID and the token.
+      Left empty, it stays not set up and Apps show no "On the internet".
+      Disabling a Public Hostname keeps its settings in cloudflare-tunnel's
+      DB (back it up with the rest of the data directory).
 - [ ] Calendar (optional): each calendar's **secret iCal address**. In
       Google Calendar on the web: Settings, the calendar under *Settings
       for my calendars*, *Integrate calendar*, **Secret address in iCal
@@ -230,7 +252,61 @@ DdashOperator --privs "…"` (the whole list again).
       skipped in its Plan). A single update of one needs its override
       ticked in the Plan.
 
-### 7b. Host Agents (optional, per LXC or VM)
+### 8. Smoke targets
+
+`make smoke-writes` round-trips Actions on sacrificial targets only. Create
+them once:
+
+- [ ] pfSense: an empty host alias named **`DDASH_SMOKE`** (never the bypass
+      alias).
+- [ ] Proxmox: a tiny, stopped LXC named **`ddash-smoke`**, controllable by the
+      ddash token (not Protected).
+- [ ] A free LAN address (no lease, no static mapping, no AdGuard client),
+      outside the DHCP pools, as `SMOKE_UNUSED_IP` in the dev machine's
+      `smoke.env`.
+- [ ] A hostname no Host Override or alias holds, like
+      `ddash-smoke.<domain>`, as `SMOKE_HOST_OVERRIDE` in `smoke.env`. The
+      round trip creates it as a Host Override with the alias
+      `ddash-smoke-alias.<domain>`, and deletes both. Each batch restarts
+      Unbound once.
+- [ ] A hostname no Proxy Host, Redirection Host or 404 Host holds (e.g.
+      `ddash-smoke.<domain>`) as `SMOKE_PROXY_HOST`. It needs no DNS record:
+      the round trip only creates and deletes its Proxy Host.
+- [ ] With a Cloudflare Tunnel: a hostname in its zone that no ingress rule
+      or DNS record holds, as `SMOKE_PUBLIC_HOSTNAME`. The round trip adds
+      it as a Public Hostname (ingress rule and proxied CNAME, commented
+      `ddash smoke-writes`), edits its service and removes both.
+
+### 9. Docker Agents (optional, per Docker host)
+
+A Docker Agent lets ddash list, edit, start, stop and update the host's
+Compose Projects and check its images. It mounts the Docker socket, so it has
+**root-equivalent control of its host**: install it only where ddash should
+have that.
+
+- [ ] Docker Page, **Docker Agents**, **Add a Docker Agent**: the host's name
+      (as docker-api named it, if it had a socket-proxy), its address, and the
+      directories holding its Compose Projects (each is mounted at the same
+      path, so relative paths and `.env` files resolve as on the host).
+- [ ] ddash shows a Compose file with a one-time enrolment code. On the host:
+      `mkdir -p /opt/ddash-docker-agent && cd /opt/ddash-docker-agent`, save
+      it as `compose.yaml`, `docker compose up -d`. ddash pairs with it within
+      10 s and pins its certificate.
+- [ ] Mark what reaching ddash depends on as **Protected** in its Compose
+      file: `labels: { ddash.protected: "true" }` (the Reverse Proxy,
+      Keycloak, ddash itself). ddash then stops, restarts or recreates it only
+      with an explicit override.
+- [ ] Image checks read each running container's image digest from its
+      registry every 6 hours, with one manifest `HEAD` per distinct image
+      (Docker Hub doesn't count those against its pull limit). Private images
+      need compose's **Registry credentials**; a pull-through mirror goes in
+      **Docker Hub registry**.
+- [ ] Removing an Agent from ddash forgets its token; ddash then shows how to
+      uninstall it: `cd /opt/ddash-docker-agent && docker compose down -v`.
+- [ ] An Agent from another Release is flagged; **Update Agent** recreates it
+      on this Release's image.
+
+### 10. Host Agents (optional, per LXC or VM)
 
 A Host Agent lets ddash update a Workload's packages and set up SSH on it,
 on Ubuntu, Debian, Alpine, Fedora and Arch Linux (amd64, arm64). It runs as
@@ -278,27 +354,6 @@ thick, a raw image on a directory storage) turn the Workload's "Snapshot
 before each update" off, or turn it off for one run. SSH Keys generated in
 ddash hand out their private key once, in the browser; ddash stores public
 keys only.
-
-### 8. Smoke targets
-
-`make smoke-writes` round-trips Actions on sacrificial targets only. Create
-them once:
-
-- [ ] pfSense: an empty host alias named **`DDASH_SMOKE`** (never the bypass
-      alias).
-- [ ] Proxmox: a tiny, stopped LXC named **`ddash-smoke`**, controllable by the
-      ddash token (not Protected).
-- [ ] A free LAN address (no lease, no static mapping, no AdGuard client),
-      outside the DHCP pools, as `SMOKE_UNUSED_IP` in the dev machine's
-      `smoke.env`.
-- [ ] A hostname no Host Override or alias holds, like
-      `ddash-smoke.<domain>`, as `SMOKE_HOST_OVERRIDE` in `smoke.env`. The
-      round trip creates it as a Host Override with the alias
-      `ddash-smoke-alias.<domain>`, and deletes both. Each batch restarts
-      Unbound once.
-- [ ] A hostname no Proxy Host, Redirection Host or 404 Host holds (e.g.
-      `ddash-smoke.<domain>`) as `SMOKE_PROXY_HOST`. It needs no DNS record:
-      the round trip only creates and deletes its Proxy Host.
 
 ## Updating
 

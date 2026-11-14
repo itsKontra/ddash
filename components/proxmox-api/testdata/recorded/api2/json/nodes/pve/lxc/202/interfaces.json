@@ -1,0 +1,61 @@
+{
+  "data": [
+    {
+      "hardware-address": "00:00:00:00:00:00",
+      "inet6": "::1/128",
+      "hwaddr": "00:00:00:00:00:00",
+      "ip-addresses": [
+        {
+          "prefix": "8",
+          "ip-address": "127.0.0.1",
+          "ip-address-type": "inet"
+        },
+        {
+          "ip-address-type": "inet6",
+          "ip-address": "::1",
+          "prefix": "128"
+        }
+      ],
+      "inet": "127.0.0.1/8",
+      "name": "lo"
+    },
+    {
+      "hardware-address": "02:eb:b6:2f:ee:9a",
+      "inet6": "2001:db8:30c:4464:c96b:5af6:1e8a:219b/64",
+      "hwaddr": "02:eb:b6:2f:ee:9a",
+      "inet": "203.0.113.226/24",
+      "ip-addresses": [
+        {
+          "ip-address-type": "inet",
+          "ip-address": "203.0.113.226",
+          "prefix": "24"
+        },
+        {
+          "prefix": "64",
+          "ip-address-type": "inet6",
+          "ip-address": "2001:db8:30c:4464:c96b:5af6:1e8a:219b"
+        }
+      ],
+      "name": "cert-bridge"
+    },
+    {
+      "inet": "198.18.1.202/24",
+      "ip-addresses": [
+        {
+          "prefix": "24",
+          "ip-address-type": "inet",
+          "ip-address": "198.18.1.202"
+        },
+        {
+          "prefix": "64",
+          "ip-address-type": "inet6",
+          "ip-address": "2001:db8:30c:4464:7dbb:5aef:304c:44b6"
+        }
+      ],
+      "name": "fw-network",
+      "hwaddr": "02:13:15:46:bd:2e",
+      "inet6": "2001:db8:30c:4464:7dbb:5aef:304c:44b6/64",
+      "hardware-address": "02:13:15:46:bd:2e"
+    }
+  ]
+}

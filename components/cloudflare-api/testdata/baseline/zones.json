@@ -1,0 +1,32 @@
+{
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result": [
+    {
+      "id": "023e105f4ecef8ad9ca31a8372d0c353",
+      "name": "home.example",
+      "status": "active",
+      "paused": false,
+      "type": "full",
+      "development_mode": 0,
+      "name_servers": [
+        "ada.ns.cloudflare.com",
+        "bob.ns.cloudflare.com"
+      ],
+      "account": {
+        "id": "9a7806061c88ada191ed06f989cc3dac",
+        "name": "Operator's Account"
+      },
+      "created_on": "2024-01-17T09:12:44.551982Z",
+      "modified_on": "2026-04-02T11:30:12.002914Z"
+    }
+  ],
+  "result_info": {
+    "page": 1,
+    "per_page": 50,
+    "total_pages": 1,
+    "count": 1,
+    "total_count": 1
+  }
+}

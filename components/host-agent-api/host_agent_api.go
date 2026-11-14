@@ -63,6 +63,9 @@ type component struct {
 	// reads caches every paired Agent's info and packages.
 	reads *sdk.Cache[[]reading]
 
+	// pairing is held while one Agent is paired.
+	pairing sync.Mutex
+
 	mu sync.Mutex
 	// pairErr is why the last pairing attempt of an enrolling Agent failed.
 	pairErr map[uint32]string
@@ -302,8 +305,15 @@ func (c *component) pairPending(ctx context.Context) {
 	}
 }
 
-// pair pairs with r's Agent, keeping why it failed for ListAgents.
+// pair pairs with r's Agent, keeping why it failed for ListAgents. One
+// pairing at a time, each re-reading the row: the loop and PairAgent
+// mustn't both pair, or the second token replaces the first on the Agent.
 func (c *component) pair(ctx context.Context, r row) {
+	c.pairing.Lock()
+	defer c.pairing.Unlock()
+	if now, err := c.row(ctx, r.vmid); err != nil || now.token != "" || now.code != r.code {
+		return
+	}
 	err := func() error {
 		ctx, cancel := context.WithTimeout(ctx, readTimeout)
 		defer cancel()

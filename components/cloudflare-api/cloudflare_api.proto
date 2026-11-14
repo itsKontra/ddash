@@ -1,0 +1,307 @@
+syntax = "proto3";
+
+// cloudflare-api reads and writes one remotely managed Cloudflare Tunnel
+// through Cloudflare's API v4 with an API token: the Tunnel and its
+// connectors, its ingress configuration, the account's zones and their
+// DNS records. It is only the transport: which Public Hostnames there are
+// and how they change is the cloudflare-tunnel Component's.
+//
+// Its config is valid when empty: the Component then starts not set up,
+// GetTunnel says so, and every other getter and write fails with
+// FAILED_PRECONDITION "not set up".
+package ddash.cloudflareapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb;cloudflareapipb";
+
+message CloudflareApiConfig {
+  option (ddash.config.form) = {test_action: "VerifyAccess"};
+
+  // The Cloudflare account's ID: 32 hex digits.
+  string account_id = 1 [(ddash.config.field) = {
+    label: "Account ID"
+    help: "On the account's Overview in Cloudflare's dashboard. Leave the three fields empty while you don't use a Cloudflare Tunnel."
+    placeholder: "0123456789abcdef0123456789abcdef"
+  }];
+  // The Tunnel's ID, a UUID.
+  string tunnel_id = 2 [(ddash.config.field) = {
+    label: "Tunnel ID"
+    help: "Zero Trust → Networks → Tunnels. Only a remotely managed Tunnel (configured in the dashboard) can be changed."
+    placeholder: "c1744f8b-faa1-48a4-9e5c-02ac921467fa"
+  }];
+  // An API token with Cloudflare Tunnel Edit, DNS Edit on the zone and
+  // Account Settings Read.
+  string api_token = 3 [(ddash.config.field) = {
+    label: "API token"
+    secret: true
+    help: "A token with Account → Cloudflare Tunnel: Edit, Account → Account Settings: Read and Zone → DNS: Edit on the zone of the Public Hostnames."
+  }];
+  // Cloudflare's API; only a test server changes it.
+  optional string api_url = 4 [(ddash.config.field) = {
+    label: "API URL"
+    default: "https://api.cloudflare.com/client/v4"
+    format: FORMAT_URL
+    help: "Cloudflare's API. Change it only to point ddash at a test server."
+  }];
+}
+
+service CloudflareApiService {
+  // GetTunnel returns the Tunnel (GET accounts/{account}/cfd_tunnel/{id})
+  // with its connectors and their connections
+  // (GET .../cfd_tunnel/{id}/connections). Not set up, it answers set_up
+  // false and nothing else.
+  rpc GetTunnel(GetTunnelRequest) returns (GetTunnelResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
+  // GetConfiguration returns the Tunnel's ingress configuration
+  // (GET .../cfd_tunnel/{id}/configurations): its rules in Cloudflare's
+  // order, the catch-all rule apart.
+  rpc GetConfiguration(GetConfigurationRequest) returns (GetConfigurationResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListZones returns the account's zones (GET zones?account.id=), by
+  // name.
+  rpc ListZones(ListZonesRequest) returns (ListZonesResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // ListDnsRecords returns every DNS record of a zone
+  // (GET zones/{zone}/dns_records), by name then type.
+  rpc ListDnsRecords(ListDnsRecordsRequest) returns (ListDnsRecordsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // VerifyAccess reads the Tunnel, its configuration and the zones, so
+  // the Operator sees the token works. It is the config form's
+  // test_action.
+  rpc VerifyAccess(VerifyAccessRequest) returns (VerifyAccessResponse) {
+    option (ddash.action) = {};
+  }
+  // PutIngressRule writes one ingress rule: it reads the configuration
+  // afresh, replaces the rule named by replace (keeping its place) or adds
+  // the rule last before the catch-all, and PUTs the whole configuration
+  // back, every other rule and setting as read. The catch-all stays last;
+  // without one, it becomes http_status:404. A replace naming no rule is
+  // NOT_FOUND; a rule whose hostname and path another rule has already is
+  // ALREADY_EXISTS. Nothing is written then.
+  rpc PutIngressRule(PutIngressRuleRequest) returns (PutIngressRuleResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteIngressRule removes one ingress rule the same way: read afresh,
+  // drop the rule, PUT the rest. NOT_FOUND when there is none.
+  rpc DeleteIngressRule(DeleteIngressRuleRequest) returns (DeleteIngressRuleResponse) {
+    option (ddash.action) = {};
+  }
+  // CreateDnsRecord creates a DNS record (POST zones/{zone}/dns_records).
+  rpc CreateDnsRecord(CreateDnsRecordRequest) returns (CreateDnsRecordResponse) {
+    option (ddash.action) = {};
+  }
+  // UpdateDnsRecord sets a DNS record's fields
+  // (PATCH zones/{zone}/dns_records/{id}).
+  rpc UpdateDnsRecord(UpdateDnsRecordRequest) returns (UpdateDnsRecordResponse) {
+    option (ddash.action) = {};
+  }
+  // DeleteDnsRecord deletes a DNS record
+  // (DELETE zones/{zone}/dns_records/{id}).
+  rpc DeleteDnsRecord(DeleteDnsRecordRequest) returns (DeleteDnsRecordResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message GetTunnelRequest {
+  // Bypass the cache and refill it.
+  bool fresh = 1;
+}
+
+message GetTunnelResponse {
+  // The config names an account, a Tunnel and a token. False: none of
+  // them, and nothing else is set.
+  bool set_up = 1;
+  Tunnel tunnel = 2;
+}
+
+message Tunnel {
+  string id = 1;
+  // Its name in Cloudflare, e.g. "home".
+  string name = 2;
+  TunnelStatus status = 3;
+  // Configured in Cloudflare's dashboard and API (remote_config), so
+  // ddash can change its ingress. A locally managed Tunnel's config.yml
+  // is out of ddash's reach.
+  bool remotely_managed = 4;
+  // What a Public Hostname's CNAME points at: "<id>.cfargotunnel.com".
+  string cname_target = 5;
+  // Every cloudflared connected now, in Cloudflare's order.
+  repeated Connector connectors = 6;
+}
+
+// The Tunnel's state as Cloudflare tells it.
+enum TunnelStatus {
+  TUNNEL_STATUS_UNSPECIFIED = 0;
+  // Every connector is connected.
+  TUNNEL_STATUS_HEALTHY = 1;
+  // Connected, with some connections down.
+  TUNNEL_STATUS_DEGRADED = 2;
+  // It was connected, and no connector is now.
+  TUNNEL_STATUS_DOWN = 3;
+  // No connector ever connected.
+  TUNNEL_STATUS_INACTIVE = 4;
+}
+
+// A connector: one cloudflared running the Tunnel.
+message Connector {
+  string id = 1;
+  // cloudflared's version, e.g. "2025.10.0".
+  string version = 2;
+  // e.g. "linux_amd64".
+  string arch = 3;
+  // When it started.
+  google.protobuf.Timestamp run_at = 4;
+  // Its connections to Cloudflare's data centres.
+  repeated Connection connections = 5;
+}
+
+message Connection {
+  string id = 1;
+  // The data centre, e.g. "FRA".
+  string colo_name = 2;
+  // The address it connects from.
+  string origin_ip = 3;
+  google.protobuf.Timestamp opened_at = 4;
+}
+
+message GetConfigurationRequest {
+  bool fresh = 1;
+}
+
+message GetConfigurationResponse {
+  // The configuration's version, raised by every write.
+  int64 version = 1;
+  // The ingress rules in order, the catch-all left out.
+  repeated IngressRule rules = 2;
+  // The catch-all rule's service, e.g. "http_status:404"; empty without
+  // one.
+  string catch_all = 3;
+}
+
+// An ingress rule: requests for its hostname (and path) go to its
+// service.
+message IngressRule {
+  // e.g. "request.home.example".
+  string hostname = 1;
+  // A path regex; empty for every path.
+  string path = 2;
+  // Where cloudflared forwards to, e.g. "http://198.18.1.212:5055", or
+  // "http_status:404".
+  string service = 3;
+  // Its originRequest settings as Cloudflare's JSON object, kept as they
+  // are; empty for none.
+  string origin_request = 4;
+}
+
+message ListZonesRequest {
+  bool fresh = 1;
+}
+
+message ListZonesResponse {
+  repeated Zone zones = 1;
+}
+
+message Zone {
+  string id = 1;
+  // e.g. "home.example".
+  string name = 2;
+  // e.g. "active".
+  string status = 3;
+}
+
+message ListDnsRecordsRequest {
+  string zone_id = 1;
+  bool fresh = 2;
+}
+
+message ListDnsRecordsResponse {
+  repeated DnsRecord records = 1;
+}
+
+message DnsRecord {
+  string id = 1;
+  string zone_id = 2;
+  DnsRecordFields fields = 3;
+}
+
+// What ddash writes of a DNS record.
+message DnsRecordFields {
+  // The full name, e.g. "request.home.example".
+  string name = 1;
+  // e.g. "CNAME", "A".
+  string type = 2;
+  // e.g. "c1744f8b-….cfargotunnel.com".
+  string content = 3;
+  // Proxied through Cloudflare (the orange cloud).
+  bool proxied = 4;
+  // The record's comment in Cloudflare's dashboard.
+  string comment = 5;
+}
+
+message VerifyAccessRequest {}
+
+message VerifyAccessResponse {
+  // The Tunnel's name.
+  string tunnel_name = 1;
+  bool remotely_managed = 2;
+  // How many zones the token sees.
+  int32 zones = 3;
+}
+
+message PutIngressRuleRequest {
+  // The rule to replace; unset adds rule.
+  RuleName replace = 1;
+  IngressRule rule = 2;
+}
+
+// An ingress rule by its hostname and path.
+message RuleName {
+  string hostname = 1;
+  string path = 2;
+}
+
+message PutIngressRuleResponse {
+  // The configuration's version after the write.
+  int64 version = 1;
+}
+
+message DeleteIngressRuleRequest {
+  RuleName rule = 1;
+}
+
+message DeleteIngressRuleResponse {
+  int64 version = 1;
+}
+
+message CreateDnsRecordRequest {
+  string zone_id = 1;
+  DnsRecordFields fields = 2;
+}
+
+message CreateDnsRecordResponse {
+  DnsRecord record = 1;
+}
+
+message UpdateDnsRecordRequest {
+  string zone_id = 1;
+  string id = 2;
+  DnsRecordFields fields = 3;
+}
+
+message UpdateDnsRecordResponse {
+  DnsRecord record = 1;
+}
+
+message DeleteDnsRecordRequest {
+  string zone_id = 1;
+  string id = 2;
+}
+
+message DeleteDnsRecordResponse {}
