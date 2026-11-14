@@ -8,7 +8,7 @@
 //	catalogue.json
 //	SHA256SUMS      sha256sum format: "<hex>  <file>"
 //	<component>.ct  a zip holding the Component's static binary, <component>
-//	<plugin>.app    a zip of the Plugin's built files, plugins/<plugin>/dist/
+//	<plugin>.ddapp  a zip of the Plugin's built files, plugins/<plugin>/dist/
 //	                as Vite built it (index.js, index.css, …)
 //	ddash-host-agent-linux-<arch>
 //	                the Host Agent, static, for amd64 and arm64: ddash serves
@@ -50,7 +50,7 @@ type Options struct {
 	// Platform is the GOOS/GOARCH to build the binaries for, e.g.
 	// "linux/amd64"; empty means this machine's.
 	Platform string
-	// LinkBundles makes each <plugin>.app a symlink to the Plugin's dist/
+	// LinkBundles makes each <plugin>.ddapp a symlink to the Plugin's dist/
 	// instead of a zip of it, so `vite build --watch` rebuilds show through
 	// (`make dev`).
 	LinkBundles bool
@@ -68,7 +68,7 @@ var HostAgentArchs = []string{"amd64", "arm64"}
 func HostAgentFile(arch string) string { return "ddash-host-agent-linux-" + arch }
 
 // Build fills o.Out with the Release: catalogue.json, every Component's .ct
-// (its binary static, CGO off, for o.Platform), every Plugin's .app (which
+// (its binary static, CGO off, for o.Platform), every Plugin's .ddapp (which
 // `make build` must have built) and SHA256SUMS.
 func Build(ctx context.Context, o Options) error {
 	if err := CheckName(o.Release); err != nil {
@@ -147,7 +147,7 @@ func CheckName(rel string) error {
 }
 
 // bundle puts plugin's built files, as Vite built them into
-// plugins/<name>/dist/, into the Release dir as <name>.app.
+// plugins/<name>/dist/, into the Release dir as <name>.ddapp.
 func bundle(o Options, plugin string) error {
 	src, err := filepath.Abs(filepath.Join(o.Root, "plugins", plugin, "dist"))
 	if err != nil {
@@ -261,7 +261,7 @@ func build(ctx context.Context, root, pkg, out, release, platform string, ldflag
 
 // Sums writes dir's SHA256SUMS over every other file in it except
 // catalogue.json, in sha256sum's format. A directory, even through a
-// symlink (a dev Release's .app), has none.
+// symlink (a dev Release's .ddapp), has none.
 func Sums(dir string) error {
 	entries, err := os.ReadDir(dir)
 	if err != nil {

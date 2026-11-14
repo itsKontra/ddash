@@ -7,7 +7,7 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## v0.0.3-rc.1
 
-- The GitHub release now ships each Plugin as one `<plugin>.app` and each
+- The GitHub release now ships each Plugin as one `<plugin>.ddapp` and each
   Component as one `<component>.ct` (zips) instead of loose binaries and
   bundles. Nothing to do on updating: ddash downloads the new files into
   `/data` itself. If you run from a local Release dir (`DDASH_RELEASE_DIR`),

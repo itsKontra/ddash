@@ -84,7 +84,7 @@ func TestBumpingTheReleaseDownloadsItsComponentsAndAppsIntoData(t *testing.T) {
 	h := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
 
 	h.WaitState("greeter", runtime.OK)
-	for _, want := range []string{"components/greeter/v1.1.0/greeter.ct", "components/greeter/v1.1.0/greeter", "plugins/hello/v1.1.0/hello.app"} {
+	for _, want := range []string{"components/greeter/v1.1.0/greeter.ct", "components/greeter/v1.1.0/greeter", "plugins/hello/v1.1.0/hello.ddapp"} {
 		if _, err := os.Stat(filepath.Join(data, want)); err != nil {
 			t.Errorf("/data/%s: %v", want, err)
 		}
@@ -185,17 +185,17 @@ func TestAPluginWhoseBundlesFailToDownloadShowsUpdatePending(t *testing.T) {
 		publish(t, gh, "v1.0.0", notebook())
 		publish(t, gh, "v1.1.0", notebook(addTag))
 		data := installedFromGitHub(t, gh)
-		gh.FailAsset("hello.app", true)
+		gh.FailAsset("hello.ddapp", true)
 
 		h := fromGitHub(t, gh, data, "v1.1.0", notebook(addTag))
 		synctest.Wait()
 
 		hello := coreJSON(t, h, "ListCatalogue", `{}`)["plugins"].([]any)[0].(map[string]any)
-		if got, _ := hello["updatePending"].(string); !strings.Contains(got, "hello.app of Release v1.1.0") {
+		if got, _ := hello["updatePending"].(string); !strings.Contains(got, "hello.ddapp of Release v1.1.0") {
 			t.Errorf("hello's updatePending = %q, want its bundle's download named", got)
 		}
 
-		gh.FailAsset("hello.app", false)
+		gh.FailAsset("hello.ddapp", false)
 		time.Sleep(time.Minute)
 		synctest.Wait()
 

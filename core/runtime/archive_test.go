@@ -75,7 +75,7 @@ func TestADirServesAPluginsFilesFromItsApp(t *testing.T) {
 			t.Errorf("%s = %q, %v; want %q", name, b, err, want)
 		}
 	}
-	for _, name := range []string{"hello/other.js", "hello.app", "nope/index.js", "hello/../greeter.ct"} {
+	for _, name := range []string{"hello/other.js", "hello.ddapp", "nope/index.js", "hello/../greeter.ct"} {
 		if _, err := fs.ReadFile(d, name); err == nil {
 			t.Errorf("%s: read, want an error", name)
 		}

@@ -77,7 +77,7 @@ type Options struct {
 	// Release names the test Release. Default sdk.Release.
 	Release string
 	// ReleaseFiles are written into the test Release dir, by file name; a
-	// "<plugin>/<file>" goes into that Plugin's .app instead, e.g. its
+	// "<plugin>/<file>" goes into that Plugin's .ddapp instead, e.g. its
 	// bundle ("docker/index.js").
 	ReleaseFiles map[string]string
 	// Shell is the shell's built assets the host serves (web.Shell()).
@@ -168,7 +168,7 @@ func New(t testing.TB, opts Options) *Harness {
 // ReleaseDir lays out the test Release of opts in a temp dir, as release
 // assets: catalogue.json listing opts.Components and opts.Plugins of
 // Release opts.Release, a .ct per Component holding a stand-in binary (the
-// in-process launcher ignores it), a .app per Plugin holding its
+// in-process launcher ignores it), a .ddapp per Plugin holding its
 // ReleaseFiles and stand-in bundles for the ones it lacks, the other
 // ReleaseFiles, and SHA256SUMS over them all.
 func ReleaseDir(t testing.TB, opts Options) string {
@@ -230,7 +230,7 @@ func ReleaseDir(t testing.TB, opts Options) string {
 	return dir
 }
 
-// pack zips fsys as a .app or .ct.
+// pack zips fsys as a .ddapp or .ct.
 func pack(t testing.TB, fsys fs.FS) []byte {
 	var b bytes.Buffer
 	if err := runtime.Pack(&b, fsys); err != nil {

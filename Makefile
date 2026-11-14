@@ -81,7 +81,7 @@ typecheck:
 check: lint-proto check-generated vet lint test typecheck check-plugins
 
 # Build the Release into dist/ (catalogue.json, SHA256SUMS, one <name>.ct
-# per Component, one <name>.app per Plugin), as Release dev unless RELEASE is set,
+# per Component, one <name>.ddapp per Plugin), as Release dev unless RELEASE is set,
 # for this machine unless PLATFORM (GOOS/GOARCH) is set. The release
 # workflow builds RELEASE=<tag> PLATFORM=linux/amd64.
 RELEASE ?= dev

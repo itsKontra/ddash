@@ -17,10 +17,12 @@ import (
 
 // A Release ships each Plugin and each Component as one zip file:
 //
-//	<plugin>.app     the Plugin's built files (index.js, index.css, …) at its root
+//	<plugin>.ddapp   the Plugin's built files (index.js, index.css, …) at its root
 //	<component>.ct   the Component's static binary, named <component>, at its root
+//
+// Not .app: GitHub refuses release assets with that extension.
 const (
-	AppExt       = ".app"
+	AppExt       = ".ddapp"
 	ComponentExt = ".ct"
 )
 
@@ -35,7 +37,7 @@ func ComponentFile(component string) string { return component + ComponentExt }
 var packTime = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 
 // Pack zips every regular file in fsys, by its path, keeping its
-// permission bits: the format of a .app and a .ct.
+// permission bits: the format of a .ddapp and a .ct.
 func Pack(w io.Writer, fsys fs.FS) error {
 	zw := zip.NewWriter(w)
 	err := fs.WalkDir(fsys, ".", func(name string, d fs.DirEntry, err error) error {
@@ -78,7 +80,7 @@ func PackFile(dst string, fsys fs.FS) error {
 	return writeFile(dst, b.Bytes(), 0o644)
 }
 
-// openApp opens file in the Plugin's app at app: a .app zip, or a
+// openApp opens file in the Plugin's app at app: a .ddapp zip, or a
 // directory of its files (`make dev` links each Plugin's dist/ so).
 func openApp(app, file string) (fs.File, error) {
 	if !fs.ValidPath(file) {
@@ -99,7 +101,7 @@ func openApp(app, file string) (fs.File, error) {
 	return appFile{File: f, zip: z}, nil
 }
 
-// appFile is a file in an open .app: closing it closes the .app too.
+// appFile is a file in an open .ddapp: closing it closes the .ddapp too.
 type appFile struct {
 	fs.File
 	zip *zip.ReadCloser
