@@ -94,6 +94,18 @@ _Avoid_: Stack, app (an App is something else)
 Said of a Workload that ddash may not start, stop or restart, because reaching ddash depends on it (such as the firewall or ddash's own host).
 _Avoid_: Locked, critical, excluded
 
+**Agent**:
+A ddash program, shipped in the Release, that the Operator installs on a host so ddash can change it: a **Docker Agent** (a container with the host's Docker socket) or a **Host Agent** (a root service on an LXC or VM, for package updates and SSH setup). It runs the core's Release, pairs with one ddash through a one-time enrolment code, and offers only named operations.
+_Avoid_: Daemon, helper, client
+
+**ddash Snapshot**:
+A Proxmox snapshot ddash took, named `ddash-<UTC time>` and described "Created by ddash before …". ddash keeps one per Workload: the only kind its retention deletes, and only once a newer one succeeded.
+_Avoid_: Backup (a backup is a `vzdump` archive), checkpoint
+
+**SSH Key**:
+A named public key ddash stores and installs on Workloads through their Host Agent, marked `ddash:<name>` in `authorized_keys`. ddash never keeps a private key: one it generates is handed out once.
+_Avoid_: Credential, identity
+
 **Proxy Host**:
 An nginx server block that forwards requests to an upstream. Each Proxy Host is the source of exactly one discovered App; its further hostnames are that App's aliases.
 _Avoid_: Virtual host, site, vhost
