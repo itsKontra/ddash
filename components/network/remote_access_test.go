@@ -34,7 +34,7 @@ func wireguard() []*pfsenseapipb.WireguardTunnel {
 		{Name: "tun_wg2", Description: "WG_VPN", Status: "up", Peers: []*pfsenseapipb.WireguardPeer{
 			{PublicKey: "provider-key", Description: "VPN provider", Endpoint: "203.0.113.200:51820", AllowedIps: []string{"0.0.0.0/0"}, LatestHandshake: timestamppb.New(handshake)},
 		}},
-		{Name: "tun_wg1", Description: "Remote Access", Status: "up", ListenPort: 51820, Peers: []*pfsenseapipb.WireguardPeer{
+		{Name: "tun_wg1", Description: "Remote Access", Status: "up", ListenPort: 51820, PublicKey: tunnelKey, Peers: []*pfsenseapipb.WireguardPeer{
 			{PublicKey: "phone-key", Description: "Phone", Endpoint: "203.0.113.77:41234", AllowedIps: []string{"198.18.40.2/32"}, LatestHandshake: timestamppb.New(handshake), RxBytes: 1003948, TxBytes: 8384712},
 			{PublicKey: "laptop-key", Description: "Laptop", AllowedIps: []string{"198.18.40.3/32"}},
 		}},
@@ -82,8 +82,9 @@ func TestRemoteAccessListsPeersWithHandshakeTrafficAndWhatTheirPassRulesReach(t 
 	proxy := &networkpb.Reach{Destination: "198.18.1.20", Protocol: "tcp", Ports: "443", Rule: "Peers reach the reverse proxy"}
 	dns := &networkpb.Reach{Destination: "DNS_SERVERS", Label: "alias", Protocol: "tcp/udp", Ports: "53", Rule: "Peers resolve names"}
 	want := &networkpb.GetRemoteAccessResponse{
-		Tunnel:    "tun_wg1",
-		Interface: "REMOTEACCESS",
+		Tunnel:         "tun_wg1",
+		Interface:      "REMOTEACCESS",
+		AddUnavailable: "Add a device needs network's Remote Access endpoint, the firewall's public hostname: set it in network's config",
 		Peers: []*networkpb.RemoteAccessPeer{
 			{
 				Name: "Phone", PublicKey: "phone-key", Addresses: []string{"198.18.40.2/32"}, Endpoint: "203.0.113.77:41234",

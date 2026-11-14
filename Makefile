@@ -1,6 +1,6 @@
 PNPM := npx -y pnpm@10.34.7
 
-.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image smoke record smoke-writes
+.PHONY: all install generate check-generated lint-proto lint lint-go lint-web check-plugins build test test-go test-web vet typecheck check dev release-dir image docker-agent-image smoke record smoke-writes
 
 all: check
 
@@ -86,9 +86,13 @@ check: lint-proto check-generated vet lint test typecheck check-plugins
 # workflow builds RELEASE=<tag> PLATFORM=linux/amd64.
 RELEASE ?= dev
 PLATFORM ?=
+# AGENT_IMAGE_REF (the Docker Agent's image by digest, from
+# `make docker-agent-image` and its push) is pinned in the Compose file
+# docker-agent-api generates.
+AGENT_IMAGE_REF ?=
 release-dir: build
 	rm -rf dist
-	go run ./cmd/release -out dist -release $(RELEASE) $(if $(PLATFORM),-platform $(PLATFORM))
+	go run ./cmd/release -out dist -release $(RELEASE) $(if $(PLATFORM),-platform $(PLATFORM)) $(if $(AGENT_IMAGE_REF),-agent-image $(AGENT_IMAGE_REF))
 
 # Build the core image $(IMAGE):$(RELEASE) (Dockerfile) from bin/image/: the
 # static linux/amd64 core binary, stamped with RELEASE, and an empty data/.
@@ -102,6 +106,19 @@ image: build
 	go run ./cmd/release -core bin/image/ddash -release $(RELEASE) -platform linux/amd64
 	$(DOCKER) build --platform linux/amd64 $(if $(filter podman,$(DOCKER)),--format docker) \
 		-f Dockerfile -t $(IMAGE):$(RELEASE) bin/image
+
+# Build the Docker Agent's image $(AGENT_IMAGE):$(RELEASE)
+# (deploy/docker-agent/Dockerfile) from bin/docker-agent/: the static
+# linux/amd64 ddash-docker-agent, stamped with RELEASE.
+AGENT_IMAGE ?= ghcr.io/itskontra/ddash-docker-agent
+docker-agent-image:
+	rm -rf bin/docker-agent
+	mkdir -p bin/docker-agent
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+		-ldflags "-X github.com/itsKontra/ddash/agent.Release=$(RELEASE)" \
+		-o bin/docker-agent/ddash-docker-agent ./cmd/ddash-docker-agent
+	$(DOCKER) build --platform linux/amd64 $(if $(filter podman,$(DOCKER)),--format docker) \
+		-f deploy/docker-agent/Dockerfile -t $(AGENT_IMAGE):$(RELEASE) bin/docker-agent
 
 # Run everything locally against fakelab: builds dist/, seeds Component
 # config, installs every Plugin and runs the core (dev auth) on :8080,

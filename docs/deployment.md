@@ -89,7 +89,8 @@ Do these by hand, in order, before first use.
         `api-v2-services-dhcp-servers-get`, `api-v2-firewall-aliases-get`,
         `api-v2-status-interfaces-get`,
         `api-v2-status-wireguard-tunnels-get`, `api-v2-firewall-rules-get`,
-        `api-v2-services-dns-resolver-host-overrides-get`;
+        `api-v2-services-dns-resolver-host-overrides-get`,
+        `api-v2-vpn-wireguard-peers-get`;
       - Adopt and rename: `api-v2-services-dhcp-server-static-mapping-post`,
         `api-v2-services-dhcp-server-static-mapping-patch`;
       - the internet path (Tunnelled, Direct, No Internet):
@@ -102,6 +103,9 @@ Do these by hand, in order, before first use.
         `api-v2-services-dns-resolver-host-override-alias-post`,
         `api-v2-services-dns-resolver-host-override-alias-delete`,
         `api-v2-services-dns-resolver-apply-post`;
+      - Remote Access peers (Add a device writes the peer, then applies
+        WireGuard, which reloads the Remote Access tunnel):
+        `api-v2-vpn-wireguard-peer-post`, `api-v2-vpn-wireguard-apply-post`;
       - `make smoke-writes` only (its cleanup and pending checks):
         `api-v2-services-dhcp-server-static-mapping-delete`,
         `api-v2-services-dhcp-server-apply-get`,
@@ -116,6 +120,26 @@ Do these by hand, in order, before first use.
       Devices and a rule blocking its members from the internet, then pick
       the alias as network's **No Internet alias**. ddash never creates
       either.
+- [ ] pfSense, for Add a device (optional): the Remote Access tunnel (a
+      WireGuard tunnel assigned to an interface without a gateway, e.g.
+      `tun_wg1` on `REMOTEACCESS`) with its interface address and subnet,
+      the WAN rule passing its listen port, and the rules on its interface.
+      Then, in network's config:
+      - **Remote Access endpoint**: the public hostname (or address) a
+        device dials, with `:port` when it isn't the tunnel's listen port
+        (a port forward). Without it, Add a device is refused.
+      - **Remote Access DNS** (optional): the DNS servers a device uses,
+        e.g. AdGuard's address; empty keeps the device's own.
+      - **Remote Access routes** (optional): what a device sends through
+        the tunnel (its `AllowedIPs`). Empty means the subnets of the
+        firewall's interfaces without a gateway (LAN, the Remote Access
+        subnet, ...), so only home traffic; `0.0.0.0/0` sends everything.
+
+      A device gets the lowest free address of the tunnel's subnet (not the
+      firewall's, nor any configured peer's, disabled ones included) and a
+      `PersistentKeepalive` of 25 s. ddash generates its key pair and gives
+      pfSense the public key only; the config with the private key is shown
+      once, as a QR code and as text, and kept nowhere.
 - [ ] Proxmox: the role and token, plus the **Protected ACLs** below.
 - [ ] Nginx Proxy Manager: a dedicated user for ddash (Users). Permissions:
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,

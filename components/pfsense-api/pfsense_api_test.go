@@ -247,7 +247,7 @@ func TestListsWireguardTunnelsWithTheirPeers(t *testing.T) {
 	}
 	want := []*pfsenseapipb.WireguardTunnel{
 		{
-			Name: "tun_wg1", Description: "Remote Access", Status: "up", ListenPort: 51333,
+			Name: "tun_wg1", Description: "Remote Access", Status: "up", ListenPort: 51333, PublicKey: "L/711l8eD25p0ET+JXNg85+elMdhg/98adYt60nxxbk=",
 			Peers: []*pfsenseapipb.WireguardPeer{
 				// Never connected: wg reports endpoint "(none)" and handshake 0.
 				{PublicKey: "BEYg670lDINWndm6HepeqvFcG1Vtu9i213Oz43fsmP4=", Description: "Phone", AllowedIps: []string{"198.18.40.2/32"}},
@@ -255,7 +255,7 @@ func TestListsWireguardTunnelsWithTheirPeers(t *testing.T) {
 			},
 		},
 		{
-			Name: "tun_wg2", Description: "VPN provider", Status: "up", ListenPort: 51820, RxBytes: 15801980136, TxBytes: 392017332,
+			Name: "tun_wg2", Description: "VPN provider", Status: "up", ListenPort: 51820, RxBytes: 15801980136, TxBytes: 392017332, PublicKey: "HSo0U2YmGp1uHbwvXW+kFj6+MnrNh0wYxrDwngVdSvk=",
 			Peers: []*pfsenseapipb.WireguardPeer{{
 				PublicKey: "o822xaDT9sDiY64O140R4zsB3eQYmMTjjQVuXcvw2Lc=", Description: "KILL_SWITCH AT#38", Endpoint: "203.0.113.195:51820",
 				AllowedIps: []string{"0.0.0.0/0"}, LatestHandshake: timestamppb.New(time.Unix(1792516692, 0)), RxBytes: 15801980136, TxBytes: 392017480,

@@ -41,9 +41,22 @@ jobs:
       # The same checks as every PR, on the tagged commit.
       - name: Checks
         run: make check
-      # Refuses a tag that isn't vMAJOR.MINOR.PATCH(-prerelease).
+      # The Docker Agent's image goes first: its digest is pinned in the
+      # Compose file docker-agent-api generates, so it is stamped into the
+      # Release's binaries.
+      - name: Docker Agent image
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          make docker-agent-image RELEASE="$RELEASE"
+          echo "$GH_TOKEN" | docker login ghcr.io -u "$ACTOR" --password-stdin
+          docker push "ghcr.io/itskontra/ddash-docker-agent:$RELEASE"
+          echo "AGENT_IMAGE_REF=$(docker inspect --format '{{index .RepoDigests 0}}' "ghcr.io/itskontra/ddash-docker-agent:$RELEASE" | sed "s|@|:$RELEASE@|")" >> "$GITHUB_ENV"
+      # Refuses a tag that isn't vMAJOR.MINOR.PATCH(-prerelease). The Host
+      # Agent's binaries (amd64, arm64) are in it too.
       - name: Release dir
-        run: make release-dir RELEASE="$RELEASE" PLATFORM=linux/amd64
+        run: make release-dir RELEASE="$RELEASE" PLATFORM=linux/amd64 AGENT_IMAGE_REF="$AGENT_IMAGE_REF"
       - name: Core image
         run: make image RELEASE="$RELEASE" IMAGE="$IMAGE"
       - name: The image reports its Release

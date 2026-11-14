@@ -36,6 +36,30 @@ message NetworkConfig {
     help: "The firewall alias whose members may not reach the internet (No Internet Devices). Create the alias and its block rule in pfSense first."
     choices_from: "pfsense-api.ListAliases"
   }];
+  // Where a Remote Access peer ddash adds dials in from outside: the
+  // firewall's public hostname or address, with the tunnel's port unless
+  // it is the listen port (a port forward). Optional: unset, Add a device
+  // is refused.
+  string remote_access_endpoint = 4 [(ddash.config.field) = {
+    label: "Remote Access endpoint"
+    help: "The public hostname (or address) a new Remote Access device dials, with :port when it isn't the tunnel's listen port. Needed for Add a device."
+    placeholder: "vpn.example.org:51820"
+  }];
+  // The DNS servers a new peer's config names; none keeps the device's
+  // own.
+  repeated string remote_access_dns = 5 [(ddash.config.field) = {
+    label: "Remote Access DNS"
+    help: "The DNS servers a new Remote Access device uses, e.g. AdGuard's address. Empty: the device keeps its own."
+    format: FORMAT_IP
+  }];
+  // What a new peer sends through the tunnel (its config's AllowedIPs).
+  // Unset: the subnets of the firewall's interfaces without a gateway
+  // (LAN, the Remote Access subnet, ...), so only home traffic takes it.
+  repeated string remote_access_routes = 6 [(ddash.config.field) = {
+    label: "Remote Access routes"
+    help: "What a new Remote Access device sends through the tunnel (AllowedIPs). Empty: the firewall's internal subnets (those without a gateway), so only home traffic; 0.0.0.0/0 sends everything."
+    format: FORMAT_CIDR
+  }];
 }
 
 // A Device's internet path: exactly one of the three.
@@ -75,6 +99,16 @@ service NetworkService {
   // rules on the Remote Access interface.
   rpc GetRemoteAccess(GetRemoteAccessRequest) returns (GetRemoteAccessResponse) {
     option (ddash.getter) = {};
+  }
+  // AddRemoteAccessPeer adds a device to Remote Access: it generates a
+  // WireGuard key pair, creates the peer on the Remote Access tunnel with
+  // its public key only, at the lowest free address of the tunnel's subnet
+  // (not the firewall's, nor any configured peer's), applies, and returns
+  // the device's config. The private key is in that config alone: network
+  // keeps, logs and records no copy, so it can't be shown again. Refused
+  // until network's config names the Remote Access endpoint.
+  rpc AddRemoteAccessPeer(AddRemoteAccessPeerRequest) returns (AddRemoteAccessPeerResponse) {
+    option (ddash.action) = {};
   }
   // NextReservedAddress returns the lowest address in the reserved range
   // that no static mapping and no current lease holds: what Adopt offers.
@@ -298,6 +332,24 @@ message ThroughputSample {
   double lan_out_bytes_per_second = 5;
 }
 
+message AddRemoteAccessPeerRequest {
+  // The device's name, written as the peer's description, e.g. "Anna's
+  // phone".
+  string name = 1;
+}
+
+message AddRemoteAccessPeerResponse {
+  // The peer as added: no handshake yet.
+  RemoteAccessPeer peer = 1;
+  // The device's WireGuard config (wg-quick's format), private key and
+  // all: [Interface] PrivateKey, Address, DNS; [Peer] PublicKey, Endpoint,
+  // AllowedIPs, PersistentKeepalive. Returned this once.
+  string config = 2 [(ddash.config.field) = {secret: true}];
+  // Set when pfSense holds the peer but applying it failed, so the device
+  // can't connect until WireGuard's changes are applied in pfSense.
+  string warning = 3;
+}
+
 message GetRemoteAccessRequest {}
 
 message GetRemoteAccessResponse {
@@ -309,6 +361,9 @@ message GetRemoteAccessResponse {
   repeated RemoteAccessPeer peers = 3;
   // Why there's no Remote Access tunnel; empty when there is one.
   string error = 4;
+  // Why AddRemoteAccessPeer would be refused before trying (network's
+  // config names no Remote Access endpoint); empty when it can add.
+  string add_unavailable = 5;
 }
 
 message RemoteAccessPeer {
