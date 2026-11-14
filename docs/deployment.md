@@ -184,6 +184,15 @@ Do these by hand, in order, before first use.
       reset it in the same place in Google Calendar and enter the new one.
       Google refreshes the file every few hours, so a new event can take a
       while to show. ddash needs outbound HTTPS to the calendar's host.
+- [ ] Energy (optional): the InfluxDB v2 bucket Telegraf writes the house's
+      readings to (the Huawei SUN2000 and its grid meter as measurements
+      `kW` and `kWh`, the Victron GX as `victron`). In InfluxDB, *Load
+      Data*, *API Tokens*, *Generate API Token*, *Custom API Token*: **Read**
+      on that bucket only. Enter the address (e.g.
+      `https://influxdb.home.example`), the token and the bucket (default
+      `PV`) in energy-api's config, and the grid price and feed-in tariff in
+      € per kWh to see costs. ddash only reads: the token can't change a
+      reading. ddash needs HTTPS to InfluxDB.
 - [ ] Telegram (optional, a second Notification channel beside ntfy):
       1. In Telegram, message **@BotFather**, send `/newbot`, and pick a
          name and a username ending in `bot`. BotFather answers with the
