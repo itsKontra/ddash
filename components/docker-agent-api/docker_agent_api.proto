@@ -327,6 +327,16 @@ message GetComposeFileResponse {
   ComposeFile file = 1;
   // Its .env beside it, when there is one.
   ComposeFile env = 2;
+  // The Dockerfiles its Compose services build from (build:), under a
+  // Compose root; not remote or inline ones.
+  repeated Dockerfile dockerfiles = 3;
+}
+
+// A Dockerfile some Compose services build from.
+message Dockerfile {
+  ComposeFile file = 1;
+  // The Compose services built from it.
+  repeated string services = 2;
 }
 
 message ComposeFile {
@@ -342,6 +352,9 @@ message ValidateComposeFileRequest {
   string content = 3;
   // The Compose project's name to validate as; empty: Compose's default.
   string project = 4;
+  // A new Compose Project's .env, validated with as if beside the file;
+  // empty: the .env on disk, if any.
+  string env = 5;
 }
 
 message ValidateComposeFileResponse {
@@ -352,11 +365,15 @@ message ValidateComposeFileResponse {
 
 message WriteComposeFileRequest {
   string host = 1;
-  // The Compose file, or the .env beside it.
+  // The Compose file, the .env beside it, or a Dockerfile it builds from.
   string path = 2;
   string content = 3;
+  // Empty creates a .env that isn't there yet.
   string expect_sha256 = 4;
   string project = 5;
+  // The Compose file a Dockerfile at path belongs to: the Docker Agent
+  // writes only a Dockerfile it builds from, and doesn't validate it.
+  string compose_file = 6;
 }
 
 message WriteComposeFileResponse {
@@ -369,10 +386,15 @@ message CreateComposeProjectRequest {
   // Absolute, under one of the Agent's roots.
   string directory = 3;
   string content = 4;
+  // The .env written beside the Compose file, owner-only, before it is
+  // validated; empty for none.
+  string env = 5;
 }
 
 message CreateComposeProjectResponse {
   ComposeFile file = 1;
+  // The .env written, when one was.
+  ComposeFile env = 2;
 }
 
 // The Compose Project a Compose operation acts on.
@@ -392,6 +414,8 @@ message UpProjectRequest {
   bool pull = 2;
   // Wait until the containers run.
   bool wait = 3;
+  // Build the images first (docker compose up --build).
+  bool build = 4;
 }
 
 message UpProjectResponse {

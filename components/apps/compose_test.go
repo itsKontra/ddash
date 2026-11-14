@@ -2,6 +2,7 @@ package apps_test
 
 import (
 	"net/http"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -179,6 +180,33 @@ func TestAddAnAppFromANewComposeProject(t *testing.T) {
 		if len(h.GetJobs()) != 0 {
 			t.Errorf("jobs left on %s: %v", h.GetHost(), h.GetJobs())
 		}
+	}
+}
+
+// A .env given with the Compose file is written beside it, owner-only,
+// before the Compose Project starts.
+func TestAddAnAppFromANewComposeProjectWithAnEnv(t *testing.T) {
+	l := newLab(t, labOptions{})
+	fake := l.withAgent(0)
+	with := newPaperless()
+	with.Env = "PAPERLESS_SECRET_KEY=s3cret\n"
+	action := addPaperless(with)
+
+	p := l.plan(action)
+	dir := filepath.Join(fake.Root, "paperless")
+	want := []*appspb.PlanValue{{Label: "Compose file", After: dir + "/compose.yaml"}, {Label: "Compose services", After: "paperless, db"}, {Label: ".env", After: dir + "/.env"}}
+	if d := diff(want, p.GetSteps()[0].GetValues()); d != "" {
+		t.Errorf("the write's values (-want +got):\n%s", d)
+	}
+	if _, cerr := l.runStream(action, p); cerr != nil {
+		t.Fatalf("RunAction: %v", cerr)
+	}
+	env := filepath.Join(dir, ".env")
+	if b, err := os.ReadFile(env); err != nil || string(b) != with.Env {
+		t.Fatalf(".env = %q, %v", b, err)
+	}
+	if fi, _ := os.Stat(env); fi.Mode().Perm() != 0o600 {
+		t.Errorf(".env mode = %v, want owner-only", fi.Mode().Perm())
 	}
 }
 

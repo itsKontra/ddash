@@ -81,7 +81,9 @@ type Stack struct {
 	Dir     string
 	Compose string
 	Env     string
-	Running bool
+	// Dockerfile, when set, is written as Dockerfile beside compose.yaml.
+	Dockerfile string
+	Running    bool
 }
 
 // Loose is a container started without Compose.
@@ -124,6 +126,11 @@ func NewDocker(root string, seed DockerSeed, o Options) (*Docker, error) {
 			}
 			if s.Env != "" {
 				if err := os.WriteFile(filepath.Join(dir, ".env"), []byte(s.Env), 0o600); err != nil {
+					return nil, err
+				}
+			}
+			if s.Dockerfile != "" {
+				if err := os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte(s.Dockerfile), 0o644); err != nil {
 					return nil, err
 				}
 			}
@@ -365,6 +372,9 @@ func (e *Engine) Run(ctx context.Context, _ string, args []string, out func(stri
 		return nil
 	case "up":
 		e.sleep(ctx)
+		if slices.Contains(rest, "--build") {
+			e.build(project, f, services)
+		}
 		err := e.up(project, dir, flags["-f"], b, services)
 		for _, name := range sortedServices(f) {
 			if len(services) == 0 || slices.Contains(services, name) {
@@ -413,6 +423,24 @@ func sortedServices(f composeFile) []string {
 	}
 	slices.Sort(names)
 	return names
+}
+
+// build gives each of services (all when empty) that builds its image a
+// new local image, as `up --build` does after a change: up recreates it.
+func (e *Engine) build(project string, f composeFile, services []string) {
+	if f.Name != "" {
+		project = f.Name
+	}
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	for _, name := range sortedServices(f) {
+		s := f.Services[name]
+		if s.Build == nil || (len(services) > 0 && !slices.Contains(services, name)) {
+			continue
+		}
+		image := cmpOr(s.Image, project+"-"+name)
+		e.images[image] = fmt.Sprintf("local:%s@%d", image, len(e.calls))
+	}
 }
 
 // up (re)creates the project's containers for services (all when empty):

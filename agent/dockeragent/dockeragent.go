@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"net/http"
 	"os"
 	"os/exec"
@@ -340,7 +341,67 @@ func (a *Agent) file(w http.ResponseWriter, r *http.Request) {
 	if e, err := os.ReadFile(env); err == nil {
 		out.Env = &agent.File{Path: env, Content: string(e), SHA256: sum(e)}
 	}
+	builds := a.dockerfiles(path, b)
+	for _, f := range slices.Sorted(maps.Keys(builds)) {
+		if d, err := os.ReadFile(f); err == nil {
+			out.Dockerfiles = append(out.Dockerfiles, agent.Dockerfile{Path: f, Content: string(d), SHA256: sum(d), Services: builds[f]})
+		}
+	}
 	agent.WriteJSON(w, http.StatusOK, out)
+}
+
+// dockerfiles maps each Dockerfile the Compose file at path (content b)
+// builds from to the Compose services built from it: build's context,
+// relative to the file's directory, joined with its dockerfile
+// (Dockerfile by default). Remote contexts, inline Dockerfiles, paths
+// with variables and paths outside the roots are left out.
+func (a *Agent) dockerfiles(path string, b []byte) map[string][]string {
+	var doc struct {
+		Services map[string]struct {
+			Build any `yaml:"build"`
+		} `yaml:"services"`
+	}
+	if yaml.Unmarshal(b, &doc) != nil {
+		return nil
+	}
+	out := map[string][]string{}
+	for name, s := range doc.Services {
+		var dir, file string
+		switch v := s.Build.(type) {
+		case string:
+			dir = v
+		case map[string]any:
+			if _, inline := v["dockerfile_inline"]; inline {
+				continue
+			}
+			dir, _ = v["context"].(string)
+			file, _ = v["dockerfile"].(string)
+		default:
+			continue
+		}
+		if dir == "" {
+			dir = "."
+		}
+		if file == "" {
+			file = "Dockerfile"
+		}
+		if strings.Contains(dir+file, "$") || strings.Contains(dir, "://") || strings.HasPrefix(dir, "git@") || strings.HasPrefix(dir, "github.com/") {
+			continue
+		}
+		if !filepath.IsAbs(dir) {
+			dir = filepath.Join(filepath.Dir(path), dir)
+		}
+		if !filepath.IsAbs(file) {
+			file = filepath.Join(dir, file)
+		}
+		if file = filepath.Clean(file); a.inRoots(file) {
+			out[file] = append(out[file], name)
+		}
+	}
+	for _, s := range out {
+		slices.Sort(s)
+	}
+	return out
 }
 
 func (a *Agent) validate(w http.ResponseWriter, r *http.Request) {
@@ -352,14 +413,27 @@ func (a *Agent) validate(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, err.Error())
 		return
 	}
-	agent.WriteJSON(w, http.StatusOK, a.Validate(r.Context(), req.Path, req.Project, req.Content))
+	agent.WriteJSON(w, http.StatusOK, a.Validate(r.Context(), req.Path, req.Project, req.Content, req.Env))
 }
 
 // Validate runs `docker compose config` on content as if it were path:
 // from a temporary file beside it, so its .env and relative paths resolve.
-func (a *Agent) Validate(ctx context.Context, path, project, content string) agent.ValidateResponse {
+// With env, it is a new Project's: both go in a temporary directory under
+// its root, the .env as .env.
+func (a *Agent) Validate(ctx context.Context, path, project, content, env string) agent.ValidateResponse {
 	dir := filepath.Dir(path)
-	if _, err := os.Stat(dir); err != nil {
+	projectDir := dir
+	if env != "" {
+		tmpDir, err := os.MkdirTemp(a.rootOf(path), ".ddash-validate-*")
+		if err != nil {
+			return agent.ValidateResponse{Error: "can't validate: " + err.Error()}
+		}
+		defer os.RemoveAll(tmpDir)
+		if err := os.WriteFile(filepath.Join(tmpDir, ".env"), []byte(env), 0o600); err != nil {
+			return agent.ValidateResponse{Error: "can't validate: " + err.Error()}
+		}
+		dir, projectDir = tmpDir, tmpDir
+	} else if _, err := os.Stat(dir); err != nil {
 		// A new Project's directory: validate from its root instead.
 		dir = a.rootOf(path)
 	}
@@ -377,14 +451,15 @@ func (a *Agent) Validate(ctx context.Context, path, project, content string) age
 		project = projectNameFromContent(content, filepath.Dir(path))
 	}
 	var lines []string
-	args := []string{"-p", project, "--project-directory", filepath.Dir(path), "-f", tmp.Name(), "config", "--quiet"}
+	args := []string{"-p", project, "--project-directory", projectDir, "-f", tmp.Name(), "config", "--quiet"}
 	if err := a.o.Compose.Run(ctx, dir, args, func(l string) { lines = append(lines, l) }); err != nil {
 		msg := strings.Join(lines, "\n")
 		if msg == "" {
 			msg = err.Error()
 		}
-		// Compose names the temporary file; the Operator knows the real one.
-		return agent.ValidateResponse{Error: strings.ReplaceAll(msg, tmp.Name(), path)}
+		// Compose names the temporary files; the Operator knows the real ones.
+		msg = strings.ReplaceAll(msg, tmp.Name(), path)
+		return agent.ValidateResponse{Error: strings.ReplaceAll(msg, projectDir, filepath.Dir(path))}
 	}
 	return agent.ValidateResponse{OK: true}
 }
@@ -427,36 +502,60 @@ func (a *Agent) write(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isEnv := filepath.Base(req.Path) == ".env"
+	// A Dockerfile is written only when its Compose file builds from it.
+	isDockerfile := req.File != "" && req.File != req.Path && !isEnv
 	check := req.Path
-	if isEnv {
+	switch {
+	case isEnv:
 		check = filepath.Join(filepath.Dir(req.Path), "compose.yaml")
+	case isDockerfile:
+		check = req.File
 	}
 	if err := a.composeFile(check); err != nil {
 		agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, err.Error())
 		return
 	}
+	if isDockerfile {
+		b, err := os.ReadFile(req.File)
+		if err != nil {
+			agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, "can't read "+req.File+": "+err.Error())
+			return
+		}
+		if _, ok := a.dockerfiles(req.File, b)[filepath.Clean(req.Path)]; !ok {
+			agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, req.Path+" isn't a Dockerfile "+req.File+" builds from")
+			return
+		}
+	}
 	defer a.lock(req.Path)()
 	old, err := os.ReadFile(req.Path)
-	if err != nil {
+	// A .env not there yet is created, with nothing to back up.
+	create := isEnv && errors.Is(err, os.ErrNotExist) && req.ExpectSHA256 == ""
+	switch {
+	case create:
+	case err != nil:
 		agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, "can't read "+req.Path+": "+err.Error())
 		return
-	}
-	if sum(old) != req.ExpectSHA256 {
+	case sum(old) != req.ExpectSHA256:
 		agent.WriteError(w, http.StatusConflict, agent.CodeConflict, req.Path+" changed on disk since it was read")
 		return
 	}
-	if !isEnv {
-		if v := a.Validate(r.Context(), req.Path, req.Project, req.Content); !v.OK {
+	if !isEnv && !isDockerfile {
+		if v := a.Validate(r.Context(), req.Path, req.Project, req.Content, ""); !v.OK {
 			agent.WriteError(w, http.StatusUnprocessableEntity, agent.CodeInvalid, v.Error)
 			return
 		}
 	}
-	fi, _ := os.Stat(req.Path)
-	if err := agent.WriteFileAtomic(req.Path+".bak", old, fi.Mode().Perm()); err != nil {
-		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, "can't keep the backup: "+err.Error())
-		return
+	// A .env holds secrets: readable by its owner only.
+	perm := os.FileMode(0o600)
+	if !create {
+		fi, _ := os.Stat(req.Path)
+		perm = fi.Mode().Perm()
+		if err := agent.WriteFileAtomic(req.Path+".bak", old, perm); err != nil {
+			agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, "can't keep the backup: "+err.Error())
+			return
+		}
 	}
-	if err := agent.WriteFileAtomic(req.Path, []byte(req.Content), fi.Mode().Perm()); err != nil {
+	if err := agent.WriteFileAtomic(req.Path, []byte(req.Content), perm); err != nil {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
@@ -479,13 +578,17 @@ func (a *Agent) create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer a.lock(path)()
-	for _, n := range composeNames {
+	names := composeNames
+	if req.Env != "" {
+		names = append(slices.Clip(names), ".env")
+	}
+	for _, n := range names {
 		if _, err := os.Stat(filepath.Join(dir, n)); err == nil {
 			agent.WriteError(w, http.StatusConflict, agent.CodeConflict, filepath.Join(dir, n)+" already exists")
 			return
 		}
 	}
-	if v := a.Validate(r.Context(), path, req.Name, req.Content); !v.OK {
+	if v := a.Validate(r.Context(), path, req.Name, req.Content, req.Env); !v.OK {
 		agent.WriteError(w, http.StatusUnprocessableEntity, agent.CodeInvalid, v.Error)
 		return
 	}
@@ -493,11 +596,22 @@ func (a *Agent) create(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
+	var out agent.File
+	if req.Env != "" {
+		env := filepath.Join(dir, ".env")
+		// A .env holds secrets: readable by its owner only.
+		if err := agent.WriteFileAtomic(env, []byte(req.Env), 0o600); err != nil {
+			agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
+			return
+		}
+		out.Env = &agent.File{Path: env, Content: req.Env, SHA256: sum([]byte(req.Env))}
+	}
 	if err := agent.WriteFileAtomic(path, []byte(req.Content), 0o644); err != nil {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
-	agent.WriteJSON(w, http.StatusOK, agent.File{Path: path, Content: req.Content, SHA256: sum([]byte(req.Content))})
+	out.Path, out.Content, out.SHA256 = path, req.Content, sum([]byte(req.Content))
+	agent.WriteJSON(w, http.StatusOK, out)
 }
 
 var opTitles = map[agent.ComposeOp]string{
@@ -576,6 +690,9 @@ func (a *Agent) op(req agent.ComposeRequest) ([]string, agent.Run) {
 		}
 		if req.Wait {
 			args = append(args, "--wait", "--wait-timeout", "60")
+		}
+		if req.Build {
+			args = append(args, "--build")
 		}
 		return steps, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
 			if err := run(ctx, p, 0, append(args, svc...)...); err != nil {

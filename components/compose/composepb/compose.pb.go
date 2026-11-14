@@ -1311,20 +1311,23 @@ func (*ComposeAction_Update) isComposeAction_Action() {}
 
 func (*ComposeAction_Add) isComposeAction_Action() {}
 
-// Save a Compose Project's Compose file, or the .env beside it: validated
+// Save a Compose Project's Compose file, the .env beside it, or a
+// Dockerfile its Compose services build from: a Compose file validated
 // with `docker compose config` on the host, the previous content kept as
 // <file>.bak, refused when the file changed on disk since expect_sha256
-// was read.
+// was read. A .env that isn't there yet is created when expect_sha256 is
+// empty.
 type SaveFile struct {
 	state   protoimpl.MessageState `protogen:"open.v1"`
 	Host    string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	Project string                 `protobuf:"bytes,2,opt,name=project,proto3" json:"project,omitempty"`
-	// The Compose file or its .env.
+	// The Compose file, its .env or one of its Dockerfiles.
 	Path         string `protobuf:"bytes,3,opt,name=path,proto3" json:"path,omitempty"`
 	Content      string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
 	ExpectSha256 string `protobuf:"bytes,5,opt,name=expect_sha256,json=expectSha256,proto3" json:"expect_sha256,omitempty"`
 	// Then `docker compose up -d`, which recreates the Compose services
-	// whose config changed.
+	// whose config changed; for a Dockerfile, `docker compose up -d
+	// --build` of the Compose services built from it.
 	Recreate      bool `protobuf:"varint,6,opt,name=recreate,proto3" json:"recreate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1636,16 +1639,18 @@ func (x *Update) GetProject() string {
 	return ""
 }
 
-// A new Compose Project: its directory under one of the host's roots and
-// its Compose file, then optionally `up -d`.
+// A new Compose Project: its directory under one of the host's roots, its
+// Compose file and optionally its .env, then optionally `up -d`.
 type AddProject struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Host  string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// Lower-case letters, digits, - and _.
-	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Directory     string `protobuf:"bytes,3,opt,name=directory,proto3" json:"directory,omitempty"`
-	Content       string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
-	Start         bool   `protobuf:"varint,5,opt,name=start,proto3" json:"start,omitempty"`
+	Name      string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Directory string `protobuf:"bytes,3,opt,name=directory,proto3" json:"directory,omitempty"`
+	Content   string `protobuf:"bytes,4,opt,name=content,proto3" json:"content,omitempty"`
+	Start     bool   `protobuf:"varint,5,opt,name=start,proto3" json:"start,omitempty"`
+	// The .env beside the Compose file; empty for none.
+	Env           string `protobuf:"bytes,6,opt,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1713,6 +1718,13 @@ func (x *AddProject) GetStart() bool {
 		return x.Start
 	}
 	return false
+}
+
+func (x *AddProject) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
 }
 
 type Plan struct {
@@ -2448,14 +2460,15 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\bservices\x18\x03 \x03(\tR\bservices\"6\n" +
 	"\x06Update\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x18\n" +
-	"\aproject\x18\x02 \x01(\tR\aproject\"\x82\x01\n" +
+	"\aproject\x18\x02 \x01(\tR\aproject\"\x94\x01\n" +
 	"\n" +
 	"AddProject\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
 	"\tdirectory\x18\x03 \x01(\tR\tdirectory\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12\x14\n" +
-	"\x05start\x18\x05 \x01(\bR\x05start\"\xb5\x01\n" +
+	"\x05start\x18\x05 \x01(\bR\x05start\x12\x10\n" +
+	"\x03env\x18\x06 \x01(\tR\x03env\"\xb5\x01\n" +
 	"\x04Plan\x12-\n" +
 	"\x05steps\x18\x01 \x03(\v2\x17.ddash.compose.PlanStepR\x05steps\x12\x18\n" +
 	"\ablocked\x18\x02 \x03(\tR\ablocked\x12\x14\n" +

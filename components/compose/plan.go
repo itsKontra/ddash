@@ -158,29 +158,46 @@ func (c *component) planSave(ctx context.Context, s *pb.SaveFile, override bool)
 	if err != nil {
 		return nil, nil, err
 	}
-	isEnv := path.Base(s.GetPath()) == ".env"
-	if s.GetPath() != t.file() && (!isEnv || path.Dir(s.GetPath()) != path.Dir(t.file())) {
-		return nil, nil, status.Errorf(codes.InvalidArgument, "%s is neither %s's Compose file nor its .env", s.GetPath(), t.project.GetName())
-	}
 	cur, err := c.agents.GetComposeFile(ctx, &dapb.GetComposeFileRequest{Host: s.GetHost(), Path: t.file()})
 	if err != nil {
 		return nil, nil, err
 	}
+	isEnv := path.Base(s.GetPath()) == ".env" && path.Dir(s.GetPath()) == path.Dir(t.file())
+	// A Dockerfile its Compose services build from: written as is, and
+	// a recreate rebuilds the Compose services built from it.
+	var built *dapb.Dockerfile
+	for _, d := range cur.GetDockerfiles() {
+		if d.GetFile().GetPath() == s.GetPath() {
+			built = d
+		}
+	}
+	if s.GetPath() != t.file() && !isEnv && built == nil {
+		return nil, nil, status.Errorf(codes.InvalidArgument, "%s is neither %s's Compose file, its .env nor a Dockerfile it builds from", s.GetPath(), t.project.GetName())
+	}
 	file := cur.GetFile()
+	if built != nil {
+		file = built.GetFile()
+	}
+	// A .env not there yet is created: from nothing, expecting nothing.
+	create := false
 	if isEnv {
 		file = cur.GetEnv()
 		if file == nil {
-			return nil, nil, status.Errorf(codes.NotFound, "%s has no .env", t.project.GetName())
+			create = true
+			file = &dapb.ComposeFile{Path: path.Join(path.Dir(t.file()), ".env")}
 		}
 	}
 	p := &pb.Plan{Diff: unifiedDiff(file.GetPath(), file.GetContent(), s.GetContent())}
-	if file.GetSha256() != s.GetExpectSha256() {
+	switch {
+	case create && s.GetExpectSha256() != "":
+		p.Blocked = append(p.Blocked, file.GetPath()+" was deleted on disk since you opened it: reload it, then edit again.")
+	case file.GetSha256() != s.GetExpectSha256():
 		p.Blocked = append(p.Blocked, file.GetPath()+" changed on disk since you opened it: reload it to see the change, then edit again.")
 	}
 	if file.GetContent() == s.GetContent() {
 		p.Blocked = append(p.Blocked, "Nothing changed.")
 	}
-	if !isEnv {
+	if !isEnv && built == nil {
 		v, err := c.agents.ValidateComposeFile(ctx, &dapb.ValidateComposeFileRequest{Host: s.GetHost(), Path: s.GetPath(), Content: s.GetContent(), Project: t.project.GetName()})
 		if err != nil {
 			return nil, nil, err
@@ -190,15 +207,52 @@ func (c *component) planSave(ctx context.Context, s *pb.SaveFile, override bool)
 		}
 	}
 	w := &work{title: "Save " + path.Base(file.GetPath()) + " of " + t.project.GetName(), tgt: t}
-	p.Steps = append(p.Steps, &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Write " + file.GetPath(), Values: []*pb.PlanValue{
-		{Label: "Previous content", After: file.GetPath() + ".bak"},
-		{Label: "Validated", After: "docker compose config, on " + s.GetHost()},
-	}})
+	step := &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Write " + file.GetPath()}
+	switch {
+	case create:
+		step.Title = "Create " + file.GetPath()
+		step.Values = []*pb.PlanValue{{Label: "Readable by", After: "its owner only"}}
+	case isEnv:
+		step.Values = []*pb.PlanValue{{Label: "Previous content", After: file.GetPath() + ".bak"}}
+	case built != nil:
+		step.Values = []*pb.PlanValue{
+			{Label: "Previous content", After: file.GetPath() + ".bak"},
+			{Label: "Built for", After: strings.Join(built.GetServices(), ", ")},
+		}
+	default:
+		step.Values = []*pb.PlanValue{
+			{Label: "Previous content", After: file.GetPath() + ".bak"},
+			{Label: "Validated", After: "docker compose config, on " + s.GetHost()},
+		}
+	}
+	p.Steps = append(p.Steps, step)
 	w.steps = append(w.steps, stepWork{jobStep: -1, run: func(ctx context.Context, r *run, i int) error {
-		_, err := c.agents.WriteComposeFile(ctx, &dapb.WriteComposeFileRequest{Host: s.GetHost(), Path: file.GetPath(), Content: s.GetContent(), ExpectSha256: s.GetExpectSha256(), Project: t.project.GetName()})
+		req := &dapb.WriteComposeFileRequest{Host: s.GetHost(), Path: file.GetPath(), Content: s.GetContent(), ExpectSha256: s.GetExpectSha256(), Project: t.project.GetName()}
+		if built != nil {
+			req.ComposeFile = t.file()
+		}
+		_, err := c.agents.WriteComposeFile(ctx, req)
 		return err
 	}})
-	if s.GetRecreate() {
+	switch {
+	case built != nil && s.GetRecreate():
+		services := built.GetServices()
+		guard(p, t.protected(services), override, "recreate")
+		if up := t.running(services); len(up) > 0 {
+			p.Steps = append(p.Steps, maintenanceStep(names(up), "its Checks are up, or 5 min"))
+			w.steps = append(w.steps, stepWork{jobStep: -1, run: c.maintain(up, restartMaintenance, true)})
+		}
+		p.Steps = append(p.Steps, &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Rebuild and recreate " + strings.Join(services, ", "), Values: []*pb.PlanValue{{Label: "Runs", After: "docker compose up -d --build " + strings.Join(services, " ")}}})
+		w.steps = append(w.steps, stepWork{jobStep: 0, run: func(ctx context.Context, r *run, i int) error {
+			res, err := c.agents.UpProject(ctx, &dapb.UpProjectRequest{Target: t.composeTarget(services), Build: true})
+			if err != nil {
+				return err
+			}
+			return r.follow(ctx, c, res.GetJob(), i)
+		}})
+	case built != nil:
+		p.Notes = append(p.Notes, "Staged only: nothing is rebuilt. Its image is built again only by docker compose up --build, e.g. a save that rebuilds.")
+	case s.GetRecreate():
 		guard(p, t.protected(nil), override, "recreate")
 		if up := t.running(nil); len(up) > 0 {
 			p.Steps = append(p.Steps, maintenanceStep(names(up), "its Checks are up, or 5 min"))
@@ -212,7 +266,7 @@ func (c *component) planSave(ctx context.Context, s *pb.SaveFile, override bool)
 			}
 			return r.follow(ctx, c, res.GetJob(), i)
 		}})
-	} else {
+	default:
 		p.Notes = append(p.Notes, "Staged only: nothing is recreated. Start or Update the Compose Project to apply it.")
 	}
 	return p, w, nil
@@ -394,7 +448,7 @@ func (c *component) planAdd(ctx context.Context, a *pb.AddProject) (*pb.Plan, *w
 	}
 	file := path.Join(dir, "compose.yaml")
 	if len(p.Blocked) == 0 {
-		v, err := c.agents.ValidateComposeFile(ctx, &dapb.ValidateComposeFileRequest{Host: a.GetHost(), Path: file, Content: a.GetContent(), Project: a.GetName()})
+		v, err := c.agents.ValidateComposeFile(ctx, &dapb.ValidateComposeFileRequest{Host: a.GetHost(), Path: file, Content: a.GetContent(), Project: a.GetName(), Env: a.GetEnv()})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -403,9 +457,13 @@ func (c *component) planAdd(ctx context.Context, a *pb.AddProject) (*pb.Plan, *w
 		}
 	}
 	w := &work{title: "Add " + a.GetName(), tgt: t}
-	p.Steps = append(p.Steps, &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Create " + file, Values: []*pb.PlanValue{{Label: "Compose Project", After: a.GetName()}}})
+	create := &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Create " + file, Values: []*pb.PlanValue{{Label: "Compose Project", After: a.GetName()}}}
+	if a.GetEnv() != "" {
+		create.Values = append(create.Values, &pb.PlanValue{Label: ".env", After: path.Join(dir, ".env") + ", readable by its owner only"})
+	}
+	p.Steps = append(p.Steps, create)
 	w.steps = append(w.steps, stepWork{jobStep: -1, run: func(ctx context.Context, r *run, i int) error {
-		_, err := c.agents.CreateComposeProject(ctx, &dapb.CreateComposeProjectRequest{Host: a.GetHost(), Name: a.GetName(), Directory: dir, Content: a.GetContent()})
+		_, err := c.agents.CreateComposeProject(ctx, &dapb.CreateComposeProjectRequest{Host: a.GetHost(), Name: a.GetName(), Directory: dir, Content: a.GetContent(), Env: a.GetEnv()})
 		return err
 	}})
 	if a.GetStart() {

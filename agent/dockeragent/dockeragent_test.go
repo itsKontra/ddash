@@ -45,15 +45,21 @@ func (d *docker) ImageDigests(_ context.Context, ref string) (string, []string, 
 
 func (d *docker) Version(context.Context) (string, error) { return "27.3.1", nil }
 
-// compose records every call; config fails when the file says "bad:".
+// compose records every call, and the .env each config saw in its
+// project directory; config fails when the file says "bad:".
 type compose struct {
 	mu    sync.Mutex
 	calls [][]string
+	envs  []string
 }
 
 func (c *compose) Run(_ context.Context, _ string, args []string, out func(string)) error {
 	c.mu.Lock()
 	c.calls = append(c.calls, args)
+	if slices.Contains(args, "config") {
+		env, _ := os.ReadFile(filepath.Join(args[slices.Index(args, "--project-directory")+1], ".env"))
+		c.envs = append(c.envs, string(env))
+	}
 	c.mu.Unlock()
 	if i := slices.Index(args, "config"); i >= 0 {
 		f := args[slices.Index(args, "-f")+1]
@@ -182,6 +188,146 @@ func TestCreate(t *testing.T) {
 	}
 	if err := cl.Post(ctx, agent.PathCreate, agent.CreateRequest{Name: "x", Directory: "/opt/elsewhere", Content: "services: {}\n"}, nil); agent.CodeOf(err) != agent.CodeOutOfRoots {
 		t.Fatalf("outside: %v", err)
+	}
+}
+
+func TestCreateWithEnv(t *testing.T) {
+	ctx := context.Background()
+	cl, root, _, c := setup(t)
+	dir := filepath.Join(root, "paperless")
+	var f agent.File
+	if err := cl.Post(ctx, agent.PathCreate, agent.CreateRequest{Name: "paperless", Directory: dir, Content: "services:\n  web:\n    image: paperless:${TAG}\n", Env: "TAG=2.13\n"}, &f); err != nil {
+		t.Fatal(err)
+	}
+	env := filepath.Join(dir, ".env")
+	if f.Env == nil || f.Env.Path != env || f.Env.Content != "TAG=2.13\n" {
+		t.Fatalf("env = %+v", f.Env)
+	}
+	if fi, err := os.Stat(env); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf("env file: %v, %v", fi, err)
+	}
+	// Validated with the .env beside the file, in a directory gone since.
+	if c.envs[len(c.envs)-1] != "TAG=2.13\n" {
+		t.Fatalf("validated with .env %q", c.envs[len(c.envs)-1])
+	}
+	if left, _ := filepath.Glob(filepath.Join(root, ".ddash-validate-*")); len(left) > 0 {
+		t.Fatalf("left behind: %v", left)
+	}
+
+	// Refused: nothing written, and Compose's error names the real paths.
+	bad := filepath.Join(root, "broken")
+	err := cl.Post(ctx, agent.PathCreate, agent.CreateRequest{Name: "broken", Directory: bad, Content: "bad: yes\n", Env: "A=1\n"}, nil)
+	if agent.CodeOf(err) != agent.CodeInvalid || !strings.Contains(err.Error(), filepath.Join(bad, "compose.yaml")) {
+		t.Fatalf("invalid: %v", err)
+	}
+	if _, err := os.Stat(bad); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("broken left behind: %v", err)
+	}
+	// A .env already there isn't overwritten.
+	stray := filepath.Join(root, "stray")
+	os.MkdirAll(stray, 0o755)
+	os.WriteFile(filepath.Join(stray, ".env"), []byte("KEEP=1\n"), 0o600)
+	if err := cl.Post(ctx, agent.PathCreate, agent.CreateRequest{Name: "stray", Directory: stray, Content: "services: {}\n", Env: "A=1\n"}, nil); agent.CodeOf(err) != agent.CodeConflict {
+		t.Fatalf("stray: %v", err)
+	}
+}
+
+func TestWriteNewEnv(t *testing.T) {
+	ctx := context.Background()
+	cl, root, _, _ := setup(t)
+	env := filepath.Join(root, "tools/stopped/.env")
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: env, Content: "A=1\n"}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Stat(env); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf("env file: %v, %v", fi, err)
+	}
+	if _, err := os.Stat(env + ".bak"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("a new .env has no backup: %v", err)
+	}
+	// There now: a write without its hash is stale.
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: env, Content: "A=2\n"}, nil); agent.CodeOf(err) != agent.CodeConflict {
+		t.Fatalf("again: %v", err)
+	}
+	// Only a .env is created: a missing Compose file isn't.
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: filepath.Join(root, "tools/new/compose.yaml"), Content: "services: {}\n"}, nil); agent.CodeOf(err) != agent.CodeNotFound {
+		t.Fatalf("compose file: %v", err)
+	}
+}
+
+func TestDockerfiles(t *testing.T) {
+	ctx := context.Background()
+	cl, root, _, c := setup(t)
+	dir := filepath.Join(root, "shop")
+	os.MkdirAll(filepath.Join(dir, "api"), 0o755)
+	file := filepath.Join(dir, "compose.yaml")
+	os.WriteFile(file, []byte(`services:
+  web:
+    build: .
+  worker:
+    build: .
+  api:
+    build:
+      context: api
+      dockerfile: Containerfile
+  inline:
+    build:
+      dockerfile_inline: "FROM alpine"
+  remote:
+    build: https://github.com/example/app.git
+  outside:
+    build: ../../..
+  db:
+    image: postgres:17
+`), 0o644)
+	os.WriteFile(filepath.Join(dir, "Dockerfile"), []byte("FROM nginx:1.27\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, "api/Containerfile"), []byte("FROM golang:1.25\n"), 0o640)
+
+	// The Dockerfiles under the roots its Compose services build from;
+	// inline, remote and outside ones aren't.
+	var f agent.File
+	if err := cl.Get(ctx, agent.PathFile, map[string][]string{"path": {file}}, &f); err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, d := range f.Dockerfiles {
+		got = append(got, strings.TrimPrefix(d.Path, dir+"/")+":"+strings.Join(d.Services, ","))
+	}
+	if !slices.Equal(got, []string{"Dockerfile:web,worker", "api/Containerfile:api"}) {
+		t.Fatalf("dockerfiles = %v", got)
+	}
+	api := f.Dockerfiles[1]
+
+	// Written as its Compose file names it, its previous content kept and
+	// its mode too; never validated with docker compose config.
+	calls := len(c.calls)
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: api.Path, Content: "FROM golang:1.26\n", ExpectSHA256: api.SHA256, File: file}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if b, _ := os.ReadFile(api.Path); string(b) != "FROM golang:1.26\n" {
+		t.Fatalf("Containerfile = %q", b)
+	}
+	if b, _ := os.ReadFile(api.Path + ".bak"); string(b) != "FROM golang:1.25\n" {
+		t.Fatalf("backup = %q", b)
+	}
+	if fi, _ := os.Stat(api.Path); fi.Mode().Perm() != 0o640 {
+		t.Fatalf("mode = %v", fi.Mode())
+	}
+	if len(c.calls) != calls {
+		t.Fatalf("compose ran: %v", c.calls[calls:])
+	}
+
+	// Nothing else is written as a Dockerfile: not a file the Compose file
+	// doesn't build from, and not without the Compose file.
+	other := filepath.Join(root, "media/compose.yaml")
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: filepath.Join(dir, "api/main.go"), Content: "x", File: file}, nil); agent.CodeOf(err) != agent.CodeOutOfRoots {
+		t.Fatalf("main.go: %v", err)
+	}
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: filepath.Join(dir, "Dockerfile"), Content: "x", File: other}, nil); agent.CodeOf(err) != agent.CodeOutOfRoots {
+		t.Fatalf("another Compose file's: %v", err)
+	}
+	if err := cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: filepath.Join(dir, "Dockerfile"), Content: "x"}, nil); agent.CodeOf(err) != agent.CodeOutOfRoots {
+		t.Fatalf("without its Compose file: %v", err)
 	}
 }
 

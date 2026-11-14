@@ -14,6 +14,8 @@ export interface Draft {
   directory?: string;
   /** The Compose file's text. */
   compose: string;
+  /** The .env's text; unset for none. */
+  env?: string;
   /** The Add App fields. */
   app?: {
     url?: string;
@@ -70,7 +72,7 @@ export function parseDraft(fragment: string): Draft | undefined {
   if (typeof v !== "object" || v === null) return undefined;
   const o = v as Record<string, unknown>;
   if (!isString(o.name) || !isString(o.compose)) return undefined;
-  const draft: Draft = { name: o.name, compose: o.compose, host: optString(o.host), directory: optString(o.directory) };
+  const draft: Draft = { name: o.name, compose: o.compose, env: optString(o.env), host: optString(o.host), directory: optString(o.directory) };
   if (typeof o.app === "object" && o.app !== null) {
     const a = o.app as Record<string, unknown>;
     const port = typeof a.port === "number" && Number.isInteger(a.port) && a.port > 0 && a.port <= 65535 ? a.port : undefined;

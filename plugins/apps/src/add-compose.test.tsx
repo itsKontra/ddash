@@ -145,3 +145,15 @@ it("links Draft with AI only while the AI App helper is installed", async () => 
   await open("/?app=new", {}, ["apps", "ai-helper"]);
   expect(form().getByRole("link", { name: "Draft with AI" }).getAttribute("href")).toBe("/ai-helper");
 });
+
+it("sends a draft's .env, and what's typed in it, with the new Compose Project", async () => {
+  const calls = await open(`/?add=compose${draftFragment({ ...draft, env: "PAPERLESS_SECRET_KEY=s3cret\n" })}`);
+  expect(value(".env")).toBe("PAPERLESS_SECRET_KEY=s3cret\n");
+  const envOf = () => (plans(calls).at(-1)?.action?.add?.compose as { env?: string } | undefined)?.env;
+  expect(envOf()).toBe("PAPERLESS_SECRET_KEY=s3cret\n");
+
+  fireEvent.change(form().getByLabelText(".env"), { target: { value: "TZ=Europe/Berlin\n" } });
+  await act(() => new Promise((r) => setTimeout(r, planDelay + 50)));
+  await settle();
+  expect(envOf()).toBe("TZ=Europe/Berlin\n");
+});

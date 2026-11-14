@@ -1,0 +1,22 @@
+{
+  "name": "@ddash/compose-ui",
+  "private": true,
+  "type": "module",
+  "description": "The compose Component's UI, shared by the Plugins that edit Compose Projects: a Compose Project Action's Plan dialog and run, and the viewer and editor of its Compose file and .env. Bundled into each Plugin that uses it, whose manifest requires compose and docker-agent-api.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@ddash/plugin": "workspace:*",
+    "@ddash/proto": "workspace:*",
+    "@ddash/ui": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  }
+}

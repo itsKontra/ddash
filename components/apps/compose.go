@@ -23,7 +23,7 @@ import (
 )
 
 // Add App from a new Compose Project: its Plan's Docker steps (write the
-// Compose file, `up -d`, wait until the App's container runs), which come
+// Compose file and its .env, `up -d`, wait until the App's container runs), which come
 // before the Proxy Host and DNS steps, and running them through
 // docker-agent-api. The Agent runs `up` as a job; RunAction follows it
 // until ComposeWait has passed since the Action began, and then stops,
@@ -46,7 +46,7 @@ const composeFile = "compose.yaml"
 
 // composeRun is how a planned Add App's Docker steps run.
 type composeRun struct {
-	host, address, name, dir, content string
+	host, address, name, dir, content, env string
 	// service is the Compose service whose container the App is; port the
 	// host port it publishes, 0 for none.
 	service string
@@ -85,7 +85,7 @@ var projectNameRE = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]*$`)
 func (p planning) newCompose(out *planned, a *appspb.NewComposeProject, reach appspb.Reach) *composeRun {
 	r := &composeRun{
 		host: strings.TrimSpace(a.GetHost()), name: strings.TrimSpace(a.GetName()),
-		dir: strings.TrimSpace(a.GetDirectory()), content: a.GetContent(),
+		dir: strings.TrimSpace(a.GetDirectory()), content: a.GetContent(), env: a.GetEnv(),
 		service: strings.TrimSpace(a.GetService()), port: a.GetPort(),
 	}
 	ok := true
@@ -193,11 +193,18 @@ func (p planning) newCompose(out *planned, a *appspb.NewComposeProject, reach ap
 	if r.dir == "" {
 		file = ""
 	}
-	out.plan.Steps = append(out.plan.Steps,
-		&appspb.PlanStep{System: appspb.System_SYSTEM_DOCKER, Title: fmt.Sprintf("Write the Compose file of %s on %s", r.name, r.host), Values: []*appspb.PlanValue{
-			{Label: "Compose file", After: file},
-			{Label: "Compose services", After: strings.Join(names, ", ")},
-		}},
+	write := &appspb.PlanStep{System: appspb.System_SYSTEM_DOCKER, Title: fmt.Sprintf("Write the Compose file of %s on %s", r.name, r.host), Values: []*appspb.PlanValue{
+		{Label: "Compose file", After: file},
+		{Label: "Compose services", After: strings.Join(names, ", ")},
+	}}
+	if r.env != "" {
+		env := ""
+		if r.dir != "" {
+			env = path.Join(r.dir, ".env")
+		}
+		write.Values = append(write.Values, &appspb.PlanValue{Label: ".env", After: env})
+	}
+	out.plan.Steps = append(out.plan.Steps, write,
 		&appspb.PlanStep{System: appspb.System_SYSTEM_DOCKER, Title: fmt.Sprintf("Start %s on %s", r.name, r.host), Values: []*appspb.PlanValue{
 			{Label: "Runs", After: "docker compose up -d, pulling its images first"},
 		}},
@@ -324,7 +331,7 @@ func (c *component) runCompose(ctx context.Context, r *composeRun, progress *pro
 	deadline := begun.Add(c.composeWait)
 
 	progress.mark(0, 1, appspb.StepState_STEP_STATE_RUNNING)
-	created, err := c.agents.CreateComposeProject(ctx, &dapb.CreateComposeProjectRequest{Host: r.host, Name: r.name, Directory: r.dir, Content: r.content})
+	created, err := c.agents.CreateComposeProject(ctx, &dapb.CreateComposeProjectRequest{Host: r.host, Name: r.name, Directory: r.dir, Content: r.content, Env: r.env})
 	if err != nil {
 		return 0, err
 	}

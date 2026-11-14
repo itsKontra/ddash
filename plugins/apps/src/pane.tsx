@@ -5,6 +5,7 @@ import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, Dialog, Facts, Field, FormActions, Notice, Panel, Pill, Presence, Select } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { fixes, fixLabel, groupsOf, hostOf } from "./apps";
+import { ComposePanel } from "./compose-panel";
 import { reachLook } from "./list";
 import { AddressPanel, DisplayPanel, NetworkPanel, ProxyPanel, WorkloadPanel, type Editing, type PanelName } from "./panels";
 import { PlanDialog, type DialogSlot } from "./plan";
@@ -95,6 +96,7 @@ export function AppPane({
             <WorkloadPanel app={app} check={check} editing={editing} />
             <NetworkPanel app={app} list={list} />
           </div>
+          <ComposePanel app={app} />
         </>
       )}
       <Presence>{dialog}</Presence>

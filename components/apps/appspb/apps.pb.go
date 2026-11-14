@@ -3283,7 +3283,9 @@ type NewComposeProject struct {
 	Service string `protobuf:"bytes,5,opt,name=service,proto3" json:"service,omitempty"`
 	// The service's published port the App's traffic goes to; 0 for its
 	// first.
-	Port          uint32 `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
+	Port uint32 `protobuf:"varint,6,opt,name=port,proto3" json:"port,omitempty"`
+	// The .env written beside the Compose file, owner-only; empty for none.
+	Env           string `protobuf:"bytes,7,opt,name=env,proto3" json:"env,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3358,6 +3360,13 @@ func (x *NewComposeProject) GetPort() uint32 {
 		return x.Port
 	}
 	return 0
+}
+
+func (x *NewComposeProject) GetEnv() string {
+	if x != nil {
+		return x.Env
+	}
+	return ""
 }
 
 // An App Action's Plan: its steps in the order they run, the "name is
@@ -4376,14 +4385,15 @@ const file_apps_apps_proto_rawDesc = "" +
 	"\n" +
 	"proxy_host\x18\x06 \x01(\v2 .ddash.proxyhost.ProxyHostFieldsR\tproxyHost\x12\x18\n" +
 	"\aaddress\x18\a \x01(\tR\aaddress\x127\n" +
-	"\acompose\x18\b \x01(\v2\x1d.ddash.apps.NewComposeProjectR\acompose\"\xa1\x01\n" +
+	"\acompose\x18\b \x01(\v2\x1d.ddash.apps.NewComposeProjectR\acompose\"\xb3\x01\n" +
 	"\x11NewComposeProject\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
 	"\tdirectory\x18\x03 \x01(\tR\tdirectory\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12\x18\n" +
 	"\aservice\x18\x05 \x01(\tR\aservice\x12\x12\n" +
-	"\x04port\x18\x06 \x01(\rR\x04port\"\xd5\x01\n" +
+	"\x04port\x18\x06 \x01(\rR\x04port\x12\x10\n" +
+	"\x03env\x18\a \x01(\tR\x03env\"\xd5\x01\n" +
 	"\x04Plan\x12*\n" +
 	"\x05steps\x18\x01 \x03(\v2\x14.ddash.apps.PlanStepR\x05steps\x12*\n" +
 	"\x05names\x18\x02 \x03(\v2\x14.ddash.apps.NameNoteR\x05names\x12\x18\n" +
