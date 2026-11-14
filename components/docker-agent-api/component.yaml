@@ -1,0 +1,3 @@
+name: docker-agent-api
+description: Pairs with the Docker Agents on Docker hosts and reads and changes their Compose Projects through them.
+requires: []

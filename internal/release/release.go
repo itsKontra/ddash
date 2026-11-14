@@ -10,6 +10,9 @@
 //	<component>     one static binary per Component, named after it
 //	<plugin>.plugin.js, <plugin>.plugin.css
 //	                each Plugin's bundle, built by Vite into plugins/<plugin>/dist/
+//	ddash-host-agent-linux-<arch>
+//	                the Host Agent, static, for amd64 and arm64: ddash serves
+//	                it to install.sh at /agent/host/<arch>
 package release
 
 import (
@@ -52,7 +55,18 @@ type Options struct {
 	// LinkBundles symlinks each Plugin's bundle instead of copying it, so
 	// `vite build --watch` rebuilds show through (`make dev`).
 	LinkBundles bool
+	// AgentImage is the Docker Agent's image by digest, e.g.
+	// "ghcr.io/itskontra/ddash-docker-agent:v1.2.3@sha256:…", stamped into
+	// docker-agent-api so the Compose file it generates pins it. Empty:
+	// the image by its Release tag.
+	AgentImage string
 }
+
+// HostAgentArchs are the architectures the Host Agent is built for.
+var HostAgentArchs = []string{"amd64", "arm64"}
+
+// HostAgentFile is the Host Agent's binary for arch in a Release dir.
+func HostAgentFile(arch string) string { return "ddash-host-agent-linux-" + arch }
 
 // Build fills o.Out with the Release: catalogue.json, every Component's
 // binary (static, CGO off, for o.Platform), every
@@ -68,9 +82,18 @@ func Build(ctx context.Context, o Options) error {
 	if err := os.MkdirAll(o.Out, 0o750); err != nil {
 		return err
 	}
+	var stamp []string
+	if o.AgentImage != "" {
+		stamp = append(stamp, "-X", "github.com/itsKontra/ddash/components/docker-agent-api.Image="+o.AgentImage)
+	}
 	for _, c := range cat.Components {
 		pkg := "./" + path.Join("components", c.Name, "cmd")
-		if err := build(ctx, o.Root, pkg, filepath.Join(o.Out, c.Name), o.Release, o.Platform); err != nil {
+		if err := build(ctx, o.Root, pkg, filepath.Join(o.Out, c.Name), o.Release, o.Platform, stamp...); err != nil {
+			return err
+		}
+	}
+	for _, arch := range HostAgentArchs {
+		if err := build(ctx, o.Root, "./cmd/ddash-host-agent", filepath.Join(o.Out, HostAgentFile(arch)), o.Release, "linux/"+arch); err != nil {
 			return err
 		}
 	}
@@ -221,7 +244,7 @@ func build(ctx context.Context, root, pkg, out, release, platform string, ldflag
 	if err != nil {
 		return err
 	}
-	flags := append([]string{"-X", "github.com/itsKontra/ddash/sdk.Release=" + release}, ldflags...)
+	flags := append([]string{"-X", "github.com/itsKontra/ddash/sdk.Release=" + release, "-X", "github.com/itsKontra/ddash/agent.Release=" + release}, ldflags...)
 	cmd := exec.CommandContext(ctx, "go", "build", "-trimpath", "-ldflags", strings.Join(flags, " "), "-o", out, pkg)
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "CGO_ENABLED=0")

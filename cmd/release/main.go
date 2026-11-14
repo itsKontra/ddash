@@ -22,12 +22,13 @@ func main() {
 	rel := flag.String("release", "dev", "the Release to stamp: dev or a tag vMAJOR.MINOR.PATCH")
 	platform := flag.String("platform", "", "GOOS/GOARCH to build for (default: this machine's)")
 	core := flag.String("core", "", "build the core binary to this path instead of the Release dir")
+	agentImage := flag.String("agent-image", "", "the Docker Agent's image by digest, pinned in the Compose file docker-agent-api generates")
 	flag.Parse()
 	var err error
 	if *core != "" {
 		err = release.Core(context.Background(), ".", *core, *rel, *platform)
 	} else {
-		err = release.Build(context.Background(), release.Options{Root: ".", Out: *out, Release: *rel, Platform: *platform})
+		err = release.Build(context.Background(), release.Options{Root: ".", Out: *out, Release: *rel, Platform: *platform, AgentImage: *agentImage})
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "release:", err)
