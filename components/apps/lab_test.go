@@ -30,6 +30,7 @@ import (
 	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
+	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network"
@@ -189,7 +190,7 @@ func newLab(t *testing.T, o labOptions) *lab {
 		components[len(components)-1] = apps.DefinitionResyncingWithin(o.resync)
 	}
 	if o.fixtureWorkloads {
-		components = append(components, proxmoxapi.Definition(), dockerapi.Definition())
+		components = append(components, proxmoxapi.Definition(), dockerapi.Definition(), dockeragentapi.Definition())
 	} else {
 		if l.proxmox == nil {
 			l.proxmox = &proxmoxFake{}

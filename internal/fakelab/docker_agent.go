@@ -167,7 +167,6 @@ func (l *Lab) startDocker(host string) error {
 	go srv.Serve(ln) //nolint:errcheck // ends with Close
 	l.servers = append(l.servers, srv)
 	registry := "http://" + ln.Addr().String()
-	l.Addrs["registry"] = ln.Addr().String()
 	l.config["compose"] = &composepb.ComposeConfig{DockerHubRegistry: &registry}
 	return nil
 }
