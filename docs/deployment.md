@@ -193,9 +193,16 @@ refuses ddash's power Actions there and ddash shows a "protected in Proxmox"
 lock. Token permissions are the intersection of the user's and the token's,
 so every ACL goes on **both**.
 
+ddash Snapshots need `VM.Snapshot` and backups `VM.Backup` on the
+Workload, plus `Datastore.AllocateSpace` (and `Datastore.Audit`, to list
+it) on the storage backups go to. Protected Workloads keep both: Protected
+only takes power away, and a single update of one (with its override
+ticked) still takes its ddash Snapshot.
+
 ```sh
-pveum role add DdashOperator --privs "VM.Audit VM.PowerMgmt VM.GuestAgent.Audit"
-pveum role add DdashAuditor  --privs "VM.Audit VM.GuestAgent.Audit"
+pveum role add DdashOperator --privs "VM.Audit VM.PowerMgmt VM.GuestAgent.Audit VM.Snapshot VM.Backup"
+pveum role add DdashAuditor  --privs "VM.Audit VM.GuestAgent.Audit VM.Snapshot VM.Backup"
+pveum role add DdashBackup   --privs "Datastore.AllocateSpace Datastore.Audit"
 pveum user add ddash@pve --comment "ddash"
 pveum user token add ddash@pve dashboard --privsep 1     # prints the secret once
 pveum acl modify /vms --users ddash@pve --roles DdashOperator
@@ -205,13 +212,72 @@ pveum acl modify /vms --tokens 'ddash@pve!dashboard' --roles DdashOperator
 pveum acl modify /vms/<vmid> --users ddash@pve --roles DdashAuditor
 pveum acl modify /vms/<vmid> --tokens 'ddash@pve!dashboard' --roles DdashAuditor
 
+# Once per storage that takes backups (e.g. local, pbs):
+pveum acl modify /storage/<storage> --users ddash@pve --roles DdashBackup
+pveum acl modify /storage/<storage> --tokens 'ddash@pve!dashboard' --roles DdashBackup
+
 pveum user token permissions ddash@pve dashboard         # verify
 ```
+
+An existing role gains the new privileges with `pveum role modify
+DdashOperator --privs "…"` (the whole list again).
 
 - [ ] The v1 Protected set: the firewall, AdGuard, nginx and **ddash's own
       LXC**. Keycloak is not Protected (it shares `docker-env` with other
       containers).
 - [ ] A Workload created later is controllable unless it gets the same ACL.
+- [ ] "Update all running" skips Protected Workloads (and lists them as
+      skipped in its Plan). A single update of one needs its override
+      ticked in the Plan.
+
+### 7b. Host Agents (optional, per LXC or VM)
+
+A Host Agent lets ddash update a Workload's packages and set up SSH on it,
+on Ubuntu, Debian, Alpine, Fedora and Arch Linux (amd64, arm64). It runs as
+root and has **root-equivalent control of its host**: install one only
+where ddash should have that. It listens on port 7444 (HTTPS, a
+self-signed certificate ddash pins at pairing) and accepts only the ddash
+it paired with. It never runs arbitrary commands, and it never reboots.
+
+- [ ] On the Workload's Page in the Proxmox Plugin, **Host Agent**: check
+      the URL (`https://<the Workload's address>:7444`) and add it. ddash
+      shows a one-time enrolment code in an install command:
+
+      ```sh
+      curl -fsSL https://ddash.<domain>/agent/host/install.sh | sudo sh -s -- --code <enrolment code>
+      ```
+
+      Read `install.sh` first if you like (the Panel links it): it detects
+      the distribution, downloads `/agent/host/<arch>` from ddash, checks
+      it against the SHA-256 it pins (the same as `/agent/host/SHA256SUMS`),
+      installs `/usr/local/bin/ddash-host-agent` and starts it as a
+      systemd unit (OpenRC on Alpine). ddash pairs with it within 10 s.
+- [ ] Allow ddash's LXC to reach port 7444 on that Workload (the Workload's
+      own firewall, if any).
+- [ ] An Agent from an older Release is flagged; **Update Agent** (the only
+      Action it then allows) has it download this Release's binary from
+      ddash, check its SHA-256 and restart. ddash's public URL must be
+      reachable from the Workload for this and for `install.sh`.
+- [ ] Reinstalled or reset an Agent? Its certificate changed: press **Pair
+      again** for a new code and run the install command again.
+- [ ] To remove one: **Remove** in the Panel, then on the Workload, as root:
+
+      ```sh
+      curl -fsSL https://ddash.<domain>/agent/host/install.sh | sudo sh -s -- --uninstall
+      ```
+
+      SSH Keys ddash installed (marked `ddash:<name>` in
+      `authorized_keys`) stay; remove them first in the SSH Panel if they
+      should go.
+
+Updates take a **ddash Snapshot** first (`ddash-<UTC time>`, "Created by
+ddash before an update") and then delete every older snapshot named
+`ddash-…` of that Workload, only once the new one succeeded; snapshots
+without the prefix are never touched. On storage that can't snapshot (LVM
+thick, a raw image on a directory storage) turn the Workload's "Snapshot
+before each update" off, or turn it off for one run. SSH Keys generated in
+ddash hand out their private key once, in the browser; ddash stores public
+keys only.
 
 ### 8. Smoke targets
 
