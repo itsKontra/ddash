@@ -5,6 +5,14 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+## v0.0.3-rc.1
+
+- The GitHub release now ships each Plugin as one `<plugin>.app` and each
+  Component as one `<component>.ct` (zips) instead of loose binaries and
+  bundles. Nothing to do on updating: ddash downloads the new files into
+  `/data` itself. If you run from a local Release dir (`DDASH_RELEASE_DIR`),
+  rebuild it with `make release-dir`; ddash unpacks its Component binaries
+  into `/data/release-dir/`, so the mounted dir can stay read-only.
 - **Docker Agents and Host Agents** (ADR-0005): ddash can now change what
   runs on a host through an Agent you install there. Nothing changes until
   you add one. Docker Page, **Docker Agents**: add a host, run the Compose
