@@ -75,8 +75,9 @@ service ProxmoxApiService {
   rpc ListActiveTasks(ListActiveTasksRequest) returns (ListActiveTasksResponse) {
     option (ddash.getter) = {refresh: NONE};
   }
-  // GetTask reads one task's status, never cached.
-  rpc GetTask(GetTaskRequest) returns (GetTaskResponse) {
+  // ListTasks returns a Workload's recent tasks on a node, running and
+  // ended (with their exit status), newest first, never cached.
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
     option (ddash.getter) = {refresh: NONE};
   }
   // ListSnapshots returns a Workload's snapshots (without Proxmox's
@@ -97,7 +98,8 @@ service ProxmoxApiService {
     option (ddash.action) = {disruptive: true};
   }
   // Backup starts a vzdump of a Workload to a storage and returns its
-  // task's UPID at once: a backup outlasts an Action. GetTask follows it.
+  // task's UPID at once: a backup outlasts an Action. ListTasks follows
+  // it.
   rpc Backup(BackupRequest) returns (BackupResponse) {
     option (ddash.action) = {};
   }
@@ -234,16 +236,16 @@ message Task {
   google.protobuf.Timestamp started = 3;
 }
 
-message GetTaskRequest {
+message ListTasksRequest {
   string node = 1;
-  string upid = 2;
+  uint32 vmid = 2;
 }
 
-message GetTaskResponse {
-  TaskStatus task = 1;
+message ListTasksResponse {
+  repeated TaskStatus tasks = 1;
 }
 
-// A task's status, from /nodes/{node}/tasks/{upid}/status.
+// A task, from /nodes/{node}/tasks?source=all.
 message TaskStatus {
   string upid = 1;
   // e.g. "vzdump", "vzsnapshot".
@@ -253,6 +255,8 @@ message TaskStatus {
   // Proxmox's exit status once stopped: "OK", or why it failed.
   string exit_status = 4;
   google.protobuf.Timestamp started = 5;
+  // Unset while it runs.
+  google.protobuf.Timestamp ended = 6;
 }
 
 message ListSnapshotsRequest {

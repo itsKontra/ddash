@@ -179,6 +179,29 @@ var systems = []system{
 				}
 				return nil, errors.New("ListWorkloads listed no Workload to read the tasks of")
 			},
+			// The first Workload's recent tasks, snapshots and its node's
+			// backup storages.
+			"ListTasks": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListTasksRequest{Node: ws[0].GetNode(), Vmid: ws[0].GetVmid()}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no Workload to read the tasks of")
+			},
+			"ListSnapshots": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListSnapshotsRequest{Workload: &proxmoxapipb.Target{Kind: ws[0].GetKind(), Node: ws[0].GetNode(), Vmid: ws[0].GetVmid()}}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no Workload to read the snapshots of")
+			},
+			"ListBackupStorages": func(answers map[string]proto.Message) (proto.Message, error) {
+				list, _ := answers["ListWorkloads"].(*proxmoxapipb.ListWorkloadsResponse)
+				if ws := list.GetWorkloads(); len(ws) > 0 {
+					return &proxmoxapipb.ListBackupStoragesRequest{Node: ws[0].GetNode()}, nil
+				}
+				return nil, errors.New("ListWorkloads listed no node to read the storages of")
+			},
 		},
 		checks: map[string]func(proto.Message) error{
 			"ListWorkloads":   atLeastOne("Workload", func(m proto.Message) int { return len(m.(*proxmoxapipb.ListWorkloadsResponse).GetWorkloads()) }),

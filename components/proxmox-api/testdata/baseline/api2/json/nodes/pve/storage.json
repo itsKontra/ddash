@@ -1,0 +1,26 @@
+{
+  "data": [
+    {
+      "storage": "local",
+      "type": "dir",
+      "content": "iso,vztmpl,backup",
+      "active": 1,
+      "enabled": 1,
+      "shared": 0,
+      "avail": 61823631360,
+      "total": 100861726720,
+      "used": 39038095360
+    },
+    {
+      "storage": "pbs",
+      "type": "pbs",
+      "content": "backup",
+      "active": 1,
+      "enabled": 1,
+      "shared": 1,
+      "avail": 1812436094976,
+      "total": 3936142082048,
+      "used": 2123705987072
+    }
+  ]
+}

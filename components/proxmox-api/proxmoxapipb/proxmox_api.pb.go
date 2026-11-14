@@ -1233,28 +1233,28 @@ func (x *Task) GetStarted() *timestamppb.Timestamp {
 	return nil
 }
 
-type GetTaskRequest struct {
+type ListTasksRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Node          string                 `protobuf:"bytes,1,opt,name=node,proto3" json:"node,omitempty"`
-	Upid          string                 `protobuf:"bytes,2,opt,name=upid,proto3" json:"upid,omitempty"`
+	Vmid          uint32                 `protobuf:"varint,2,opt,name=vmid,proto3" json:"vmid,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetTaskRequest) Reset() {
-	*x = GetTaskRequest{}
+func (x *ListTasksRequest) Reset() {
+	*x = ListTasksRequest{}
 	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetTaskRequest) String() string {
+func (x *ListTasksRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetTaskRequest) ProtoMessage() {}
+func (*ListTasksRequest) ProtoMessage() {}
 
-func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
+func (x *ListTasksRequest) ProtoReflect() protoreflect.Message {
 	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1266,46 +1266,46 @@ func (x *GetTaskRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetTaskRequest.ProtoReflect.Descriptor instead.
-func (*GetTaskRequest) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListTasksRequest.ProtoReflect.Descriptor instead.
+func (*ListTasksRequest) Descriptor() ([]byte, []int) {
 	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{18}
 }
 
-func (x *GetTaskRequest) GetNode() string {
+func (x *ListTasksRequest) GetNode() string {
 	if x != nil {
 		return x.Node
 	}
 	return ""
 }
 
-func (x *GetTaskRequest) GetUpid() string {
+func (x *ListTasksRequest) GetVmid() uint32 {
 	if x != nil {
-		return x.Upid
+		return x.Vmid
 	}
-	return ""
+	return 0
 }
 
-type GetTaskResponse struct {
+type ListTasksResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Task          *TaskStatus            `protobuf:"bytes,1,opt,name=task,proto3" json:"task,omitempty"`
+	Tasks         []*TaskStatus          `protobuf:"bytes,1,rep,name=tasks,proto3" json:"tasks,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *GetTaskResponse) Reset() {
-	*x = GetTaskResponse{}
+func (x *ListTasksResponse) Reset() {
+	*x = ListTasksResponse{}
 	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *GetTaskResponse) String() string {
+func (x *ListTasksResponse) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*GetTaskResponse) ProtoMessage() {}
+func (*ListTasksResponse) ProtoMessage() {}
 
-func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
+func (x *ListTasksResponse) ProtoReflect() protoreflect.Message {
 	mi := &file_proxmox_api_proxmox_api_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1317,19 +1317,19 @@ func (x *GetTaskResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use GetTaskResponse.ProtoReflect.Descriptor instead.
-func (*GetTaskResponse) Descriptor() ([]byte, []int) {
+// Deprecated: Use ListTasksResponse.ProtoReflect.Descriptor instead.
+func (*ListTasksResponse) Descriptor() ([]byte, []int) {
 	return file_proxmox_api_proxmox_api_proto_rawDescGZIP(), []int{19}
 }
 
-func (x *GetTaskResponse) GetTask() *TaskStatus {
+func (x *ListTasksResponse) GetTasks() []*TaskStatus {
 	if x != nil {
-		return x.Task
+		return x.Tasks
 	}
 	return nil
 }
 
-// A task's status, from /nodes/{node}/tasks/{upid}/status.
+// A task, from /nodes/{node}/tasks?source=all.
 type TaskStatus struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	Upid  string                 `protobuf:"bytes,1,opt,name=upid,proto3" json:"upid,omitempty"`
@@ -1338,8 +1338,10 @@ type TaskStatus struct {
 	// The task ended.
 	Stopped bool `protobuf:"varint,3,opt,name=stopped,proto3" json:"stopped,omitempty"`
 	// Proxmox's exit status once stopped: "OK", or why it failed.
-	ExitStatus    string                 `protobuf:"bytes,4,opt,name=exit_status,json=exitStatus,proto3" json:"exit_status,omitempty"`
-	Started       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started,proto3" json:"started,omitempty"`
+	ExitStatus string                 `protobuf:"bytes,4,opt,name=exit_status,json=exitStatus,proto3" json:"exit_status,omitempty"`
+	Started    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=started,proto3" json:"started,omitempty"`
+	// Unset while it runs.
+	Ended         *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=ended,proto3" json:"ended,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1405,6 +1407,13 @@ func (x *TaskStatus) GetExitStatus() string {
 func (x *TaskStatus) GetStarted() *timestamppb.Timestamp {
 	if x != nil {
 		return x.Started
+	}
+	return nil
+}
+
+func (x *TaskStatus) GetEnded() *timestamppb.Timestamp {
+	if x != nil {
+		return x.Ended
 	}
 	return nil
 }
@@ -2131,12 +2140,12 @@ const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\x04Task\x12\x12\n" +
 	"\x04upid\x18\x01 \x01(\tR\x04upid\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\x124\n" +
-	"\astarted\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\"8\n" +
-	"\x0eGetTaskRequest\x12\x12\n" +
+	"\astarted\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\":\n" +
+	"\x10ListTasksRequest\x12\x12\n" +
 	"\x04node\x18\x01 \x01(\tR\x04node\x12\x12\n" +
-	"\x04upid\x18\x02 \x01(\tR\x04upid\"C\n" +
-	"\x0fGetTaskResponse\x120\n" +
-	"\x04task\x18\x01 \x01(\v2\x1c.ddash.proxmoxapi.TaskStatusR\x04task\"\xa5\x01\n" +
+	"\x04vmid\x18\x02 \x01(\rR\x04vmid\"G\n" +
+	"\x11ListTasksResponse\x122\n" +
+	"\x05tasks\x18\x01 \x03(\v2\x1c.ddash.proxmoxapi.TaskStatusR\x05tasks\"\xd7\x01\n" +
 	"\n" +
 	"TaskStatus\x12\x12\n" +
 	"\x04upid\x18\x01 \x01(\tR\x04upid\x12\x12\n" +
@@ -2144,7 +2153,8 @@ const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\astopped\x18\x03 \x01(\bR\astopped\x12\x1f\n" +
 	"\vexit_status\x18\x04 \x01(\tR\n" +
 	"exitStatus\x124\n" +
-	"\astarted\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\"L\n" +
+	"\astarted\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\astarted\x120\n" +
+	"\x05ended\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x05ended\"L\n" +
 	"\x14ListSnapshotsRequest\x124\n" +
 	"\bworkload\x18\x01 \x01(\v2\x18.ddash.proxmoxapi.TargetR\bworkload\"o\n" +
 	"\x15ListSnapshotsResponse\x128\n" +
@@ -2196,7 +2206,7 @@ const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\x17BACKUP_MODE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14BACKUP_MODE_SNAPSHOT\x10\x01\x12\x17\n" +
 	"\x13BACKUP_MODE_SUSPEND\x10\x02\x12\x14\n" +
-	"\x10BACKUP_MODE_STOP\x10\x032\x89\n" +
+	"\x10BACKUP_MODE_STOP\x10\x032\x8f\n" +
 	"\n" +
 	"\x11ProxmoxApiService\x12h\n" +
 	"\rListWorkloads\x12&.ddash.proxmoxapi.ListWorkloadsRequest\x1a'.ddash.proxmoxapi.ListWorkloadsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12n\n" +
@@ -2204,8 +2214,8 @@ const file_proxmox_api_proxmox_api_proto_rawDesc = "" +
 	"\rStartWorkload\x12&.ddash.proxmoxapi.StartWorkloadRequest\x1a'.ddash.proxmoxapi.StartWorkloadResponse\"\x04\x92\xb5\x18\x00\x12q\n" +
 	"\x10ShutdownWorkload\x12).ddash.proxmoxapi.ShutdownWorkloadRequest\x1a*.ddash.proxmoxapi.ShutdownWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12k\n" +
 	"\x0eRebootWorkload\x12'.ddash.proxmoxapi.RebootWorkloadRequest\x1a(.ddash.proxmoxapi.RebootWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12n\n" +
-	"\x0fListActiveTasks\x12(.ddash.proxmoxapi.ListActiveTasksRequest\x1a).ddash.proxmoxapi.ListActiveTasksResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12V\n" +
-	"\aGetTask\x12 .ddash.proxmoxapi.GetTaskRequest\x1a!.ddash.proxmoxapi.GetTaskResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12h\n" +
+	"\x0fListActiveTasks\x12(.ddash.proxmoxapi.ListActiveTasksRequest\x1a).ddash.proxmoxapi.ListActiveTasksResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12\\\n" +
+	"\tListTasks\x12\".ddash.proxmoxapi.ListTasksRequest\x1a#.ddash.proxmoxapi.ListTasksResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12h\n" +
 	"\rListSnapshots\x12&.ddash.proxmoxapi.ListSnapshotsRequest\x1a'.ddash.proxmoxapi.ListSnapshotsResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12i\n" +
 	"\x0eCreateSnapshot\x12'.ddash.proxmoxapi.CreateSnapshotRequest\x1a(.ddash.proxmoxapi.CreateSnapshotResponse\"\x04\x92\xb5\x18\x00\x12k\n" +
 	"\x0eDeleteSnapshot\x12'.ddash.proxmoxapi.DeleteSnapshotRequest\x1a(.ddash.proxmoxapi.DeleteSnapshotResponse\"\x06\x92\xb5\x18\x02\b\x01\x12Q\n" +
@@ -2248,8 +2258,8 @@ var file_proxmox_api_proxmox_api_proto_goTypes = []any{
 	(*ListActiveTasksRequest)(nil),     // 18: ddash.proxmoxapi.ListActiveTasksRequest
 	(*ListActiveTasksResponse)(nil),    // 19: ddash.proxmoxapi.ListActiveTasksResponse
 	(*Task)(nil),                       // 20: ddash.proxmoxapi.Task
-	(*GetTaskRequest)(nil),             // 21: ddash.proxmoxapi.GetTaskRequest
-	(*GetTaskResponse)(nil),            // 22: ddash.proxmoxapi.GetTaskResponse
+	(*ListTasksRequest)(nil),           // 21: ddash.proxmoxapi.ListTasksRequest
+	(*ListTasksResponse)(nil),          // 22: ddash.proxmoxapi.ListTasksResponse
 	(*TaskStatus)(nil),                 // 23: ddash.proxmoxapi.TaskStatus
 	(*ListSnapshotsRequest)(nil),       // 24: ddash.proxmoxapi.ListSnapshotsRequest
 	(*ListSnapshotsResponse)(nil),      // 25: ddash.proxmoxapi.ListSnapshotsResponse
@@ -2279,45 +2289,46 @@ var file_proxmox_api_proxmox_api_proto_depIdxs = []int32{
 	11, // 9: ddash.proxmoxapi.RebootWorkloadRequest.workload:type_name -> ddash.proxmoxapi.Target
 	20, // 10: ddash.proxmoxapi.ListActiveTasksResponse.tasks:type_name -> ddash.proxmoxapi.Task
 	37, // 11: ddash.proxmoxapi.Task.started:type_name -> google.protobuf.Timestamp
-	23, // 12: ddash.proxmoxapi.GetTaskResponse.task:type_name -> ddash.proxmoxapi.TaskStatus
+	23, // 12: ddash.proxmoxapi.ListTasksResponse.tasks:type_name -> ddash.proxmoxapi.TaskStatus
 	37, // 13: ddash.proxmoxapi.TaskStatus.started:type_name -> google.protobuf.Timestamp
-	11, // 14: ddash.proxmoxapi.ListSnapshotsRequest.workload:type_name -> ddash.proxmoxapi.Target
-	26, // 15: ddash.proxmoxapi.ListSnapshotsResponse.snapshots:type_name -> ddash.proxmoxapi.Snapshot
-	37, // 16: ddash.proxmoxapi.Snapshot.created:type_name -> google.protobuf.Timestamp
-	11, // 17: ddash.proxmoxapi.CreateSnapshotRequest.workload:type_name -> ddash.proxmoxapi.Target
-	11, // 18: ddash.proxmoxapi.DeleteSnapshotRequest.workload:type_name -> ddash.proxmoxapi.Target
-	11, // 19: ddash.proxmoxapi.BackupRequest.workload:type_name -> ddash.proxmoxapi.Target
-	2,  // 20: ddash.proxmoxapi.BackupRequest.mode:type_name -> ddash.proxmoxapi.BackupMode
-	35, // 21: ddash.proxmoxapi.ListBackupStoragesResponse.storages:type_name -> ddash.proxmoxapi.Storage
-	4,  // 22: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:input_type -> ddash.proxmoxapi.ListWorkloadsRequest
-	8,  // 23: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:input_type -> ddash.proxmoxapi.ListPermissionsRequest
-	12, // 24: ddash.proxmoxapi.ProxmoxApiService.StartWorkload:input_type -> ddash.proxmoxapi.StartWorkloadRequest
-	14, // 25: ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload:input_type -> ddash.proxmoxapi.ShutdownWorkloadRequest
-	16, // 26: ddash.proxmoxapi.ProxmoxApiService.RebootWorkload:input_type -> ddash.proxmoxapi.RebootWorkloadRequest
-	18, // 27: ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks:input_type -> ddash.proxmoxapi.ListActiveTasksRequest
-	21, // 28: ddash.proxmoxapi.ProxmoxApiService.GetTask:input_type -> ddash.proxmoxapi.GetTaskRequest
-	24, // 29: ddash.proxmoxapi.ProxmoxApiService.ListSnapshots:input_type -> ddash.proxmoxapi.ListSnapshotsRequest
-	27, // 30: ddash.proxmoxapi.ProxmoxApiService.CreateSnapshot:input_type -> ddash.proxmoxapi.CreateSnapshotRequest
-	29, // 31: ddash.proxmoxapi.ProxmoxApiService.DeleteSnapshot:input_type -> ddash.proxmoxapi.DeleteSnapshotRequest
-	31, // 32: ddash.proxmoxapi.ProxmoxApiService.Backup:input_type -> ddash.proxmoxapi.BackupRequest
-	33, // 33: ddash.proxmoxapi.ProxmoxApiService.ListBackupStorages:input_type -> ddash.proxmoxapi.ListBackupStoragesRequest
-	5,  // 34: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:output_type -> ddash.proxmoxapi.ListWorkloadsResponse
-	9,  // 35: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:output_type -> ddash.proxmoxapi.ListPermissionsResponse
-	13, // 36: ddash.proxmoxapi.ProxmoxApiService.StartWorkload:output_type -> ddash.proxmoxapi.StartWorkloadResponse
-	15, // 37: ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload:output_type -> ddash.proxmoxapi.ShutdownWorkloadResponse
-	17, // 38: ddash.proxmoxapi.ProxmoxApiService.RebootWorkload:output_type -> ddash.proxmoxapi.RebootWorkloadResponse
-	19, // 39: ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks:output_type -> ddash.proxmoxapi.ListActiveTasksResponse
-	22, // 40: ddash.proxmoxapi.ProxmoxApiService.GetTask:output_type -> ddash.proxmoxapi.GetTaskResponse
-	25, // 41: ddash.proxmoxapi.ProxmoxApiService.ListSnapshots:output_type -> ddash.proxmoxapi.ListSnapshotsResponse
-	28, // 42: ddash.proxmoxapi.ProxmoxApiService.CreateSnapshot:output_type -> ddash.proxmoxapi.CreateSnapshotResponse
-	30, // 43: ddash.proxmoxapi.ProxmoxApiService.DeleteSnapshot:output_type -> ddash.proxmoxapi.DeleteSnapshotResponse
-	32, // 44: ddash.proxmoxapi.ProxmoxApiService.Backup:output_type -> ddash.proxmoxapi.BackupResponse
-	34, // 45: ddash.proxmoxapi.ProxmoxApiService.ListBackupStorages:output_type -> ddash.proxmoxapi.ListBackupStoragesResponse
-	34, // [34:46] is the sub-list for method output_type
-	22, // [22:34] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	37, // 14: ddash.proxmoxapi.TaskStatus.ended:type_name -> google.protobuf.Timestamp
+	11, // 15: ddash.proxmoxapi.ListSnapshotsRequest.workload:type_name -> ddash.proxmoxapi.Target
+	26, // 16: ddash.proxmoxapi.ListSnapshotsResponse.snapshots:type_name -> ddash.proxmoxapi.Snapshot
+	37, // 17: ddash.proxmoxapi.Snapshot.created:type_name -> google.protobuf.Timestamp
+	11, // 18: ddash.proxmoxapi.CreateSnapshotRequest.workload:type_name -> ddash.proxmoxapi.Target
+	11, // 19: ddash.proxmoxapi.DeleteSnapshotRequest.workload:type_name -> ddash.proxmoxapi.Target
+	11, // 20: ddash.proxmoxapi.BackupRequest.workload:type_name -> ddash.proxmoxapi.Target
+	2,  // 21: ddash.proxmoxapi.BackupRequest.mode:type_name -> ddash.proxmoxapi.BackupMode
+	35, // 22: ddash.proxmoxapi.ListBackupStoragesResponse.storages:type_name -> ddash.proxmoxapi.Storage
+	4,  // 23: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:input_type -> ddash.proxmoxapi.ListWorkloadsRequest
+	8,  // 24: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:input_type -> ddash.proxmoxapi.ListPermissionsRequest
+	12, // 25: ddash.proxmoxapi.ProxmoxApiService.StartWorkload:input_type -> ddash.proxmoxapi.StartWorkloadRequest
+	14, // 26: ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload:input_type -> ddash.proxmoxapi.ShutdownWorkloadRequest
+	16, // 27: ddash.proxmoxapi.ProxmoxApiService.RebootWorkload:input_type -> ddash.proxmoxapi.RebootWorkloadRequest
+	18, // 28: ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks:input_type -> ddash.proxmoxapi.ListActiveTasksRequest
+	21, // 29: ddash.proxmoxapi.ProxmoxApiService.ListTasks:input_type -> ddash.proxmoxapi.ListTasksRequest
+	24, // 30: ddash.proxmoxapi.ProxmoxApiService.ListSnapshots:input_type -> ddash.proxmoxapi.ListSnapshotsRequest
+	27, // 31: ddash.proxmoxapi.ProxmoxApiService.CreateSnapshot:input_type -> ddash.proxmoxapi.CreateSnapshotRequest
+	29, // 32: ddash.proxmoxapi.ProxmoxApiService.DeleteSnapshot:input_type -> ddash.proxmoxapi.DeleteSnapshotRequest
+	31, // 33: ddash.proxmoxapi.ProxmoxApiService.Backup:input_type -> ddash.proxmoxapi.BackupRequest
+	33, // 34: ddash.proxmoxapi.ProxmoxApiService.ListBackupStorages:input_type -> ddash.proxmoxapi.ListBackupStoragesRequest
+	5,  // 35: ddash.proxmoxapi.ProxmoxApiService.ListWorkloads:output_type -> ddash.proxmoxapi.ListWorkloadsResponse
+	9,  // 36: ddash.proxmoxapi.ProxmoxApiService.ListPermissions:output_type -> ddash.proxmoxapi.ListPermissionsResponse
+	13, // 37: ddash.proxmoxapi.ProxmoxApiService.StartWorkload:output_type -> ddash.proxmoxapi.StartWorkloadResponse
+	15, // 38: ddash.proxmoxapi.ProxmoxApiService.ShutdownWorkload:output_type -> ddash.proxmoxapi.ShutdownWorkloadResponse
+	17, // 39: ddash.proxmoxapi.ProxmoxApiService.RebootWorkload:output_type -> ddash.proxmoxapi.RebootWorkloadResponse
+	19, // 40: ddash.proxmoxapi.ProxmoxApiService.ListActiveTasks:output_type -> ddash.proxmoxapi.ListActiveTasksResponse
+	22, // 41: ddash.proxmoxapi.ProxmoxApiService.ListTasks:output_type -> ddash.proxmoxapi.ListTasksResponse
+	25, // 42: ddash.proxmoxapi.ProxmoxApiService.ListSnapshots:output_type -> ddash.proxmoxapi.ListSnapshotsResponse
+	28, // 43: ddash.proxmoxapi.ProxmoxApiService.CreateSnapshot:output_type -> ddash.proxmoxapi.CreateSnapshotResponse
+	30, // 44: ddash.proxmoxapi.ProxmoxApiService.DeleteSnapshot:output_type -> ddash.proxmoxapi.DeleteSnapshotResponse
+	32, // 45: ddash.proxmoxapi.ProxmoxApiService.Backup:output_type -> ddash.proxmoxapi.BackupResponse
+	34, // 46: ddash.proxmoxapi.ProxmoxApiService.ListBackupStorages:output_type -> ddash.proxmoxapi.ListBackupStoragesResponse
+	35, // [35:47] is the sub-list for method output_type
+	23, // [23:35] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_proxmox_api_proxmox_api_proto_init() }
