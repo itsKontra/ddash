@@ -164,10 +164,8 @@ export function UpdatePlanDialog({ workload: w, onClose }: { workload: Workload;
   const can = !!plan && !plan.blocked && (!plan.protected || override) && (!on || plan.snapshotSupported) && !run.pending;
 
   const go = async () => {
-    const res = await run.run(
-      { workload: refOf(w), snapshot: on, overrideProtected: override },
-      { confirm: { text: `Update the packages of ${workloadLabel(w)} now?`, action: "Update" } },
-    );
+    // The Plan Dialog is the confirmation.
+    const res = await run.run({ workload: refOf(w), snapshot: on, overrideProtected: override });
     if (res) onClose();
   };
 

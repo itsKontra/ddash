@@ -33,11 +33,11 @@ async function openPlan() {
   return screen.getByRole("dialog");
 }
 
+/** Confirms the Plan: its Dialog is the only confirmation. */
 async function confirm(dialog: HTMLElement) {
   fireEvent.click(within(dialog).getByRole("button", { name: "Update" }));
   await settle();
-  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Update" }));
-  await settle();
+  expect(screen.queryByRole("alertdialog")).toBeNull();
 }
 
 it("lists the pending packages the Host Agent read, and plans an update with a ddash Snapshot that replaces the old one", async () => {

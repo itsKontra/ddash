@@ -90,9 +90,10 @@ service ProxmoxService {
   // Agent install the updates, and reports "reboot required". It never
   // reboots. A Protected Workload is refused unless override_protected.
   // ListUpdates shows its progress; its outcome is the Audit Log entry of
-  // the Host Agent job's collect, in this call's chain.
+  // the Host Agent job's collect, in this call's chain. Not disruptive:
+  // the Operator confirms its Plan, as for apps' RunAction.
   rpc RunUpdate(RunUpdateRequest) returns (RunUpdateResponse) {
-    option (ddash.action) = {disruptive: true};
+    option (ddash.action) = {};
   }
   // PlanUpdateAll lists the Workloads "Update all running" would update,
   // in order, and those it skips with why.
@@ -104,7 +105,7 @@ service ProxmoxService {
   // off, and stops at the first failure. It refuses when the Plan no
   // longer holds.
   rpc RunUpdateAll(RunUpdateAllRequest) returns (RunUpdateAllResponse) {
-    option (ddash.action) = {disruptive: true};
+    option (ddash.action) = {};
   }
   // ListUpdates returns the update running or last run on each Workload,
   // and the last "Update all running".

@@ -95,7 +95,8 @@ type ProxmoxServiceClient interface {
 	// Agent install the updates, and reports "reboot required". It never
 	// reboots. A Protected Workload is refused unless override_protected.
 	// ListUpdates shows its progress; its outcome is the Audit Log entry of
-	// the Host Agent job's collect, in this call's chain.
+	// the Host Agent job's collect, in this call's chain. Not disruptive:
+	// the Operator confirms its Plan, as for apps' RunAction.
 	RunUpdate(ctx context.Context, in *RunUpdateRequest, opts ...grpc.CallOption) (*RunUpdateResponse, error)
 	// PlanUpdateAll lists the Workloads "Update all running" would update,
 	// in order, and those it skips with why.
@@ -389,7 +390,8 @@ type ProxmoxServiceServer interface {
 	// Agent install the updates, and reports "reboot required". It never
 	// reboots. A Protected Workload is refused unless override_protected.
 	// ListUpdates shows its progress; its outcome is the Audit Log entry of
-	// the Host Agent job's collect, in this call's chain.
+	// the Host Agent job's collect, in this call's chain. Not disruptive:
+	// the Operator confirms its Plan, as for apps' RunAction.
 	RunUpdate(context.Context, *RunUpdateRequest) (*RunUpdateResponse, error)
 	// PlanUpdateAll lists the Workloads "Update all running" would update,
 	// in order, and those it skips with why.

@@ -3184,7 +3184,7 @@ const file_proxmox_proxmox_proto_rawDesc = "" +
 	"\x18POWER_ACTION_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12POWER_ACTION_START\x10\x01\x12\x15\n" +
 	"\x11POWER_ACTION_STOP\x10\x02\x12\x18\n" +
-	"\x14POWER_ACTION_RESTART\x10\x032\xf2\x0f\n" +
+	"\x14POWER_ACTION_RESTART\x10\x032\xee\x0f\n" +
 	"\x0eProxmoxService\x12`\n" +
 	"\rStartWorkload\x12#.ddash.proxmox.StartWorkloadRequest\x1a$.ddash.proxmox.StartWorkloadResponse\"\x04\x92\xb5\x18\x00\x12_\n" +
 	"\fStopWorkload\x12\".ddash.proxmox.StopWorkloadRequest\x1a#.ddash.proxmox.StopWorkloadResponse\"\x06\x92\xb5\x18\x02\b\x01\x12h\n" +
@@ -3197,10 +3197,10 @@ const file_proxmox_proxmox_proto_rawDesc = "" +
 	"\x12ListUpdateSettings\x12(.ddash.proxmox.ListUpdateSettingsRequest\x1a).ddash.proxmox.ListUpdateSettingsResponse\"\x04\x8a\xb5\x18\x00\x12l\n" +
 	"\x11SetUpdateSettings\x12'.ddash.proxmox.SetUpdateSettingsRequest\x1a(.ddash.proxmox.SetUpdateSettingsResponse\"\x04\x92\xb5\x18\x00\x12Y\n" +
 	"\n" +
-	"PlanUpdate\x12 .ddash.proxmox.PlanUpdateRequest\x1a!.ddash.proxmox.PlanUpdateResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12V\n" +
-	"\tRunUpdate\x12\x1f.ddash.proxmox.RunUpdateRequest\x1a .ddash.proxmox.RunUpdateResponse\"\x06\x92\xb5\x18\x02\b\x01\x12b\n" +
-	"\rPlanUpdateAll\x12#.ddash.proxmox.PlanUpdateAllRequest\x1a$.ddash.proxmox.PlanUpdateAllResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12_\n" +
-	"\fRunUpdateAll\x12\".ddash.proxmox.RunUpdateAllRequest\x1a#.ddash.proxmox.RunUpdateAllResponse\"\x06\x92\xb5\x18\x02\b\x01\x12\\\n" +
+	"PlanUpdate\x12 .ddash.proxmox.PlanUpdateRequest\x1a!.ddash.proxmox.PlanUpdateResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12T\n" +
+	"\tRunUpdate\x12\x1f.ddash.proxmox.RunUpdateRequest\x1a .ddash.proxmox.RunUpdateResponse\"\x04\x92\xb5\x18\x00\x12b\n" +
+	"\rPlanUpdateAll\x12#.ddash.proxmox.PlanUpdateAllRequest\x1a$.ddash.proxmox.PlanUpdateAllResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12]\n" +
+	"\fRunUpdateAll\x12\".ddash.proxmox.RunUpdateAllRequest\x1a#.ddash.proxmox.RunUpdateAllResponse\"\x04\x92\xb5\x18\x00\x12\\\n" +
 	"\vListUpdates\x12!.ddash.proxmox.ListUpdatesRequest\x1a\".ddash.proxmox.ListUpdatesResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12Z\n" +
 	"\vListSSHKeys\x12!.ddash.proxmox.ListSSHKeysRequest\x1a\".ddash.proxmox.ListSSHKeysResponse\"\x04\x8a\xb5\x18\x00\x12c\n" +
 	"\x0eGenerateSSHKey\x12$.ddash.proxmox.GenerateSSHKeyRequest\x1a%.ddash.proxmox.GenerateSSHKeyResponse\"\x04\x92\xb5\x18\x00\x12T\n" +

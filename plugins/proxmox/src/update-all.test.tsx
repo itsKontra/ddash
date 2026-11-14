@@ -43,10 +43,10 @@ it("plans Update all running: who it updates in order, and who it skips and why"
     "LXC 106 influxits Host Agent isn't ready: unreachable: connection refused",
   ]);
 
+  // The Plan Dialog is the only confirmation.
   fireEvent.click(within(dialog).getByRole("button", { name: "Update all" }));
   await settle();
-  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Update all" }));
-  await settle();
+  expect(screen.queryByRole("alertdialog")).toBeNull();
   expect(bodies(calls, "RunUpdateAll")).toEqual([{ workloads: [ref(102), ref(105)] }]);
 });
 
