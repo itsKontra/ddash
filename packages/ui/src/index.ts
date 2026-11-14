@@ -12,5 +12,6 @@ export * from "./forms";
 export * from "./feedback";
 export * from "./data";
 export * from "./charts";
+export * from "./chart-axes";
 export * from "./overlays";
 export * from "./icon";
