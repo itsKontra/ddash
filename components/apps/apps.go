@@ -9,8 +9,9 @@
 // list, attaches every source to a record (attach), and declares every
 // App's Check to checks when the set changed. ListApps derives each App's
 // Reach, Workload and Warnings from the records and the last good reads
-// (derive), and each Workload's network info from network by address;
-// only the records and Ignores are stored.
+// (derive), each Workload's network info from network by address, and
+// the Cloudflare Tunnel's Public Hostnames among its hostnames from
+// cloudflare-api; only the records and Ignores are stored.
 package apps
 
 import (
@@ -28,6 +29,7 @@ import (
 
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	cfpb "github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network/networkpb"
 	npmpb "github.com/itsKontra/ddash/components/nginx-proxy-manager-api/nginxproxymanagerapipb"
@@ -78,8 +80,10 @@ type component struct {
 	checks  checkspb.ChecksServiceClient
 	proxmox proxmoxapipb.ProxmoxApiServiceClient
 	docker  dockerapipb.DockerApiServiceClient
-	store   store
-	log     *slog.Logger
+	// cloudflare tells which hostnames the Cloudflare Tunnel serves.
+	cloudflare cfpb.CloudflareApiServiceClient
+	store      store
+	log        *slog.Logger
 	// resync bounds the sync ending an App Action.
 	resync time.Duration
 
@@ -159,6 +163,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *appspb.AppsConfi
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.proxmox = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
 	c.docker = sdk.Require(env, dockerapipb.NewDockerApiServiceClient)
+	c.cloudflare = sdk.Require(env, cfpb.NewCloudflareApiServiceClient)
 	c.store = store{db: env.DB}
 	c.log = env.Log
 	c.synced = make(chan struct{})
@@ -312,17 +317,19 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 	apps := derive(recs, v)
 	networkErr, adguardErr := c.fillNetwork(ctx, apps, v.src)
 	c.fillCertificates(ctx, apps)
+	cloudflareErr := c.fillPublicHostnames(ctx, apps)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	hosts := c.hostsRead.proto()
 	hosts.ReadOnly = c.hostsReadOnly
 	return &appspb.ListAppsResponse{
-		Apps:          apps,
-		ProxyHosts:    hosts,
-		HostOverrides: c.overridesRead.proto(),
-		ReverseProxy:  reverseProxyOf(v.dns, c.rpAddress),
-		NetworkError:  networkErr,
-		AdguardError:  adguardErr,
+		Apps:            apps,
+		ProxyHosts:      hosts,
+		HostOverrides:   c.overridesRead.proto(),
+		ReverseProxy:    reverseProxyOf(v.dns, c.rpAddress),
+		NetworkError:    networkErr,
+		AdguardError:    adguardErr,
+		CloudflareError: cloudflareErr,
 	}, nil
 }
 

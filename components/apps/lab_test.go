@@ -27,6 +27,9 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
+	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/network"
@@ -110,6 +113,9 @@ type labOptions struct {
 	// resync bounds the sync ending an App Action; apps.ResyncTimeout
 	// when 0.
 	resync time.Duration
+	// cloudflare, when set, is the Cloudflare cloudflare-api reads;
+	// else cloudflare-api isn't set up.
+	cloudflare http.Handler
 }
 
 const npmEmail = "ddash@home.example"
@@ -175,7 +181,7 @@ func newLab(t *testing.T, o labOptions) *lab {
 
 	components := []sdk.Definition{
 		nginxproxymanagerapi.Definition(), pfsenseapi.Definition(), network.Definition(), adguardapi.Definition(),
-		ntfyapi.Definition(), checks.DefinitionDialing(refuse), apps.Definition(),
+		ntfyapi.Definition(), checks.DefinitionDialing(refuse), cloudflareapi.Definition(), apps.Definition(),
 	}
 	if o.resync != 0 {
 		components[len(components)-1] = apps.DefinitionResyncingWithin(o.resync)
@@ -213,6 +219,13 @@ func newLab(t *testing.T, o labOptions) *lab {
 		// The fake proxmox-api still has the real config's required
 		// fields: unconfigured, it would leave apps degraded.
 		l.h.SeedConfig("proxmox-api", &proxmoxapipb.ProxmoxApiConfig{Url: "https://198.18.1.2:8006", TokenId: "ddash@pve!test", TokenSecret: "test"})
+	}
+	if o.cloudflare != nil {
+		cf := httptest.NewServer(o.cloudflare)
+		t.Cleanup(cf.Close)
+		l.h.SeedConfig("cloudflare-api", &cloudflareapipb.CloudflareApiConfig{
+			AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: cloudflarefake.DefaultToken, ApiUrl: &cf.URL,
+		})
 	}
 	l.h.Install("apps")
 	l.waitStarted()
