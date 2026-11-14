@@ -187,6 +187,10 @@ them once:
 - [ ] A hostname no Proxy Host, Redirection Host or 404 Host holds (e.g.
       `ddash-smoke.<domain>`) as `SMOKE_PROXY_HOST`. It needs no DNS record:
       the round trip only creates and deletes its Proxy Host.
+- [ ] With a Cloudflare Tunnel: a hostname in its zone that no ingress rule
+      or DNS record holds, as `SMOKE_PUBLIC_HOSTNAME`. The round trip adds
+      it as a Public Hostname (ingress rule and proxied CNAME, commented
+      `ddash smoke-writes`), edits its service and removes both.
 
 ## Updating
 

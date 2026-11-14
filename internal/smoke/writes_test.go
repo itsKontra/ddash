@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflarefake"
 	"github.com/itsKontra/ddash/components/nginx-proxy-manager-api/npmfake"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
@@ -34,6 +35,10 @@ const smokeHost = "ddash-smoke.home.example"
 // Host in the lab's fixtures holds.
 const smokeProxyHost = "ddash-smoke.home.example"
 
+// smokePublicHostname is a hostname in the lab's Cloudflare zone that no
+// ingress rule or DNS record holds.
+const smokePublicHostname = "ddash-smoke.home.example"
+
 // writesLab is the baseline lab plus the smoke targets: pfSense's empty
 // DDASH_SMOKE alias, and Proxmox's VM 100 and LXC 210 Protected (the
 // protected scenario; the baseline already has the stopped ddash-smoke
@@ -45,6 +50,7 @@ func writesLab(t *testing.T) (*fakelab.Lab, map[string]string) {
 	env[smoke.UnusedAddressVar] = unused
 	env[smoke.HostOverrideVar] = smokeHost
 	env[smoke.ProxyHostVar] = smokeProxyHost
+	env[smoke.PublicHostnameVar] = smokePublicHostname
 	return l, env
 }
 
@@ -65,6 +71,7 @@ type labState struct {
 	Clients                  []map[string]any
 	Smoke, Protected, OtherV string
 	ProxyHosts               []map[string]any
+	Ingress, DNSRecords      []map[string]any
 }
 
 func stateOf(l *fakelab.Lab) labState {
@@ -77,6 +84,8 @@ func stateOf(l *fakelab.Lab) labState {
 		Clients: ag.Clients(),
 		Smoke:   px.Status(211), Protected: px.Status(100), OtherV: px.Status(210),
 		ProxyHosts: l.Handler("nginx-proxy-manager-api").(*npmfake.NPM).ProxyHosts(),
+		Ingress:    l.Handler("cloudflare-api").(*cloudflarefake.Cloudflare).Ingress(),
+		DNSRecords: l.Handler("cloudflare-api").(*cloudflarefake.Cloudflare).Records(cloudflarefake.ZoneID),
 	}
 }
 
@@ -125,6 +134,7 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 		"ok proxmox-api ddash-smoke start and shutdown",
 		"ok proxmox-api Protected refusal (VM 100 pfSense)",
 		"ok nginx-proxy-manager-api Proxy Host round trip (" + smokeProxyHost + ")",
+		"ok cloudflare-api Public Hostname round trip (" + smokePublicHostname + ")",
 	} {
 		if !strings.Contains(log, want+"\n") {
 			t.Errorf("log lacks %q:\n%s", want, log)
@@ -184,6 +194,14 @@ func TestWritesRoundTripOnTheSmokeTargetsAndLeaveThemAsTheyWere(t *testing.T) {
 		if count(npm, want) != 1 {
 			t.Errorf("Proxy Host requests lack one %q:\n%v", want, npm)
 		}
+	}
+	cf := l.Handler("cloudflare-api").(*cloudflarefake.Cloudflare).Writes()
+	configs := "PUT /accounts/" + cloudflarefake.AccountID + "/cfd_tunnel/" + cloudflarefake.TunnelID + "/configurations"
+	if n := count(cf, configs); n != 3 {
+		t.Errorf("%d ingress writes, want 3 (add, edit, delete):\n%v", n, cf)
+	}
+	if n := count(cf, "POST /zones/"+cloudflarefake.ZoneID+"/dns_records"); n != 1 {
+		t.Errorf("%d CNAMEs created, want 1:\n%v", n, cf)
 	}
 	if diff := cmp.Diff([]string{
 		"lxc/211/status/start",

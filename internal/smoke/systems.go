@@ -11,6 +11,8 @@ import (
 
 	adguardapi "github.com/itsKontra/ddash/components/adguard-api"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
+	cloudflareapi "github.com/itsKontra/ddash/components/cloudflare-api"
+	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
 	dockerapi "github.com/itsKontra/ddash/components/docker-api"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	nginxproxymanagerapi "github.com/itsKontra/ddash/components/nginx-proxy-manager-api"
@@ -217,6 +219,47 @@ var systems = []system{
 			cfg := m.(*nginxproxymanagerapipb.NginxProxyManagerApiConfig)
 			upstream := cfg.GetUrl()
 			cfg.Url = "http://" + addr
+			return upstream, "", nil
+		},
+	},
+	{
+		def:     cloudflareapi.Definition(),
+		service: cloudflareapipb.CloudflareApiService_ServiceDesc.ServiceName,
+		config:  func() proto.Message { return &cloudflareapipb.CloudflareApiConfig{} },
+		requests: map[string]func(map[string]proto.Message) (proto.Message, error){
+			// The first zone's records.
+			"ListDnsRecords": func(answers map[string]proto.Message) (proto.Message, error) {
+				zones, _ := answers["ListZones"].(*cloudflareapipb.ListZonesResponse)
+				if zs := zones.GetZones(); len(zs) > 0 {
+					return &cloudflareapipb.ListDnsRecordsRequest{ZoneId: zs[0].GetId()}, nil
+				}
+				return nil, errors.New("ListZones listed no zone to read the DNS records of")
+			},
+		},
+		checks: map[string]func(proto.Message) error{
+			"GetTunnel": func(m proto.Message) error {
+				r := m.(*cloudflareapipb.GetTunnelResponse)
+				switch {
+				case !r.GetSetUp():
+					return errors.New("not set up: give it the account ID, the Tunnel's ID and an API token")
+				case !r.GetTunnel().GetRemotelyManaged():
+					return errors.New("the Tunnel is locally managed: ddash changes only a remotely managed one")
+				}
+				return nil
+			},
+			"GetConfiguration": func(m proto.Message) error {
+				if m.(*cloudflareapipb.GetConfigurationResponse).GetCatchAll() == "" {
+					return errors.New("the ingress has no catch-all rule")
+				}
+				return nil
+			},
+			"ListZones": atLeastOne("zone", func(m proto.Message) int { return len(m.(*cloudflareapipb.ListZonesResponse).GetZones()) }),
+		},
+		proxy: func(m proto.Message, addr string) (string, string, error) {
+			cfg := m.(*cloudflareapipb.CloudflareApiConfig)
+			upstream := cfg.GetApiUrl()
+			url := "http://" + addr
+			cfg.ApiUrl = &url
 			return upstream, "", nil
 		},
 	},
