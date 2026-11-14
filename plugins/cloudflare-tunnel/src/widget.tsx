@@ -28,7 +28,7 @@ function Body({ size }: { size: WidgetSize }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
-        <MetricTile label="Public Hostnames" value={enabled} tone="up" />
+        <MetricTile label="hostnames" value={enabled} tone="up" />
         <MetricTile label="connectors" value={tunnel?.connectors.length} tone={tunnel ? tunnelLook[tunnel.status].tone : undefined} />
       </div>
       {size === "M" && tunnel && (

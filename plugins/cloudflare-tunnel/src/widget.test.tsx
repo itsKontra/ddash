@@ -26,7 +26,7 @@ it("reports the Tunnel's state with its connectors and Public Hostnames", async 
 
   expect(reported.status).toEqual({ tone: "up", summary: "Up · 2 connectors · 2 Public Hostnames" });
   const s = screen.getByRole("region", { name: "widget" });
-  expect(metricValue("Public Hostnames", s)).toBe("2");
+  expect(metricValue("hostnames", s)).toBe("2");
   expect(metricValue("connectors", s)).toBe("2");
 });
 
