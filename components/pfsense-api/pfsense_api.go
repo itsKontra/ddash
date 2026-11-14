@@ -64,6 +64,7 @@ type component struct {
 	tunnels    *sdk.Cache[*pfsenseapipb.ListWireguardTunnelsResponse]
 	rules      *sdk.Cache[*pfsenseapipb.ListFirewallRulesResponse]
 	overrides  *sdk.Cache[*pfsenseapipb.ListHostOverridesResponse]
+	peers      *sdk.Cache[*pfsenseapipb.ListWireguardPeersResponse]
 
 	// queue holds the one write running (writes.go): writes wait in it.
 	queue chan struct{}
@@ -86,6 +87,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pfsenseapipb.Pfsen
 	c.tunnels = sdk.Cached(sdk.TTLSlow, c.fetchTunnels)
 	c.rules = sdk.Cached(sdk.TTLSlow, c.fetchRules)
 	c.overrides = sdk.Cached(sdk.TTLSlow, c.fetchHostOverrides)
+	c.peers = sdk.Cached(sdk.TTLSlow, c.fetchPeers)
 	return nil
 }
 
@@ -405,6 +407,7 @@ type wireguardTunnel struct {
 	Name       string `json:"name"`
 	Descr      string `json:"descr"`
 	Status     string `json:"status"`
+	PublicKey  string `json:"public_key"`
 	ListenPort number `json:"listen_port"`
 	RX         number `json:"transfer_rx"`
 	TX         number `json:"transfer_tx"`
@@ -430,6 +433,7 @@ func (c *component) fetchTunnels(ctx context.Context) (*pfsenseapipb.ListWiregua
 			Name:        t.Name,
 			Description: t.Descr,
 			Status:      t.Status,
+			PublicKey:   t.PublicKey,
 			ListenPort:  int32(t.ListenPort),
 			RxBytes:     uint64(t.RX),
 			TxBytes:     uint64(t.TX),
