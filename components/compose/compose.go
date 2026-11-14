@@ -58,6 +58,9 @@ type component struct {
 	reg    *registries
 	// kick asks the check loop for a check now.
 	kick chan struct{}
+	// kicked is when ListProjects last asked for a check of images it
+	// hadn't seen checked, e.g. on an Agent paired since the last check.
+	kicked time.Time
 
 	mu         sync.Mutex
 	images     map[string]digestResult // by ref.String()
@@ -134,6 +137,25 @@ func (c *component) checkLoop(ctx context.Context) {
 		c.imageCheck.next = time.Now().Add(CheckInterval)
 		c.mu.Unlock()
 		timer.Reset(CheckInterval)
+	}
+}
+
+// unseenEvery is how often images never checked (on an Agent paired since
+// the last check) start a check of their own, at most.
+const unseenEvery = time.Minute
+
+// checkSoon asks the check loop for a check, at most every unseenEvery and
+// not before the first scheduled one.
+func (c *component) checkSoon() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.imageCheck.last.IsZero() || c.imageCheck.running || time.Since(c.kicked) < unseenEvery {
+		return
+	}
+	c.kicked = time.Now()
+	select {
+	case c.kick <- struct{}{}:
+	default:
 	}
 }
 
@@ -241,6 +263,7 @@ func (c *component) status(ct *dapb.Container) *pb.ImageStatus {
 	switch {
 	case !ok:
 		out.State, out.Reason = pb.ImageState_IMAGE_STATE_UNKNOWN, "not checked yet"
+		c.checkSoon()
 		return out
 	case res.err != "":
 		out.State, out.Reason = pb.ImageState_IMAGE_STATE_ERROR, res.err

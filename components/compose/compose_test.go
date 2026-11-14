@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -98,6 +99,7 @@ func setup(t *testing.T) lab {
 		Images: []agentfake.Image{
 			{Ref: "jellyfin/jellyfin:10.9", ID: "sha256:j1", Latest: "sha256:j2"},
 			{Ref: "nginx:1.27", ID: "sha256:n1"},
+			{Ref: "redis:7.4", ID: "sha256:r1"},
 		},
 	}, agentfake.Options{StateDir: t.TempDir(), Release: "dev"})
 	if err != nil {
@@ -371,4 +373,26 @@ func TestFailedStepStops(t *testing.T) {
 func sha(b []byte) string {
 	s := sha256.Sum256(b)
 	return hex.EncodeToString(s[:])
+}
+
+func TestAnImageNeverCheckedIsCheckedSoon(t *testing.T) {
+	ctx := context.Background()
+	l := setup(t)
+	if _, err := l.c.CheckImages(ctx, &pb.CheckImagesRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	// A Compose Project started since: its image was never checked.
+	add := &pb.ComposeAction{Action: &pb.ComposeAction_Add{Add: &pb.AddProject{Host: "apps", Name: "cache", Directory: filepath.Join(l.docker.Root, "cache"), Content: "services:\n  redis:\n    image: redis:7.4\n", Start: true}}}
+	if r, err := l.run(t, add); err != nil || r.GetError() != "" {
+		t.Fatalf("add: %v %v", r, err)
+	}
+	if st := image(l.project(t, "cache"), "redis"); st.GetState() != pb.ImageState_IMAGE_STATE_UNKNOWN {
+		t.Fatalf("before: %v", st)
+	}
+	for deadline := time.Now().Add(10 * time.Second); time.Now().Before(deadline); time.Sleep(100 * time.Millisecond) {
+		if st := image(l.project(t, "cache"), "redis"); st.GetState() == pb.ImageState_IMAGE_STATE_UP_TO_DATE {
+			return
+		}
+	}
+	t.Fatal("the new image wasn't checked")
 }

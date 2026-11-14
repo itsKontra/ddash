@@ -1,5 +1,5 @@
 import { useQuery } from "@ddash/plugin";
-import { ComposeService, type Container, type Project, type Run } from "@ddash/proto/compose/compose_pb";
+import { ComposeService, ImageState, type Container, type Project, type Run } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService, type ComposeFile } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { ago } from "@ddash/display";
 import { ActionStrip, Button, Checkbox, CodeBlock, DataTable, EmptyState, Facts, FormActions, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, Tabs, TextArea, type Column } from "@ddash/ui";
@@ -75,6 +75,15 @@ function rows(p: Project): Row[] {
   return p.services.flatMap((s) =>
     s.containers.length ? s.containers.map((c) => ({ service: s.name, image: s.image, ports: s.ports, container: c })) : [{ service: s.name, image: s.image, ports: s.ports }],
   );
+}
+
+/** The Project's images at a glance: an update, not checked yet, or none known. */
+function ImagesFact({ project: p }: { project: Project }) {
+  const statuses = p.services.flatMap((s) => s.containers.map((c) => c.imageStatus));
+  if (p.updateAvailable) return <Pill tone="warn">update available</Pill>;
+  if (statuses.some((s) => s?.state === ImageState.UNKNOWN && s.reason === "not checked yet")) return <Pill>not checked yet</Pill>;
+  if (statuses.length > 0 && statuses.every((s) => s?.state === ImageState.NOT_CHECKED)) return <Pill>not checked: no registry</Pill>;
+  return <Pill tone="up">no update known</Pill>;
 }
 
 /** One Compose service's Actions: Start, or Restart and Stop, through the Project's Plan for just that service. */
@@ -246,7 +255,7 @@ export function ProjectPage() {
         <Facts
           items={[
             { label: "State", value: <ProjectStatePill project={p} /> },
-            { label: "Images", value: p.updateAvailable ? <Pill tone="warn">update available</Pill> : <Pill tone="up">no update known</Pill> },
+            { label: "Images", value: <ImagesFact project={p} /> },
             { label: "Protected", value: p.protected ? "yes: Stop, Restart and Update need an override" : "no" },
             { label: "Compose file", value: p.configFile || "unknown", mono: true },
           ]}
