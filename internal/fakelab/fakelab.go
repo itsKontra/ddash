@@ -9,7 +9,8 @@
 // Telegram: telegramfake; calendars: calendarfake, whose dates follow
 // the clock). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
-// system that has a sibling directory of that name.
+// system that has a sibling directory of that name. Beside the systems it
+// serves fake Host Agents (agentfake) on three of the baseline's Workloads.
 package fakelab
 
 import (
@@ -24,6 +25,8 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	"github.com/itsKontra/ddash/agent"
+	"github.com/itsKontra/ddash/agent/agentfake"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
@@ -144,6 +147,60 @@ var logicConfigs = map[string]func() proto.Message{
 	},
 }
 
+// hostAgents are the fake Host Agents the lab serves, on Workloads of the
+// proxmox-api baseline, each on its port when free. host-agent-api has no
+// config and no fixtures, so it isn't one of the systems: `make dev`
+// registers these with it once the core runs.
+var hostAgents = []struct {
+	vmid    uint32
+	name    string
+	port    int
+	release string
+	seed    agentfake.HostSeed
+}{
+	{
+		// Debian, sshd with a key ddash didn't install, and pending updates
+		// whose libc6 and kernel ask for a reboot.
+		vmid: 201, name: "docker-host", port: 17451,
+		seed: agentfake.HostSeed{
+			Hostname: "docker-host", OS: "debian", SSHInstalled: true, SSHRunning: true, PasswordAuth: true,
+			Keys: map[string][]string{"root": {"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIb9fWw8x0x1s7I1m2k0q3rS7f0Uu2Zb8oH4cQm6n2aT old-laptop"}},
+			Pending: []agent.Package{
+				{Name: "libc6", Current: "2.36-9+deb12u7", New: "2.36-9+deb12u9"},
+				{Name: "linux-image-amd64", Current: "6.1.112-1", New: "6.1.119-1"},
+				{Name: "openssl", Current: "3.0.14-1~deb12u2", New: "3.0.15-1~deb12u1"},
+				{Name: "curl", Current: "7.88.1-10+deb12u7", New: "7.88.1-10+deb12u8"},
+				{Name: "docker-ce", Current: "5:27.3.1-1~debian.12~bookworm", New: "5:27.4.0-1~debian.12~bookworm"},
+			},
+		},
+	},
+	{
+		// Alpine without sshd, on storage that can't snapshot (207's
+		// feature.json).
+		vmid: 207, name: "telegraf", port: 17452,
+		seed: agentfake.HostSeed{
+			Hostname: "telegraf", OS: "alpine",
+			Pending: []agent.Package{{Name: "busybox", Current: "1.36.1-r29", New: "1.36.1-r31"}, {Name: "musl", Current: "1.2.5-r0", New: "1.2.5-r1"}},
+		},
+	},
+	{
+		// An Ubuntu VM whose Agent runs an older Release: only Update
+		// Agent is allowed.
+		vmid: 101, name: "homeassist", port: 17453, release: "v0.0.1",
+		seed: agentfake.HostSeed{Hostname: "homeassist", OS: "ubuntu", SSHInstalled: true, SSHRunning: true, PasswordAuth: true},
+	},
+}
+
+// HostAgent is a fake Host Agent the lab serves.
+type HostAgent struct {
+	*agentfake.Host
+	// VMID and Name are its Workload's in the proxmox-api baseline.
+	VMID uint32
+	Name string
+	// URL is where it answers, https.
+	URL string
+}
+
 // Lab is the faked homelab, serving until Close.
 type Lab struct {
 	servers []*http.Server
@@ -151,6 +208,33 @@ type Lab struct {
 	// Addrs maps each Component to the address of the system it talks to.
 	Addrs    map[string]string
 	handlers map[string]http.Handler
+	// HostAgents are the fake Host Agents, by VMID order.
+	HostAgents []HostAgent
+	stops      []func()
+}
+
+// startHostAgents serves the fake Host Agents on host. Each keeps its
+// certificate and pairing under os.TempDir()/ddash-fakelab, so a ddash
+// that paired with it before still can after a restart.
+func (l *Lab) startHostAgents(host string) error {
+	for _, a := range hostAgents {
+		state := filepath.Join(os.TempDir(), "ddash-fakelab", fmt.Sprintf("host-agent-%d", a.vmid))
+		fake, err := agentfake.NewHost("", a.seed, agentfake.Options{StateDir: state, Release: a.release, StepDelay: 1500 * time.Millisecond})
+		if err != nil {
+			return err
+		}
+		u, stop, err := fake.Serve(net.JoinHostPort(host, fmt.Sprint(a.port)))
+		if err != nil {
+			// Taken (another lab, a test): any free port.
+			if u, stop, err = fake.Serve(net.JoinHostPort(host, "0")); err != nil {
+				return err
+			}
+		}
+		root := fake.Root
+		l.stops = append(l.stops, stop, func() { os.RemoveAll(root) })
+		l.HostAgents = append(l.HostAgents, HostAgent{Host: fake, VMID: a.vmid, Name: a.name, URL: u})
+	}
+	return nil
 }
 
 // Handler is what serves the HTTP system component talks to, e.g. a
@@ -197,6 +281,10 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 	}
 	if fw, ok := l.handlers["pfsense-api"].(*pfsensefake.Firewall); ok {
 		fw.EditHostOverrides(movedTo(host))
+	}
+	if err := l.startHostAgents(host); err != nil {
+		l.Close()
+		return nil, err
 	}
 	return l, nil
 }
@@ -261,5 +349,8 @@ func (l *Lab) Config() map[string]proto.Message { return l.config }
 func (l *Lab) Close() {
 	for _, srv := range l.servers {
 		srv.Close()
+	}
+	for _, stop := range l.stops {
+		stop()
 	}
 }

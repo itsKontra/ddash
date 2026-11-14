@@ -594,6 +594,15 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.current().Handler().ServeHTTP(w, r)
 }
 
+// Unpair forgets the fake's pairing, keeping its certificate, as if its
+// state had been reset: a ddash that never paired with it can now.
+func (s *server) Unpair() error {
+	if err := os.Remove(filepath.Join(s.o.StateDir, "state.json")); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return s.start()
+}
+
 // Fingerprint is the fake Agent's certificate's.
 func (s *server) Fingerprint() string { return s.current().Fingerprint() }
 

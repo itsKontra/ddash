@@ -3,13 +3,19 @@ package fakelab_test
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/protojson"
 
+	"github.com/itsKontra/ddash/agent"
+	"github.com/itsKontra/ddash/agent/agentfake"
 	"github.com/itsKontra/ddash/components/checks"
+	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
+	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	hostagentapi "github.com/itsKontra/ddash/components/host-agent-api"
 	"github.com/itsKontra/ddash/components/notify"
@@ -135,4 +141,103 @@ func TestAProtectedWorkloadIsRefusedAndKeepsRunning(t *testing.T) {
 	if diff := cmp.Diff([]string{"proxmox RestartWorkload PermissionDenied test"}, hops); diff != "" {
 		t.Errorf("Audit Log (-want +got):\n%s", diff)
 	}
+}
+
+// An update through a paired Host Agent, end to end: it outlives its
+// Action, keeps exactly one ddash Snapshot without touching the manual
+// one, and its whole run, the job's collect included, is one Audit Log
+// chain.
+func TestAnUpdateRunsInTheBackgroundInItsActionsChain(t *testing.T) {
+	h, lab := bootProxmoxLab(t)
+	h.WaitState("host-agent-api", runtime.OK)
+	// The lab's own Agents take 1.5 s a step; this one is quick.
+	fake, err := agentfake.NewHost("", agentfake.HostSeed{
+		OS: "debian", Pending: []agent.Package{{Name: "libc6", Current: "2.36-9+deb12u7", New: "2.36-9+deb12u9"}},
+	}, agentfake.Options{StateDir: t.TempDir()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, stop, err := fake.Serve("127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stop)
+	for _, call := range []struct{ method, body string }{
+		{"AddAgent", fmt.Sprintf(`{"vmid":201,"name":"docker-host","url":%q}`, u)},
+		{"PairAgent", `{"vmid":201}`},
+	} {
+		if res := h.Call("proxmox", "host-agent-api", call.method, call.body); res.Code != http.StatusOK {
+			t.Fatalf("%s: %d %s", call.method, res.Code, res.Body)
+		}
+	}
+	waitFor(t, func() bool {
+		res := h.Call("proxmox", "host-agent-api", "ListPackages", `{}`)
+		return strings.Contains(res.Body.String(), "libc6")
+	})
+
+	res := h.Call("proxmox", "proxmox", "RunUpdate", `{"workload":{"kind":"KIND_LXC","host":"pve","id":"201"}}`)
+	if res.Code != http.StatusOK {
+		t.Fatalf("RunUpdate: %d %s", res.Code, res.Body)
+	}
+	var updates proxmoxpb.ListUpdatesResponse
+	waitFor(t, func() bool {
+		res := h.Call("proxmox", "proxmox", "ListUpdates", `{}`)
+		if err := protojson.Unmarshal(res.Body.Bytes(), &updates); err != nil {
+			t.Fatal(err)
+		}
+		return len(updates.GetRuns()) == 1 && updates.GetRuns()[0].GetEnded() != nil
+	})
+	if r := updates.GetRuns()[0]; r.GetState() != jobpb.State_STATE_DONE || !r.GetRebootRequired() || r.GetUpdated() != 1 {
+		t.Fatalf("run = %v", r)
+	}
+
+	pve := lab.Handler("proxmox-api").(*proxmoxfake.Proxmox)
+	var names []string
+	for _, s := range pve.Snapshots(201) {
+		names = append(names, s.Name)
+	}
+	if len(names) != 2 || names[0] != "before-docker-27" || !strings.HasPrefix(names[1], "ddash-") || names[1] == "ddash-20261020-031500" {
+		t.Errorf("201's snapshots = %v, want the manual one and the new ddash Snapshot", names)
+	}
+
+	var hops []string
+	chains := map[string]bool{}
+	for _, e := range componentHops(h) {
+		if e.Method == "RunUpdate" || chains[e.Chain] {
+			chains[e.Chain] = true
+		}
+	}
+	for _, e := range componentHops(h) {
+		// notify's own fan-out to the channels is notify's to test.
+		if chains[e.Chain] && e.Target != "ntfy-api" && e.Target != "telegram-api" {
+			hops = append(hops, fmt.Sprintf("%s %s %s", e.Target, e.Method, e.Outcome))
+		}
+	}
+	slices.Reverse(hops)
+	want := []string{
+		"proxmox RunUpdate ok",
+		"checks StartMaintenance ok",
+		"proxmox-api CreateSnapshot ok",
+		"proxmox-api DeleteSnapshot ok",
+		"host-agent-api UpgradePackages ok",
+		"host-agent-api CollectJob ok",
+		"checks StartMaintenance ok",
+		"notify Send ok",
+	}
+	if diff := cmp.Diff(want, hops); diff != "" {
+		t.Errorf("the update's chain, oldest first (-want +got):\n%s", diff)
+	}
+	if len(chains) != 1 {
+		t.Errorf("%d chains, want 1", len(chains))
+	}
+}
+
+func waitFor(t *testing.T, ok func() bool) {
+	t.Helper()
+	for deadline := time.Now().Add(30 * time.Second); time.Now().Before(deadline); time.Sleep(200 * time.Millisecond) {
+		if ok() {
+			return
+		}
+	}
+	t.Fatal("timed out")
 }

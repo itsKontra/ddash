@@ -6,7 +6,8 @@
 //  2. It starts fakelab and seeds every Component's config to point at it.
 //  3. It installs every Plugin in the Release.
 //  4. It runs the core, built with -tags dev and signed in as operator:dev,
-//     with DDASH_RELEASE_DIR=dist, until interrupted.
+//     with DDASH_RELEASE_DIR=dist, until interrupted. Once it answers, it
+//     adds fakelab's Host Agents to host-agent-api and pairs them.
 //  5. It rebuilds every Plugin's bundle on change (`vite build --watch`;
 //     reload the page to see it, there is no HMR) and serves the shell from
 //     the Vite dev server, which proxies /api, /plugins and /vendor to the
@@ -28,12 +29,16 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
+	"time"
 
 	"github.com/itsKontra/ddash/core"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -119,11 +124,67 @@ func run(ctx context.Context, listen, data, dist string, scenarios []string) err
 	if err := srv.Start(); err != nil {
 		return err
 	}
+	go registerHostAgents(ctx, "http://"+listen, lab)
 	go func() {
 		<-ctx.Done()
 		srv.Process.Signal(syscall.SIGTERM) //nolint:errcheck // it may have exited
 	}()
 	return srv.Wait()
+}
+
+// registerHostAgents adds the lab's fake Host Agents to host-agent-api once
+// the core answers, as the Operator would on each Workload's Page, and
+// pairs them. An Agent this ddash didn't know yet (its data dir is new)
+// forgets an older pairing first; one it knows keeps its pairing.
+func registerHostAgents(ctx context.Context, core string, lab *fakelab.Lab) {
+	for _, a := range lab.HostAgents {
+		slog.Info("fakelab", "host agent", a.VMID, "workload", a.Name, "url", a.URL)
+		body := fmt.Sprintf(`{"vmid":%d,"name":%q,"url":%q}`, a.VMID, a.Name, a.URL)
+		for attempt := 0; ; attempt++ {
+			code, err := callComponent(ctx, core, "host-agent-api", "AddAgent", body)
+			switch {
+			case ctx.Err() != nil:
+				return
+			case code == http.StatusOK:
+				if err := a.Unpair(); err != nil {
+					slog.Warn("fakelab: unpair the Host Agent", "vmid", a.VMID, "err", err)
+				}
+				_, _ = callComponent(ctx, core, "host-agent-api", "PairAgent", fmt.Sprintf(`{"vmid":%d}`, a.VMID))
+				slog.Info("fakelab: added the Host Agent", "vmid", a.VMID)
+			case code == http.StatusConflict:
+				// AlreadyExists: added in an earlier run.
+			case attempt < 60:
+				// The core or host-agent-api isn't up yet.
+				time.Sleep(2 * time.Second)
+				continue
+			default:
+				slog.Warn("fakelab: add the Host Agent", "vmid", a.VMID, "status", code, "err", err)
+			}
+			break
+		}
+	}
+}
+
+// callComponent makes a Connect JSON call from the proxmox Plugin, as the
+// shell would, returning its HTTP status.
+func callComponent(ctx context.Context, core, component, method, body string) (int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, core+"/api/c/"+component+"/"+method, strings.NewReader(body))
+	if err != nil {
+		return 0, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connect-Protocol-Version", "1")
+	req.Header.Set("Ddash-Plugin", "proxmox")
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, err
+	}
+	defer res.Body.Close()
+	b, _ := io.ReadAll(io.LimitReader(res.Body, 4<<10))
+	if res.StatusCode != http.StatusOK {
+		return res.StatusCode, errors.New(string(b))
+	}
+	return res.StatusCode, nil
 }
 
 // pnpmCommand is how to run the repo's pinned pnpm: npx with the version
