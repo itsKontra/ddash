@@ -30,6 +30,7 @@ const systemName: Record<System, string> = {
   [System.DDASH]: "ddash",
   [System.NGINX_PROXY_MANAGER]: "Nginx Proxy Manager",
   [System.PFSENSE]: "pfSense",
+  [System.DOCKER]: "Docker",
 };
 
 /** Where a step is: before the run, running, or how it ended. */
