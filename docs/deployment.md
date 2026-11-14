@@ -177,6 +177,24 @@ Do these by hand, in order, before first use.
 
       Left empty, telegram-api is "not set up" and Notifications go to
       ntfy only; ntfy-api unconfigured likewise sends to Telegram only.
+- [ ] AI App helper (optional, opt-in): install the **AI App helper**
+      Plugin only if you want Claude to draft new Apps. No other Plugin
+      requires it; Docker and Apps show "Draft with AI" only while it is
+      installed. Create an API key at console.anthropic.com and enter it as
+      ai-helper's **Anthropic API key**: it is a write-only secret (the form
+      never shows it again, the Audit Log redacts it). Drafts are billed to
+      that key; the **Model** defaults to `claude-sonnet-5-5`. Left empty,
+      ai-helper is "not set up" and its Page says so.
+
+      What is sent, per draft, only when you press **Send to Anthropic**
+      after the Page has shown it to you word for word: your description,
+      and the chosen Docker host's name, its Compose Project names, the
+      host ports already published there, the networks and home domain you
+      typed, under ddash's fixed instructions. Never a Compose file's or
+      `.env`'s content, and ai-helper never calls a Docker Agent. The draft
+      comes back to the browser and opens in Add Compose Project or Add
+      App, where the normal Plan checks it; nothing runs on its own.
+      ddash needs outbound HTTPS to `api.anthropic.com`.
 - [ ] Which Notifications each channel gets: notify's config form, one
       switch per channel and category (Checks, image updates, Action
       outcomes). Everything goes everywhere by default. The Checks Page's
