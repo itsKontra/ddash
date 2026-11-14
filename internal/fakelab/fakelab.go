@@ -254,7 +254,7 @@ func (l *Lab) startHostAgents(host string) error {
 		}
 		root := fake.Root
 		l.cleanup = append(l.cleanup, func() { os.RemoveAll(root) })
-		u, stop, err := fake.Serve(listen(host, a.port))
+		u, stop, err := serveAgent(fake.Serve, host, a.port)
 		if err != nil {
 			return err
 		}

@@ -130,14 +130,14 @@ func stateDir(name string) string {
 	return filepath.Join(os.TempDir(), "ddash-fakelab", name)
 }
 
-// listen listens on host:port, or on a free port when that is taken.
-func listen(host string, port int) string {
-	ln, err := net.Listen("tcp", net.JoinHostPort(host, fmt.Sprint(port)))
-	if err != nil {
-		return net.JoinHostPort(host, "0")
+// serveAgent serves a fake Agent on host:port, or on a free port when that
+// is taken (by another lab, a parallel test): trying the bind itself, as a
+// probe-then-bind races with the other labs.
+func serveAgent(serve func(addr string) (string, func(), error), host string, port int) (string, func(), error) {
+	if u, stop, err := serve(net.JoinHostPort(host, fmt.Sprint(port))); err == nil {
+		return u, stop, nil
 	}
-	ln.Close()
-	return net.JoinHostPort(host, fmt.Sprint(port))
+	return serve(net.JoinHostPort(host, "0"))
 }
 
 // startDocker starts the lab's Docker Agent and the registry its images
@@ -152,7 +152,7 @@ func (l *Lab) startDocker(host string) error {
 	if err != nil {
 		return err
 	}
-	u, stop, err := fake.Serve(listen(host, dockerAgentPort))
+	u, stop, err := serveAgent(fake.Serve, host, dockerAgentPort)
 	if err != nil {
 		return err
 	}
