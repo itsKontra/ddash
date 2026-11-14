@@ -291,6 +291,7 @@ func (h *fakeHost) packages(ctx context.Context, name string, args []string, pen
 		h.pending = nil
 		h.mu.Unlock()
 		if reboot {
+			_ = os.MkdirAll(h.path("/var/run"), 0o755)
 			_ = os.WriteFile(h.path("/var/run/reboot-required"), nil, 0o644)
 		}
 	case has("install") || has("add") || has("-S"):

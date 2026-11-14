@@ -1,0 +1,3 @@
+name: host-agent-api
+description: Pairs with the Host Agents on LXCs and VMs and reads and updates their packages and SSH setup through them.
+requires: []
