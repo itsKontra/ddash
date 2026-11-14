@@ -238,13 +238,22 @@ export function Workloads() {
 /** Its IPs, or each NIC's MAC when it has none; marked when from the config. */
 export function Addresses({ workload: w }: { workload: Workload }) {
   if (w.addressesError) return <span className="text-warn-text">{w.addressesError}</span>;
-  const shown = w.nics.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
-  if (!shown.length) return <span className="text-muted-foreground">–</span>;
+  // A Docker host's bridges (docker0, br-…, veth…) aren't how it is reached: counted, not listed.
+  const bridge = (name: string) => /^(docker\d*|br-|veth|cni|flannel|virbr)/.test(name);
+  const own = w.nics.filter((n) => !bridge(n.name));
+  const bridges = w.nics.filter((n) => bridge(n.name)).flatMap((n) => n.ips).length;
+  const shown = own.flatMap((n) => (n.ips.length ? n.ips : n.mac ? [n.mac] : []));
+  if (!shown.length && !bridges) return <span className="text-muted-foreground">–</span>;
   return (
     <div className="flex flex-col">
       {shown.map((a) => (
         <span key={a}>{a}</span>
       ))}
+      {bridges > 0 && (
+        <span className="font-sans text-xs text-muted-foreground">
+          and {bridges} on Docker bridges
+        </span>
+      )}
       {w.addresses === AddressSource.CONFIG && <span className="font-sans text-xs text-muted-foreground">from config</span>}
     </div>
   );

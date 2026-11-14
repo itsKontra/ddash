@@ -5,7 +5,7 @@ import { ProxmoxService, type BackupTask } from "@ddash/proto/proxmox/proxmox_pb
 import { Button, Facts, Notice, Pill, Select, Skeleton, StatusList, type StatusItem } from "@ddash/ui";
 import { ago } from "@ddash/display";
 import { useNow } from "./format";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { refOf } from "./power";
 import { stateTone, stateWord } from "./steps";
 
@@ -24,8 +24,14 @@ export function SnapshotsAndBackups({ workload: w }: { workload: Workload }) {
 }
 
 function Snapshots({ workload: w }: { workload: Workload }) {
-  const { data, error } = useQuery(ProxmoxService.method.getSnapshots, { workload: refOf(w) });
+  const { data, error, refetch } = useQuery(ProxmoxService.method.getSnapshots, { workload: refOf(w) });
   const take = useAction(ProxmoxService.method.takeSnapshot);
+  // An update run takes and prunes ddash Snapshots on its own: read them again once it ended.
+  const updates = useQuery(ProxmoxService.method.listUpdates, {});
+  const runEnded = updates.data?.runs.find((r) => r.workload?.id === String(w.vmid))?.ended?.seconds.toString();
+  useEffect(() => {
+    if (runEnded) void refetch();
+  }, [runEnded, refetch]);
   const [deleted, setDeleted] = useState<string[]>();
   const now = useNow();
   if (error && !data) return <Notice tone="down">{error.rawMessage}</Notice>;
