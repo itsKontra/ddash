@@ -112,7 +112,10 @@ var systems = []system{
 // range), by Component.
 var logicConfigs = map[string]func() proto.Message{
 	"network": func() proto.Message {
-		return &networkpb.NetworkConfig{BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.150-198.18.1.199"}
+		return &networkpb.NetworkConfig{
+			BypassAlias: "VPN_BYPASS", ReservedRange: "198.18.1.150-198.18.1.199",
+			RemoteAccessEndpoint: "vpn.example.org", RemoteAccessDns: []string{"198.18.1.53"},
+		}
 	},
 }
 

@@ -18,7 +18,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file network/network.proto.
  */
 export const file_network_network: GenFile = /*@__PURE__*/
-  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsilwQKDU5ldHdvcmtDb25maWcSiwEKDGJ5cGFzc19hbGlhcxgBIAEoCUJ1mrUYcRoMQnlwYXNzIGFsaWFzIkZUaGUgZmlyZXdhbGwgYWxpYXMgd2hvc2UgbWVtYmVycyBza2lwIHRoZSBWUE4gVHVubmVsIChEaXJlY3QgRGV2aWNlcykuMAFSF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEqIBCg5yZXNlcnZlZF9yYW5nZRgCIAEoCUKJAZq1GIQBGg5SZXNlcnZlZCByYW5nZSJVV2hlcmUgQWRvcHQgcGlja3MgYSBOZXcgRGV2aWNlJ3MgcmVzZXJ2ZWQgYWRkcmVzcy4gSXQgbXVzdCBsaWUgb3V0c2lkZSB0aGUgREhDUCBwb29sLioXMTk4LjE4LjEuMjAtMTk4LjE4LjEuNDkwATgFEtIBCgtibG9ja19hbGlhcxgDIAEoCUK8AZq1GLcBGhFObyBJbnRlcm5ldCBhbGlhcyKIAVRoZSBmaXJld2FsbCBhbGlhcyB3aG9zZSBtZW1iZXJzIG1heSBub3QgcmVhY2ggdGhlIGludGVybmV0IChObyBJbnRlcm5ldCBEZXZpY2VzKS4gQ3JlYXRlIHRoZSBhbGlhcyBhbmQgaXRzIGJsb2NrIHJ1bGUgaW4gcGZTZW5zZSBmaXJzdC5SF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzIlAKFlNldEludGVybmV0UGF0aFJlcXVlc3QSCwoDbWFjGAEgASgJEikKBHBhdGgYAiABKA4yGy5kZGFzaC5uZXR3b3JrLkludGVybmV0UGF0aCJAChdTZXRJbnRlcm5ldFBhdGhSZXNwb25zZRIlCgZkZXZpY2UYASABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSIqChVHZXROZXR3b3JrSW5mb1JlcXVlc3QSEQoJYWRkcmVzc2VzGAEgAygJIloKFkdldE5ldHdvcmtJbmZvUmVzcG9uc2USKQoFaW5mb3MYASADKAsyGi5kZGFzaC5uZXR3b3JrLk5ldHdvcmtJbmZvEhUKDWFkZ3VhcmRfZXJyb3IYAiABKAkijgEKC05ldHdvcmtJbmZvEg8KB2FkZHJlc3MYASABKAkSMgoNaW50ZXJuZXRfcGF0aBgCIAEoDjIbLmRkYXNoLm5ldHdvcmsuSW50ZXJuZXRQYXRoEhMKC2Fkc19hbGxvd2VkGAMgASgIEiUKBmRldmljZRgEIAEoCzIVLmRkYXNoLm5ldHdvcmsuRGV2aWNlIjQKFFNldEFkQmxvY2tpbmdSZXF1ZXN0EgsKA21hYxgBIAEoCRIPCgdlbmFibGVkGAIgASgIIj4KFVNldEFkQmxvY2tpbmdSZXNwb25zZRIlCgZkZXZpY2UYASABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSIcChpOZXh0UmVzZXJ2ZWRBZGRyZXNzUmVxdWVzdCJBChtOZXh0UmVzZXJ2ZWRBZGRyZXNzUmVzcG9uc2USCgoCaXAYASABKAkSFgoOcmVzZXJ2ZWRfcmFuZ2UYAiABKAkiOwoSQWRvcHREZXZpY2VSZXF1ZXN0EgsKA21hYxgBIAEoCRIMCgRuYW1lGAIgASgJEgoKAmlwGAMgASgJIjwKE0Fkb3B0RGV2aWNlUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiMAoTUmVuYW1lRGV2aWNlUmVxdWVzdBILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCSI9ChRSZW5hbWVEZXZpY2VSZXNwb25zZRIlCgZkZXZpY2UYASABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSIUChJMaXN0RGV2aWNlc1JlcXVlc3QifwoTTGlzdERldmljZXNSZXNwb25zZRImCgdkZXZpY2VzGAEgAygLMhUuZGRhc2gubmV0d29yay5EZXZpY2USFAoMYnlwYXNzX2FsaWFzGAIgASgJEhUKDWFkZ3VhcmRfZXJyb3IYAyABKAkSEwoLYmxvY2tfYWxpYXMYBCABKAkitAIKBkRldmljZRILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJpcBgDIAEoCRIOCgZvbmxpbmUYBCABKAgSDwoHYWRvcHRlZBgFIAEoCBIyCg1pbnRlcm5ldF9wYXRoGAsgASgOMhsuZGRhc2gubmV0d29yay5JbnRlcm5ldFBhdGgSKQoFbGVhc2UYByABKAsyGi5kZGFzaC5uZXR3b3JrLkRldmljZUxlYXNlEi8KC3Jlc2VydmF0aW9uGAggASgLMhouZGRhc2gubmV0d29yay5SZXNlcnZhdGlvbhIrCgdhbGlhc2VzGAkgAygLMhouZGRhc2gubmV0d29yay5EZXZpY2VBbGlhcxIXCg9hZF9ibG9ja2luZ19vZmYYCiABKAhKBAgGEAdSBmRpcmVjdCKDAQoLRGV2aWNlTGVhc2USCgoCaXAYASABKAkSEAoIaG9zdG5hbWUYAiABKAkSEQoJaW50ZXJmYWNlGAMgASgJEg4KBnN0YXJ0cxgEIAEoCRIMCgRlbmRzGAUgASgJEg4KBnN0YXR1cxgGIAEoCRIVCg1vbmxpbmVfc3RhdHVzGAcgASgJIlMKC1Jlc2VydmF0aW9uEhEKCWludGVyZmFjZRgBIAEoCRIKCgJpcBgCIAEoCRIQCghob3N0bmFtZRgDIAEoCRITCgtkZXNjcmlwdGlvbhgEIAEoCSIwCgtEZXZpY2VBbGlhcxIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJIkEKFEdldFRocm91Z2hwdXRSZXF1ZXN0EikKBXNpbmNlGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJYChVHZXRUaHJvdWdocHV0UmVzcG9uc2USMAoHc2FtcGxlcxgBIAMoCzIfLmRkYXNoLm5ldHdvcmsuVGhyb3VnaHB1dFNhbXBsZRINCgVlcnJvchgCIAEoCSLAAQoQVGhyb3VnaHB1dFNhbXBsZRImCgJhdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASHwoXd2FuX2luX2J5dGVzX3Blcl9zZWNvbmQYAiABKAESIAoYd2FuX291dF9ieXRlc19wZXJfc2Vjb25kGAMgASgBEh8KF2xhbl9pbl9ieXRlc19wZXJfc2Vjb25kGAQgASgBEiAKGGxhbl9vdXRfYnl0ZXNfcGVyX3NlY29uZBgFIAEoASIYChZHZXRSZW1vdGVBY2Nlc3NSZXF1ZXN0InsKF0dldFJlbW90ZUFjY2Vzc1Jlc3BvbnNlEg4KBnR1bm5lbBgBIAEoCRIRCglpbnRlcmZhY2UYAiABKAkSLgoFcGVlcnMYAyADKAsyHy5kZGFzaC5uZXR3b3JrLlJlbW90ZUFjY2Vzc1BlZXISDQoFZXJyb3IYBCABKAki2gEKEFJlbW90ZUFjY2Vzc1BlZXISDAoEbmFtZRgBIAEoCRISCgpwdWJsaWNfa2V5GAIgASgJEhEKCWFkZHJlc3NlcxgDIAMoCRIQCghlbmRwb2ludBgEIAEoCRI0ChBsYXRlc3RfaGFuZHNoYWtlGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCghyeF9ieXRlcxgGIAEoBBIQCgh0eF9ieXRlcxgHIAEoBBIlCgdyZWFjaGVzGAggAygLMhQuZGRhc2gubmV0d29yay5SZWFjaCJaCgVSZWFjaBITCgtkZXN0aW5hdGlvbhgBIAEoCRINCgVsYWJlbBgCIAEoCRIQCghwcm90b2NvbBgDIAEoCRINCgVwb3J0cxgEIAEoCRIMCgRydWxlGAUgASgJIhUKE0dldFZwblR1bm5lbFJlcXVlc3QihwEKFEdldFZwblR1bm5lbFJlc3BvbnNlEiEKBHRpZXIYASABKA4yEy5kZGFzaC5uZXR3b3JrLlRpZXISDQoFZ3JvdXAYAiABKAkSLgoIZ2F0ZXdheXMYAyADKAsyHC5kZGFzaC5uZXR3b3JrLlR1bm5lbEdhdGV3YXkSDQoFZXJyb3IYBCABKAkiqgEKDVR1bm5lbEdhdGV3YXkSDAoEbmFtZRgBIAEoCRIMCgR0aWVyGAIgASgFEgoKAnVwGAMgASgIEg4KBnN0YXR1cxgEIAEoCRIRCglzdWJzdGF0dXMYBSABKAkSFQoIZGVsYXlfbXMYBiABKAFIAIgBARIZCgxsb3NzX3BlcmNlbnQYByABKAFIAYgBAUILCglfZGVsYXlfbXNCDwoNX2xvc3NfcGVyY2VudCqDAQoMSW50ZXJuZXRQYXRoEh0KGUlOVEVSTkVUX1BBVEhfVU5TUEVDSUZJRUQQABIbChdJTlRFUk5FVF9QQVRIX1RVTk5FTExFRBABEhgKFElOVEVSTkVUX1BBVEhfRElSRUNUEAISHQoZSU5URVJORVRfUEFUSF9OT19JTlRFUk5FVBADKlEKBFRpZXISFAoQVElFUl9VTlNQRUNJRklFRBAAEhIKDlRJRVJfV0lSRUdVQVJEEAESEAoMVElFUl9PUEVOVlBOEAISDQoJVElFUl9ET1dOEAMy+QcKDk5ldHdvcmtTZXJ2aWNlEl8KDEdldFZwblR1bm5lbBIiLmRkYXNoLm5ldHdvcmsuR2V0VnBuVHVubmVsUmVxdWVzdBojLmRkYXNoLm5ldHdvcmsuR2V0VnBuVHVubmVsUmVzcG9uc2UiBoq1GAIIAhJaCgtMaXN0RGV2aWNlcxIhLmRkYXNoLm5ldHdvcmsuTGlzdERldmljZXNSZXF1ZXN0GiIuZGRhc2gubmV0d29yay5MaXN0RGV2aWNlc1Jlc3BvbnNlIgSKtRgAEmIKDUdldFRocm91Z2hwdXQSIy5kZGFzaC5uZXR3b3JrLkdldFRocm91Z2hwdXRSZXF1ZXN0GiQuZGRhc2gubmV0d29yay5HZXRUaHJvdWdocHV0UmVzcG9uc2UiBoq1GAIIARJmCg9HZXRSZW1vdGVBY2Nlc3MSJS5kZGFzaC5uZXR3b3JrLkdldFJlbW90ZUFjY2Vzc1JlcXVlc3QaJi5kZGFzaC5uZXR3b3JrLkdldFJlbW90ZUFjY2Vzc1Jlc3BvbnNlIgSKtRgAEnQKE05leHRSZXNlcnZlZEFkZHJlc3MSKS5kZGFzaC5uZXR3b3JrLk5leHRSZXNlcnZlZEFkZHJlc3NSZXF1ZXN0GiouZGRhc2gubmV0d29yay5OZXh0UmVzZXJ2ZWRBZGRyZXNzUmVzcG9uc2UiBoq1GAIIAxJaCgtBZG9wdERldmljZRIhLmRkYXNoLm5ldHdvcmsuQWRvcHREZXZpY2VSZXF1ZXN0GiIuZGRhc2gubmV0d29yay5BZG9wdERldmljZVJlc3BvbnNlIgSStRgAEl0KDFJlbmFtZURldmljZRIiLmRkYXNoLm5ldHdvcmsuUmVuYW1lRGV2aWNlUmVxdWVzdBojLmRkYXNoLm5ldHdvcmsuUmVuYW1lRGV2aWNlUmVzcG9uc2UiBJK1GAASZgoPU2V0SW50ZXJuZXRQYXRoEiUuZGRhc2gubmV0d29yay5TZXRJbnRlcm5ldFBhdGhSZXF1ZXN0GiYuZGRhc2gubmV0d29yay5TZXRJbnRlcm5ldFBhdGhSZXNwb25zZSIEkrUYABJjCg5HZXROZXR3b3JrSW5mbxIkLmRkYXNoLm5ldHdvcmsuR2V0TmV0d29ya0luZm9SZXF1ZXN0GiUuZGRhc2gubmV0d29yay5HZXROZXR3b3JrSW5mb1Jlc3BvbnNlIgSKtRgAEmAKDVNldEFkQmxvY2tpbmcSIy5kZGFzaC5uZXR3b3JrLlNldEFkQmxvY2tpbmdSZXF1ZXN0GiQuZGRhc2gubmV0d29yay5TZXRBZEJsb2NraW5nUmVzcG9uc2UiBJK1GABCQ1pBZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZXR3b3JrL25ldHdvcmtwYjtuZXR3b3JrcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("ChVuZXR3b3JrL25ldHdvcmsucHJvdG8SDWRkYXNoLm5ldHdvcmsioAkKDU5ldHdvcmtDb25maWcSiwEKDGJ5cGFzc19hbGlhcxgBIAEoCUJ1mrUYcRoMQnlwYXNzIGFsaWFzIkZUaGUgZmlyZXdhbGwgYWxpYXMgd2hvc2UgbWVtYmVycyBza2lwIHRoZSBWUE4gVHVubmVsIChEaXJlY3QgRGV2aWNlcykuMAFSF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEqIBCg5yZXNlcnZlZF9yYW5nZRgCIAEoCUKJAZq1GIQBGg5SZXNlcnZlZCByYW5nZSJVV2hlcmUgQWRvcHQgcGlja3MgYSBOZXcgRGV2aWNlJ3MgcmVzZXJ2ZWQgYWRkcmVzcy4gSXQgbXVzdCBsaWUgb3V0c2lkZSB0aGUgREhDUCBwb29sLioXMTk4LjE4LjEuMjAtMTk4LjE4LjEuNDkwATgFEtIBCgtibG9ja19hbGlhcxgDIAEoCUK8AZq1GLcBGhFObyBJbnRlcm5ldCBhbGlhcyKIAVRoZSBmaXJld2FsbCBhbGlhcyB3aG9zZSBtZW1iZXJzIG1heSBub3QgcmVhY2ggdGhlIGludGVybmV0IChObyBJbnRlcm5ldCBEZXZpY2VzKS4gQ3JlYXRlIHRoZSBhbGlhcyBhbmQgaXRzIGJsb2NrIHJ1bGUgaW4gcGZTZW5zZSBmaXJzdC5SF3Bmc2Vuc2UtYXBpLkxpc3RBbGlhc2VzEuYBChZyZW1vdGVfYWNjZXNzX2VuZHBvaW50GAQgASgJQsUBmrUYwAEaFlJlbW90ZSBBY2Nlc3MgZW5kcG9pbnQijgFUaGUgcHVibGljIGhvc3RuYW1lIChvciBhZGRyZXNzKSBhIG5ldyBSZW1vdGUgQWNjZXNzIGRldmljZSBkaWFscywgd2l0aCA6cG9ydCB3aGVuIGl0IGlzbid0IHRoZSB0dW5uZWwncyBsaXN0ZW4gcG9ydC4gTmVlZGVkIGZvciBBZGQgYSBkZXZpY2UuKhV2cG4uZXhhbXBsZS5vcmc6NTE4MjASoQEKEXJlbW90ZV9hY2Nlc3NfZG5zGAUgAygJQoUBmrUYgAEaEVJlbW90ZSBBY2Nlc3MgRE5TImlUaGUgRE5TIHNlcnZlcnMgYSBuZXcgUmVtb3RlIEFjY2VzcyBkZXZpY2UgdXNlcywgZS5nLiBBZEd1YXJkJ3MgYWRkcmVzcy4gRW1wdHk6IHRoZSBkZXZpY2Uga2VlcHMgaXRzIG93bi44AxL5AQoUcmVtb3RlX2FjY2Vzc19yb3V0ZXMYBiADKAlC2gGatRjVARoUUmVtb3RlIEFjY2VzcyByb3V0ZXMiugFXaGF0IGEgbmV3IFJlbW90ZSBBY2Nlc3MgZGV2aWNlIHNlbmRzIHRocm91Z2ggdGhlIHR1bm5lbCAoQWxsb3dlZElQcykuIEVtcHR5OiB0aGUgZmlyZXdhbGwncyBpbnRlcm5hbCBzdWJuZXRzICh0aG9zZSB3aXRob3V0IGEgZ2F0ZXdheSksIHNvIG9ubHkgaG9tZSB0cmFmZmljOyAwLjAuMC4wLzAgc2VuZHMgZXZlcnl0aGluZy44BCJQChZTZXRJbnRlcm5ldFBhdGhSZXF1ZXN0EgsKA21hYxgBIAEoCRIpCgRwYXRoGAIgASgOMhsuZGRhc2gubmV0d29yay5JbnRlcm5ldFBhdGgiQAoXU2V0SW50ZXJuZXRQYXRoUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiKgoVR2V0TmV0d29ya0luZm9SZXF1ZXN0EhEKCWFkZHJlc3NlcxgBIAMoCSJaChZHZXROZXR3b3JrSW5mb1Jlc3BvbnNlEikKBWluZm9zGAEgAygLMhouZGRhc2gubmV0d29yay5OZXR3b3JrSW5mbxIVCg1hZGd1YXJkX2Vycm9yGAIgASgJIo4BCgtOZXR3b3JrSW5mbxIPCgdhZGRyZXNzGAEgASgJEjIKDWludGVybmV0X3BhdGgYAiABKA4yGy5kZGFzaC5uZXR3b3JrLkludGVybmV0UGF0aBITCgthZHNfYWxsb3dlZBgDIAEoCBIlCgZkZXZpY2UYBCABKAsyFS5kZGFzaC5uZXR3b3JrLkRldmljZSI0ChRTZXRBZEJsb2NraW5nUmVxdWVzdBILCgNtYWMYASABKAkSDwoHZW5hYmxlZBgCIAEoCCI+ChVTZXRBZEJsb2NraW5nUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiHAoaTmV4dFJlc2VydmVkQWRkcmVzc1JlcXVlc3QiQQobTmV4dFJlc2VydmVkQWRkcmVzc1Jlc3BvbnNlEgoKAmlwGAEgASgJEhYKDnJlc2VydmVkX3JhbmdlGAIgASgJIjsKEkFkb3B0RGV2aWNlUmVxdWVzdBILCgNtYWMYASABKAkSDAoEbmFtZRgCIAEoCRIKCgJpcBgDIAEoCSI8ChNBZG9wdERldmljZVJlc3BvbnNlEiUKBmRldmljZRgBIAEoCzIVLmRkYXNoLm5ldHdvcmsuRGV2aWNlIjAKE1JlbmFtZURldmljZVJlcXVlc3QSCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkiPQoUUmVuYW1lRGV2aWNlUmVzcG9uc2USJQoGZGV2aWNlGAEgASgLMhUuZGRhc2gubmV0d29yay5EZXZpY2UiFAoSTGlzdERldmljZXNSZXF1ZXN0In8KE0xpc3REZXZpY2VzUmVzcG9uc2USJgoHZGV2aWNlcxgBIAMoCzIVLmRkYXNoLm5ldHdvcmsuRGV2aWNlEhQKDGJ5cGFzc19hbGlhcxgCIAEoCRIVCg1hZGd1YXJkX2Vycm9yGAMgASgJEhMKC2Jsb2NrX2FsaWFzGAQgASgJIrQCCgZEZXZpY2USCwoDbWFjGAEgASgJEgwKBG5hbWUYAiABKAkSCgoCaXAYAyABKAkSDgoGb25saW5lGAQgASgIEg8KB2Fkb3B0ZWQYBSABKAgSMgoNaW50ZXJuZXRfcGF0aBgLIAEoDjIbLmRkYXNoLm5ldHdvcmsuSW50ZXJuZXRQYXRoEikKBWxlYXNlGAcgASgLMhouZGRhc2gubmV0d29yay5EZXZpY2VMZWFzZRIvCgtyZXNlcnZhdGlvbhgIIAEoCzIaLmRkYXNoLm5ldHdvcmsuUmVzZXJ2YXRpb24SKwoHYWxpYXNlcxgJIAMoCzIaLmRkYXNoLm5ldHdvcmsuRGV2aWNlQWxpYXMSFwoPYWRfYmxvY2tpbmdfb2ZmGAogASgISgQIBhAHUgZkaXJlY3QigwEKC0RldmljZUxlYXNlEgoKAmlwGAEgASgJEhAKCGhvc3RuYW1lGAIgASgJEhEKCWludGVyZmFjZRgDIAEoCRIOCgZzdGFydHMYBCABKAkSDAoEZW5kcxgFIAEoCRIOCgZzdGF0dXMYBiABKAkSFQoNb25saW5lX3N0YXR1cxgHIAEoCSJTCgtSZXNlcnZhdGlvbhIRCglpbnRlcmZhY2UYASABKAkSCgoCaXAYAiABKAkSEAoIaG9zdG5hbWUYAyABKAkSEwoLZGVzY3JpcHRpb24YBCABKAkiMAoLRGV2aWNlQWxpYXMSDAoEbmFtZRgBIAEoCRITCgtkZXNjcmlwdGlvbhgCIAEoCSJBChRHZXRUaHJvdWdocHV0UmVxdWVzdBIpCgVzaW5jZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiWAoVR2V0VGhyb3VnaHB1dFJlc3BvbnNlEjAKB3NhbXBsZXMYASADKAsyHy5kZGFzaC5uZXR3b3JrLlRocm91Z2hwdXRTYW1wbGUSDQoFZXJyb3IYAiABKAkiwAEKEFRocm91Z2hwdXRTYW1wbGUSJgoCYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEh8KF3dhbl9pbl9ieXRlc19wZXJfc2Vjb25kGAIgASgBEiAKGHdhbl9vdXRfYnl0ZXNfcGVyX3NlY29uZBgDIAEoARIfChdsYW5faW5fYnl0ZXNfcGVyX3NlY29uZBgEIAEoARIgChhsYW5fb3V0X2J5dGVzX3Blcl9zZWNvbmQYBSABKAEiKgoaQWRkUmVtb3RlQWNjZXNzUGVlclJlcXVlc3QSDAoEbmFtZRgBIAEoCSJ1ChtBZGRSZW1vdGVBY2Nlc3NQZWVyUmVzcG9uc2USLQoEcGVlchgBIAEoCzIfLmRkYXNoLm5ldHdvcmsuUmVtb3RlQWNjZXNzUGVlchIWCgZjb25maWcYAiABKAlCBpq1GAIQARIPCgd3YXJuaW5nGAMgASgJIhgKFkdldFJlbW90ZUFjY2Vzc1JlcXVlc3QilAEKF0dldFJlbW90ZUFjY2Vzc1Jlc3BvbnNlEg4KBnR1bm5lbBgBIAEoCRIRCglpbnRlcmZhY2UYAiABKAkSLgoFcGVlcnMYAyADKAsyHy5kZGFzaC5uZXR3b3JrLlJlbW90ZUFjY2Vzc1BlZXISDQoFZXJyb3IYBCABKAkSFwoPYWRkX3VuYXZhaWxhYmxlGAUgASgJItoBChBSZW1vdGVBY2Nlc3NQZWVyEgwKBG5hbWUYASABKAkSEgoKcHVibGljX2tleRgCIAEoCRIRCglhZGRyZXNzZXMYAyADKAkSEAoIZW5kcG9pbnQYBCABKAkSNAoQbGF0ZXN0X2hhbmRzaGFrZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcnhfYnl0ZXMYBiABKAQSEAoIdHhfYnl0ZXMYByABKAQSJQoHcmVhY2hlcxgIIAMoCzIULmRkYXNoLm5ldHdvcmsuUmVhY2giWgoFUmVhY2gSEwoLZGVzdGluYXRpb24YASABKAkSDQoFbGFiZWwYAiABKAkSEAoIcHJvdG9jb2wYAyABKAkSDQoFcG9ydHMYBCABKAkSDAoEcnVsZRgFIAEoCSIVChNHZXRWcG5UdW5uZWxSZXF1ZXN0IocBChRHZXRWcG5UdW5uZWxSZXNwb25zZRIhCgR0aWVyGAEgASgOMhMuZGRhc2gubmV0d29yay5UaWVyEg0KBWdyb3VwGAIgASgJEi4KCGdhdGV3YXlzGAMgAygLMhwuZGRhc2gubmV0d29yay5UdW5uZWxHYXRld2F5Eg0KBWVycm9yGAQgASgJIqoBCg1UdW5uZWxHYXRld2F5EgwKBG5hbWUYASABKAkSDAoEdGllchgCIAEoBRIKCgJ1cBgDIAEoCBIOCgZzdGF0dXMYBCABKAkSEQoJc3Vic3RhdHVzGAUgASgJEhUKCGRlbGF5X21zGAYgASgBSACIAQESGQoMbG9zc19wZXJjZW50GAcgASgBSAGIAQFCCwoJX2RlbGF5X21zQg8KDV9sb3NzX3BlcmNlbnQqgwEKDEludGVybmV0UGF0aBIdChlJTlRFUk5FVF9QQVRIX1VOU1BFQ0lGSUVEEAASGwoXSU5URVJORVRfUEFUSF9UVU5ORUxMRUQQARIYChRJTlRFUk5FVF9QQVRIX0RJUkVDVBACEh0KGUlOVEVSTkVUX1BBVEhfTk9fSU5URVJORVQQAypRCgRUaWVyEhQKEFRJRVJfVU5TUEVDSUZJRUQQABISCg5USUVSX1dJUkVHVUFSRBABEhAKDFRJRVJfT1BFTlZQThACEg0KCVRJRVJfRE9XThADMu0ICg5OZXR3b3JrU2VydmljZRJfCgxHZXRWcG5UdW5uZWwSIi5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlcXVlc3QaIy5kZGFzaC5uZXR3b3JrLkdldFZwblR1bm5lbFJlc3BvbnNlIgaKtRgCCAISWgoLTGlzdERldmljZXMSIS5kZGFzaC5uZXR3b3JrLkxpc3REZXZpY2VzUmVxdWVzdBoiLmRkYXNoLm5ldHdvcmsuTGlzdERldmljZXNSZXNwb25zZSIEirUYABJiCg1HZXRUaHJvdWdocHV0EiMuZGRhc2gubmV0d29yay5HZXRUaHJvdWdocHV0UmVxdWVzdBokLmRkYXNoLm5ldHdvcmsuR2V0VGhyb3VnaHB1dFJlc3BvbnNlIgaKtRgCCAESZgoPR2V0UmVtb3RlQWNjZXNzEiUuZGRhc2gubmV0d29yay5HZXRSZW1vdGVBY2Nlc3NSZXF1ZXN0GiYuZGRhc2gubmV0d29yay5HZXRSZW1vdGVBY2Nlc3NSZXNwb25zZSIEirUYABJyChNBZGRSZW1vdGVBY2Nlc3NQZWVyEikuZGRhc2gubmV0d29yay5BZGRSZW1vdGVBY2Nlc3NQZWVyUmVxdWVzdBoqLmRkYXNoLm5ldHdvcmsuQWRkUmVtb3RlQWNjZXNzUGVlclJlc3BvbnNlIgSStRgAEnQKE05leHRSZXNlcnZlZEFkZHJlc3MSKS5kZGFzaC5uZXR3b3JrLk5leHRSZXNlcnZlZEFkZHJlc3NSZXF1ZXN0GiouZGRhc2gubmV0d29yay5OZXh0UmVzZXJ2ZWRBZGRyZXNzUmVzcG9uc2UiBoq1GAIIAxJaCgtBZG9wdERldmljZRIhLmRkYXNoLm5ldHdvcmsuQWRvcHREZXZpY2VSZXF1ZXN0GiIuZGRhc2gubmV0d29yay5BZG9wdERldmljZVJlc3BvbnNlIgSStRgAEl0KDFJlbmFtZURldmljZRIiLmRkYXNoLm5ldHdvcmsuUmVuYW1lRGV2aWNlUmVxdWVzdBojLmRkYXNoLm5ldHdvcmsuUmVuYW1lRGV2aWNlUmVzcG9uc2UiBJK1GAASZgoPU2V0SW50ZXJuZXRQYXRoEiUuZGRhc2gubmV0d29yay5TZXRJbnRlcm5ldFBhdGhSZXF1ZXN0GiYuZGRhc2gubmV0d29yay5TZXRJbnRlcm5ldFBhdGhSZXNwb25zZSIEkrUYABJjCg5HZXROZXR3b3JrSW5mbxIkLmRkYXNoLm5ldHdvcmsuR2V0TmV0d29ya0luZm9SZXF1ZXN0GiUuZGRhc2gubmV0d29yay5HZXROZXR3b3JrSW5mb1Jlc3BvbnNlIgSKtRgAEmAKDVNldEFkQmxvY2tpbmcSIy5kZGFzaC5uZXR3b3JrLlNldEFkQmxvY2tpbmdSZXF1ZXN0GiQuZGRhc2gubmV0d29yay5TZXRBZEJsb2NraW5nUmVzcG9uc2UiBJK1GABCQ1pBZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9uZXR3b3JrL25ldHdvcmtwYjtuZXR3b3JrcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.network.NetworkConfig
@@ -47,6 +47,33 @@ export type NetworkConfig = Message<"ddash.network.NetworkConfig"> & {
    * @generated from field: string block_alias = 3;
    */
   blockAlias: string;
+
+  /**
+   * Where a Remote Access peer ddash adds dials in from outside: the
+   * firewall's public hostname or address, with the tunnel's port unless
+   * it is the listen port (a port forward). Optional: unset, Add a device
+   * is refused.
+   *
+   * @generated from field: string remote_access_endpoint = 4;
+   */
+  remoteAccessEndpoint: string;
+
+  /**
+   * The DNS servers a new peer's config names; none keeps the device's
+   * own.
+   *
+   * @generated from field: repeated string remote_access_dns = 5;
+   */
+  remoteAccessDns: string[];
+
+  /**
+   * What a new peer sends through the tunnel (its config's AllowedIPs).
+   * Unset: the subnets of the firewall's interfaces without a gateway
+   * (LAN, the Remote Access subnet, ...), so only home traffic takes it.
+   *
+   * @generated from field: repeated string remote_access_routes = 6;
+   */
+  remoteAccessRoutes: string[];
 };
 
 /**
@@ -705,6 +732,62 @@ export const ThroughputSampleSchema: GenMessage<ThroughputSample> = /*@__PURE__*
   messageDesc(file_network_network, 22);
 
 /**
+ * @generated from message ddash.network.AddRemoteAccessPeerRequest
+ */
+export type AddRemoteAccessPeerRequest = Message<"ddash.network.AddRemoteAccessPeerRequest"> & {
+  /**
+   * The device's name, written as the peer's description, e.g. "Anna's
+   * phone".
+   *
+   * @generated from field: string name = 1;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message ddash.network.AddRemoteAccessPeerRequest.
+ * Use `create(AddRemoteAccessPeerRequestSchema)` to create a new message.
+ */
+export const AddRemoteAccessPeerRequestSchema: GenMessage<AddRemoteAccessPeerRequest> = /*@__PURE__*/
+  messageDesc(file_network_network, 23);
+
+/**
+ * @generated from message ddash.network.AddRemoteAccessPeerResponse
+ */
+export type AddRemoteAccessPeerResponse = Message<"ddash.network.AddRemoteAccessPeerResponse"> & {
+  /**
+   * The peer as added: no handshake yet.
+   *
+   * @generated from field: ddash.network.RemoteAccessPeer peer = 1;
+   */
+  peer?: RemoteAccessPeer | undefined;
+
+  /**
+   * The device's WireGuard config (wg-quick's format), private key and
+   * all: [Interface] PrivateKey, Address, DNS; [Peer] PublicKey, Endpoint,
+   * AllowedIPs, PersistentKeepalive. Returned this once.
+   *
+   * @generated from field: string config = 2;
+   */
+  config: string;
+
+  /**
+   * Set when pfSense holds the peer but applying it failed, so the device
+   * can't connect until WireGuard's changes are applied in pfSense.
+   *
+   * @generated from field: string warning = 3;
+   */
+  warning: string;
+};
+
+/**
+ * Describes the message ddash.network.AddRemoteAccessPeerResponse.
+ * Use `create(AddRemoteAccessPeerResponseSchema)` to create a new message.
+ */
+export const AddRemoteAccessPeerResponseSchema: GenMessage<AddRemoteAccessPeerResponse> = /*@__PURE__*/
+  messageDesc(file_network_network, 24);
+
+/**
  * @generated from message ddash.network.GetRemoteAccessRequest
  */
 export type GetRemoteAccessRequest = Message<"ddash.network.GetRemoteAccessRequest"> & {
@@ -715,7 +798,7 @@ export type GetRemoteAccessRequest = Message<"ddash.network.GetRemoteAccessReque
  * Use `create(GetRemoteAccessRequestSchema)` to create a new message.
  */
 export const GetRemoteAccessRequestSchema: GenMessage<GetRemoteAccessRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 23);
+  messageDesc(file_network_network, 25);
 
 /**
  * @generated from message ddash.network.GetRemoteAccessResponse
@@ -747,6 +830,14 @@ export type GetRemoteAccessResponse = Message<"ddash.network.GetRemoteAccessResp
    * @generated from field: string error = 4;
    */
   error: string;
+
+  /**
+   * Why AddRemoteAccessPeer would be refused before trying (network's
+   * config names no Remote Access endpoint); empty when it can add.
+   *
+   * @generated from field: string add_unavailable = 5;
+   */
+  addUnavailable: string;
 };
 
 /**
@@ -754,7 +845,7 @@ export type GetRemoteAccessResponse = Message<"ddash.network.GetRemoteAccessResp
  * Use `create(GetRemoteAccessResponseSchema)` to create a new message.
  */
 export const GetRemoteAccessResponseSchema: GenMessage<GetRemoteAccessResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 24);
+  messageDesc(file_network_network, 26);
 
 /**
  * @generated from message ddash.network.RemoteAccessPeer
@@ -818,7 +909,7 @@ export type RemoteAccessPeer = Message<"ddash.network.RemoteAccessPeer"> & {
  * Use `create(RemoteAccessPeerSchema)` to create a new message.
  */
 export const RemoteAccessPeerSchema: GenMessage<RemoteAccessPeer> = /*@__PURE__*/
-  messageDesc(file_network_network, 25);
+  messageDesc(file_network_network, 27);
 
 /**
  * A destination a pass rule lets a peer reach.
@@ -870,7 +961,7 @@ export type Reach = Message<"ddash.network.Reach"> & {
  * Use `create(ReachSchema)` to create a new message.
  */
 export const ReachSchema: GenMessage<Reach> = /*@__PURE__*/
-  messageDesc(file_network_network, 26);
+  messageDesc(file_network_network, 28);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelRequest
@@ -883,7 +974,7 @@ export type GetVpnTunnelRequest = Message<"ddash.network.GetVpnTunnelRequest"> &
  * Use `create(GetVpnTunnelRequestSchema)` to create a new message.
  */
 export const GetVpnTunnelRequestSchema: GenMessage<GetVpnTunnelRequest> = /*@__PURE__*/
-  messageDesc(file_network_network, 27);
+  messageDesc(file_network_network, 29);
 
 /**
  * @generated from message ddash.network.GetVpnTunnelResponse
@@ -924,7 +1015,7 @@ export type GetVpnTunnelResponse = Message<"ddash.network.GetVpnTunnelResponse">
  * Use `create(GetVpnTunnelResponseSchema)` to create a new message.
  */
 export const GetVpnTunnelResponseSchema: GenMessage<GetVpnTunnelResponse> = /*@__PURE__*/
-  messageDesc(file_network_network, 28);
+  messageDesc(file_network_network, 30);
 
 /**
  * @generated from message ddash.network.TunnelGateway
@@ -983,7 +1074,7 @@ export type TunnelGateway = Message<"ddash.network.TunnelGateway"> & {
  * Use `create(TunnelGatewaySchema)` to create a new message.
  */
 export const TunnelGatewaySchema: GenMessage<TunnelGateway> = /*@__PURE__*/
-  messageDesc(file_network_network, 29);
+  messageDesc(file_network_network, 31);
 
 /**
  * A Device's internet path: exactly one of the three.
@@ -1119,6 +1210,22 @@ export const NetworkService: GenService<{
     methodKind: "unary";
     input: typeof GetRemoteAccessRequestSchema;
     output: typeof GetRemoteAccessResponseSchema;
+  },
+  /**
+   * AddRemoteAccessPeer adds a device to Remote Access: it generates a
+   * WireGuard key pair, creates the peer on the Remote Access tunnel with
+   * its public key only, at the lowest free address of the tunnel's subnet
+   * (not the firewall's, nor any configured peer's), applies, and returns
+   * the device's config. The private key is in that config alone: network
+   * keeps, logs and records no copy, so it can't be shown again. Refused
+   * until network's config names the Remote Access endpoint.
+   *
+   * @generated from rpc ddash.network.NetworkService.AddRemoteAccessPeer
+   */
+  addRemoteAccessPeer: {
+    methodKind: "unary";
+    input: typeof AddRemoteAccessPeerRequestSchema;
+    output: typeof AddRemoteAccessPeerResponseSchema;
   },
   /**
    * NextReservedAddress returns the lowest address in the reserved range

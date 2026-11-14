@@ -1,8 +1,9 @@
 // Package pfsensefake is a stateful fake of pfSense's REST API v2 for
 // pfsense-api's Actions and `make smoke-writes`. It keeps the DHCP servers
 // with their static mappings (create, update and delete), the firewall
-// aliases, the DNS Resolver's Host Overrides with their aliases, each
-// area's pending-changes flag and its apply, and records every request in
+// aliases, the DNS Resolver's Host Overrides with their aliases, the
+// WireGuard peers (create) with the tunnels' live status, each area's
+// pending-changes flag and its apply, and records every request in
 // order; anything else is served from a scenario's fixtures
 // (fixture.Scenario). pfsense-api's tests and fakelab serve it.
 //
@@ -83,14 +84,20 @@ type Firewall struct {
 	failDNS int
 	// failDNSApply fails the next DNS Resolver apply.
 	failDNSApply bool
-	log          []string
-	writing      int
-	maxW         int
+	// The configured WireGuard peers and the tunnels' live status
+	// (wireguard.go).
+	peers, tunnels     []map[string]any
+	wireguardPending   bool
+	failWireGuardApply bool
+	log                []string
+	writing            int
+	maxW               int
 }
 
 // New serves the scenario in dir: its services/dhcp_servers.json and
-// firewall/aliases.json and services/dns_resolver/host_overrides.json
-// (each else its sibling baseline's) are the starting state.
+// firewall/aliases.json, services/dns_resolver/host_overrides.json,
+// vpn/wireguard/peers.json and status/wireguard/tunnels.json (each else
+// its sibling baseline's) are the starting state.
 func New(dir string, opts Options) (*Firewall, error) {
 	f := &Firewall{fixtures: fixture.Scenario(dir, opts.Miss), opts: opts}
 	var err error
@@ -101,6 +108,12 @@ func New(dir string, opts Options) (*Firewall, error) {
 		return nil, err
 	}
 	if f.overrides, err = seed(dir, hostOverridesPath); err != nil {
+		return nil, err
+	}
+	if f.peers, err = seed(dir, wireguardPeersPath); err != nil {
+		return nil, err
+	}
+	if f.tunnels, err = seed(dir, wireguardTunnelsPath); err != nil {
 		return nil, err
 	}
 	return f, nil
@@ -268,7 +281,7 @@ func (f *Firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": true, "pending_subsystems": []string{}})
 	default:
-		if !f.serveDNSResolver(w, r) {
+		if !f.serveDNSResolver(w, r) && !f.serveWireguard(w, r) {
 			f.fixtures.ServeHTTP(w, r)
 		}
 	}
