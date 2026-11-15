@@ -5,6 +5,45 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+## v0.0.3-rc.2
+
+- **Enter two sets of credentials again.** Each external system is now
+  reached by one `-api` Component (ADR-0007), and no config moved:
+  - private-registry credentials and a Docker Hub mirror go into the new
+    **registry-api** (they were compose's). Public images need nothing;
+    until then private images show as refused.
+  - the Anthropic API key, and the model or server if you changed them, go
+    into the new **anthropic-api** (they were ai-helper's). Until then the
+    AI App helper says "not set up".
+
+  Both appear under their Plugin on the Plugins page.
+- **Update every Agent** after updating ddash (Docker Page and each
+  Workload's Host Agent Panel, **Update Agent**): the Agents' fixes take
+  effect only then. A Host Agent no longer follows a symlink out of a
+  user's home when it installs or removes an SSH Key; a Docker Agent
+  updates itself only to the Docker Agent's own image, and refuses a
+  Compose Project whose working directory lies outside its roots.
+- **Turn on gzip for ddash's Proxy Host.** ddash serves its JavaScript and
+  CSS uncompressed and leaves compression to the reverse proxy
+  ([deployment](deployment.md#3-the-name-and-the-proxy)).
+- ddash's container now also needs outbound HTTPS to `cdn.jsdelivr.net`:
+  the core downloads each App's logo once and keeps it in `/data/icons`,
+  and the browser no longer asks a CDN.
+- Every response now carries `X-Frame-Options: DENY`, `nosniff` and, on an
+  https public URL, HSTS for a year: ddash can no longer be shown in an
+  `<iframe>`, and a browser that has seen it refuses plain http to its
+  hostname.
+- New in the Catalogue: **Energy** (solar, grid, battery and consumption
+  from InfluxDB; set up `energy-api`). Compose Projects show and edit the
+  `.env` and Dockerfiles beside the Compose file.
+- A value on screen may be one refresh older than before: getters now
+  answer at once with what they have and read the system behind that
+  answer. Actions and Plans still read fresh.
+- A system that refuses ddash's credentials now reads as "permission
+  denied" in every Component, where some said "unavailable".
+- `make build` runs the web build only when a source changed
+  (`make -B build` forces it).
+
 ## v0.0.3-rc.1
 
 - The GitHub release now ships each Plugin as one `<plugin>.ddapp` and each
