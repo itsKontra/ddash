@@ -362,3 +362,46 @@ func TestARunningVMWhoseAgentDoesntAnswerFallsBackToItsConfig(t *testing.T) {
 		t.Errorf("addresses_error = %q, want none: the config answered", e)
 	}
 }
+
+func TestListsNodesWithTheirUseAndStorages(t *testing.T) {
+	cfg, _ := proxmox(t, "baseline")
+	_, c := start(t, cfg)
+
+	resp, err := c.ListNodes(t.Context(), &pb.ListNodesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &pb.ListNodesResponse{Nodes: []*pb.Node{{
+		Name: "pve", Status: "online",
+		Cpu: 0.0215, MaxCpu: 16,
+		Mem: 10093813760, MaxMem: 68719476736,
+		UptimeSeconds: 238410,
+		Storages: []*pb.Storage{
+			{Name: "local", Type: "dir", Active: true, Avail: 100861726720 - 39038095360, Total: 100861726720, Content: []string{"iso", "vztmpl", "backup"}},
+			{Name: "local-lvm", Type: "lvmthin", Active: true, Avail: 429496729600 - 120259084288, Total: 429496729600, Content: []string{"images", "rootdir"}},
+			{Name: "pbs", Type: "pbs", Active: true, Shared: true, Avail: 3936142082048 - 2123705987072, Total: 3936142082048, Content: []string{"backup"}},
+		},
+	}}}
+	if diff := cmp.Diff(want, resp, protocmp.Transform()); diff != "" {
+		t.Errorf("nodes (-want +got):\n%s", diff)
+	}
+}
+
+// The fake lists by type, as Proxmox does: the node comes with its
+// storages, and the Workloads without either.
+func TestNodesAndWorkloadsAreReadApart(t *testing.T) {
+	_, c := node(t, "baseline")
+
+	resp, err := c.ListNodes(t.Context(), &pb.ListNodesRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.GetNodes()) != 1 || len(resp.GetNodes()[0].GetStorages()) != 3 {
+		t.Errorf("nodes = %v, want pve with its 3 storages", resp.GetNodes())
+	}
+	for _, w := range workloads(t, c) {
+		if w.GetKind() == pb.Kind_KIND_UNSPECIFIED {
+			t.Errorf("listed %v as a Workload", w)
+		}
+	}
+}
