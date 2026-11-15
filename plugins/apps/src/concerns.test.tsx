@@ -179,7 +179,7 @@ it("restarts an exited Compose Project through its Plan, and drops the App once 
     PlanAction: () => Response.json({ plan: { steps } }),
     RunAction: () => {
       // compose has the containers' Checks probed once the run ended: paperless answers.
-      listed = { checks: checks.checks.filter((c) => c.appId !== "paperless") };
+      listed = { checks: checks.checks.filter((c) => c.id !== "2") };
       return streamed([{ run: { id: "r1", steps, states: ["STEP_STATE_DONE"], details: [""], ended: new Date().toISOString(), outcome: "done" } }]);
     },
   });

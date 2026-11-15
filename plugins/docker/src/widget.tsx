@@ -2,7 +2,9 @@ import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plug
 import { ComposeService, ImageState } from "@ddash/proto/compose/compose_pb";
 import { Health, State, type Container } from "@ddash/proto/ddash/container/container_pb";
 import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
-import { Facts, MetricTile, Pill } from "@ddash/ui";
+import { Facts, MetricTile, Pill, Skeleton, Summary } from "@ddash/ui";
+import { containersLine, containersRunning, exitedRows, hostsStatus, updateState } from "./hosts";
+import { useNow } from "./now";
 
 const unhealthy = (c: Container) => c.health === Health.UNHEALTHY;
 const restarting = (c: Container) => c.state === State.RESTARTING;
@@ -25,7 +27,7 @@ function useUpdates(): number | undefined {
  * Up, with the running count (and the image updates waiting on hosts with
  * a Docker Agent), while every container is fine. Warn when a
  * container is unhealthy or restarting, a Docker host can't be read, or
- * docker-api is unavailable.
+ * docker-api is unavailable. Its fact: the running containers.
  */
 function useStatus(): Status | undefined {
   const { data, error } = useContainers();
@@ -33,6 +35,7 @@ function useStatus(): Status | undefined {
   if (error) return { tone: "warn", summary: `docker-api unavailable: ${error.rawMessage}` };
   if (!data) return undefined;
   const all = data.hosts.flatMap((h) => h.containers);
+  const fact = { value: running(all), label: "containers running" };
   const problems = [
     [all.filter(unhealthy).length, "unhealthy"],
     [all.filter(restarting).length, "restarting"],
@@ -40,9 +43,9 @@ function useStatus(): Status | undefined {
     .filter(([n]) => n)
     .map(([n, what]) => `${n} ${what}`);
   const unreadable = data.hosts.filter((h) => h.error).map((h) => `${h.host} unreadable`);
-  if (problems.length || unreadable.length) return { tone: "warn", summary: [...problems, ...unreadable].join(" · ") };
+  if (problems.length || unreadable.length) return { tone: "warn", summary: [...problems, ...unreadable].join(" · "), fact };
   const waiting = updates ? ` · ${updates} ${updates === 1 ? "update" : "updates"} waiting` : "";
-  return { tone: "up", summary: `${running(all)} of ${all.length} running${waiting}` };
+  return { tone: "up", summary: `${running(all)} of ${all.length} running${waiting}`, fact };
 }
 
 /** S: the running and total counts. M: each host's counts too. */
@@ -70,6 +73,36 @@ function Body({ size }: { size: WidgetSize }) {
     </div>
   );
 }
+
+/** Warn while docker-api is unavailable; else the hosts' status. */
+function useHostsStatus(): Status | undefined {
+  const { data, error } = useContainers();
+  if (error) return { tone: "warn", summary: `docker-api unavailable: ${error.rawMessage}` };
+  return data && hostsStatus(data.hosts);
+}
+
+/** The containers running, the exited ones in the down tone and the image updates with the age of their check. */
+function HostsBody() {
+  const { data } = useContainers();
+  const projects = useQuery(ComposeService.method.listProjects, {});
+  const now = useNow();
+  if (!data) return <Skeleton lines={2} />;
+  const line = containersLine(data.hosts, updateState(projects.data, now));
+  return <Summary headline={containersRunning(data.hosts)} line={line} rows={exitedRows(data.hosts)} />;
+}
+
+/**
+ * Are the containers all right? Beside the proxmox Plugin's Hosts, which
+ * shows the node and its guests.
+ */
+export const dockerHosts: Widget = {
+  id: "docker-hosts",
+  title: "Docker hosts",
+  sizes: ["S", "M"],
+  defaultSize: "S",
+  Body: HostsBody,
+  useStatus: useHostsStatus,
+};
 
 /** The Overview Widget: container counts across every Docker host. */
 export const containers: Widget = {

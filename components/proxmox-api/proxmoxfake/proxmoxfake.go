@@ -53,8 +53,10 @@ type Options struct {
 type Proxmox struct {
 	fixtures http.Handler
 
-	mu        sync.Mutex
-	guests    []map[string]any
+	mu     sync.Mutex
+	guests []map[string]any
+	// others are the scenario's nodes and storages, listed as they are.
+	others    []map[string]any
 	perms     map[string]map[string]int
 	polls     int
 	lag       int
@@ -119,8 +121,16 @@ func New(dir string, opts Options) (*Proxmox, error) {
 	if p.polls <= 0 {
 		p.polls = DefaultTaskPolls
 	}
-	if err := seed(dir, resourcesPath, &p.guests); err != nil {
+	var resources []map[string]any
+	if err := seed(dir, resourcesPath, &resources); err != nil {
 		return nil, err
+	}
+	for _, r := range resources {
+		if r["type"] == "lxc" || r["type"] == "qemu" {
+			p.guests = append(p.guests, r)
+		} else {
+			p.others = append(p.others, r)
+		}
 	}
 	if err := seed(dir, permissionPath, &p.perms); err != nil {
 		return nil, err
@@ -408,7 +418,7 @@ func (p *Proxmox) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == http.MethodGet && path == resourcesPath:
 		p.mu.Lock()
-		b, err := json.Marshal(p.resources())
+		b, err := json.Marshal(p.resources(r.URL.Query().Get("type")))
 		p.mu.Unlock()
 		reply(w, b, err)
 	case r.Method == http.MethodPost && strings.Contains(path, "/status/"):
@@ -611,19 +621,27 @@ func (p *Proxmox) finish(t *task) {
 	}
 }
 
-// resources is what /cluster/resources lists now: each Workload, or as it
-// was while its change is still stale (counting this read). Call with
-// p.mu held.
-func (p *Proxmox) resources() []map[string]any {
-	out := make([]map[string]any, len(p.guests))
-	for i, g := range p.guests {
-		out[i] = g
-		id, _ := g["vmid"].(float64)
-		if s, ok := p.stale[int(id)]; ok {
-			out[i] = s.guest
-			if s.reads--; s.reads <= 0 {
-				delete(p.stale, int(id))
+// resources is what /cluster/resources?type=typ lists now: for typ vm
+// each Workload, or as it was while its change is still stale (counting
+// this read); for typ node or storage the scenario's; everything for no
+// typ. Call with p.mu held.
+func (p *Proxmox) resources(typ string) []map[string]any {
+	out := []map[string]any{}
+	if typ == "" || typ == "vm" {
+		for _, g := range p.guests {
+			id, _ := g["vmid"].(float64)
+			if s, ok := p.stale[int(id)]; ok {
+				g = s.guest
+				if s.reads--; s.reads <= 0 {
+					delete(p.stale, int(id))
+				}
 			}
+			out = append(out, g)
+		}
+	}
+	for _, r := range p.others {
+		if typ == "" || r["type"] == typ {
+			out = append(out, r)
 		}
 	}
 	return out

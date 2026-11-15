@@ -46,7 +46,7 @@ it("is the summary Widget, S or M, S by default", () => {
 it("reports up with the count while every Check is up", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_UP"), check(2, "router", "STATE_UP"), check(3, "nvr", "STATE_PENDING")));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 up" });
+  expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 up" , fact: { value: 2, label: "of 3 Checks up" } });
   expect(reported.badge).toBeNull();
   expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["2", "0", "0"]);
 });
@@ -56,7 +56,7 @@ it("reports down, naming what's down, with an N down badge", async () => {
     listed(check(1, "nas", "STATE_DOWN"), check(2, "router", "STATE_UP"), check(3, "", "STATE_DOWN", { spec: { type: "CHECK_TYPE_ICMP", target: "198.18.1.5" } })),
   );
 
-  expect(reported.status).toEqual({ tone: "down", summary: "2 down: nas, 198.18.1.5" });
+  expect(reported.status).toEqual({ tone: "down", summary: "2 down: nas, 198.18.1.5" , fact: { value: 1, label: "of 3 Checks up" } });
   expect(reported.badge).toEqual({ text: "2 down", tone: "down" });
   expect([metric("up"), metric("down")]).toEqual(["1", "2"]);
 });
@@ -64,7 +64,7 @@ it("reports down, naming what's down, with an N down badge", async () => {
 it("counts a Check in Maintenance as maint, never as down", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_DOWN", { maintenance: true }), check(2, "router", "STATE_UP")));
 
-  expect(reported.status).toEqual({ tone: "maint", summary: "1 in Maintenance" });
+  expect(reported.status).toEqual({ tone: "maint", summary: "1 in Maintenance" , fact: { value: 1, label: "of 2 Checks up" } });
   expect(reported.badge).toBeNull();
   expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["1", "0", "1"]);
 });
@@ -79,7 +79,7 @@ it("reports up while only muted Checks are down, telling them quietly and leavin
     ),
   );
 
-  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 watched up · 2 muted down" });
+  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 watched up · 2 muted down" , fact: { value: 1, label: "of 1 Check up" } });
   expect(reported.badge).toBeNull();
   // The down tile counts them, with how many are muted under it.
   expect([metric("up"), metric("down")]).toEqual(["2", "22 muted"]);
@@ -95,7 +95,7 @@ it("is idle, telling the muted ones, when every Check is muted", async () => {
 it("stays down for an unmuted Check that is down, naming only it and counting only it in the badge", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_DOWN", { muted: true }), check(2, "router", "STATE_DOWN")));
 
-  expect(reported.status).toEqual({ tone: "down", summary: "1 down: router · 1 muted down" });
+  expect(reported.status).toEqual({ tone: "down", summary: "1 down: router · 1 muted down" , fact: { value: 0, label: "of 1 Check up" } });
   expect(reported.badge).toEqual({ text: "1 down", tone: "down" });
 });
 
@@ -118,20 +118,20 @@ it("reports warn, naming them, for a Flapping Check that is up and an expiring c
     ),
   );
 
-  expect(reported.status).toEqual({ tone: "warn", summary: "nas flapping; Jellyfin certificate expiring" });
+  expect(reported.status).toEqual({ tone: "warn", summary: "nas flapping; Jellyfin certificate expiring" , fact: { value: 3, label: "of 4 Checks up" } });
   expect(reported.badge).toBeNull();
 });
 
 it("reports a Flapping Check that is down as down", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_DOWN", { flapping: true }), check(2, "router", "STATE_UP")));
 
-  expect(reported.status).toEqual({ tone: "down", summary: "1 down: nas" });
+  expect(reported.status).toEqual({ tone: "down", summary: "1 down: nas" , fact: { value: 1, label: "of 2 Checks up" } });
 });
 
 it("leaves disabled Checks out", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_DOWN", { disabled: true }), check(2, "router", "STATE_UP")));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 up" });
+  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 up" , fact: { value: 1, label: "of 1 Check up" } });
   expect(reported.badge).toBeNull();
 });
 

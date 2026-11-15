@@ -23,6 +23,7 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	ProxmoxApiService_ListWorkloads_FullMethodName      = "/ddash.proxmoxapi.ProxmoxApiService/ListWorkloads"
+	ProxmoxApiService_ListNodes_FullMethodName          = "/ddash.proxmoxapi.ProxmoxApiService/ListNodes"
 	ProxmoxApiService_ListPermissions_FullMethodName    = "/ddash.proxmoxapi.ProxmoxApiService/ListPermissions"
 	ProxmoxApiService_StartWorkload_FullMethodName      = "/ddash.proxmoxapi.ProxmoxApiService/StartWorkload"
 	ProxmoxApiService_ShutdownWorkload_FullMethodName   = "/ddash.proxmoxapi.ProxmoxApiService/ShutdownWorkload"
@@ -42,6 +43,10 @@ const (
 type ProxmoxApiServiceClient interface {
 	// ListWorkloads returns every LXC and VM the token may audit, by VMID.
 	ListWorkloads(ctx context.Context, in *ListWorkloadsRequest, opts ...grpc.CallOption) (*ListWorkloadsResponse, error)
+	// ListNodes returns every node the token may audit (Sys.Audit on
+	// /nodes), with its CPU and memory use and the storages on it the token
+	// may audit (Datastore.Audit on /storage), by name.
+	ListNodes(ctx context.Context, in *ListNodesRequest, opts ...grpc.CallOption) (*ListNodesResponse, error)
 	// ListPermissions returns ddash's effective privileges on each Workload
 	// ListWorkloads lists, from /access/permissions.
 	ListPermissions(ctx context.Context, in *ListPermissionsRequest, opts ...grpc.CallOption) (*ListPermissionsResponse, error)
@@ -95,6 +100,16 @@ func (c *proxmoxApiServiceClient) ListWorkloads(ctx context.Context, in *ListWor
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListWorkloadsResponse)
 	err := c.cc.Invoke(ctx, ProxmoxApiService_ListWorkloads_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *proxmoxApiServiceClient) ListNodes(ctx context.Context, in *ListNodesRequest, opts ...grpc.CallOption) (*ListNodesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListNodesResponse)
+	err := c.cc.Invoke(ctx, ProxmoxApiService_ListNodes_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -217,6 +232,10 @@ func (c *proxmoxApiServiceClient) ListBackupStorages(ctx context.Context, in *Li
 type ProxmoxApiServiceServer interface {
 	// ListWorkloads returns every LXC and VM the token may audit, by VMID.
 	ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error)
+	// ListNodes returns every node the token may audit (Sys.Audit on
+	// /nodes), with its CPU and memory use and the storages on it the token
+	// may audit (Datastore.Audit on /storage), by name.
+	ListNodes(context.Context, *ListNodesRequest) (*ListNodesResponse, error)
 	// ListPermissions returns ddash's effective privileges on each Workload
 	// ListWorkloads lists, from /access/permissions.
 	ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error)
@@ -268,6 +287,9 @@ type UnimplementedProxmoxApiServiceServer struct{}
 
 func (UnimplementedProxmoxApiServiceServer) ListWorkloads(context.Context, *ListWorkloadsRequest) (*ListWorkloadsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListWorkloads not implemented")
+}
+func (UnimplementedProxmoxApiServiceServer) ListNodes(context.Context, *ListNodesRequest) (*ListNodesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListNodes not implemented")
 }
 func (UnimplementedProxmoxApiServiceServer) ListPermissions(context.Context, *ListPermissionsRequest) (*ListPermissionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListPermissions not implemented")
@@ -337,6 +359,24 @@ func _ProxmoxApiService_ListWorkloads_Handler(srv interface{}, ctx context.Conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ProxmoxApiServiceServer).ListWorkloads(ctx, req.(*ListWorkloadsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProxmoxApiService_ListNodes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListNodesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProxmoxApiServiceServer).ListNodes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ProxmoxApiService_ListNodes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProxmoxApiServiceServer).ListNodes(ctx, req.(*ListNodesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -549,6 +589,10 @@ var ProxmoxApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListWorkloads",
 			Handler:    _ProxmoxApiService_ListWorkloads_Handler,
+		},
+		{
+			MethodName: "ListNodes",
+			Handler:    _ProxmoxApiService_ListNodes_Handler,
 		},
 		{
 			MethodName: "ListPermissions",

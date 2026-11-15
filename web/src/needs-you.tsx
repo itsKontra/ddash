@@ -1,6 +1,6 @@
 import { PluginScope, type Concern, type ConcernAction, type ConcernTone, type Fetch } from "@ddash/plugin";
 import { Button, cx, Icon, Panel, Pill, Presence, Skeleton, type IconName } from "@ddash/ui";
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useEffectEvent, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
 import { needs, offOnPurpose, type Listed } from "./concerns";
@@ -18,9 +18,11 @@ interface Open {
  * "Needs you": every installed Plugin's Concerns in one list, worst first,
  * each with its Actions; the quiet ones folded under "Off on purpose". Each
  * Plugin's useConcerns runs in its own scope behind an error boundary,
- * placed Widget or not, and a crash is a warn Concern of its own.
+ * placed Widget or not, and a crash is a warn Concern of its own. Tells
+ * onConcerns every Concern listed, loud then quiet, whenever that changes,
+ * once a Plugin has reported.
  */
-export function NeedsYou({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }) {
+export function NeedsYou({ plugins, fetch, onConcerns }: { plugins: Plugins; fetch?: Fetch; onConcerns?: (listed: readonly Listed[]) => void }) {
   const [reports, setReports] = useState<ReadonlyMap<string, readonly Concern[]>>(new Map());
   const [open, setOpen] = useState<Open | null>(null);
   // Each Plugin's Concerns as last rendered, so a button runs the newest Action.
@@ -43,6 +45,13 @@ export function NeedsYou({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }
   // Still to say: Plugins whose bundle is loading, and those that haven't reported yet.
   const waiting = !plugins.installed || installed.some((p) => !plugins.loaded.has(p.name)) || sources.some((p) => !reports.has(p.name));
   const n = needs(sources.flatMap((p) => (reports.has(p.name) ? [{ plugin: p.name, concerns: reports.get(p.name)! }] : [])));
+  const listed = [...n.loud, ...n.quiet];
+  const tell = useEffectEvent(() => onConcerns?.(listed));
+  const heard = reports.size > 0;
+  const said = signature(listed.map((l) => [l.plugin, l.concern]));
+  useEffect(() => {
+    if (heard) tell();
+  }, [heard, said]);
 
   const act = (l: Listed, a: ConcernAction) => {
     if ("sheet" in a) {
@@ -169,7 +178,7 @@ function Row({ listed: l, onAct }: { listed: Listed; onAct: (l: Listed, a: Conce
 }
 
 // What a report says, functions aside: a new one is only passed up when it changed.
-const signature = (concerns: readonly Concern[] | undefined) => JSON.stringify(concerns, (_, v: unknown) => (typeof v === "function" ? "ƒ" : v));
+const signature = (concerns: unknown) => JSON.stringify(concerns, (_, v: unknown) => (typeof v === "function" ? "ƒ" : v));
 
 /**
  * Runs one Plugin's useConcerns, in its scope: passes each changed report

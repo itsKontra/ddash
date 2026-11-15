@@ -75,6 +75,45 @@ func (c *component) SetSettings(ctx context.Context, req *appspb.SetSettingsRequ
 	return &appspb.SetSettingsResponse{}, nil
 }
 
+// SetPins numbers the Apps ids from 1 in their order and every other App
+// 0, saving only the records whose pin changed.
+func (c *component) SetPins(ctx context.Context, req *appspb.SetPinsRequest) (*appspb.SetPinsResponse, error) {
+	ids := req.GetIds()
+	for i, id := range ids {
+		if slices.Contains(ids[:i], id) {
+			return nil, status.Errorf(codes.InvalidArgument, "the App %q is pinned twice", id)
+		}
+	}
+	if err := c.waitSynced(ctx); err != nil {
+		return nil, err
+	}
+	c.turn.Lock()
+	defer c.turn.Unlock()
+	recs, err := c.store.records(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, id := range ids {
+		if !slices.ContainsFunc(recs, func(r *record) bool { return r.id == id }) {
+			return nil, status.Errorf(codes.NotFound, "no App has the id %q", id)
+		}
+	}
+	var put []*record
+	for _, r := range recs {
+		pin := int32(slices.Index(ids, r.id) + 1)
+		if pin == r.pin {
+			continue
+		}
+		r = r.clone()
+		r.pin, r.touched = pin, r.touched || pin > 0
+		put = append(put, r)
+	}
+	if err := c.store.save(ctx, put, nil); err != nil {
+		return nil, err
+	}
+	return &appspb.SetPinsResponse{}, nil
+}
+
 func (c *component) IgnoreWarning(ctx context.Context, req *appspb.IgnoreWarningRequest) (*appspb.IgnoreWarningResponse, error) {
 	if err := c.setIgnored(ctx, req.GetId(), req.GetKind(), true); err != nil {
 		return nil, err
