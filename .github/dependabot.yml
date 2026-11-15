@@ -17,6 +17,12 @@ updates:
     groups:
       go:
         patterns: ["*"]
+    # Held at 1.60.1: with 1.62.0 (and libc 1.80.1) the core's crash tests
+    # fail on GitHub's runners, every run, and the cause isn't known (#211).
+    # libc moves only with the driver. Remove both once #211 is closed.
+    ignore:
+      - dependency-name: modernc.org/sqlite
+      - dependency-name: modernc.org/libc
   - package-ecosystem: npm
     directory: /
     schedule:
