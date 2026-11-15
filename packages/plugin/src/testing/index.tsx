@@ -10,6 +10,7 @@ import type { PluginDefinition, Status, Widget, WidgetSize } from "../define";
 import { InstalledPlugins } from "../link";
 import { createQueryClient } from "../query";
 import { PluginHost, PluginScope } from "../scope";
+import { settleDelay } from "../settled";
 import type { Fetch } from "../transport";
 
 /**
@@ -248,4 +249,13 @@ export function metricValue(label: string, container: HTMLElement = document.bod
   const tile = within(container).getByRole("group", { name: label });
   if (within(tile).queryByRole("status", { name: "Loading" })) return undefined;
   return tile.textContent?.slice(label.length);
+}
+
+/**
+ * Waits past useSettled's delay, then settles: what a test does after
+ * typing into a server-side search, which asks only once typing stops.
+ */
+export async function typed() {
+  await act(() => new Promise((r) => setTimeout(r, settleDelay + 50)));
+  await settle();
 }

@@ -1,7 +1,7 @@
 import { getOption, hasOption, type DescMessage, type DescMethodUnary, type MessageInitShape } from "@bufbuild/protobuf";
 import { ConnectError } from "@connectrpc/connect";
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
-import { QueryClient } from "@tanstack/react-query";
+import { keepPreviousData, QueryClient } from "@tanstack/react-query";
 
 export type { QueryClient };
 import { NotConfiguredSchema } from "@ddash/proto/ddash/component/component_pb";
@@ -47,6 +47,10 @@ export function refreshOf(method: DescMethodUnary): Getter_Refresh {
 export interface QueryOptions {
   /** Overrides the getter's tier, in exceptional cases only. */
   refresh?: Getter_Refresh;
+  /** false makes no call (and no refetch) until it is true: for a request that isn't known yet, e.g. a run without an id. */
+  enabled?: boolean;
+  /** Keeps the last answer on screen while the answer to a changed request loads, so a table doesn't empty between two searches. */
+  keepPrevious?: boolean;
 }
 
 /**
@@ -59,7 +63,11 @@ export function useQuery<I extends DescMessage, O extends DescMessage>(
   request: MessageInitShape<I>,
   options: QueryOptions = {},
 ) {
-  return useConnectQuery(method, request, { refetchInterval: tiers[options.refresh ?? refreshOf(method)] });
+  return useConnectQuery(method, request, {
+    refetchInterval: tiers[options.refresh ?? refreshOf(method)],
+    enabled: options.enabled ?? true,
+    placeholderData: options.keepPrevious ? keepPreviousData : undefined,
+  });
 }
 
 /**

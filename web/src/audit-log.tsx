@@ -1,5 +1,5 @@
 import { durationMs, timestampDate } from "@bufbuild/protobuf/wkt";
-import { useQuery } from "@ddash/plugin";
+import { useQuery, useSettled } from "@ddash/plugin";
 import { CoreService, type AuditChain, type AuditEntry } from "@ddash/proto/ddash/core/core_pb";
 import {
   Button,
@@ -66,7 +66,11 @@ export function AuditLog() {
   // The DataTable's sort, by When alone: it picks the core's order.
   const [sort] = useQueryState("sort", defaultSort);
   const [targets, setTargets] = useState<string[]>([]);
-  const filter: Filter = { actorKind: actor === "anyone" ? "" : actor, target, outcome, query: q, order: sort === "when" ? "oldest" : "" };
+  // The core searches: it is asked once typing stops, not per keystroke.
+  const { settled: query } = useSettled(q);
+  const filter: Filter = { actorKind: actor === "anyone" ? "" : actor, target, outcome, query, order: sort === "when" ? "oldest" : "" };
+  // The rows last read, shown until a new search or filter has its answer.
+  const [previous, setPrevious] = useState<AuditChain[]>();
   const toolbar = (
     <>
       <div className="overflow-x-auto">
@@ -97,7 +101,7 @@ export function AuditLog() {
       <PageTitle title="Audit Log" subtitle="Every Action ddash took, kept for a year." back={{ href: "/settings", label: "Settings" }} />
       {/* A new search, filter or order starts again from the first page. */}
       <Panel flush toolbar={toolbar}>
-        <Pages key={JSON.stringify(filter)} filter={filter} onTargets={setTargets} />
+        <Pages key={JSON.stringify(filter)} filter={filter} onTargets={setTargets} previous={previous} onChains={setPrevious} />
       </Panel>
     </div>
   );
@@ -119,12 +123,31 @@ interface Loaded {
 }
 
 /** The pages loaded so far, as one table: each starts at its token, the first at "". */
-function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: string[]) => void }) {
+function Pages({
+  filter,
+  onTargets,
+  previous,
+  onChains,
+}: {
+  filter: Filter;
+  onTargets: (targets: string[]) => void;
+  /** The rows of the filter before this one, to show until this one's first page is in. */
+  previous?: AuditChain[];
+  onChains: (chains: AuditChain[]) => void;
+}) {
   const [pages, setPages] = useState<Loaded[]>([{ token: "" }]);
   const [shown, setShown] = useState<AuditChain>();
-  const settled = (i: number, page: Omit<Loaded, "token">) => setPages((ps) => ps.map((p, j) => (j === i ? { ...p, ...page } : p)));
+  const settled = (i: number, page: Omit<Loaded, "token">) => {
+    const merge = (ps: Loaded[]) => ps.map((p, j) => (j === i ? { ...p, ...page } : p));
+    setPages(merge);
+    // What is on screen now, for the next filter to show while it loads.
+    const now = merge(pages);
+    if (now[0].chains) onChains(now.flatMap((p) => p.chains ?? []));
+  };
   const last = pages[pages.length - 1];
-  const chains = pages.flatMap((p) => p.chains ?? []);
+  const loaded = pages.flatMap((p) => p.chains ?? []);
+  const waiting = !pages[0].chains;
+  const chains = waiting && previous ? previous : loaded;
   const error = pages.find((p) => p.error)?.error;
   return (
     <>
@@ -144,7 +167,7 @@ function Pages({ filter, onTargets }: { filter: Filter; onTargets: (targets: str
           onRowClick={setShown}
           sortKey="sort"
           defaultSort={defaultSort}
-          loading={!pages[0].chains}
+          loading={waiting && !previous}
           empty={
             <EmptyState icon="scroll-text" title={filter.query.trim() ? noMatch("Actions", filter.query) : "No Actions match"}>
               Try Anyone, or another target or outcome.

@@ -102,7 +102,8 @@ export function Diff({ diff }: { diff: string }) {
 
 /** The run in flight (or just ended) with id, as ListRuns has it. */
 export function useRun(id: string | undefined): Run | undefined {
-  const runs = useQuery(ComposeService.method.listRuns, {});
+  // No run to follow before one has an id: ListRuns is LIVE, every 5 s.
+  const runs = useQuery(ComposeService.method.listRuns, {}, { enabled: !!id });
   return id ? runs.data?.runs.find((r) => r.id === id) : undefined;
 }
 
