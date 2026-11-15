@@ -3,8 +3,10 @@ package agent_test
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -134,5 +136,44 @@ func TestJobs(t *testing.T) {
 	}
 	if len(jobs.List()) != 0 {
 		t.Fatal("a collected job is still listed")
+	}
+}
+
+// A Component dials an Agent anew for every call: the calls share the
+// Agent's connection, so each one isn't a TLS handshake of its own.
+func TestCallsToOneAgentShareItsConnection(t *testing.T) {
+	ctx := context.Background()
+	s, err := agent.NewServer(agent.ServerOptions{Kind: agent.KindHost, Release: "v1.2.3", StateDir: t.TempDir(), EnrolmentCode: "CODE"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	s.Handle("GET /v1/secret", func(w http.ResponseWriter, _ *http.Request) {
+		agent.WriteJSON(w, http.StatusOK, map[string]string{"ok": "yes"})
+	})
+	var connections atomic.Int32
+	srv := httptest.NewUnstartedServer(s.Handler())
+	srv.TLS = s.TLSConfig()
+	srv.Config.ConnState = func(_ net.Conn, st http.ConnState) {
+		if st == http.StateNew {
+			connections.Add(1)
+		}
+	}
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+	token, _, err := agent.Pair(ctx, srv.URL, s.Fingerprint(), "CODE")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := connections.Load()
+
+	for range 5 {
+		var out map[string]string
+		if err := agent.Dial(srv.URL, token, s.Fingerprint()).Get(ctx, "/v1/secret", nil, &out); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if got := connections.Load() - before; got > 1 {
+		t.Errorf("5 calls opened %d connections, want at most 1", got)
 	}
 }
