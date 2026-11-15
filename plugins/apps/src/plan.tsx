@@ -1,5 +1,5 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { usePluginLink, useQuery, useStreamingAction } from "@ddash/plugin";
+import { planEnded, PlanNotices, PlanSteps, stepState, usePluginLink, useQuery, useStreamingAction, type PlanOutcome, type PlanStep, type StepState } from "@ddash/plugin";
 import {
   AppsService,
   NameNoteKind,
@@ -12,7 +12,7 @@ import {
   type Plan,
   type RunActionResponse,
 } from "@ddash/proto/apps/apps_pb";
-import { Button, Dialog, FormActions, Notice, Skeleton, StatusList, type StatusItem, type Tone } from "@ddash/ui";
+import { Button, Dialog, FormActions, Notice, Skeleton } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
@@ -33,40 +33,8 @@ const systemName: Record<System, string> = {
   [System.DOCKER]: "Docker",
 };
 
-/** Where a step is: before the run, running, or how it ended. */
-export type StepState = "planned" | "running" | "done" | "failed" | "not run";
-
-const look: Record<StepState, { tone: Tone; aside?: string }> = {
-  planned: { tone: "idle" },
-  running: { tone: "maint", aside: "running…" },
-  done: { tone: "up", aside: "done" },
-  failed: { tone: "down", aside: "failed" },
-  "not run": { tone: "idle", aside: "not run" },
-};
-
-/**
- * A Plan's steps in order, each with its system, the values it expects
- * and writes, and its state. The titles wrap.
- */
-export function PlanSteps({ plan, state }: { plan: Plan; state: (i: number) => StepState }) {
-  const items: StatusItem[] = plan.steps.map((s, i) => ({
-    ...look[state(i)],
-    title: s.title,
-    meta: systemName[s.system],
-    body:
-      s.values.length > 0 ? (
-        <ul className="flex flex-col gap-0.5 text-xs break-words text-muted-foreground">
-          {s.values.map((v, j) => (
-            <li key={j}>
-              {v.label}: {v.before && v.before !== v.after ? `${v.before} → ` : ""}
-              {v.after || "removed"}
-            </li>
-          ))}
-        </ul>
-      ) : undefined,
-  }));
-  return <StatusList timeline wrap items={items} />;
-}
+/** A Plan's steps as PlanSteps draws them. */
+export const steps = (plan: Plan): PlanStep[] => plan.steps.map((s) => ({ title: s.title, system: systemName[s.system], values: s.values }));
 
 /** The Device holding a name, linked to it on the Network Page when that Plugin is installed. */
 function DeviceName({ mac, name }: { mac: string; name: string }) {
@@ -119,12 +87,8 @@ export function NameNotes({ names }: { names: readonly NameNote[] }) {
   );
 }
 
-/** How a run ended: done (with what RunAction answered), refused with a new Plan, stopped at a step, or failed otherwise. */
-export type Outcome =
-  | { kind: "done"; result: RunActionResponse }
-  | { kind: "changed"; plan: Plan }
-  | { kind: "stopped"; done: number; message: string }
-  | { kind: "failed"; message: string };
+/** How a run ended: see PlanOutcome. */
+export type Outcome = PlanOutcome<Plan, RunActionResponse>;
 
 /** A step's state as RunAction streams it, on screen; unspecified reads as running. */
 const runStep: Record<RunStep, StepState> = {
@@ -158,13 +122,7 @@ export function useRunAction() {
     else if (e) outcome = { kind: "failed", message: e.rawMessage };
   }
 
-  const state = (i: number): StepState => {
-    if (!ran || outcome?.kind === "changed" || outcome?.kind === "failed") return "planned";
-    if (action.pending) return progress.length > i ? runStep[progress[i]] : "running";
-    if (outcome?.kind === "done") return "done";
-    if (outcome?.kind === "stopped") return i < outcome.done ? "done" : i === outcome.done ? "failed" : "not run";
-    return "planned";
-  };
+  const state = (i: number) => stepState(i, { ran: !!ran, pending: action.pending, progress: progress.map((p) => runStep[p]), outcome });
 
   return {
     /** Runs action, confirming plan; resolves to the answer, or undefined when it didn't succeed. */
@@ -226,7 +184,7 @@ export function PlanDialog({
   const plan = run.plan ?? planQuery.data?.plan;
   const outcome = run.outcome;
   const blocked = plan ? blocking(plan) : [];
-  const ended = outcome?.kind === "done" || outcome?.kind === "stopped" || outcome?.kind === "failed";
+  const ended = planEnded(outcome);
   const can = !!plan && blocked.length === 0 && !run.pending && !ended;
 
   const go = async () => {
@@ -263,24 +221,9 @@ export function PlanDialog({
             <NameNotes names={plan.names} />
           </div>
         )}
-        {plan && plan.blocked.length > 0 && (
-          <Notice tone="warn">
-            {plan.blocked.map((b) => (
-              <p key={b}>{b}</p>
-            ))}
-          </Notice>
-        )}
-        {plan && plan.notes.length > 0 && (
-          <Notice tone="info">
-            {plan.notes.map((n) => (
-              <p key={n}>{n}</p>
-            ))}
-          </Notice>
-        )}
-        {outcome?.kind === "changed" && <Notice tone="warn">Changed since you looked: ddash will now do what&apos;s below. Check it, then confirm again.</Notice>}
-        {(outcome?.kind === "stopped" || outcome?.kind === "failed") && <Notice tone="down">{outcome.message}</Notice>}
+        <PlanNotices blocked={plan?.blocked ?? []} notes={plan?.notes ?? []} outcome={outcome} />
         {outcome?.kind === "done" && <Notice tone="warn">Done. {outcome.result.reread}: the list catches up at the next sync.</Notice>}
-        {plan && <PlanSteps plan={plan} state={run.state} />}
+        {plan && <PlanSteps steps={steps(plan)} state={run.state} />}
       </div>
     </Dialog>
   );

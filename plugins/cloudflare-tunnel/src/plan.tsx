@@ -1,5 +1,5 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { useQuery, useStreamingAction } from "@ddash/plugin";
+import { planEnded, PlanNotices, PlanSteps, stepState, useQuery, useStreamingAction, type PlanOutcome, type PlanStep, type StepState } from "@ddash/plugin";
 import {
   CloudflareTunnelService,
   PlanSchema,
@@ -10,14 +10,16 @@ import {
   type RunActionResponse,
   type TunnelActionSchema,
 } from "@ddash/proto/cloudflare-tunnel/cloudflare_tunnel_pb";
-import { Button, Dialog, FormActions, Notice, Skeleton, StatusList, type StatusItem, type Tone } from "@ddash/ui";
+import { Button, Dialog, FormActions, Notice, Skeleton } from "@ddash/ui";
 import { useState } from "react";
 
 // Tunnel Actions' Plans on screen: their steps with each one's progress,
-// and running one, in a Plan Dialog. The look follows the apps Plugin's
-// Plan Dialogs (Plugins can't share code).
+// and running one, in a Plan Dialog, drawn with @ddash/plugin's Plan parts.
 
 export type ActionInit = MessageInitShape<typeof TunnelActionSchema>;
+
+/** A Plan's steps as PlanSteps draws them. */
+export const steps = (plan: Plan): PlanStep[] => plan.steps.map((s) => ({ title: s.title, system: systemName[s.system], values: s.values }));
 
 const systemName: Record<System, string> = {
   [System.UNSPECIFIED]: "",
@@ -26,44 +28,8 @@ const systemName: Record<System, string> = {
   [System.CLOUDFLARE_DNS]: "Cloudflare DNS",
 };
 
-/** Where a step is: before the run, running, or how it ended. */
-export type StepState = "planned" | "running" | "done" | "failed" | "not run";
-
-const look: Record<StepState, { tone: Tone; aside?: string }> = {
-  planned: { tone: "idle" },
-  running: { tone: "maint", aside: "running…" },
-  done: { tone: "up", aside: "done" },
-  failed: { tone: "down", aside: "failed" },
-  "not run": { tone: "idle", aside: "not run" },
-};
-
-/** A Plan's steps in order, each with its system, the values it expects and writes, and its state. */
-export function PlanSteps({ plan, state }: { plan: Plan; state: (i: number) => StepState }) {
-  const items: StatusItem[] = plan.steps.map((s, i) => ({
-    ...look[state(i)],
-    title: s.title,
-    meta: systemName[s.system],
-    body:
-      s.values.length > 0 ? (
-        <ul className="flex flex-col gap-0.5 text-xs break-words text-muted-foreground">
-          {s.values.map((v, j) => (
-            <li key={j}>
-              {v.label}: {v.before && v.before !== v.after ? `${v.before} → ` : ""}
-              {v.after || "removed"}
-            </li>
-          ))}
-        </ul>
-      ) : undefined,
-  }));
-  return <StatusList timeline wrap items={items} />;
-}
-
-/** How a run ended: done, refused with a new Plan, stopped at a step, or failed otherwise. */
-export type Outcome =
-  | { kind: "done"; result: RunActionResponse }
-  | { kind: "changed"; plan: Plan }
-  | { kind: "stopped"; done: number; message: string }
-  | { kind: "failed"; message: string };
+/** How a run ended: see PlanOutcome. */
+export type Outcome = PlanOutcome<Plan, RunActionResponse>;
 
 const runStep: Record<RunStep, StepState> = {
   [RunStep.UNSPECIFIED]: "running",
@@ -96,13 +62,7 @@ export function useRunAction() {
     else if (e) outcome = { kind: "failed", message: e.rawMessage };
   }
 
-  const state = (i: number): StepState => {
-    if (!ran || outcome?.kind === "changed" || outcome?.kind === "failed") return "planned";
-    if (action.pending) return progress.length > i ? runStep[progress[i]] : "running";
-    if (outcome?.kind === "done") return "done";
-    if (outcome?.kind === "stopped") return i < outcome.done ? "done" : i === outcome.done ? "failed" : "not run";
-    return "planned";
-  };
+  const state = (i: number) => stepState(i, { ran: !!ran, pending: action.pending, progress: progress.map((p) => runStep[p]), outcome });
 
   return {
     run: async (request: ActionInit, plan: Plan) => {
@@ -146,7 +106,7 @@ export function PlanDialog({
   const plan = run.plan ?? planQuery.data?.plan;
   const outcome = run.outcome;
   const blocked = plan?.blocked ?? [];
-  const ended = outcome?.kind === "done" || outcome?.kind === "stopped" || outcome?.kind === "failed";
+  const ended = planEnded(outcome);
   const can = !!plan && blocked.length === 0 && !run.pending && !ended;
 
   return (
@@ -172,23 +132,8 @@ export function PlanDialog({
       <div className="flex flex-col gap-4">
         {!plan && planQuery.error && <Notice tone="down">{planQuery.error.rawMessage}</Notice>}
         {!plan && !planQuery.error && <Skeleton height="lg" />}
-        {blocked.length > 0 && (
-          <Notice tone="warn">
-            {blocked.map((b) => (
-              <p key={b}>{b}</p>
-            ))}
-          </Notice>
-        )}
-        {plan && plan.notes.length > 0 && (
-          <Notice tone="info">
-            {plan.notes.map((n) => (
-              <p key={n}>{n}</p>
-            ))}
-          </Notice>
-        )}
-        {outcome?.kind === "changed" && <Notice tone="warn">Changed since you looked: ddash will now do what&apos;s below. Check it, then confirm again.</Notice>}
-        {(outcome?.kind === "stopped" || outcome?.kind === "failed") && <Notice tone="down">{outcome.message}</Notice>}
-        {plan && <PlanSteps plan={plan} state={run.state} />}
+        <PlanNotices blocked={blocked} notes={plan?.notes ?? []} outcome={outcome} />
+        {plan && <PlanSteps steps={steps(plan)} state={run.state} />}
       </div>
     </Dialog>
   );
