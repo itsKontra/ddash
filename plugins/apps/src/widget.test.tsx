@@ -278,15 +278,42 @@ it("marks a down pinned App with a dot and a greyed icon, a muted one with the d
   await settle();
 
   const [jellyfin, grafana, pfsense] = within(screen.getByRole("list", { name: "Pinned Apps" })).getAllByRole("link");
-  expect(within(jellyfin).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
   expect(jellyfin.querySelector("[data-greyed]")).toBeTruthy();
-  expect(jellyfin.getAttribute("title")).toBe("jellyfin.home.example · down: HTTP 502");
+  expect(within(jellyfin).getByRole("img")).toBeTruthy();
 
   expect(within(grafana).getByRole("img", { name: "down: HTTP 502, muted" })).toBeTruthy();
   expect(grafana.querySelector("[data-greyed]")).toBeNull();
 
   expect(within(pfsense).queryByRole("img")).toBeNull();
   expect(pfsense.getAttribute("title")).toBe("198.18.0.1");
+});
+
+it("names a down pinned App's stopped Workload as the cause in its tooltip and dot, else the Check's reason", async () => {
+  // Jellyfin's container exited; Grafana's guest runs, so its Check says why.
+  const states = withChecks({
+    "proxy:jellyfin.home.example": { state: "STATE_DOWN", reason: "HTTP 502" },
+    "proxy:grafana.home.example": { state: "STATE_DOWN", reason: "HTTP 502" },
+  });
+  renderScoped(<widget.Body size="L" />, {
+    ...pinning(["proxy:jellyfin.home.example", "proxy:grafana.home.example"]),
+    ListChecks: () => Response.json(states),
+  });
+  await settle();
+
+  const [jellyfin, grafana] = within(screen.getByRole("list", { name: "Pinned Apps" })).getAllByRole("link");
+  expect(jellyfin.getAttribute("title")).toBe("jellyfin.home.example · down: Container jellyfin exited");
+  expect(within(jellyfin).getByRole("img", { name: "down: Container jellyfin exited" })).toBeTruthy();
+  expect(grafana.getAttribute("title")).toBe("grafana.home.example · down: HTTP 502");
+  expect(within(grafana).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
+});
+
+it("reads no Workload while no pinned App is down", async () => {
+  // Jellyfin is down, its container exited, but it isn't pinned.
+  const calls = renderScoped(<widget.Body size="L" />, pinning(["proxy:grafana.home.example"]));
+  await settle();
+
+  expect(screen.getByRole("list", { name: "Pinned Apps" })).toBeTruthy();
+  expect(calls.filter((c) => ["ListProjects", "ListWorkloads", "ListPermissions"].includes(c.method))).toEqual([]);
 });
 
 it("pins, orders and unpins Apps in its edit state, changing at once", async () => {

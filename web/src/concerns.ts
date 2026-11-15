@@ -45,6 +45,20 @@ export function needs(reports: readonly { plugin: string; concerns: readonly Con
   return { loud, quiet: sorted.filter((l) => l.concern.quiet), tone: loud[0]?.concern.tone };
 }
 
+/** How many loud Concerns "Needs you" shows before the rest wait behind "and 26 more". */
+export const cap = 5;
+
+/**
+ * The loud Concerns "Needs you" draws: the worst cap of them, unless
+ * expanded; and how many are past the cap, folded or not, 0 when there is
+ * no line to fold them. A single one past it is drawn rather than folded,
+ * since its line would take a row's place.
+ */
+export function capped(loud: readonly Listed[], expanded: boolean): { shown: readonly Listed[]; more: number } {
+  if (loud.length <= cap + 1) return { shown: loud, more: 0 };
+  return { shown: expanded ? loud : loud.slice(0, cap), more: loud.length - cap };
+}
+
 /**
  * The folded line's count of the quiet Concerns by why each is quiet, most
  * first: "4 muted, 1 in Maintenance".
