@@ -14,7 +14,7 @@ export function CheckDetail({ check, onClose }: { check: Check; onClose: () => v
   return (
     <Sheet title={shownName(check)} onClose={onClose}>
       <div className="flex flex-col gap-4">
-        {error && !data && <Notice tone="down">{error.message}</Notice>}
+        {error && !data && <Notice tone="down">{error.rawMessage}</Notice>}
         <div>
           <SectionHeading title="Uptime" />
           <StatRow items={windowNames.map((w, i) => ({ label: w, value: data && percent(data.uptime[i]?.ratio) }))} />

@@ -162,6 +162,7 @@ function ImageCheckBar({ checks }: { checks?: ImageChecks }) {
           Check now
         </Button>
       </div>
+      {check.error && <Notice tone="down">{check.error.rawMessage}</Notice>}
       {checks.problems.map((p) => (
         <Notice key={p.registry} tone="warn">
           {p.registry}: {p.message}
@@ -255,7 +256,7 @@ export function DockerPage() {
         {proxyHosts.map((h) => (
           <ProxyHost key={h.host} host={h} readOnly={agentHosts.length > 0 || enrolling.length > 0} />
         ))}
-        {containers.error && !containers.data && <Notice tone="down">{containers.error.message}</Notice>}
+        {containers.error && !containers.data && <Notice tone="down">{containers.error.rawMessage}</Notice>}
       </div>
       {dialog}
     </div>

@@ -19,7 +19,7 @@ export function Containers() {
   return (
     <div>
       <PageTitle kicker="Infrastructure" title="Docker" subtitle="Containers on every Docker host." />
-      {error && !data && <Notice tone="down">{error.message}</Notice>}
+      {error && !data && <Notice tone="down">{error.rawMessage}</Notice>}
       {!data && !error && <Skeleton lines={3} />}
       <div className="flex flex-col gap-6">
         {data?.hosts.map((h) => <Host key={h.host} host={h} />)}

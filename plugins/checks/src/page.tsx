@@ -87,7 +87,7 @@ export function ChecksPage() {
         </div>
         {data && <MaintenanceList checks={data.checks} />}
         {error && !data ? (
-          <Notice tone="down">{error.message}</Notice>
+          <Notice tone="down">{error.rawMessage}</Notice>
         ) : data?.checks.length === 0 ? (
           <Panel>
             <EmptyState

@@ -111,10 +111,17 @@ function SnapshotSetting({ vmid }: { vmid: number }) {
   const set = useAction(ProxmoxService.method.setUpdateSettings);
   if (on === undefined) return null;
   return (
-    <span className="ml-auto inline-flex items-center gap-2 text-sm">
-      <Switch label="Snapshot before each update" checked={on} disabled={set.pending} onChange={(snapshot) => void set.run({ settings: { vmid, snapshot } })} />
-      Snapshot before each update
-    </span>
+    <>
+      <span className="ml-auto inline-flex items-center gap-2 text-sm">
+        <Switch label="Snapshot before each update" checked={on} disabled={set.pending} onChange={(snapshot) => void set.run({ settings: { vmid, snapshot } })} />
+        Snapshot before each update
+      </span>
+      {set.error && (
+        <div className="basis-full">
+          <Notice tone="down">{set.error.rawMessage}</Notice>
+        </div>
+      )}
+    </>
   );
 }
 

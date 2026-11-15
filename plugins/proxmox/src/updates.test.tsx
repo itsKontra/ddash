@@ -191,3 +191,16 @@ it("turns the Workload's snapshot before each update off", async () => {
   await settle();
   expect(bodies(calls, "SetUpdateSettings")).toEqual([{ settings: { vmid: 102 } }]);
 });
+
+it("says why the snapshot setting couldn't be saved", async () => {
+  await show("/proxmox/workloads/102", {
+    ListAgents: () => Response.json(agents(102, "AGENT_STATE_PAIRED")),
+    ListPackages: () => Response.json(pendingOn(102)),
+    SetUpdateSettings: () => Response.json({ code: "unavailable", message: "the settings can't be written" }, { status: 503 }),
+  });
+
+  fireEvent.click(within(panel("Updates")).getByRole("switch", { name: "Snapshot before each update" }));
+  await settle();
+
+  expect(within(panel("Updates")).getByText("the settings can't be written")).toBeTruthy();
+});

@@ -196,3 +196,14 @@ it("restarts one Compose service from its row on the Compose Project's Page", as
   expect(screen.getByRole("dialog", { name: "Restart media (jellyfin)" })).toBeTruthy();
   expect(calls.find((c) => c.method === "PlanAction")?.body).toEqual({ action: { restart: { host: "apps", project: "media", services: ["jellyfin"] } } });
 });
+
+it("says why Check now failed", async () => {
+  await showPlugin(plugin, docker, "/docker", {
+    answers: { ...base, CheckImages: () => Response.json({ code: "unavailable", message: "docker.io refused ddash" }, { status: 503 }) },
+  });
+
+  fireEvent.click(screen.getByRole("button", { name: "Check now" }));
+  await settle();
+
+  expect(screen.getByText("docker.io refused ddash")).toBeTruthy();
+});
