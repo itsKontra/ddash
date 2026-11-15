@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,7 +151,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		}
 		guard = h.keycloak.Guard
 	}
-	h.handler = forwarded(h.routes(guard))
+	h.handler = forwarded(h.secured(h.routes(guard)))
 	return h, nil
 }
 
@@ -158,6 +159,26 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 // own.
 func (h *Host) auditSignIn(ctx context.Context, actor auth.Actor, event string, err error) error {
 	return h.gate.Record(ctx, actor, appstate.Event{Chain: router.NewChain(), Target: "core", Method: event, Err: err})
+}
+
+// secured sets the headers every response carries. ddash's UI runs
+// Actions, so no other site may frame it; nothing it serves is to be
+// sniffed into another type; and a link out tells the other site nothing.
+// Reached over https, it asks the browser never to fall back to http. A
+// handler may still set a stricter Content-Security-Policy of its own.
+func (h *Host) secured(next http.Handler) http.Handler {
+	https := strings.HasPrefix(h.publicURL, "https://")
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hd := w.Header()
+		hd.Set("X-Content-Type-Options", "nosniff")
+		hd.Set("X-Frame-Options", "DENY")
+		hd.Set("Content-Security-Policy", "frame-ancestors 'none'")
+		hd.Set("Referrer-Policy", "same-origin")
+		if https {
+			hd.Set("Strict-Transport-Security", "max-age=31536000")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (h *Host) routes(guard auth.Middleware) http.Handler {
