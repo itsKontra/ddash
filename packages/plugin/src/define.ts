@@ -1,6 +1,6 @@
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import type { RouteObject } from "react-router";
-import type { Tone } from "@ddash/ui";
+import type { IconName, Tone } from "@ddash/ui";
 
 export type { Tone };
 
@@ -39,6 +39,71 @@ export interface Widget {
   useStatus: () => Status | undefined;
 }
 
+/** How much a Concern needs the Operator: down, warn (attention) or info (news). */
+export type ConcernTone = Extract<Tone, "down" | "warn" | "info">;
+
+/**
+ * An Action a Concern offers: the one the Plugin's Page runs, with the same
+ * confirm or Plan and the same Audit Log entry. The core adds no path of
+ * its own for changes.
+ */
+export type ConcernAction = {
+  /** The button's label: "Start", "Adopt", "Mute". */
+  label: string;
+  icon?: IconName;
+  /** In flight: the button is disabled. */
+  pending?: boolean;
+  /** Why its last run failed, shown under the Concern's cause. */
+  error?: string;
+  /**
+   * It doesn't fix the cause, only deals with the Concern another way,
+   * e.g. Mute or Maintenance: drawn outlined even as the main button,
+   * which is filled only for a fix (Start, Adopt, Check again).
+   */
+  secondary?: boolean;
+} & (
+  | {
+      /** Runs it, e.g. useAction's run with the confirm the Page asks. */
+      run: () => unknown;
+    }
+  | {
+      /**
+       * Draws the Plugin's own Sheet for it (a Plan, a form) in the
+       * Plugin's scope, until it calls close. Called on every render while
+       * open, so what it returns must be elements of stable components.
+       */
+      sheet: (close: () => void) => ReactNode;
+    }
+);
+
+/**
+ * Something that needs the Operator. The Overview lists every installed
+ * Plugin's Concerns in one place, "Needs you", worst first.
+ */
+export interface Concern {
+  /** Stable while its cause lasts, and unique within the Plugin. */
+  id: string;
+  tone: ConcernTone;
+  /** What it is about, as a headline names it: "Paperless", "nas". */
+  subject: string;
+  /** "Paperless is down". */
+  title: string;
+  /** Why, and since when: "Compose Project paperless exited (137) · 6 min ago". */
+  cause?: string;
+  /**
+   * Known and silenced, and why, as the folded line counts it: "muted",
+   * "in Maintenance". A quiet Concern is folded away under "Off on
+   * purpose" and never sets the Overview's tone.
+   */
+  quiet?: string;
+  /** A lucide icon; defaults to its tone's. */
+  icon?: IconName;
+  /** The first is the main one, at the row's end; the others sit before it, quieter. */
+  actions?: ConcernAction[];
+  /** Where its detail lives, e.g. "/checks/12". */
+  href?: string;
+}
+
 /** What a Plugin's bundle exports as default. */
 export interface PluginDefinition {
   /** Zero or one Nav Entry. */
@@ -46,6 +111,12 @@ export interface PluginDefinition {
   /** react-router routes, relative to /<plugin-name>/. The index route is the Nav Entry's target. */
   pages?: RouteObject[];
   widgets?: Widget[];
+  /**
+   * A hook returning the Plugin's Concerns now: [] for none, undefined
+   * until known. It runs for every installed Plugin while the Overview is
+   * open, whether or not any of its Widgets is placed there.
+   */
+  useConcerns?: () => Concern[] | undefined;
 }
 
 /**
