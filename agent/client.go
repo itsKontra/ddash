@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -10,12 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/itsKontra/ddash/sdk/jsoncall"
 )
 
 // Client reaches one paired Agent: it sends the token and refuses a
@@ -146,42 +146,29 @@ func (c *Client) Do(ctx context.Context, method, path string, query url.Values, 
 	if len(query) > 0 {
 		u += "?" + query.Encode()
 	}
-	var body io.Reader
-	if in != nil {
-		b, err := json.Marshal(in)
-		if err != nil {
-			return err
-		}
-		body = bytes.NewReader(b)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, u, body)
-	if err != nil {
-		return err
-	}
-	if in != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+	header := http.Header{}
 	if c.token != "" {
-		req.Header.Set(TokenHeader, "Bearer "+c.token)
+		header.Set(TokenHeader, "Bearer "+c.token)
 	}
-	res, err := c.hc.Do(req)
+	reply, err := jsoncall.Do(ctx, c.hc, jsoncall.Request{Method: method, URL: u, Header: header, Body: in})
 	if err != nil {
 		if errors.Is(err, ErrFingerprint) {
 			return ErrFingerprint
 		}
+		// As net/http and encoding/json report it: callers match on it.
+		var call *jsoncall.Error
+		if errors.As(err, &call) {
+			return call.Err
+		}
 		return err
 	}
-	defer res.Body.Close()
-	b, err := io.ReadAll(io.LimitReader(res.Body, 16<<20))
-	if err != nil {
-		return err
-	}
-	if res.StatusCode/100 != 2 {
+	b := reply.Body
+	if reply.Status/100 != 2 {
 		var e Error
 		if json.Unmarshal(b, &e) != nil || e.Message == "" {
-			e = Error{Code: CodeFailed, Message: fmt.Sprintf("the Agent answered %s", res.Status)}
+			e = Error{Code: CodeFailed, Message: fmt.Sprintf("the Agent answered %d %s", reply.Status, http.StatusText(reply.Status))}
 		}
-		return &APIError{Status: res.StatusCode, Code: e.Code, Message: e.Message}
+		return &APIError{Status: reply.Status, Code: e.Code, Message: e.Message}
 	}
 	if out == nil {
 		return nil
