@@ -42,8 +42,8 @@ it("is up while protection is on, with the share of the day's queries blocked", 
   expect(paths).toContain("/api/c/adguard-api/ddash.adguardapi.AdguardApiService/GetStatus");
   expect(reported.status).toEqual({ tone: "up", summary: "Protection on, 15% of 18,432 queries blocked" });
   const body = screen.getByRole("region", { name: "widget" });
-  expect(metricValue("queries, 24 h", body)).toMatch(/18,432/);
-  expect(metricValue("blocked", body)).toMatch(/15%/);
+  expect(metricValue("Queries, 24 h", body)).toMatch(/18,432/);
+  expect(metricValue("Blocked", body)).toMatch(/15%/);
 });
 
 it("is warn while protection is off, and says how long a pause lasts", async () => {

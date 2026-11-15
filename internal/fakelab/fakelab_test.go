@@ -139,6 +139,19 @@ func TestTheVpnOnFallbackScenarioHasTheTunnelViaOpenVPN(t *testing.T) {
 	}
 }
 
+// The wan-down scenario takes the WAN down, and both tiers of the VPN
+// Tunnel with it.
+func TestTheWanDownScenarioHasTheWanAndTheTunnelDown(t *testing.T) {
+	h := bootNetwork(t, "wan-down")
+	if got := h.Call("network", "network", "GetVpnTunnel", `{}`).Body.String(); !strings.Contains(got, `"tier":"TIER_DOWN"`) {
+		t.Errorf("GetVpnTunnel = %s, want down", got)
+	}
+	res := h.Call("network", "pfsense-api", "ListGateways", `{}`)
+	if got := res.Body.String(); !strings.Contains(got, `"name":"WAN_DHCP","status":"down"`) {
+		t.Errorf("ListGateways = %d %s, want WAN_DHCP down", res.Code, got)
+	}
+}
+
 // network reports the VPN Tunnel item to checks through the host: up on
 // the fallback (failover is no Notification), down with both tiers down.
 func TestNetworkReportsTheVPNTunnelItemToChecksThroughTheHost(t *testing.T) {
