@@ -298,10 +298,24 @@ func (h *Harness) ctx() context.Context {
 // AuditLog returns the Audit Log, newest first.
 func (h *Harness) AuditLog() []appstate.Entry {
 	h.t.Helper()
-	entries, err := h.Host.AuditLog().Entries(h.t.Context())
-	if err != nil {
-		h.t.Fatal(err)
+	// Page by page: the gate offers no unbounded read.
+	var entries []appstate.Entry
+	q := appstate.Query{PageSize: appstate.MaxPageSize}
+	for {
+		page, err := h.Host.AuditLog().Chains(h.t.Context(), q)
+		if err != nil {
+			h.t.Fatal(err)
+		}
+		for _, c := range page.Chains {
+			entries = append(entries, c.Entries...)
+		}
+		if q.PageToken = page.Next; q.PageToken == "" {
+			break
+		}
 	}
+	slices.SortFunc(entries, func(a, b appstate.Entry) int {
+		return cmp.Or(b.Time.Compare(a.Time), cmp.Compare(b.ID, a.ID))
+	})
 	return entries
 }
 

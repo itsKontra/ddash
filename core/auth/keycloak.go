@@ -116,7 +116,7 @@ func NewKeycloak(opts KeycloakOptions) (*Keycloak, error) {
 	if logger == nil {
 		logger = slog.New(slog.DiscardHandler)
 	}
-	return &Keycloak{opts: opts, sessions: sessions{opts.DB}, logger: logger}, nil
+	return &Keycloak{opts: opts, sessions: sessions{db: opts.DB, log: logger}, logger: logger}, nil
 }
 
 // Handler serves the public sign-in paths under /auth/.

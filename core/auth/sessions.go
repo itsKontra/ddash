@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"errors"
+	"log/slog"
 	"time"
 )
 
@@ -21,7 +22,10 @@ const (
 const SweepInterval = time.Hour
 
 // sessions are the Operator sessions in the core DB's session table.
-type sessions struct{ db *sql.DB }
+type sessions struct {
+	db  *sql.DB
+	log *slog.Logger
+}
 
 // tokenID is how the table keys a session: a stolen DB copy holds no
 // usable cookie.
@@ -89,8 +93,12 @@ func (s sessions) sweep(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		now := time.Now()
-		_, _ = s.db.ExecContext(ctx, `DELETE FROM session WHERE last_seen <= ? OR created <= ?`, // retried next time
+		// Retried next time. A ctx that ended is the host stopping.
+		_, err := s.db.ExecContext(ctx, `DELETE FROM session WHERE last_seen <= ? OR created <= ?`,
 			now.Add(-IdleTimeout).UnixMilli(), now.Add(-MaxSessionAge).UnixMilli())
+		if err != nil && ctx.Err() == nil {
+			s.log.Warn("sessions: the sweep of expired sessions failed", "err", err)
+		}
 		select {
 		case <-ctx.Done():
 			return
