@@ -108,8 +108,8 @@ it("downloads the config as a file named after the device", async () => {
   vi.stubGlobal(
     "URL",
     class extends URL {
-      static createObjectURL = (b: Blob) => ((saved.blob = b), "blob:config");
-      static revokeObjectURL = () => {};
+      static override createObjectURL = (b: Blob) => ((saved.blob = b), "blob:config");
+      static override revokeObjectURL = () => {};
     },
   );
   const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {

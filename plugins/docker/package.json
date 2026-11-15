@@ -10,7 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "2.17.0",
     "@ddash/compose-ui": "workspace:*",
     "@ddash/display": "workspace:*",
     "@ddash/draft": "workspace:*",
