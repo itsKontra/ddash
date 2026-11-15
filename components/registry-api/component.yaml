@@ -1,0 +1,3 @@
+name: registry-api
+description: Reads an image tag's current digest from its container registry (Docker Hub, GHCR or any other), anonymously or with the credentials the Operator gives for private images.
+requires: []

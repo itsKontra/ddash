@@ -336,8 +336,8 @@ have that.
 - [ ] Image checks read each running container's image digest from its
       registry every 6 hours, with one manifest `HEAD` per distinct image
       (Docker Hub doesn't count those against its pull limit). Private images
-      need compose's **Registry credentials**; a pull-through mirror goes in
-      **Docker Hub registry**.
+      need registry-api's **Registry credentials**; a pull-through mirror goes
+      in its **Docker Hub registry**.
 - [ ] Removing an Agent from ddash forgets its token; ddash then shows how to
       uninstall it: `cd /opt/ddash-docker-agent && docker compose down -v`.
 - [ ] An Agent from another Release is flagged; **Update Agent** recreates it

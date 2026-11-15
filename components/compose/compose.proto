@@ -8,30 +8,17 @@ syntax = "proto3";
 // through a Plan, each as a run that outlasts the Action's deadline.
 package ddash.compose;
 
-import "ddash/config/config.proto";
 import "ddash/job/job.proto";
 import "ddash/options.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/compose/composepb;composepb";
 
+// compose has nothing to configure: registries and their credentials are
+// registry-api's.
 message ComposeConfig {
-  // Where docker.io images' digests are read: Docker Hub, or a
-  // pull-through mirror of it.
-  optional string docker_hub_registry = 1 [(ddash.config.field) = {
-    label: "Docker Hub registry"
-    default: "https://registry-1.docker.io"
-    format: FORMAT_URL
-    help: "Where ddash reads docker.io images' digests: Docker Hub, or a pull-through mirror of it."
-  }];
-  // Credentials for private registries: "<registry> <user>:<token>"
-  // entries separated by ";" or line breaks.
-  string registry_credentials = 2 [(ddash.config.field) = {
-    label: "Registry credentials"
-    secret: true
-    placeholder: "ghcr.io me:ghp_…; registry.home.example ddash:…"
-    help: "Optional, for private images: <registry> <user>:<token>, separated by ;. Public images are read anonymously."
-  }];
+  reserved 1, 2;
+  reserved "docker_hub_registry", "registry_credentials";
 }
 
 service ComposeService {

@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+// registry-api reads image digests from container registries over the
+// registry HTTP API. It is the only Component that talks to a registry
+// (ADR-0007): compose asks it what a tag points at, and decides itself
+// what that means for a container.
+package ddash.registryapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/registry-api/registryapipb;registryapipb";
+
+message RegistryApiConfig {
+  // Where docker.io images' digests are read: Docker Hub, or a
+  // pull-through mirror of it.
+  optional string docker_hub_registry = 1 [(ddash.config.field) = {
+    label: "Docker Hub registry"
+    default: "https://registry-1.docker.io"
+    format: FORMAT_URL
+    help: "Where ddash reads docker.io images' digests: Docker Hub, or a pull-through mirror of it."
+  }];
+  // Credentials for private registries: "<registry> <user>:<token>"
+  // entries separated by ";" or line breaks.
+  string registry_credentials = 2 [(ddash.config.field) = {
+    label: "Registry credentials"
+    secret: true
+    placeholder: "ghcr.io me:ghp_…; registry.home.example ddash:…"
+    help: "Optional, for private images: <registry> <user>:<token>, separated by ;. Public images are read anonymously."
+  }];
+}
+
+service RegistryApiService {
+  // GetDigest asks a registry what digest a tag points at now, never
+  // cached. What the registry answered is in the response's outcome: a
+  // registry that has no such image, limits ddash or refuses it has
+  // answered, and the call succeeds.
+  rpc GetDigest(GetDigestRequest) returns (GetDigestResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
+}
+
+message GetDigestRequest {
+  // The registry's host, "docker.io" for Docker Hub.
+  string registry = 1;
+  // The repository, "library/nginx" for an official image.
+  string repository = 2;
+  // The tag, e.g. "latest".
+  string tag = 3;
+}
+
+message GetDigestResponse {
+  Outcome outcome = 1;
+  // The manifest digest ("sha256:…") the tag points at, an index's for a
+  // multi-arch image. Set when outcome is FOUND.
+  string digest = 2;
+  // Why there is no digest, as the Operator reads it. Empty when FOUND.
+  string message = 3;
+  // How many requests the registry got for this answer.
+  int32 requests = 4;
+}
+
+// What a registry answered.
+enum Outcome {
+  OUTCOME_UNSPECIFIED = 0;
+  // The tag's digest.
+  OUTCOME_FOUND = 1;
+  // The registry has no such image or tag.
+  OUTCOME_NO_SUCH_IMAGE = 2;
+  // The registry is rate-limiting ddash.
+  OUTCOME_RATE_LIMITED = 3;
+  // The registry refused ddash: the image is private and the credentials
+  // are missing or wrong.
+  OUTCOME_REFUSED = 4;
+  // The registry didn't answer, or answered something else.
+  OUTCOME_FAILED = 5;
+}
