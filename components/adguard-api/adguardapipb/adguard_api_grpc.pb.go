@@ -5,7 +5,8 @@
 // source: adguard-api/adguard_api.proto
 
 // adguard-api reads AdGuard Home through its HTTP API under /control, with
-// HTTP Basic auth, and turns ad-blocking off or on for one client.
+// HTTP Basic auth, turns ad-blocking off or on for one client, and pauses
+// and resumes protection.
 
 package adguardapipb
 
@@ -27,6 +28,8 @@ const (
 	AdguardApiService_ListQueries_FullMethodName        = "/ddash.adguardapi.AdguardApiService/ListQueries"
 	AdguardApiService_ListClients_FullMethodName        = "/ddash.adguardapi.AdguardApiService/ListClients"
 	AdguardApiService_SetClientFiltering_FullMethodName = "/ddash.adguardapi.AdguardApiService/SetClientFiltering"
+	AdguardApiService_PauseProtection_FullMethodName    = "/ddash.adguardapi.AdguardApiService/PauseProtection"
+	AdguardApiService_ResumeProtection_FullMethodName   = "/ddash.adguardapi.AdguardApiService/ResumeProtection"
 )
 
 // AdguardApiServiceClient is the client API for AdguardApiService service.
@@ -52,6 +55,14 @@ type AdguardApiServiceClient interface {
 	// other settings stay as they are. Turning it on when there is no such
 	// client changes nothing, so no client exists before first use.
 	SetClientFiltering(ctx context.Context, in *SetClientFilteringRequest, opts ...grpc.CallOption) (*SetClientFilteringResponse, error)
+	// PauseProtection turns protection off for duration (POST
+	// /control/protection with enabled false and the duration). AdGuard
+	// turns it back on by itself when the time is up; ddash runs no timer.
+	// Pausing while paused starts the pause anew.
+	PauseProtection(ctx context.Context, in *PauseProtectionRequest, opts ...grpc.CallOption) (*PauseProtectionResponse, error)
+	// ResumeProtection turns protection back on, whether it is paused or
+	// off (POST /control/protection with enabled true).
+	ResumeProtection(ctx context.Context, in *ResumeProtectionRequest, opts ...grpc.CallOption) (*ResumeProtectionResponse, error)
 }
 
 type adguardApiServiceClient struct {
@@ -112,6 +123,26 @@ func (c *adguardApiServiceClient) SetClientFiltering(ctx context.Context, in *Se
 	return out, nil
 }
 
+func (c *adguardApiServiceClient) PauseProtection(ctx context.Context, in *PauseProtectionRequest, opts ...grpc.CallOption) (*PauseProtectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PauseProtectionResponse)
+	err := c.cc.Invoke(ctx, AdguardApiService_PauseProtection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adguardApiServiceClient) ResumeProtection(ctx context.Context, in *ResumeProtectionRequest, opts ...grpc.CallOption) (*ResumeProtectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResumeProtectionResponse)
+	err := c.cc.Invoke(ctx, AdguardApiService_ResumeProtection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AdguardApiServiceServer is the server API for AdguardApiService service.
 // All implementations must embed UnimplementedAdguardApiServiceServer
 // for forward compatibility.
@@ -135,6 +166,14 @@ type AdguardApiServiceServer interface {
 	// other settings stay as they are. Turning it on when there is no such
 	// client changes nothing, so no client exists before first use.
 	SetClientFiltering(context.Context, *SetClientFilteringRequest) (*SetClientFilteringResponse, error)
+	// PauseProtection turns protection off for duration (POST
+	// /control/protection with enabled false and the duration). AdGuard
+	// turns it back on by itself when the time is up; ddash runs no timer.
+	// Pausing while paused starts the pause anew.
+	PauseProtection(context.Context, *PauseProtectionRequest) (*PauseProtectionResponse, error)
+	// ResumeProtection turns protection back on, whether it is paused or
+	// off (POST /control/protection with enabled true).
+	ResumeProtection(context.Context, *ResumeProtectionRequest) (*ResumeProtectionResponse, error)
 	mustEmbedUnimplementedAdguardApiServiceServer()
 }
 
@@ -159,6 +198,12 @@ func (UnimplementedAdguardApiServiceServer) ListClients(context.Context, *ListCl
 }
 func (UnimplementedAdguardApiServiceServer) SetClientFiltering(context.Context, *SetClientFilteringRequest) (*SetClientFilteringResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetClientFiltering not implemented")
+}
+func (UnimplementedAdguardApiServiceServer) PauseProtection(context.Context, *PauseProtectionRequest) (*PauseProtectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PauseProtection not implemented")
+}
+func (UnimplementedAdguardApiServiceServer) ResumeProtection(context.Context, *ResumeProtectionRequest) (*ResumeProtectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResumeProtection not implemented")
 }
 func (UnimplementedAdguardApiServiceServer) mustEmbedUnimplementedAdguardApiServiceServer() {}
 func (UnimplementedAdguardApiServiceServer) testEmbeddedByValue()                           {}
@@ -271,6 +316,42 @@ func _AdguardApiService_SetClientFiltering_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AdguardApiService_PauseProtection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdguardApiServiceServer).PauseProtection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdguardApiService_PauseProtection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdguardApiServiceServer).PauseProtection(ctx, req.(*PauseProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AdguardApiService_ResumeProtection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeProtectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdguardApiServiceServer).ResumeProtection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AdguardApiService_ResumeProtection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdguardApiServiceServer).ResumeProtection(ctx, req.(*ResumeProtectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AdguardApiService_ServiceDesc is the grpc.ServiceDesc for AdguardApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -297,6 +378,14 @@ var AdguardApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetClientFiltering",
 			Handler:    _AdguardApiService_SetClientFiltering_Handler,
+		},
+		{
+			MethodName: "PauseProtection",
+			Handler:    _AdguardApiService_PauseProtection_Handler,
+		},
+		{
+			MethodName: "ResumeProtection",
+			Handler:    _AdguardApiService_ResumeProtection_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

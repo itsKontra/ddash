@@ -1,6 +1,6 @@
 // Package adguardapi is the adguard-api Component: it reads AdGuard Home
-// through its HTTP API under /control, with HTTP Basic auth, and turns
-// ad-blocking off or on for one client.
+// through its HTTP API under /control, with HTTP Basic auth, turns
+// ad-blocking off or on for one client, and pauses and resumes protection.
 package adguardapi
 
 import (
