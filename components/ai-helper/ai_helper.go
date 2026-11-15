@@ -292,7 +292,7 @@ func apiError(err error) error {
 	if errors.As(err, &e) {
 		switch e.StatusCode {
 		case http.StatusUnauthorized, http.StatusForbidden:
-			return status.Error(codes.FailedPrecondition, "Anthropic refused the API key: enter a valid one in the AI App helper's settings")
+			return status.Error(codes.PermissionDenied, "Anthropic refused the API key: enter a valid one in the AI App helper's settings")
 		case http.StatusNotFound:
 			return status.Error(codes.FailedPrecondition, "Anthropic doesn't know the model: pick another in the AI App helper's settings")
 		case http.StatusTooManyRequests:

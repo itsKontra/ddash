@@ -44,6 +44,8 @@ type failure struct {
 	// down: Nginx Proxy Manager didn't answer, or refused ddash's sign-in
 	// or permissions. The Component's Health is Down.
 	down bool
+	// denied: Nginx Proxy Manager refused ddash's email or password.
+	denied bool
 	// status is the HTTP status answered; 0 when none was.
 	status int
 	// message is Nginx Proxy Manager's error message, when it sent one.
@@ -127,7 +129,9 @@ func (a *api) signIn(ctx context.Context) (*session, error) {
 	var f *failure
 	switch {
 	case errors.As(err, &f) && f.status >= 400 && f.status < 500:
-		return nil, downf("Nginx Proxy Manager refused ddash's sign-in as %s (%s): fix the email or password in nginx-proxy-manager-api's config", a.email, f.message)
+		refused := downf("Nginx Proxy Manager refused ddash's sign-in as %s (%s): fix the email or password in nginx-proxy-manager-api's config", a.email, f.message)
+		refused.denied = true
+		return nil, refused
 	case err != nil:
 		return nil, asDown(err)
 	case token.Requires2:

@@ -267,5 +267,9 @@ func unavailable(err error) error {
 	if _, ok := status.FromError(err); ok {
 		return err
 	}
+	// Refused credentials are PermissionDenied in every -api Component.
+	if f := (*failure)(nil); errors.As(err, &f) && f.denied {
+		return status.Error(codes.PermissionDenied, err.Error())
+	}
 	return status.Error(codes.Unavailable, err.Error())
 }

@@ -153,7 +153,7 @@ func (c *component) fetchPermissions(ctx context.Context) (permissions, error) {
 // unavailable is a failed read of the Proxmox API as a gRPC error.
 func unavailable(err error) error {
 	if proxmox.IsNotAuthorized(err) {
-		return status.Error(codes.Unavailable, "Proxmox refused the API token")
+		return status.Error(codes.PermissionDenied, "Proxmox refused the API token")
 	}
 	return status.Error(codes.Unavailable, err.Error())
 }

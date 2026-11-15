@@ -160,7 +160,7 @@ func (c *component) deliver(ctx context.Context, n *telegramapipb.Notification) 
 	c.lastErr = err
 	c.mu.Unlock()
 	if err != nil {
-		return 0, status.Error(codes.Unavailable, err.Error())
+		return 0, status.Error(sendCode(err), err.Error())
 	}
 	return id, nil
 }
@@ -294,7 +294,25 @@ func (c *component) post(ctx context.Context, m message) (int64, error) {
 		if why == "" {
 			why = strings.ToLower(http.StatusText(resp.StatusCode))
 		}
-		return 0, fmt.Errorf("Telegram answered %d: %s", resp.StatusCode, why) //nolint:staticcheck // a name, shown to the Operator
+		return 0, &answered{status: resp.StatusCode, text: fmt.Sprintf("Telegram answered %d: %s", resp.StatusCode, why)}
 	}
 	return answer.Result.MessageID, nil
+}
+
+// answered is a refusal Telegram answered with, and its HTTP status.
+type answered struct {
+	status int
+	text   string
+}
+
+func (a *answered) Error() string { return a.text }
+
+// sendCode is a failed send's gRPC code: PermissionDenied when Telegram
+// refused the credentials, as in every -api Component, else Unavailable.
+func sendCode(err error) codes.Code {
+	var a *answered
+	if errors.As(err, &a) && (a.status == http.StatusUnauthorized || a.status == http.StatusForbidden) {
+		return codes.PermissionDenied
+	}
+	return codes.Unavailable
 }

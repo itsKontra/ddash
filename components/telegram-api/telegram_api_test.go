@@ -150,8 +150,8 @@ func TestAFailedDeliveryMakesItDownWithTelegramsErrorUntilOneSucceeds(t *testing
 
 	_, err := send(t, c, down)
 
-	if status.Code(err) != codes.Unavailable || status.Convert(err).Message() != "Telegram answered 401: Unauthorized" {
-		t.Errorf("Send = %v, want Unavailable: Telegram answered 401: Unauthorized", err)
+	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != "Telegram answered 401: Unauthorized" {
+		t.Errorf("Send = %v, want PermissionDenied: Telegram answered 401: Unauthorized", err)
 	}
 	if got := h.Health(); got.State != sdk.Down || got.Message != "last delivery failed: Telegram answered 401: Unauthorized" {
 		t.Errorf("health = %v, want down with the last error", got)
