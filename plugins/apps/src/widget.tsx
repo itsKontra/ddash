@@ -92,7 +92,7 @@ function Body({ size }: { size: WidgetSize }) {
   if (pins.length === 0) return <Every apps={apps} byApp={byApp} size={size} muted={muted} edit={edit} />;
   return (
     <div className="flex flex-col gap-2">
-      <ul aria-label="Pinned Apps" className="grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-1">
+      <ul aria-label="Pinned Apps" className="grid grid-cols-3 sm:grid-cols-5 gap-1">
         {pins.map((a) => (
           <li key={a.id} className="min-w-0">
             <Pinned app={a} check={byApp?.get(a.id)} />
@@ -205,7 +205,7 @@ function EditPins({ apps, onDone }: { apps: App[]; onDone: () => void }) {
   return (
     <div className="flex flex-col gap-3">
       {pins.length > 0 ? (
-        <ol aria-label="Pinned Apps" className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
+        <ol aria-label="Pinned Apps" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {pins.map((a, i) => (
             <li key={a.id} className="flex min-w-0 flex-col items-center gap-1 rounded-ui border border-border px-1 pt-2 pb-1">
               <span className="flex h-7 w-7 items-center justify-center">
