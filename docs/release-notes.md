@@ -5,6 +5,15 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- Nothing to do: the registry credentials and the Anthropic API key that
+  `v0.0.3-rc.2` left in compose's and ai-helper's stored config are removed
+  from the core DB when each Component next starts. From now on a config
+  field a Release removes doesn't stay stored. In return, rolling back to
+  an older Release drops what the newer one stored in config fields the
+  older one doesn't have: enter those again after updating once more.
+- A draft's `Generate` entry in the Audit Log now records the system prompt
+  and the schema by their length only.
+
 ## v0.0.3-rc.2
 
 - **Enter two sets of credentials again.** Each external system is now

@@ -41,6 +41,11 @@ func (s *Store) Load(ctx context.Context, owner string, desc protoreflect.Messag
 
 // stored returns owner's stored config as a message of type desc, without
 // defaults: only what differs from them.
+//
+// Data for fields desc no longer has (a field an earlier Release stored
+// and this one removed) is dropped from the DB here, so a removed secret
+// doesn't outlive its field. A Release rolled back to therefore loses
+// what a newer one stored in fields it added.
 func (s *Store) stored(ctx context.Context, owner string, desc protoreflect.MessageDescriptor) (protoreflect.Message, error) {
 	value, _, err := s.row(ctx, owner)
 	if err != nil {
@@ -50,7 +55,41 @@ func (s *Store) stored(ctx context.Context, owner string, desc protoreflect.Mess
 	if err := proto.Unmarshal(value, msg); err != nil {
 		return nil, fmt.Errorf("load %s config: %w", owner, err)
 	}
+	if dropUnknown(msg) {
+		if err := s.Put(ctx, owner, msg); err != nil {
+			return nil, fmt.Errorf("drop %s config's removed fields: %w", owner, err)
+		}
+	}
 	return msg, nil
+}
+
+// dropUnknown removes the unknown fields of m and of the messages it
+// holds, and reports whether there were any.
+func dropUnknown(m protoreflect.Message) bool {
+	dropped := len(m.GetUnknown()) > 0
+	if dropped {
+		m.SetUnknown(nil)
+	}
+	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
+		switch {
+		case fd.IsMap():
+			if fd.MapValue().Message() != nil {
+				v.Map().Range(func(_ protoreflect.MapKey, mv protoreflect.Value) bool {
+					dropped = dropUnknown(mv.Message()) || dropped
+					return true
+				})
+			}
+		case fd.Message() == nil:
+		case fd.IsList():
+			for i := range v.List().Len() {
+				dropped = dropUnknown(v.List().Get(i).Message()) || dropped
+			}
+		default:
+			dropped = dropUnknown(v.Message()) || dropped
+		}
+		return true
+	})
+	return dropped
 }
 
 // row reads owner's stored config; ok is false when there is none.

@@ -64,12 +64,13 @@ message GetStatusResponse {
 }
 
 message GenerateRequest {
-  // The instruction the answer is made under.
-  string system = 1;
+  // The instruction the answer is made under. Fixed text of its caller's,
+  // so the Audit Log keeps its length only.
+  string system = 1 [(ddash.audit_length_only) = true];
   // The user message.
   string prompt = 2;
-  // The JSON Schema the answer's text must follow, as JSON.
-  string json_schema = 3;
+  // The JSON Schema the answer's text must follow, as JSON. Fixed too.
+  string json_schema = 3 [(ddash.audit_length_only) = true];
 }
 
 message GenerateResponse {

@@ -240,11 +240,12 @@ func (x *GetStatusResponse) GetModel() string {
 
 type GenerateRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// The instruction the answer is made under.
+	// The instruction the answer is made under. Fixed text of its caller's,
+	// so the Audit Log keeps its length only.
 	System string `protobuf:"bytes,1,opt,name=system,proto3" json:"system,omitempty"`
 	// The user message.
 	Prompt string `protobuf:"bytes,2,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	// The JSON Schema the answer's text must follow, as JSON.
+	// The JSON Schema the answer's text must follow, as JSON. Fixed too.
 	JsonSchema    string `protobuf:"bytes,3,opt,name=json_schema,json=jsonSchema,proto3" json:"json_schema,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -381,11 +382,11 @@ const file_anthropic_api_anthropic_api_proto_rawDesc = "" +
 	"\x10GetStatusRequest\"@\n" +
 	"\x11GetStatusResponse\x12\x15\n" +
 	"\x06set_up\x18\x01 \x01(\bR\x05setUp\x12\x14\n" +
-	"\x05model\x18\x02 \x01(\tR\x05model\"b\n" +
-	"\x0fGenerateRequest\x12\x16\n" +
-	"\x06system\x18\x01 \x01(\tR\x06system\x12\x16\n" +
-	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12\x1f\n" +
-	"\vjson_schema\x18\x03 \x01(\tR\n" +
+	"\x05model\x18\x02 \x01(\tR\x05model\"n\n" +
+	"\x0fGenerateRequest\x12\x1c\n" +
+	"\x06system\x18\x01 \x01(\tB\x04\xb0\xb5\x18\x01R\x06system\x12\x16\n" +
+	"\x06prompt\x18\x02 \x01(\tR\x06prompt\x12%\n" +
+	"\vjson_schema\x18\x03 \x01(\tB\x04\xb0\xb5\x18\x01R\n" +
 	"jsonSchema\"j\n" +
 	"\x10GenerateResponse\x12,\n" +
 	"\x04stop\x18\x01 \x01(\x0e2\x18.ddash.anthropicapi.StopR\x04stop\x12\x12\n" +

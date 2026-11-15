@@ -189,6 +189,14 @@ var file_ddash_options_proto_extTypes = []protoimpl.ExtensionInfo{
 		Tag:           "bytes,50002,opt,name=action",
 		Filename:      "ddash/options.proto",
 	},
+	{
+		ExtendedType:  (*descriptorpb.FieldOptions)(nil),
+		ExtensionType: (*bool)(nil),
+		Field:         50006,
+		Name:          "ddash.audit_length_only",
+		Tag:           "varint,50006,opt,name=audit_length_only",
+		Filename:      "ddash/options.proto",
+	},
 }
 
 // Extension fields to descriptorpb.MethodOptions.
@@ -202,6 +210,16 @@ var (
 	//
 	// optional ddash.Action action = 50002;
 	E_Action = &file_ddash_options_proto_extTypes[1]
+)
+
+// Extension fields to descriptorpb.FieldOptions.
+var (
+	// The Audit Log records only how long this string field is, e.g.
+	// "(2104 bytes)": for fixed or bulky text that another entry, or the
+	// code, already holds.
+	//
+	// optional bool audit_length_only = 50006;
+	E_AuditLengthOnly = &file_ddash_options_proto_extTypes[2]
 )
 
 var File_ddash_options_proto protoreflect.FileDescriptor
@@ -221,7 +239,8 @@ const file_ddash_options_proto_rawDesc = "" +
 	"disruptive\x18\x01 \x01(\bR\n" +
 	"disruptive:G\n" +
 	"\x06getter\x12\x1e.google.protobuf.MethodOptions\x18ц\x03 \x01(\v2\r.ddash.GetterR\x06getter:G\n" +
-	"\x06action\x12\x1e.google.protobuf.MethodOptions\x18҆\x03 \x01(\v2\r.ddash.ActionR\x06actionB0Z.github.com/itsKontra/ddash/proto/ddash;ddashpbb\x06proto3"
+	"\x06action\x12\x1e.google.protobuf.MethodOptions\x18҆\x03 \x01(\v2\r.ddash.ActionR\x06action:K\n" +
+	"\x11audit_length_only\x12\x1d.google.protobuf.FieldOptions\x18ֆ\x03 \x01(\bR\x0fauditLengthOnlyB0Z.github.com/itsKontra/ddash/proto/ddash;ddashpbb\x06proto3"
 
 var (
 	file_ddash_options_proto_rawDescOnce sync.Once
@@ -242,17 +261,19 @@ var file_ddash_options_proto_goTypes = []any{
 	(*Getter)(nil),                     // 1: ddash.Getter
 	(*Action)(nil),                     // 2: ddash.Action
 	(*descriptorpb.MethodOptions)(nil), // 3: google.protobuf.MethodOptions
+	(*descriptorpb.FieldOptions)(nil),  // 4: google.protobuf.FieldOptions
 }
 var file_ddash_options_proto_depIdxs = []int32{
 	0, // 0: ddash.Getter.refresh:type_name -> ddash.Getter.Refresh
 	3, // 1: ddash.getter:extendee -> google.protobuf.MethodOptions
 	3, // 2: ddash.action:extendee -> google.protobuf.MethodOptions
-	1, // 3: ddash.getter:type_name -> ddash.Getter
-	2, // 4: ddash.action:type_name -> ddash.Action
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	3, // [3:5] is the sub-list for extension type_name
-	1, // [1:3] is the sub-list for extension extendee
+	4, // 3: ddash.audit_length_only:extendee -> google.protobuf.FieldOptions
+	1, // 4: ddash.getter:type_name -> ddash.Getter
+	2, // 5: ddash.action:type_name -> ddash.Action
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	4, // [4:6] is the sub-list for extension type_name
+	1, // [1:4] is the sub-list for extension extendee
 	0, // [0:1] is the sub-list for field type_name
 }
 
@@ -268,7 +289,7 @@ func file_ddash_options_proto_init() {
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_options_proto_rawDesc), len(file_ddash_options_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   2,
-			NumExtensions: 2,
+			NumExtensions: 3,
 			NumServices:   0,
 		},
 		GoTypes:           file_ddash_options_proto_goTypes,

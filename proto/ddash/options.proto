@@ -17,6 +17,13 @@ extend google.protobuf.MethodOptions {
   Action action = 50002;
 }
 
+extend google.protobuf.FieldOptions {
+  // The Audit Log records only how long this string field is, e.g.
+  // "(2104 bytes)": for fixed or bulky text that another entry, or the
+  // code, already holds.
+  bool audit_length_only = 50006;
+}
+
 message Getter {
   // How often the UI refetches this getter while it is on screen.
   enum Refresh {

@@ -8,7 +8,7 @@
 
 import type { GenEnum, GenExtension, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, extDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
-import type { MethodOptions } from "@bufbuild/protobuf/wkt";
+import type { FieldOptions, MethodOptions } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_descriptor } from "@bufbuild/protobuf/wkt";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -16,7 +16,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/options.proto.
  */
 export const file_ddash_options: GenFile = /*@__PURE__*/
-  fileDesc("ChNkZGFzaC9vcHRpb25zLnByb3RvEgVkZGFzaCJjCgZHZXR0ZXISJgoHcmVmcmVzaBgBIAEoDjIVLmRkYXNoLkdldHRlci5SZWZyZXNoIjEKB1JlZnJlc2gSCAoEU0xPVxAAEggKBExJVkUQARIICgRGQVNUEAISCAoETk9ORRADIhwKBkFjdGlvbhISCgpkaXNydXB0aXZlGAEgASgIOkcKBmdldHRlchIeLmdvb2dsZS5wcm90b2J1Zi5NZXRob2RPcHRpb25zGNGGAyABKAsyDS5kZGFzaC5HZXR0ZXJSBmdldHRlcjpHCgZhY3Rpb24SHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxjShgMgASgLMg0uZGRhc2guQWN0aW9uUgZhY3Rpb25CMFouZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2g7ZGRhc2hwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
+  fileDesc("ChNkZGFzaC9vcHRpb25zLnByb3RvEgVkZGFzaCJjCgZHZXR0ZXISJgoHcmVmcmVzaBgBIAEoDjIVLmRkYXNoLkdldHRlci5SZWZyZXNoIjEKB1JlZnJlc2gSCAoEU0xPVxAAEggKBExJVkUQARIICgRGQVNUEAISCAoETk9ORRADIhwKBkFjdGlvbhISCgpkaXNydXB0aXZlGAEgASgIOkcKBmdldHRlchIeLmdvb2dsZS5wcm90b2J1Zi5NZXRob2RPcHRpb25zGNGGAyABKAsyDS5kZGFzaC5HZXR0ZXJSBmdldHRlcjpHCgZhY3Rpb24SHi5nb29nbGUucHJvdG9idWYuTWV0aG9kT3B0aW9ucxjShgMgASgLMg0uZGRhc2guQWN0aW9uUgZhY3Rpb246SwoRYXVkaXRfbGVuZ3RoX29ubHkSHS5nb29nbGUucHJvdG9idWYuRmllbGRPcHRpb25zGNaGAyABKAhSD2F1ZGl0TGVuZ3RoT25seUIwWi5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9wcm90by9kZGFzaDtkZGFzaHBiYgZwcm90bzM", [file_google_protobuf_descriptor]);
 
 /**
  * @generated from message ddash.Getter
@@ -111,4 +111,14 @@ export const getter: GenExtension<MethodOptions, Getter> = /*@__PURE__*/
  */
 export const action: GenExtension<MethodOptions, Action> = /*@__PURE__*/
   extDesc(file_ddash_options, 1);
+
+/**
+ * The Audit Log records only how long this string field is, e.g.
+ * "(2104 bytes)": for fixed or bulky text that another entry, or the
+ * code, already holds.
+ *
+ * @generated from extension: bool audit_length_only = 50006;
+ */
+export const audit_length_only: GenExtension<FieldOptions, boolean> = /*@__PURE__*/
+  extDesc(file_ddash_options, 2);
 
