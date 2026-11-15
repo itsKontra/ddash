@@ -60,6 +60,27 @@ it("starts a stopped guest as the Page's Start does", async () => {
   expect(bodies(shown.calls, "StartWorkload")).toEqual([{ workload: { kind: "KIND_LXC", host: "pve", id: "104" } }]);
 });
 
+it("says why Proxmox refused a power Command on that Command, and not on one cancelled at the confirm after it", async () => {
+  const refused = "Permission check failed (/vms/104, VM.PowerMgmt)";
+  const shown = await showCommands(plugin, proxmox, { answers: { ...base, StartWorkload: () => Response.json({ code: "permission_denied", message: refused }, { status: 403 }) } });
+  const error = (title: string) => shown.commands()?.find((c) => c.title === title)?.error;
+
+  await shown.choose("Start dhcp-box");
+  expect(error("Start dhcp-box")).toBe(refused);
+  expect(error("Start win-test")).toBeUndefined();
+
+  // A Restart run next and cancelled at the confirm: the refusal is not its.
+  await shown.choose("Restart media-stack");
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel" }));
+  await settle();
+  expect(error("Restart media-stack")).toBeUndefined();
+  expect(error("Start dhcp-box")).toBeUndefined();
+
+  // Started again and refused again: it says so again.
+  await shown.choose("Start dhcp-box");
+  expect(error("Start dhcp-box")).toBe(refused);
+});
+
 it("opens the guest's update Plan and Update all's Plan, running nothing before they are confirmed", async () => {
   const shown = await showCommands(plugin, proxmox, {
     answers: {

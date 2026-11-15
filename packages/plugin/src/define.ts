@@ -161,6 +161,13 @@ export interface CommandEntry {
    * palette lists it under Pinned, in the order the Plugin gives.
    */
   pinned?: boolean;
+  /**
+   * Why its last run failed, e.g. the Action's refusal, as a ConcernAction
+   * has it. The Plugin's Page that would show it may not be mounted, so the
+   * shell shows a newly set one where the Operator is, on any Page ("Start
+   * n8n failed: …"), until it is dismissed or the Command runs again.
+   */
+  error?: string;
 }
 
 /** What a Plugin's bundle exports as default. */
