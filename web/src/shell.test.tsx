@@ -72,11 +72,12 @@ it("lists Overview first, then Nav Entries by order and title, then Plugins and 
 
   expect(navLinks()).toEqual(["Overview", "Applications", "Checks", "Bravo", "Docker", "Plugins", "Settings"]);
   expect(screen.getByRole("link", { name: "Docker" }).getAttribute("href")).toBe("/docker");
-  // The shell reads the installed Plugins, the Overview layout, the core settings (the Theme) and the Operator, once each.
+  // The shell reads the installed Plugins, the Overview layout, the core settings (the Theme) and the Operator, once each; the Overview reads its last Actions.
   expect(coreCalls.toSorted()).toEqual([
     "/api/core/ddash.core.CoreService/GetCoreSettings",
     "/api/core/ddash.core.CoreService/GetLayout",
     "/api/core/ddash.core.CoreService/GetOperator",
+    "/api/core/ddash.core.CoreService/ListAuditLog",
     "/api/core/ddash.core.CoreService/ListInstalledPlugins",
   ]);
 });
@@ -315,7 +316,8 @@ it("switches light and dark from the phone top bar too, in step with the desktop
   window.localStorage.clear();
   document.documentElement.className = "";
   await boot("/", []);
-  const phone = within(screen.getByRole("banner")).getByRole("button", { name: "Dark mode" });
+  // The phone top bar is the first banner: jsdom counts a Panel's header as one too.
+  const phone = within(screen.getAllByRole("banner")[0]).getByRole("button", { name: "Dark mode" });
   const desktop = within(screen.getByRole("main")).getByRole("button", { name: "Dark mode" });
 
   fireEvent.click(phone);

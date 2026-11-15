@@ -1,4 +1,4 @@
-import { isNotConfigured, useQuery } from "@ddash/plugin";
+import { isNotConfigured, useQuery, useShownRuns } from "@ddash/plugin";
 import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
 import type { HostPackages } from "@ddash/proto/host-agent-api/host_agent_api_pb";
@@ -8,7 +8,8 @@ import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
 import { PowerStrip, taskOf } from "./power";
 import { BulkProgress, UpdateAll } from "./update-all";
-import { updatesText, usePackages, useUpdates } from "./updates";
+import { ended } from "./steps";
+import { updatesText, usePackages } from "./updates";
 
 /** How each of Proxmox's statuses reads at a glance. */
 export const tones: Record<string, Tone> = {
@@ -158,7 +159,9 @@ export function Workloads() {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
   const tasks = useQuery(ProxmoxService.method.listPowerTasks, {});
   const packages = usePackages();
-  const bulk = useUpdates()?.bulk;
+  // The last "Update all running" while it runs, or once it ended with the Page open.
+  const updates = useQuery(ProxmoxService.method.listUpdates, {});
+  const [bulk] = useShownRuns(updates.data && (updates.data.bulk ? [updates.data.bulk] : []), updates.isFetchedAfterMount, (b) => ({ id: b.id, ended: ended(b.state) }));
   // Read up front, so a strip opens on its power Actions, not on a skeleton.
   useQuery(ProxmoxApiService.method.listPermissions, {});
   const [q, setQ] = useQueryState("q", "");

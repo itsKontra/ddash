@@ -31,6 +31,7 @@ import { hero, type HeroState } from "./hero";
 import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
 import type { LoadedPlugin, Plugins } from "./plugins";
 import { useReach } from "./reach";
+import { Recently } from "./recently";
 
 /** The Overview layout as the shell shows it, and how to save a new one. */
 export interface OverviewLayout {
@@ -102,7 +103,7 @@ const tiles: { label: string; icon: IconName; tone: Tone }[] = [
 
 const tally = (tones: readonly Tone[], tone: Tone) => tones.filter((t) => t === tone).length;
 
-/** /: the hero and metric tiles over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode. */
+/** /: the hero and metric tiles over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode, and the last Actions under it. */
 export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch }) {
   const reach = useReach();
   // While editing, the Operator's unsaved layout.
@@ -246,6 +247,7 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
           );
         })}
       </ul>
+      <Recently />
       <Presence>
         {draft && adding && (
           <AddWidget

@@ -270,25 +270,38 @@ it("cancels a running update from its Plan Dialog once confirmed, then says what
 
 it("shows why a run couldn't be cancelled, and offers no cancel once it ended", async () => {
   let runs: object[] = [pulling];
+  let tooOld = true;
   const page = { ...base, GetComposeFile: () => Response.json({ file: { path: "/opt/stacks/media/compose.yaml", content: "services: {}\n", sha256: "a" } }) };
-  await showPlugin(plugin, docker, "/docker/projects/apps/media", {
-    answers: {
-      ...page,
-      ListRuns: () => Response.json({ runs }),
-      CancelRun: () => Response.json({ code: "failed_precondition", message: "the Docker Agent on apps is too old to cancel a job: update the Agent, then cancel again" }, { status: 400 }),
+  const answers = {
+    ...page,
+    ListRuns: () => Response.json({ runs }),
+    CancelRun: () => {
+      if (tooOld) return Response.json({ code: "failed_precondition", message: "the Docker Agent on apps is too old to cancel a job: update the Agent, then cancel again" }, { status: 400 });
+      runs = [cancelled];
+      return Response.json({ run: cancelled });
     },
-  });
+  };
+  await showPlugin(plugin, docker, "/docker/projects/apps/media", { answers });
   const panel = screen.getByRole("region", { name: "Update media" });
-  fireEvent.click(within(panel).getByRole("button", { name: "Cancel run" }));
-  await settle();
-  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel run" }));
-  await settle();
+  const cancel = async () => {
+    fireEvent.click(within(panel).getByRole("button", { name: "Cancel run" }));
+    await settle();
+    fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel run" }));
+    await settle();
+  };
+  await cancel();
   expect(within(panel).getByText(/too old to cancel a job: update the Agent/)).toBeTruthy();
 
-  cleanup();
-  runs = [cancelled];
-  await showPlugin(plugin, docker, "/docker/projects/apps/media", { answers: { ...page, ListRuns: () => Response.json({ runs }) } });
+  // Ended with the Page open: the run stays, with how it ended.
+  tooOld = false;
+  await cancel();
   const ended = screen.getByRole("region", { name: "Update media" });
   expect(within(ended).getByText(left)).toBeTruthy();
   expect(within(ended).queryByRole("button", { name: "Cancel run" })).toBeNull();
+
+  // Opened again: the ended run has left the Page.
+  cleanup();
+  await showPlugin(plugin, docker, "/docker/projects/apps/media", { answers });
+  expect(screen.getByRole("heading", { name: "media" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Update media" })).toBeNull();
 });
