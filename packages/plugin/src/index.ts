@@ -24,3 +24,4 @@ export {
 } from "./action";
 export { CoreScope, PluginHost, PluginScope, useClient, useConfirm, usePlugin, type Ask } from "./scope";
 export { confirmed, coreTransport, isDisruptive, pluginHeader, pluginTransport, type Fetch, type PluginRef } from "./transport";
+export { planEnded, PlanNotices, PlanSteps, stepState, type PlanOutcome, type PlanStep, type StepState } from "./plan";

@@ -11,7 +11,6 @@ import (
 	"context"
 	"database/sql"
 	"embed"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -29,7 +28,9 @@ import (
 	"github.com/itsKontra/ddash/agent"
 	"github.com/itsKontra/ddash/agent/jobproto"
 	pb "github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb"
+	"github.com/itsKontra/ddash/components/internal/agentcall"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/migrate"
 )
 
 //go:embed component.yaml
@@ -198,13 +199,14 @@ func (c *component) read(ctx context.Context, r *reading) {
 
 // stateOf is the state an Agent is in when a call to it failed with err.
 func stateOf(err error) (pb.AgentState, string) {
-	switch {
-	case errors.Is(err, agent.ErrFingerprint):
-		return pb.AgentState_AGENT_STATE_FINGERPRINT_CHANGED, "its certificate isn't the one pinned at pairing: if you reinstalled it, pair it again"
-	case agent.CodeOf(err) == agent.CodeBadToken || agent.CodeOf(err) == agent.CodeUnpaired:
-		return pb.AgentState_AGENT_STATE_REFUSED, "it refuses ddash's token: its state was reset, so pair it again"
-	}
-	return pb.AgentState_AGENT_STATE_UNREACHABLE, "unreachable: " + err.Error()
+	st, message := agentcall.StateOf(err)
+	return callStates[st], message
+}
+
+var callStates = map[agentcall.State]pb.AgentState{
+	agentcall.Unreachable:        pb.AgentState_AGENT_STATE_UNREACHABLE,
+	agentcall.FingerprintChanged: pb.AgentState_AGENT_STATE_FINGERPRINT_CHANGED,
+	agentcall.Refused:            pb.AgentState_AGENT_STATE_REFUSED,
 }
 
 func (c *component) ListAgents(ctx context.Context, _ *pb.ListAgentsRequest) (*pb.ListAgentsResponse, error) {
@@ -249,7 +251,7 @@ func (c *component) AddAgent(ctx context.Context, req *pb.AddAgentRequest) (*pb.
 	_, err := c.db.ExecContext(ctx, `INSERT INTO agent (vmid, name, url, code, added) VALUES (?, ?, ?, ?, ?)`,
 		req.GetVmid(), req.GetName(), strings.TrimRight(req.GetUrl(), "/"), code, time.Now().UTC().Format(time.RFC3339))
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "PRIMARY KEY") {
+		if migrate.IsTaken(err) {
 			return nil, status.Errorf(codes.AlreadyExists, "Workload %d already has a Host Agent", req.GetVmid())
 		}
 		return nil, err
@@ -317,18 +319,9 @@ func (c *component) pair(ctx context.Context, r row) {
 	err := func() error {
 		ctx, cancel := context.WithTimeout(ctx, readTimeout)
 		defer cancel()
-		hello, fp, err := agent.Probe(ctx, r.url)
-		switch {
-		case err != nil:
-			return fmt.Errorf("waiting for the Agent at %s: %v", r.url, err)
-		case hello.Kind != agent.KindHost:
-			return fmt.Errorf("%s answers as a %s Agent, not a Host Agent", r.url, hello.Kind)
-		case hello.Paired:
-			return errors.New("the Agent is already paired (with another ddash, or before a reset): install it again with the command above")
-		}
-		token, _, err := agent.Pair(ctx, r.url, fp, r.code)
+		token, fp, err := agentcall.Pairing{URL: r.url, Code: r.code, Kind: agent.KindHost, KindName: "Host Agent", IfPaired: "install it again with the command above"}.Pair(ctx)
 		if err != nil {
-			return fmt.Errorf("pairing refused: %v", err)
+			return err
 		}
 		_, err = c.db.ExecContext(ctx, `UPDATE agent SET token = ?, fingerprint = ?, code = '', paired = ? WHERE vmid = ? AND token = ''`,
 			token, fp, time.Now().UTC().Format(time.RFC3339), r.vmid)
@@ -471,27 +464,7 @@ func (c *component) checksum(ctx context.Context, arch string) (string, error) {
 
 // agentErr is an Agent's refusal as a gRPC error.
 func agentErr(err error) error {
-	var e *agent.APIError
-	if !errors.As(err, &e) {
-		if errors.Is(err, agent.ErrFingerprint) {
-			return status.Error(codes.FailedPrecondition, err.Error())
-		}
-		return status.Error(codes.Unavailable, "the Host Agent: "+err.Error())
-	}
-	code := codes.Internal
-	switch e.Code {
-	case agent.CodeConflict:
-		code = codes.FailedPrecondition
-	case agent.CodeInvalid:
-		code = codes.InvalidArgument
-	case agent.CodeNotFound:
-		code = codes.NotFound
-	case agent.CodeBusy:
-		code = codes.FailedPrecondition
-	case agent.CodeBadToken, agent.CodeUnpaired:
-		code = codes.Unauthenticated
-	}
-	return status.Error(code, e.Message)
+	return agentcall.Status(err, "the Host Agent", codes.FailedPrecondition)
 }
 
 func vmidText(vmid uint32) string { return strconv.FormatUint(uint64(vmid), 10) }
@@ -653,18 +626,32 @@ func (c *component) ListJobs(ctx context.Context, _ *pb.ListJobsRequest) (*pb.Li
 	return out, nil
 }
 
+func (c *component) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.GetJobResponse, error) {
+	r, err := c.row(ctx, req.GetVmid())
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, readTimeout)
+	defer cancel()
+	j, err := agentcall.Job(ctx, r.client(), req.GetId())
+	if err != nil {
+		return nil, agentErr(err)
+	}
+	return &pb.GetJobResponse{Job: jobproto.Of(j, vmidText(r.vmid))}, nil
+}
+
 func (c *component) CollectJob(ctx context.Context, req *pb.CollectJobRequest) (*pb.CollectJobResponse, error) {
 	r, err := c.row(ctx, req.GetVmid())
 	if err != nil {
 		return nil, err
 	}
-	var j agent.Job
-	if err := r.client().Delete(ctx, agent.PathJobs+"/"+url.PathEscape(req.GetId()), nil, &j); err != nil {
+	j, failed, err := agentcall.Collect(ctx, r.client(), req.GetId())
+	if err != nil {
 		return nil, agentErr(err)
 	}
 	c.reads.Invalidate()
-	if j.State == agent.Failed {
-		return nil, status.Errorf(codes.Aborted, "%s failed: %s", j.Title, j.Error)
+	if failed != nil {
+		return nil, failed
 	}
 	return &pb.CollectJobResponse{Job: jobproto.Of(j, vmidText(r.vmid))}, nil
 }

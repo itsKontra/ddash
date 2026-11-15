@@ -633,7 +633,10 @@ func (a *api) sendWithin(ctx context.Context, timeout time.Duration, method, pat
 	}
 	if resp.StatusCode != http.StatusOK {
 		code := codes.Unavailable
-		if method != http.MethodGet {
+		// The API key refused, on a read or a write.
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+			code = codes.PermissionDenied
+		} else if method != http.MethodGet {
 			switch resp.StatusCode {
 			case http.StatusBadRequest:
 				code = codes.FailedPrecondition

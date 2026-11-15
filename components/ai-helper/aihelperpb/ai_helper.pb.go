@@ -14,7 +14,6 @@ package aihelperpb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
-	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -29,15 +28,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Empty is valid: the helper is then not set up, and DraftApp refuses.
+// ai-helper has nothing to configure: the API key, the model and the
+// server are anthropic-api's.
 type AiHelperConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// An Anthropic API key, write-only once saved.
-	ApiKey string `protobuf:"bytes,1,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
-	// The Claude model drafting.
-	Model *string `protobuf:"bytes,2,opt,name=model,proto3,oneof" json:"model,omitempty"`
-	// The Messages API's server; Anthropic's own unless a proxy.
-	Server        *string `protobuf:"bytes,3,opt,name=server,proto3,oneof" json:"server,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -70,27 +64,6 @@ func (x *AiHelperConfig) ProtoReflect() protoreflect.Message {
 // Deprecated: Use AiHelperConfig.ProtoReflect.Descriptor instead.
 func (*AiHelperConfig) Descriptor() ([]byte, []int) {
 	return file_ai_helper_ai_helper_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *AiHelperConfig) GetApiKey() string {
-	if x != nil {
-		return x.ApiKey
-	}
-	return ""
-}
-
-func (x *AiHelperConfig) GetModel() string {
-	if x != nil && x.Model != nil {
-		return *x.Model
-	}
-	return ""
-}
-
-func (x *AiHelperConfig) GetServer() string {
-	if x != nil && x.Server != nil {
-		return *x.Server
-	}
-	return ""
 }
 
 type GetStatusRequest struct {
@@ -540,17 +513,8 @@ var File_ai_helper_ai_helper_proto protoreflect.FileDescriptor
 
 const file_ai_helper_ai_helper_proto_rawDesc = "" +
 	"\n" +
-	"\x19ai-helper/ai_helper.proto\x12\x0eddash.aihelper\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xdd\x03\n" +
-	"\x0eAiHelperConfig\x12\xa6\x01\n" +
-	"\aapi_key\x18\x01 \x01(\tB\x8c\x01\x9a\xb5\x18\x87\x01\x10\x01\x1a\x11Anthropic API key\"dFrom console.anthropic.com. Leave empty to not use the AI App helper. Drafts are billed to this key.*\n" +
-	"sk-ant-…R\x06apiKey\x12\x86\x01\n" +
-	"\x05model\x18\x02 \x01(\tBk\x9a\xb5\x18g\n" +
-	"\x11claude-sonnet-5-5\x1a\x05Model\"KThe Claude model id that drafts, e.g. claude-sonnet-5-5 or claude-opus-5-5.H\x00R\x05model\x88\x01\x01\x12\x83\x01\n" +
-	"\x06server\x18\x03 \x01(\tBf\x9a\xb5\x18b\n" +
-	"\x19https://api.anthropic.com\x1a\n" +
-	"API server\"7Leave as is unless you reach Anthropic through a proxy.8\x01H\x01R\x06server\x88\x01\x01B\b\n" +
-	"\x06_modelB\t\n" +
-	"\a_server\"\x12\n" +
+	"\x19ai-helper/ai_helper.proto\x12\x0eddash.aihelper\x1a\x13ddash/options.proto\":\n" +
+	"\x0eAiHelperConfigJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\aapi_keyR\x05modelR\x06server\"\x12\n" +
 	"\x10GetStatusRequest\"@\n" +
 	"\x11GetStatusResponse\x12\x15\n" +
 	"\x06set_up\x18\x01 \x01(\bR\x05setUp\x12\x14\n" +
@@ -629,7 +593,6 @@ func file_ai_helper_ai_helper_proto_init() {
 	if File_ai_helper_ai_helper_proto != nil {
 		return
 	}
-	file_ai_helper_ai_helper_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

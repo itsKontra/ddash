@@ -2208,6 +2208,102 @@ func (x *HostJobs) GetError() string {
 	return ""
 }
 
+type GetJobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Vmid          uint32                 `protobuf:"varint,1,opt,name=vmid,proto3" json:"vmid,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetJobRequest) Reset() {
+	*x = GetJobRequest{}
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetJobRequest) ProtoMessage() {}
+
+func (x *GetJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetJobRequest.ProtoReflect.Descriptor instead.
+func (*GetJobRequest) Descriptor() ([]byte, []int) {
+	return file_host_agent_api_host_agent_api_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *GetJobRequest) GetVmid() uint32 {
+	if x != nil {
+		return x.Vmid
+	}
+	return 0
+}
+
+func (x *GetJobRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetJobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *job.Job               `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetJobResponse) Reset() {
+	*x = GetJobResponse{}
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetJobResponse) ProtoMessage() {}
+
+func (x *GetJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetJobResponse.ProtoReflect.Descriptor instead.
+func (*GetJobResponse) Descriptor() ([]byte, []int) {
+	return file_host_agent_api_host_agent_api_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *GetJobResponse) GetJob() *job.Job {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
 type CollectJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Vmid          uint32                 `protobuf:"varint,1,opt,name=vmid,proto3" json:"vmid,omitempty"`
@@ -2218,7 +2314,7 @@ type CollectJobRequest struct {
 
 func (x *CollectJobRequest) Reset() {
 	*x = CollectJobRequest{}
-	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[39]
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2230,7 +2326,7 @@ func (x *CollectJobRequest) String() string {
 func (*CollectJobRequest) ProtoMessage() {}
 
 func (x *CollectJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[39]
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2243,7 +2339,7 @@ func (x *CollectJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectJobRequest.ProtoReflect.Descriptor instead.
 func (*CollectJobRequest) Descriptor() ([]byte, []int) {
-	return file_host_agent_api_host_agent_api_proto_rawDescGZIP(), []int{39}
+	return file_host_agent_api_host_agent_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *CollectJobRequest) GetVmid() uint32 {
@@ -2269,7 +2365,7 @@ type CollectJobResponse struct {
 
 func (x *CollectJobResponse) Reset() {
 	*x = CollectJobResponse{}
-	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[40]
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2281,7 +2377,7 @@ func (x *CollectJobResponse) String() string {
 func (*CollectJobResponse) ProtoMessage() {}
 
 func (x *CollectJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[40]
+	mi := &file_host_agent_api_host_agent_api_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2294,7 +2390,7 @@ func (x *CollectJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectJobResponse.ProtoReflect.Descriptor instead.
 func (*CollectJobResponse) Descriptor() ([]byte, []int) {
-	return file_host_agent_api_host_agent_api_proto_rawDescGZIP(), []int{40}
+	return file_host_agent_api_host_agent_api_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *CollectJobResponse) GetJob() *job.Job {
@@ -2433,7 +2529,12 @@ const file_host_agent_api_host_agent_api_proto_rawDesc = "" +
 	"\bHostJobs\x12\x12\n" +
 	"\x04vmid\x18\x01 \x01(\rR\x04vmid\x12\"\n" +
 	"\x04jobs\x18\x02 \x03(\v2\x0e.ddash.job.JobR\x04jobs\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error\"7\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"3\n" +
+	"\rGetJobRequest\x12\x12\n" +
+	"\x04vmid\x18\x01 \x01(\rR\x04vmid\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"2\n" +
+	"\x0eGetJobResponse\x12 \n" +
+	"\x03job\x18\x01 \x01(\v2\x0e.ddash.job.JobR\x03job\"7\n" +
 	"\x11CollectJobRequest\x12\x12\n" +
 	"\x04vmid\x18\x01 \x01(\rR\x04vmid\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"6\n" +
@@ -2447,7 +2548,7 @@ const file_host_agent_api_host_agent_api_proto_rawDesc = "" +
 	"\x14AGENT_STATE_OUTDATED\x10\x03\x12\x1b\n" +
 	"\x17AGENT_STATE_UNREACHABLE\x10\x04\x12#\n" +
 	"\x1fAGENT_STATE_FINGERPRINT_CHANGED\x10\x05\x12\x17\n" +
-	"\x13AGENT_STATE_REFUSED\x10\x062\xf7\f\n" +
+	"\x13AGENT_STATE_REFUSED\x10\x062\xd0\r\n" +
 	"\x13HostAgentApiService\x12c\n" +
 	"\n" +
 	"ListAgents\x12%.ddash.hostagentapi.ListAgentsRequest\x1a&.ddash.hostagentapi.ListAgentsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12[\n" +
@@ -2465,7 +2566,8 @@ const file_host_agent_api_host_agent_api_proto_rawDesc = "" +
 	"InstallKey\x12%.ddash.hostagentapi.InstallKeyRequest\x1a&.ddash.hostagentapi.InstallKeyResponse\"\x04\x92\xb5\x18\x00\x12`\n" +
 	"\tRemoveKey\x12$.ddash.hostagentapi.RemoveKeyRequest\x1a%.ddash.hostagentapi.RemoveKeyResponse\"\x06\x92\xb5\x18\x02\b\x01\x12o\n" +
 	"\x0eSetSSHSettings\x12).ddash.hostagentapi.SetSSHSettingsRequest\x1a*.ddash.hostagentapi.SetSSHSettingsResponse\"\x06\x92\xb5\x18\x02\b\x01\x12]\n" +
-	"\bListJobs\x12#.ddash.hostagentapi.ListJobsRequest\x1a$.ddash.hostagentapi.ListJobsResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12a\n" +
+	"\bListJobs\x12#.ddash.hostagentapi.ListJobsRequest\x1a$.ddash.hostagentapi.ListJobsResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12W\n" +
+	"\x06GetJob\x12!.ddash.hostagentapi.GetJobRequest\x1a\".ddash.hostagentapi.GetJobResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12a\n" +
 	"\n" +
 	"CollectJob\x12%.ddash.hostagentapi.CollectJobRequest\x1a&.ddash.hostagentapi.CollectJobResponse\"\x04\x92\xb5\x18\x00BTZRgithub.com/itsKontra/ddash/components/host-agent-api/hostagentapipb;hostagentapipbb\x06proto3"
 
@@ -2482,7 +2584,7 @@ func file_host_agent_api_host_agent_api_proto_rawDescGZIP() []byte {
 }
 
 var file_host_agent_api_host_agent_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_host_agent_api_host_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 41)
+var file_host_agent_api_host_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 43)
 var file_host_agent_api_host_agent_api_proto_goTypes = []any{
 	(AgentState)(0),                 // 0: ddash.hostagentapi.AgentState
 	(*HostAgentApiConfig)(nil),      // 1: ddash.hostagentapi.HostAgentApiConfig
@@ -2524,71 +2626,76 @@ var file_host_agent_api_host_agent_api_proto_goTypes = []any{
 	(*ListJobsRequest)(nil),         // 37: ddash.hostagentapi.ListJobsRequest
 	(*ListJobsResponse)(nil),        // 38: ddash.hostagentapi.ListJobsResponse
 	(*HostJobs)(nil),                // 39: ddash.hostagentapi.HostJobs
-	(*CollectJobRequest)(nil),       // 40: ddash.hostagentapi.CollectJobRequest
-	(*CollectJobResponse)(nil),      // 41: ddash.hostagentapi.CollectJobResponse
-	(*timestamppb.Timestamp)(nil),   // 42: google.protobuf.Timestamp
-	(*job.Job)(nil),                 // 43: ddash.job.Job
+	(*GetJobRequest)(nil),           // 40: ddash.hostagentapi.GetJobRequest
+	(*GetJobResponse)(nil),          // 41: ddash.hostagentapi.GetJobResponse
+	(*CollectJobRequest)(nil),       // 42: ddash.hostagentapi.CollectJobRequest
+	(*CollectJobResponse)(nil),      // 43: ddash.hostagentapi.CollectJobResponse
+	(*timestamppb.Timestamp)(nil),   // 44: google.protobuf.Timestamp
+	(*job.Job)(nil),                 // 45: ddash.job.Job
 }
 var file_host_agent_api_host_agent_api_proto_depIdxs = []int32{
 	4,  // 0: ddash.hostagentapi.ListAgentsResponse.agents:type_name -> ddash.hostagentapi.Agent
 	0,  // 1: ddash.hostagentapi.Agent.state:type_name -> ddash.hostagentapi.AgentState
 	5,  // 2: ddash.hostagentapi.Agent.os:type_name -> ddash.hostagentapi.OS
-	42, // 3: ddash.hostagentapi.Agent.added:type_name -> google.protobuf.Timestamp
-	42, // 4: ddash.hostagentapi.Agent.paired:type_name -> google.protobuf.Timestamp
+	44, // 3: ddash.hostagentapi.Agent.added:type_name -> google.protobuf.Timestamp
+	44, // 4: ddash.hostagentapi.Agent.paired:type_name -> google.protobuf.Timestamp
 	4,  // 5: ddash.hostagentapi.AddAgentResponse.agent:type_name -> ddash.hostagentapi.Agent
 	10, // 6: ddash.hostagentapi.AddAgentResponse.setup:type_name -> ddash.hostagentapi.AgentSetup
 	10, // 7: ddash.hostagentapi.GetAgentSetupResponse.setup:type_name -> ddash.hostagentapi.AgentSetup
 	4,  // 8: ddash.hostagentapi.PairAgentResponse.agent:type_name -> ddash.hostagentapi.Agent
-	43, // 9: ddash.hostagentapi.UpdateAgentResponse.job:type_name -> ddash.job.Job
+	45, // 9: ddash.hostagentapi.UpdateAgentResponse.job:type_name -> ddash.job.Job
 	19, // 10: ddash.hostagentapi.ListPackagesResponse.hosts:type_name -> ddash.hostagentapi.HostPackages
 	20, // 11: ddash.hostagentapi.HostPackages.packages:type_name -> ddash.hostagentapi.Package
-	42, // 12: ddash.hostagentapi.HostPackages.read:type_name -> google.protobuf.Timestamp
-	43, // 13: ddash.hostagentapi.RefreshPackagesResponse.job:type_name -> ddash.job.Job
-	43, // 14: ddash.hostagentapi.UpgradePackagesResponse.job:type_name -> ddash.job.Job
+	44, // 12: ddash.hostagentapi.HostPackages.read:type_name -> google.protobuf.Timestamp
+	45, // 13: ddash.hostagentapi.RefreshPackagesResponse.job:type_name -> ddash.job.Job
+	45, // 14: ddash.hostagentapi.UpgradePackagesResponse.job:type_name -> ddash.job.Job
 	27, // 15: ddash.hostagentapi.GetSSHResponse.ssh:type_name -> ddash.hostagentapi.SSHState
 	28, // 16: ddash.hostagentapi.SSHState.keys:type_name -> ddash.hostagentapi.AuthorizedKey
-	43, // 17: ddash.hostagentapi.EnableSSHResponse.job:type_name -> ddash.job.Job
+	45, // 17: ddash.hostagentapi.EnableSSHResponse.job:type_name -> ddash.job.Job
 	27, // 18: ddash.hostagentapi.SetSSHSettingsResponse.ssh:type_name -> ddash.hostagentapi.SSHState
 	39, // 19: ddash.hostagentapi.ListJobsResponse.hosts:type_name -> ddash.hostagentapi.HostJobs
-	43, // 20: ddash.hostagentapi.HostJobs.jobs:type_name -> ddash.job.Job
-	43, // 21: ddash.hostagentapi.CollectJobResponse.job:type_name -> ddash.job.Job
-	2,  // 22: ddash.hostagentapi.HostAgentApiService.ListAgents:input_type -> ddash.hostagentapi.ListAgentsRequest
-	6,  // 23: ddash.hostagentapi.HostAgentApiService.AddAgent:input_type -> ddash.hostagentapi.AddAgentRequest
-	8,  // 24: ddash.hostagentapi.HostAgentApiService.GetAgentSetup:input_type -> ddash.hostagentapi.GetAgentSetupRequest
-	11, // 25: ddash.hostagentapi.HostAgentApiService.PairAgent:input_type -> ddash.hostagentapi.PairAgentRequest
-	13, // 26: ddash.hostagentapi.HostAgentApiService.RemoveAgent:input_type -> ddash.hostagentapi.RemoveAgentRequest
-	15, // 27: ddash.hostagentapi.HostAgentApiService.UpdateAgent:input_type -> ddash.hostagentapi.UpdateAgentRequest
-	17, // 28: ddash.hostagentapi.HostAgentApiService.ListPackages:input_type -> ddash.hostagentapi.ListPackagesRequest
-	21, // 29: ddash.hostagentapi.HostAgentApiService.RefreshPackages:input_type -> ddash.hostagentapi.RefreshPackagesRequest
-	23, // 30: ddash.hostagentapi.HostAgentApiService.UpgradePackages:input_type -> ddash.hostagentapi.UpgradePackagesRequest
-	25, // 31: ddash.hostagentapi.HostAgentApiService.GetSSH:input_type -> ddash.hostagentapi.GetSSHRequest
-	29, // 32: ddash.hostagentapi.HostAgentApiService.EnableSSH:input_type -> ddash.hostagentapi.EnableSSHRequest
-	31, // 33: ddash.hostagentapi.HostAgentApiService.InstallKey:input_type -> ddash.hostagentapi.InstallKeyRequest
-	33, // 34: ddash.hostagentapi.HostAgentApiService.RemoveKey:input_type -> ddash.hostagentapi.RemoveKeyRequest
-	35, // 35: ddash.hostagentapi.HostAgentApiService.SetSSHSettings:input_type -> ddash.hostagentapi.SetSSHSettingsRequest
-	37, // 36: ddash.hostagentapi.HostAgentApiService.ListJobs:input_type -> ddash.hostagentapi.ListJobsRequest
-	40, // 37: ddash.hostagentapi.HostAgentApiService.CollectJob:input_type -> ddash.hostagentapi.CollectJobRequest
-	3,  // 38: ddash.hostagentapi.HostAgentApiService.ListAgents:output_type -> ddash.hostagentapi.ListAgentsResponse
-	7,  // 39: ddash.hostagentapi.HostAgentApiService.AddAgent:output_type -> ddash.hostagentapi.AddAgentResponse
-	9,  // 40: ddash.hostagentapi.HostAgentApiService.GetAgentSetup:output_type -> ddash.hostagentapi.GetAgentSetupResponse
-	12, // 41: ddash.hostagentapi.HostAgentApiService.PairAgent:output_type -> ddash.hostagentapi.PairAgentResponse
-	14, // 42: ddash.hostagentapi.HostAgentApiService.RemoveAgent:output_type -> ddash.hostagentapi.RemoveAgentResponse
-	16, // 43: ddash.hostagentapi.HostAgentApiService.UpdateAgent:output_type -> ddash.hostagentapi.UpdateAgentResponse
-	18, // 44: ddash.hostagentapi.HostAgentApiService.ListPackages:output_type -> ddash.hostagentapi.ListPackagesResponse
-	22, // 45: ddash.hostagentapi.HostAgentApiService.RefreshPackages:output_type -> ddash.hostagentapi.RefreshPackagesResponse
-	24, // 46: ddash.hostagentapi.HostAgentApiService.UpgradePackages:output_type -> ddash.hostagentapi.UpgradePackagesResponse
-	26, // 47: ddash.hostagentapi.HostAgentApiService.GetSSH:output_type -> ddash.hostagentapi.GetSSHResponse
-	30, // 48: ddash.hostagentapi.HostAgentApiService.EnableSSH:output_type -> ddash.hostagentapi.EnableSSHResponse
-	32, // 49: ddash.hostagentapi.HostAgentApiService.InstallKey:output_type -> ddash.hostagentapi.InstallKeyResponse
-	34, // 50: ddash.hostagentapi.HostAgentApiService.RemoveKey:output_type -> ddash.hostagentapi.RemoveKeyResponse
-	36, // 51: ddash.hostagentapi.HostAgentApiService.SetSSHSettings:output_type -> ddash.hostagentapi.SetSSHSettingsResponse
-	38, // 52: ddash.hostagentapi.HostAgentApiService.ListJobs:output_type -> ddash.hostagentapi.ListJobsResponse
-	41, // 53: ddash.hostagentapi.HostAgentApiService.CollectJob:output_type -> ddash.hostagentapi.CollectJobResponse
-	38, // [38:54] is the sub-list for method output_type
-	22, // [22:38] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	45, // 20: ddash.hostagentapi.HostJobs.jobs:type_name -> ddash.job.Job
+	45, // 21: ddash.hostagentapi.GetJobResponse.job:type_name -> ddash.job.Job
+	45, // 22: ddash.hostagentapi.CollectJobResponse.job:type_name -> ddash.job.Job
+	2,  // 23: ddash.hostagentapi.HostAgentApiService.ListAgents:input_type -> ddash.hostagentapi.ListAgentsRequest
+	6,  // 24: ddash.hostagentapi.HostAgentApiService.AddAgent:input_type -> ddash.hostagentapi.AddAgentRequest
+	8,  // 25: ddash.hostagentapi.HostAgentApiService.GetAgentSetup:input_type -> ddash.hostagentapi.GetAgentSetupRequest
+	11, // 26: ddash.hostagentapi.HostAgentApiService.PairAgent:input_type -> ddash.hostagentapi.PairAgentRequest
+	13, // 27: ddash.hostagentapi.HostAgentApiService.RemoveAgent:input_type -> ddash.hostagentapi.RemoveAgentRequest
+	15, // 28: ddash.hostagentapi.HostAgentApiService.UpdateAgent:input_type -> ddash.hostagentapi.UpdateAgentRequest
+	17, // 29: ddash.hostagentapi.HostAgentApiService.ListPackages:input_type -> ddash.hostagentapi.ListPackagesRequest
+	21, // 30: ddash.hostagentapi.HostAgentApiService.RefreshPackages:input_type -> ddash.hostagentapi.RefreshPackagesRequest
+	23, // 31: ddash.hostagentapi.HostAgentApiService.UpgradePackages:input_type -> ddash.hostagentapi.UpgradePackagesRequest
+	25, // 32: ddash.hostagentapi.HostAgentApiService.GetSSH:input_type -> ddash.hostagentapi.GetSSHRequest
+	29, // 33: ddash.hostagentapi.HostAgentApiService.EnableSSH:input_type -> ddash.hostagentapi.EnableSSHRequest
+	31, // 34: ddash.hostagentapi.HostAgentApiService.InstallKey:input_type -> ddash.hostagentapi.InstallKeyRequest
+	33, // 35: ddash.hostagentapi.HostAgentApiService.RemoveKey:input_type -> ddash.hostagentapi.RemoveKeyRequest
+	35, // 36: ddash.hostagentapi.HostAgentApiService.SetSSHSettings:input_type -> ddash.hostagentapi.SetSSHSettingsRequest
+	37, // 37: ddash.hostagentapi.HostAgentApiService.ListJobs:input_type -> ddash.hostagentapi.ListJobsRequest
+	40, // 38: ddash.hostagentapi.HostAgentApiService.GetJob:input_type -> ddash.hostagentapi.GetJobRequest
+	42, // 39: ddash.hostagentapi.HostAgentApiService.CollectJob:input_type -> ddash.hostagentapi.CollectJobRequest
+	3,  // 40: ddash.hostagentapi.HostAgentApiService.ListAgents:output_type -> ddash.hostagentapi.ListAgentsResponse
+	7,  // 41: ddash.hostagentapi.HostAgentApiService.AddAgent:output_type -> ddash.hostagentapi.AddAgentResponse
+	9,  // 42: ddash.hostagentapi.HostAgentApiService.GetAgentSetup:output_type -> ddash.hostagentapi.GetAgentSetupResponse
+	12, // 43: ddash.hostagentapi.HostAgentApiService.PairAgent:output_type -> ddash.hostagentapi.PairAgentResponse
+	14, // 44: ddash.hostagentapi.HostAgentApiService.RemoveAgent:output_type -> ddash.hostagentapi.RemoveAgentResponse
+	16, // 45: ddash.hostagentapi.HostAgentApiService.UpdateAgent:output_type -> ddash.hostagentapi.UpdateAgentResponse
+	18, // 46: ddash.hostagentapi.HostAgentApiService.ListPackages:output_type -> ddash.hostagentapi.ListPackagesResponse
+	22, // 47: ddash.hostagentapi.HostAgentApiService.RefreshPackages:output_type -> ddash.hostagentapi.RefreshPackagesResponse
+	24, // 48: ddash.hostagentapi.HostAgentApiService.UpgradePackages:output_type -> ddash.hostagentapi.UpgradePackagesResponse
+	26, // 49: ddash.hostagentapi.HostAgentApiService.GetSSH:output_type -> ddash.hostagentapi.GetSSHResponse
+	30, // 50: ddash.hostagentapi.HostAgentApiService.EnableSSH:output_type -> ddash.hostagentapi.EnableSSHResponse
+	32, // 51: ddash.hostagentapi.HostAgentApiService.InstallKey:output_type -> ddash.hostagentapi.InstallKeyResponse
+	34, // 52: ddash.hostagentapi.HostAgentApiService.RemoveKey:output_type -> ddash.hostagentapi.RemoveKeyResponse
+	36, // 53: ddash.hostagentapi.HostAgentApiService.SetSSHSettings:output_type -> ddash.hostagentapi.SetSSHSettingsResponse
+	38, // 54: ddash.hostagentapi.HostAgentApiService.ListJobs:output_type -> ddash.hostagentapi.ListJobsResponse
+	41, // 55: ddash.hostagentapi.HostAgentApiService.GetJob:output_type -> ddash.hostagentapi.GetJobResponse
+	43, // 56: ddash.hostagentapi.HostAgentApiService.CollectJob:output_type -> ddash.hostagentapi.CollectJobResponse
+	40, // [40:57] is the sub-list for method output_type
+	23, // [23:40] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_host_agent_api_host_agent_api_proto_init() }
@@ -2602,7 +2709,7 @@ func file_host_agent_api_host_agent_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_host_agent_api_host_agent_api_proto_rawDesc), len(file_host_agent_api_host_agent_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   41,
+			NumMessages:   43,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

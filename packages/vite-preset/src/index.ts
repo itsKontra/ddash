@@ -1,6 +1,6 @@
 // The shared Vite config. Plugins build with pluginConfig; the shell and
 // the vendor build share importMapPackages, so every UI runs on one React,
-// one react-router, one @ddash/ui and one @ddash/plugin.
+// one react-router, one @ddash/ui, one @ddash/plugin and one protobuf-es.
 import tailwindcss from "@tailwindcss/vite";
 import { join } from "node:path";
 import type { Plugin, UserConfig } from "vite";
@@ -17,6 +17,11 @@ export const importMapPackages = [
   "react-router",
   "@ddash/ui",
   "@ddash/plugin",
+  // The protobuf-es runtime every generated message needs: about 85 KB
+  // that each Plugin's bundle would otherwise carry a copy of.
+  "@bufbuild/protobuf",
+  "@bufbuild/protobuf/codegenv2",
+  "@bufbuild/protobuf/wkt",
 ];
 
 /** The vendor file serving pkg: react/jsx-runtime is react-jsx-runtime.js. */

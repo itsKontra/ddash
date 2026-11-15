@@ -159,9 +159,15 @@ func (s *store) sweep(ctx context.Context, at time.Time) error {
 		return err
 	}
 	defer tx.Rollback()
-	if _, err := tx.ExecContext(ctx, `DELETE FROM check_event WHERE (NOT changed AND at < ?) OR at < ?`,
-		ms(at.Add(-BeatsKept)), ms(at.Add(-ChangesKept))); err != nil {
-		return err
+	// One DELETE per value of changed, each a range of check_event_by_age
+	// (changed, at): as one statement with OR, SQLite scans the table.
+	for _, kept := range []struct {
+		changed bool
+		before  time.Time
+	}{{false, at.Add(-BeatsKept)}, {true, at.Add(-ChangesKept)}} {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM check_event WHERE changed = ? AND at < ?`, kept.changed, ms(kept.before)); err != nil {
+			return err
+		}
 	}
 	for _, p := range periods {
 		if _, err := tx.ExecContext(ctx, `DELETE FROM check_stat WHERE period = ? AND bucket < ?`,

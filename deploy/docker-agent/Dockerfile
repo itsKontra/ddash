@@ -5,7 +5,7 @@
 #
 # It holds root-equivalent power over its host through the mounted Docker
 # socket; the Operator installs it only on hosts ddash should control.
-FROM docker:27.5-cli
+FROM docker:29.8-cli
 
 COPY ddash-docker-agent /usr/local/bin/ddash-docker-agent
 

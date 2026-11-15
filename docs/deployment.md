@@ -222,10 +222,11 @@ Do these by hand, in order, before first use.
       Plugin only if you want Claude to draft new Apps. No other Plugin
       requires it; Docker and Apps show "Draft with AI" only while it is
       installed. Create an API key at console.anthropic.com and enter it as
-      ai-helper's **Anthropic API key**: it is a write-only secret (the form
+      anthropic-api's **Anthropic API key**: it is a write-only secret (the form
       never shows it again, the Audit Log redacts it). Drafts are billed to
       that key; the **Model** defaults to `claude-sonnet-5-5`. Left empty,
-      ai-helper is "not set up" and its Page says so.
+      the helper is "not set up" and its Page says so. anthropic-api is the
+      one Component that talks to Anthropic; ai-helper asks it.
 
       What is sent, per draft, only when you press **Send to Anthropic**
       after the Page has shown it to you word for word: your description,
@@ -336,8 +337,8 @@ have that.
 - [ ] Image checks read each running container's image digest from its
       registry every 6 hours, with one manifest `HEAD` per distinct image
       (Docker Hub doesn't count those against its pull limit). Private images
-      need compose's **Registry credentials**; a pull-through mirror goes in
-      **Docker Hub registry**.
+      need registry-api's **Registry credentials**; a pull-through mirror goes
+      in its **Docker Hub registry**.
 - [ ] Removing an Agent from ddash forgets its token; ddash then shows how to
       uninstall it: `cd /opt/ddash-docker-agent && docker compose down -v`.
 - [ ] An Agent from another Release is flagged; **Update Agent** recreates it

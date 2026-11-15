@@ -144,8 +144,8 @@ func TestAFailedDeliveryMakesItDownWithTheErrorUntilOneSucceeds(t *testing.T) {
 
 	_, err := send(t, c, down)
 
-	if status.Code(err) != codes.Unavailable || status.Convert(err).Message() != "ntfy answered 401: unauthorized" {
-		t.Errorf("Send = %v, want Unavailable: ntfy answered 401: unauthorized", err)
+	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != "ntfy answered 401: unauthorized" {
+		t.Errorf("Send = %v, want PermissionDenied: ntfy answered 401: unauthorized", err)
 	}
 	if got := h.Health(); got.State != sdk.Down || got.Message != "last delivery failed: ntfy answered 401: unauthorized" {
 		t.Errorf("health = %v, want down with the last error", got)

@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+// anthropic-api asks Claude through Anthropic's Messages API. It is the
+// only Component that talks to Anthropic (ADR-0007), and only a
+// transport: what to ask and what to make of the answer is its caller's
+// (ai-helper's). It sends the system prompt and the prompt it is given,
+// and nothing else.
+package ddash.anthropicapi;
+
+import "ddash/config/config.proto";
+import "ddash/options.proto";
+
+option go_package = "github.com/itsKontra/ddash/components/anthropic-api/anthropicapipb;anthropicapipb";
+
+// Empty is valid: anthropic-api is then not set up, and Generate refuses.
+message AnthropicApiConfig {
+  // An Anthropic API key, write-only once saved.
+  string api_key = 1 [(ddash.config.field) = {
+    label: "Anthropic API key"
+    secret: true
+    placeholder: "sk-ant-…"
+    help: "From console.anthropic.com. Leave empty to not use Claude. Requests are billed to this key."
+  }];
+  // The Claude model asked.
+  optional string model = 2 [(ddash.config.field) = {
+    label: "Model"
+    default: "claude-sonnet-5-5"
+    help: "The Claude model id asked, e.g. claude-sonnet-5-5 or claude-opus-5-5."
+  }];
+  // The Messages API's server; Anthropic's own unless a proxy.
+  optional string server = 3 [(ddash.config.field) = {
+    label: "API server"
+    default: "https://api.anthropic.com"
+    format: FORMAT_URL
+    help: "Leave as is unless you reach Anthropic through a proxy."
+  }];
+}
+
+service AnthropicApiService {
+  // GetStatus says whether an API key is saved, and the model asked, from
+  // the config alone.
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // Generate asks Claude once for an answer that follows json_schema. An
+  // Action: it sends the Operator's text to Anthropic and is billed to
+  // their key. It fails with FailedPrecondition while no API key is saved
+  // or Anthropic doesn't know the model, PermissionDenied when Anthropic
+  // refuses the key, ResourceExhausted when it limits the key,
+  // DeadlineExceeded when Claude takes too long and Unavailable when
+  // Anthropic can't be reached. A request Claude declined, or an answer
+  // cut off, is an answer: see the response's stop.
+  rpc Generate(GenerateRequest) returns (GenerateResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {
+  bool set_up = 1;
+  // The model asked.
+  string model = 2;
+}
+
+message GenerateRequest {
+  // The instruction the answer is made under.
+  string system = 1;
+  // The user message.
+  string prompt = 2;
+  // The JSON Schema the answer's text must follow, as JSON.
+  string json_schema = 3;
+}
+
+message GenerateResponse {
+  Stop stop = 1;
+  // The answer's text: JSON following the schema when stop is COMPLETE.
+  string text = 2;
+  // The model that answered.
+  string model = 3;
+}
+
+// How Claude's answer ended.
+enum Stop {
+  STOP_UNSPECIFIED = 0;
+  // The whole answer.
+  STOP_COMPLETE = 1;
+  // Claude declined the request.
+  STOP_DECLINED = 2;
+  // The answer hit the output limit and is cut off.
+  STOP_CUT_OFF = 3;
+}

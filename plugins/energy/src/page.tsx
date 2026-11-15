@@ -166,16 +166,19 @@ function Tiles({ t, priced }: { t: Totals; priced: boolean }) {
   );
 }
 
+/** The ends of a period's time axis. */
+type Range = { from: Date; to: Date };
+
 /** A day's or week's power curve. */
-function Curve({ p }: { p: GetPeriodResponse }) {
+function Curve({ p, range }: { p: GetPeriodResponse; range: Range }) {
   const times = p.samples.map((s) => (s.at ? timestampDate(s.at) : new Date(0)));
   const has = (f: (s: (typeof p.samples)[number]) => number | undefined) => p.samples.some((s) => f(s) !== undefined);
   const battery = has((s) => s.power?.battery);
   return (
     <LineChart
       label="Power"
-      from={timestampDate(p.from!)}
-      to={timestampDate(p.to!)}
+      from={range.from}
+      to={range.to}
       times={times}
       format={kwAxis}
       valueFormat={kw}
@@ -193,8 +196,8 @@ function Curve({ p }: { p: GetPeriodResponse }) {
 /** A month's days or a year's months: what was used, by source, above the line; where the rest of the solar went below it. */
 function Columns({ p, onOpen }: { p: GetPeriodResponse; onOpen: (span: SpanName, date: string) => void }) {
   const year = p.span === Span.YEAR;
-  const starts = p.buckets.map((b) => (b.from ? timestampDate(b.from) : new Date(0)));
-  const t = p.buckets.map((b) => b.totals!);
+  const starts = p.buckets.flatMap((b) => (b.totals ? [b.from ? timestampDate(b.from) : new Date(0)] : []));
+  const t = p.buckets.flatMap((b) => (b.totals ? [b.totals] : []));
   const series: ColumnSeries[] = [
     { label: "Solar, used directly", colour: colours.solar, values: t.map((x) => shares(x).solarDirect) },
     { label: "From the battery", colour: colours.battery, values: t.map((x) => x.batteryDischarged) },
@@ -251,8 +254,7 @@ function EnergyFacts({ t }: { t: Totals }) {
 const price = (v: number) => `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 5 }).format(v)} €/kWh`;
 
 /** What the grid cost and paid, and what the solar saved. */
-function MoneyFacts({ p }: { p: GetPeriodResponse }) {
-  const t = p.totals!;
+function MoneyFacts({ p, t }: { p: GetPeriodResponse; t: Totals }) {
   if (!p.prices)
     return (
       <p className="text-sm text-muted-foreground">
@@ -280,15 +282,15 @@ function MoneyFacts({ p }: { p: GetPeriodResponse }) {
 }
 
 /** The battery's state of charge over a day or week. */
-function BatteryCurve({ p }: { p: GetPeriodResponse }) {
-  if (!p.samples.some((s) => s.socPct !== undefined)) return null;
+function BatteryCurve({ p, range }: { p: GetPeriodResponse; range: Range }) {
   const last = [...p.samples].reverse().find((s) => s.socPct !== undefined);
+  if (last?.socPct === undefined) return null;
   return (
-    <Panel title="Battery" description={last ? `${Math.round(last.socPct!)} % · ${batteryText(last.power?.battery) ?? ""}` : undefined}>
+    <Panel title="Battery" description={`${Math.round(last.socPct)} % · ${batteryText(last.power?.battery) ?? ""}`}>
       <LineChart
         label="State of charge"
-        from={timestampDate(p.from!)}
-        to={timestampDate(p.to!)}
+        from={range.from}
+        to={range.to}
         times={p.samples.map((s) => (s.at ? timestampDate(s.at) : new Date(0)))}
         series={[{ label: "State of charge", colour: colours.battery, shape: "area", values: p.samples.map((s) => s.socPct) }]}
         format={(v) => `${v} %`}
@@ -323,6 +325,8 @@ function History() {
     );
   const atStart = !!p?.firstDay && !!p.previous && p.previous < p.firstDay;
   const curve = p && (p.span === Span.DAY || p.span === Span.WEEK);
+  // A curve needs the period's ends; an answer without them draws none.
+  const range: Range | undefined = p?.from && p.to ? { from: timestampDate(p.from), to: timestampDate(p.to) } : undefined;
   return (
     <>
       <Panel
@@ -348,7 +352,7 @@ function History() {
         {p?.totals && (
           <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"} aria-busy={loading || undefined}>
             <Tiles t={p.totals} priced={!!p.prices} />
-            <div className="mt-6">{curve ? <Curve p={p} /> : <Columns p={p} onOpen={open} />}</div>
+            <div className="mt-6">{curve ? range && <Curve p={p} range={range} /> : <Columns p={p} onOpen={open} />}</div>
           </div>
         )}
       </Panel>
@@ -358,11 +362,11 @@ function History() {
             <EnergyFacts t={p.totals} />
           </Panel>
           <Panel title="Money" description="Bought and sold at the prices set in Plugins.">
-            <MoneyFacts p={p} />
+            <MoneyFacts p={p} t={p.totals} />
           </Panel>
         </div>
       )}
-      {curve && <BatteryCurve p={p} />}
+      {curve && range && <BatteryCurve p={p} range={range} />}
     </>
   );
 }

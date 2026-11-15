@@ -1,4 +1,4 @@
-import { usePluginLink, useQuery } from "@ddash/plugin";
+import { PlanSteps, usePluginLink, useQuery } from "@ddash/plugin";
 import { AppsService, Reach, System, type ListAppsResponse, type Plan } from "@ddash/proto/apps/apps_pb";
 import { Button, Field, FormActions, Notice, Panel, Segmented, TextInput } from "@ddash/ui";
 import { useEffect, useState, type FormEvent } from "react";
@@ -7,7 +7,7 @@ import { groupsOf } from "./apps";
 import { ComposeFields, composeSource, newCompose, type ComposeDraft } from "./compose-fields";
 import type { Draft } from "./draft";
 import { GroupField, IconField, Text } from "./fields";
-import { blocking, NameNotes, PlanSteps, useRunAction, type ActionInit } from "./plan";
+import { blocking, NameNotes, steps, useRunAction, type ActionInit } from "./plan";
 import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";
 
 /** How long typing must pause before "ddash will" asks for the Plan again. */
@@ -243,7 +243,7 @@ export function AddApp({
       </div>
       <div className="xl:w-80 xl:shrink-0">
         <Panel title="ddash will" description={run.plan ? undefined : "Updates as you type."}>
-          {typed && plan ? <PlanSteps plan={plan} state={run.state} /> : <p className="text-sm text-muted-foreground">Type the App&apos;s URL to see what ddash will do.</p>}
+          {typed && plan ? <PlanSteps steps={steps(plan)} state={run.state} /> : <p className="text-sm text-muted-foreground">Type the App&apos;s URL to see what ddash will do.</p>}
         </Panel>
       </div>
     </div>

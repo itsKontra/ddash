@@ -98,8 +98,16 @@ func TestAddPairAndRead(t *testing.T) {
 	if j.GetState() != jobpb.State_STATE_DONE || j.GetResult()["jellyfin"] == "" {
 		t.Fatalf("update job = %v", j)
 	}
+	// One job is read by itself, until it is collected.
+	one, err := c.GetJob(ctx, &pb.GetJobRequest{Host: "media", Id: j.GetId()})
+	if err != nil || one.GetJob().GetId() != j.GetId() || one.GetJob().GetState() != jobpb.State_STATE_DONE {
+		t.Fatalf("GetJob = %v, %v", one, err)
+	}
 	if _, err := c.CollectJob(ctx, &pb.CollectJobRequest{Host: "media", Id: j.GetId()}); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := c.GetJob(ctx, &pb.GetJobRequest{Host: "media", Id: j.GetId()}); status.Code(err) != codes.NotFound {
+		t.Fatalf("GetJob of a collected job: %v, want NotFound", err)
 	}
 
 	// A failed job's collect fails with its error, for the Audit Log.

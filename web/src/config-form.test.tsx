@@ -420,7 +420,7 @@ it("runs a Component's test Action from its button and shows the result inline",
   expect(testRuns).toEqual([{ owner: "ntfy-api" }]);
   expect(within(form).getByRole("status", { name: "Send test result" }).textContent).toMatch(/Send test: done/);
 
-  testAnswer = () => Response.json({ code: "unavailable", message: "ntfy answered 401: unauthorized" }, { status: 503 });
+  testAnswer = () => Response.json({ code: "permission_denied", message: "ntfy answered 401: unauthorized" }, { status: 403 });
   fireEvent.click(within(form).getByRole("button", { name: "Send test" }));
   await settle();
 

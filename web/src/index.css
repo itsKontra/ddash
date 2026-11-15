@@ -9,6 +9,7 @@
 @import "@ddash/ui/theme.css";
 @source "./";
 @source "../../packages/ui/src";
+@source "../../packages/plugin/src";
 @source "../../packages/compose-ui/src";
 /* Spelled out to the files: Tailwind doesn't descend into a glob's directories. */
 @source "../../plugins/*/src/**/*";

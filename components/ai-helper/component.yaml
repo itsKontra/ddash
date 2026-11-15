@@ -1,3 +1,3 @@
 name: ai-helper
-description: Drafts a new App with Claude, a Compose file and the Add App fields, from a description and the context the Operator saw. It runs nothing.
-requires: []
+description: Drafts a new App with Claude (asked through anthropic-api), a Compose file and the Add App fields, from a description and the context the Operator saw. It runs nothing.
+requires: [anthropic-api]

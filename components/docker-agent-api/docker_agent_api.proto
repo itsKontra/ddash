@@ -109,6 +109,12 @@ service DockerAgentApiService {
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (ddash.getter) = {refresh: LIVE};
   }
+  // GetJob returns one job as its Agent has it now, never cached: what
+  // following a job reads, in place of every Agent's jobs. NOT_FOUND once
+  // the Agent no longer knows the job.
+  rpc GetJob(GetJobRequest) returns (GetJobResponse) {
+    option (ddash.getter) = {refresh: NONE};
+  }
   // CollectJob forgets an ended job on its Agent and returns it. It fails
   // ABORTED with the job's error when the job failed, so the Audit Log
   // entry of the collect records how the job ended.
@@ -464,6 +470,15 @@ message HostJobs {
   string host = 1;
   repeated ddash.job.Job jobs = 2;
   string error = 3;
+}
+
+message GetJobRequest {
+  string host = 1;
+  string id = 2;
+}
+
+message GetJobResponse {
+  ddash.job.Job job = 1;
 }
 
 message CollectJobRequest {
