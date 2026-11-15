@@ -5,7 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { groupsOf } from "./apps";
 import { ComposeFields, composeSource, newCompose, type ComposeDraft } from "./compose-fields";
-import type { Draft } from "./draft";
+import type { Draft } from "@ddash/draft";
 import { GroupField, IconField, Text } from "./fields";
 import { blocking, NameNotes, steps, useRunAction, type ActionInit } from "./plan";
 import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";

@@ -90,6 +90,8 @@ importers:
         specifier: workspace:*
         version: link:../proto
 
+  packages/draft: {}
+
   packages/plugin:
     dependencies:
       '@bufbuild/protobuf':
@@ -169,6 +171,9 @@ importers:
       '@bufbuild/protobuf':
         specifier: 2.17.0
         version: 2.17.0
+      '@ddash/draft':
+        specifier: workspace:*
+        version: link:../../packages/draft
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
@@ -194,6 +199,9 @@ importers:
       '@ddash/display':
         specifier: workspace:*
         version: link:../../packages/display
+      '@ddash/draft':
+        specifier: workspace:*
+        version: link:../../packages/draft
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin
@@ -285,6 +293,9 @@ importers:
       '@ddash/display':
         specifier: workspace:*
         version: link:../../packages/display
+      '@ddash/draft':
+        specifier: workspace:*
+        version: link:../../packages/draft
       '@ddash/plugin':
         specifier: workspace:*
         version: link:../../packages/plugin

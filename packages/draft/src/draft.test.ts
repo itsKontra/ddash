@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { draftFragment, parseDraft, type Draft } from "./draft";
+import { draftFragment, parseDraft, type Draft } from "./index";
 
 const paperless: Draft = {
   host: "media",
@@ -42,4 +42,9 @@ it("is no draft without a name and Compose file, or when it isn't base64url JSON
   for (const fragment of ["", "#", "#other=1", "#draft=", "#draft=%%%", encoded("not json"), encoded("[1,2]"), encoded(`{"name":"x"}`), encoded(`{"compose":"x"}`), encoded("null")]) {
     expect(parseDraft(fragment), fragment).toBeUndefined();
   }
+});
+
+it("refuses bytes that aren't UTF-8", () => {
+  // 0xFF is no UTF-8: "/w" is base64url for it.
+  expect(parseDraft("#draft=_w")).toBeUndefined();
 });

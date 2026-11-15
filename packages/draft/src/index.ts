@@ -1,8 +1,11 @@
-// A draft of a new App from a Compose Project, passed in the URL's
-// fragment: /apps?add=compose#draft=<base64url(JSON)>. The AI App helper
-// links here with one; the Docker Plugin's Add Compose Project page reads
-// the same JSON at /docker/projects/new#draft=…. Only the fragment carries
-// it, so it never reaches a server's logs.
+// A draft of a new Compose Project and its App, passed in the URL's
+// fragment as #draft=<base64url(JSON)>. The AI App helper writes it; the
+// apps Plugin's Add App (/apps?add=compose#draft=…) and the Docker
+// Plugin's Add Compose Project (/docker/projects/new#draft=…) read it.
+// Only the fragment carries it, so it never reaches a server's logs.
+//
+// This is the one contract: no Plugin declares the type or decodes the
+// fragment by itself.
 
 /** The draft's JSON. */
 export interface Draft {

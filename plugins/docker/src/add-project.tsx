@@ -1,4 +1,5 @@
 import { PlanDialog } from "@ddash/compose-ui";
+import { parseDraft } from "@ddash/draft";
 import { usePluginLink, useQuery } from "@ddash/plugin";
 import { ComposeService } from "@ddash/proto/compose/compose_pb";
 import { Button, Checkbox, Field, FormActions, Notice, PageTitle, Panel, Select, Skeleton, TextArea, TextInput } from "@ddash/ui";
@@ -7,29 +8,6 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { projectPath } from "./projects";
 
 const back = { href: "..", label: "Docker" };
-
-/** A draft handed over in the URL's fragment, e.g. by the AI App helper: #draft=<base64url JSON>. */
-export interface Draft {
-  host?: string;
-  name?: string;
-  directory?: string;
-  compose?: string;
-  env?: string;
-}
-
-/** Reads #draft=… : base64url of the draft's JSON; undefined when absent or unreadable. */
-export function readDraft(hash: string): Draft | undefined {
-  const m = /(?:^#|&)draft=([^&]+)/.exec(hash);
-  if (!m) return undefined;
-  try {
-    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
-    const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-    const d = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
-    return d && typeof d === "object" ? (d as Draft) : undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 const starter = `services:
   app:
@@ -44,13 +22,13 @@ export function AddProjectPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const ai = usePluginLink("ai-helper");
-  const [draft] = useState(() => readDraft(location.hash));
+  const [draft] = useState(() => parseDraft(location.hash));
   const hosts = data?.hosts.filter((h) => !h.error) ?? [];
   const [host, setHost] = useState(draft?.host ?? "");
   const [name, setName] = useState(draft?.name ?? "");
   const [directory, setDirectory] = useState(draft?.directory ?? "");
   const [content, setContent] = useState(draft?.compose ?? starter);
-  const [env, setEnv] = useState(typeof draft?.env === "string" ? draft.env : "");
+  const [env, setEnv] = useState(draft?.env ?? "");
   const [start, setStart] = useState(true);
   const [dialog, setDialog] = useState<ReactNode>();
 

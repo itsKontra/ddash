@@ -1,0 +1,13 @@
+{
+  "name": "@ddash/draft",
+  "private": true,
+  "type": "module",
+  "description": "The draft of a new Compose Project and its App that one Plugin hands to another in a URL fragment (#draft=…): its type, the one writer and the one validating reader. Bundled into each Plugin that uses it.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

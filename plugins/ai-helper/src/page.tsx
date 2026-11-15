@@ -1,10 +1,11 @@
+import { draftFragment, type Draft as HandedDraft } from "@ddash/draft";
 import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
 import { AiHelperService, type Draft } from "@ddash/proto/ai-helper/ai_helper_pb";
 import { ComposeService } from "@ddash/proto/compose/compose_pb";
 import { Button, CodeBlock, Facts, Field, FormActions, Notice, PageTitle, Panel, Select, Skeleton, TextArea, TextInput } from "@ddash/ui";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { contextOf, draftFragment, prompt, type DraftContext, type DraftJSON } from "./request";
+import { contextOf, prompt, type DraftContext } from "./request";
 
 /** What was previewed: the request DraftApp sends once the Operator says so. */
 interface Preview {
@@ -13,7 +14,7 @@ interface Preview {
 }
 
 /** The draft as the forms read it from "#draft=…". */
-function draftJSON(d: Draft, host: string): DraftJSON {
+function draftJSON(d: Draft, host: string): HandedDraft {
   const a = d.app;
   return {
     ...(host && { host }),
