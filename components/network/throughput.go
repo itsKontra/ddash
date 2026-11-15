@@ -13,11 +13,21 @@ import (
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsenseapipb"
 )
 
-// SampleInterval is how often network reads the WAN and LAN counters,
-// whether anyone is watching or not.
+// SampleInterval is how often network reads the WAN and LAN counters
+// while someone watches: GetThroughput was asked within WatchFor.
 const SampleInterval = 5 * time.Second
 
-// RingSize is how many samples network keeps: an hour of them.
+// WatchFor is how long after a GetThroughput network keeps sampling every
+// SampleInterval. The Network Page and the Widget ask every 5 s.
+const WatchFor = 30 * time.Second
+
+// IdleInterval is how often network reads the counters while nobody
+// watches: often enough for the hour's chart to have a line, and for the
+// first rate shown on opening the Page to be a recent one.
+const IdleInterval = time.Minute
+
+// RingSize is how many samples network keeps: an hour of them at
+// SampleInterval.
 const RingSize = 720
 
 // sampleTimeout bounds one read of the counters.
@@ -25,10 +35,15 @@ const sampleTimeout = 4 * time.Second
 
 // throughput is the ring of WAN and LAN samples, in memory only.
 type throughput struct {
-	mu      sync.Mutex
-	samples []*networkpb.ThroughputSample // oldest first, at most RingSize
-	last    *counters                     // the previous read, which rates are taken against
-	err     string                        // why the last read failed
+	// sampling serializes reads of the counters: the loop's and the one a
+	// GetThroughput makes when it ends an idle stretch.
+	sampling sync.Mutex
+	mu       sync.Mutex
+	asked    time.Time                     // the last GetThroughput
+	tried    time.Time                     // the last read of the counters, failed or not
+	samples  []*networkpb.ThroughputSample // oldest first, at most RingSize
+	last     *counters                     // the previous read, which rates are taken against
+	err      string                        // why the last read failed
 }
 
 // counters are the WAN and LAN byte counters at one moment.
@@ -47,6 +62,7 @@ func (t *throughput) sample(ctx context.Context, pfsense pfsenseapipb.PfsenseApi
 
 	t.mu.Lock()
 	defer t.mu.Unlock()
+	t.tried = time.Now()
 	if err != nil {
 		t.err = err.Error()
 		return
@@ -98,13 +114,54 @@ func readCounters(ctx context.Context, pfsense pfsenseapipb.PfsenseApiServiceCli
 	return &counters{at: at, wanIn: wan.GetInBytes(), wanOut: wan.GetOutBytes(), lanIn: lan.GetInBytes(), lanOut: lan.GetOutBytes()}, nil
 }
 
+// tick is the sampling loop's turn, every SampleInterval: it samples while
+// someone watches, and every IdleInterval while nobody does.
+func (t *throughput) tick(ctx context.Context, pfsense pfsenseapipb.PfsenseApiServiceClient) {
+	t.sampling.Lock()
+	defer t.sampling.Unlock()
+	t.mu.Lock()
+	now := time.Now()
+	// Half an interval of slack: the loop's ticks carry jitter.
+	due := now.Sub(t.asked) < WatchFor || now.Sub(t.tried) >= IdleInterval-SampleInterval/2
+	t.mu.Unlock()
+	if due {
+		t.sample(ctx, pfsense)
+	}
+}
+
+// watch notes that GetThroughput was asked. The first one after an idle
+// stretch reads the counters before it answers, so the Operator sees a
+// rate at once and not at the loop's next turn.
+func (t *throughput) watch(ctx context.Context, pfsense pfsenseapipb.PfsenseApiServiceClient) {
+	t.mu.Lock()
+	now := time.Now()
+	idle := now.Sub(t.asked) >= WatchFor
+	t.asked = now
+	t.mu.Unlock()
+	if !idle {
+		return
+	}
+	t.sampling.Lock()
+	defer t.sampling.Unlock()
+	t.mu.Lock()
+	fresh := time.Since(t.tried) < SampleInterval
+	t.mu.Unlock()
+	if !fresh {
+		t.sample(ctx, pfsense)
+	}
+}
+
 // get returns the samples taken after since (all of them when nil).
 func (t *throughput) get(since *timestamppb.Timestamp) *networkpb.GetThroughputResponse {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	out := &networkpb.GetThroughputResponse{Error: t.err}
+	// Sampled once a minute, the ring reaches back further than the hour
+	// it is for.
+	from := time.Now().Add(-time.Hour)
 	for _, s := range t.samples {
-		if since == nil || s.GetAt().AsTime().After(since.AsTime()) {
+		at := s.GetAt().AsTime()
+		if at.After(from) && (since == nil || at.After(since.AsTime())) {
 			out.Samples = append(out.Samples, s)
 		}
 	}

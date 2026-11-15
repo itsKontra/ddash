@@ -20,6 +20,7 @@ import (
 	_ "time/tzdata"
 
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -75,6 +76,9 @@ type component struct {
 
 	mu      sync.Mutex
 	periods map[string]cachedPeriod
+	// reading shares one read of a period among the callers that ask for
+	// it while it isn't cached.
+	reading singleflight.Group
 }
 
 type cachedPeriod struct {
@@ -244,22 +248,35 @@ func (c *component) GetPeriod(ctx context.Context, req *pb.GetPeriodRequest) (*p
 	if ok && now.Before(hit.expires) {
 		return hit.resp, nil
 	}
-	resp, err := c.readPeriod(ctx, p, now)
-	if err != nil {
-		return nil, err
+	// The read belongs to no one caller: it outlives the one that started
+	// it, bounded by the queries' own timeout, and fills the cache.
+	read := c.reading.DoChan(key, func() (any, error) {
+		resp, err := c.readPeriod(context.WithoutCancel(ctx), p, now)
+		if err != nil {
+			return nil, err
+		}
+		ttl := sdk.TTLSlow
+		// Over once its last window is: later readings rarely arrive.
+		if !now.Before(p.to.Add(p.window)) {
+			ttl = pastTTL
+		}
+		c.mu.Lock()
+		if len(c.periods) >= maxPeriods {
+			clear(c.periods)
+		}
+		c.periods[key] = cachedPeriod{resp: resp, expires: now.Add(ttl)}
+		c.mu.Unlock()
+		return resp, nil
+	})
+	select {
+	case <-ctx.Done():
+		return nil, status.FromContextError(ctx.Err()).Err()
+	case r := <-read:
+		if r.Err != nil {
+			return nil, r.Err
+		}
+		return r.Val.(*pb.GetPeriodResponse), nil
 	}
-	ttl := sdk.TTLSlow
-	// Over once its last window is: later readings rarely arrive.
-	if !now.Before(p.to.Add(p.window)) {
-		ttl = pastTTL
-	}
-	c.mu.Lock()
-	if len(c.periods) >= maxPeriods {
-		clear(c.periods)
-	}
-	c.periods[key] = cachedPeriod{resp: resp, expires: now.Add(ttl)}
-	c.mu.Unlock()
-	return resp, nil
 }
 
 func (c *component) readFirst(ctx context.Context) (time.Time, error) {

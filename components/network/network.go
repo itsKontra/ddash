@@ -91,12 +91,14 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *networkpb.Netw
 		return err
 	}
 	sdk.Every(ctx, PollInterval, c.poll)
-	sdk.Every(ctx, SampleInterval, func(ctx context.Context) { c.throughput.sample(ctx, c.pfsense) })
+	sdk.Every(ctx, SampleInterval, func(ctx context.Context) { c.throughput.tick(ctx, c.pfsense) })
 	return nil
 }
 
-// GetThroughput answers from the ring.
-func (c *component) GetThroughput(_ context.Context, req *networkpb.GetThroughputRequest) (*networkpb.GetThroughputResponse, error) {
+// GetThroughput answers from the ring, and keeps it sampled every
+// SampleInterval for the next WatchFor.
+func (c *component) GetThroughput(ctx context.Context, req *networkpb.GetThroughputRequest) (*networkpb.GetThroughputResponse, error) {
+	c.throughput.watch(ctx, c.pfsense)
 	return c.throughput.get(req.GetSince()), nil
 }
 

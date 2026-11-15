@@ -50,8 +50,10 @@ type NetworkServiceClient interface {
 	ListDevices(ctx context.Context, in *ListDevicesRequest, opts ...grpc.CallOption) (*ListDevicesResponse, error)
 	// GetThroughput returns the WAN and LAN throughput samples taken after
 	// since (all of the last hour when unset), oldest first. network samples
-	// every 5 s whether anyone is watching or not, and keeps the last 720
-	// samples in memory, so the ring is empty after a restart.
+	// every 5 s while it is asked (for 30 s after each call) and once a
+	// minute otherwise; the first call after an idle stretch reads the
+	// counters before it answers. It keeps the last 720 samples in memory,
+	// so the ring is empty after a restart.
 	GetThroughput(ctx context.Context, in *GetThroughputRequest, opts ...grpc.CallOption) (*GetThroughputResponse, error)
 	// GetRemoteAccess returns the Remote Access peers with their last
 	// handshake and traffic, and the hosts each can reach per the pass
@@ -229,8 +231,10 @@ type NetworkServiceServer interface {
 	ListDevices(context.Context, *ListDevicesRequest) (*ListDevicesResponse, error)
 	// GetThroughput returns the WAN and LAN throughput samples taken after
 	// since (all of the last hour when unset), oldest first. network samples
-	// every 5 s whether anyone is watching or not, and keeps the last 720
-	// samples in memory, so the ring is empty after a restart.
+	// every 5 s while it is asked (for 30 s after each call) and once a
+	// minute otherwise; the first call after an idle stretch reads the
+	// counters before it answers. It keeps the last 720 samples in memory,
+	// so the ring is empty after a restart.
 	GetThroughput(context.Context, *GetThroughputRequest) (*GetThroughputResponse, error)
 	// GetRemoteAccess returns the Remote Access peers with their last
 	// handshake and traffic, and the hosts each can reach per the pass

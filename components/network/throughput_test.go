@@ -1,6 +1,7 @@
 package network_test
 
 import (
+	"context"
 	"math"
 	"strings"
 	"sync"
@@ -80,6 +81,25 @@ func throughput(t *testing.T, c networkpb.NetworkServiceClient, since *timestamp
 	return resp
 }
 
+// watch asks for the throughput every 5 s until the test ends, as an open
+// Network Page does: network samples every SampleInterval only then.
+func watch(t *testing.T, c networkpb.NetworkServiceClient) {
+	t.Helper()
+	ctx, stop := context.WithCancel(t.Context())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for ctx.Err() == nil {
+			_, _ = c.GetThroughput(ctx, &networkpb.GetThroughputRequest{})
+			select {
+			case <-ctx.Done():
+			case <-time.After(5 * time.Second):
+			}
+		}
+	}()
+	t.Cleanup(func() { stop(); <-done })
+}
+
 // steady reports whether s holds the steady rates (to a byte per second:
 // counters are whole bytes).
 func steady(s *networkpb.ThroughputSample) bool {
@@ -100,10 +120,11 @@ func gaps(samples []*networkpb.ThroughputSample) []time.Duration {
 // sampling is 5 s plus at most 10% jitter.
 const maxGap = 5500 * time.Millisecond
 
-func TestThroughputIsSampledEveryFiveSecondsWithNobodyWatching(t *testing.T) {
+func TestThroughputIsSampledEveryFiveSecondsWhileSomeoneWatches(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		tr := newTraffic()
 		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces})
+		watch(t, c)
 
 		time.Sleep(time.Minute)
 		synctest.Wait()
@@ -111,7 +132,7 @@ func TestThroughputIsSampledEveryFiveSecondsWithNobodyWatching(t *testing.T) {
 
 		// The first read only sets where the counters stand.
 		if n := len(got.GetSamples()); n < 10 || n > 12 {
-			t.Fatalf("%d samples after a minute nobody watched, want 10 to 12", n)
+			t.Fatalf("%d samples after a minute of watching, want 10 to 12", n)
 		}
 		for _, s := range got.GetSamples() {
 			if !steady(s) {
@@ -136,6 +157,7 @@ func TestRatesUseWhenTheCountersWereRead(t *testing.T) {
 		tr := newTraffic()
 		tr.lags = []time.Duration{0, 2 * time.Second, time.Second}
 		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces, readAt: tr.at})
+		watch(t, c)
 
 		time.Sleep(time.Minute)
 		synctest.Wait()
@@ -148,23 +170,25 @@ func TestRatesUseWhenTheCountersWereRead(t *testing.T) {
 	})
 }
 
-func TestTheRingKeepsTheLast720Samples(t *testing.T) {
+func TestTheRingAnswersWithTheLastHourAndAtMost720Samples(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		tr := newTraffic()
 		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces})
+		watch(t, c)
 
 		time.Sleep(2 * time.Hour)
 		synctest.Wait()
 		got := throughput(t, c, nil).GetSamples()
 
-		if len(got) != 720 {
-			t.Fatalf("%d samples after two hours, want 720", len(got))
+		// An hour of samples 5 to 5.5 s apart.
+		if len(got) < 650 || len(got) > 720 {
+			t.Fatalf("%d samples after two hours, want the last hour's: 650 to 720", len(got))
 		}
-		if newest := time.Since(got[719].GetAt().AsTime()); newest > maxGap {
+		if newest := time.Since(got[len(got)-1].GetAt().AsTime()); newest > maxGap {
 			t.Errorf("newest sample is %v old, want the latest", newest)
 		}
-		if oldest := time.Since(got[0].GetAt().AsTime()); oldest < time.Hour-maxGap || oldest > 720*maxGap {
-			t.Errorf("oldest sample is %v old, want about an hour", oldest)
+		if oldest := time.Since(got[0].GetAt().AsTime()); oldest < time.Hour-2*maxGap || oldest > time.Hour {
+			t.Errorf("oldest sample is %v old, want about an hour and no more", oldest)
 		}
 	})
 }
@@ -173,6 +197,7 @@ func TestGetThroughputReturnsOnlyTheSamplesAfterSince(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		tr := newTraffic()
 		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces})
+		watch(t, c)
 		time.Sleep(time.Minute)
 		synctest.Wait()
 		all := throughput(t, c, nil).GetSamples()
@@ -194,6 +219,7 @@ func TestACounterResetDropsOneSampleInsteadOfMakingASpike(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		tr := newTraffic()
 		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces})
+		watch(t, c)
 		time.Sleep(30 * time.Second)
 		synctest.Wait()
 		before := len(throughput(t, c, nil).GetSamples())
@@ -228,6 +254,7 @@ func TestAFailedReadSaysWhyAndSamplingCarriesOn(t *testing.T) {
 		tr := newTraffic()
 		fw := &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces}
 		_, c := start(t, fw)
+		watch(t, c)
 		time.Sleep(20 * time.Second)
 		synctest.Wait()
 		before := len(throughput(t, c, nil).GetSamples())
@@ -267,6 +294,56 @@ func TestWithoutAWANInterfaceThereIsNoSampleAndThroughputSaysWhy(t *testing.T) {
 
 		if len(got.GetSamples()) != 0 || !strings.Contains(got.GetError(), "no wan interface") {
 			t.Errorf("throughput = %v, want no samples and an error naming the missing wan interface", got)
+		}
+	})
+}
+
+// Nobody has the Network Page open most of the day: pfSense's REST API
+// isn't asked every 5 s for a chart nobody sees.
+func TestWithNobodyWatchingTheCountersAreReadOnceAMinute(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		tr := newTraffic()
+		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces})
+
+		time.Sleep(time.Hour)
+		synctest.Wait()
+
+		tr.mu.Lock()
+		reads := tr.reads
+		tr.mu.Unlock()
+		if reads < 50 || reads > 65 {
+			t.Errorf("%d reads of the counters in an hour nobody watched, want about one a minute", reads)
+		}
+		_ = c
+	})
+}
+
+func TestTheFirstAskAfterAnIdleStretchAnswersWithACurrentRateAndSamplingSpeedsUp(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		tr := newTraffic()
+		_, c := start(t, &firewall{groups: []*pfsenseapipb.GatewayGroup{failover()}, interfaces: tr.interfaces})
+		time.Sleep(10*time.Minute + 20*time.Second)
+		synctest.Wait()
+
+		got := throughput(t, c, nil).GetSamples() // the Operator opens the Network Page
+
+		if len(got) == 0 {
+			t.Fatal("no samples on opening the Page")
+		}
+		newest := got[len(got)-1]
+		if age := time.Since(newest.GetAt().AsTime()); age > time.Second {
+			t.Errorf("the newest sample is %v old, want one read for this answer", age)
+		}
+		if !steady(newest) {
+			t.Errorf("newest sample %v, want the steady rates", newest)
+		}
+
+		watch(t, c)
+		time.Sleep(30 * time.Second)
+		synctest.Wait()
+		after := throughput(t, c, newest.GetAt()).GetSamples()
+		if n := len(after); n < 5 || n > 7 {
+			t.Errorf("%d samples in the 30 s after opening the Page, want one every 5 s", n)
 		}
 	})
 }
