@@ -15,7 +15,8 @@ const fits: Record<WidgetSize, number> = { S: 4, M: 6, L: 16 };
  * certificate expiring within 14 days, and how many Warnings count on
  * which Apps; then Maintenance, else up with how many are. A pending
  * Check counts for nothing, and a muted one that is down is only told
- * after the summary; the up count is then of the watched (unmuted) Apps.
+ * after the summary; the up count is then of the watched (unmuted) Apps,
+ * and it is idle when every App's Check is muted.
  * Idle without Apps or before any Check is up or down; warn while apps or
  * checks is unavailable.
  */
@@ -55,8 +56,14 @@ function useStatus(): Status | undefined {
       return { tone: "maint", summary: `${names.length} in Maintenance${also}` };
     default: {
       if (!muted) return { tone: "up", summary: `${names.length} of ${apps.length} Apps up` };
-      // Only muted Checks are down: up, counting the watched (unmuted) Apps.
+      // Only muted Checks are down: up, counting the watched (unmuted) Apps;
+      // idle when no App has an enabled Check that isn't muted.
       const watched = (a: App) => !byApp.get(a.id)?.muted;
+      const checked = apps.some((a) => {
+        const c = byApp.get(a.id);
+        return c && !c.disabled && !c.muted;
+      });
+      if (!checked) return { tone: "idle", summary: `${muted} muted down` };
       return { tone: "up", summary: `${hit.filter((h) => watched(h.app)).length} of ${apps.filter(watched).length} watched Apps up${also}` };
     }
   }

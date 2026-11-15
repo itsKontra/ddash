@@ -7,7 +7,8 @@ import { latency, shownName, stateLabel, tally, toneOf, useChecks, warning } fro
  * Flapping while up or has an expiring certificate, then maint, else up
  * with the count. A muted Check that is down doesn't count: it is only
  * told after the summary, and the up count is then of the watched
- * (unmuted) Checks. Idle without Checks; warn when checks is unavailable.
+ * (unmuted) Checks; idle when none is watched. Idle without Checks; warn
+ * when checks is unavailable.
  */
 function useStatus(): Status | undefined {
   const { data, error } = useChecks();
@@ -21,6 +22,7 @@ function useStatus(): Status | undefined {
   if (maint.length) return { tone: "maint", summary: `${maint.length} in Maintenance${also}` };
   if (!muted.length) return { tone: "up", summary: `${up.length} of ${enabled.length} up` };
   const watched = enabled.filter((c) => !c.muted);
+  if (!watched.length) return { tone: "idle", summary: `${muted.length} muted down` };
   return { tone: "up", summary: `${up.filter((c) => !c.muted).length} of ${watched.length} watched up${also}` };
 }
 

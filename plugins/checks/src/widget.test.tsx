@@ -85,6 +85,13 @@ it("reports up while only muted Checks are down, telling them quietly and leavin
   expect([metric("up"), metric("down")]).toEqual(["2", "22 muted"]);
 });
 
+it("is idle, telling the muted ones, when every Check is muted", async () => {
+  const reported = await show(listed(check(1, "nas", "STATE_DOWN", { muted: true }), check(2, "router", "STATE_UP", { muted: true })));
+
+  expect(reported.status).toEqual({ tone: "idle", summary: "1 muted down" });
+  expect(reported.badge).toBeNull();
+});
+
 it("stays down for an unmuted Check that is down, naming only it and counting only it in the badge", async () => {
   const reported = await show(listed(check(1, "nas", "STATE_DOWN", { muted: true }), check(2, "router", "STATE_DOWN")));
 

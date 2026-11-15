@@ -74,6 +74,18 @@ it("is up while only muted Checks are down, counting the watched Apps and tellin
   expect(screen.getByText("1 muted down")).toBeTruthy();
 });
 
+it("is idle, telling the muted ones, when every App's Check is muted", async () => {
+  const allMuted = withChecks(
+    Object.fromEntries(
+      allUp.checks.flatMap((c) => (c.appId ? [[c.appId, { muted: true, ...(c.appId === "proxy:jellyfin.home.example" && { state: "STATE_DOWN" }) }]] : [])),
+    ),
+  );
+  renderScoped(<Probe />, { ListChecks: () => Response.json(allMuted) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "idle", summary: "1 muted down" });
+});
+
 it("stays down for an unmuted Check that is down, naming only its App", async () => {
   const both = withChecks({
     "proxy:jellyfin.home.example": { state: "STATE_DOWN" },
