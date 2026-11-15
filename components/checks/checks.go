@@ -202,27 +202,53 @@ func (ch *check) probed() bool {
 // last one (at once if that has passed or it was never probed), so a
 // restart leaves a gap rather than catching up. Call with c.mu held.
 func (c *component) probeEvery(ch *check) {
-	ctx, stop := context.WithCancel(c.ctx)
-	ch.stop = stop
-	ch.gen++
-	id, gen := ch.id, ch.gen
 	var due time.Time
 	if !ch.standing.lastBeat.IsZero() {
 		due = ch.standing.lastBeat.Add(Interval)
 	}
+	c.loop(ch, due, nil)
+}
+
+// loop starts ch's loop: its first beat at due (at once when zero), then,
+// while ch is down, one at each of again after that first beat, then one
+// every Interval. Call with c.mu held.
+func (c *component) loop(ch *check, due time.Time, again []time.Duration) {
+	ctx, stop := context.WithCancel(c.ctx)
+	ch.stop = stop
+	ch.gen++
+	id, gen := ch.id, ch.gen
 	sdk.Every(ctx, Interval, func(ctx context.Context) {
-		if wait := time.Until(due); wait > 0 {
-			timer := time.NewTimer(wait)
-			defer timer.Stop()
-			select {
-			case <-ctx.Done():
-				return
-			case <-timer.C:
-			}
+		if !sleepUntil(ctx, due) {
+			return
 		}
 		due = time.Time{}
+		first := time.Now()
 		c.beat(ctx, id, gen)
+		for _, d := range again {
+			if !c.down(id, gen) || !sleepUntil(ctx, first.Add(d)) {
+				break
+			}
+			c.beat(ctx, id, gen)
+		}
+		again = nil
 	})
+}
+
+// sleepUntil waits until at (not at all when it passed), reporting false
+// when ctx ended first.
+func sleepUntil(ctx context.Context, at time.Time) bool {
+	wait := time.Until(at)
+	if wait <= 0 {
+		return ctx.Err() == nil
+	}
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-timer.C:
+		return true
+	}
 }
 
 // stopProbing ends ch's loop. Call with c.mu held.

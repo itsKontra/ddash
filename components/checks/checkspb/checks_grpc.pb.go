@@ -39,6 +39,7 @@ const (
 	ChecksService_StartMaintenance_FullMethodName = "/ddash.checks.ChecksService/StartMaintenance"
 	ChecksService_EndMaintenance_FullMethodName   = "/ddash.checks.ChecksService/EndMaintenance"
 	ChecksService_ListMaintenance_FullMethodName  = "/ddash.checks.ChecksService/ListMaintenance"
+	ChecksService_ProbeNow_FullMethodName         = "/ddash.checks.ChecksService/ProbeNow"
 	ChecksService_ReportState_FullMethodName      = "/ddash.checks.ChecksService/ReportState"
 )
 
@@ -86,6 +87,15 @@ type ChecksServiceClient interface {
 	EndMaintenance(ctx context.Context, in *EndMaintenanceRequest, opts ...grpc.CallOption) (*EndMaintenanceResponse, error)
 	// ListMaintenance returns every Maintenance in force, from memory.
 	ListMaintenance(ctx context.Context, in *ListMaintenanceRequest, opts ...grpc.CallOption) (*ListMaintenanceResponse, error)
+	// ProbeNow probes the Checks a scope covers at once instead of at their
+	// next beat (one disabled, or whose App is hidden or gone, isn't). One
+	// still down is probed again 5, 15 and 30 s later until it is up, since
+	// what was just started may take a moment to answer; each then goes on
+	// every 60 s from its last beat. proxmox calls it once a Workload
+	// started or restarted, compose once a Compose Project Action brought
+	// containers up, so their Apps read up without waiting for the next
+	// minute.
+	ProbeNow(ctx context.Context, in *ProbeNowRequest, opts ...grpc.CallOption) (*ProbeNowResponse, error)
 	// ReportState reports the state of an item that isn't a Check (the nginx
 	// config, the VPN Tunnel), so it is notified like one: grouped, Flapping
 	// and silent in Maintenance on everything. It can't be muted. The caller
@@ -221,6 +231,16 @@ func (c *checksServiceClient) ListMaintenance(ctx context.Context, in *ListMaint
 	return out, nil
 }
 
+func (c *checksServiceClient) ProbeNow(ctx context.Context, in *ProbeNowRequest, opts ...grpc.CallOption) (*ProbeNowResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProbeNowResponse)
+	err := c.cc.Invoke(ctx, ChecksService_ProbeNow_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *checksServiceClient) ReportState(ctx context.Context, in *ReportStateRequest, opts ...grpc.CallOption) (*ReportStateResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ReportStateResponse)
@@ -275,6 +295,15 @@ type ChecksServiceServer interface {
 	EndMaintenance(context.Context, *EndMaintenanceRequest) (*EndMaintenanceResponse, error)
 	// ListMaintenance returns every Maintenance in force, from memory.
 	ListMaintenance(context.Context, *ListMaintenanceRequest) (*ListMaintenanceResponse, error)
+	// ProbeNow probes the Checks a scope covers at once instead of at their
+	// next beat (one disabled, or whose App is hidden or gone, isn't). One
+	// still down is probed again 5, 15 and 30 s later until it is up, since
+	// what was just started may take a moment to answer; each then goes on
+	// every 60 s from its last beat. proxmox calls it once a Workload
+	// started or restarted, compose once a Compose Project Action brought
+	// containers up, so their Apps read up without waiting for the next
+	// minute.
+	ProbeNow(context.Context, *ProbeNowRequest) (*ProbeNowResponse, error)
 	// ReportState reports the state of an item that isn't a Check (the nginx
 	// config, the VPN Tunnel), so it is notified like one: grouped, Flapping
 	// and silent in Maintenance on everything. It can't be muted. The caller
@@ -325,6 +354,9 @@ func (UnimplementedChecksServiceServer) EndMaintenance(context.Context, *EndMain
 }
 func (UnimplementedChecksServiceServer) ListMaintenance(context.Context, *ListMaintenanceRequest) (*ListMaintenanceResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListMaintenance not implemented")
+}
+func (UnimplementedChecksServiceServer) ProbeNow(context.Context, *ProbeNowRequest) (*ProbeNowResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ProbeNow not implemented")
 }
 func (UnimplementedChecksServiceServer) ReportState(context.Context, *ReportStateRequest) (*ReportStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportState not implemented")
@@ -566,6 +598,24 @@ func _ChecksService_ListMaintenance_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChecksService_ProbeNow_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ProbeNowRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).ProbeNow(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_ProbeNow_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).ProbeNow(ctx, req.(*ProbeNowRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChecksService_ReportState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ReportStateRequest)
 	if err := dec(in); err != nil {
@@ -638,6 +688,10 @@ var ChecksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListMaintenance",
 			Handler:    _ChecksService_ListMaintenance_Handler,
+		},
+		{
+			MethodName: "ProbeNow",
+			Handler:    _ChecksService_ProbeNow_Handler,
 		},
 		{
 			MethodName: "ReportState",

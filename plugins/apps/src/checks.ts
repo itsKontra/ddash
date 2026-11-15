@@ -3,11 +3,11 @@ import { useQuery, type Tone } from "@ddash/plugin";
 import { ChecksService, type Check } from "@ddash/proto/checks/checks_pb";
 import type { App } from "@ddash/proto/apps/apps_pb";
 
-/** Every App's Check by App id, refreshed on ListChecks' FAST tier. */
+/** Every App's Check by App id, refreshed on ListChecks' FAST tier, and when checks last answered. */
 export function useAppChecks() {
-  const { data, error } = useQuery(ChecksService.method.listChecks, {});
+  const { data, error, dataUpdatedAt } = useQuery(ChecksService.method.listChecks, {});
   const byApp = data && new Map(data.checks.filter((c) => c.appId).map((c) => [c.appId, c]));
-  return { byApp, error };
+  return { byApp, error, answeredAt: dataUpdatedAt };
 }
 
 const worse: Tone[] = ["down", "warn", "maint", "up"];

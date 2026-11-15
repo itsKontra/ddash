@@ -330,7 +330,7 @@ export const certificates = {
 };
 
 /** The apps Plugin's scope in tests. */
-export const apps = { name: "apps", requires: ["apps", "checks", "nginx-proxy-manager-api", "compose", "docker-agent-api"] };
+export const apps = { name: "apps", requires: ["apps", "checks", "nginx-proxy-manager-api", "compose", "docker-agent-api", "proxmox-api"] };
 
 /**
  * Renders children in the apps Plugin's scope against apps answering by

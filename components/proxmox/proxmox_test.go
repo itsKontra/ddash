@@ -216,6 +216,11 @@ func (c checks) EndMaintenance(_ context.Context, req *checkspb.EndMaintenanceRe
 	return &checkspb.EndMaintenanceResponse{}, nil
 }
 
+func (c checks) ProbeNow(_ context.Context, req *checkspb.ProbeNowRequest, _ ...grpc.CallOption) (*checkspb.ProbeNowResponse, error) {
+	c.l.record("checks ProbeNow %s", scopeText(req.GetScope()))
+	return &checkspb.ProbeNowResponse{}, nil
+}
+
 func start(t *testing.T, l *lab) proxmoxpb.ProxmoxServiceClient {
 	t.Helper()
 	h := sdktest.New(t, proxmox.Definition(),
@@ -276,6 +281,7 @@ func TestRestartRebootsAndIsInMaintenanceUntilUpOrFiveMinutes(t *testing.T) {
 		"checks StartMaintenance KIND_VM/pve2/110 for 5m0s",
 		"proxmox-api RebootWorkload KIND_VM/pve2/110",
 		"checks StartMaintenance KIND_VM/pve2/110 for 5m0s until up",
+		"checks ProbeNow KIND_VM/pve2/110",
 	}
 	if diff := cmp.Diff(want, l.calls()); diff != "" {
 		t.Errorf("calls (-want +got):\n%s", diff)
@@ -305,6 +311,7 @@ func TestARestartsMaintenanceEndsFiveMinutesAfterTheRestart(t *testing.T) {
 			"checks StartMaintenance KIND_LXC/pve2/102 for 5m0s",
 			"proxmox-api RebootWorkload KIND_LXC/pve2/102",
 			"checks StartMaintenance KIND_LXC/pve2/102 for 4m20s until up",
+			"checks ProbeNow KIND_LXC/pve2/102",
 		}
 		if diff := cmp.Diff(want, l.calls()); diff != "" {
 			t.Errorf("calls after a 40 s reboot (-want +got):\n%s", diff)
@@ -324,6 +331,7 @@ func TestARestartsMaintenanceEndsFiveMinutesAfterTheRestart(t *testing.T) {
 		want = []string{
 			"checks StartMaintenance KIND_LXC/pve2/102 for 5m0s",
 			"proxmox-api RebootWorkload KIND_LXC/pve2/102",
+			"checks ProbeNow KIND_LXC/pve2/102",
 		}
 		if diff := cmp.Diff(want, l.calls()); diff != "" {
 			t.Errorf("calls after a 6 min reboot (-want +got):\n%s", diff)
@@ -334,7 +342,7 @@ func TestARestartsMaintenanceEndsFiveMinutesAfterTheRestart(t *testing.T) {
 	})
 }
 
-func TestStartStartsAndEndsTheMaintenanceOfAStop(t *testing.T) {
+func TestStartStartsEndsTheMaintenanceOfAStopAndProbesItsChecks(t *testing.T) {
 	l := newLab()
 	c := start(t, l)
 
@@ -348,6 +356,8 @@ func TestStartStartsAndEndsTheMaintenanceOfAStop(t *testing.T) {
 	want := []string{
 		"proxmox-api StartWorkload KIND_LXC/pve2/103",
 		"checks EndMaintenance KIND_LXC/pve2/103",
+		// Its Apps read up at once, not at their next beat.
+		"checks ProbeNow KIND_LXC/pve2/103",
 	}
 	if diff := cmp.Diff(want, l.calls()); diff != "" {
 		t.Errorf("calls (-want +got):\n%s", diff)
