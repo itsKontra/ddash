@@ -1,8 +1,8 @@
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import { settle } from "@ddash/plugin/testing";
 import plugin from "./index";
-import { renderScoped, split } from "./testing";
+import { actions, list, renderScoped, split } from "./testing";
 
 afterEach(cleanup);
 
@@ -169,4 +169,32 @@ it("shows no On the internet for an App the Cloudflare Tunnel doesn't serve, and
   cleanup();
   await open("proxy:grafana.home.example", ["apps"], { ListApps: () => Response.json({ ...split, cloudflareError: "Cloudflare unreachable: timeout" }) });
   expect(within(panel("Network")).getByText("On the internet unknown: Cloudflare unreachable: timeout")).toBeTruthy();
+});
+
+it("pins an App to the Overview last and unpins it, offering a Hidden App only the unpin", async () => {
+  let pins = ["proxy:printer.home.example"];
+  const answers = {
+    ListApps: () => Response.json({ ...list, apps: list.apps.map((a) => ({ ...a, pin: pins.indexOf(a.id) + 1 })) }),
+    SetPins: (body: unknown) => {
+      pins = (body as { ids?: string[] }).ids ?? [];
+      return Response.json({});
+    },
+  };
+  const calls = await open("proxy:grafana.home.example", ["apps"], answers);
+
+  fireEvent.click(within(pane()).getByRole("button", { name: "Pin to Overview" }));
+  await settle();
+  const unpin = within(pane()).getByRole("button", { name: "Unpin" });
+  expect(unpin.getAttribute("aria-pressed")).toBe("true");
+  fireEvent.click(unpin);
+  await settle();
+  expect(within(pane()).getByRole("button", { name: "Pin to Overview" })).toBeTruthy();
+  expect(actions(calls)).toEqual([
+    { method: "SetPins", body: { ids: ["proxy:printer.home.example", "proxy:grafana.home.example"] } },
+    { method: "SetPins", body: { ids: ["proxy:printer.home.example"] } },
+  ]);
+  cleanup();
+
+  await open("proxy:old.home.example", ["apps"], answers);
+  expect(within(pane()).queryByRole("button", { name: "Pin to Overview" })).toBeNull();
 });

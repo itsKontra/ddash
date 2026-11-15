@@ -32,6 +32,12 @@ service AppsService {
   rpc SetSettings(SetSettingsRequest) returns (SetSettingsResponse) {
     option (ddash.action) = {};
   }
+  // SetPins pins the Apps ids to the Overview's Apps Widget in their
+  // order, unpinning every other App. A pin touches its App. It takes
+  // effect at once.
+  rpc SetPins(SetPinsRequest) returns (SetPinsResponse) {
+    option (ddash.action) = {};
+  }
   // IgnoreWarning Ignores one kind of Warning on an App until it is
   // un-ignored: it is still listed, flagged, but doesn't count.
   rpc IgnoreWarning(IgnoreWarningRequest) returns (IgnoreWarningResponse) {
@@ -160,6 +166,9 @@ message App {
   // Public Hostname, in the Tunnel's order: the App is on the internet.
   // Empty while cloudflare-api isn't set up or can't be read.
   repeated PublicHostname public_hostnames = 18;
+  // Its place among the Apps the Operator pinned to the Overview's Apps
+  // Widget, from 1; 0 when it isn't pinned.
+  int32 pin = 19;
 }
 
 // A Public Hostname of the Cloudflare Tunnel serving one of an App's
@@ -457,6 +466,13 @@ message SetSettingsRequest {
 }
 
 message SetSettingsResponse {}
+
+message SetPinsRequest {
+  // The Apps to pin, in the order the Widget shows them; each once.
+  repeated string ids = 1;
+}
+
+message SetPinsResponse {}
 
 message IgnoreWarningRequest {
   string id = 1;

@@ -51,6 +51,7 @@ func (v view) app(r *record) *appspb.App {
 		Group:    s.GetGroup(),
 		Hidden:   s.GetHidden(),
 		Touched:  r.touched,
+		Pin:      r.pin,
 		Settings: cloneSettings(s),
 		Links:    &appspb.Links{ProxyHostId: r.proxyHostID, HostOverride: r.hostOverride.proto()},
 	}

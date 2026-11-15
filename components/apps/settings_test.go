@@ -97,6 +97,7 @@ func TestAppActionsAreAudited(t *testing.T) {
 	l := newLab(t, labOptions{})
 	l.call("SetSettings", &appspb.SetSettingsRequest{Id: "proxy:video.home.example", Settings: &appspb.AppSettings{Group: "Media"}}, nil)
 	l.call("IgnoreWarning", &appspb.IgnoreWarningRequest{Id: "proxy:video.home.example", Kind: noTLS}, nil)
+	l.call("SetPins", &appspb.SetPinsRequest{Ids: []string{"proxy:video.home.example"}}, nil)
 	l.refresh()
 
 	var audited []string
@@ -106,7 +107,7 @@ func TestAppActionsAreAudited(t *testing.T) {
 		}
 	}
 	slices.Reverse(audited)
-	want := []string{"SetSettings by operator:test: ok", "IgnoreWarning by operator:test: ok", "Refresh by operator:test: ok"}
+	want := []string{"SetSettings by operator:test: ok", "IgnoreWarning by operator:test: ok", "SetPins by operator:test: ok", "Refresh by operator:test: ok"}
 	if d := diff(want, audited); d != "" {
 		t.Errorf("Audit Log entries for apps (-want +got):\n%s", d)
 	}
