@@ -75,7 +75,7 @@ func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPlug
 			Author:      p.Author,
 			Requires:    p.Requires,
 			Script:      base + bundleScript,
-			Style:       base + bundleStyle,
+			Style:       a.host.bundleStyleURL(p.Name, base),
 		})
 	}
 	return resp, nil

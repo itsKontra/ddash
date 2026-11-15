@@ -224,7 +224,8 @@ message InstalledPlugin {
   repeated string requires = 6;
   // The bundle's ESM entry: /plugins/<name>/<release>/index.js.
   string script = 7;
-  // The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+  // The bundle's stylesheet: /plugins/<name>/<release>/index.css. Empty
+  // when it holds no rule, e.g. Vite's marker for a Plugin without CSS.
   string style = 8;
 }
 

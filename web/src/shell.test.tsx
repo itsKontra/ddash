@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, usePlugin, usePluginLink, type PluginDefinition } from "@ddash/plugin";
 import { settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter, useParams } from "react-router";
@@ -92,12 +92,12 @@ it("draws each Nav Entry's icon, named in its manifest or Nav Entry, from the co
       [installed("docker", "Docker", "container"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("d") }] })],
       [installed("checks", "Checks", "puzzle"), definePlugin({ nav: { order: 20, icon: "activity" }, pages: [{ index: true, Component: page("c") }] })],
     ]);
+    const drawn = (link: string) => screen.getByRole("link", { name: link }).querySelector("svg path")?.getAttribute("d");
+    // The icons asked for at about the same moment go out together, a moment later.
+    await waitFor(() => expect([drawn("Docker"), drawn("Checks"), drawn("Settings")]).toEqual(["icon container", "icon activity", "icon settings"]));
   } finally {
     vi.unstubAllGlobals();
   }
-
-  const drawn = (link: string) => screen.getByRole("link", { name: link }).querySelector("svg path")?.getAttribute("d");
-  expect([drawn("Docker"), drawn("Checks"), drawn("Settings")]).toEqual(["icon container", "icon activity", "icon settings"]);
 });
 
 it("names the signed-in Operator and signs out through the host", async () => {
@@ -119,16 +119,18 @@ it("breaks an order tie by the Plugins' titles, not their Nav Entry labels", asy
   expect(navLinks()).toEqual(["Overview", "Zulu", "Bravo", "Plugins", "Settings"]);
 });
 
-it("imports every bundle in parallel at boot, each with its stylesheet", async () => {
+it("imports every bundle in parallel at boot, each with its stylesheet if it has one", async () => {
   const never = new Promise<PluginDefinition>(() => {});
   await boot("/", [
     [installed("docker", "Docker"), never],
     [installed("checks", "Checks"), never],
+    [{ ...installed("energy", "Energy"), style: "" }, never], // the core lists no empty stylesheet
   ]);
 
   expect(importBundle.mock.calls.map(([url]) => url).sort()).toEqual([
     "/plugins/checks/v1.2.3/index.js",
     "/plugins/docker/v1.2.3/index.js",
+    "/plugins/energy/v1.2.3/index.js",
   ]);
   const styles = [...document.head.querySelectorAll<HTMLLinkElement>("link[rel=stylesheet]")].map((l) => l.getAttribute("href"));
   expect(styles.sort()).toEqual(["/plugins/checks/v1.2.3/index.css", "/plugins/docker/v1.2.3/index.css"]);
