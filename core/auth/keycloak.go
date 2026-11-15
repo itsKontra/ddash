@@ -124,7 +124,6 @@ func (k *Keycloak) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET "+LoginPath, k.login)
 	mux.HandleFunc("GET "+CallbackPath, k.callback)
-	mux.HandleFunc("GET "+LogoutPath, k.logout)
 	mux.HandleFunc("POST "+LogoutPath, k.logout)
 	mux.HandleFunc("GET "+LoggedOutPath, loggedOut)
 	return mux

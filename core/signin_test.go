@@ -314,7 +314,7 @@ func TestLogoutEndsTheSessionThenLogsOutOfKeycloak(t *testing.T) {
 	h.SignIn()
 	stolen := h.Cookie(auth.SessionCookie)
 
-	res := h.Get("/auth/logout")
+	res := h.Do(httptest.NewRequest(http.MethodPost, "/auth/logout", nil))
 
 	if res.Code != http.StatusSeeOther {
 		t.Fatalf("logout: status %d, want 303 to Keycloak", res.Code)
@@ -337,6 +337,25 @@ func TestLogoutEndsTheSessionThenLogsOutOfKeycloak(t *testing.T) {
 	}
 	if res := h.Get("/auth/logged-out"); res.Code != http.StatusOK {
 		t.Errorf("logged-out page: status %d, want 200", res.Code)
+	}
+}
+
+// A GET can be started by a link or an image on another site.
+func TestSignOutByGETIsRefusedAndChangesNothing(t *testing.T) {
+	kc := oidctest.New(t)
+	h := newKeycloak(t, kc)
+	h.SignIn()
+
+	res := h.Get("/auth/logout")
+
+	if res.Code != http.StatusMethodNotAllowed {
+		t.Errorf("GET /auth/logout: status %d, want 405", res.Code)
+	}
+	if h.Cookie(auth.SessionCookie) == nil || !signedIn(t, h) {
+		t.Error("a GET of the sign-out path ended the session or cleared its cookie")
+	}
+	if entries := signInEntries(h); len(entries) != 1 {
+		t.Errorf("sign-in entries = %+v, want the SignIn alone", entries)
 	}
 }
 
