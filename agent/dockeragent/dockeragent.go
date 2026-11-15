@@ -640,6 +640,11 @@ func (a *Agent) compose(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, err.Error())
 		return
 	}
+	// Compose runs in the working directory and reads its .env there.
+	if !a.inRoots(req.WorkingDir) {
+		agent.WriteError(w, http.StatusForbidden, agent.CodeOutOfRoots, fmt.Sprintf("%s is outside the Compose roots", req.WorkingDir))
+		return
+	}
 	for _, s := range req.Services {
 		if s == "" || strings.HasPrefix(s, "-") {
 			agent.WriteError(w, http.StatusBadRequest, agent.CodeInvalid, fmt.Sprintf("bad service %q", s))
@@ -813,8 +818,10 @@ func (a *Agent) updateSelf(w http.ResponseWriter, r *http.Request) {
 	if !agent.ReadJSON(w, r, &req) {
 		return
 	}
-	if req.Image == "" {
-		agent.WriteError(w, http.StatusBadRequest, agent.CodeInvalid, "image is required")
+	// The helper container below gets the Docker socket, so it runs the
+	// Docker Agent's own image and no other.
+	if !agentImageRef.MatchString(req.Image) {
+		agent.WriteError(w, http.StatusBadRequest, agent.CodeInvalid, "image must be the Docker Agent's: "+imageRepo+":<release>")
 		return
 	}
 	cs, err := a.o.Docker.Containers(r.Context())
@@ -861,7 +868,14 @@ func (a *Agent) updateSelf(w http.ResponseWriter, r *http.Request) {
 
 // agentImage matches the Docker Agent's image reference in its own
 // Compose file.
-var agentImage = regexp.MustCompile(`ghcr\.io/itskontra/ddash-docker-agent[:@][^\s"']+`)
+var agentImage = regexp.MustCompile(regexp.QuoteMeta(imageRepo) + `[:@][^\s"']+`)
+
+// imageRepo is the Docker Agent's image, without its tag or digest.
+const imageRepo = "ghcr.io/itskontra/ddash-docker-agent"
+
+// agentImageRef matches a whole string that is the Docker Agent's image
+// reference, the only image updateSelf runs.
+var agentImageRef = regexp.MustCompile(`^` + agentImage.String() + `$`)
 
 // Recreate is the helper container's job: point the Agent's Compose file
 // at image and recreate it. It runs outside the Agent's container.
