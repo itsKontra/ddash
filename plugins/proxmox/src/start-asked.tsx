@@ -1,24 +1,19 @@
 import { Button, Dialog, FormActions, Presence } from "@ddash/ui";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { useSearchParams } from "react-router";
 
 /**
  * ?start on a Workload's detail, as a down App's Concern on the Overview
- * links it: once what the Workload allows is known, drops ?start and,
- * when it can be started (start: stopped, not Protected), asks first,
- * since the click was made elsewhere, then runs the Page's own Start. A
- * link alone never starts anything.
+ * links it: once what the Workload allows is known, asks to start it when
+ * it can be (start: stopped, not Protected), since the click was made
+ * elsewhere, and runs the Page's own Start on yes. ?start goes once
+ * answered, or at once when there is nothing to ask. A link alone never
+ * starts anything.
  */
 export function StartAsked({ label, start, known }: { label: string; start?: () => void; known: boolean }) {
   const [params, setParams] = useSearchParams();
-  const asked = params.has("start");
-  const [open, setOpen] = useState(false);
-  // Asked once per ?start, though the effect runs again before it's dropped.
-  const done = useRef(false);
-  useEffect(() => {
-    if (!asked) done.current = false;
-    if (!asked || !known || done.current) return;
-    done.current = true;
+  const asked = params.has("start") && known;
+  const drop = () =>
     setParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -27,26 +22,27 @@ export function StartAsked({ label, start, known }: { label: string; start?: () 
       },
       { replace: true },
     );
-    if (start) setOpen(true);
-  }, [asked, known, start, setParams]);
+  const nothing = asked && !start;
+  useEffect(() => {
+    if (nothing) drop();
+  });
 
-  const close = () => setOpen(false);
   return (
     <Presence>
-      {open && start && (
+      {asked && start && (
         <Dialog
           title={`Start ${label}`}
           subtitle="Proxmox starts it, and ddash ends its Maintenance and probes its Apps' Checks at once."
-          onClose={close}
+          onClose={drop}
           footer={
             <FormActions>
-              <Button variant="ghost" onClick={close}>
+              <Button variant="ghost" onClick={drop}>
                 Cancel
               </Button>
               <Button
                 icon="play"
                 onClick={() => {
-                  close();
+                  drop();
                   start();
                 }}
               >
