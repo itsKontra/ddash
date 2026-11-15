@@ -33,16 +33,16 @@ const projects = (stale: boolean, checked: string | null = minutesAgo(70)) => ({
   checks: checked ? { last: checked } : undefined,
 });
 
-const hostsWidget = () => plugin.widgets!.find((w) => w.id === "hosts")!;
+const hostsWidget = () => plugin.widgets!.find((w) => w.id === "docker-hosts")!;
 
 async function show(answers: Record<string, Answer>) {
   const { reported } = await showWidget(docker, hostsWidget(), { answers });
   return { reported, widget: screen.getByRole("region", { name: "widget" }) };
 }
 
-it("is the Hosts Widget, as the proxmox Plugin's half is: S or M, S by default", () => {
+it("is the Docker hosts Widget, S or M, S by default", () => {
   const w = hostsWidget();
-  expect([w.title, w.sizes, w.defaultSize]).toEqual(["Hosts", ["S", "M"], "S"]);
+  expect([w.title, w.sizes, w.defaultSize]).toEqual(["Docker hosts", ["S", "M"], "S"]);
 });
 
 it("heads with the containers running, the exited ones in the down tone and named, then the update state with its age", async () => {

@@ -76,8 +76,8 @@ function HostsBody() {
 }
 
 /**
- * Is the server all right? The Proxmox half of Hosts; the docker Plugin
- * offers the containers' half under the same name.
+ * Is the server all right? The node and its guests; the containers are
+ * the docker Plugin's Docker hosts Widget.
  */
 export const hosts: Widget = {
   id: "hosts",

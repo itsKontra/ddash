@@ -91,12 +91,12 @@ function HostsBody() {
 }
 
 /**
- * Are the containers all right? The Docker half of Hosts; the proxmox
- * Plugin offers the node's half under the same name.
+ * Are the containers all right? Beside the proxmox Plugin's Hosts, which
+ * shows the node and its guests.
  */
-export const hosts: Widget = {
-  id: "hosts",
-  title: "Hosts",
+export const dockerHosts: Widget = {
+  id: "docker-hosts",
+  title: "Docker hosts",
   sizes: ["S", "M"],
   defaultSize: "S",
   Body: HostsBody,

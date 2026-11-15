@@ -1,4 +1,4 @@
-// What the Hosts Widget shows of the Docker hosts: plain functions over
+// What the Docker hosts Widget shows: plain functions over
 // docker-api's and compose's answers.
 import { ago } from "@ddash/display";
 import type { Status } from "@ddash/plugin";

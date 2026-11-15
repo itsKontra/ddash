@@ -81,7 +81,7 @@ it("reports nothing until proxmox-api first answers", async () => {
   expect(reported.status).toBeUndefined();
 });
 
-// Hosts: the Proxmox half.
+// Hosts: the node and its guests.
 
 const GiB = 1024 ** 3;
 const hostsWidget = () => plugin.widgets!.find((w) => w.id === "hosts")!;
@@ -132,7 +132,7 @@ it("Hosts shows the guests running, the node's three meters and the guest under 
   // A guest above 75 % is named, with the resource and how full.
   expect(within(widget).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["busymemory 82 %", "quietdisk 30 %"]);
   expect(reported.status).toEqual({ tone: "warn", summary: "busy memory 82 %" });
-  // No containers line: they're the docker Plugin's half.
+  // No containers line: they're the docker Plugin's Docker hosts Widget.
   expect(within(widget).queryByText(/container/)).toBeNull();
 });
 
