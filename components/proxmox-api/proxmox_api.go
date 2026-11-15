@@ -53,6 +53,7 @@ type component struct {
 	rt          http.RoundTripper
 	client      *proxmox.Client
 	workloads   *sdk.Cache[*pb.ListWorkloadsResponse]
+	nodes       *sdk.Cache[*pb.ListNodesResponse]
 	permissions *sdk.Cache[permissions]
 	// addresses keeps what readAddresses found, by VMID, across refreshes
 	// of workloads.
@@ -101,6 +102,7 @@ func (c *component) Start(ctx context.Context, _ *sdk.Env, cfg *pb.ProxmoxApiCon
 	)
 	c.addresses = map[uint32]addresses{}
 	c.workloads = sdk.Cached(sdk.TTLFast, c.fetch)
+	c.nodes = sdk.Cached(sdk.TTLFast, c.fetchNodes)
 	c.permissions = sdk.Cached(sdk.TTLFast, c.fetchPermissions)
 	return nil
 }
@@ -121,6 +123,53 @@ func validate(cfg *pb.ProxmoxApiConfig) error {
 
 func (c *component) ListWorkloads(ctx context.Context, _ *pb.ListWorkloadsRequest) (*pb.ListWorkloadsResponse, error) {
 	return c.workloads.Get(ctx)
+}
+
+func (c *component) ListNodes(ctx context.Context, _ *pb.ListNodesRequest) (*pb.ListNodesResponse, error) {
+	return c.nodes.Get(ctx)
+}
+
+// fetchNodes lists every node and storage the token may audit, in one
+// read of /cluster/resources, each storage under its node.
+func (c *component) fetchNodes(ctx context.Context) (*pb.ListNodesResponse, error) {
+	resources, err := (&proxmox.Cluster{}).New(c.client).Resources(ctx)
+	if err != nil {
+		return nil, unavailable(err)
+	}
+	out := &pb.ListNodesResponse{}
+	byName := map[string]*pb.Node{}
+	for _, r := range resources {
+		if r.Type == "node" {
+			n := &pb.Node{
+				Name: r.Node, Status: r.Status,
+				Cpu: r.CPU, MaxCpu: uint32(r.MaxCPU),
+				Mem: r.Mem, MaxMem: r.MaxMem,
+				UptimeSeconds: r.Uptime,
+			}
+			out.Nodes = append(out.Nodes, n)
+			byName[r.Node] = n
+		}
+	}
+	for _, r := range resources {
+		n := byName[r.Node]
+		if r.Type != "storage" || n == nil {
+			continue
+		}
+		n.Storages = append(n.Storages, &pb.Storage{
+			Name:    r.Storage,
+			Type:    r.PluginType,
+			Active:  r.Status == "available",
+			Shared:  r.Shared == 1,
+			Avail:   r.MaxDisk - min(r.Disk, r.MaxDisk),
+			Total:   r.MaxDisk,
+			Content: strings.FieldsFunc(r.Content, func(r rune) bool { return r == ',' }),
+		})
+	}
+	slices.SortFunc(out.Nodes, func(a, b *pb.Node) int { return strings.Compare(a.GetName(), b.GetName()) })
+	for _, n := range out.Nodes {
+		slices.SortFunc(n.Storages, func(a, b *pb.Storage) int { return strings.Compare(a.GetName(), b.GetName()) })
+	}
+	return out, nil
 }
 
 // ListPermissions resolves each Workload's privileges from the token's
@@ -195,7 +244,10 @@ func (c *component) fetch(ctx context.Context) (*pb.ListWorkloadsResponse, error
 	}
 	out := &pb.ListWorkloadsResponse{}
 	for _, r := range resources {
-		out.Workloads = append(out.Workloads, toWorkload(r))
+		// Asked for type vm, but a node or storage would be no Workload.
+		if r.Type == "lxc" || r.Type == "qemu" {
+			out.Workloads = append(out.Workloads, toWorkload(r))
+		}
 	}
 	slices.SortFunc(out.Workloads, func(a, b *pb.Workload) int { return cmp.Compare(a.GetVmid(), b.GetVmid()) })
 	var g errgroup.Group

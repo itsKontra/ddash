@@ -279,6 +279,14 @@ pveum acl modify /vms/<vmid> --tokens 'ddash@pve!dashboard' --roles DdashAuditor
 pveum acl modify /storage/<storage> --users ddash@pve --roles DdashBackup
 pveum acl modify /storage/<storage> --tokens 'ddash@pve!dashboard' --roles DdashBackup
 
+# The Hosts Widget's node meters: CPU and memory need Sys.Audit on the
+# node, storage needs Datastore.Audit on the storages holding guest disks:
+pveum role add DdashNode --privs "Sys.Audit Datastore.Audit"
+pveum acl modify /nodes   --users ddash@pve --roles DdashNode
+pveum acl modify /nodes   --tokens 'ddash@pve!dashboard' --roles DdashNode
+pveum acl modify /storage --users ddash@pve --roles DdashNode
+pveum acl modify /storage --tokens 'ddash@pve!dashboard' --roles DdashNode
+
 pveum user token permissions ddash@pve dashboard         # verify
 ```
 

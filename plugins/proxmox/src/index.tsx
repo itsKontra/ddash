@@ -2,7 +2,7 @@ import { definePlugin } from "@ddash/plugin";
 import "./index.css";
 import { WorkloadDetail } from "./detail";
 import { SSHKeys } from "./ssh-keys";
-import { guests } from "./widget";
+import { guests, hosts } from "./widget";
 import { Workloads } from "./workloads";
 
 export default definePlugin({
@@ -13,5 +13,5 @@ export default definePlugin({
     { path: "workloads/:vmid", Component: WorkloadDetail },
     { path: "ssh-keys", Component: SSHKeys },
   ],
-  widgets: [guests],
+  widgets: [hosts, guests],
 });

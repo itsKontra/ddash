@@ -2,7 +2,9 @@ import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plug
 import { ComposeService, ImageState } from "@ddash/proto/compose/compose_pb";
 import { Health, State, type Container } from "@ddash/proto/ddash/container/container_pb";
 import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
-import { Facts, MetricTile, Pill } from "@ddash/ui";
+import { Facts, MetricTile, Pill, Skeleton, Summary } from "@ddash/ui";
+import { containersLine, containersRunning, exitedRows, hostsStatus, updateState } from "./hosts";
+import { useNow } from "./now";
 
 const unhealthy = (c: Container) => c.health === Health.UNHEALTHY;
 const restarting = (c: Container) => c.state === State.RESTARTING;
@@ -71,6 +73,36 @@ function Body({ size }: { size: WidgetSize }) {
     </div>
   );
 }
+
+/** Warn while docker-api is unavailable; else the hosts' status. */
+function useHostsStatus(): Status | undefined {
+  const { data, error } = useContainers();
+  if (error) return { tone: "warn", summary: `docker-api unavailable: ${error.rawMessage}` };
+  return data && hostsStatus(data.hosts);
+}
+
+/** The containers running, the exited ones in the down tone and the image updates with the age of their check. */
+function HostsBody() {
+  const { data } = useContainers();
+  const projects = useQuery(ComposeService.method.listProjects, {});
+  const now = useNow();
+  if (!data) return <Skeleton lines={2} />;
+  const line = containersLine(data.hosts, updateState(projects.data, now));
+  return <Summary headline={containersRunning(data.hosts)} line={line} rows={exitedRows(data.hosts)} />;
+}
+
+/**
+ * Are the containers all right? Beside the proxmox Plugin's Hosts, which
+ * shows the node and its guests.
+ */
+export const dockerHosts: Widget = {
+  id: "docker-hosts",
+  title: "Docker hosts",
+  sizes: ["S", "M"],
+  defaultSize: "S",
+  Body: HostsBody,
+  useStatus: useHostsStatus,
+};
 
 /** The Overview Widget: container counts across every Docker host. */
 export const containers: Widget = {
