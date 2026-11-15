@@ -2,6 +2,7 @@ package proxmoxapi_test
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -10,11 +11,13 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/durationpb"
 
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	pb "github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
+	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -240,6 +243,90 @@ func TestAPowerActionWhoseStatusNeverSettlesStillSucceeds(t *testing.T) {
 		}
 		if got := fake.Status(212); got != "stopped" {
 			t.Errorf("212 is %s, want stopped", got)
+		}
+	})
+}
+
+// addressReads counts the fake's reads of single Workloads (interfaces,
+// guest agent, config), by VMID.
+func addressReads(fake *proxmoxfake.Proxmox) map[string]int {
+	reads := map[string]int{}
+	for _, r := range fake.Log() {
+		parts := strings.Split(r, "/")
+		// GET /api2/json/nodes/<node>/<kind>/<vmid>/<what…>
+		if strings.HasPrefix(r, "GET /api2/json/nodes/") && len(parts) > 7 && (parts[5] == "lxc" || parts[5] == "qemu") {
+			reads[parts[6]]++
+		}
+	}
+	return reads
+}
+
+func listReads(fake *proxmoxfake.Proxmox) int {
+	return len(slices.DeleteFunc(fake.Log(), func(r string) bool { return r != "GET /api2/json/cluster/resources" }))
+}
+
+func TestARefreshReadsTheListAndNoAddressesOfAWorkloadWhoseStatusDidntChange(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fake, c := node(t, "power")
+		first := workloads(t, c)
+		lists, reads := listReads(fake), addressReads(fake)
+		if len(reads) != len(first) {
+			t.Fatalf("the first read asked for %d Workloads' addresses, want all %d", len(reads), len(first))
+		}
+
+		time.Sleep(sdk.TTLFast + time.Second)
+		second := workloads(t, c)
+
+		if got := listReads(fake); got != lists+1 {
+			t.Errorf("the list: %d reads for the refresh, want 1", got-lists)
+		}
+		if diff := cmp.Diff(reads, addressReads(fake)); diff != "" {
+			t.Errorf("the refresh read Workloads' addresses again (-before +after):\n%s", diff)
+		}
+		if diff := cmp.Diff(first, second, protocmp.Transform()); diff != "" {
+			t.Errorf("the refresh changed what is listed (-first +second):\n%s", diff)
+		}
+	})
+}
+
+func TestAWorkloadThatStartsShowsItsNewAddressesAtTheNextRead(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fake, c := node(t, "power")
+		if w := workloads(t, c)[206]; w.GetAddresses() != pb.AddressSource_ADDRESS_SOURCE_CONFIG {
+			t.Fatalf("206 stopped: addresses from %s, want its config", w.GetAddresses())
+		}
+		before := addressReads(fake)
+
+		if _, err := c.StartWorkload(t.Context(), &pb.StartWorkloadRequest{Workload: lxc(206)}); err != nil {
+			t.Fatal(err)
+		}
+		w := workloads(t, c)[206]
+
+		if w.GetAddresses() != pb.AddressSource_ADDRESS_SOURCE_LIVE || len(w.GetNics()) == 0 {
+			t.Errorf("206 running: nics %v from %s, want its live interfaces", w.GetNics(), w.GetAddresses())
+		}
+		after := addressReads(fake)
+		for vmid, n := range after {
+			if vmid != "206" && n != before[vmid] {
+				t.Errorf("%s: %d address reads after 206 started, want none (its status didn't change)", vmid, n-before[vmid])
+			}
+		}
+	})
+}
+
+func TestAddressesAreReadAgainAfterAWhile(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fake, c := node(t, "power")
+		workloads(t, c)
+		before := addressReads(fake)
+
+		time.Sleep(6 * time.Minute)
+		workloads(t, c)
+
+		for vmid, n := range addressReads(fake) {
+			if n <= before[vmid] {
+				t.Errorf("%s: its addresses weren't read again after 6 minutes", vmid)
+			}
 		}
 	})
 }

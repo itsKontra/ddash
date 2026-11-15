@@ -269,11 +269,10 @@ func TestHealthIsDownWhileTheAPIIsUnreachable(t *testing.T) {
 
 func TestReadsAreCachedBetweenRefreshes(t *testing.T) {
 	cfg, srv := proxmox(t, "baseline")
-	h, c := start(t, cfg)
+	_, c := start(t, cfg)
 
 	workloads(t, c)
 	workloads(t, c)
-	h.Health()
 	if _, err := c.ListPermissions(t.Context(), &pb.ListPermissionsRequest{}); err != nil {
 		t.Fatal(err)
 	}
@@ -281,6 +280,24 @@ func TestReadsAreCachedBetweenRefreshes(t *testing.T) {
 	for _, r := range []string{"GET /api2/json/cluster/resources", "GET /api2/json/nodes/pve/lxc/210/interfaces", "GET /api2/json/nodes/pve/lxc/122/config"} {
 		if n := srv.Hits(r); n != 1 {
 			t.Errorf("%s: %d times, want once within the TTL", r, n)
+		}
+	}
+}
+
+// The host asks for Health every 30 s, Page open or not.
+func TestHealthReadsTheListAndNoWorkloadsAddresses(t *testing.T) {
+	cfg, srv := proxmox(t, "baseline")
+	h, _ := start(t, cfg)
+
+	h.Health()
+	h.Health()
+
+	if n := srv.Hits("GET /api2/json/cluster/resources"); n != 2 {
+		t.Errorf("the list: %d reads, want one per Health", n)
+	}
+	for _, r := range []string{"GET /api2/json/nodes/pve/lxc/210/interfaces", "GET /api2/json/nodes/pve/lxc/122/config"} {
+		if n := srv.Hits(r); n != 0 {
+			t.Errorf("%s: %d times, want Health to read no Workload", r, n)
 		}
 	}
 }
