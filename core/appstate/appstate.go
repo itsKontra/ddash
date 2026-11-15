@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"slices"
 	"strconv"
 	"strings"
@@ -41,17 +42,26 @@ const timeFormat = "2006-01-02T15:04:05.000000000Z"
 
 // Gate admits Actions and keeps the Audit Log in the core DB.
 type Gate struct {
-	db *sql.DB
+	db  *sql.DB
+	log *slog.Logger
 }
 
 // Open returns the Gate over the core DB db. Entries left running by the
-// last host become Interrupted.
-func Open(ctx context.Context, db *sql.DB) (*Gate, error) {
+// last host become Interrupted. log hears every write that fails: the
+// caller of a refused Action reads only "audit log unavailable".
+func Open(ctx context.Context, db *sql.DB, log *slog.Logger) (*Gate, error) {
 	_, err := db.ExecContext(ctx, `UPDATE audit_entry SET outcome = ? WHERE outcome IS NULL`, Interrupted)
 	if err != nil {
 		return nil, fmt.Errorf("audit log: %w", err)
 	}
-	return &Gate{db: db}, nil
+	return &Gate{db: db, log: log}, nil
+}
+
+// unavailable logs why the entry for target's method couldn't be written
+// and returns what its caller reads.
+func (g *Gate) unavailable(target, method string, err error) error {
+	g.log.Warn("audit log unavailable: the entry wasn't written", "target", target, "method", method, "err", err)
+	return status.Error(codes.Unavailable, "audit log unavailable")
 }
 
 // Action is one hop of an Action, as the gate sees it.
@@ -81,20 +91,25 @@ func (g *Gate) Admit(ctx context.Context, actor auth.Actor, a Action) (done func
 		start.UTC().Format(timeFormat), actor.Kind, actor.Name, actor.Sub, a.Chain, a.Target,
 		string(a.Method.Name()), disruptive(a.Method), record(a.Request))
 	if err != nil {
-		return nil, status.Error(codes.Unavailable, "audit log unavailable")
+		return nil, g.unavailable(a.Target, string(a.Method.Name()), err)
 	}
 	id, err := res.LastInsertId()
 	if err != nil {
-		return nil, status.Error(codes.Unavailable, "audit log unavailable")
+		return nil, g.unavailable(a.Target, string(a.Method.Name()), err)
 	}
 	return func(err error) {
 		outcome, message := result(err)
 		// Completing an entry the next host already marked interrupted
 		// would rewrite history, so only a running entry is completed.
-		_, _ = g.db.ExecContext(context.WithoutCancel(ctx), `
+		_, werr := g.db.ExecContext(context.WithoutCancel(ctx), `
 			UPDATE audit_entry SET outcome = ?, message = ?, duration_ms = ?
 			WHERE id = ? AND outcome IS NULL`,
 			outcome, message, time.Since(start).Milliseconds(), id)
+		if werr != nil {
+			// The entry stays "running" until the next start marks it
+			// Interrupted; this line is all that says how it ended.
+			g.log.Warn("audit log: the entry wasn't completed", "id", id, "target", a.Target, "method", string(a.Method.Name()), "outcome", outcome, "err", werr)
+		}
 	}, nil
 }
 
@@ -130,7 +145,7 @@ func (g *Gate) Record(ctx context.Context, actor auth.Actor, e Event) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, 0, '{}', ?, ?, 0)`,
 		time.Now().UTC().Format(timeFormat), actor.Kind, actor.Name, actor.Sub, e.Chain, e.Target, e.Method, outcome, message)
 	if err != nil {
-		return status.Error(codes.Unavailable, "audit log unavailable")
+		return g.unavailable(e.Target, e.Method, err)
 	}
 	return nil
 }
@@ -229,7 +244,10 @@ func (g *Gate) SweepDaily(ctx context.Context) {
 	defer ticker.Stop()
 	for {
 		cutoff := time.Now().Add(-Retention).UTC().Format(timeFormat)
-		_, _ = g.db.ExecContext(ctx, `DELETE FROM audit_entry WHERE time < ?`, cutoff) // retried tomorrow
+		// Retried tomorrow. A ctx that ended is the host stopping.
+		if _, err := g.db.ExecContext(ctx, `DELETE FROM audit_entry WHERE time < ?`, cutoff); err != nil && ctx.Err() == nil {
+			g.log.Warn("audit log: the daily sweep failed", "err", err)
+		}
 		select {
 		case <-ctx.Done():
 			return
@@ -259,24 +277,6 @@ type Entry struct {
 	// Message is a failed Action's error message.
 	Message  string
 	Duration time.Duration
-}
-
-// Entries returns the Audit Log, newest first.
-func (g *Gate) Entries(ctx context.Context) ([]Entry, error) {
-	rows, err := g.db.QueryContext(ctx, `SELECT `+entryColumns+` FROM audit_entry ORDER BY time DESC, id DESC`)
-	if err != nil {
-		return nil, fmt.Errorf("audit log: %w", err)
-	}
-	defer rows.Close()
-	var out []Entry
-	for rows.Next() {
-		e, err := scanEntry(rows)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, e)
-	}
-	return out, rows.Err()
 }
 
 // Chain is the hops of one Action, linked by their chain id.
@@ -348,9 +348,12 @@ type Page struct {
 	Next string
 }
 
+// targetsQuery is answered from the audit_entry_target index.
+const targetsQuery = `SELECT DISTINCT target FROM audit_entry ORDER BY target`
+
 // Targets returns every target in the Audit Log, sorted.
 func (g *Gate) Targets(ctx context.Context) ([]string, error) {
-	rows, err := g.db.QueryContext(ctx, `SELECT DISTINCT target FROM audit_entry ORDER BY target`)
+	rows, err := g.db.QueryContext(ctx, targetsQuery)
 	if err != nil {
 		return nil, fmt.Errorf("audit log: %w", err)
 	}

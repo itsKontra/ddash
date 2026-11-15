@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log/slog"
 	"path/filepath"
 	"testing"
 	"testing/synctest"
@@ -30,7 +31,7 @@ func TestARequestWritesTheSessionAtMostOnceAMinute(t *testing.T) {
 			t.Fatal(err)
 		}
 		defer db.Close()
-		s := sessions{db}
+		s := sessions{db: db, log: slog.New(slog.DiscardHandler)}
 		token, err := s.create(ctx, Actor{Kind: Operator, Name: "ada", Sub: "sub-1"})
 		if err != nil {
 			t.Fatal(err)

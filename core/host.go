@@ -119,7 +119,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 	if err != nil {
 		return nil, err
 	}
-	gate, err := appstate.Open(ctx, db)
+	gate, err := appstate.Open(ctx, db, opts.Logger)
 	if err != nil {
 		db.Close()
 		return nil, err
