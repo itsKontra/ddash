@@ -37,6 +37,8 @@ type record struct {
 	touched bool
 	// migrated: an overlay or manual App not yet through its first sync.
 	migrated bool
+	// pin is its place among the pinned Apps, from 1; 0 for none.
+	pin int32
 }
 
 func (r *record) clone() *record {
@@ -73,7 +75,7 @@ func (s store) records(ctx context.Context) ([]*record, error) {
 func readRecords(ctx context.Context, q querier) ([]*record, error) {
 	rows, err := q.QueryContext(ctx, `
 		SELECT id, url, aliases, proxy_host_id, host_override_host, host_override_domain, name, icon, group_name, hidden,
-		       workload_kind, workload_host, workload_id, link_only, touched, migrated
+		       workload_kind, workload_host, workload_id, link_only, touched, migrated, pin
 		FROM app ORDER BY id`)
 	if err != nil {
 		return nil, err
@@ -85,7 +87,7 @@ func readRecords(ctx context.Context, q querier) ([]*record, error) {
 		r := &record{settings: &appspb.AppSettings{}, ignores: map[appspb.WarningKind]bool{}}
 		var aliases, kind, host, id string
 		if err := rows.Scan(&r.id, &r.url, &aliases, &r.proxyHostID, &r.hostOverride.host, &r.hostOverride.domain, &r.settings.Name, &r.settings.Icon, &r.settings.Group, &r.settings.Hidden,
-			&kind, &host, &id, &r.linkOnly, &r.touched, &r.migrated); err != nil {
+			&kind, &host, &id, &r.linkOnly, &r.touched, &r.migrated, &r.pin); err != nil {
 			return nil, err
 		}
 		if aliases != "" {
@@ -141,17 +143,17 @@ func (s store) save(ctx context.Context, put []*record, drop []string) error {
 		w := r.settings.GetWorkload()
 		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO app (id, url, aliases, proxy_host_id, host_override_host, host_override_domain, name, icon, group_name, hidden,
-			                 workload_kind, workload_host, workload_id, link_only, touched, migrated)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			                 workload_kind, workload_host, workload_id, link_only, touched, migrated, pin)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 			ON CONFLICT (id) DO UPDATE SET
 				url = excluded.url, aliases = excluded.aliases, proxy_host_id = excluded.proxy_host_id,
 				host_override_host = excluded.host_override_host, host_override_domain = excluded.host_override_domain,
 				name = excluded.name, icon = excluded.icon, group_name = excluded.group_name, hidden = excluded.hidden,
 				workload_kind = excluded.workload_kind, workload_host = excluded.workload_host, workload_id = excluded.workload_id,
-				link_only = excluded.link_only, touched = excluded.touched, migrated = excluded.migrated`,
+				link_only = excluded.link_only, touched = excluded.touched, migrated = excluded.migrated, pin = excluded.pin`,
 			r.id, r.url, strings.Join(r.aliases, "\n"), r.proxyHostID, r.hostOverride.host, r.hostOverride.domain,
 			r.settings.GetName(), r.settings.GetIcon(), r.settings.GetGroup(), r.settings.GetHidden(),
-			kinds[w.GetKind()], w.GetHost(), w.GetId(), r.linkOnly, r.touched, r.migrated); err != nil {
+			kinds[w.GetKind()], w.GetHost(), w.GetId(), r.linkOnly, r.touched, r.migrated, r.pin); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM app_ignore WHERE app_id = ?`, r.id); err != nil {

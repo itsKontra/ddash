@@ -1,9 +1,9 @@
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import type { Badge, Status, WidgetSize } from "@ddash/plugin";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { settle, unavailable } from "@ddash/plugin/testing";
-import { allUp, checks, renderScoped, warned } from "./testing";
+import { actions, allUp, checks, list, renderScoped, warned } from "./testing";
 
 afterEach(cleanup);
 
@@ -236,4 +236,95 @@ it.each<[WidgetSize, number]>([
   expect(links).toHaveLength(n);
   expect(links.map((l) => l.textContent)).toEqual(["Grafana", "Jellyfin", "pfSense", "Printer"]);
   expect(links[1].getAttribute("href")).toBe("https://jellyfin.home.example");
+});
+
+/** ListApps with the Apps pinned in pins' order, and SetPins changing them, as apps would. */
+function pinning(pins: string[]) {
+  return {
+    ListApps: () => Response.json({ ...list, apps: list.apps.map((a) => ({ ...a, pin: pins.indexOf(a.id) + 1 })) }),
+    SetPins: (body: unknown) => {
+      pins = (body as { ids?: string[] }).ids ?? [];
+      return Response.json({});
+    },
+  };
+}
+
+const pinnedNames = () =>
+  within(screen.getByRole("list", { name: "Pinned Apps" }))
+    .getAllByRole("listitem")
+    .map((li) => li.textContent);
+
+it("shows only the pinned Apps, in the Operator's order, with no line of more and a link to every App", async () => {
+  // Old is pinned too, but Hidden.
+  renderScoped(<widget.Body size="M" />, pinning(["proxy:printer.home.example", "proxy:old.home.example", "proxy:grafana.home.example"]));
+  await settle();
+
+  const links = within(screen.getByRole("list", { name: "Pinned Apps" })).getAllByRole("link");
+  expect(links.map((l) => l.textContent)).toEqual(["Printer", "Grafana"]);
+  expect(links[1].getAttribute("href")).toBe("https://grafana.home.example");
+  expect(screen.queryByText(/more/)).toBeNull();
+  expect(screen.getByRole("link", { name: "All 4 Apps" }).getAttribute("href")).toBe("/apps");
+});
+
+it("marks a down pinned App with a dot and a greyed icon, a muted one with the dot alone, an up one with nothing", async () => {
+  const states = withChecks({
+    "proxy:jellyfin.home.example": { state: "STATE_DOWN", reason: "HTTP 502" },
+    "proxy:grafana.home.example": { state: "STATE_DOWN", reason: "HTTP 502", muted: true },
+  });
+  renderScoped(<widget.Body size="L" />, {
+    ...pinning(["proxy:jellyfin.home.example", "proxy:grafana.home.example", "app:00aa11bb22cc33dd"]),
+    ListChecks: () => Response.json(states),
+  });
+  await settle();
+
+  const [jellyfin, grafana, pfsense] = within(screen.getByRole("list", { name: "Pinned Apps" })).getAllByRole("link");
+  expect(within(jellyfin).getByRole("img", { name: "down: HTTP 502" })).toBeTruthy();
+  expect(jellyfin.querySelector("[data-greyed]")).toBeTruthy();
+  expect(jellyfin.getAttribute("title")).toBe("jellyfin.home.example · down: HTTP 502");
+
+  expect(within(grafana).getByRole("img", { name: "down: HTTP 502, muted" })).toBeTruthy();
+  expect(grafana.querySelector("[data-greyed]")).toBeNull();
+
+  expect(within(pfsense).queryByRole("img")).toBeNull();
+  expect(pfsense.getAttribute("title")).toBe("198.18.0.1");
+});
+
+it("pins, orders and unpins Apps in its edit state, changing at once", async () => {
+  const calls = renderScoped(<widget.Body size="L" />, pinning(["proxy:grafana.home.example"]));
+  await settle();
+  fireEvent.click(screen.getByRole("button", { name: "Edit pins" }));
+
+  fireEvent.change(screen.getByRole("combobox", { name: "Pin an App" }), { target: { value: "proxy:printer.home.example" } });
+  await settle();
+  expect(pinnedNames()).toEqual(["Grafana", "Printer"]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Move Printer earlier" }));
+  await settle();
+  expect(pinnedNames()).toEqual(["Printer", "Grafana"]);
+  expect((screen.getByRole("button", { name: "Move Printer earlier" }) as HTMLButtonElement).disabled).toBe(true);
+
+  fireEvent.click(screen.getByRole("button", { name: "Unpin Grafana" }));
+  await settle();
+  expect(pinnedNames()).toEqual(["Printer"]);
+  expect(actions(calls)).toEqual([
+    { method: "SetPins", body: { ids: ["proxy:grafana.home.example", "proxy:printer.home.example"] } },
+    { method: "SetPins", body: { ids: ["proxy:printer.home.example", "proxy:grafana.home.example"] } },
+    { method: "SetPins", body: { ids: ["proxy:printer.home.example"] } },
+  ]);
+
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+  expect(within(screen.getByRole("list", { name: "Pinned Apps" })).getAllByRole("link").map((l) => l.textContent)).toEqual(["Printer"]);
+});
+
+it("falls back to the first Apps once the last pin goes", async () => {
+  renderScoped(<widget.Body size="L" />, pinning(["proxy:grafana.home.example"]));
+  await settle();
+  fireEvent.click(screen.getByRole("button", { name: "Edit pins" }));
+  fireEvent.click(screen.getByRole("button", { name: "Unpin Grafana" }));
+  await settle();
+  expect(screen.getByText(/Nothing pinned/)).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+  expect(screen.queryByRole("list", { name: "Pinned Apps" })).toBeNull();
+  expect(screen.getAllByRole("link").map((l) => l.textContent)).toEqual(["Grafana", "Jellyfin", "pfSense", "Printer"]);
 });
