@@ -54,6 +54,8 @@ it("exports exactly the spec's component set, plus cx, matches, noMatch and the 
       "Donut",
       "Bars",
       "Meter",
+      "meterTone",
+      "Summary",
       "Sparkline",
       "UptimeBars",
       "LineChart",
