@@ -289,6 +289,8 @@ var contentTypes = map[string]string{
 	".svg":  "image/svg+xml",
 }
 
+// serveContent serves b as the file name with cacheControl and an ETag of
+// its content, so a request whose If-None-Match holds it is answered 304.
 func serveContent(w http.ResponseWriter, r *http.Request, name string, b []byte, cacheControl string) {
 	ct, ok := contentTypes[path.Ext(name)]
 	if !ok {
@@ -298,5 +300,7 @@ func serveContent(w http.ResponseWriter, r *http.Request, name string, b []byte,
 		w.Header().Set("Content-Type", ct)
 	}
 	w.Header().Set("Cache-Control", cacheControl)
+	sum := sha256.Sum256(b)
+	w.Header().Set("ETag", `"`+base64.RawURLEncoding.EncodeToString(sum[:18])+`"`)
 	http.ServeContent(w, r, name, time.Time{}, io.ReadSeeker(bytes.NewReader(b)))
 }

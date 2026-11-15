@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"crypto/sha256"
-	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
@@ -12,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -87,34 +88,122 @@ func PackFile(dst string, fsys fs.FS) error {
 }
 
 // openApp opens file in the Plugin's app at app: a .ddapp zip, or a
-// directory of its files (`make dev` links each Plugin's dist/ so).
+// directory of its files (`make dev` links each Plugin's dist/ so), which
+// is read afresh each time. A .ddapp is kept open between calls (openApps).
 func openApp(app, file string) (fs.File, error) {
 	if !fs.ValidPath(file) {
 		return nil, &fs.PathError{Op: "open", Path: file, Err: fs.ErrInvalid}
 	}
-	if info, err := os.Stat(app); err == nil && info.IsDir() {
+	info, err := os.Stat(app)
+	if err != nil {
+		openApps.drop(app)
+		return nil, err
+	}
+	if info.IsDir() {
 		return os.DirFS(app).Open(file)
 	}
-	z, err := zip.OpenReader(app)
+	a, err := openApps.get(app, info)
 	if err != nil {
 		return nil, err
 	}
-	f, err := z.Open(file)
+	f, err := a.zip.Open(file)
 	if err != nil {
-		z.Close()
+		a.release()
 		return nil, err
 	}
-	return appFile{File: f, zip: z}, nil
+	return &appFile{File: f, app: a}, nil
 }
 
-// appFile is a file in an open .ddapp: closing it closes the .ddapp too.
+// openApps keeps every .ddapp opened open, by its path: one per Plugin of
+// the Release, each an open file and its zip directory, so serving a
+// bundle's file reads no directory again. A .ddapp replaced or changed on
+// disk (a Release dir repacked in place) is opened anew; one gone is
+// dropped.
+var openApps = appCache{apps: map[string]*openedApp{}}
+
+type appCache struct {
+	mu   sync.Mutex
+	apps map[string]*openedApp
+}
+
+// openedApp is an open .ddapp. It closes once no file in it is open and
+// openApps no longer holds it.
+type openedApp struct {
+	info os.FileInfo
+	file *os.File
+	zip  *zip.Reader
+	refs atomic.Int32 // its open files, plus one while openApps holds it
+}
+
+// get returns the .ddapp at app, whose stat is info, with a reference the
+// caller releases.
+func (c *appCache) get(app string, info os.FileInfo) (*openedApp, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if a := c.apps[app]; a != nil {
+		if sameFile(a.info, info) {
+			a.refs.Add(1)
+			return a, nil
+		}
+		delete(c.apps, app)
+		a.release()
+	}
+	a, err := openZip(app)
+	if err != nil {
+		return nil, err
+	}
+	a.refs.Store(2)
+	c.apps[app] = a
+	return a, nil
+}
+
+// drop forgets the .ddapp at app, if open.
+func (c *appCache) drop(app string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if a := c.apps[app]; a != nil {
+		delete(c.apps, app)
+		a.release()
+	}
+}
+
+// sameFile reports whether a and b are the same file, unchanged.
+func sameFile(a, b os.FileInfo) bool {
+	return os.SameFile(a, b) && a.Size() == b.Size() && a.ModTime().Equal(b.ModTime())
+}
+
+func openZip(name string) (*openedApp, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err == nil {
+		var z *zip.Reader
+		if z, err = zip.NewReader(f, info.Size()); err == nil {
+			return &openedApp{info: info, file: f, zip: z}, nil
+		}
+	}
+	f.Close()
+	return nil, fmt.Errorf("%s: %w", filepath.Base(name), err)
+}
+
+func (a *openedApp) release() {
+	if a.refs.Add(-1) == 0 {
+		a.file.Close()
+	}
+}
+
+// appFile is a file in an open .ddapp.
 type appFile struct {
 	fs.File
-	zip *zip.ReadCloser
+	app   *openedApp
+	close sync.Once
 }
 
-func (f appFile) Close() error {
-	return errors.Join(f.File.Close(), f.zip.Close())
+func (f *appFile) Close() error {
+	f.close.Do(f.app.release)
+	return f.File.Close()
 }
 
 // splitAppPath splits a Release's fs.FS path "<plugin>/<file>".

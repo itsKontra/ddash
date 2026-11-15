@@ -225,6 +225,47 @@ func TestTheDevReleaseIsNeverCached(t *testing.T) {
 	}
 }
 
+func TestAStaticFileAskedForAgainWithItsETagIsAnswered304(t *testing.T) {
+	for _, rel := range []string{"v1.2.3", "dev"} {
+		h := shelfOf(t, rel)
+
+		for _, path := range []string{"/", "/plugins/docker/" + rel + "/index.js", "/vendor/" + rel + "/react.js", "/assets/index-4f2a.js"} {
+			first := h.Get(path)
+			etag := first.Header().Get("ETag")
+			if first.Code != http.StatusOK || etag == "" {
+				t.Fatalf("GET %s: %d with ETag %q, want 200 with one", path, first.Code, etag)
+			}
+
+			again := httptest.NewRequest(http.MethodGet, path, nil)
+			again.Header.Set("If-None-Match", etag)
+			res := h.Do(again)
+
+			if res.Code != http.StatusNotModified || res.Body.Len() != 0 {
+				t.Errorf("GET %s with its ETag: %d %q, want 304 and no body", path, res.Code, res.Body)
+			}
+			if got := res.Header().Get("ETag"); got != etag {
+				t.Errorf("GET %s with its ETag: ETag %q, want %q", path, got, etag)
+			}
+		}
+	}
+}
+
+func TestAStaticFileAskedForWithAnotherFilesETagIsSentWhole(t *testing.T) {
+	h := shelf(t)
+	js, css := h.Get("/plugins/docker/v1.2.3/index.js"), h.Get("/plugins/docker/v1.2.3/index.css")
+	if a, b := js.Header().Get("ETag"), css.Header().Get("ETag"); a == b {
+		t.Fatalf("index.js and index.css share the ETag %q, want one each", a)
+	}
+
+	r := httptest.NewRequest(http.MethodGet, "/plugins/docker/v1.2.3/index.js", nil)
+	r.Header.Set("If-None-Match", css.Header().Get("ETag"))
+	res := h.Do(r)
+
+	if res.Code != http.StatusOK || res.Body.String() != "export default {}" {
+		t.Errorf("GET with another file's ETag: %d %q, want 200 with the file", res.Code, res.Body)
+	}
+}
+
 // ddash's UI runs Actions, so no other site may frame it, and no response
 // is to be sniffed into another type.
 func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {

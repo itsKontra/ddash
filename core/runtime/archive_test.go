@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"testing/fstest"
 
 	"github.com/itsKontra/ddash/core/runtime"
 	"github.com/itsKontra/ddash/internal/fakegithub"
@@ -79,6 +80,68 @@ func TestADirServesAPluginsFilesFromItsApp(t *testing.T) {
 		if _, err := fs.ReadFile(d, name); err == nil {
 			t.Errorf("%s: read, want an error", name)
 		}
+	}
+}
+
+func TestADirReadsAPluginsAppFromTheArchiveItOpenedOnce(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root opens a file whatever its mode")
+	}
+	dir := releaseDir(t, "v1.0.0", helloV1)
+	d := runtime.Dir{Path: dir}
+	if _, err := fs.ReadFile(d, "hello/index.js"); err != nil {
+		t.Fatal(err)
+	}
+	// Opening the .ddapp again would fail now.
+	app := filepath.Join(dir, runtime.AppFile("hello"))
+	if err := os.Chmod(app, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.Chmod(app, 0o600) }) //nolint:errcheck // only for TempDir's cleanup
+
+	for _, name := range []string{"hello/index.js", "hello/index.css"} {
+		if b, err := fs.ReadFile(d, name); err != nil {
+			t.Errorf("%s = %q, %v; want it read from the open .ddapp", name, b, err)
+		}
+	}
+}
+
+func TestADirReadsAPluginsAppRepackedInPlaceAnew(t *testing.T) {
+	dir := releaseDir(t, "dev", helloV1)
+	d := runtime.Dir{Path: dir}
+	app := filepath.Join(dir, runtime.AppFile("hello"))
+	if _, err := fs.ReadFile(d, "hello/index.js"); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, repack := range []struct {
+		how  string
+		pack func(fsys fs.FS) error
+	}{
+		{"replaced", func(fsys fs.FS) error { return runtime.PackFile(app, fsys) }},
+		{"overwritten", func(fsys fs.FS) error {
+			f, err := os.Create(app) // the same file, truncated
+			if err != nil {
+				return err
+			}
+			defer f.Close()
+			return runtime.Pack(f, fsys)
+		}},
+	} {
+		want := "export default " + repack.how
+		if err := repack.pack(fstest.MapFS{"index.js": {Data: []byte(want)}}); err != nil {
+			t.Fatal(err)
+		}
+
+		if b, err := fs.ReadFile(d, "hello/index.js"); err != nil || string(b) != want {
+			t.Errorf("%s: index.js = %q, %v; want %q", repack.how, b, err, want)
+		}
+	}
+	if err := os.Remove(app); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fs.ReadFile(d, "hello/index.js"); err == nil {
+		t.Error("removed: index.js read, want an error")
 	}
 }
 

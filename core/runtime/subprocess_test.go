@@ -84,3 +84,22 @@ func TestStopKillsAComponentStillBusyWhenTheTimeoutEnds(t *testing.T) {
 		t.Errorf("Stop took %s, want it killed when the 1 s timeout ended", took)
 	}
 }
+
+func TestAComponentThatCrashesIsNoticedWellWithinASecond(t *testing.T) {
+	proc := launchSample(t, "")
+
+	_, err := samplepb.NewSampleServiceClient(proc.Conn()).Act(t.Context(), &samplepb.ActRequest{}) // the sample exits
+	if err == nil {
+		t.Fatal("Act answered, want the process gone")
+	}
+	begin := time.Now()
+
+	select {
+	case <-proc.Done():
+		if took := time.Since(begin); took > 750*time.Millisecond {
+			t.Errorf("the crash was noticed after %s, want well within a second", took)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("the crash wasn't noticed in 5 s")
+	}
+}

@@ -19,8 +19,9 @@ import (
 // sha256sum's format: "<hex>  <file>" per line.
 const SumsFile = "SHA256SUMS"
 
-// exitPoll is how often a launched process is checked for having exited.
-const exitPoll = 50 * time.Millisecond
+// exitPoll is how often a launched process is checked for having exited:
+// a few times a second, so a crash is noticed well within one.
+const exitPoll = 200 * time.Millisecond
 
 // Subprocess returns a Launcher that runs each Component as a go-plugin
 // subprocess: the binary the release source provided, verified by
