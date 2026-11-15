@@ -1,7 +1,9 @@
 // The charts family: hand-rolled SVG, coloured by Theme classes.
+import { Fragment, type ReactNode } from "react";
+import { StatusDot } from "./atoms";
 import { useOnHero } from "./surface";
 import { chartColours, colourBg, colourFill, colourStroke, type Colour } from "./chart-colours";
-import { cx, toneFill, type Tone } from "./tone";
+import { cx, toneFill, toneText, type Tone } from "./tone";
 
 const sparkStroke = ["stroke-primary", "stroke-muted-foreground"];
 
@@ -267,6 +269,91 @@ export function Meter({ ratio, tone, label }: { ratio: number; tone: Tone; label
         className={cx("h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500", colourBg[tone])}
         style={{ width: `${round2(filled * 100)}%` }}
       />
+    </div>
+  );
+}
+
+/** A use's tone, as a Meter shows it: warn from 75 %, down from 90 %. */
+export function meterTone(ratio: number): Tone {
+  return ratio >= 0.9 ? "down" : ratio >= 0.75 ? "warn" : "up";
+}
+
+/** One labelled Meter of a Summary, with its value as text, e.g. "11 GiB of 64 GiB". */
+export interface SummaryMeter {
+  label: string;
+  ratio: number;
+  value: string;
+}
+
+/** One part of a Summary's line, in a tone when it should stand out, e.g. "1 exited" in down. */
+export interface SummaryPart {
+  text: string;
+  tone?: Tone;
+}
+
+/** One row of a Summary naming what stands out, e.g. a guest and "memory 82 %", led by a dot in its tone. */
+export interface SummaryRow {
+  tone: Tone;
+  label: string;
+  value: string;
+}
+
+/**
+ * A Widget's answer to its question: a headline sentence ("12 of 17
+ * guests running"), a line of detail under it (its parts joined by " · "),
+ * labelled Meters toned by meterTone with their values as text, and a few
+ * rows naming what stands out. A part left out takes no room.
+ */
+export function Summary({
+  headline,
+  line,
+  meters,
+  rows,
+}: {
+  headline: ReactNode;
+  line?: readonly SummaryPart[];
+  meters?: readonly SummaryMeter[];
+  rows?: readonly SummaryRow[];
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="min-w-0">
+        <p className="text-xl leading-tight font-extrabold tracking-tight">{headline}</p>
+        {line && line.length > 0 && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            {line.map((p, i) => (
+              <Fragment key={i}>
+                {i > 0 && " · "}
+                <span className={cx(p.tone && p.tone !== "idle" && cx("font-semibold", toneText[p.tone]))}>{p.text}</span>
+              </Fragment>
+            ))}
+          </p>
+        )}
+      </div>
+      {meters && meters.length > 0 && (
+        <div className="flex flex-col gap-2.5 text-sm">
+          {meters.map((m) => (
+            <div key={m.label} className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <span className="text-muted-foreground">{m.label}</span>
+                <span className="tabular-nums">{m.value}</span>
+              </div>
+              <Meter label={m.label} ratio={m.ratio} tone={meterTone(m.ratio)} />
+            </div>
+          ))}
+        </div>
+      )}
+      {rows && rows.length > 0 && (
+        <ul className="flex flex-col divide-y divide-border border-t border-border text-sm">
+          {rows.map((r, i) => (
+            <li key={i} className="flex items-center gap-2 py-2 last:pb-0">
+              <StatusDot tone={r.tone} />
+              <span className="min-w-0 flex-1 truncate">{r.label}</span>
+              <span className={cx("shrink-0 tabular-nums", r.tone === "up" ? "text-muted-foreground" : cx("font-semibold", toneText[r.tone]))}>{r.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { AgentsPage } from "./agents";
 import "./index.css";
 import { ProjectPage } from "./project";
 import { DockerPage } from "./projects";
-import { containers } from "./widget";
+import { containers, hosts } from "./widget";
 
 export default definePlugin({
   // Label and icon (container) come from plugin.yaml.
@@ -15,5 +15,5 @@ export default definePlugin({
     { path: "projects/new", Component: AddProjectPage },
     { path: "projects/:host/:name", Component: ProjectPage },
   ],
-  widgets: [containers],
+  widgets: [hosts, containers],
 });

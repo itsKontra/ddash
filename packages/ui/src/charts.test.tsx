@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Bars, ColumnChart, Donut, LineChart, Meter, Ring, Sparkline, UptimeBars } from "./index";
+import { Bars, ColumnChart, Donut, LineChart, Meter, meterTone, Ring, Sparkline, Summary, UptimeBars } from "./index";
 
 afterEach(cleanup);
 
@@ -173,6 +173,39 @@ it("Meter is a meter named by its label, filled to its ratio in its tone and cla
   expect(disk.getAttribute("aria-valuenow")).toBe("42");
   expect(disk.querySelector("[data-colour]")?.getAttribute("data-colour")).toBe("warn");
   expect(screen.getByRole("meter", { name: "Over" }).getAttribute("aria-valuenow")).toBe("100");
+});
+
+it("meterTone is up below 75 %, warn from 75 % and down from 90 %", () => {
+  expect([0, 0.749, 0.75, 0.899, 0.9, 1].map(meterTone)).toEqual(["up", "up", "warn", "warn", "down", "down"]);
+});
+
+it("Summary draws its headline, its line's parts, its meters toned by use and its rows", () => {
+  render(
+    <Summary
+      headline="12 of 17 guests running"
+      line={[{ text: "21 containers" }, { text: "1 exited", tone: "down" }]}
+      meters={[
+        { label: "CPU", ratio: 0.02, value: "2.2 % of 16" },
+        { label: "Memory", ratio: 0.8, value: "51 GiB of 64 GiB" },
+      ]}
+      rows={[{ tone: "down", label: "grafana", value: "disk 91 %" }]}
+    />,
+  );
+
+  expect(screen.getByText("12 of 17 guests running")).toBeTruthy();
+  expect(screen.getByText("1 exited").className).toContain("text-down-text");
+  expect(screen.getByText("21 containers").parentElement?.textContent).toBe("21 containers · 1 exited");
+  const memory = screen.getByRole("meter", { name: "Memory" });
+  expect(memory.querySelector("[data-colour]")?.getAttribute("data-colour")).toBe("warn");
+  expect(memory.previousElementSibling?.textContent).toBe("Memory51 GiB of 64 GiB");
+  expect(screen.getByRole("listitem").textContent).toBe("grafana" + "disk 91 %");
+});
+
+it("Summary leaves out the parts it isn't given", () => {
+  render(<Summary headline="5 of 6 containers running" />);
+
+  expect(screen.queryByRole("meter")).toBeNull();
+  expect(screen.queryByRole("list")).toBeNull();
 });
 
 const at = (h: number, m = 0) => new Date(2026, 10, 14, h, m);
