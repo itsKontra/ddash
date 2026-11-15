@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 // GitHubOptions configure a GitHub release source.
@@ -27,7 +28,8 @@ type GitHubOptions struct {
 	Token string
 	// DataDir is /data, where the downloads are kept.
 	DataDir string
-	// Client makes the requests. Nil uses http.DefaultClient.
+	// Client makes the requests. Nil uses one that gives each request,
+	// download included, downloadTimeout.
 	Client *http.Client
 	// API is GitHub's REST API. Default https://api.github.com.
 	API string
@@ -59,10 +61,15 @@ type GitHubSource struct {
 	assets map[string]string // asset name → its API URL, once listed
 }
 
+// downloadTimeout bounds one request to GitHub, a Component's download
+// included: the reconcile loop waits on it, and Uninstall and Restart wait
+// on the loop.
+const downloadTimeout = 5 * time.Minute
+
 // GitHub returns the release source for the GitHub release o.Release.
 func GitHub(o GitHubOptions) *GitHubSource {
 	if o.Client == nil {
-		o.Client = http.DefaultClient
+		o.Client = &http.Client{Timeout: downloadTimeout}
 	}
 	if o.API == "" {
 		o.API = "https://api.github.com"
