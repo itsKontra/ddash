@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -21,6 +22,47 @@ const (
 	installPath     = hostAgentPrefix + "install.sh"
 )
 
+// agentFile is a Host Agent binary the release source verified, and the
+// file's size and time then.
+type agentFile struct {
+	bin  runtime.Binary
+	size int64
+	mod  time.Time
+}
+
+// hostAgent returns the Release's Host Agent for arch. The endpoints
+// below answer anyone, so the release source, which checksums the whole
+// file or downloads it, is asked once per file, and again only when the
+// file on disk changed (the dev Release is rebuilt in place); requests
+// that come meanwhile wait for that one answer.
+func (h *Host) hostAgent(ctx context.Context, arch string) (runtime.Binary, error) {
+	name := runtime.HostAgentFile(arch)
+	h.agentMu.Lock()
+	f, ok := h.agentFiles[name]
+	h.agentMu.Unlock()
+	if ok {
+		if fi, err := os.Stat(f.bin.Path); err == nil && fi.Size() == f.size && fi.ModTime().Equal(f.mod) {
+			return f.bin, nil
+		}
+	}
+	v, err, _ := h.agentFlights.Do(name, func() (any, error) {
+		bin, err := h.release.File(context.WithoutCancel(ctx), name)
+		if err != nil {
+			return runtime.Binary{}, err
+		}
+		if fi, err := os.Stat(bin.Path); err == nil {
+			h.agentMu.Lock()
+			h.agentFiles[name] = agentFile{bin: bin, size: fi.Size(), mod: fi.ModTime()}
+			h.agentMu.Unlock()
+		}
+		return bin, nil
+	})
+	if err != nil {
+		return runtime.Binary{}, err
+	}
+	return v.(runtime.Binary), nil
+}
+
 // hostAgentBinary serves the Host Agent for {arch} from the Release,
 // verified against its SHA256SUMS.
 func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
@@ -29,7 +71,7 @@ func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "the Host Agent is built for "+strings.Join(runtime.HostAgentArchs, " and "), http.StatusNotFound)
 		return
 	}
-	bin, err := h.release.File(r.Context(), runtime.HostAgentFile(arch))
+	bin, err := h.hostAgent(r.Context(), arch)
 	if err != nil {
 		h.log.Warn("host agent download", "arch", arch, "err", err)
 		http.Error(w, "the Host Agent isn't available: "+err.Error(), http.StatusServiceUnavailable)
@@ -51,7 +93,7 @@ func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
 func (h *Host) hostAgentSums(w http.ResponseWriter, r *http.Request) {
 	var b strings.Builder
 	for _, arch := range runtime.HostAgentArchs {
-		bin, err := h.release.File(r.Context(), runtime.HostAgentFile(arch))
+		bin, err := h.hostAgent(r.Context(), arch)
 		if err != nil {
 			http.Error(w, "the Host Agent isn't available: "+err.Error(), http.StatusServiceUnavailable)
 			return
@@ -67,7 +109,7 @@ func (h *Host) hostAgentSums(w http.ResponseWriter, r *http.Request) {
 func (h *Host) installScript(w http.ResponseWriter, r *http.Request) {
 	sums := map[string]string{}
 	for _, arch := range runtime.HostAgentArchs {
-		bin, err := h.release.File(r.Context(), runtime.HostAgentFile(arch))
+		bin, err := h.hostAgent(r.Context(), arch)
 		if err != nil {
 			h.log.Warn("install.sh", "arch", arch, "err", err)
 			continue
