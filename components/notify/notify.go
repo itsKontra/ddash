@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -47,7 +49,7 @@ type channel struct {
 	name, title, component string
 	// takes is the categories its filter takes.
 	takes []notifypb.Category
-	send  func(context.Context, *notifypb.Notification) error
+	send  func(context.Context, *notificationpb.Notification) error
 	// describe says whether it is set up and where it sends to.
 	describe func(context.Context) (setUp bool, destination string, err error)
 }
@@ -79,10 +81,8 @@ func (c *component) Start(_ context.Context, env *sdk.Env, cfg *notifypb.NotifyC
 		{
 			name: "ntfy", title: "ntfy", component: "ntfy-api",
 			takes: filter(cfg.NtfyChecks, cfg.NtfyImageUpdates, cfg.NtfyActionOutcomes),
-			send: func(ctx context.Context, n *notifypb.Notification) error {
-				_, err := ntfy.Send(ctx, &ntfyapipb.SendRequest{Notification: &ntfyapipb.Notification{
-					Title: n.GetTitle(), Message: n.GetMessage(), Priority: n.GetPriority(), Tags: n.GetTags(), Click: n.GetClick(),
-				}})
+			send: func(ctx context.Context, n *notificationpb.Notification) error {
+				_, err := ntfy.Send(ctx, &ntfyapipb.SendRequest{Notification: n})
 				return err
 			},
 			describe: func(ctx context.Context) (bool, string, error) {
@@ -93,10 +93,8 @@ func (c *component) Start(_ context.Context, env *sdk.Env, cfg *notifypb.NotifyC
 		{
 			name: "telegram", title: "Telegram", component: "telegram-api",
 			takes: filter(cfg.TelegramChecks, cfg.TelegramImageUpdates, cfg.TelegramActionOutcomes),
-			send: func(ctx context.Context, n *notifypb.Notification) error {
-				_, err := telegram.Send(ctx, &telegramapipb.SendRequest{Notification: &telegramapipb.Notification{
-					Title: n.GetTitle(), Message: n.GetMessage(), Priority: n.GetPriority(), Tags: n.GetTags(), Click: n.GetClick(),
-				}})
+			send: func(ctx context.Context, n *notificationpb.Notification) error {
+				_, err := telegram.Send(ctx, &telegramapipb.SendRequest{Notification: n})
 				return err
 			},
 			describe: func(ctx context.Context) (bool, string, error) {
@@ -117,7 +115,7 @@ func notSetUp(err error) bool { return status.Code(err) == codes.FailedPrecondit
 
 func (c *component) Send(ctx context.Context, req *notifypb.SendRequest) (*notifypb.SendResponse, error) {
 	n := req.GetNotification()
-	if !slices.Contains(categories, n.GetCategory()) {
+	if !slices.Contains(categories, req.GetCategory()) {
 		return nil, status.Error(codes.InvalidArgument, "a Notification needs a category")
 	}
 	deliveries := make([]*notifypb.Delivery, len(c.channels))
@@ -125,7 +123,7 @@ func (c *component) Send(ctx context.Context, req *notifypb.SendRequest) (*notif
 	for i, ch := range c.channels {
 		d := &notifypb.Delivery{Channel: ch.name, State: notifypb.DeliveryState_DELIVERY_STATE_FILTERED}
 		deliveries[i] = d
-		if !slices.Contains(ch.takes, n.GetCategory()) {
+		if !slices.Contains(ch.takes, req.GetCategory()) {
 			continue
 		}
 		wg.Go(func() {

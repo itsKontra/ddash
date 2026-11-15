@@ -10,6 +10,8 @@
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
+import type { Notification } from "../ddash/notification/notification_pb";
+import { file_ddash_notification_notification } from "../ddash/notification/notification_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -17,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file notify/notify.proto.
  */
 export const file_notify_notify: GenFile = /*@__PURE__*/
-  fileDesc("ChNub3RpZnkvbm90aWZ5LnByb3RvEgxkZGFzaC5ub3RpZnkiwQcKDE5vdGlmeUNvbmZpZxJ6CgtudGZ5X2NoZWNrcxgBIAEoCEJgmrUYXAoEdHJ1ZRoMbnRmeTogQ2hlY2tzIkZBIENoZWNrIGdvaW5nIGRvd24gb3IgdXAgYWdhaW4sIEZsYXBwaW5nLCBvciBpdHMgY2VydGlmaWNhdGUgZXhwaXJpbmcuSACIAQESggEKEm50ZnlfaW1hZ2VfdXBkYXRlcxgCIAEoCEJhmrUYXQoEdHJ1ZRoTbnRmeTogSW1hZ2UgdXBkYXRlcyJAQSBydW5uaW5nIGNvbnRhaW5lcidzIGltYWdlIGhhcyBhIG5ld2VyIHZlcnNpb24gaW4gaXRzIHJlZ2lzdHJ5LkgBiAEBEoMBChRudGZ5X2FjdGlvbl9vdXRjb21lcxgDIAEoCEJgmrUYXAoEdHJ1ZRoVbnRmeTogQWN0aW9uIG91dGNvbWVzIj1Ib3cgYSBsb25nIEFjdGlvbiBlbmRlZCwgc3VjaCBhcyBwYWNrYWdlIHVwZGF0ZXMgb3IgYSBiYWNrdXAuSAKIAQESggEKD3RlbGVncmFtX2NoZWNrcxgEIAEoCEJkmrUYYAoEdHJ1ZRoQVGVsZWdyYW06IENoZWNrcyJGQSBDaGVjayBnb2luZyBkb3duIG9yIHVwIGFnYWluLCBGbGFwcGluZywgb3IgaXRzIGNlcnRpZmljYXRlIGV4cGlyaW5nLkgDiAEBEooBChZ0ZWxlZ3JhbV9pbWFnZV91cGRhdGVzGAUgASgIQmWatRhhCgR0cnVlGhdUZWxlZ3JhbTogSW1hZ2UgdXBkYXRlcyJAQSBydW5uaW5nIGNvbnRhaW5lcidzIGltYWdlIGhhcyBhIG5ld2VyIHZlcnNpb24gaW4gaXRzIHJlZ2lzdHJ5LkgEiAEBEosBChh0ZWxlZ3JhbV9hY3Rpb25fb3V0Y29tZXMYBiABKAhCZJq1GGAKBHRydWUaGVRlbGVncmFtOiBBY3Rpb24gb3V0Y29tZXMiPUhvdyBhIGxvbmcgQWN0aW9uIGVuZGVkLCBzdWNoIGFzIHBhY2thZ2UgdXBkYXRlcyBvciBhIGJhY2t1cC5IBYgBAUIOCgxfbnRmeV9jaGVja3NCFQoTX250ZnlfaW1hZ2VfdXBkYXRlc0IXChVfbnRmeV9hY3Rpb25fb3V0Y29tZXNCEgoQX3RlbGVncmFtX2NoZWNrc0IZChdfdGVsZWdyYW1faW1hZ2VfdXBkYXRlc0IbChlfdGVsZWdyYW1fYWN0aW9uX291dGNvbWVzIocBCgxOb3RpZmljYXRpb24SDQoFdGl0bGUYASABKAkSDwoHbWVzc2FnZRgCIAEoCRIQCghwcmlvcml0eRgDIAEoBRIMCgR0YWdzGAQgAygJEg0KBWNsaWNrGAUgASgJEigKCGNhdGVnb3J5GAYgASgOMhYuZGRhc2gubm90aWZ5LkNhdGVnb3J5Ij8KC1NlbmRSZXF1ZXN0EjAKDG5vdGlmaWNhdGlvbhgBIAEoCzIaLmRkYXNoLm5vdGlmeS5Ob3RpZmljYXRpb24iOgoMU2VuZFJlc3BvbnNlEioKCmRlbGl2ZXJpZXMYASADKAsyFi5kZGFzaC5ub3RpZnkuRGVsaXZlcnkiVgoIRGVsaXZlcnkSDwoHY2hhbm5lbBgBIAEoCRIqCgVzdGF0ZRgCIAEoDjIbLmRkYXNoLm5vdGlmeS5EZWxpdmVyeVN0YXRlEg0KBWVycm9yGAMgASgJIhUKE0xpc3RDaGFubmVsc1JlcXVlc3QiPwoUTGlzdENoYW5uZWxzUmVzcG9uc2USJwoIY2hhbm5lbHMYASADKAsyFS5kZGFzaC5ub3RpZnkuQ2hhbm5lbCKbAQoHQ2hhbm5lbBIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhEKCWNvbXBvbmVudBgDIAEoCRIOCgZzZXRfdXAYBCABKAgSEwoLZGVzdGluYXRpb24YBSABKAkSKgoKY2F0ZWdvcmllcxgGIAMoDjIWLmRkYXNoLm5vdGlmeS5DYXRlZ29yeRIPCgdwcm9ibGVtGAcgASgJKnMKCENhdGVnb3J5EhgKFENBVEVHT1JZX1VOU1BFQ0lGSUVEEAASEwoPQ0FURUdPUllfQ0hFQ0tTEAESGgoWQ0FURUdPUllfSU1BR0VfVVBEQVRFUxACEhwKGENBVEVHT1JZX0FDVElPTl9PVVRDT01FUxADKp8BCg1EZWxpdmVyeVN0YXRlEh4KGkRFTElWRVJZX1NUQVRFX1VOU1BFQ0lGSUVEEAASFwoTREVMSVZFUllfU1RBVEVfU0VOVBABEhkKFURFTElWRVJZX1NUQVRFX0ZBSUxFRBACEh0KGURFTElWRVJZX1NUQVRFX05PVF9TRVRfVVAQAxIbChdERUxJVkVSWV9TVEFURV9GSUxURVJFRBAEMrEBCg1Ob3RpZnlTZXJ2aWNlEkMKBFNlbmQSGS5kZGFzaC5ub3RpZnkuU2VuZFJlcXVlc3QaGi5kZGFzaC5ub3RpZnkuU2VuZFJlc3BvbnNlIgSStRgAElsKDExpc3RDaGFubmVscxIhLmRkYXNoLm5vdGlmeS5MaXN0Q2hhbm5lbHNSZXF1ZXN0GiIuZGRhc2gubm90aWZ5Lkxpc3RDaGFubmVsc1Jlc3BvbnNlIgSKtRgAQkBaPmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbm90aWZ5L25vdGlmeXBiO25vdGlmeXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("ChNub3RpZnkvbm90aWZ5LnByb3RvEgxkZGFzaC5ub3RpZnkiwQcKDE5vdGlmeUNvbmZpZxJ6CgtudGZ5X2NoZWNrcxgBIAEoCEJgmrUYXAoEdHJ1ZRoMbnRmeTogQ2hlY2tzIkZBIENoZWNrIGdvaW5nIGRvd24gb3IgdXAgYWdhaW4sIEZsYXBwaW5nLCBvciBpdHMgY2VydGlmaWNhdGUgZXhwaXJpbmcuSACIAQESggEKEm50ZnlfaW1hZ2VfdXBkYXRlcxgCIAEoCEJhmrUYXQoEdHJ1ZRoTbnRmeTogSW1hZ2UgdXBkYXRlcyJAQSBydW5uaW5nIGNvbnRhaW5lcidzIGltYWdlIGhhcyBhIG5ld2VyIHZlcnNpb24gaW4gaXRzIHJlZ2lzdHJ5LkgBiAEBEoMBChRudGZ5X2FjdGlvbl9vdXRjb21lcxgDIAEoCEJgmrUYXAoEdHJ1ZRoVbnRmeTogQWN0aW9uIG91dGNvbWVzIj1Ib3cgYSBsb25nIEFjdGlvbiBlbmRlZCwgc3VjaCBhcyBwYWNrYWdlIHVwZGF0ZXMgb3IgYSBiYWNrdXAuSAKIAQESggEKD3RlbGVncmFtX2NoZWNrcxgEIAEoCEJkmrUYYAoEdHJ1ZRoQVGVsZWdyYW06IENoZWNrcyJGQSBDaGVjayBnb2luZyBkb3duIG9yIHVwIGFnYWluLCBGbGFwcGluZywgb3IgaXRzIGNlcnRpZmljYXRlIGV4cGlyaW5nLkgDiAEBEooBChZ0ZWxlZ3JhbV9pbWFnZV91cGRhdGVzGAUgASgIQmWatRhhCgR0cnVlGhdUZWxlZ3JhbTogSW1hZ2UgdXBkYXRlcyJAQSBydW5uaW5nIGNvbnRhaW5lcidzIGltYWdlIGhhcyBhIG5ld2VyIHZlcnNpb24gaW4gaXRzIHJlZ2lzdHJ5LkgEiAEBEosBChh0ZWxlZ3JhbV9hY3Rpb25fb3V0Y29tZXMYBiABKAhCZJq1GGAKBHRydWUaGVRlbGVncmFtOiBBY3Rpb24gb3V0Y29tZXMiPUhvdyBhIGxvbmcgQWN0aW9uIGVuZGVkLCBzdWNoIGFzIHBhY2thZ2UgdXBkYXRlcyBvciBhIGJhY2t1cC5IBYgBAUIOCgxfbnRmeV9jaGVja3NCFQoTX250ZnlfaW1hZ2VfdXBkYXRlc0IXChVfbnRmeV9hY3Rpb25fb3V0Y29tZXNCEgoQX3RlbGVncmFtX2NoZWNrc0IZChdfdGVsZWdyYW1faW1hZ2VfdXBkYXRlc0IbChlfdGVsZWdyYW1fYWN0aW9uX291dGNvbWVzIm8KC1NlbmRSZXF1ZXN0EjYKDG5vdGlmaWNhdGlvbhgBIAEoCzIgLmRkYXNoLm5vdGlmaWNhdGlvbi5Ob3RpZmljYXRpb24SKAoIY2F0ZWdvcnkYAiABKA4yFi5kZGFzaC5ub3RpZnkuQ2F0ZWdvcnkiOgoMU2VuZFJlc3BvbnNlEioKCmRlbGl2ZXJpZXMYASADKAsyFi5kZGFzaC5ub3RpZnkuRGVsaXZlcnkiVgoIRGVsaXZlcnkSDwoHY2hhbm5lbBgBIAEoCRIqCgVzdGF0ZRgCIAEoDjIbLmRkYXNoLm5vdGlmeS5EZWxpdmVyeVN0YXRlEg0KBWVycm9yGAMgASgJIhUKE0xpc3RDaGFubmVsc1JlcXVlc3QiPwoUTGlzdENoYW5uZWxzUmVzcG9uc2USJwoIY2hhbm5lbHMYASADKAsyFS5kZGFzaC5ub3RpZnkuQ2hhbm5lbCKbAQoHQ2hhbm5lbBIMCgRuYW1lGAEgASgJEg0KBXRpdGxlGAIgASgJEhEKCWNvbXBvbmVudBgDIAEoCRIOCgZzZXRfdXAYBCABKAgSEwoLZGVzdGluYXRpb24YBSABKAkSKgoKY2F0ZWdvcmllcxgGIAMoDjIWLmRkYXNoLm5vdGlmeS5DYXRlZ29yeRIPCgdwcm9ibGVtGAcgASgJKnMKCENhdGVnb3J5EhgKFENBVEVHT1JZX1VOU1BFQ0lGSUVEEAASEwoPQ0FURUdPUllfQ0hFQ0tTEAESGgoWQ0FURUdPUllfSU1BR0VfVVBEQVRFUxACEhwKGENBVEVHT1JZX0FDVElPTl9PVVRDT01FUxADKp8BCg1EZWxpdmVyeVN0YXRlEh4KGkRFTElWRVJZX1NUQVRFX1VOU1BFQ0lGSUVEEAASFwoTREVMSVZFUllfU1RBVEVfU0VOVBABEhkKFURFTElWRVJZX1NUQVRFX0ZBSUxFRBACEh0KGURFTElWRVJZX1NUQVRFX05PVF9TRVRfVVAQAxIbChdERUxJVkVSWV9TVEFURV9GSUxURVJFRBAEMrEBCg1Ob3RpZnlTZXJ2aWNlEkMKBFNlbmQSGS5kZGFzaC5ub3RpZnkuU2VuZFJlcXVlc3QaGi5kZGFzaC5ub3RpZnkuU2VuZFJlc3BvbnNlIgSStRgAElsKDExpc3RDaGFubmVscxIhLmRkYXNoLm5vdGlmeS5MaXN0Q2hhbm5lbHNSZXF1ZXN0GiIuZGRhc2gubm90aWZ5Lkxpc3RDaGFubmVsc1Jlc3BvbnNlIgSKtRgAQkBaPmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbm90aWZ5L25vdGlmeXBiO25vdGlmeXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_notification_notification, file_ddash_options]);
 
 /**
  * Which categories each channel gets. Every category goes to every
@@ -65,65 +67,20 @@ export const NotifyConfigSchema: GenMessage<NotifyConfig> = /*@__PURE__*/
   messageDesc(file_notify_notify, 0);
 
 /**
- * @generated from message ddash.notify.Notification
- */
-export type Notification = Message<"ddash.notify.Notification"> & {
-  /**
-   * e.g. "Jellyfin down".
-   *
-   * @generated from field: string title = 1;
-   */
-  title: string;
-
-  /**
-   * The message body, e.g. "timeout".
-   *
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * 1 (min) to 5 (max); 0 leaves the channel's default, 3.
-   *
-   * @generated from field: int32 priority = 3;
-   */
-  priority: number;
-
-  /**
-   * ntfy's emoji shortcodes, e.g. "red_circle".
-   *
-   * @generated from field: repeated string tags = 4;
-   */
-  tags: string[];
-
-  /**
-   * The ddash URL the Notification opens, e.g. a Check's detail.
-   *
-   * @generated from field: string click = 5;
-   */
-  click: string;
-
-  /**
-   * @generated from field: ddash.notify.Category category = 6;
-   */
-  category: Category;
-};
-
-/**
- * Describes the message ddash.notify.Notification.
- * Use `create(NotificationSchema)` to create a new message.
- */
-export const NotificationSchema: GenMessage<Notification> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 1);
-
-/**
  * @generated from message ddash.notify.SendRequest
  */
 export type SendRequest = Message<"ddash.notify.SendRequest"> & {
   /**
-   * @generated from field: ddash.notify.Notification notification = 1;
+   * @generated from field: ddash.notification.Notification notification = 1;
    */
   notification?: Notification | undefined;
+
+  /**
+   * What it is about; required: each channel's filter decides by it.
+   *
+   * @generated from field: ddash.notify.Category category = 2;
+   */
+  category: Category;
 };
 
 /**
@@ -131,7 +88,7 @@ export type SendRequest = Message<"ddash.notify.SendRequest"> & {
  * Use `create(SendRequestSchema)` to create a new message.
  */
 export const SendRequestSchema: GenMessage<SendRequest> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 2);
+  messageDesc(file_notify_notify, 1);
 
 /**
  * @generated from message ddash.notify.SendResponse
@@ -150,7 +107,7 @@ export type SendResponse = Message<"ddash.notify.SendResponse"> & {
  * Use `create(SendResponseSchema)` to create a new message.
  */
 export const SendResponseSchema: GenMessage<SendResponse> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 3);
+  messageDesc(file_notify_notify, 2);
 
 /**
  * @generated from message ddash.notify.Delivery
@@ -181,7 +138,7 @@ export type Delivery = Message<"ddash.notify.Delivery"> & {
  * Use `create(DeliverySchema)` to create a new message.
  */
 export const DeliverySchema: GenMessage<Delivery> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 4);
+  messageDesc(file_notify_notify, 3);
 
 /**
  * @generated from message ddash.notify.ListChannelsRequest
@@ -194,7 +151,7 @@ export type ListChannelsRequest = Message<"ddash.notify.ListChannelsRequest"> & 
  * Use `create(ListChannelsRequestSchema)` to create a new message.
  */
 export const ListChannelsRequestSchema: GenMessage<ListChannelsRequest> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 5);
+  messageDesc(file_notify_notify, 4);
 
 /**
  * @generated from message ddash.notify.ListChannelsResponse
@@ -211,7 +168,7 @@ export type ListChannelsResponse = Message<"ddash.notify.ListChannelsResponse"> 
  * Use `create(ListChannelsResponseSchema)` to create a new message.
  */
 export const ListChannelsResponseSchema: GenMessage<ListChannelsResponse> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 6);
+  messageDesc(file_notify_notify, 5);
 
 /**
  * @generated from message ddash.notify.Channel
@@ -272,7 +229,7 @@ export type Channel = Message<"ddash.notify.Channel"> & {
  * Use `create(ChannelSchema)` to create a new message.
  */
 export const ChannelSchema: GenMessage<Channel> = /*@__PURE__*/
-  messageDesc(file_notify_notify, 7);
+  messageDesc(file_notify_notify, 6);
 
 /**
  * What a Notification is about; each channel's filter picks categories.

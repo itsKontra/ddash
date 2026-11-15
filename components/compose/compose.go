@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -300,7 +302,7 @@ func (c *component) notifyStale(ctx context.Context, res *dapb.ListComposeProjec
 	if len(fresh) == 0 {
 		return
 	}
-	n := &notifypb.Notification{Category: notifypb.Category_CATEGORY_IMAGE_UPDATES, Tags: []string{"package"}, Click: c.public + "/docker", Priority: 3}
+	n := &notificationpb.Notification{Tags: []string{"package"}, Click: c.public + "/docker", Priority: notificationpb.Priority_PRIORITY_DEFAULT}
 	if len(fresh) == 1 {
 		n.Title = "Image update for " + fresh[0].name
 	} else {
@@ -311,7 +313,7 @@ func (c *component) notifyStale(ctx context.Context, res *dapb.ListComposeProjec
 		lines = append(lines, fmt.Sprintf("%s on %s: %s", s.name, s.host, s.image))
 	}
 	n.Message = strings.Join(lines, "\n")
-	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n}); err != nil {
+	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_IMAGE_UPDATES}); err != nil {
 		c.log.Warn("image check: can't notify", "err", err)
 		return
 	}

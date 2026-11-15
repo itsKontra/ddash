@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -283,19 +285,19 @@ func (c *component) send(ctx context.Context, ok bool, w workload, title, messag
 
 // sendTo notifies the Operator of an outcome, opening ddash's path.
 func (c *component) sendTo(ctx context.Context, ok bool, title, message, path string) {
-	n := &notifypb.Notification{
-		Title: title, Message: message, Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES,
+	n := &notificationpb.Notification{
+		Title: title, Message: message,
 		Tags: []string{"white_check_mark"},
 	}
 	if !ok {
-		n.Priority, n.Tags = 4, []string{"warning"}
+		n.Priority, n.Tags = notificationpb.Priority_PRIORITY_HIGH, []string{"warning"}
 	}
 	if c.publicURL != "" {
 		n.Click = c.publicURL + path
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), callTimeout)
 	defer cancel()
-	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n}); err != nil {
+	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES}); err != nil {
 		c.log.Warn("can't send a Notification", "title", title, "err", err)
 	}
 }

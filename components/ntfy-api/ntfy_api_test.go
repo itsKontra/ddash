@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -76,15 +78,15 @@ func start(t *testing.T, cfg *ntfyapipb.NtfyApiConfig) (*sdktest.Harness, ntfyap
 
 func ptr[T any](v T) *T { return &v }
 
-var down = &ntfyapipb.Notification{
+var down = &notificationpb.Notification{
 	Title:    "Jellyfin down",
 	Message:  "timeout",
-	Priority: 4,
+	Priority: notificationpb.Priority_PRIORITY_HIGH,
 	Tags:     []string{"red_circle"},
 	Click:    "https://ddash.home.example/checks/7",
 }
 
-func send(t *testing.T, c ntfyapipb.NtfyApiServiceClient, n *ntfyapipb.Notification) (*ntfyapipb.SendResponse, error) {
+func send(t *testing.T, c ntfyapipb.NtfyApiServiceClient, n *notificationpb.Notification) (*ntfyapipb.SendResponse, error) {
 	t.Helper()
 	return c.Send(t.Context(), &ntfyapipb.SendRequest{Notification: n})
 }
@@ -120,7 +122,7 @@ func TestAnOpenTopicIsPublishedWithoutAuthorization(t *testing.T) {
 	srv := ntfy(t, "baseline")
 	_, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr(srv.URL), Topic: "ddash-alerts"})
 
-	if _, err := send(t, c, &ntfyapipb.Notification{Title: "Jellyfin up again", Message: "Down for 4 min"}); err != nil {
+	if _, err := send(t, c, &notificationpb.Notification{Title: "Jellyfin up again", Message: "Down for 4 min"}); err != nil {
 		t.Fatalf("Send: %v", err)
 	}
 

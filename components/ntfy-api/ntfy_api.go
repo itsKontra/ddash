@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -101,10 +103,10 @@ func (c *component) Send(ctx context.Context, req *ntfyapipb.SendRequest) (*ntfy
 }
 
 func (c *component) SendTest(ctx context.Context, _ *ntfyapipb.SendTestRequest) (*ntfyapipb.SendTestResponse, error) {
-	id, err := c.publish(ctx, &ntfyapipb.Notification{
+	id, err := c.publish(ctx, &notificationpb.Notification{
 		Title:    "ddash test",
 		Message:  "Notifications from ddash reach this device.",
-		Priority: 3,
+		Priority: notificationpb.Priority_PRIORITY_DEFAULT,
 		Tags:     []string{"white_check_mark"},
 	})
 	if err != nil {
@@ -125,12 +127,12 @@ type message struct {
 
 // publish sends n to the topic and returns ntfy's message id. Its outcome
 // becomes the Component's health.
-func (c *component) publish(ctx context.Context, n *ntfyapipb.Notification) (string, error) {
+func (c *component) publish(ctx context.Context, n *notificationpb.Notification) (string, error) {
 	id, err := c.post(ctx, message{
 		Topic:    c.topic,
 		Title:    n.GetTitle(),
 		Message:  n.GetMessage(),
-		Priority: n.GetPriority(),
+		Priority: int32(n.GetPriority()),
 		Tags:     n.GetTags(),
 		Click:    n.GetClick(),
 	})

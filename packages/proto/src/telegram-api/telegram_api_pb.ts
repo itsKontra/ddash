@@ -8,6 +8,8 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
+import type { Notification } from "../ddash/notification/notification_pb";
+import { file_ddash_notification_notification } from "../ddash/notification/notification_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -15,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file telegram-api/telegram_api.proto.
  */
 export const file_telegram_api_telegram_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch90ZWxlZ3JhbS1hcGkvdGVsZWdyYW1fYXBpLnByb3RvEhFkZGFzaC50ZWxlZ3JhbWFwaSL2AwoRVGVsZWdyYW1BcGlDb25maWcSegoGc2VydmVyGAEgASgJQmWatRhhChhodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcaDkJvdCBBUEkgc2VydmVyIjNMZWF2ZSBhcyBpcyB1bmxlc3MgeW91IHJ1biB5b3VyIG93biBCb3QgQVBJIHNlcnZlci44AUgAiAEBEpIBCgV0b2tlbhgCIAEoCUKCAZq1GH4QARoJQm90IHRva2VuIl1UaGUgdG9rZW4gQEJvdEZhdGhlciBnaXZlcyBmb3IgL25ld2JvdC4gTGVhdmUgdGhpcyBhbmQgdGhlIGNoYXQgSUQgZW1wdHkgdG8gbm90IHVzZSBUZWxlZ3JhbS4qEDEyMzQ1Njc4OTpBQUjigKYStAEKB2NoYXRfaWQYAyABKAlCogGatRidARoHQ2hhdCBJRCKGAVlvdXIgdXNlciBJRCBmb3IgYSBwcml2YXRlIGNoYXQgd2l0aCB0aGUgYm90LCBhIGdyb3VwJ3MgSUQgKGl0IHN0YXJ0cyB3aXRoIC0pLCBvciBhIGNoYW5uZWwncyBAdXNlcm5hbWUuIFNlbmQgdGhlIGJvdCBhIG1lc3NhZ2UgZmlyc3QuKgkxMjM0NTY3ODk6Dqq1GAoSCFNlbmRUZXN0QgkKB19zZXJ2ZXIiXQoMTm90aWZpY2F0aW9uEg0KBXRpdGxlGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSEAoIcHJpb3JpdHkYAyABKAUSDAoEdGFncxgEIAMoCRINCgVjbGljaxgFIAEoCSJECgtTZW5kUmVxdWVzdBI1Cgxub3RpZmljYXRpb24YASABKAsyHy5kZGFzaC50ZWxlZ3JhbWFwaS5Ob3RpZmljYXRpb24iIgoMU2VuZFJlc3BvbnNlEhIKCm1lc3NhZ2VfaWQYASABKAMiEQoPU2VuZFRlc3RSZXF1ZXN0IiYKEFNlbmRUZXN0UmVzcG9uc2USEgoKbWVzc2FnZV9pZBgBIAEoAyITChFHZXRDaGFubmVsUmVxdWVzdCI5ChJHZXRDaGFubmVsUmVzcG9uc2USDgoGc2V0X3VwGAEgASgIEhMKC2Rlc3RpbmF0aW9uGAIgASgJMp8CChJUZWxlZ3JhbUFwaVNlcnZpY2USTQoEU2VuZBIeLmRkYXNoLnRlbGVncmFtYXBpLlNlbmRSZXF1ZXN0Gh8uZGRhc2gudGVsZWdyYW1hcGkuU2VuZFJlc3BvbnNlIgSStRgAElkKCFNlbmRUZXN0EiIuZGRhc2gudGVsZWdyYW1hcGkuU2VuZFRlc3RSZXF1ZXN0GiMuZGRhc2gudGVsZWdyYW1hcGkuU2VuZFRlc3RSZXNwb25zZSIEkrUYABJfCgpHZXRDaGFubmVsEiQuZGRhc2gudGVsZWdyYW1hcGkuR2V0Q2hhbm5lbFJlcXVlc3QaJS5kZGFzaC50ZWxlZ3JhbWFwaS5HZXRDaGFubmVsUmVzcG9uc2UiBIq1GABCUFpOZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy90ZWxlZ3JhbS1hcGkvdGVsZWdyYW1hcGlwYjt0ZWxlZ3JhbWFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("Ch90ZWxlZ3JhbS1hcGkvdGVsZWdyYW1fYXBpLnByb3RvEhFkZGFzaC50ZWxlZ3JhbWFwaSL2AwoRVGVsZWdyYW1BcGlDb25maWcSegoGc2VydmVyGAEgASgJQmWatRhhChhodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcaDkJvdCBBUEkgc2VydmVyIjNMZWF2ZSBhcyBpcyB1bmxlc3MgeW91IHJ1biB5b3VyIG93biBCb3QgQVBJIHNlcnZlci44AUgAiAEBEpIBCgV0b2tlbhgCIAEoCUKCAZq1GH4QARoJQm90IHRva2VuIl1UaGUgdG9rZW4gQEJvdEZhdGhlciBnaXZlcyBmb3IgL25ld2JvdC4gTGVhdmUgdGhpcyBhbmQgdGhlIGNoYXQgSUQgZW1wdHkgdG8gbm90IHVzZSBUZWxlZ3JhbS4qEDEyMzQ1Njc4OTpBQUjigKYStAEKB2NoYXRfaWQYAyABKAlCogGatRidARoHQ2hhdCBJRCKGAVlvdXIgdXNlciBJRCBmb3IgYSBwcml2YXRlIGNoYXQgd2l0aCB0aGUgYm90LCBhIGdyb3VwJ3MgSUQgKGl0IHN0YXJ0cyB3aXRoIC0pLCBvciBhIGNoYW5uZWwncyBAdXNlcm5hbWUuIFNlbmQgdGhlIGJvdCBhIG1lc3NhZ2UgZmlyc3QuKgkxMjM0NTY3ODk6Dqq1GAoSCFNlbmRUZXN0QgkKB19zZXJ2ZXIiRQoLU2VuZFJlcXVlc3QSNgoMbm90aWZpY2F0aW9uGAEgASgLMiAuZGRhc2gubm90aWZpY2F0aW9uLk5vdGlmaWNhdGlvbiIiCgxTZW5kUmVzcG9uc2USEgoKbWVzc2FnZV9pZBgBIAEoAyIRCg9TZW5kVGVzdFJlcXVlc3QiJgoQU2VuZFRlc3RSZXNwb25zZRISCgptZXNzYWdlX2lkGAEgASgDIhMKEUdldENoYW5uZWxSZXF1ZXN0IjkKEkdldENoYW5uZWxSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSEwoLZGVzdGluYXRpb24YAiABKAkynwIKElRlbGVncmFtQXBpU2VydmljZRJNCgRTZW5kEh4uZGRhc2gudGVsZWdyYW1hcGkuU2VuZFJlcXVlc3QaHy5kZGFzaC50ZWxlZ3JhbWFwaS5TZW5kUmVzcG9uc2UiBJK1GAASWQoIU2VuZFRlc3QSIi5kZGFzaC50ZWxlZ3JhbWFwaS5TZW5kVGVzdFJlcXVlc3QaIy5kZGFzaC50ZWxlZ3JhbWFwaS5TZW5kVGVzdFJlc3BvbnNlIgSStRgAEl8KCkdldENoYW5uZWwSJC5kZGFzaC50ZWxlZ3JhbWFwaS5HZXRDaGFubmVsUmVxdWVzdBolLmRkYXNoLnRlbGVncmFtYXBpLkdldENoYW5uZWxSZXNwb25zZSIEirUYAEJQWk5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3RlbGVncmFtLWFwaS90ZWxlZ3JhbWFwaXBiO3RlbGVncmFtYXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_notification_notification, file_ddash_options]);
 
 /**
  * Empty is valid: Telegram is then not set up, and Send refuses.
@@ -54,59 +56,11 @@ export const TelegramApiConfigSchema: GenMessage<TelegramApiConfig> = /*@__PURE_
   messageDesc(file_telegram_api_telegram_api, 0);
 
 /**
- * @generated from message ddash.telegramapi.Notification
- */
-export type Notification = Message<"ddash.telegramapi.Notification"> & {
-  /**
-   * e.g. "Jellyfin down"; shown in bold.
-   *
-   * @generated from field: string title = 1;
-   */
-  title: string;
-
-  /**
-   * The message body, e.g. "timeout".
-   *
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * 1 (min) to 5 (max), as ntfy's; 1 and 2 arrive silently. 0 is 3.
-   *
-   * @generated from field: int32 priority = 3;
-   */
-  priority: number;
-
-  /**
-   * ntfy's emoji shortcodes ("red_circle", "green_circle", "warning",
-   * "white_check_mark"); a known one leads the title as its emoji.
-   *
-   * @generated from field: repeated string tags = 4;
-   */
-  tags: string[];
-
-  /**
-   * The URL the message's "Open in ddash" link opens; empty for none.
-   *
-   * @generated from field: string click = 5;
-   */
-  click: string;
-};
-
-/**
- * Describes the message ddash.telegramapi.Notification.
- * Use `create(NotificationSchema)` to create a new message.
- */
-export const NotificationSchema: GenMessage<Notification> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 1);
-
-/**
  * @generated from message ddash.telegramapi.SendRequest
  */
 export type SendRequest = Message<"ddash.telegramapi.SendRequest"> & {
   /**
-   * @generated from field: ddash.telegramapi.Notification notification = 1;
+   * @generated from field: ddash.notification.Notification notification = 1;
    */
   notification?: Notification | undefined;
 };
@@ -116,7 +70,7 @@ export type SendRequest = Message<"ddash.telegramapi.SendRequest"> & {
  * Use `create(SendRequestSchema)` to create a new message.
  */
 export const SendRequestSchema: GenMessage<SendRequest> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 2);
+  messageDesc(file_telegram_api_telegram_api, 1);
 
 /**
  * @generated from message ddash.telegramapi.SendResponse
@@ -135,7 +89,7 @@ export type SendResponse = Message<"ddash.telegramapi.SendResponse"> & {
  * Use `create(SendResponseSchema)` to create a new message.
  */
 export const SendResponseSchema: GenMessage<SendResponse> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 3);
+  messageDesc(file_telegram_api_telegram_api, 2);
 
 /**
  * @generated from message ddash.telegramapi.SendTestRequest
@@ -148,7 +102,7 @@ export type SendTestRequest = Message<"ddash.telegramapi.SendTestRequest"> & {
  * Use `create(SendTestRequestSchema)` to create a new message.
  */
 export const SendTestRequestSchema: GenMessage<SendTestRequest> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 4);
+  messageDesc(file_telegram_api_telegram_api, 3);
 
 /**
  * @generated from message ddash.telegramapi.SendTestResponse
@@ -167,7 +121,7 @@ export type SendTestResponse = Message<"ddash.telegramapi.SendTestResponse"> & {
  * Use `create(SendTestResponseSchema)` to create a new message.
  */
 export const SendTestResponseSchema: GenMessage<SendTestResponse> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 5);
+  messageDesc(file_telegram_api_telegram_api, 4);
 
 /**
  * @generated from message ddash.telegramapi.GetChannelRequest
@@ -180,7 +134,7 @@ export type GetChannelRequest = Message<"ddash.telegramapi.GetChannelRequest"> &
  * Use `create(GetChannelRequestSchema)` to create a new message.
  */
 export const GetChannelRequestSchema: GenMessage<GetChannelRequest> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 6);
+  messageDesc(file_telegram_api_telegram_api, 5);
 
 /**
  * @generated from message ddash.telegramapi.GetChannelResponse
@@ -206,7 +160,7 @@ export type GetChannelResponse = Message<"ddash.telegramapi.GetChannelResponse">
  * Use `create(GetChannelResponseSchema)` to create a new message.
  */
 export const GetChannelResponseSchema: GenMessage<GetChannelResponse> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 7);
+  messageDesc(file_telegram_api_telegram_api, 6);
 
 /**
  * @generated from service ddash.telegramapi.TelegramApiService

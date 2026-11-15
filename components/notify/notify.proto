@@ -7,6 +7,7 @@ syntax = "proto3";
 package ddash.notify;
 
 import "ddash/config/config.proto";
+import "ddash/notification/notification.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/notify/notifypb;notifypb";
@@ -73,22 +74,10 @@ enum Category {
   CATEGORY_ACTION_OUTCOMES = 3;
 }
 
-message Notification {
-  // e.g. "Jellyfin down".
-  string title = 1;
-  // The message body, e.g. "timeout".
-  string message = 2;
-  // 1 (min) to 5 (max); 0 leaves the channel's default, 3.
-  int32 priority = 3;
-  // ntfy's emoji shortcodes, e.g. "red_circle".
-  repeated string tags = 4;
-  // The ddash URL the Notification opens, e.g. a Check's detail.
-  string click = 5;
-  Category category = 6;
-}
-
 message SendRequest {
-  Notification notification = 1;
+  ddash.notification.Notification notification = 1;
+  // What it is about; required: each channel's filter decides by it.
+  Category category = 2;
 }
 
 message SendResponse {

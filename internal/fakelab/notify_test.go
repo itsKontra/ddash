@@ -49,7 +49,7 @@ func bootNotifyLab(t *testing.T) (*coretest.Harness, *fakelab.Lab) {
 func TestTheLabsNotificationsReachNtfyAndTelegram(t *testing.T) {
 	h, lab := bootNotifyLab(t)
 
-	res := h.Call("checks", "notify", "Send", `{"notification":{"title":"NAS down","message":"connection refused","priority":4,"tags":["red_circle"],"category":"CATEGORY_CHECKS"}}`)
+	res := h.Call("checks", "notify", "Send", `{"notification":{"title":"NAS down","message":"connection refused","priority":"PRIORITY_HIGH","tags":["red_circle"]},"category":"CATEGORY_CHECKS"}`)
 	if res.Code != http.StatusOK {
 		t.Fatalf("Send: status %d: %s", res.Code, res.Body)
 	}

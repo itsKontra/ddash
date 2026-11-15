@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
@@ -355,15 +357,15 @@ func (c *component) outcome(ctx context.Context, r *run) {
 	if p.GetError() == "" && !streamed {
 		return
 	}
-	n := &notifypb.Notification{Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES, Click: c.public + "/docker"}
+	n := &notificationpb.Notification{Click: c.public + "/docker"}
 	if p.GetError() != "" {
-		n.Title, n.Message, n.Tags, n.Priority = p.GetTitle()+" failed", p.GetError(), []string{"warning"}, 4
+		n.Title, n.Message, n.Tags, n.Priority = p.GetTitle()+" failed", p.GetError(), []string{"warning"}, notificationpb.Priority_PRIORITY_HIGH
 	} else {
 		n.Title, n.Message, n.Tags = p.GetTitle()+" done", p.GetOutcome(), []string{"white_check_mark"}
 	}
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n}); err != nil {
+	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES}); err != nil {
 		c.log.Warn("can't notify a run's outcome", "run", p.GetTitle(), "err", err)
 	}
 }

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/notify/notifypb"
 )
@@ -107,7 +109,7 @@ type pending struct {
 	kind say
 	// n is the Notification when the item goes out on its own; line its
 	// line in a group's body, e.g. "NAS down: connection refused".
-	n    *notifypb.Notification
+	n    *notificationpb.Notification
 	line string
 	as   notified
 }
@@ -116,7 +118,7 @@ type pending struct {
 // alone, else a title counting by kind ("3 down, 1 up again"), a body
 // listing each item, the highest priority, the most severe kind's tags
 // and a Click to the Checks Page.
-func (c *component) group(todo []pending) *notifypb.Notification {
+func (c *component) group(todo []pending) *notificationpb.Notification {
 	if len(todo) == 1 {
 		return todo[0].n
 	}
@@ -124,7 +126,7 @@ func (c *component) group(todo []pending) *notifypb.Notification {
 	slices.SortStableFunc(todo, func(a, b pending) int { return cmp.Compare(a.kind, b.kind) })
 	var counts [says]int
 	var lines []string
-	g := &notifypb.Notification{Tags: todo[0].n.GetTags(), Click: c.link("/checks")}
+	g := &notificationpb.Notification{Tags: todo[0].n.GetTags(), Click: c.link("/checks")}
 	for _, p := range todo {
 		counts[p.kind]++
 		lines = append(lines, p.line)
@@ -165,8 +167,7 @@ func (c *component) deliver(ctx context.Context) {
 	c.mu.Unlock()
 
 	n := c.group(todo)
-	n.Category = notifypb.Category_CATEGORY_CHECKS
-	_, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n})
+	_, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_CHECKS})
 	if ctx.Err() != nil {
 		return
 	}
@@ -243,13 +244,13 @@ func (c *component) wanted(item string) (pending, want) {
 		last = notified{state: markUp}
 	}
 	at := now()
-	p := pending{item: item, n: &notifypb.Notification{Click: c.link(sub.path)}}
+	p := pending{item: item, n: &notificationpb.Notification{Click: c.link(sub.path)}}
 	if c.flapping(item, sub.since, at) {
 		if last.state == markFlapping {
 			return pending{}, hold
 		}
 		p.kind, p.as = sayFlapping, notified{state: markFlapping, since: at}
-		p.n.Title, p.n.Priority, p.n.Tags = sub.name+" flapping", 4, []string{"warning"}
+		p.n.Title, p.n.Priority, p.n.Tags = sub.name+" flapping", notificationpb.Priority_PRIORITY_HIGH, []string{"warning"}
 		p.n.Message = fmt.Sprintf("Down %d times within %s. Next Notification once it has been up or down for %s.",
 			FlapDowns, howLong(FlapWindow), howLong(FlapHold))
 		p.line = joinLine(p.n.Title, fmt.Sprintf("down %d times within %s", FlapDowns, howLong(FlapWindow)))
@@ -271,12 +272,12 @@ func (c *component) wanted(item string) (pending, want) {
 	p.as = notified{state: mark, since: sub.since, reason: sub.reason}
 	if mark == markDown {
 		p.kind = sayDown
-		p.n.Title, p.n.Message, p.n.Priority, p.n.Tags = sub.name+" down", sub.reason, 4, []string{"red_circle"}
+		p.n.Title, p.n.Message, p.n.Priority, p.n.Tags = sub.name+" down", sub.reason, notificationpb.Priority_PRIORITY_HIGH, []string{"red_circle"}
 		p.line = joinLine(p.n.Title, sub.reason)
 		return p, send
 	}
 	p.kind = sayUp
-	p.n.Title, p.n.Priority, p.n.Tags = sub.name+" up again", 3, []string{"green_circle"}
+	p.n.Title, p.n.Priority, p.n.Tags = sub.name+" up again", notificationpb.Priority_PRIORITY_DEFAULT, []string{"green_circle"}
 	var detail string
 	if last.state == markFlapping {
 		detail = "up for " + howLong(at.Sub(sub.since)) + " after Flapping"
@@ -411,10 +412,10 @@ func (c *component) certWanted(item string) (pending, want) {
 	}
 	title, detail := ch.spec.shownName()+" certificate expiring", "expires in "+days(left)
 	p := pending{item: item, kind: sayExpiring, as: notified{state: markExpiring, since: exp}, line: joinLine(title, detail)}
-	p.n = &notifypb.Notification{
+	p.n = &notificationpb.Notification{
 		Title:    title,
 		Message:  "E" + detail[1:],
-		Priority: 3,
+		Priority: notificationpb.Priority_PRIORITY_DEFAULT,
 		Tags:     []string{"warning"},
 		Click:    c.link(fmt.Sprintf("/checks/%d", ch.id)),
 	}

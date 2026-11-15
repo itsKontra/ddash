@@ -239,7 +239,7 @@ type notifier struct {
 
 func (n notifier) Send(_ context.Context, req *notifypb.SendRequest, _ ...grpc.CallOption) (*notifypb.SendResponse, error) {
 	m := req.GetNotification()
-	n.l.record("notify %s: %s (%s) %s", m.GetTitle(), m.GetMessage(), m.GetCategory(), m.GetClick())
+	n.l.record("notify %s: %s (%s) %s", m.GetTitle(), m.GetMessage(), req.GetCategory(), m.GetClick())
 	return &notifypb.SendResponse{}, nil
 }
 

@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+// A Notification: what ddash tells the Operator on their phone. Shared by
+// notify, which the Components that have something to say call, and the
+// channel Components it hands each one to (ntfy-api, telegram-api).
+package ddash.notification;
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/notification;notificationpb";
+
+message Notification {
+  // e.g. "Jellyfin down".
+  string title = 1;
+  // The message body, e.g. "timeout".
+  string message = 2;
+  Priority priority = 3;
+  // ntfy's emoji shortcodes, e.g. "red_circle": ntfy renders them as
+  // emoji, Telegram leads the title with the emoji of one it knows.
+  repeated string tags = 4;
+  // The ddash URL the Notification opens, e.g. a Check's detail; empty
+  // for none.
+  string click = 5;
+}
+
+// How urgent a Notification is, numbered as ntfy's priorities.
+enum Priority {
+  // The channel's default: PRIORITY_DEFAULT.
+  PRIORITY_UNSPECIFIED = 0;
+  // PRIORITY_MIN and PRIORITY_LOW arrive silently.
+  PRIORITY_MIN = 1;
+  PRIORITY_LOW = 2;
+  PRIORITY_DEFAULT = 3;
+  PRIORITY_HIGH = 4;
+  PRIORITY_MAX = 5;
+}
