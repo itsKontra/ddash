@@ -12,6 +12,8 @@ export interface Entry {
   hint?: string;
   icon?: Command["icon"];
   keywords?: readonly string[];
+  /** A pinned Command: the empty palette lists it under "Pinned". */
+  pinned?: boolean;
   run: () => void;
 }
 
@@ -57,8 +59,8 @@ export interface Offered {
 }
 
 /**
- * Every Plugin's Commands as entries, in the Plugins' order, grouped under
- * the Plugin's title. A Command without a title or run is dropped, and so
+ * Every Plugin's Commands as entries, in the Plugins' order and each
+ * Plugin's, grouped under the Plugin's title. A Command without a title or run is dropped, and so
  * is a Plugin's second one with an id it already used.
  */
 export function commandEntries(offered: readonly Offered[], run: (plugin: string, id: string) => void): Entry[] {
@@ -68,7 +70,16 @@ export function commandEntries(offered: readonly Offered[], run: (plugin: string
     for (const c of commands) {
       if (typeof c.title !== "string" || c.title === "" || typeof c.run !== "function" || ids.has(c.id)) continue;
       ids.add(c.id);
-      out.push({ key: `${plugin}:${c.id}`, group: title, title: c.title, hint: c.hint, icon: c.icon, keywords: c.keywords, run: () => run(plugin, c.id) });
+      out.push({
+        key: `${plugin}:${c.id}`,
+        group: title,
+        title: c.title,
+        hint: c.hint,
+        icon: c.icon,
+        keywords: c.keywords,
+        pinned: c.pinned === true,
+        run: () => run(plugin, c.id),
+      });
     }
   }
   return out;
@@ -106,15 +117,20 @@ export interface Destination {
 export const pageEntries = (pages: readonly Destination[], go: (to: string) => void): Entry[] =>
   pages.map((p) => ({ key: `page:${p.to}`, group: "Go to", title: p.label, icon: p.icon as IconName, run: () => go(p.to) }));
 
-/** How many loud Concerns lead the empty palette, so the Pages stay in sight. */
+// How many loud Concerns and pinned Commands lead the empty palette, so the Pages stay in sight.
 const worstFew = 5;
+const pinnedFew = 6;
 
 /**
  * What the palette lists: with a query, the matches across everything;
- * without one, the worst few loud Concerns (the rest are found by typing),
- * then the Pages, then the shell's own Actions.
+ * without one, the worst few loud Concerns, the first few pinned Commands
+ * under "Pinned" (the rest of both are found by typing), then the Pages,
+ * then the shell's own Actions.
  */
 export function listed(query: string, all: { concerns: readonly Entry[]; pages: readonly Entry[]; actions: readonly Entry[]; commands: readonly Entry[] }): Entry[] {
-  if (query.trim() === "") return [...all.concerns.slice(0, worstFew), ...all.pages, ...all.actions];
+  if (query.trim() === "") {
+    const pinned = all.commands.filter((e) => e.pinned).slice(0, pinnedFew);
+    return [...all.concerns.slice(0, worstFew), ...pinned.map((e) => ({ ...e, group: "Pinned" })), ...all.pages, ...all.actions];
+  }
   return search(query, [...all.concerns, ...all.commands, ...all.pages, ...all.actions]);
 }

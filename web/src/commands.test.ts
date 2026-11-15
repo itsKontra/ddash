@@ -124,6 +124,23 @@ describe("listed", () => {
     ]);
   });
 
+  it("lists the first six pinned Commands under Pinned, after the Concerns and before the Pages", () => {
+    const apps = Array.from({ length: 8 }, (_, i) => entry(`Open App${i}`, { pinned: i !== 1 }));
+    const empty = listed("", { ...all, commands: apps });
+    expect(empty.map((e) => [e.group, e.title]).slice(0, 8)).toEqual([
+      ["Needs you", "Start · n8n is down"],
+      ["Pinned", "Open App0"],
+      ["Pinned", "Open App2"],
+      ["Pinned", "Open App3"],
+      ["Pinned", "Open App4"],
+      ["Pinned", "Open App5"],
+      ["Pinned", "Open App6"],
+      ["Go to", "Overview"],
+    ]);
+    // Typed, a pinned one is found under its Plugin like any other.
+    expect(listed("app7", { ...all, commands: apps }).map((e) => [e.group, e.title])).toEqual([["Apps", "Open App7"]]);
+  });
+
   it("leads with the worst five loud Concerns only; typing finds the others", () => {
     const many = Array.from({ length: 7 }, (_, i) => entry(`Start · guest${i} is down`, { group: "Needs you" }));
     const empty = listed("", { ...all, concerns: many });

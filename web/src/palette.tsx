@@ -81,6 +81,7 @@ export function PaletteTrigger({ onOpen, className }: { onOpen: () => void; clas
     <button
       type="button"
       onClick={onOpen}
+      aria-label="Search or run…"
       aria-keyshortcuts={mac() ? "Meta+K" : "Control+K"}
       className={cx(
         "flex h-9 min-w-0 cursor-pointer items-center gap-2.5 rounded-ui-sm border px-3 text-left text-sm transition-colors",
@@ -88,7 +89,11 @@ export function PaletteTrigger({ onOpen, className }: { onOpen: () => void; clas
       )}
     >
       <Icon name="search" />
-      <span className="min-w-0 flex-1 truncate">Search or run…</span>
+      {/* On a phone the short label, so it isn't cut. */}
+      <span className="min-w-0 flex-1 truncate">
+        <span className="sm:hidden">Search…</span>
+        <span className="hidden sm:inline">Search or run…</span>
+      </span>
       <span className="hidden sm:inline">
         <Kbd>{mac() ? "⌘ K" : "Ctrl K"}</Kbd>
       </span>
@@ -275,7 +280,7 @@ function Dialog({ all, onClose }: { all: Parameters<typeof listed>[1]; onClose: 
               setSel(0);
             }}
             onKeyDown={onKeyDown}
-            placeholder="Open an App, go to a Page, run an Action…"
+            placeholder="Open an App, go to a Page…"
             autoComplete="off"
             spellCheck={false}
             className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"

@@ -8,7 +8,8 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 - Nothing to do: **Ctrl K** (⌘ K on a Mac, or `/` outside a text field)
   opens a command palette on every Page, also from "Search or run…" in
   the top bar. Type a word's start to open an App, go to a Page or the
-  Audit Log, or switch light and dark; empty, it leads with what needs you.
+  Audit Log, or switch light and dark; empty, it leads with what needs you
+  and your pinned Apps.
 - Nothing to do: a muted Check that is down no longer turns the Checks and
   Apps Widgets, the Overview or the Checks badge down; they say "N muted
   down" beside it instead.

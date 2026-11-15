@@ -124,6 +124,11 @@ export interface Command {
   /** More words it is found by, e.g. a group or an alias: "media", "pull". */
   keywords?: string[];
   /**
+   * The Operator pinned what it opens, e.g. a pinned App: the empty
+   * palette lists it under Pinned, in the order the Plugin gives.
+   */
+  pinned?: boolean;
+  /**
    * Does it the way the Plugin's Page does: opens the App, navigates, or
    * runs the Action with the confirm or Plan its button asks.
    */
