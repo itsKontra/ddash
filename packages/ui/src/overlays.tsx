@@ -42,7 +42,7 @@ export function ConfirmDialog({ request, onAnswer }: { request: ConfirmRequest; 
       panelClassName={cx(dialogLook.panelClassName, "sm:max-w-md")}
       icon={
         <span className={cx("grid h-10 w-10 shrink-0 place-items-center rounded-ui", toneTint.down)}>
-          <Icon name="triangle-alert" size="lg" />
+          <Icon name="triangle-exclamation-point" size="lg" />
         </span>
       }
       title={request.title ?? request.text}

@@ -95,7 +95,7 @@ const span: Record<WidgetSize, string> = {
 /** The metric tiles under the hero: how many reporting Widgets are at each tone. */
 const tiles: { label: string; icon: IconName; tone: Tone }[] = [
   { label: "Up", icon: "circle-check", tone: "up" },
-  { label: "Needs attention", icon: "triangle-alert", tone: "warn" },
+  { label: "Needs attention", icon: "triangle-exclamation-point", tone: "warn" },
   { label: "Down", icon: "circle-x", tone: "down" },
   { label: "Maintenance", icon: "wrench", tone: "maint" },
 ];

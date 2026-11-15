@@ -136,7 +136,7 @@ function target(c: Check): string {
 const stateIcon: Record<Tone, IconName> = {
   up: "circle-check",
   down: "circle-x",
-  warn: "circle-alert",
+  warn: "circle-exclamation-point",
   maint: "wrench",
   info: "info",
   idle: "circle-minus",

@@ -6,7 +6,7 @@ import { Icon, type IconName } from "./icon";
 import { useInFlush } from "./surface";
 import { cx, toneTint } from "./tone";
 
-const noticeIcon = { info: "info", warn: "triangle-alert", down: "octagon-alert" } as const satisfies Record<string, IconName>;
+const noticeIcon = { info: "info", warn: "triangle-exclamation-point", down: "octagon-exclamation-point" } as const satisfies Record<string, IconName>;
 
 /**
  * An inline message in its tone's tint: news (info), a partial or degraded

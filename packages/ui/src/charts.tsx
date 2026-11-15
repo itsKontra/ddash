@@ -148,7 +148,9 @@ export function Donut({ segments, total, label }: { segments: readonly ChartItem
   const sum = items.reduce((a, s) => a + Math.max(0, s.value), 0);
   const r = 40;
   const c = 2 * Math.PI * r;
-  let at = 0;
+  // Each segment's length, and where it starts: the lengths before it.
+  const lens = items.map((s) => (sum > 0 ? (Math.max(0, s.value) / sum) * c : 0));
+  const starts = lens.map((_, i) => lens.slice(0, i).reduce((a, l) => a + l, 0));
   return (
     <div className="flex flex-wrap items-center justify-center gap-8">
       <div role="img" aria-label={label} className="relative grid size-44 shrink-0 place-items-center">
@@ -156,9 +158,8 @@ export function Donut({ segments, total, label }: { segments: readonly ChartItem
           <circle cx="50" cy="50" r={r} fill="none" strokeWidth="11" className="stroke-muted" />
           {sum > 0 &&
             items.map((s, i) => {
-              const len = (Math.max(0, s.value) / sum) * c;
-              const offset = at;
-              at += len;
+              const len = lens[i];
+              const offset = starts[i];
               return (
                 len > 0 && (
                   <circle
@@ -198,15 +199,16 @@ export function Bars({ items, stacked = false, label }: { items: readonly ChartI
   let chart;
   if (stacked) {
     const sum = values.reduce((a, v) => a + v, 0);
-    let at = 0;
+    // Each segment's width, and where it starts: the widths before it.
+    const widths = coloured.map((_, i) => (sum > 0 ? round2((values[i] / sum) * 100) : 0));
+    const starts = widths.map((_, i) => widths.slice(0, i).reduce((a, w) => a + w, 0));
     chart = (
       <svg role="img" aria-label={label} viewBox="0 0 100 1" preserveAspectRatio="none" className="block h-3 w-full overflow-hidden rounded-full">
         <rect x={0} y={0} width={100} height={1} className="fill-muted" />
         {sum > 0 &&
           coloured.map((b, i) => {
-            const width = round2((values[i] / sum) * 100);
-            const x = round2(at);
-            at += width;
+            const width = widths[i];
+            const x = round2(starts[i]);
             return width > 0 && <rect key={i} data-colour={b.colour} x={x} y={0} width={width} height={1} className={cx(colourFill[b.colour], grow)} />;
           })}
       </svg>
