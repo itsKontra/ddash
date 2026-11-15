@@ -74,6 +74,8 @@ type Options struct {
 	Actor string
 	// DataDir is reused instead of a fresh one, to restart a host.
 	DataDir string
+	// AppIconsURL is the upstream the App icons' logos are downloaded from.
+	AppIconsURL string
 	// Release names the test Release. Default sdk.Release.
 	Release string
 	// ReleaseFiles are written into the test Release dir, by file name; a
@@ -139,6 +141,7 @@ func New(t testing.TB, opts Options) *Harness {
 	}
 	hostOpts := core.Options{
 		DataDir:      opts.DataDir,
+		AppIconsURL:  opts.AppIconsURL,
 		Release:      rel,
 		Launcher:     opts.Launcher,
 		Shell:        opts.Shell,

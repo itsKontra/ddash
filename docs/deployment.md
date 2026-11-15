@@ -44,6 +44,9 @@ Do these by hand, in order, before first use.
       only: Component credentials are entered in the UI.
 - [ ] `docker compose up -d`, then `docker compose ps` shows `healthy` once
       `/ddash healthcheck` (GET `/healthz`) passes.
+- [ ] Outbound HTTPS from the container: to `github.com` (its Release's
+      Plugins and Components) and to `cdn.jsdelivr.net` (an App's logo, once
+      each, kept in `/data/icons`; the browser never asks a CDN).
 
 ### 3. The name and the proxy
 

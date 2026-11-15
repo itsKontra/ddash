@@ -24,6 +24,7 @@ import (
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/config"
 	"github.com/itsKontra/ddash/core/coredb"
+	"github.com/itsKontra/ddash/core/icons"
 	"github.com/itsKontra/ddash/core/overview"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -54,6 +55,9 @@ type Options struct {
 	PublicURL string
 	// Logger receives the host's logs. Nil discards them.
 	Logger *slog.Logger
+	// AppIconsURL is where the App icons' logos are downloaded. Empty uses
+	// icons.DashboardIconsURL.
+	AppIconsURL string
 	// Shell is the built shell (web.Shell()): index.html, its assets, and
 	// the vendor ESM under vendor/. Nil serves no shell.
 	Shell fs.FS
@@ -68,6 +72,8 @@ type Host struct {
 	runtime *runtime.Runtime
 	release runtime.ReleaseSource
 	shell   fs.FS
+	// appIcons keeps the App icons' logos under <DataDir>/icons.
+	appIcons *icons.AppIcons
 	// publicURL is where the Operator (and install.sh) reaches ddash.
 	publicURL string
 	router    *router.Router
@@ -131,7 +137,8 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
-	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, publicURL: opts.PublicURL, log: opts.Logger}
+	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, publicURL: opts.PublicURL, log: opts.Logger,
+		appIcons: &icons.AppIcons{Dir: filepath.Join(opts.DataDir, "icons"), URL: opts.AppIconsURL}}
 	guard := opts.Auth
 	if opts.OIDC != nil {
 		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
@@ -183,6 +190,8 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	}
 	// The session check comes first, so a signed-out call is a 401 (the
 	// shell reloads into sign-in) even without the CSRF header.
+	// An <img> can't send the Connect header, so the logos sit beside /api.
+	mux.Handle("GET "+appIconPath+"{name}", guard(http.HandlerFunc(h.appIcon)))
 	mux.Handle("/api/", guard(requireConnectHeader(api)))
 	mux.Handle("/", guard(ui))
 	return mux

@@ -4,7 +4,7 @@ import { AppIconPicker, Button, Checkbox, Field, FormActions, IconPicker, Search
 import { dashboardIconsCommit } from "./dashboard-icons";
 
 // Where the pinned dashboard-icons logos load from.
-const logos = `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@${dashboardIconsCommit}`;
+const logo = (name: string) => `/api/icons/apps/logo/${name}?v=${dashboardIconsCommit}`;
 
 afterEach(cleanup);
 
@@ -364,7 +364,7 @@ describe("AppIconPicker", () => {
 
     const trigger = screen.getByRole("button", { name: /^Icon/ });
     expect(trigger.textContent).toContain("Automatic");
-    expect(src(trigger)).toBe(`${logos}/svg/home-assistant.svg`);
+    expect(src(trigger)).toBe(logo("home-assistant"));
   });
 
   it("shows the set icon by name", () => {
@@ -372,7 +372,7 @@ describe("AppIconPicker", () => {
 
     const trigger = screen.getByRole("button", { name: "Icon" });
     expect(trigger.textContent).toContain("jellyfin");
-    expect(src(trigger)).toBe(`${logos}/svg/jellyfin.svg`);
+    expect(src(trigger)).toBe(logo("jellyfin"));
   });
 
   it("offers Automatic first while nothing is typed, which clears the icon", () => {
@@ -395,7 +395,7 @@ describe("AppIconPicker", () => {
     expect(await screen.findByRole("option", { name: "jellyseerr" })).toBeTruthy();
     expect(searches).toEqual(["jelly"]);
     expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["Automatic", "jellyfin", "jellyseerr", "jellystat", "Use jelly"]);
-    expect(src(screen.getByRole("option", { name: "jellystat" }))).toBe(`${logos}/svg/jellystat.svg`);
+    expect(src(screen.getByRole("option", { name: "jellystat" }))).toBe(logo("jellystat"));
 
     fireEvent.click(screen.getByRole("option", { name: "Use jelly" }));
     expect(picked).toEqual(["jelly"]);
