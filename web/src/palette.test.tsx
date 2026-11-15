@@ -173,6 +173,23 @@ it("leads with the loud Concerns on any Page, each running its main Action throu
   expect(start).toHaveBeenCalledOnce();
 });
 
+it("goes to a Concern on Enter when its main Action is only Mute, and never mutes it", async () => {
+  const mute = vi.fn();
+  const concerns: Concern[] = [
+    { id: "nas", tone: "down", subject: "nas", title: "nas is down", cause: "no answer · 3 min ago", href: "/checks/2", actions: [{ label: "Mute", secondary: true, run: mute }] },
+  ];
+  plugins = [docker(), [installed("checks", "Checks"), definePlugin({ useConcerns: () => concerns })]];
+  await boot("/docker");
+
+  press("k", { ctrlKey: true });
+  await settle();
+  expect(said(active()!)).toBe("nas is downno answer");
+  press("Enter");
+  await settle();
+  expect(mute).not.toHaveBeenCalled();
+  expect(path()).toBe("/checks/2");
+});
+
 it("reads the Concerns Needs you lists, running each Plugin's useConcerns once", async () => {
   let mounted = 0;
   function useConcerns(): Concern[] {

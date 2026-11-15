@@ -86,14 +86,16 @@ export function commandEntries(offered: readonly Offered[], run: (plugin: string
 }
 
 /**
- * The loud Concerns as entries under "Needs you", worst first: each runs
- * its main Action, titled "Start · n8n is down"; one without Actions goes
- * to its detail, else to the Overview.
+ * The loud Concerns as entries under "Needs you", worst first: one whose
+ * main Action is a fix runs it, titled "Start · n8n is down"; any other
+ * (its main Action secondary, e.g. Mute, or none) only goes to its detail,
+ * else to the Overview, so Enter never silences anything.
  */
 export function concernEntries(loud: readonly Listed[], act: (l: Listed, a: ConcernAction) => void, go: (to: string) => void): Entry[] {
   return loud.map((l) => {
     const c = l.concern;
-    const main = c.actions?.[0];
+    const first = c.actions?.[0];
+    const main = first && !first.secondary ? first : undefined;
     return {
       key: `concern:${l.plugin}:${c.id}`,
       group: "Needs you",

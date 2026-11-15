@@ -76,6 +76,27 @@ describe("commandEntries", () => {
 });
 
 describe("concernEntries", () => {
+  it("only goes to a Concern whose main Action doesn't fix it (Mute), never running that", () => {
+    const act = vi.fn();
+    const go = vi.fn();
+    const mute = { label: "Mute", secondary: true, run: () => {} };
+    const entries = concernEntries(
+      [
+        { plugin: "checks", concern: { id: "nas", tone: "down", subject: "nas", title: "nas is down", cause: "no answer · 3 min ago", href: "/checks/2", actions: [mute] } },
+        { plugin: "checks", concern: { id: "cam", tone: "down", subject: "cam", title: "cam is down", actions: [mute] } },
+      ],
+      act,
+      go,
+    );
+    expect(entries.map((e) => [e.title, e.hint])).toEqual([
+      ["nas is down", "no answer"],
+      ["cam is down", undefined],
+    ]);
+    entries.forEach((e) => e.run());
+    expect(act).not.toHaveBeenCalled();
+    expect(go.mock.calls).toEqual([["/checks/2"], ["/"]]);
+  });
+
   it("runs a Concern's main Action, named by it, else goes to its detail or the Overview", () => {
     const act = vi.fn();
     const go = vi.fn();
