@@ -159,7 +159,7 @@ func TestABadConfigIsRefused(t *testing.T) {
 func TestAnthropicsRefusalsReadAsTheOperatorsFix(t *testing.T) {
 	a, url := api(t)
 	wrong := start(t, &aihelperpb.AiHelperConfig{ApiKey: "sk-ant-wrong", Server: ptr(url)})
-	if _, err := wrong.DraftApp(t.Context(), paperless); status.Code(err) != codes.FailedPrecondition || !strings.Contains(status.Convert(err).Message(), "API key") {
+	if _, err := wrong.DraftApp(t.Context(), paperless); status.Code(err) != codes.PermissionDenied || !strings.Contains(status.Convert(err).Message(), "API key") {
 		t.Errorf("a wrong key: %v", err)
 	}
 

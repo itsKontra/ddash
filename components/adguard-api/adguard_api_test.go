@@ -110,8 +110,8 @@ func TestAWrongPasswordIsDownAndNotAskedAgainUntilReconfigured(t *testing.T) {
 	h, c := startAs(t, srv.URL, "wrong")
 
 	_, err := c.GetStatus(t.Context(), &adguardapipb.GetStatusRequest{})
-	if status.Code(err) != codes.Unavailable || !strings.Contains(err.Error(), "refused the username or password") {
-		t.Errorf("GetStatus error = %v, want Unavailable: refused credentials", err)
+	if status.Code(err) != codes.PermissionDenied || !strings.Contains(err.Error(), "refused the username or password") {
+		t.Errorf("GetStatus error = %v, want PermissionDenied: refused credentials", err)
 	}
 	if got := h.Health(); got.State != sdk.Down || !strings.Contains(got.Message, "refused the username or password") {
 		t.Errorf("health = %v, want down naming the refused credentials", got)

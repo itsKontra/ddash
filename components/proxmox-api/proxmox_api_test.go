@@ -248,8 +248,8 @@ func TestHealthIsDownWhenTheTokenIsRefused(t *testing.T) {
 	if got := h.Health(); got.State != sdk.Down || got.Message != "Proxmox refused the API token" {
 		t.Errorf("health = %v, want down: Proxmox refused the API token", got)
 	}
-	if _, err := c.ListWorkloads(t.Context(), &pb.ListWorkloadsRequest{}); status.Code(err) != codes.Unavailable {
-		t.Errorf("ListWorkloads error = %v, want Unavailable", err)
+	if _, err := c.ListWorkloads(t.Context(), &pb.ListWorkloadsRequest{}); status.Code(err) != codes.PermissionDenied {
+		t.Errorf("ListWorkloads error = %v, want PermissionDenied", err)
 	}
 }
 

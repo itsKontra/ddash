@@ -72,8 +72,8 @@ func TestARefusedSignInIsDownAndRetriedAtTheNextRead(t *testing.T) {
 	_, err := c.ListProxyHosts(t.Context(), &pb.ListProxyHostsRequest{})
 
 	want := "Nginx Proxy Manager refused ddash's sign-in as ddash@home.example (Invalid email or password): fix the email or password in nginx-proxy-manager-api's config"
-	if status.Code(err) != codes.Unavailable || status.Convert(err).Message() != want {
-		t.Errorf("ListProxyHosts error = %v, want Unavailable: %s", err, want)
+	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != want {
+		t.Errorf("ListProxyHosts error = %v, want PermissionDenied: %s", err, want)
 	}
 	if got := h.Health(); got.State != sdk.Down || got.Message != want {
 		t.Errorf("Health = %v, want down: %s", got, want)
