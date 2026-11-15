@@ -131,6 +131,35 @@ describe("useQuery", () => {
     expect([a.n, b.n]).toEqual([2, 2]);
   });
 
+  it("shares one call between a Plugin's badge, Widgets and Page, each in its own scope", async () => {
+    const badge: Seen = {};
+    const widget: Seen = {};
+    const docker = { name: "docker", requires: ["fake"] };
+    render(
+      <PluginHost client={createQueryClient()}>
+        <PluginScope plugin={docker} fetch={fetchFake}>
+          <Probe method={FakeService.method.fast} seen={badge} />
+        </PluginScope>
+        <PluginScope plugin={{ ...docker }} fetch={fetchFake}>
+          <Probe method={FakeService.method.fast} seen={widget} />
+        </PluginScope>
+        <PluginScope plugin={{ name: "apps", requires: ["fake"] }} fetch={fetchFake}>
+          <Probe method={FakeService.method.fast} seen={{}} />
+        </PluginScope>
+      </PluginHost>,
+    );
+    await settle();
+
+    // One for docker's two scopes, one for apps: another Plugin's calls
+    // carry its own name.
+    expect(calls.map((c) => c.headers.get("Ddash-Plugin")).sort()).toEqual(["apps", "docker"]);
+    expect(badge.n).toBe(widget.n);
+
+    await wait(15_000);
+
+    expect(calls).toHaveLength(4);
+  });
+
   it("pauses while the tab is hidden and refetches when it shows", async () => {
     mount(<Probe method={FakeService.method.fast} seen={{}} />);
     await settle();

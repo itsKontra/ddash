@@ -1,5 +1,5 @@
 import type { DescService } from "@bufbuild/protobuf";
-import { createClient, type Client } from "@connectrpc/connect";
+import { createClient, type Client, type Transport } from "@connectrpc/connect";
 import { TransportProvider, useTransport } from "@connectrpc/connect-query";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { ConfirmDialog, Presence, type ConfirmAnswer, type ConfirmRequest } from "@ddash/ui";
@@ -67,12 +67,29 @@ export function PluginScope({ plugin, fetch, children }: { plugin: PluginRef; fe
   // By value, so a re-render with an equal plugin keeps the transport.
   const requires = plugin.requires.join(",");
   const ref = useMemo(() => ({ name: plugin.name, requires: requires ? requires.split(",") : [] }), [plugin.name, requires]);
-  const transport = useMemo(() => pluginTransport(ref, fetch), [ref, fetch]);
+  const transport = useMemo(() => sharedTransport(ref, fetch), [ref, fetch]);
   return (
     <PluginContext.Provider value={ref}>
       <TransportProvider transport={transport}>{children}</TransportProvider>
     </PluginContext.Provider>
   );
+}
+
+// A query's key holds its transport, so a Plugin's scopes share their
+// queries only when they share one: the transport of each Plugin, by the
+// fetch it calls with. Without it the badge, every Widget and the Page
+// would each poll the same getter.
+const transports = new WeakMap<object, Map<string, Transport>>();
+const defaultFetch = {};
+
+function sharedTransport(plugin: PluginRef, fetch?: Fetch): Transport {
+  const of = fetch ?? defaultFetch;
+  let byPlugin = transports.get(of);
+  if (!byPlugin) transports.set(of, (byPlugin = new Map()));
+  const key = `${plugin.name} ${plugin.requires.join(",")}`;
+  let transport = byPlugin.get(key);
+  if (!transport) byPlugin.set(key, (transport = pluginTransport(plugin, fetch)));
+  return transport;
 }
 
 /** The shell wraps its own UI in CoreScope, so its calls go to the core API. */
