@@ -106,12 +106,15 @@ export interface Destination {
 export const pageEntries = (pages: readonly Destination[], go: (to: string) => void): Entry[] =>
   pages.map((p) => ({ key: `page:${p.to}`, group: "Go to", title: p.label, icon: p.icon as IconName, run: () => go(p.to) }));
 
+/** How many loud Concerns lead the empty palette, so the Pages stay in sight. */
+const worstFew = 5;
+
 /**
  * What the palette lists: with a query, the matches across everything;
- * without one, the loud Concerns, then the Pages, then the shell's own
- * Actions.
+ * without one, the worst few loud Concerns (the rest are found by typing),
+ * then the Pages, then the shell's own Actions.
  */
 export function listed(query: string, all: { concerns: readonly Entry[]; pages: readonly Entry[]; actions: readonly Entry[]; commands: readonly Entry[] }): Entry[] {
-  if (query.trim() === "") return [...all.concerns, ...all.pages, ...all.actions];
+  if (query.trim() === "") return [...all.concerns.slice(0, worstFew), ...all.pages, ...all.actions];
   return search(query, [...all.concerns, ...all.commands, ...all.pages, ...all.actions]);
 }

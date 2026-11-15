@@ -15,16 +15,20 @@ import type { LoadedPlugin, Plugins } from "./plugins";
 /** Whether the palette is open, and opening and closing it; closing gives the focus back to where it was. */
 export interface PaletteState {
   open: boolean;
+  /** How many times it opened: each opening starts empty, even one that interrupts the closing. */
+  opened: number;
   show: () => void;
   hide: () => void;
 }
 
 export function usePalette(): PaletteState {
   const [open, setOpen] = useState(false);
+  const [opened, setOpened] = useState(0);
   const opener = useRef<HTMLElement | null>(null);
   const show = useCallback(() => {
     opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     setOpen(true);
+    setOpened((n) => n + 1);
   }, []);
   const hide = useCallback(() => {
     setOpen(false);
@@ -32,7 +36,7 @@ export function usePalette(): PaletteState {
     opener.current = null;
     if (o?.isConnected) o.focus();
   }, []);
-  return { open, show, hide };
+  return { open, opened, show, hide };
 }
 
 // Where a typed "/" is text, not the palette's key.
@@ -156,7 +160,7 @@ export function Palette({ state, plugins, fetch, pages }: PaletteProps) {
           </ErrorBoundary>
         </PluginScope>
       ))}
-      <Presence>{state.open && <Dialog all={all} onClose={state.hide} />}</Presence>
+      <Presence>{state.open && <Dialog key={state.opened} all={all} onClose={state.hide} />}</Presence>
     </>
   );
 }
@@ -251,6 +255,8 @@ function Dialog({ all, onClose }: { all: Parameters<typeof listed>[1]; onClose: 
         aria-modal="true"
         aria-label="Command palette"
         onClick={(e) => e.stopPropagation()}
+        // A click anywhere in it keeps the focus in the search box.
+        onMouseDown={(e) => e.target instanceof HTMLInputElement || e.preventDefault()}
         className="w-full max-w-160 overflow-hidden rounded-ui-lg border border-border bg-card text-foreground shadow-elevation-raised starting:-translate-y-1 starting:opacity-0 in-data-[state=closed]:-translate-y-1 in-data-[state=closed]:opacity-0 motion-safe:transition-[opacity,translate] motion-safe:duration-(--motion-fade)"
       >
         <div className="flex h-13.5 items-center gap-3 border-b border-border px-4 text-muted-foreground">
@@ -331,8 +337,6 @@ function Option({
       role="option"
       aria-selected={selected}
       onMouseMove={() => selected || onHover()}
-      // The focus stays in the search box.
-      onMouseDown={(ev) => ev.preventDefault()}
       onClick={onRun}
       className={cx("flex cursor-pointer items-center gap-3 rounded-ui-sm px-2.5 py-2", selected && "bg-primary-tint")}
     >

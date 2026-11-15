@@ -124,6 +124,13 @@ describe("listed", () => {
     ]);
   });
 
+  it("leads with the worst five loud Concerns only; typing finds the others", () => {
+    const many = Array.from({ length: 7 }, (_, i) => entry(`Start · guest${i} is down`, { group: "Needs you" }));
+    const empty = listed("", { ...all, concerns: many });
+    expect(empty.filter((e) => e.group === "Needs you").map((e) => e.title)).toEqual(many.slice(0, 5).map((e) => e.title));
+    expect(titles(listed("guest6", { ...all, concerns: many }))).toEqual(["Start · guest6 is down"]);
+  });
+
   it("searches everything, the Plugins' Commands too, once typed", () => {
     expect(titles(listed("graf", all))).toEqual(["Open Grafana"]);
     expect(titles(listed("audit", all))).toEqual(["Audit Log"]);
