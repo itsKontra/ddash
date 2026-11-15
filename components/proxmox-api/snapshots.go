@@ -222,7 +222,7 @@ func (c *component) ListBackupStorages(ctx context.Context, req *pb.ListBackupSt
 		if !slices.Contains(strings.Split(s.Content, ","), "backup") {
 			continue
 		}
-		out.Storages = append(out.Storages, &pb.Storage{Name: s.Storage, Type: s.Type, Active: bool(s.Active), Shared: bool(s.Shared), Avail: s.Avail, Total: s.Total})
+		out.Storages = append(out.Storages, &pb.Storage{Name: s.Storage, Type: s.Type, Active: bool(s.Active), Shared: bool(s.Shared), Avail: s.Avail, Total: s.Total, Content: strings.Split(s.Content, ",")})
 	}
 	slices.SortFunc(out.Storages, func(a, b *pb.Storage) int { return strings.Compare(a.GetName(), b.GetName()) })
 	return out, nil

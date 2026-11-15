@@ -1,5 +1,6 @@
 import { definePlugin } from "@ddash/plugin";
 import { useDownBadge } from "./checks";
+import { useConcerns } from "./concerns";
 import { ChecksPage } from "./page";
 import "./index.css";
 import { summary } from "./widget";
@@ -13,4 +14,5 @@ export default definePlugin({
     { path: ":id", Component: ChecksPage },
   ],
   widgets: [summary],
+  useConcerns,
 });

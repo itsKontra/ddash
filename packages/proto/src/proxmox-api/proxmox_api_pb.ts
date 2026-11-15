@@ -17,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file proxmox-api/proxmox_api.proto.
  */
 export const file_proxmox_api_proxmox_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch1wcm94bW94LWFwaS9wcm94bW94X2FwaS5wcm90bxIQZGRhc2gucHJveG1veGFwaSL8AgoQUHJveG1veEFwaUNvbmZpZxJ4CgN1cmwYASABKAlCa5q1GGcaA1VSTCJDVGhlIFByb3htb3ggQVBJIGJ5IGFkZHJlc3MsIHNvIGl0IHdvcmtzIHdoaWxlIEROUyBvciBuZ2lueCBpcyBkb3duLioXaHR0cHM6Ly8xOTguMTguMS4yOjgwMDYwATgBEoYBCg90bHNfc2VydmVyX25hbWUYAiABKAlCbZq1GGkaD1RMUyBzZXJ2ZXIgbmFtZSJCVGhlIG5hbWUgb24gdGhlIG5vZGUncyBjZXJ0aWZpY2F0ZSwgd2hlbiB0aGUgVVJMIHVzZXMgaXRzIGFkZHJlc3MuKhBwdmUuaG9tZS5leGFtcGxlOAISNwoIdG9rZW5faWQYAyABKAlCJZq1GCEaCFRva2VuIElEKhNkZGFzaEBwdmUhZGFzaGJvYXJkMAESLAoMdG9rZW5fc2VjcmV0GAQgASgJQhaatRgSEAEaDFRva2VuIHNlY3JldDABIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkYKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRItCgl3b3JrbG9hZHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLldvcmtsb2FkIpEDCghXb3JrbG9hZBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBHZtaWQYAiABKA0SDAoEbm9kZRgDIAEoCRIMCgRuYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIQCgh0ZW1wbGF0ZRgGIAEoCBIMCgR0YWdzGAcgAygJEgsKA2NwdRgIIAEoARIPCgdtYXhfY3B1GAkgASgNEgsKA21lbRgKIAEoBBIPCgdtYXhfbWVtGAsgASgEEgwKBGRpc2sYDCABKAQSEAoIbWF4X2Rpc2sYDSABKAQSDgoGbmV0X2luGA4gASgEEg8KB25ldF9vdXQYDyABKAQSFgoOdXB0aW1lX3NlY29uZHMYECABKAQSIwoEbmljcxgRIAMoCzIVLmRkYXNoLnByb3htb3hhcGkuTmljEjIKCWFkZHJlc3NlcxgSIAEoDjIfLmRkYXNoLnByb3htb3hhcGkuQWRkcmVzc1NvdXJjZRIXCg9hZGRyZXNzZXNfZXJyb3IYEyABKAkiLQoDTmljEgwKBG5hbWUYASABKAkSCwoDbWFjGAIgASgJEgsKA2lwcxgDIAMoCSIYChZMaXN0UGVybWlzc2lvbnNSZXF1ZXN0IlMKF0xpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlEjgKCXdvcmtsb2FkcxgBIAMoCzIlLmRkYXNoLnByb3htb3hhcGkuV29ya2xvYWRQZXJtaXNzaW9ucyI3ChNXb3JrbG9hZFBlcm1pc3Npb25zEgwKBHZtaWQYASABKA0SEgoKcHJpdmlsZWdlcxgCIAMoCSJKCgZUYXJnZXQSJAoEa2luZBgBIAEoDjIWLmRkYXNoLnByb3htb3hhcGkuS2luZBIMCgRub2RlGAIgASgJEgwKBHZtaWQYAyABKA0iQgoUU3RhcnRXb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldCIlChVTdGFydFdvcmtsb2FkUmVzcG9uc2USDAoEdXBpZBgBIAEoCSKFAQoXU2h1dGRvd25Xb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIqCgd0aW1lb3V0GAIgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEhIKCmZvcmNlX3N0b3AYAyABKAgiKAoYU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlEgwKBHVwaWQYASABKAkiQwoVUmVib290V29ya2xvYWRSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQiJgoWUmVib290V29ya2xvYWRSZXNwb25zZRIMCgR1cGlkGAEgASgJIjQKFkxpc3RBY3RpdmVUYXNrc1JlcXVlc3QSDAoEbm9kZRgBIAEoCRIMCgR2bWlkGAIgASgNIkAKF0xpc3RBY3RpdmVUYXNrc1Jlc3BvbnNlEiUKBXRhc2tzGAEgAygLMhYuZGRhc2gucHJveG1veGFwaS5UYXNrIk8KBFRhc2sSDAoEdXBpZBgBIAEoCRIMCgR0eXBlGAIgASgJEisKB3N0YXJ0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIi4KEExpc3RUYXNrc1JlcXVlc3QSDAoEbm9kZRgBIAEoCRIMCgR2bWlkGAIgASgNIkAKEUxpc3RUYXNrc1Jlc3BvbnNlEisKBXRhc2tzGAEgAygLMhwuZGRhc2gucHJveG1veGFwaS5UYXNrU3RhdHVzIqYBCgpUYXNrU3RhdHVzEgwKBHVwaWQYASABKAkSDAoEdHlwZRgCIAEoCRIPCgdzdG9wcGVkGAMgASgIEhMKC2V4aXRfc3RhdHVzGAQgASgJEisKB3N0YXJ0ZWQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEikKBWVuZGVkGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJCChRMaXN0U25hcHNob3RzUmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0IlkKFUxpc3RTbmFwc2hvdHNSZXNwb25zZRItCglzbmFwc2hvdHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLlNuYXBzaG90EhEKCXN1cHBvcnRlZBgCIAEoCCJqCghTbmFwc2hvdBIMCgRuYW1lGAEgASgJEhMKC2Rlc2NyaXB0aW9uGAIgASgJEisKB2NyZWF0ZWQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEg4KBnBhcmVudBgEIAEoCSJmChVDcmVhdGVTbmFwc2hvdFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIMCgRuYW1lGAIgASgJEhMKC2Rlc2NyaXB0aW9uGAMgASgJIiYKFkNyZWF0ZVNuYXBzaG90UmVzcG9uc2USDAoEdXBpZBgBIAEoCSJRChVEZWxldGVTbmFwc2hvdFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIMCgRuYW1lGAIgASgJIiYKFkRlbGV0ZVNuYXBzaG90UmVzcG9uc2USDAoEdXBpZBgBIAEoCSJ4Cg1CYWNrdXBSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQSDwoHc3RvcmFnZRgCIAEoCRIqCgRtb2RlGAMgASgOMhwuZGRhc2gucHJveG1veGFwaS5CYWNrdXBNb2RlIh4KDkJhY2t1cFJlc3BvbnNlEgwKBHVwaWQYASABKAkiKQoZTGlzdEJhY2t1cFN0b3JhZ2VzUmVxdWVzdBIMCgRub2RlGAEgASgJIkkKGkxpc3RCYWNrdXBTdG9yYWdlc1Jlc3BvbnNlEisKCHN0b3JhZ2VzGAEgAygLMhkuZGRhc2gucHJveG1veGFwaS5TdG9yYWdlImMKB1N0b3JhZ2USDAoEbmFtZRgBIAEoCRIMCgR0eXBlGAIgASgJEg4KBmFjdGl2ZRgDIAEoCBIOCgZzaGFyZWQYBCABKAgSDQoFYXZhaWwYBSABKAQSDQoFdG90YWwYBiABKAQqNwoES2luZBIUChBLSU5EX1VOU1BFQ0lGSUVEEAASDAoIS0lORF9MWEMQARILCgdLSU5EX1ZNEAIqYwoNQWRkcmVzc1NvdXJjZRIeChpBRERSRVNTX1NPVVJDRV9VTlNQRUNJRklFRBAAEhcKE0FERFJFU1NfU09VUkNFX0xJVkUQARIZChVBRERSRVNTX1NPVVJDRV9DT05GSUcQAipyCgpCYWNrdXBNb2RlEhsKF0JBQ0tVUF9NT0RFX1VOU1BFQ0lGSUVEEAASGAoUQkFDS1VQX01PREVfU05BUFNIT1QQARIXChNCQUNLVVBfTU9ERV9TVVNQRU5EEAISFAoQQkFDS1VQX01PREVfU1RPUBADMo8KChFQcm94bW94QXBpU2VydmljZRJoCg1MaXN0V29ya2xvYWRzEiYuZGRhc2gucHJveG1veGFwaS5MaXN0V29ya2xvYWRzUmVxdWVzdBonLmRkYXNoLnByb3htb3hhcGkuTGlzdFdvcmtsb2Fkc1Jlc3BvbnNlIgaKtRgCCAISbgoPTGlzdFBlcm1pc3Npb25zEiguZGRhc2gucHJveG1veGFwaS5MaXN0UGVybWlzc2lvbnNSZXF1ZXN0GikuZGRhc2gucHJveG1veGFwaS5MaXN0UGVybWlzc2lvbnNSZXNwb25zZSIGirUYAggCEmYKDVN0YXJ0V29ya2xvYWQSJi5kZGFzaC5wcm94bW94YXBpLlN0YXJ0V29ya2xvYWRSZXF1ZXN0GicuZGRhc2gucHJveG1veGFwaS5TdGFydFdvcmtsb2FkUmVzcG9uc2UiBJK1GAAScQoQU2h1dGRvd25Xb3JrbG9hZBIpLmRkYXNoLnByb3htb3hhcGkuU2h1dGRvd25Xb3JrbG9hZFJlcXVlc3QaKi5kZGFzaC5wcm94bW94YXBpLlNodXRkb3duV29ya2xvYWRSZXNwb25zZSIGkrUYAggBEmsKDlJlYm9vdFdvcmtsb2FkEicuZGRhc2gucHJveG1veGFwaS5SZWJvb3RXb3JrbG9hZFJlcXVlc3QaKC5kZGFzaC5wcm94bW94YXBpLlJlYm9vdFdvcmtsb2FkUmVzcG9uc2UiBpK1GAIIARJuCg9MaXN0QWN0aXZlVGFza3MSKC5kZGFzaC5wcm94bW94YXBpLkxpc3RBY3RpdmVUYXNrc1JlcXVlc3QaKS5kZGFzaC5wcm94bW94YXBpLkxpc3RBY3RpdmVUYXNrc1Jlc3BvbnNlIgaKtRgCCAMSXAoJTGlzdFRhc2tzEiIuZGRhc2gucHJveG1veGFwaS5MaXN0VGFza3NSZXF1ZXN0GiMuZGRhc2gucHJveG1veGFwaS5MaXN0VGFza3NSZXNwb25zZSIGirUYAggDEmgKDUxpc3RTbmFwc2hvdHMSJi5kZGFzaC5wcm94bW94YXBpLkxpc3RTbmFwc2hvdHNSZXF1ZXN0GicuZGRhc2gucHJveG1veGFwaS5MaXN0U25hcHNob3RzUmVzcG9uc2UiBoq1GAIIAxJpCg5DcmVhdGVTbmFwc2hvdBInLmRkYXNoLnByb3htb3hhcGkuQ3JlYXRlU25hcHNob3RSZXF1ZXN0GiguZGRhc2gucHJveG1veGFwaS5DcmVhdGVTbmFwc2hvdFJlc3BvbnNlIgSStRgAEmsKDkRlbGV0ZVNuYXBzaG90EicuZGRhc2gucHJveG1veGFwaS5EZWxldGVTbmFwc2hvdFJlcXVlc3QaKC5kZGFzaC5wcm94bW94YXBpLkRlbGV0ZVNuYXBzaG90UmVzcG9uc2UiBpK1GAIIARJRCgZCYWNrdXASHy5kZGFzaC5wcm94bW94YXBpLkJhY2t1cFJlcXVlc3QaIC5kZGFzaC5wcm94bW94YXBpLkJhY2t1cFJlc3BvbnNlIgSStRgAEnUKEkxpc3RCYWNrdXBTdG9yYWdlcxIrLmRkYXNoLnByb3htb3hhcGkuTGlzdEJhY2t1cFN0b3JhZ2VzUmVxdWVzdBosLmRkYXNoLnByb3htb3hhcGkuTGlzdEJhY2t1cFN0b3JhZ2VzUmVzcG9uc2UiBIq1GABCTVpLZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9wcm94bW94LWFwaS9wcm94bW94YXBpcGI7cHJveG1veGFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("Ch1wcm94bW94LWFwaS9wcm94bW94X2FwaS5wcm90bxIQZGRhc2gucHJveG1veGFwaSL8AgoQUHJveG1veEFwaUNvbmZpZxJ4CgN1cmwYASABKAlCa5q1GGcaA1VSTCJDVGhlIFByb3htb3ggQVBJIGJ5IGFkZHJlc3MsIHNvIGl0IHdvcmtzIHdoaWxlIEROUyBvciBuZ2lueCBpcyBkb3duLioXaHR0cHM6Ly8xOTguMTguMS4yOjgwMDYwATgBEoYBCg90bHNfc2VydmVyX25hbWUYAiABKAlCbZq1GGkaD1RMUyBzZXJ2ZXIgbmFtZSJCVGhlIG5hbWUgb24gdGhlIG5vZGUncyBjZXJ0aWZpY2F0ZSwgd2hlbiB0aGUgVVJMIHVzZXMgaXRzIGFkZHJlc3MuKhBwdmUuaG9tZS5leGFtcGxlOAISNwoIdG9rZW5faWQYAyABKAlCJZq1GCEaCFRva2VuIElEKhNkZGFzaEBwdmUhZGFzaGJvYXJkMAESLAoMdG9rZW5fc2VjcmV0GAQgASgJQhaatRgSEAEaDFRva2VuIHNlY3JldDABIhYKFExpc3RXb3JrbG9hZHNSZXF1ZXN0IkYKFUxpc3RXb3JrbG9hZHNSZXNwb25zZRItCgl3b3JrbG9hZHMYASADKAsyGi5kZGFzaC5wcm94bW94YXBpLldvcmtsb2FkIpEDCghXb3JrbG9hZBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBHZtaWQYAiABKA0SDAoEbm9kZRgDIAEoCRIMCgRuYW1lGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIQCgh0ZW1wbGF0ZRgGIAEoCBIMCgR0YWdzGAcgAygJEgsKA2NwdRgIIAEoARIPCgdtYXhfY3B1GAkgASgNEgsKA21lbRgKIAEoBBIPCgdtYXhfbWVtGAsgASgEEgwKBGRpc2sYDCABKAQSEAoIbWF4X2Rpc2sYDSABKAQSDgoGbmV0X2luGA4gASgEEg8KB25ldF9vdXQYDyABKAQSFgoOdXB0aW1lX3NlY29uZHMYECABKAQSIwoEbmljcxgRIAMoCzIVLmRkYXNoLnByb3htb3hhcGkuTmljEjIKCWFkZHJlc3NlcxgSIAEoDjIfLmRkYXNoLnByb3htb3hhcGkuQWRkcmVzc1NvdXJjZRIXCg9hZGRyZXNzZXNfZXJyb3IYEyABKAkiLQoDTmljEgwKBG5hbWUYASABKAkSCwoDbWFjGAIgASgJEgsKA2lwcxgDIAMoCSISChBMaXN0Tm9kZXNSZXF1ZXN0IjoKEUxpc3ROb2Rlc1Jlc3BvbnNlEiUKBW5vZGVzGAEgAygLMhYuZGRhc2gucHJveG1veGFwaS5Ob2RlIqUBCgROb2RlEgwKBG5hbWUYASABKAkSDgoGc3RhdHVzGAIgASgJEgsKA2NwdRgDIAEoARIPCgdtYXhfY3B1GAQgASgNEgsKA21lbRgFIAEoBBIPCgdtYXhfbWVtGAYgASgEEhYKDnVwdGltZV9zZWNvbmRzGAcgASgEEisKCHN0b3JhZ2VzGAggAygLMhkuZGRhc2gucHJveG1veGFwaS5TdG9yYWdlIhgKFkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QiUwoXTGlzdFBlcm1pc3Npb25zUmVzcG9uc2USOAoJd29ya2xvYWRzGAEgAygLMiUuZGRhc2gucHJveG1veGFwaS5Xb3JrbG9hZFBlcm1pc3Npb25zIjcKE1dvcmtsb2FkUGVybWlzc2lvbnMSDAoEdm1pZBgBIAEoDRISCgpwcml2aWxlZ2VzGAIgAygJIkoKBlRhcmdldBIkCgRraW5kGAEgASgOMhYuZGRhc2gucHJveG1veGFwaS5LaW5kEgwKBG5vZGUYAiABKAkSDAoEdm1pZBgDIAEoDSJCChRTdGFydFdvcmtsb2FkUmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0IiUKFVN0YXJ0V29ya2xvYWRSZXNwb25zZRIMCgR1cGlkGAEgASgJIoUBChdTaHV0ZG93bldvcmtsb2FkUmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0EioKB3RpbWVvdXQYAiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SEgoKZm9yY2Vfc3RvcBgDIAEoCCIoChhTaHV0ZG93bldvcmtsb2FkUmVzcG9uc2USDAoEdXBpZBgBIAEoCSJDChVSZWJvb3RXb3JrbG9hZFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldCImChZSZWJvb3RXb3JrbG9hZFJlc3BvbnNlEgwKBHVwaWQYASABKAkiNAoWTGlzdEFjdGl2ZVRhc2tzUmVxdWVzdBIMCgRub2RlGAEgASgJEgwKBHZtaWQYAiABKA0iQAoXTGlzdEFjdGl2ZVRhc2tzUmVzcG9uc2USJQoFdGFza3MYASADKAsyFi5kZGFzaC5wcm94bW94YXBpLlRhc2siTwoEVGFzaxIMCgR1cGlkGAEgASgJEgwKBHR5cGUYAiABKAkSKwoHc3RhcnRlZBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiLgoQTGlzdFRhc2tzUmVxdWVzdBIMCgRub2RlGAEgASgJEgwKBHZtaWQYAiABKA0iQAoRTGlzdFRhc2tzUmVzcG9uc2USKwoFdGFza3MYASADKAsyHC5kZGFzaC5wcm94bW94YXBpLlRhc2tTdGF0dXMipgEKClRhc2tTdGF0dXMSDAoEdXBpZBgBIAEoCRIMCgR0eXBlGAIgASgJEg8KB3N0b3BwZWQYAyABKAgSEwoLZXhpdF9zdGF0dXMYBCABKAkSKwoHc3RhcnRlZBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKQoFZW5kZWQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIkIKFExpc3RTbmFwc2hvdHNSZXF1ZXN0EioKCHdvcmtsb2FkGAEgASgLMhguZGRhc2gucHJveG1veGFwaS5UYXJnZXQiWQoVTGlzdFNuYXBzaG90c1Jlc3BvbnNlEi0KCXNuYXBzaG90cxgBIAMoCzIaLmRkYXNoLnByb3htb3hhcGkuU25hcHNob3QSEQoJc3VwcG9ydGVkGAIgASgIImoKCFNuYXBzaG90EgwKBG5hbWUYASABKAkSEwoLZGVzY3JpcHRpb24YAiABKAkSKwoHY3JlYXRlZBgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDgoGcGFyZW50GAQgASgJImYKFUNyZWF0ZVNuYXBzaG90UmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0EgwKBG5hbWUYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkiJgoWQ3JlYXRlU25hcHNob3RSZXNwb25zZRIMCgR1cGlkGAEgASgJIlEKFURlbGV0ZVNuYXBzaG90UmVxdWVzdBIqCgh3b3JrbG9hZBgBIAEoCzIYLmRkYXNoLnByb3htb3hhcGkuVGFyZ2V0EgwKBG5hbWUYAiABKAkiJgoWRGVsZXRlU25hcHNob3RSZXNwb25zZRIMCgR1cGlkGAEgASgJIngKDUJhY2t1cFJlcXVlc3QSKgoId29ya2xvYWQYASABKAsyGC5kZGFzaC5wcm94bW94YXBpLlRhcmdldBIPCgdzdG9yYWdlGAIgASgJEioKBG1vZGUYAyABKA4yHC5kZGFzaC5wcm94bW94YXBpLkJhY2t1cE1vZGUiHgoOQmFja3VwUmVzcG9uc2USDAoEdXBpZBgBIAEoCSIpChlMaXN0QmFja3VwU3RvcmFnZXNSZXF1ZXN0EgwKBG5vZGUYASABKAkiSQoaTGlzdEJhY2t1cFN0b3JhZ2VzUmVzcG9uc2USKwoIc3RvcmFnZXMYASADKAsyGS5kZGFzaC5wcm94bW94YXBpLlN0b3JhZ2UidAoHU3RvcmFnZRIMCgRuYW1lGAEgASgJEgwKBHR5cGUYAiABKAkSDgoGYWN0aXZlGAMgASgIEg4KBnNoYXJlZBgEIAEoCBINCgVhdmFpbBgFIAEoBBINCgV0b3RhbBgGIAEoBBIPCgdjb250ZW50GAcgAygJKjcKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEgwKCEtJTkRfTFhDEAESCwoHS0lORF9WTRACKmMKDUFkZHJlc3NTb3VyY2USHgoaQUREUkVTU19TT1VSQ0VfVU5TUEVDSUZJRUQQABIXChNBRERSRVNTX1NPVVJDRV9MSVZFEAESGQoVQUREUkVTU19TT1VSQ0VfQ09ORklHEAIqcgoKQmFja3VwTW9kZRIbChdCQUNLVVBfTU9ERV9VTlNQRUNJRklFRBAAEhgKFEJBQ0tVUF9NT0RFX1NOQVBTSE9UEAESFwoTQkFDS1VQX01PREVfU1VTUEVORBACEhQKEEJBQ0tVUF9NT0RFX1NUT1AQAzLtCgoRUHJveG1veEFwaVNlcnZpY2USaAoNTGlzdFdvcmtsb2FkcxImLmRkYXNoLnByb3htb3hhcGkuTGlzdFdvcmtsb2Fkc1JlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLkxpc3RXb3JrbG9hZHNSZXNwb25zZSIGirUYAggCElwKCUxpc3ROb2RlcxIiLmRkYXNoLnByb3htb3hhcGkuTGlzdE5vZGVzUmVxdWVzdBojLmRkYXNoLnByb3htb3hhcGkuTGlzdE5vZGVzUmVzcG9uc2UiBoq1GAIIAhJuCg9MaXN0UGVybWlzc2lvbnMSKC5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaKS5kZGFzaC5wcm94bW94YXBpLkxpc3RQZXJtaXNzaW9uc1Jlc3BvbnNlIgaKtRgCCAISZgoNU3RhcnRXb3JrbG9hZBImLmRkYXNoLnByb3htb3hhcGkuU3RhcnRXb3JrbG9hZFJlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLlN0YXJ0V29ya2xvYWRSZXNwb25zZSIEkrUYABJxChBTaHV0ZG93bldvcmtsb2FkEikuZGRhc2gucHJveG1veGFwaS5TaHV0ZG93bldvcmtsb2FkUmVxdWVzdBoqLmRkYXNoLnByb3htb3hhcGkuU2h1dGRvd25Xb3JrbG9hZFJlc3BvbnNlIgaStRgCCAESawoOUmVib290V29ya2xvYWQSJy5kZGFzaC5wcm94bW94YXBpLlJlYm9vdFdvcmtsb2FkUmVxdWVzdBooLmRkYXNoLnByb3htb3hhcGkuUmVib290V29ya2xvYWRSZXNwb25zZSIGkrUYAggBEm4KD0xpc3RBY3RpdmVUYXNrcxIoLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVxdWVzdBopLmRkYXNoLnByb3htb3hhcGkuTGlzdEFjdGl2ZVRhc2tzUmVzcG9uc2UiBoq1GAIIAxJcCglMaXN0VGFza3MSIi5kZGFzaC5wcm94bW94YXBpLkxpc3RUYXNrc1JlcXVlc3QaIy5kZGFzaC5wcm94bW94YXBpLkxpc3RUYXNrc1Jlc3BvbnNlIgaKtRgCCAMSaAoNTGlzdFNuYXBzaG90cxImLmRkYXNoLnByb3htb3hhcGkuTGlzdFNuYXBzaG90c1JlcXVlc3QaJy5kZGFzaC5wcm94bW94YXBpLkxpc3RTbmFwc2hvdHNSZXNwb25zZSIGirUYAggDEmkKDkNyZWF0ZVNuYXBzaG90EicuZGRhc2gucHJveG1veGFwaS5DcmVhdGVTbmFwc2hvdFJlcXVlc3QaKC5kZGFzaC5wcm94bW94YXBpLkNyZWF0ZVNuYXBzaG90UmVzcG9uc2UiBJK1GAASawoORGVsZXRlU25hcHNob3QSJy5kZGFzaC5wcm94bW94YXBpLkRlbGV0ZVNuYXBzaG90UmVxdWVzdBooLmRkYXNoLnByb3htb3hhcGkuRGVsZXRlU25hcHNob3RSZXNwb25zZSIGkrUYAggBElEKBkJhY2t1cBIfLmRkYXNoLnByb3htb3hhcGkuQmFja3VwUmVxdWVzdBogLmRkYXNoLnByb3htb3hhcGkuQmFja3VwUmVzcG9uc2UiBJK1GAASdQoSTGlzdEJhY2t1cFN0b3JhZ2VzEisuZGRhc2gucHJveG1veGFwaS5MaXN0QmFja3VwU3RvcmFnZXNSZXF1ZXN0GiwuZGRhc2gucHJveG1veGFwaS5MaXN0QmFja3VwU3RvcmFnZXNSZXNwb25zZSIEirUYAEJNWktnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3Byb3htb3gtYXBpL3Byb3htb3hhcGlwYjtwcm94bW94YXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.proxmoxapi.ProxmoxApiConfig
@@ -247,6 +247,98 @@ export const NicSchema: GenMessage<Nic> = /*@__PURE__*/
   messageDesc(file_proxmox_api_proxmox_api, 4);
 
 /**
+ * @generated from message ddash.proxmoxapi.ListNodesRequest
+ */
+export type ListNodesRequest = Message<"ddash.proxmoxapi.ListNodesRequest"> & {
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListNodesRequest.
+ * Use `create(ListNodesRequestSchema)` to create a new message.
+ */
+export const ListNodesRequestSchema: GenMessage<ListNodesRequest> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 5);
+
+/**
+ * @generated from message ddash.proxmoxapi.ListNodesResponse
+ */
+export type ListNodesResponse = Message<"ddash.proxmoxapi.ListNodesResponse"> & {
+  /**
+   * @generated from field: repeated ddash.proxmoxapi.Node nodes = 1;
+   */
+  nodes: Node[];
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.ListNodesResponse.
+ * Use `create(ListNodesResponseSchema)` to create a new message.
+ */
+export const ListNodesResponseSchema: GenMessage<ListNodesResponse> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 6);
+
+/**
+ * A Proxmox VE node, from /cluster/resources.
+ *
+ * @generated from message ddash.proxmoxapi.Node
+ */
+export type Node = Message<"ddash.proxmoxapi.Node"> & {
+  /**
+   * @generated from field: string name = 1;
+   */
+  name: string;
+
+  /**
+   * Proxmox's status: online, offline or unknown.
+   *
+   * @generated from field: string status = 2;
+   */
+  status: string;
+
+  /**
+   * CPU use as a fraction of max_cpu, 0 to 1.
+   *
+   * @generated from field: double cpu = 3;
+   */
+  cpu: number;
+
+  /**
+   * @generated from field: uint32 max_cpu = 4;
+   */
+  maxCpu: number;
+
+  /**
+   * Memory in bytes.
+   *
+   * @generated from field: uint64 mem = 5;
+   */
+  mem: bigint;
+
+  /**
+   * @generated from field: uint64 max_mem = 6;
+   */
+  maxMem: bigint;
+
+  /**
+   * @generated from field: uint64 uptime_seconds = 7;
+   */
+  uptimeSeconds: bigint;
+
+  /**
+   * Its storages, a shared one under every node it is on.
+   *
+   * @generated from field: repeated ddash.proxmoxapi.Storage storages = 8;
+   */
+  storages: Storage[];
+};
+
+/**
+ * Describes the message ddash.proxmoxapi.Node.
+ * Use `create(NodeSchema)` to create a new message.
+ */
+export const NodeSchema: GenMessage<Node> = /*@__PURE__*/
+  messageDesc(file_proxmox_api_proxmox_api, 7);
+
+/**
  * @generated from message ddash.proxmoxapi.ListPermissionsRequest
  */
 export type ListPermissionsRequest = Message<"ddash.proxmoxapi.ListPermissionsRequest"> & {
@@ -257,7 +349,7 @@ export type ListPermissionsRequest = Message<"ddash.proxmoxapi.ListPermissionsRe
  * Use `create(ListPermissionsRequestSchema)` to create a new message.
  */
 export const ListPermissionsRequestSchema: GenMessage<ListPermissionsRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 5);
+  messageDesc(file_proxmox_api_proxmox_api, 8);
 
 /**
  * @generated from message ddash.proxmoxapi.ListPermissionsResponse
@@ -274,7 +366,7 @@ export type ListPermissionsResponse = Message<"ddash.proxmoxapi.ListPermissionsR
  * Use `create(ListPermissionsResponseSchema)` to create a new message.
  */
 export const ListPermissionsResponseSchema: GenMessage<ListPermissionsResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 6);
+  messageDesc(file_proxmox_api_proxmox_api, 9);
 
 /**
  * @generated from message ddash.proxmoxapi.WorkloadPermissions
@@ -298,7 +390,7 @@ export type WorkloadPermissions = Message<"ddash.proxmoxapi.WorkloadPermissions"
  * Use `create(WorkloadPermissionsSchema)` to create a new message.
  */
 export const WorkloadPermissionsSchema: GenMessage<WorkloadPermissions> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 7);
+  messageDesc(file_proxmox_api_proxmox_api, 10);
 
 /**
  * Target names the Workload a power Action acts on.
@@ -329,7 +421,7 @@ export type Target = Message<"ddash.proxmoxapi.Target"> & {
  * Use `create(TargetSchema)` to create a new message.
  */
 export const TargetSchema: GenMessage<Target> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 8);
+  messageDesc(file_proxmox_api_proxmox_api, 11);
 
 /**
  * @generated from message ddash.proxmoxapi.StartWorkloadRequest
@@ -346,7 +438,7 @@ export type StartWorkloadRequest = Message<"ddash.proxmoxapi.StartWorkloadReques
  * Use `create(StartWorkloadRequestSchema)` to create a new message.
  */
 export const StartWorkloadRequestSchema: GenMessage<StartWorkloadRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 9);
+  messageDesc(file_proxmox_api_proxmox_api, 12);
 
 /**
  * @generated from message ddash.proxmoxapi.StartWorkloadResponse
@@ -365,7 +457,7 @@ export type StartWorkloadResponse = Message<"ddash.proxmoxapi.StartWorkloadRespo
  * Use `create(StartWorkloadResponseSchema)` to create a new message.
  */
 export const StartWorkloadResponseSchema: GenMessage<StartWorkloadResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 10);
+  messageDesc(file_proxmox_api_proxmox_api, 13);
 
 /**
  * @generated from message ddash.proxmoxapi.ShutdownWorkloadRequest
@@ -397,7 +489,7 @@ export type ShutdownWorkloadRequest = Message<"ddash.proxmoxapi.ShutdownWorkload
  * Use `create(ShutdownWorkloadRequestSchema)` to create a new message.
  */
 export const ShutdownWorkloadRequestSchema: GenMessage<ShutdownWorkloadRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 11);
+  messageDesc(file_proxmox_api_proxmox_api, 14);
 
 /**
  * @generated from message ddash.proxmoxapi.ShutdownWorkloadResponse
@@ -414,7 +506,7 @@ export type ShutdownWorkloadResponse = Message<"ddash.proxmoxapi.ShutdownWorkloa
  * Use `create(ShutdownWorkloadResponseSchema)` to create a new message.
  */
 export const ShutdownWorkloadResponseSchema: GenMessage<ShutdownWorkloadResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 12);
+  messageDesc(file_proxmox_api_proxmox_api, 15);
 
 /**
  * @generated from message ddash.proxmoxapi.RebootWorkloadRequest
@@ -431,7 +523,7 @@ export type RebootWorkloadRequest = Message<"ddash.proxmoxapi.RebootWorkloadRequ
  * Use `create(RebootWorkloadRequestSchema)` to create a new message.
  */
 export const RebootWorkloadRequestSchema: GenMessage<RebootWorkloadRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 13);
+  messageDesc(file_proxmox_api_proxmox_api, 16);
 
 /**
  * @generated from message ddash.proxmoxapi.RebootWorkloadResponse
@@ -448,7 +540,7 @@ export type RebootWorkloadResponse = Message<"ddash.proxmoxapi.RebootWorkloadRes
  * Use `create(RebootWorkloadResponseSchema)` to create a new message.
  */
 export const RebootWorkloadResponseSchema: GenMessage<RebootWorkloadResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 14);
+  messageDesc(file_proxmox_api_proxmox_api, 17);
 
 /**
  * @generated from message ddash.proxmoxapi.ListActiveTasksRequest
@@ -472,7 +564,7 @@ export type ListActiveTasksRequest = Message<"ddash.proxmoxapi.ListActiveTasksRe
  * Use `create(ListActiveTasksRequestSchema)` to create a new message.
  */
 export const ListActiveTasksRequestSchema: GenMessage<ListActiveTasksRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 15);
+  messageDesc(file_proxmox_api_proxmox_api, 18);
 
 /**
  * @generated from message ddash.proxmoxapi.ListActiveTasksResponse
@@ -489,7 +581,7 @@ export type ListActiveTasksResponse = Message<"ddash.proxmoxapi.ListActiveTasksR
  * Use `create(ListActiveTasksResponseSchema)` to create a new message.
  */
 export const ListActiveTasksResponseSchema: GenMessage<ListActiveTasksResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 16);
+  messageDesc(file_proxmox_api_proxmox_api, 19);
 
 /**
  * @generated from message ddash.proxmoxapi.Task
@@ -518,7 +610,7 @@ export type Task = Message<"ddash.proxmoxapi.Task"> & {
  * Use `create(TaskSchema)` to create a new message.
  */
 export const TaskSchema: GenMessage<Task> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 17);
+  messageDesc(file_proxmox_api_proxmox_api, 20);
 
 /**
  * @generated from message ddash.proxmoxapi.ListTasksRequest
@@ -540,7 +632,7 @@ export type ListTasksRequest = Message<"ddash.proxmoxapi.ListTasksRequest"> & {
  * Use `create(ListTasksRequestSchema)` to create a new message.
  */
 export const ListTasksRequestSchema: GenMessage<ListTasksRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 18);
+  messageDesc(file_proxmox_api_proxmox_api, 21);
 
 /**
  * @generated from message ddash.proxmoxapi.ListTasksResponse
@@ -557,7 +649,7 @@ export type ListTasksResponse = Message<"ddash.proxmoxapi.ListTasksResponse"> & 
  * Use `create(ListTasksResponseSchema)` to create a new message.
  */
 export const ListTasksResponseSchema: GenMessage<ListTasksResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 19);
+  messageDesc(file_proxmox_api_proxmox_api, 22);
 
 /**
  * A task, from /nodes/{node}/tasks?source=all.
@@ -609,7 +701,7 @@ export type TaskStatus = Message<"ddash.proxmoxapi.TaskStatus"> & {
  * Use `create(TaskStatusSchema)` to create a new message.
  */
 export const TaskStatusSchema: GenMessage<TaskStatus> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 20);
+  messageDesc(file_proxmox_api_proxmox_api, 23);
 
 /**
  * @generated from message ddash.proxmoxapi.ListSnapshotsRequest
@@ -626,7 +718,7 @@ export type ListSnapshotsRequest = Message<"ddash.proxmoxapi.ListSnapshotsReques
  * Use `create(ListSnapshotsRequestSchema)` to create a new message.
  */
 export const ListSnapshotsRequestSchema: GenMessage<ListSnapshotsRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 21);
+  messageDesc(file_proxmox_api_proxmox_api, 24);
 
 /**
  * @generated from message ddash.proxmoxapi.ListSnapshotsResponse
@@ -652,7 +744,7 @@ export type ListSnapshotsResponse = Message<"ddash.proxmoxapi.ListSnapshotsRespo
  * Use `create(ListSnapshotsResponseSchema)` to create a new message.
  */
 export const ListSnapshotsResponseSchema: GenMessage<ListSnapshotsResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 22);
+  messageDesc(file_proxmox_api_proxmox_api, 25);
 
 /**
  * @generated from message ddash.proxmoxapi.Snapshot
@@ -688,7 +780,7 @@ export type Snapshot = Message<"ddash.proxmoxapi.Snapshot"> & {
  * Use `create(SnapshotSchema)` to create a new message.
  */
 export const SnapshotSchema: GenMessage<Snapshot> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 23);
+  messageDesc(file_proxmox_api_proxmox_api, 26);
 
 /**
  * @generated from message ddash.proxmoxapi.CreateSnapshotRequest
@@ -717,7 +809,7 @@ export type CreateSnapshotRequest = Message<"ddash.proxmoxapi.CreateSnapshotRequ
  * Use `create(CreateSnapshotRequestSchema)` to create a new message.
  */
 export const CreateSnapshotRequestSchema: GenMessage<CreateSnapshotRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 24);
+  messageDesc(file_proxmox_api_proxmox_api, 27);
 
 /**
  * @generated from message ddash.proxmoxapi.CreateSnapshotResponse
@@ -734,7 +826,7 @@ export type CreateSnapshotResponse = Message<"ddash.proxmoxapi.CreateSnapshotRes
  * Use `create(CreateSnapshotResponseSchema)` to create a new message.
  */
 export const CreateSnapshotResponseSchema: GenMessage<CreateSnapshotResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 25);
+  messageDesc(file_proxmox_api_proxmox_api, 28);
 
 /**
  * @generated from message ddash.proxmoxapi.DeleteSnapshotRequest
@@ -756,7 +848,7 @@ export type DeleteSnapshotRequest = Message<"ddash.proxmoxapi.DeleteSnapshotRequ
  * Use `create(DeleteSnapshotRequestSchema)` to create a new message.
  */
 export const DeleteSnapshotRequestSchema: GenMessage<DeleteSnapshotRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 26);
+  messageDesc(file_proxmox_api_proxmox_api, 29);
 
 /**
  * @generated from message ddash.proxmoxapi.DeleteSnapshotResponse
@@ -773,7 +865,7 @@ export type DeleteSnapshotResponse = Message<"ddash.proxmoxapi.DeleteSnapshotRes
  * Use `create(DeleteSnapshotResponseSchema)` to create a new message.
  */
 export const DeleteSnapshotResponseSchema: GenMessage<DeleteSnapshotResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 27);
+  messageDesc(file_proxmox_api_proxmox_api, 30);
 
 /**
  * @generated from message ddash.proxmoxapi.BackupRequest
@@ -802,7 +894,7 @@ export type BackupRequest = Message<"ddash.proxmoxapi.BackupRequest"> & {
  * Use `create(BackupRequestSchema)` to create a new message.
  */
 export const BackupRequestSchema: GenMessage<BackupRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 28);
+  messageDesc(file_proxmox_api_proxmox_api, 31);
 
 /**
  * @generated from message ddash.proxmoxapi.BackupResponse
@@ -819,7 +911,7 @@ export type BackupResponse = Message<"ddash.proxmoxapi.BackupResponse"> & {
  * Use `create(BackupResponseSchema)` to create a new message.
  */
 export const BackupResponseSchema: GenMessage<BackupResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 29);
+  messageDesc(file_proxmox_api_proxmox_api, 32);
 
 /**
  * @generated from message ddash.proxmoxapi.ListBackupStoragesRequest
@@ -836,7 +928,7 @@ export type ListBackupStoragesRequest = Message<"ddash.proxmoxapi.ListBackupStor
  * Use `create(ListBackupStoragesRequestSchema)` to create a new message.
  */
 export const ListBackupStoragesRequestSchema: GenMessage<ListBackupStoragesRequest> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 30);
+  messageDesc(file_proxmox_api_proxmox_api, 33);
 
 /**
  * @generated from message ddash.proxmoxapi.ListBackupStoragesResponse
@@ -853,7 +945,7 @@ export type ListBackupStoragesResponse = Message<"ddash.proxmoxapi.ListBackupSto
  * Use `create(ListBackupStoragesResponseSchema)` to create a new message.
  */
 export const ListBackupStoragesResponseSchema: GenMessage<ListBackupStoragesResponse> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 31);
+  messageDesc(file_proxmox_api_proxmox_api, 34);
 
 /**
  * @generated from message ddash.proxmoxapi.Storage
@@ -894,6 +986,14 @@ export type Storage = Message<"ddash.proxmoxapi.Storage"> & {
    * @generated from field: uint64 total = 6;
    */
   total: bigint;
+
+  /**
+   * What it may hold, e.g. "images" and "rootdir" (guest disks),
+   * "backup", "iso".
+   *
+   * @generated from field: repeated string content = 7;
+   */
+  content: string[];
 };
 
 /**
@@ -901,7 +1001,7 @@ export type Storage = Message<"ddash.proxmoxapi.Storage"> & {
  * Use `create(StorageSchema)` to create a new message.
  */
 export const StorageSchema: GenMessage<Storage> = /*@__PURE__*/
-  messageDesc(file_proxmox_api_proxmox_api, 32);
+  messageDesc(file_proxmox_api_proxmox_api, 35);
 
 /**
  * @generated from enum ddash.proxmoxapi.Kind
@@ -1011,6 +1111,18 @@ export const ProxmoxApiService: GenService<{
     methodKind: "unary";
     input: typeof ListWorkloadsRequestSchema;
     output: typeof ListWorkloadsResponseSchema;
+  },
+  /**
+   * ListNodes returns every node the token may audit (Sys.Audit on
+   * /nodes), with its CPU and memory use and the storages on it the token
+   * may audit (Datastore.Audit on /storage), by name.
+   *
+   * @generated from rpc ddash.proxmoxapi.ProxmoxApiService.ListNodes
+   */
+  listNodes: {
+    methodKind: "unary";
+    input: typeof ListNodesRequestSchema;
+    output: typeof ListNodesResponseSchema;
   },
   /**
    * ListPermissions returns ddash's effective privileges on each Workload

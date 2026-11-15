@@ -80,4 +80,12 @@ describe("checkDefinition", () => {
   it("fails Widgets sharing an id", () => {
     expect(checkDefinition("docker", { widgets: [widget, { ...widget }] })).toEqual(['widgets[1].id: "running" is used twice']);
   });
+
+  it("passes a Plugin that reports Concerns without any Widget", () => {
+    expect(checkDefinition("docker", { useConcerns: () => [] })).toEqual([]);
+  });
+
+  it("fails useConcerns that isn't a hook", () => {
+    expect(checkDefinition("docker", { useConcerns: [] })).toEqual(["useConcerns: must be a hook returning the Plugin's Concerns"]);
+  });
 });
