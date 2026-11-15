@@ -84,7 +84,7 @@ func TestADirServesAPluginsFilesFromItsApp(t *testing.T) {
 
 func TestGitHubDownloadsAReleaseFileAsItIs(t *testing.T) {
 	dir := releaseDir(t, "v1.0.0", helloV1)
-	agent := release.HostAgentFile("amd64")
+	agent := runtime.HostAgentFile("amd64")
 	if err := os.WriteFile(filepath.Join(dir, agent), []byte("host agent"), 0o600); err != nil {
 		t.Fatal(err)
 	}

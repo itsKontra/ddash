@@ -61,12 +61,6 @@ type Options struct {
 	AgentImage string
 }
 
-// HostAgentArchs are the architectures the Host Agent is built for.
-var HostAgentArchs = []string{"amd64", "arm64"}
-
-// HostAgentFile is the Host Agent's binary for arch in a Release dir.
-func HostAgentFile(arch string) string { return "ddash-host-agent-linux-" + arch }
-
 // Build fills o.Out with the Release: catalogue.json, every Component's .ct
 // (its binary static, CGO off, for o.Platform), every Plugin's .ddapp (which
 // `make build` must have built) and SHA256SUMS.
@@ -102,8 +96,8 @@ func Build(ctx context.Context, o Options) error {
 	}
 	// A repo without the Host Agent (a test's) builds a Release without it.
 	if _, err := os.Stat(filepath.Join(o.Root, "cmd", "ddash-host-agent")); err == nil {
-		for _, arch := range HostAgentArchs {
-			if err := build(ctx, o.Root, "./cmd/ddash-host-agent", filepath.Join(o.Out, HostAgentFile(arch)), o.Release, "linux/"+arch); err != nil {
+		for _, arch := range runtime.HostAgentArchs {
+			if err := build(ctx, o.Root, "./cmd/ddash-host-agent", filepath.Join(o.Out, runtime.HostAgentFile(arch)), o.Release, "linux/"+arch); err != nil {
 				return err
 			}
 		}

@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/itsKontra/ddash/internal/release"
+	"github.com/itsKontra/ddash/core/runtime"
 )
 
 // The Host Agent's downloads, public like the GitHub release they come
@@ -25,11 +25,11 @@ const (
 // verified against its SHA256SUMS.
 func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
 	arch := r.PathValue("arch")
-	if !slices.Contains(release.HostAgentArchs, arch) {
-		http.Error(w, "the Host Agent is built for "+strings.Join(release.HostAgentArchs, " and "), http.StatusNotFound)
+	if !slices.Contains(runtime.HostAgentArchs, arch) {
+		http.Error(w, "the Host Agent is built for "+strings.Join(runtime.HostAgentArchs, " and "), http.StatusNotFound)
 		return
 	}
-	bin, err := h.release.File(r.Context(), release.HostAgentFile(arch))
+	bin, err := h.release.File(r.Context(), runtime.HostAgentFile(arch))
 	if err != nil {
 		h.log.Warn("host agent download", "arch", arch, "err", err)
 		http.Error(w, "the Host Agent isn't available: "+err.Error(), http.StatusServiceUnavailable)
@@ -50,13 +50,13 @@ func (h *Host) hostAgentBinary(w http.ResponseWriter, r *http.Request) {
 // hostAgentSums answers the Host Agent binaries' SHA256SUMS.
 func (h *Host) hostAgentSums(w http.ResponseWriter, r *http.Request) {
 	var b strings.Builder
-	for _, arch := range release.HostAgentArchs {
-		bin, err := h.release.File(r.Context(), release.HostAgentFile(arch))
+	for _, arch := range runtime.HostAgentArchs {
+		bin, err := h.release.File(r.Context(), runtime.HostAgentFile(arch))
 		if err != nil {
 			http.Error(w, "the Host Agent isn't available: "+err.Error(), http.StatusServiceUnavailable)
 			return
 		}
-		fmt.Fprintf(&b, "%x  %s\n", bin.Checksum, release.HostAgentFile(arch))
+		fmt.Fprintf(&b, "%x  %s\n", bin.Checksum, runtime.HostAgentFile(arch))
 	}
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, _ = w.Write([]byte(b.String()))
@@ -66,8 +66,8 @@ func (h *Host) hostAgentSums(w http.ResponseWriter, r *http.Request) {
 // from here and checks it against the checksum ddash pins in the script.
 func (h *Host) installScript(w http.ResponseWriter, r *http.Request) {
 	sums := map[string]string{}
-	for _, arch := range release.HostAgentArchs {
-		bin, err := h.release.File(r.Context(), release.HostAgentFile(arch))
+	for _, arch := range runtime.HostAgentArchs {
+		bin, err := h.release.File(r.Context(), runtime.HostAgentFile(arch))
 		if err != nil {
 			h.log.Warn("install.sh", "arch", arch, "err", err)
 			continue
