@@ -7,38 +7,20 @@ syntax = "proto3";
 // never reads .env files and never calls a Docker Agent.
 package ddash.aihelper;
 
-import "ddash/config/config.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/ai-helper/aihelperpb;aihelperpb";
 
-// Empty is valid: the helper is then not set up, and DraftApp refuses.
+// ai-helper has nothing to configure: the API key, the model and the
+// server are anthropic-api's.
 message AiHelperConfig {
-  // An Anthropic API key, write-only once saved.
-  string api_key = 1 [(ddash.config.field) = {
-    label: "Anthropic API key"
-    secret: true
-    placeholder: "sk-ant-…"
-    help: "From console.anthropic.com. Leave empty to not use the AI App helper. Drafts are billed to this key."
-  }];
-  // The Claude model drafting.
-  optional string model = 2 [(ddash.config.field) = {
-    label: "Model"
-    default: "claude-sonnet-5-5"
-    help: "The Claude model id that drafts, e.g. claude-sonnet-5-5 or claude-opus-5-5."
-  }];
-  // The Messages API's server; Anthropic's own unless a proxy.
-  optional string server = 3 [(ddash.config.field) = {
-    label: "API server"
-    default: "https://api.anthropic.com"
-    format: FORMAT_URL
-    help: "Leave as is unless you reach Anthropic through a proxy."
-  }];
+  reserved 1, 2, 3;
+  reserved "api_key", "model", "server";
 }
 
 service AiHelperService {
-  // GetStatus says whether the helper is set up (an API key is saved),
-  // from the config alone.
+  // GetStatus says whether the helper is set up (anthropic-api has an
+  // API key), and the model that drafts.
   rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }

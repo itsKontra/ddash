@@ -11,7 +11,9 @@ import (
 
 	aihelper "github.com/itsKontra/ddash/components/ai-helper"
 	"github.com/itsKontra/ddash/components/ai-helper/aihelperpb"
-	"github.com/itsKontra/ddash/components/ai-helper/anthropicfake"
+	anthropicapi "github.com/itsKontra/ddash/components/anthropic-api"
+	apb "github.com/itsKontra/ddash/components/anthropic-api/anthropicapipb"
+	"github.com/itsKontra/ddash/components/anthropic-api/anthropicfake"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -19,7 +21,7 @@ func ptr[T any](v T) *T { return &v }
 
 func api(t *testing.T) (*anthropicfake.API, string) {
 	t.Helper()
-	a, err := anthropicfake.New("testdata/baseline", anthropicfake.Options{})
+	a, err := anthropicfake.New("../anthropic-api/testdata/baseline", anthropicfake.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -28,10 +30,14 @@ func api(t *testing.T) (*anthropicfake.API, string) {
 	return a, srv.URL
 }
 
-func start(t *testing.T, cfg *aihelperpb.AiHelperConfig) aihelperpb.AiHelperServiceClient {
+// start runs ai-helper asking Claude through the real anthropic-api,
+// configured with cfg.
+func start(t *testing.T, cfg *apb.AnthropicApiConfig) aihelperpb.AiHelperServiceClient {
 	t.Helper()
-	h := sdktest.New(t, aihelper.Definition())
-	h.MustStart(cfg)
+	ah := sdktest.New(t, anthropicapi.Definition())
+	ah.MustStart(cfg)
+	h := sdktest.New(t, aihelper.Definition(), sdktest.WithClient[apb.AnthropicApiServiceClient](apb.NewAnthropicApiServiceClient(ah.Conn)))
+	h.MustStart(&aihelperpb.AiHelperConfig{})
 	return aihelperpb.NewAiHelperServiceClient(h.Conn)
 }
 
@@ -47,7 +53,7 @@ var paperless = &aihelperpb.DraftAppRequest{
 // App fields.
 func TestDraftAppSendsTheDescriptionAndContextAndReturnsTheDraft(t *testing.T) {
 	a, url := api(t)
-	c := start(t, &aihelperpb.AiHelperConfig{ApiKey: anthropicfake.DefaultKey, Server: ptr(url)})
+	c := start(t, &apb.AnthropicApiConfig{ApiKey: anthropicfake.DefaultKey, Server: ptr(url)})
 
 	st, err := c.GetStatus(t.Context(), &aihelperpb.GetStatusRequest{})
 	if err != nil || !st.GetSetUp() || st.GetModel() != "claude-sonnet-5-5" {
@@ -137,9 +143,9 @@ Context:
 	}
 }
 
-// Without a key the helper starts, says so, and drafts nothing.
+// Without a key in anthropic-api the helper starts, says so, and drafts nothing.
 func TestAnEmptyConfigIsNotSetUp(t *testing.T) {
-	c := start(t, &aihelperpb.AiHelperConfig{})
+	c := start(t, &apb.AnthropicApiConfig{})
 	st, err := c.GetStatus(t.Context(), &aihelperpb.GetStatusRequest{})
 	if err != nil || st.GetSetUp() {
 		t.Fatalf("GetStatus = %v, %v", st, err)
@@ -149,21 +155,14 @@ func TestAnEmptyConfigIsNotSetUp(t *testing.T) {
 	}
 }
 
-func TestABadConfigIsRefused(t *testing.T) {
-	h := sdktest.New(t, aihelper.Definition())
-	if err := h.Start(&aihelperpb.AiHelperConfig{ApiKey: "hunter2", Server: ptr("ftp://x")}); err == nil {
-		t.Fatal("a key that isn't Anthropic's and an ftp server were accepted")
-	}
-}
-
 func TestAnthropicsRefusalsReadAsTheOperatorsFix(t *testing.T) {
 	a, url := api(t)
-	wrong := start(t, &aihelperpb.AiHelperConfig{ApiKey: "sk-ant-wrong", Server: ptr(url)})
+	wrong := start(t, &apb.AnthropicApiConfig{ApiKey: "sk-ant-wrong", Server: ptr(url)})
 	if _, err := wrong.DraftApp(t.Context(), paperless); status.Code(err) != codes.PermissionDenied || !strings.Contains(status.Convert(err).Message(), "API key") {
 		t.Errorf("a wrong key: %v", err)
 	}
 
-	c := start(t, &aihelperpb.AiHelperConfig{ApiKey: anthropicfake.DefaultKey, Server: ptr(url), Model: ptr("claude-haiku-5-5")})
+	c := start(t, &apb.AnthropicApiConfig{ApiKey: anthropicfake.DefaultKey, Server: ptr(url), Model: ptr("claude-haiku-5-5")})
 	a.StopNext("refusal")
 	if _, err := c.DraftApp(t.Context(), paperless); status.Code(err) != codes.FailedPrecondition || !strings.Contains(status.Convert(err).Message(), "declined") {
 		t.Errorf("a refusal: %v", err)

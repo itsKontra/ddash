@@ -1,5 +1,5 @@
 // Package anthropicfake is a fake of Anthropic's Messages API for
-// ai-helper's tests and fakelab: POST /v1/messages answers every request
+// anthropic-api's and ai-helper's tests and fakelab: POST /v1/messages answers every request
 // with a canned draft (draft.json in a scenario's directory) as the
 // structured-output text block, records each request, and refuses a key
 // other than its own with 401 as Anthropic does.
