@@ -44,6 +44,7 @@ const (
 	DockerAgentApiService_PullProject_FullMethodName          = "/ddash.dockeragentapi.DockerAgentApiService/PullProject"
 	DockerAgentApiService_UpdateProject_FullMethodName        = "/ddash.dockeragentapi.DockerAgentApiService/UpdateProject"
 	DockerAgentApiService_ListJobs_FullMethodName             = "/ddash.dockeragentapi.DockerAgentApiService/ListJobs"
+	DockerAgentApiService_GetJob_FullMethodName               = "/ddash.dockeragentapi.DockerAgentApiService/GetJob"
 	DockerAgentApiService_CollectJob_FullMethodName           = "/ddash.dockeragentapi.DockerAgentApiService/CollectJob"
 )
 
@@ -105,6 +106,10 @@ type DockerAgentApiServiceClient interface {
 	// ListJobs returns every paired Agent's jobs, running and ended but not
 	// collected, never cached.
 	ListJobs(ctx context.Context, in *ListJobsRequest, opts ...grpc.CallOption) (*ListJobsResponse, error)
+	// GetJob returns one job as its Agent has it now, never cached: what
+	// following a job reads, in place of every Agent's jobs. NOT_FOUND once
+	// the Agent no longer knows the job.
+	GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error)
 	// CollectJob forgets an ended job on its Agent and returns it. It fails
 	// ABORTED with the job's error when the job failed, so the Audit Log
 	// entry of the collect records how the job ended.
@@ -299,6 +304,16 @@ func (c *dockerAgentApiServiceClient) ListJobs(ctx context.Context, in *ListJobs
 	return out, nil
 }
 
+func (c *dockerAgentApiServiceClient) GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetJobResponse)
+	err := c.cc.Invoke(ctx, DockerAgentApiService_GetJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *dockerAgentApiServiceClient) CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CollectJobResponse)
@@ -367,6 +382,10 @@ type DockerAgentApiServiceServer interface {
 	// ListJobs returns every paired Agent's jobs, running and ended but not
 	// collected, never cached.
 	ListJobs(context.Context, *ListJobsRequest) (*ListJobsResponse, error)
+	// GetJob returns one job as its Agent has it now, never cached: what
+	// following a job reads, in place of every Agent's jobs. NOT_FOUND once
+	// the Agent no longer knows the job.
+	GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error)
 	// CollectJob forgets an ended job on its Agent and returns it. It fails
 	// ABORTED with the job's error when the job failed, so the Audit Log
 	// entry of the collect records how the job ended.
@@ -434,6 +453,9 @@ func (UnimplementedDockerAgentApiServiceServer) UpdateProject(context.Context, *
 }
 func (UnimplementedDockerAgentApiServiceServer) ListJobs(context.Context, *ListJobsRequest) (*ListJobsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListJobs not implemented")
+}
+func (UnimplementedDockerAgentApiServiceServer) GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetJob not implemented")
 }
 func (UnimplementedDockerAgentApiServiceServer) CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectJob not implemented")
@@ -783,6 +805,24 @@ func _DockerAgentApiService_ListJobs_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DockerAgentApiService_GetJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerAgentApiServiceServer).GetJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerAgentApiService_GetJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerAgentApiServiceServer).GetJob(ctx, req.(*GetJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _DockerAgentApiService_CollectJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CollectJobRequest)
 	if err := dec(in); err != nil {
@@ -879,6 +919,10 @@ var DockerAgentApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListJobs",
 			Handler:    _DockerAgentApiService_ListJobs_Handler,
+		},
+		{
+			MethodName: "GetJob",
+			Handler:    _DockerAgentApiService_GetJob_Handler,
 		},
 		{
 			MethodName: "CollectJob",

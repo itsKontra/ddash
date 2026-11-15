@@ -41,6 +41,7 @@ const (
 	HostAgentApiService_RemoveKey_FullMethodName       = "/ddash.hostagentapi.HostAgentApiService/RemoveKey"
 	HostAgentApiService_SetSSHSettings_FullMethodName  = "/ddash.hostagentapi.HostAgentApiService/SetSSHSettings"
 	HostAgentApiService_ListJobs_FullMethodName        = "/ddash.hostagentapi.HostAgentApiService/ListJobs"
+	HostAgentApiService_GetJob_FullMethodName          = "/ddash.hostagentapi.HostAgentApiService/GetJob"
 	HostAgentApiService_CollectJob_FullMethodName      = "/ddash.hostagentapi.HostAgentApiService/CollectJob"
 )
 
@@ -95,6 +96,10 @@ type HostAgentApiServiceClient interface {
 	// ListJobs returns every paired Agent's jobs, running and ended but not
 	// collected, never cached.
 	ListJobs(ctx context.Context, in *ListJobsRequest, opts ...grpc.CallOption) (*ListJobsResponse, error)
+	// GetJob returns one job as its Agent has it now, never cached: what
+	// following a job reads, in place of every Agent's jobs. NOT_FOUND once
+	// the Agent no longer knows the job.
+	GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error)
 	// CollectJob forgets an ended job on its Agent and returns it. It fails
 	// ABORTED with the job's error when the job failed, so the Audit Log
 	// entry of the collect records how the job ended.
@@ -259,6 +264,16 @@ func (c *hostAgentApiServiceClient) ListJobs(ctx context.Context, in *ListJobsRe
 	return out, nil
 }
 
+func (c *hostAgentApiServiceClient) GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetJobResponse)
+	err := c.cc.Invoke(ctx, HostAgentApiService_GetJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *hostAgentApiServiceClient) CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CollectJobResponse)
@@ -320,6 +335,10 @@ type HostAgentApiServiceServer interface {
 	// ListJobs returns every paired Agent's jobs, running and ended but not
 	// collected, never cached.
 	ListJobs(context.Context, *ListJobsRequest) (*ListJobsResponse, error)
+	// GetJob returns one job as its Agent has it now, never cached: what
+	// following a job reads, in place of every Agent's jobs. NOT_FOUND once
+	// the Agent no longer knows the job.
+	GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error)
 	// CollectJob forgets an ended job on its Agent and returns it. It fails
 	// ABORTED with the job's error when the job failed, so the Audit Log
 	// entry of the collect records how the job ended.
@@ -378,6 +397,9 @@ func (UnimplementedHostAgentApiServiceServer) SetSSHSettings(context.Context, *S
 }
 func (UnimplementedHostAgentApiServiceServer) ListJobs(context.Context, *ListJobsRequest) (*ListJobsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListJobs not implemented")
+}
+func (UnimplementedHostAgentApiServiceServer) GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetJob not implemented")
 }
 func (UnimplementedHostAgentApiServiceServer) CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectJob not implemented")
@@ -673,6 +695,24 @@ func _HostAgentApiService_ListJobs_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _HostAgentApiService_GetJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HostAgentApiServiceServer).GetJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: HostAgentApiService_GetJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HostAgentApiServiceServer).GetJob(ctx, req.(*GetJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _HostAgentApiService_CollectJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CollectJobRequest)
 	if err := dec(in); err != nil {
@@ -757,6 +797,10 @@ var HostAgentApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListJobs",
 			Handler:    _HostAgentApiService_ListJobs_Handler,
+		},
+		{
+			MethodName: "GetJob",
+			Handler:    _HostAgentApiService_GetJob_Handler,
 		},
 		{
 			MethodName: "CollectJob",
