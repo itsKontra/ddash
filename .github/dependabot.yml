@@ -1,0 +1,35 @@
+# Everything ddash pins, kept current: the workflows' actions (by commit),
+# the Go module, the pnpm workspace and the images' bases. One grouped PR
+# per ecosystem a week, since a Release moves them all at once anyway.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ["*"]
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /deploy/docker-agent
+    schedule:
+      interval: weekly
+    groups:
+      images:
+        patterns: ["*"]
