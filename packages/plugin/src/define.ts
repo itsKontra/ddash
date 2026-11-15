@@ -55,6 +55,12 @@ export type ConcernAction = {
   pending?: boolean;
   /** Why its last run failed, shown under the Concern's cause. */
   error?: string;
+  /**
+   * It doesn't fix the cause, only deals with the Concern another way,
+   * e.g. Mute or Maintenance: drawn outlined even as the main button,
+   * which is filled only for a fix (Start, Adopt, Check again).
+   */
+  secondary?: boolean;
 } & (
   | {
       /** Runs it, e.g. useAction's run with the confirm the Page asks. */

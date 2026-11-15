@@ -87,10 +87,7 @@ export function NeedsYou({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }
             ) : (
               <div className="flex items-center gap-3 px-5 py-4">
                 <Icon name="check" tone="up" />
-                <div>
-                  <div className="text-sm font-semibold">Nothing needs you.</div>
-                  <div className="text-xs text-muted-foreground">Go do something else.</div>
-                </div>
+                <div className="text-sm font-semibold">Nothing needs you.</div>
               </div>
             )}
             {n.quiet.length > 0 && <OffOnPurpose quiet={n.quiet} onAct={act} />}
@@ -128,8 +125,8 @@ const icons: Record<ConcernTone, IconName> = { down: "circle-x", warn: "triangle
 
 /**
  * One Concern: its tone's mark and icon, title (a link to its detail),
- * cause, then its Actions with the main one last. Without Actions, a
- * Details link. A quiet one is drawn without its tone.
+ * cause, then its Actions with the main one last, filled when it is a fix.
+ * Without Actions, a Details link. A quiet one is drawn without its tone.
  */
 function Row({ listed: l, onAct }: { listed: Listed; onAct: (l: Listed, a: ConcernAction) => void }) {
   const c = l.concern;
@@ -160,7 +157,7 @@ function Row({ listed: l, onAct }: { listed: Listed; onAct: (l: Listed, a: Conce
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         {others.map((a) => button(a, "ghost"))}
         {main
-          ? button(main, quiet ? "outline" : "default")
+          ? button(main, quiet || main.secondary ? "outline" : "default")
           : c.href && (
               <Link to={c.href} className="inline-flex h-7 items-center rounded-ui px-2.5 text-xs font-medium hover:bg-muted">
                 Details

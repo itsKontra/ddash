@@ -7,9 +7,9 @@ import { MaintenanceSheet } from "./maintenance";
 
 /**
  * What needs the Operator in checks: each enabled Check that is down, with
- * its reason and since when, and the Page's Mute and Maintenance. One that
- * is muted or in Maintenance is quiet, with no Actions. A warn one when
- * checks can't be read.
+ * its reason and since when, and the Page's Mute and Maintenance, neither
+ * a fix. One that is muted or in Maintenance (with the wrench) is quiet,
+ * with no Actions. A warn one when checks can't be read.
  */
 export function useConcerns(): Concern[] | undefined {
   const { data, error, dataUpdatedAt } = useChecks();
@@ -32,13 +32,17 @@ export function useConcerns(): Concern[] | undefined {
         title: `${name} is down`,
         cause: [c.reason || "down", ago(c.since, dataUpdatedAt)].join(" · "),
         quiet,
+        // Told apart at a glance once unfolded.
+        icon: c.maintenance ? "wrench" : undefined,
         href: `/checks/${c.id}`,
+        // Neither fixes a Check that is down, so neither is drawn as a fix.
         actions: quiet
           ? undefined
           : [
               {
                 label: "Mute",
                 icon: "bell-off",
+                secondary: true,
                 pending: mine && mute.pending,
                 error: mine ? mute.error?.rawMessage : undefined,
                 run: () => {
@@ -46,7 +50,7 @@ export function useConcerns(): Concern[] | undefined {
                   return mute.run({ id: c.id, muted: true });
                 },
               },
-              { label: "Maintenance", icon: "wrench", sheet: (close) => <MaintenanceSheet check={c} checks={checks} onClose={close} /> },
+              { label: "Maintenance", icon: "wrench", secondary: true, sheet: (close) => <MaintenanceSheet check={c} checks={checks} onClose={close} /> },
             ],
       };
     });

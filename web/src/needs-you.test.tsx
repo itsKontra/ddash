@@ -93,8 +93,30 @@ it("says nothing needs the Operator once every Plugin reported none", async () =
 
   await boot();
 
-  expect(panel().textContent).toContain("Nothing needs you.");
+  expect(panel().textContent).toBe("Needs youNothing needs you.");
   expect(rows()).toEqual([]);
+});
+
+it("fills the main button only for an Action that fixes the cause", async () => {
+  const run = () => {};
+  plugins = [
+    [
+      installed("proxmox", "Proxmox"),
+      definePlugin({
+        useConcerns: () => [
+          down("n8n", { actions: [{ label: "Start", run }] }),
+          down("nas", { actions: [{ label: "Mute", secondary: true, run }, { label: "Maintenance", secondary: true, run }] }),
+        ],
+      }),
+    ],
+  ];
+
+  await boot();
+
+  const button = (row: string, name: string) => within(within(panel()).getByRole("listitem", { name: row })).getByRole("button", { name });
+  expect(button("n8n is down", "Start").className).toContain("bg-primary");
+  for (const name of ["Mute", "Maintenance"]) expect(button("nas is down", name).className).not.toContain("bg-primary");
+  expect(button("nas is down", "Mute").className).toContain("border-border");
 });
 
 it("folds the quiet ones under one line, and they leave the hero's tone alone", async () => {

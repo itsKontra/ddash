@@ -10,9 +10,9 @@ afterEach(cleanup);
 
 const listed = (...checks: object[]) => () => Response.json({ checks });
 
-// What useConcerns reported last, without its Actions' functions.
+// What useConcerns reported last, its Actions as labels, "(not a fix)" after a secondary one.
 let reported: Concern[] | undefined;
-const plain = () => reported?.map(({ actions, ...c }) => ({ ...c, actions: actions?.map((a) => a.label) }));
+const plain = () => reported?.map(({ actions, ...c }) => ({ ...c, actions: actions?.map((a) => (a.secondary ? `${a.label} (not a fix)` : a.label)) }));
 
 // Runs the checks Plugin's useConcerns as the Overview does, drawing the
 // Sheet of the Action asked for with open(id, label).
@@ -47,9 +47,19 @@ it("reports each enabled down Check, quiet when muted or in Maintenance", async 
   );
 
   expect(plain()).toEqual([
-    { id: "1", tone: "down", subject: "nas", title: "nas is down", cause: "timeout · 6 min ago", quiet: undefined, href: "/checks/1", actions: ["Mute", "Maintenance"] },
-    { id: "3", tone: "down", subject: "backup", title: "backup is down", cause: "connection refused · 2 h ago", quiet: "muted", href: "/checks/3", actions: undefined },
-    { id: "4", tone: "down", subject: "nvr", title: "nvr is down", cause: "down · 20 min ago", quiet: "in Maintenance", href: "/checks/4", actions: undefined },
+    {
+      id: "1",
+      tone: "down",
+      subject: "nas",
+      title: "nas is down",
+      cause: "timeout · 6 min ago",
+      quiet: undefined,
+      icon: undefined,
+      href: "/checks/1",
+      actions: ["Mute (not a fix)", "Maintenance (not a fix)"],
+    },
+    { id: "3", tone: "down", subject: "backup", title: "backup is down", cause: "connection refused · 2 h ago", quiet: "muted", icon: undefined, href: "/checks/3", actions: undefined },
+    { id: "4", tone: "down", subject: "nvr", title: "nvr is down", cause: "down · 20 min ago", quiet: "in Maintenance", icon: "wrench", href: "/checks/4", actions: undefined },
   ]);
 });
 
