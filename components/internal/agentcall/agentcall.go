@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"google.golang.org/grpc/codes"
@@ -65,7 +66,7 @@ func Status(err error, agentName string, conflict codes.Code) error {
 		code = codes.NotFound
 	case agent.CodeOutOfRoots:
 		code = codes.PermissionDenied
-	case agent.CodeBusy:
+	case agent.CodeBusy, agent.CodeEnded, agent.CodeNotCancellable:
 		code = codes.FailedPrecondition
 	case agent.CodeBadToken, agent.CodeUnpaired:
 		code = codes.Unauthenticated
@@ -115,15 +116,38 @@ func Job(ctx context.Context, c *agent.Client, id string) (agent.Job, error) {
 }
 
 // Collect forgets the ended job id on its Agent and returns it. failed is
-// the job's error as a gRPC error (Aborted) when the job failed, so the
-// Audit Log entry of the collect records how the job ended; err is why
-// the Agent couldn't be asked.
+// how the job ended as a gRPC error when it didn't end well, so the Audit
+// Log entry of the collect records it: Aborted with the job's error when
+// it failed, Canceled when it was cancelled. err is why the Agent
+// couldn't be asked.
 func Collect(ctx context.Context, c *agent.Client, id string) (j agent.Job, failed, err error) {
 	if err := c.Delete(ctx, agent.PathJobs+"/"+url.PathEscape(id), nil, &j); err != nil {
 		return j, nil, err
 	}
-	if j.State == agent.Failed {
+	switch j.State {
+	case agent.Failed:
 		return j, status.Errorf(codes.Aborted, "%s failed: %s", j.Title, j.Error), nil
+	case agent.Cancelled:
+		return j, status.Errorf(codes.Canceled, "%s was cancelled", j.Title), nil
 	}
 	return j, nil, nil
+}
+
+// Cancel asks the Agent to stop the running job id and returns the job
+// as it was then; it ends a moment later. agentName is "the Docker Agent
+// on media". An Agent older than cancel is refused FailedPrecondition,
+// asking for its update; any other refusal is Status's.
+func Cancel(ctx context.Context, c *agent.Client, id, agentName string) (agent.Job, error) {
+	var ref agent.JobRef
+	err := c.Post(ctx, agent.PathJobs+"/"+url.PathEscape(id)+"/cancel", nil, &ref)
+	var e *agent.APIError
+	switch {
+	case err == nil:
+		return ref.Job, nil
+	case errors.As(err, &e) && e.Status == http.StatusNotFound && e.Code != agent.CodeNotFound:
+		// Not the Agent's "no such job": it has no cancel at all.
+		return agent.Job{}, status.Errorf(codes.FailedPrecondition, "%s is too old to cancel a job: update the Agent, then cancel again", agentName)
+	}
+	// A cancel answers no 409 conflict: its refusals have their own codes.
+	return agent.Job{}, Status(err, agentName, codes.Aborted)
 }

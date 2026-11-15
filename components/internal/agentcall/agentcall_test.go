@@ -175,3 +175,60 @@ func TestAJobIsReadThenCollectedAndAFailedOnesCollectSaysSo(t *testing.T) {
 		t.Errorf("collecting a failed job: failed = %v, err = %v", failed, err)
 	}
 }
+
+func TestACancelledJobsCollectSaysSoAndAJobThatCantBeCancelledRunsOn(t *testing.T) {
+	ctx := context.Background()
+	s, url := serve(t, agent.KindHost)
+	token, fp, err := host(url, "CODE").Pair(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := agent.Dial(url, token, fp)
+	release := make(chan struct{})
+	defer close(release)
+	upgrade, err := s.Jobs().Start("agent.update", "Update the Docker Agent", "agent", []string{"Pull"}, func(context.Context, *agent.Progress) (map[string]string, error) {
+		<-release
+		return nil, nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := agentcall.Cancel(ctx, c, upgrade.ID, "the Docker Agent on media"); status.Code(err) != codes.FailedPrecondition || !strings.Contains(status.Convert(err).Message(), "can't be cancelled") {
+		t.Errorf("cancelling the Agent's own update: %v, want FailedPrecondition saying it can't be", err)
+	}
+	if _, err := agentcall.Cancel(ctx, c, "nope", "the Docker Agent on media"); status.Code(err) != codes.NotFound {
+		t.Errorf("cancelling an unknown job: %v, want NotFound", err)
+	}
+
+	pull, err := s.Jobs().StartCancellable("compose.pull", "Pull media", "project:media", []string{"Pull"}, func(ctx context.Context, _ *agent.Progress) (map[string]string, error) {
+		<-ctx.Done()
+		return nil, ctx.Err()
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j, err := agentcall.Cancel(ctx, c, pull.ID, "the Docker Agent on media"); err != nil || j.ID != pull.ID {
+		t.Fatalf("Cancel = %+v, %v", j, err)
+	}
+	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(5 * time.Millisecond) {
+		if got, _ := agentcall.Job(ctx, c, pull.ID); got.State.Ended() {
+			break
+		}
+	}
+	if _, err := agentcall.Cancel(ctx, c, pull.ID, "the Docker Agent on media"); status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("cancelling an ended job: %v, want FailedPrecondition", err)
+	}
+	if j, failed, err := agentcall.Collect(ctx, c, pull.ID); err != nil || j.State != agent.Cancelled || status.Code(failed) != codes.Canceled {
+		t.Errorf("collecting a cancelled job: %+v, failed = %v, err = %v; want cancelled, failing Canceled", j, failed, err)
+	}
+}
+
+func TestAnAgentOlderThanCancelIsAskedToUpdate(t *testing.T) {
+	// It has no cancel route: Go's mux answers 404 without an Error.
+	old := httptest.NewServer(http.NotFoundHandler())
+	t.Cleanup(old.Close)
+	_, err := agentcall.Cancel(context.Background(), agent.Dial(old.URL, "token", ""), "job-1", "the Docker Agent on media")
+	if status.Code(err) != codes.FailedPrecondition || !strings.Contains(status.Convert(err).Message(), "update the Agent") {
+		t.Errorf("an old Agent's cancel: %v, want FailedPrecondition asking for its update", err)
+	}
+}

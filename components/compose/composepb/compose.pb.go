@@ -214,6 +214,8 @@ const (
 	StepState_STEP_STATE_FAILED      StepState = 4
 	// Not needed, e.g. recreating when no image changed.
 	StepState_STEP_STATE_SKIPPED StepState = 5
+	// Running when the run was cancelled, and stopped part-way.
+	StepState_STEP_STATE_CANCELLED StepState = 6
 )
 
 // Enum value maps for StepState.
@@ -225,6 +227,7 @@ var (
 		3: "STEP_STATE_DONE",
 		4: "STEP_STATE_FAILED",
 		5: "STEP_STATE_SKIPPED",
+		6: "STEP_STATE_CANCELLED",
 	}
 	StepState_value = map[string]int32{
 		"STEP_STATE_UNSPECIFIED": 0,
@@ -233,6 +236,7 @@ var (
 		"STEP_STATE_DONE":        3,
 		"STEP_STATE_FAILED":      4,
 		"STEP_STATE_SKIPPED":     5,
+		"STEP_STATE_CANCELLED":   6,
 	}
 )
 
@@ -2010,13 +2014,18 @@ type Run struct {
 	Job     *job.Job               `protobuf:"bytes,8,opt,name=job,proto3" json:"job,omitempty"`
 	Started *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=started,proto3" json:"started,omitempty"`
 	Ended   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=ended,proto3" json:"ended,omitempty"`
-	// Why it stopped; empty while it runs and when it ended well.
+	// Why it failed; empty while it runs, when it ended well, and when it
+	// was cancelled.
 	Error string `protobuf:"bytes,11,opt,name=error,proto3" json:"error,omitempty"`
 	// How it ended, as the Operator reads it, e.g. "already up to date",
-	// "2 Compose services updated".
+	// "2 Compose services updated", or for a cancelled run what it left
+	// half-done.
 	Outcome string `protobuf:"bytes,12,opt,name=outcome,proto3" json:"outcome,omitempty"`
 	// Who started it.
-	Actor         string `protobuf:"bytes,13,opt,name=actor,proto3" json:"actor,omitempty"`
+	Actor string `protobuf:"bytes,13,opt,name=actor,proto3" json:"actor,omitempty"`
+	// Who cancelled it, e.g. "operator:alice": set from the cancel on, while
+	// its command stops and once it ended cancelled.
+	CancelledBy   string `protobuf:"bytes,14,opt,name=cancelled_by,json=cancelledBy,proto3" json:"cancelled_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2142,6 +2151,13 @@ func (x *Run) GetActor() string {
 	return ""
 }
 
+func (x *Run) GetCancelledBy() string {
+	if x != nil {
+		return x.CancelledBy
+	}
+	return ""
+}
+
 type ListRunsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -2178,6 +2194,95 @@ func (*ListRunsRequest) Descriptor() ([]byte, []int) {
 	return file_compose_compose_proto_rawDescGZIP(), []int{27}
 }
 
+type CancelRunRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelRunRequest) Reset() {
+	*x = CancelRunRequest{}
+	mi := &file_compose_compose_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelRunRequest) ProtoMessage() {}
+
+func (x *CancelRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_compose_compose_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelRunRequest.ProtoReflect.Descriptor instead.
+func (*CancelRunRequest) Descriptor() ([]byte, []int) {
+	return file_compose_compose_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *CancelRunRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type CancelRunResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The run as it is once its cancel was asked for: still stopping.
+	Run           *Run `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelRunResponse) Reset() {
+	*x = CancelRunResponse{}
+	mi := &file_compose_compose_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelRunResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelRunResponse) ProtoMessage() {}
+
+func (x *CancelRunResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_compose_compose_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelRunResponse.ProtoReflect.Descriptor instead.
+func (*CancelRunResponse) Descriptor() ([]byte, []int) {
+	return file_compose_compose_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *CancelRunResponse) GetRun() *Run {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
 type ListRunsResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Runs          []*Run                 `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
@@ -2187,7 +2292,7 @@ type ListRunsResponse struct {
 
 func (x *ListRunsResponse) Reset() {
 	*x = ListRunsResponse{}
-	mi := &file_compose_compose_proto_msgTypes[28]
+	mi := &file_compose_compose_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2199,7 +2304,7 @@ func (x *ListRunsResponse) String() string {
 func (*ListRunsResponse) ProtoMessage() {}
 
 func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[28]
+	mi := &file_compose_compose_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2212,7 +2317,7 @@ func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListRunsResponse) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{28}
+	return file_compose_compose_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListRunsResponse) GetRuns() []*Run {
@@ -2347,7 +2452,7 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\x06action\x18\x01 \x01(\v2\x1c.ddash.compose.ComposeActionR\x06action\x12'\n" +
 	"\x04plan\x18\x02 \x01(\v2\x13.ddash.compose.PlanR\x04plan\"9\n" +
 	"\x11RunActionResponse\x12$\n" +
-	"\x03run\x18\x01 \x01(\v2\x12.ddash.compose.RunR\x03run\"\xa4\x03\n" +
+	"\x03run\x18\x01 \x01(\v2\x12.ddash.compose.RunR\x03run\"\xc7\x03\n" +
 	"\x03Run\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04host\x18\x02 \x01(\tR\x04host\x12\x18\n" +
@@ -2362,8 +2467,13 @@ const file_compose_compose_proto_rawDesc = "" +
 	" \x01(\v2\x1a.google.protobuf.TimestampR\x05ended\x12\x14\n" +
 	"\x05error\x18\v \x01(\tR\x05error\x12\x18\n" +
 	"\aoutcome\x18\f \x01(\tR\aoutcome\x12\x14\n" +
-	"\x05actor\x18\r \x01(\tR\x05actor\"\x11\n" +
-	"\x0fListRunsRequest\":\n" +
+	"\x05actor\x18\r \x01(\tR\x05actor\x12!\n" +
+	"\fcancelled_by\x18\x0e \x01(\tR\vcancelledBy\"\x11\n" +
+	"\x0fListRunsRequest\"\"\n" +
+	"\x10CancelRunRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"9\n" +
+	"\x11CancelRunResponse\x12$\n" +
+	"\x03run\x18\x01 \x01(\v2\x12.ddash.compose.RunR\x03run\":\n" +
 	"\x10ListRunsResponse\x12&\n" +
 	"\x04runs\x18\x01 \x03(\v2\x12.ddash.compose.RunR\x04runs*\x9d\x01\n" +
 	"\fProjectState\x12\x1d\n" +
@@ -2383,21 +2493,23 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\x06System\x12\x16\n" +
 	"\x12SYSTEM_UNSPECIFIED\x10\x00\x12\x17\n" +
 	"\x13SYSTEM_DOCKER_AGENT\x10\x01\x12\x10\n" +
-	"\fSYSTEM_DDASH\x10\x02*\x9b\x01\n" +
+	"\fSYSTEM_DDASH\x10\x02*\xb5\x01\n" +
 	"\tStepState\x12\x1a\n" +
 	"\x16STEP_STATE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12STEP_STATE_PENDING\x10\x01\x12\x16\n" +
 	"\x12STEP_STATE_RUNNING\x10\x02\x12\x13\n" +
 	"\x0fSTEP_STATE_DONE\x10\x03\x12\x15\n" +
 	"\x11STEP_STATE_FAILED\x10\x04\x12\x16\n" +
-	"\x12STEP_STATE_SKIPPED\x10\x052\xd5\x03\n" +
+	"\x12STEP_STATE_SKIPPED\x10\x05\x12\x18\n" +
+	"\x14STEP_STATE_CANCELLED\x10\x062\xad\x04\n" +
 	"\x0eComposeService\x12_\n" +
 	"\fListProjects\x12\".ddash.compose.ListProjectsRequest\x1a#.ddash.compose.ListProjectsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12Z\n" +
 	"\vCheckImages\x12!.ddash.compose.CheckImagesRequest\x1a\".ddash.compose.CheckImagesResponse\"\x04\x92\xb5\x18\x00\x12Y\n" +
 	"\n" +
 	"PlanAction\x12 .ddash.compose.PlanActionRequest\x1a!.ddash.compose.PlanActionResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12V\n" +
 	"\tRunAction\x12\x1f.ddash.compose.RunActionRequest\x1a .ddash.compose.RunActionResponse\"\x04\x92\xb5\x18\x000\x01\x12S\n" +
-	"\bListRuns\x12\x1e.ddash.compose.ListRunsRequest\x1a\x1f.ddash.compose.ListRunsResponse\"\x06\x8a\xb5\x18\x02\b\x01BCZAgithub.com/itsKontra/ddash/components/compose/composepb;composepbb\x06proto3"
+	"\bListRuns\x12\x1e.ddash.compose.ListRunsRequest\x1a\x1f.ddash.compose.ListRunsResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12V\n" +
+	"\tCancelRun\x12\x1f.ddash.compose.CancelRunRequest\x1a .ddash.compose.CancelRunResponse\"\x06\x92\xb5\x18\x02\b\x01BCZAgithub.com/itsKontra/ddash/components/compose/composepb;composepbb\x06proto3"
 
 var (
 	file_compose_compose_proto_rawDescOnce sync.Once
@@ -2412,7 +2524,7 @@ func file_compose_compose_proto_rawDescGZIP() []byte {
 }
 
 var file_compose_compose_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_compose_compose_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_compose_compose_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_compose_compose_proto_goTypes = []any{
 	(ProjectState)(0),             // 0: ddash.compose.ProjectState
 	(ImageState)(0),               // 1: ddash.compose.ImageState
@@ -2446,10 +2558,12 @@ var file_compose_compose_proto_goTypes = []any{
 	(*RunActionResponse)(nil),     // 29: ddash.compose.RunActionResponse
 	(*Run)(nil),                   // 30: ddash.compose.Run
 	(*ListRunsRequest)(nil),       // 31: ddash.compose.ListRunsRequest
-	(*ListRunsResponse)(nil),      // 32: ddash.compose.ListRunsResponse
-	(*container.Container)(nil),   // 33: ddash.container.Container
-	(*timestamppb.Timestamp)(nil), // 34: google.protobuf.Timestamp
-	(*job.Job)(nil),               // 35: ddash.job.Job
+	(*CancelRunRequest)(nil),      // 32: ddash.compose.CancelRunRequest
+	(*CancelRunResponse)(nil),     // 33: ddash.compose.CancelRunResponse
+	(*ListRunsResponse)(nil),      // 34: ddash.compose.ListRunsResponse
+	(*container.Container)(nil),   // 35: ddash.container.Container
+	(*timestamppb.Timestamp)(nil), // 36: google.protobuf.Timestamp
+	(*job.Job)(nil),               // 37: ddash.job.Job
 }
 var file_compose_compose_proto_depIdxs = []int32{
 	7,  // 0: ddash.compose.ListProjectsResponse.hosts:type_name -> ddash.compose.Host
@@ -2459,12 +2573,12 @@ var file_compose_compose_proto_depIdxs = []int32{
 	0,  // 4: ddash.compose.Project.state:type_name -> ddash.compose.ProjectState
 	9,  // 5: ddash.compose.Project.services:type_name -> ddash.compose.Service
 	10, // 6: ddash.compose.Service.containers:type_name -> ddash.compose.ProjectContainer
-	33, // 7: ddash.compose.ProjectContainer.container:type_name -> ddash.container.Container
+	35, // 7: ddash.compose.ProjectContainer.container:type_name -> ddash.container.Container
 	11, // 8: ddash.compose.ProjectContainer.image_status:type_name -> ddash.compose.ImageStatus
 	1,  // 9: ddash.compose.ImageStatus.state:type_name -> ddash.compose.ImageState
-	34, // 10: ddash.compose.ImageStatus.checked:type_name -> google.protobuf.Timestamp
-	34, // 11: ddash.compose.ImageChecks.last:type_name -> google.protobuf.Timestamp
-	34, // 12: ddash.compose.ImageChecks.next:type_name -> google.protobuf.Timestamp
+	36, // 10: ddash.compose.ImageStatus.checked:type_name -> google.protobuf.Timestamp
+	36, // 11: ddash.compose.ImageChecks.last:type_name -> google.protobuf.Timestamp
+	36, // 12: ddash.compose.ImageChecks.next:type_name -> google.protobuf.Timestamp
 	13, // 13: ddash.compose.ImageChecks.problems:type_name -> ddash.compose.RegistryProblem
 	12, // 14: ddash.compose.CheckImagesResponse.checks:type_name -> ddash.compose.ImageChecks
 	17, // 15: ddash.compose.ComposeAction.save:type_name -> ddash.compose.SaveFile
@@ -2483,25 +2597,28 @@ var file_compose_compose_proto_depIdxs = []int32{
 	30, // 28: ddash.compose.RunActionResponse.run:type_name -> ddash.compose.Run
 	24, // 29: ddash.compose.Run.steps:type_name -> ddash.compose.PlanStep
 	3,  // 30: ddash.compose.Run.states:type_name -> ddash.compose.StepState
-	35, // 31: ddash.compose.Run.job:type_name -> ddash.job.Job
-	34, // 32: ddash.compose.Run.started:type_name -> google.protobuf.Timestamp
-	34, // 33: ddash.compose.Run.ended:type_name -> google.protobuf.Timestamp
-	30, // 34: ddash.compose.ListRunsResponse.runs:type_name -> ddash.compose.Run
-	5,  // 35: ddash.compose.ComposeService.ListProjects:input_type -> ddash.compose.ListProjectsRequest
-	14, // 36: ddash.compose.ComposeService.CheckImages:input_type -> ddash.compose.CheckImagesRequest
-	26, // 37: ddash.compose.ComposeService.PlanAction:input_type -> ddash.compose.PlanActionRequest
-	28, // 38: ddash.compose.ComposeService.RunAction:input_type -> ddash.compose.RunActionRequest
-	31, // 39: ddash.compose.ComposeService.ListRuns:input_type -> ddash.compose.ListRunsRequest
-	6,  // 40: ddash.compose.ComposeService.ListProjects:output_type -> ddash.compose.ListProjectsResponse
-	15, // 41: ddash.compose.ComposeService.CheckImages:output_type -> ddash.compose.CheckImagesResponse
-	27, // 42: ddash.compose.ComposeService.PlanAction:output_type -> ddash.compose.PlanActionResponse
-	29, // 43: ddash.compose.ComposeService.RunAction:output_type -> ddash.compose.RunActionResponse
-	32, // 44: ddash.compose.ComposeService.ListRuns:output_type -> ddash.compose.ListRunsResponse
-	40, // [40:45] is the sub-list for method output_type
-	35, // [35:40] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	37, // 31: ddash.compose.Run.job:type_name -> ddash.job.Job
+	36, // 32: ddash.compose.Run.started:type_name -> google.protobuf.Timestamp
+	36, // 33: ddash.compose.Run.ended:type_name -> google.protobuf.Timestamp
+	30, // 34: ddash.compose.CancelRunResponse.run:type_name -> ddash.compose.Run
+	30, // 35: ddash.compose.ListRunsResponse.runs:type_name -> ddash.compose.Run
+	5,  // 36: ddash.compose.ComposeService.ListProjects:input_type -> ddash.compose.ListProjectsRequest
+	14, // 37: ddash.compose.ComposeService.CheckImages:input_type -> ddash.compose.CheckImagesRequest
+	26, // 38: ddash.compose.ComposeService.PlanAction:input_type -> ddash.compose.PlanActionRequest
+	28, // 39: ddash.compose.ComposeService.RunAction:input_type -> ddash.compose.RunActionRequest
+	31, // 40: ddash.compose.ComposeService.ListRuns:input_type -> ddash.compose.ListRunsRequest
+	32, // 41: ddash.compose.ComposeService.CancelRun:input_type -> ddash.compose.CancelRunRequest
+	6,  // 42: ddash.compose.ComposeService.ListProjects:output_type -> ddash.compose.ListProjectsResponse
+	15, // 43: ddash.compose.ComposeService.CheckImages:output_type -> ddash.compose.CheckImagesResponse
+	27, // 44: ddash.compose.ComposeService.PlanAction:output_type -> ddash.compose.PlanActionResponse
+	29, // 45: ddash.compose.ComposeService.RunAction:output_type -> ddash.compose.RunActionResponse
+	34, // 46: ddash.compose.ComposeService.ListRuns:output_type -> ddash.compose.ListRunsResponse
+	33, // 47: ddash.compose.ComposeService.CancelRun:output_type -> ddash.compose.CancelRunResponse
+	42, // [42:48] is the sub-list for method output_type
+	36, // [36:42] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_compose_compose_proto_init() }
@@ -2523,7 +2640,7 @@ func file_compose_compose_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_compose_compose_proto_rawDesc), len(file_compose_compose_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   29,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -46,6 +46,7 @@ const (
 	DockerAgentApiService_ListJobs_FullMethodName             = "/ddash.dockeragentapi.DockerAgentApiService/ListJobs"
 	DockerAgentApiService_GetJob_FullMethodName               = "/ddash.dockeragentapi.DockerAgentApiService/GetJob"
 	DockerAgentApiService_CollectJob_FullMethodName           = "/ddash.dockeragentapi.DockerAgentApiService/CollectJob"
+	DockerAgentApiService_CancelJob_FullMethodName            = "/ddash.dockeragentapi.DockerAgentApiService/CancelJob"
 )
 
 // DockerAgentApiServiceClient is the client API for DockerAgentApiService service.
@@ -111,9 +112,17 @@ type DockerAgentApiServiceClient interface {
 	// the Agent no longer knows the job.
 	GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error)
 	// CollectJob forgets an ended job on its Agent and returns it. It fails
-	// ABORTED with the job's error when the job failed, so the Audit Log
-	// entry of the collect records how the job ended.
+	// ABORTED with the job's error when the job failed, and CANCELED when it
+	// was cancelled, so the Audit Log entry of the collect records how the
+	// job ended.
 	CollectJob(ctx context.Context, in *CollectJobRequest, opts ...grpc.CallOption) (*CollectJobResponse, error)
+	// CancelJob stops a running Compose job: the Agent stops its command
+	// part-way, with nothing rolled back, and the job ends CANCELLED a
+	// moment later (or DONE, when it got to its end first). It returns the
+	// job as it was when asked. FAILED_PRECONDITION for a job that isn't a
+	// Compose job (the Agent's own update), one that already ended, and an
+	// Agent too old to cancel; NOT_FOUND once the Agent no longer knows it.
+	CancelJob(ctx context.Context, in *CancelJobRequest, opts ...grpc.CallOption) (*CancelJobResponse, error)
 }
 
 type dockerAgentApiServiceClient struct {
@@ -324,6 +333,16 @@ func (c *dockerAgentApiServiceClient) CollectJob(ctx context.Context, in *Collec
 	return out, nil
 }
 
+func (c *dockerAgentApiServiceClient) CancelJob(ctx context.Context, in *CancelJobRequest, opts ...grpc.CallOption) (*CancelJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelJobResponse)
+	err := c.cc.Invoke(ctx, DockerAgentApiService_CancelJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DockerAgentApiServiceServer is the server API for DockerAgentApiService service.
 // All implementations must embed UnimplementedDockerAgentApiServiceServer
 // for forward compatibility.
@@ -387,9 +406,17 @@ type DockerAgentApiServiceServer interface {
 	// the Agent no longer knows the job.
 	GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error)
 	// CollectJob forgets an ended job on its Agent and returns it. It fails
-	// ABORTED with the job's error when the job failed, so the Audit Log
-	// entry of the collect records how the job ended.
+	// ABORTED with the job's error when the job failed, and CANCELED when it
+	// was cancelled, so the Audit Log entry of the collect records how the
+	// job ended.
 	CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error)
+	// CancelJob stops a running Compose job: the Agent stops its command
+	// part-way, with nothing rolled back, and the job ends CANCELLED a
+	// moment later (or DONE, when it got to its end first). It returns the
+	// job as it was when asked. FAILED_PRECONDITION for a job that isn't a
+	// Compose job (the Agent's own update), one that already ended, and an
+	// Agent too old to cancel; NOT_FOUND once the Agent no longer knows it.
+	CancelJob(context.Context, *CancelJobRequest) (*CancelJobResponse, error)
 	mustEmbedUnimplementedDockerAgentApiServiceServer()
 }
 
@@ -459,6 +486,9 @@ func (UnimplementedDockerAgentApiServiceServer) GetJob(context.Context, *GetJobR
 }
 func (UnimplementedDockerAgentApiServiceServer) CollectJob(context.Context, *CollectJobRequest) (*CollectJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CollectJob not implemented")
+}
+func (UnimplementedDockerAgentApiServiceServer) CancelJob(context.Context, *CancelJobRequest) (*CancelJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelJob not implemented")
 }
 func (UnimplementedDockerAgentApiServiceServer) mustEmbedUnimplementedDockerAgentApiServiceServer() {}
 func (UnimplementedDockerAgentApiServiceServer) testEmbeddedByValue()                               {}
@@ -841,6 +871,24 @@ func _DockerAgentApiService_CollectJob_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DockerAgentApiService_CancelJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerAgentApiServiceServer).CancelJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerAgentApiService_CancelJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerAgentApiServiceServer).CancelJob(ctx, req.(*CancelJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DockerAgentApiService_ServiceDesc is the grpc.ServiceDesc for DockerAgentApiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -927,6 +975,10 @@ var DockerAgentApiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CollectJob",
 			Handler:    _DockerAgentApiService_CollectJob_Handler,
+		},
+		{
+			MethodName: "CancelJob",
+			Handler:    _DockerAgentApiService_CancelJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

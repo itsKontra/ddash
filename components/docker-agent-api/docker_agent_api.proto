@@ -117,10 +117,20 @@ service DockerAgentApiService {
     option (ddash.getter) = {refresh: NONE};
   }
   // CollectJob forgets an ended job on its Agent and returns it. It fails
-  // ABORTED with the job's error when the job failed, so the Audit Log
-  // entry of the collect records how the job ended.
+  // ABORTED with the job's error when the job failed, and CANCELED when it
+  // was cancelled, so the Audit Log entry of the collect records how the
+  // job ended.
   rpc CollectJob(CollectJobRequest) returns (CollectJobResponse) {
     option (ddash.action) = {};
+  }
+  // CancelJob stops a running Compose job: the Agent stops its command
+  // part-way, with nothing rolled back, and the job ends CANCELLED a
+  // moment later (or DONE, when it got to its end first). It returns the
+  // job as it was when asked. FAILED_PRECONDITION for a job that isn't a
+  // Compose job (the Agent's own update), one that already ended, and an
+  // Agent too old to cancel; NOT_FOUND once the Agent no longer knows it.
+  rpc CancelJob(CancelJobRequest) returns (CancelJobResponse) {
+    option (ddash.action) = {disruptive: true};
   }
 }
 
@@ -461,5 +471,14 @@ message CollectJobRequest {
 }
 
 message CollectJobResponse {
+  ddash.job.Job job = 1;
+}
+
+message CancelJobRequest {
+  string host = 1;
+  string id = 2;
+}
+
+message CancelJobResponse {
   ddash.job.Job job = 1;
 }

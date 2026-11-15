@@ -31,6 +31,7 @@ const (
 	ComposeService_PlanAction_FullMethodName   = "/ddash.compose.ComposeService/PlanAction"
 	ComposeService_RunAction_FullMethodName    = "/ddash.compose.ComposeService/RunAction"
 	ComposeService_ListRuns_FullMethodName     = "/ddash.compose.ComposeService/ListRuns"
+	ComposeService_CancelRun_FullMethodName    = "/ddash.compose.ComposeService/CancelRun"
 )
 
 // ComposeServiceClient is the client API for ComposeService service.
@@ -53,11 +54,19 @@ type ComposeServiceClient interface {
 	// differs. Otherwise it starts a run, which goes on after the Action
 	// returns: it streams the run's state each time a step changes for up
 	// to 45 s; a run still going then is followed in ListRuns. It stops at
-	// the first failed step, with nothing rolled back.
+	// the first failed step, with nothing rolled back, and fails ABORTED; a
+	// run cancelled while it streams fails CANCELED.
 	RunAction(ctx context.Context, in *RunActionRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[RunActionResponse], error)
 	// ListRuns returns the runs in flight and those that ended in the last
 	// 15 minutes, from memory.
 	ListRuns(ctx context.Context, in *ListRunsRequest, opts ...grpc.CallOption) (*ListRunsResponse, error)
+	// CancelRun stops a run in flight for the Operator: the Compose command
+	// its Docker Agent runs now is stopped part-way, no later step runs, and
+	// nothing is rolled back. The run ends a moment later, cancelled. It
+	// fails FAILED_PRECONDITION for a run that ended or is being cancelled
+	// already, and with the Agent's refusal (one too old to cancel asks for
+	// its update), leaving the run going; NOT_FOUND for no such run.
+	CancelRun(ctx context.Context, in *CancelRunRequest, opts ...grpc.CallOption) (*CancelRunResponse, error)
 }
 
 type composeServiceClient struct {
@@ -127,6 +136,16 @@ func (c *composeServiceClient) ListRuns(ctx context.Context, in *ListRunsRequest
 	return out, nil
 }
 
+func (c *composeServiceClient) CancelRun(ctx context.Context, in *CancelRunRequest, opts ...grpc.CallOption) (*CancelRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelRunResponse)
+	err := c.cc.Invoke(ctx, ComposeService_CancelRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ComposeServiceServer is the server API for ComposeService service.
 // All implementations must embed UnimplementedComposeServiceServer
 // for forward compatibility.
@@ -147,11 +166,19 @@ type ComposeServiceServer interface {
 	// differs. Otherwise it starts a run, which goes on after the Action
 	// returns: it streams the run's state each time a step changes for up
 	// to 45 s; a run still going then is followed in ListRuns. It stops at
-	// the first failed step, with nothing rolled back.
+	// the first failed step, with nothing rolled back, and fails ABORTED; a
+	// run cancelled while it streams fails CANCELED.
 	RunAction(*RunActionRequest, grpc.ServerStreamingServer[RunActionResponse]) error
 	// ListRuns returns the runs in flight and those that ended in the last
 	// 15 minutes, from memory.
 	ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error)
+	// CancelRun stops a run in flight for the Operator: the Compose command
+	// its Docker Agent runs now is stopped part-way, no later step runs, and
+	// nothing is rolled back. The run ends a moment later, cancelled. It
+	// fails FAILED_PRECONDITION for a run that ended or is being cancelled
+	// already, and with the Agent's refusal (one too old to cancel asks for
+	// its update), leaving the run going; NOT_FOUND for no such run.
+	CancelRun(context.Context, *CancelRunRequest) (*CancelRunResponse, error)
 	mustEmbedUnimplementedComposeServiceServer()
 }
 
@@ -176,6 +203,9 @@ func (UnimplementedComposeServiceServer) RunAction(*RunActionRequest, grpc.Serve
 }
 func (UnimplementedComposeServiceServer) ListRuns(context.Context, *ListRunsRequest) (*ListRunsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListRuns not implemented")
+}
+func (UnimplementedComposeServiceServer) CancelRun(context.Context, *CancelRunRequest) (*CancelRunResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelRun not implemented")
 }
 func (UnimplementedComposeServiceServer) mustEmbedUnimplementedComposeServiceServer() {}
 func (UnimplementedComposeServiceServer) testEmbeddedByValue()                        {}
@@ -281,6 +311,24 @@ func _ComposeService_ListRuns_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ComposeService_CancelRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ComposeServiceServer).CancelRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ComposeService_CancelRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ComposeServiceServer).CancelRun(ctx, req.(*CancelRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ComposeService_ServiceDesc is the grpc.ServiceDesc for ComposeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -303,6 +351,10 @@ var ComposeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListRuns",
 			Handler:    _ComposeService_ListRuns_Handler,
+		},
+		{
+			MethodName: "CancelRun",
+			Handler:    _ComposeService_CancelRun_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

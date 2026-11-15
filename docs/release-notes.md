@@ -5,6 +5,14 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- **Cancel run**: a Compose Project's run in flight (in its Plan Dialog and
+  on its Page) can now be cancelled. Its Compose command is stopped
+  part-way, its later steps don't run, nothing is rolled back, and the run
+  says what it may have left half-done; run it again to finish. Only
+  Compose runs: a package update and an Agent's own update can't be
+  cancelled. It needs each Docker Agent on this Release: **Update Agent**
+  on the Docker Page first, otherwise the cancel is refused with "update
+  the Agent".
 - The shell's page now carries a full Content-Security-Policy: it runs
   scripts and loads styles only from ddash itself, connects only to
   ddash, and shows images from ddash or any http(s) site (Apps'

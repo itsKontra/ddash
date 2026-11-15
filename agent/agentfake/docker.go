@@ -41,6 +41,9 @@ type Options struct {
 	Release string
 	// StepDelay is how long each Compose or package step takes.
 	StepDelay time.Duration
+	// NoCancel answers a job's cancel as an Agent from before cancel
+	// existed does: 404 page not found.
+	NoCancel bool
 }
 
 // Docker is a fake Docker Agent: a Compose root seeded from stacks, and
@@ -64,6 +67,7 @@ type Engine struct {
 	registry map[string]string
 	calls    []string
 	fail     map[string]string
+	hold     map[string]chan struct{}
 	seq      int
 }
 
@@ -108,7 +112,7 @@ func NewDocker(root string, seed DockerSeed, o Options) (*Docker, error) {
 			return nil, err
 		}
 	}
-	e := &Engine{delay: o.StepDelay, images: map[string]string{}, registry: map[string]string{}, fail: map[string]string{}}
+	e := &Engine{delay: o.StepDelay, images: map[string]string{}, registry: map[string]string{}, fail: map[string]string{}, hold: map[string]chan struct{}{}}
 	for _, img := range seed.Images {
 		e.images[img.Ref] = img.ID
 		e.registry[img.Ref] = cmpOr(img.Latest, img.ID)
@@ -223,6 +227,18 @@ func (e *Engine) FailNext(cmd, message string) {
 	e.fail[cmd] = message
 }
 
+// HoldNext makes the next Compose command named cmd run until it is
+// stopped, as a pull of a large image runs on: it ends only when its job
+// is cancelled or times out, changing nothing. The channel closes once it
+// runs.
+func (e *Engine) HoldNext(cmd string) <-chan struct{} {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	running := make(chan struct{})
+	e.hold[cmd] = running
+	return running
+}
+
 // Calls returns every Compose command received, in order.
 func (e *Engine) Calls() []string {
 	e.mu.Lock()
@@ -327,7 +343,15 @@ func (e *Engine) Run(ctx context.Context, _ string, args []string, out func(stri
 	e.mu.Lock()
 	msg, failing := e.fail[cmd]
 	delete(e.fail, cmd)
+	held, holding := e.hold[cmd]
+	delete(e.hold, cmd)
 	e.mu.Unlock()
+	if holding {
+		out(" Pulling fs layer")
+		close(held)
+		<-ctx.Done()
+		return errors.New("signal: killed") // as exec reports a command killed with its ctx
+	}
 	if failing {
 		e.sleep(ctx)
 		out(msg)
@@ -600,6 +624,10 @@ func (s *server) current() *agent.Server {
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if s.o.NoCancel && r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, agent.PathJobs+"/") && strings.HasSuffix(r.URL.Path, "/cancel") {
+		http.NotFound(w, r)
+		return
+	}
 	if r.Method == http.MethodPost && r.URL.Path == agent.PathPair {
 		var req agent.PairRequest
 		b, _ := io.ReadAll(io.LimitReader(r.Body, 1<<20))

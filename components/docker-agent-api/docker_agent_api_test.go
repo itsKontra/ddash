@@ -148,6 +148,98 @@ func TestOutdatedAgentAllowsOnlyUpdate(t *testing.T) {
 	}
 }
 
+func TestACancelledComposeJobEndsCancelledAndItsCollectSaysSo(t *testing.T) {
+	ctx := context.Background()
+	c, fake, u := setup(t)
+	if _, err := c.AddAgent(ctx, &pb.AddAgentRequest{Name: "media", Url: u, Roots: []string{fake.Root}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.PairAgent(ctx, &pb.PairAgentRequest{Name: "media"}); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(fake.Root, "media/compose.yaml")
+	pulling := fake.HoldNext("pull")
+	pull, err := c.PullProject(ctx, &pb.PullProjectRequest{Target: &pb.ComposeTarget{Host: "media", Project: "media", WorkingDir: filepath.Dir(file), File: file}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-pulling
+	if _, err := c.CancelJob(ctx, &pb.CancelJobRequest{Host: "media", Id: pull.GetJob().GetId()}); err != nil {
+		t.Fatal(err)
+	}
+	j := waitJob(t, c, pull.GetJob().GetId())
+	if j.GetState() != jobpb.State_STATE_CANCELLED || j.GetError() != "" || j.GetSteps()[0].GetState() != jobpb.State_STATE_CANCELLED {
+		t.Fatalf("the cancelled pull = %v, want it and its step cancelled", j)
+	}
+	if _, err := c.CancelJob(ctx, &pb.CancelJobRequest{Host: "media", Id: j.GetId()}); status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("cancelling it again once ended: %v, want FailedPrecondition", err)
+	}
+	if _, err := c.CollectJob(ctx, &pb.CollectJobRequest{Host: "media", Id: j.GetId()}); status.Code(err) != codes.Canceled {
+		t.Errorf("collecting a cancelled job: %v, want Canceled", err)
+	}
+}
+
+func TestCancellingOnAnAgentOlderThanCancelAsksForItsUpdate(t *testing.T) {
+	ctx := context.Background()
+	fake, err := agentfake.NewDocker(t.TempDir(), agentfake.DockerSeed{
+		Stacks: []agentfake.Stack{{Dir: "media", Compose: jellyfin, Running: true}},
+	}, agentfake.Options{StateDir: t.TempDir(), Release: "dev", NoCancel: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, stop, err := fake.Serve("127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(stop)
+	h := sdktest.New(t, dockeragentapi.Definition())
+	h.MustStart(&pb.DockerAgentApiConfig{})
+	c := pb.NewDockerAgentApiServiceClient(h.Conn)
+	if _, err := c.AddAgent(ctx, &pb.AddAgentRequest{Name: "media", Url: u, Roots: []string{fake.Root}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.PairAgent(ctx, &pb.PairAgentRequest{Name: "media"}); err != nil {
+		t.Fatal(err)
+	}
+	file := filepath.Join(fake.Root, "media/compose.yaml")
+	pulling := fake.HoldNext("pull")
+	pull, err := c.PullProject(ctx, &pb.PullProjectRequest{Target: &pb.ComposeTarget{Host: "media", Project: "media", WorkingDir: filepath.Dir(file), File: file}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-pulling
+	_, err = c.CancelJob(ctx, &pb.CancelJobRequest{Host: "media", Id: pull.GetJob().GetId()})
+	if status.Code(err) != codes.FailedPrecondition || !contains(status.Convert(err).Message(), "too old to cancel a job: update the Agent") {
+		t.Fatalf("cancel on an old Agent: %v, want FailedPrecondition asking for its update", err)
+	}
+	if j, err := c.GetJob(ctx, &pb.GetJobRequest{Host: "media", Id: pull.GetJob().GetId()}); err != nil || j.GetJob().GetState() != jobpb.State_STATE_RUNNING {
+		t.Errorf("the job after the refused cancel: %v, %v; want still running", j, err)
+	}
+}
+
+func TestCancellingOnAnAgentOfAnotherReleaseAsksForItsUpdate(t *testing.T) {
+	ctx := context.Background()
+	fake, err := agentfake.NewDocker(t.TempDir(), agentfake.DockerSeed{}, agentfake.Options{StateDir: t.TempDir(), Release: "v0.0.1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, stop, _ := fake.Serve("127.0.0.1:0")
+	t.Cleanup(stop)
+	h := sdktest.New(t, dockeragentapi.Definition())
+	h.MustStart(&pb.DockerAgentApiConfig{})
+	c := pb.NewDockerAgentApiServiceClient(h.Conn)
+	if _, err := c.AddAgent(ctx, &pb.AddAgentRequest{Name: "old", Url: u, Roots: []string{fake.Root}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := c.PairAgent(ctx, &pb.PairAgentRequest{Name: "old"}); err != nil {
+		t.Fatal(err)
+	}
+	_, err = c.CancelJob(ctx, &pb.CancelJobRequest{Host: "old", Id: "job-1"})
+	if status.Code(err) != codes.FailedPrecondition || !contains(status.Convert(err).Message(), "update the Agent") {
+		t.Fatalf("cancel on an outdated Agent: %v, want FailedPrecondition asking for its update", err)
+	}
+}
+
 func waitJob(t *testing.T, c pb.DockerAgentApiServiceClient, id string) *jobpb.Job {
 	t.Helper()
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
