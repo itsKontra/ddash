@@ -8,6 +8,8 @@ import (
 	"testing/synctest"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -22,14 +24,14 @@ import (
 )
 
 // fakeNotify is notify as checks sees it: it records the Notifications
-// handed to Send, without their category, and fails them while down
+// handed to Send and fails them while down
 // (every channel failed). Like notify it refuses a Notification without
 // a category, and so does it one in any category but Checks.
 type fakeNotify struct {
 	notifypb.NotifyServiceClient
 
 	mu       sync.Mutex
-	sent     []*notifypb.Notification
+	sent     []*notificationpb.Notification
 	attempts []time.Time
 	down     bool
 }
@@ -39,13 +41,12 @@ func (f *fakeNotify) Send(_ context.Context, req *notifypb.SendRequest, _ ...grp
 	defer f.mu.Unlock()
 	f.attempts = append(f.attempts, time.Now())
 	n := proto.CloneOf(req.GetNotification())
-	if n.GetCategory() != notifypb.Category_CATEGORY_CHECKS {
-		return nil, status.Errorf(codes.InvalidArgument, "category %v, want Checks", n.GetCategory())
+	if req.GetCategory() != notifypb.Category_CATEGORY_CHECKS {
+		return nil, status.Errorf(codes.InvalidArgument, "category %v, want Checks", req.GetCategory())
 	}
 	if f.down {
 		return nil, status.Error(codes.Unavailable, "ntfy: ntfy answered 502: bad gateway; Telegram: Telegram answered 502: Bad Gateway")
 	}
-	n.Category = notifypb.Category_CATEGORY_UNSPECIFIED
 	f.sent = append(f.sent, n)
 	return &notifypb.SendResponse{Deliveries: []*notifypb.Delivery{{Channel: "ntfy", State: notifypb.DeliveryState_DELIVERY_STATE_SENT}}}, nil
 }
@@ -57,10 +58,10 @@ func (f *fakeNotify) setDown(down bool) {
 }
 
 // notifications returns what was delivered so far.
-func (f *fakeNotify) notifications() []*notifypb.Notification {
+func (f *fakeNotify) notifications() []*notificationpb.Notification {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	return append([]*notifypb.Notification(nil), f.sent...)
+	return append([]*notificationpb.Notification(nil), f.sent...)
 }
 
 func (f *fakeNotify) tries() []time.Time {
@@ -69,7 +70,7 @@ func (f *fakeNotify) tries() []time.Time {
 	return append([]time.Time(nil), f.attempts...)
 }
 
-func titles(ns []*notifypb.Notification) []string {
+func titles(ns []*notificationpb.Notification) []string {
 	var out []string
 	for _, n := range ns {
 		out = append(out, n.GetTitle())
@@ -125,7 +126,7 @@ func TestOneNotificationOnConfirmedDownAndOneOnRecovery(t *testing.T) {
 		nextBeat(t, c, id)
 
 		click := fmt.Sprintf("%s/checks/%d", sdktest.PublicURL, id)
-		want := []*notifypb.Notification{{Title: "NAS down", Message: "connection refused", Priority: 4, Tags: []string{"red_circle"}, Click: click}}
+		want := []*notificationpb.Notification{{Title: "NAS down", Message: "connection refused", Priority: notificationpb.Priority_PRIORITY_HIGH, Tags: []string{"red_circle"}, Click: click}}
 		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Fatalf("after 2 more down beats (-want +got):\n%s", diff)
 		}
@@ -135,7 +136,7 @@ func TestOneNotificationOnConfirmedDownAndOneOnRecovery(t *testing.T) {
 		after(checks.GroupWindow + tick11())
 
 		// Up 3 beats after it went down: 180 to 198 s.
-		want = append(want, &notifypb.Notification{Title: "NAS up again", Message: "Down for 3 min (connection refused)", Priority: 3, Tags: []string{"green_circle"}, Click: click})
+		want = append(want, &notificationpb.Notification{Title: "NAS up again", Message: "Down for 3 min (connection refused)", Priority: notificationpb.Priority_PRIORITY_DEFAULT, Tags: []string{"green_circle"}, Click: click})
 		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("after recovering (-want +got):\n%s", diff)
 		}

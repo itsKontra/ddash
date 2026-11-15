@@ -5,6 +5,7 @@ syntax = "proto3";
 package ddash.ntfyapi;
 
 import "ddash/config/config.proto";
+import "ddash/notification/notification.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipb";
@@ -50,21 +51,8 @@ service NtfyApiService {
   }
 }
 
-message Notification {
-  // e.g. "Jellyfin down".
-  string title = 1;
-  // The message body, e.g. "timeout".
-  string message = 2;
-  // 1 (min) to 5 (max); 0 leaves ntfy's default, 3.
-  int32 priority = 3;
-  // ntfy tags; emoji shortcodes such as "red_circle" render as emoji.
-  repeated string tags = 4;
-  // The URL the phone opens when the Notification is tapped.
-  string click = 5;
-}
-
 message SendRequest {
-  Notification notification = 1;
+  ddash.notification.Notification notification = 1;
 }
 
 message SendResponse {

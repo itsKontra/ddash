@@ -15,6 +15,8 @@ import (
 	"testing"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -61,7 +63,7 @@ func (f *checksFake) EndMaintenance(_ context.Context, req *checkspb.EndMaintena
 type notifyFake struct {
 	notifypb.NotifyServiceClient
 	mu   sync.Mutex
-	sent []*notifypb.Notification
+	sent []*notificationpb.Notification
 }
 
 func (f *notifyFake) Send(_ context.Context, req *notifypb.SendRequest, _ ...grpc.CallOption) (*notifypb.SendResponse, error) {

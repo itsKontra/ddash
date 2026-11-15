@@ -5,6 +5,7 @@ syntax = "proto3";
 package ddash.telegramapi;
 
 import "ddash/config/config.proto";
+import "ddash/notification/notification.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/telegram-api/telegramapipb;telegramapipb";
@@ -54,22 +55,8 @@ service TelegramApiService {
   }
 }
 
-message Notification {
-  // e.g. "Jellyfin down"; shown in bold.
-  string title = 1;
-  // The message body, e.g. "timeout".
-  string message = 2;
-  // 1 (min) to 5 (max), as ntfy's; 1 and 2 arrive silently. 0 is 3.
-  int32 priority = 3;
-  // ntfy's emoji shortcodes ("red_circle", "green_circle", "warning",
-  // "white_check_mark"); a known one leads the title as its emoji.
-  repeated string tags = 4;
-  // The URL the message's "Open in ddash" link opens; empty for none.
-  string click = 5;
-}
-
 message SendRequest {
-  Notification notification = 1;
+  ddash.notification.Notification notification = 1;
 }
 
 message SendResponse {

@@ -14,6 +14,7 @@ package notifypb
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	notification "github.com/itsKontra/ddash/proto/ddash/notification"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -227,105 +228,18 @@ func (x *NotifyConfig) GetTelegramActionOutcomes() bool {
 	return false
 }
 
-type Notification struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// e.g. "Jellyfin down".
-	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	// The message body, e.g. "timeout".
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// 1 (min) to 5 (max); 0 leaves the channel's default, 3.
-	Priority int32 `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
-	// ntfy's emoji shortcodes, e.g. "red_circle".
-	Tags []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
-	// The ddash URL the Notification opens, e.g. a Check's detail.
-	Click         string   `protobuf:"bytes,5,opt,name=click,proto3" json:"click,omitempty"`
-	Category      Category `protobuf:"varint,6,opt,name=category,proto3,enum=ddash.notify.Category" json:"category,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Notification) Reset() {
-	*x = Notification{}
-	mi := &file_notify_notify_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Notification) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Notification) ProtoMessage() {}
-
-func (x *Notification) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Notification.ProtoReflect.Descriptor instead.
-func (*Notification) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Notification) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *Notification) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *Notification) GetPriority() int32 {
-	if x != nil {
-		return x.Priority
-	}
-	return 0
-}
-
-func (x *Notification) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
-func (x *Notification) GetClick() string {
-	if x != nil {
-		return x.Click
-	}
-	return ""
-}
-
-func (x *Notification) GetCategory() Category {
-	if x != nil {
-		return x.Category
-	}
-	return Category_CATEGORY_UNSPECIFIED
-}
-
 type SendRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Notification  *Notification          `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
+	state        protoimpl.MessageState     `protogen:"open.v1"`
+	Notification *notification.Notification `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
+	// What it is about; required: each channel's filter decides by it.
+	Category      Category `protobuf:"varint,2,opt,name=category,proto3,enum=ddash.notify.Category" json:"category,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendRequest) Reset() {
 	*x = SendRequest{}
-	mi := &file_notify_notify_proto_msgTypes[2]
+	mi := &file_notify_notify_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -337,7 +251,7 @@ func (x *SendRequest) String() string {
 func (*SendRequest) ProtoMessage() {}
 
 func (x *SendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[2]
+	mi := &file_notify_notify_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -350,14 +264,21 @@ func (x *SendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
 func (*SendRequest) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{2}
+	return file_notify_notify_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SendRequest) GetNotification() *Notification {
+func (x *SendRequest) GetNotification() *notification.Notification {
 	if x != nil {
 		return x.Notification
 	}
 	return nil
+}
+
+func (x *SendRequest) GetCategory() Category {
+	if x != nil {
+		return x.Category
+	}
+	return Category_CATEGORY_UNSPECIFIED
 }
 
 type SendResponse struct {
@@ -370,7 +291,7 @@ type SendResponse struct {
 
 func (x *SendResponse) Reset() {
 	*x = SendResponse{}
-	mi := &file_notify_notify_proto_msgTypes[3]
+	mi := &file_notify_notify_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -382,7 +303,7 @@ func (x *SendResponse) String() string {
 func (*SendResponse) ProtoMessage() {}
 
 func (x *SendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[3]
+	mi := &file_notify_notify_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -395,7 +316,7 @@ func (x *SendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
 func (*SendResponse) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{3}
+	return file_notify_notify_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SendResponse) GetDeliveries() []*Delivery {
@@ -418,7 +339,7 @@ type Delivery struct {
 
 func (x *Delivery) Reset() {
 	*x = Delivery{}
-	mi := &file_notify_notify_proto_msgTypes[4]
+	mi := &file_notify_notify_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -430,7 +351,7 @@ func (x *Delivery) String() string {
 func (*Delivery) ProtoMessage() {}
 
 func (x *Delivery) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[4]
+	mi := &file_notify_notify_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,7 +364,7 @@ func (x *Delivery) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Delivery.ProtoReflect.Descriptor instead.
 func (*Delivery) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{4}
+	return file_notify_notify_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Delivery) GetChannel() string {
@@ -475,7 +396,7 @@ type ListChannelsRequest struct {
 
 func (x *ListChannelsRequest) Reset() {
 	*x = ListChannelsRequest{}
-	mi := &file_notify_notify_proto_msgTypes[5]
+	mi := &file_notify_notify_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -487,7 +408,7 @@ func (x *ListChannelsRequest) String() string {
 func (*ListChannelsRequest) ProtoMessage() {}
 
 func (x *ListChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[5]
+	mi := &file_notify_notify_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -500,7 +421,7 @@ func (x *ListChannelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChannelsRequest.ProtoReflect.Descriptor instead.
 func (*ListChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{5}
+	return file_notify_notify_proto_rawDescGZIP(), []int{4}
 }
 
 type ListChannelsResponse struct {
@@ -512,7 +433,7 @@ type ListChannelsResponse struct {
 
 func (x *ListChannelsResponse) Reset() {
 	*x = ListChannelsResponse{}
-	mi := &file_notify_notify_proto_msgTypes[6]
+	mi := &file_notify_notify_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -524,7 +445,7 @@ func (x *ListChannelsResponse) String() string {
 func (*ListChannelsResponse) ProtoMessage() {}
 
 func (x *ListChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[6]
+	mi := &file_notify_notify_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -537,7 +458,7 @@ func (x *ListChannelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListChannelsResponse.ProtoReflect.Descriptor instead.
 func (*ListChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{6}
+	return file_notify_notify_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListChannelsResponse) GetChannels() []*Channel {
@@ -570,7 +491,7 @@ type Channel struct {
 
 func (x *Channel) Reset() {
 	*x = Channel{}
-	mi := &file_notify_notify_proto_msgTypes[7]
+	mi := &file_notify_notify_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -582,7 +503,7 @@ func (x *Channel) String() string {
 func (*Channel) ProtoMessage() {}
 
 func (x *Channel) ProtoReflect() protoreflect.Message {
-	mi := &file_notify_notify_proto_msgTypes[7]
+	mi := &file_notify_notify_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -595,7 +516,7 @@ func (x *Channel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Channel.ProtoReflect.Descriptor instead.
 func (*Channel) Descriptor() ([]byte, []int) {
-	return file_notify_notify_proto_rawDescGZIP(), []int{7}
+	return file_notify_notify_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Channel) GetName() string {
@@ -651,7 +572,7 @@ var File_notify_notify_proto protoreflect.FileDescriptor
 
 const file_notify_notify_proto_rawDesc = "" +
 	"\n" +
-	"\x13notify/notify.proto\x12\fddash.notify\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xb2\b\n" +
+	"\x13notify/notify.proto\x12\fddash.notify\x1a\x19ddash/config/config.proto\x1a%ddash/notification/notification.proto\x1a\x13ddash/options.proto\"\xb2\b\n" +
 	"\fNotifyConfig\x12\x86\x01\n" +
 	"\vntfy_checks\x18\x01 \x01(\bB`\x9a\xb5\x18\\\n" +
 	"\x04true\x1a\fntfy: Checks\"FA Check going down or up again, Flapping, or its certificate expiring.H\x00R\n" +
@@ -671,16 +592,10 @@ const file_notify_notify_proto_rawDesc = "" +
 	"\x15_ntfy_action_outcomesB\x12\n" +
 	"\x10_telegram_checksB\x19\n" +
 	"\x17_telegram_image_updatesB\x1b\n" +
-	"\x19_telegram_action_outcomes\"\xb8\x01\n" +
-	"\fNotification\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1a\n" +
-	"\bpriority\x18\x03 \x01(\x05R\bpriority\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x14\n" +
-	"\x05click\x18\x05 \x01(\tR\x05click\x122\n" +
-	"\bcategory\x18\x06 \x01(\x0e2\x16.ddash.notify.CategoryR\bcategory\"M\n" +
-	"\vSendRequest\x12>\n" +
-	"\fnotification\x18\x01 \x01(\v2\x1a.ddash.notify.NotificationR\fnotification\"F\n" +
+	"\x19_telegram_action_outcomes\"\x87\x01\n" +
+	"\vSendRequest\x12D\n" +
+	"\fnotification\x18\x01 \x01(\v2 .ddash.notification.NotificationR\fnotification\x122\n" +
+	"\bcategory\x18\x02 \x01(\x0e2\x16.ddash.notify.CategoryR\bcategory\"F\n" +
 	"\fSendResponse\x126\n" +
 	"\n" +
 	"deliveries\x18\x01 \x03(\v2\x16.ddash.notify.DeliveryR\n" +
@@ -730,30 +645,30 @@ func file_notify_notify_proto_rawDescGZIP() []byte {
 }
 
 var file_notify_notify_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_notify_notify_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_notify_notify_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_notify_notify_proto_goTypes = []any{
-	(Category)(0),                // 0: ddash.notify.Category
-	(DeliveryState)(0),           // 1: ddash.notify.DeliveryState
-	(*NotifyConfig)(nil),         // 2: ddash.notify.NotifyConfig
-	(*Notification)(nil),         // 3: ddash.notify.Notification
-	(*SendRequest)(nil),          // 4: ddash.notify.SendRequest
-	(*SendResponse)(nil),         // 5: ddash.notify.SendResponse
-	(*Delivery)(nil),             // 6: ddash.notify.Delivery
-	(*ListChannelsRequest)(nil),  // 7: ddash.notify.ListChannelsRequest
-	(*ListChannelsResponse)(nil), // 8: ddash.notify.ListChannelsResponse
-	(*Channel)(nil),              // 9: ddash.notify.Channel
+	(Category)(0),                     // 0: ddash.notify.Category
+	(DeliveryState)(0),                // 1: ddash.notify.DeliveryState
+	(*NotifyConfig)(nil),              // 2: ddash.notify.NotifyConfig
+	(*SendRequest)(nil),               // 3: ddash.notify.SendRequest
+	(*SendResponse)(nil),              // 4: ddash.notify.SendResponse
+	(*Delivery)(nil),                  // 5: ddash.notify.Delivery
+	(*ListChannelsRequest)(nil),       // 6: ddash.notify.ListChannelsRequest
+	(*ListChannelsResponse)(nil),      // 7: ddash.notify.ListChannelsResponse
+	(*Channel)(nil),                   // 8: ddash.notify.Channel
+	(*notification.Notification)(nil), // 9: ddash.notification.Notification
 }
 var file_notify_notify_proto_depIdxs = []int32{
-	0, // 0: ddash.notify.Notification.category:type_name -> ddash.notify.Category
-	3, // 1: ddash.notify.SendRequest.notification:type_name -> ddash.notify.Notification
-	6, // 2: ddash.notify.SendResponse.deliveries:type_name -> ddash.notify.Delivery
+	9, // 0: ddash.notify.SendRequest.notification:type_name -> ddash.notification.Notification
+	0, // 1: ddash.notify.SendRequest.category:type_name -> ddash.notify.Category
+	5, // 2: ddash.notify.SendResponse.deliveries:type_name -> ddash.notify.Delivery
 	1, // 3: ddash.notify.Delivery.state:type_name -> ddash.notify.DeliveryState
-	9, // 4: ddash.notify.ListChannelsResponse.channels:type_name -> ddash.notify.Channel
+	8, // 4: ddash.notify.ListChannelsResponse.channels:type_name -> ddash.notify.Channel
 	0, // 5: ddash.notify.Channel.categories:type_name -> ddash.notify.Category
-	4, // 6: ddash.notify.NotifyService.Send:input_type -> ddash.notify.SendRequest
-	7, // 7: ddash.notify.NotifyService.ListChannels:input_type -> ddash.notify.ListChannelsRequest
-	5, // 8: ddash.notify.NotifyService.Send:output_type -> ddash.notify.SendResponse
-	8, // 9: ddash.notify.NotifyService.ListChannels:output_type -> ddash.notify.ListChannelsResponse
+	3, // 6: ddash.notify.NotifyService.Send:input_type -> ddash.notify.SendRequest
+	6, // 7: ddash.notify.NotifyService.ListChannels:input_type -> ddash.notify.ListChannelsRequest
+	4, // 8: ddash.notify.NotifyService.Send:output_type -> ddash.notify.SendResponse
+	7, // 9: ddash.notify.NotifyService.ListChannels:output_type -> ddash.notify.ListChannelsResponse
 	8, // [8:10] is the sub-list for method output_type
 	6, // [6:8] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
@@ -773,7 +688,7 @@ func file_notify_notify_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_notify_notify_proto_rawDesc), len(file_notify_notify_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   8,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

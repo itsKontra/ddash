@@ -12,6 +12,7 @@ package ntfyapipb
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	notification "github.com/itsKontra/ddash/proto/ddash/notification"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -90,97 +91,16 @@ func (x *NtfyApiConfig) GetToken() string {
 	return ""
 }
 
-type Notification struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// e.g. "Jellyfin down".
-	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	// The message body, e.g. "timeout".
-	Message string `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	// 1 (min) to 5 (max); 0 leaves ntfy's default, 3.
-	Priority int32 `protobuf:"varint,3,opt,name=priority,proto3" json:"priority,omitempty"`
-	// ntfy tags; emoji shortcodes such as "red_circle" render as emoji.
-	Tags []string `protobuf:"bytes,4,rep,name=tags,proto3" json:"tags,omitempty"`
-	// The URL the phone opens when the Notification is tapped.
-	Click         string `protobuf:"bytes,5,opt,name=click,proto3" json:"click,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Notification) Reset() {
-	*x = Notification{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Notification) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Notification) ProtoMessage() {}
-
-func (x *Notification) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Notification.ProtoReflect.Descriptor instead.
-func (*Notification) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *Notification) GetTitle() string {
-	if x != nil {
-		return x.Title
-	}
-	return ""
-}
-
-func (x *Notification) GetMessage() string {
-	if x != nil {
-		return x.Message
-	}
-	return ""
-}
-
-func (x *Notification) GetPriority() int32 {
-	if x != nil {
-		return x.Priority
-	}
-	return 0
-}
-
-func (x *Notification) GetTags() []string {
-	if x != nil {
-		return x.Tags
-	}
-	return nil
-}
-
-func (x *Notification) GetClick() string {
-	if x != nil {
-		return x.Click
-	}
-	return ""
-}
-
 type SendRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Notification  *Notification          `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
+	state         protoimpl.MessageState     `protogen:"open.v1"`
+	Notification  *notification.Notification `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SendRequest) Reset() {
 	*x = SendRequest{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[2]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -192,7 +112,7 @@ func (x *SendRequest) String() string {
 func (*SendRequest) ProtoMessage() {}
 
 func (x *SendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[2]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -205,10 +125,10 @@ func (x *SendRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
 func (*SendRequest) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{2}
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *SendRequest) GetNotification() *Notification {
+func (x *SendRequest) GetNotification() *notification.Notification {
 	if x != nil {
 		return x.Notification
 	}
@@ -225,7 +145,7 @@ type SendResponse struct {
 
 func (x *SendResponse) Reset() {
 	*x = SendResponse{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[3]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -237,7 +157,7 @@ func (x *SendResponse) String() string {
 func (*SendResponse) ProtoMessage() {}
 
 func (x *SendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[3]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -250,7 +170,7 @@ func (x *SendResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
 func (*SendResponse) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{3}
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *SendResponse) GetId() string {
@@ -268,7 +188,7 @@ type SendTestRequest struct {
 
 func (x *SendTestRequest) Reset() {
 	*x = SendTestRequest{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[4]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -280,7 +200,7 @@ func (x *SendTestRequest) String() string {
 func (*SendTestRequest) ProtoMessage() {}
 
 func (x *SendTestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[4]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -293,7 +213,7 @@ func (x *SendTestRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendTestRequest.ProtoReflect.Descriptor instead.
 func (*SendTestRequest) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{4}
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{3}
 }
 
 type SendTestResponse struct {
@@ -306,7 +226,7 @@ type SendTestResponse struct {
 
 func (x *SendTestResponse) Reset() {
 	*x = SendTestResponse{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[5]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -318,7 +238,7 @@ func (x *SendTestResponse) String() string {
 func (*SendTestResponse) ProtoMessage() {}
 
 func (x *SendTestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[5]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -331,7 +251,7 @@ func (x *SendTestResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendTestResponse.ProtoReflect.Descriptor instead.
 func (*SendTestResponse) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{5}
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SendTestResponse) GetId() string {
@@ -349,7 +269,7 @@ type GetChannelRequest struct {
 
 func (x *GetChannelRequest) Reset() {
 	*x = GetChannelRequest{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +281,7 @@ func (x *GetChannelRequest) String() string {
 func (*GetChannelRequest) ProtoMessage() {}
 
 func (x *GetChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +294,7 @@ func (x *GetChannelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChannelRequest.ProtoReflect.Descriptor instead.
 func (*GetChannelRequest) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{6}
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{5}
 }
 
 type GetChannelResponse struct {
@@ -391,7 +311,7 @@ type GetChannelResponse struct {
 
 func (x *GetChannelResponse) Reset() {
 	*x = GetChannelResponse{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[7]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -403,7 +323,7 @@ func (x *GetChannelResponse) String() string {
 func (*GetChannelResponse) ProtoMessage() {}
 
 func (x *GetChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[7]
+	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -416,7 +336,7 @@ func (x *GetChannelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChannelResponse.ProtoReflect.Descriptor instead.
 func (*GetChannelResponse) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{7}
+	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetChannelResponse) GetSetUp() bool {
@@ -437,22 +357,16 @@ var File_ntfy_api_ntfy_api_proto protoreflect.FileDescriptor
 
 const file_ntfy_api_ntfy_api_proto_rawDesc = "" +
 	"\n" +
-	"\x17ntfy-api/ntfy_api.proto\x12\rddash.ntfyapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\xad\x03\n" +
+	"\x17ntfy-api/ntfy_api.proto\x12\rddash.ntfyapi\x1a\x19ddash/config/config.proto\x1a%ddash/notification/notification.proto\x1a\x13ddash/options.proto\"\xad\x03\n" +
 	"\rNtfyApiConfig\x12i\n" +
 	"\x06server\x18\x01 \x01(\tBL\x9a\xb5\x18H\n" +
 	"\x0fhttps://ntfy.sh\"3The ntfy server the phone's ntfy app subscribes to.8\x01H\x00R\x06server\x88\x01\x01\x12\x98\x01\n" +
 	"\x05topic\x18\x02 \x01(\tB\x81\x01\x9a\xb5\x18}\"kLetters, digits, - and _, at most 64. On a server without access control the topic name is the only secret.*\fddash-alerts0\x01R\x05topic\x12{\n" +
 	"\x05token\x18\x03 \x01(\tBe\x9a\xb5\x18a\x10\x01\x1a\fAccess token\"OA token (tk_…) with write access to the topic. Leave empty for an open topic.R\x05token:\x0e\xaa\xb5\x18\n" +
 	"\x12\bSendTestB\t\n" +
-	"\a_server\"\x84\x01\n" +
-	"\fNotification\x12\x14\n" +
-	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x1a\n" +
-	"\bpriority\x18\x03 \x01(\x05R\bpriority\x12\x12\n" +
-	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x14\n" +
-	"\x05click\x18\x05 \x01(\tR\x05click\"N\n" +
-	"\vSendRequest\x12?\n" +
-	"\fnotification\x18\x01 \x01(\v2\x1b.ddash.ntfyapi.NotificationR\fnotification\"\x1e\n" +
+	"\a_server\"S\n" +
+	"\vSendRequest\x12D\n" +
+	"\fnotification\x18\x01 \x01(\v2 .ddash.notification.NotificationR\fnotification\"\x1e\n" +
 	"\fSendResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\"\x11\n" +
 	"\x0fSendTestRequest\"\"\n" +
@@ -480,25 +394,25 @@ func file_ntfy_api_ntfy_api_proto_rawDescGZIP() []byte {
 	return file_ntfy_api_ntfy_api_proto_rawDescData
 }
 
-var file_ntfy_api_ntfy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_ntfy_api_ntfy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ntfy_api_ntfy_api_proto_goTypes = []any{
-	(*NtfyApiConfig)(nil),      // 0: ddash.ntfyapi.NtfyApiConfig
-	(*Notification)(nil),       // 1: ddash.ntfyapi.Notification
-	(*SendRequest)(nil),        // 2: ddash.ntfyapi.SendRequest
-	(*SendResponse)(nil),       // 3: ddash.ntfyapi.SendResponse
-	(*SendTestRequest)(nil),    // 4: ddash.ntfyapi.SendTestRequest
-	(*SendTestResponse)(nil),   // 5: ddash.ntfyapi.SendTestResponse
-	(*GetChannelRequest)(nil),  // 6: ddash.ntfyapi.GetChannelRequest
-	(*GetChannelResponse)(nil), // 7: ddash.ntfyapi.GetChannelResponse
+	(*NtfyApiConfig)(nil),             // 0: ddash.ntfyapi.NtfyApiConfig
+	(*SendRequest)(nil),               // 1: ddash.ntfyapi.SendRequest
+	(*SendResponse)(nil),              // 2: ddash.ntfyapi.SendResponse
+	(*SendTestRequest)(nil),           // 3: ddash.ntfyapi.SendTestRequest
+	(*SendTestResponse)(nil),          // 4: ddash.ntfyapi.SendTestResponse
+	(*GetChannelRequest)(nil),         // 5: ddash.ntfyapi.GetChannelRequest
+	(*GetChannelResponse)(nil),        // 6: ddash.ntfyapi.GetChannelResponse
+	(*notification.Notification)(nil), // 7: ddash.notification.Notification
 }
 var file_ntfy_api_ntfy_api_proto_depIdxs = []int32{
-	1, // 0: ddash.ntfyapi.SendRequest.notification:type_name -> ddash.ntfyapi.Notification
-	2, // 1: ddash.ntfyapi.NtfyApiService.Send:input_type -> ddash.ntfyapi.SendRequest
-	4, // 2: ddash.ntfyapi.NtfyApiService.SendTest:input_type -> ddash.ntfyapi.SendTestRequest
-	6, // 3: ddash.ntfyapi.NtfyApiService.GetChannel:input_type -> ddash.ntfyapi.GetChannelRequest
-	3, // 4: ddash.ntfyapi.NtfyApiService.Send:output_type -> ddash.ntfyapi.SendResponse
-	5, // 5: ddash.ntfyapi.NtfyApiService.SendTest:output_type -> ddash.ntfyapi.SendTestResponse
-	7, // 6: ddash.ntfyapi.NtfyApiService.GetChannel:output_type -> ddash.ntfyapi.GetChannelResponse
+	7, // 0: ddash.ntfyapi.SendRequest.notification:type_name -> ddash.notification.Notification
+	1, // 1: ddash.ntfyapi.NtfyApiService.Send:input_type -> ddash.ntfyapi.SendRequest
+	3, // 2: ddash.ntfyapi.NtfyApiService.SendTest:input_type -> ddash.ntfyapi.SendTestRequest
+	5, // 3: ddash.ntfyapi.NtfyApiService.GetChannel:input_type -> ddash.ntfyapi.GetChannelRequest
+	2, // 4: ddash.ntfyapi.NtfyApiService.Send:output_type -> ddash.ntfyapi.SendResponse
+	4, // 5: ddash.ntfyapi.NtfyApiService.SendTest:output_type -> ddash.ntfyapi.SendTestResponse
+	6, // 6: ddash.ntfyapi.NtfyApiService.GetChannel:output_type -> ddash.ntfyapi.GetChannelResponse
 	4, // [4:7] is the sub-list for method output_type
 	1, // [1:4] is the sub-list for method input_type
 	1, // [1:1] is the sub-list for extension type_name
@@ -518,7 +432,7 @@ func file_ntfy_api_ntfy_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ntfy_api_ntfy_api_proto_rawDesc), len(file_ntfy_api_ntfy_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

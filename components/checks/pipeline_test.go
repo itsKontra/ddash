@@ -6,6 +6,8 @@ import (
 	"testing/synctest"
 	"time"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -13,7 +15,6 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -79,7 +80,7 @@ func TestAReportedItemIsNotifiedWhenItGoesDownAndWhenItRecovers(t *testing.T) {
 		report(t, c, emerg)
 		after(checks.GroupWindow + tick11())
 		click := sdktest.PublicURL + "/reverse-proxy"
-		want := []*notifypb.Notification{{Title: "Nginx Proxy Manager down", Message: emerg, Priority: 4, Tags: []string{"red_circle"}, Click: click}}
+		want := []*notificationpb.Notification{{Title: "Nginx Proxy Manager down", Message: emerg, Priority: notificationpb.Priority_PRIORITY_HIGH, Tags: []string{"red_circle"}, Click: click}}
 		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Fatalf("after the read failed (-want +got):\n%s", diff)
 		}
@@ -87,7 +88,7 @@ func TestAReportedItemIsNotifiedWhenItGoesDownAndWhenItRecovers(t *testing.T) {
 		after(4 * time.Minute)
 		report(t, c, "")
 		after(checks.GroupWindow + tick11())
-		want = append(want, &notifypb.Notification{Title: "Nginx Proxy Manager up again", Message: "Down for 5 min (" + emerg + ")", Priority: 3, Tags: []string{"green_circle"}, Click: click})
+		want = append(want, &notificationpb.Notification{Title: "Nginx Proxy Manager up again", Message: "Down for 5 min (" + emerg + ")", Priority: notificationpb.Priority_PRIORITY_DEFAULT, Tags: []string{"green_circle"}, Click: click})
 		if diff := cmp.Diff(want, l.notify.notifications(), protocmp.Transform()); diff != "" {
 			t.Errorf("after it recovered (-want +got):\n%s", diff)
 		}
@@ -154,10 +155,10 @@ func TestAGroupsTitleCountsByKindAndItsPriorityIsTheHighest(t *testing.T) {
 		reportItem(t, c, "d", "Sonarr", "HTTP 503")
 		after(checks.GroupWindow + tick11())
 
-		want := []*notifypb.Notification{{
+		want := []*notificationpb.Notification{{
 			Title:    "3 down, 1 up again",
 			Message:  "Grafana down: HTTP 502\nJellyfin down: connection refused\nSonarr down: HTTP 503\nPlex up again: down for 1 min (timeout)",
-			Priority: 4,
+			Priority: notificationpb.Priority_PRIORITY_HIGH,
 			Tags:     []string{"red_circle"},
 			Click:    sdktest.PublicURL + "/checks",
 		}}
@@ -235,10 +236,10 @@ func TestTheThirdDownWithinAnHourMakesACheckFlappingWithOneNotification(t *testi
 		if want := []string{"NAS down", "NAS up again", "NAS down", "NAS up again", "NAS flapping"}; !cmp.Equal(titles(got), want) {
 			t.Fatalf("sent %v, want %v", titles(got), want)
 		}
-		want := &notifypb.Notification{
+		want := &notificationpb.Notification{
 			Title:    "NAS flapping",
 			Message:  "Down 3 times within 1 h. Next Notification once it has been up or down for 30 min.",
-			Priority: 4,
+			Priority: notificationpb.Priority_PRIORITY_HIGH,
 			Tags:     []string{"warning"},
 			Click:    fmt.Sprintf("%s/checks/%d", sdktest.PublicURL, id),
 		}
@@ -465,10 +466,10 @@ func TestOneNotificationWhenACertificateExpiresWithin14Days(t *testing.T) {
 		after(checks.GroupWindow + tick11())
 
 		id := appCheck(t, c, secure().GetAppId()).GetId()
-		want := []*notifypb.Notification{{
+		want := []*notificationpb.Notification{{
 			Title:    "Jellyfin certificate expiring",
 			Message:  "Expires in 10 days",
-			Priority: 3,
+			Priority: notificationpb.Priority_PRIORITY_DEFAULT,
 			Tags:     []string{"warning"},
 			Click:    fmt.Sprintf("%s/checks/%d", sdktest.PublicURL, id),
 		}}
@@ -535,10 +536,10 @@ func TestNotificationsWithinTheWindowAreSentAsOneGroup(t *testing.T) {
 		goDown(l, "store:22")
 		after(checks.GroupWindow + tick11())
 
-		want := []*notifypb.Notification{{
+		want := []*notificationpb.Notification{{
 			Title:    "2 down",
 			Message:  "NAS down: connection refused\nNVR down: connection refused",
-			Priority: 4,
+			Priority: notificationpb.Priority_PRIORITY_HIGH,
 			Tags:     []string{"red_circle"},
 			Click:    sdktest.PublicURL + "/checks",
 		}}

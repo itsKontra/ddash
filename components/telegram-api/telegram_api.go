@@ -21,6 +21,8 @@ import (
 	"time"
 	"unicode/utf16"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -131,7 +133,7 @@ func (c *component) Send(ctx context.Context, req *telegramapipb.SendRequest) (*
 }
 
 func (c *component) SendTest(ctx context.Context, _ *telegramapipb.SendTestRequest) (*telegramapipb.SendTestResponse, error) {
-	id, err := c.deliver(ctx, &telegramapipb.Notification{
+	id, err := c.deliver(ctx, &notificationpb.Notification{
 		Title:   "ddash test",
 		Message: "Notifications from ddash reach this chat.",
 		Tags:    []string{"white_check_mark"},
@@ -144,7 +146,7 @@ func (c *component) SendTest(ctx context.Context, _ *telegramapipb.SendTestReque
 
 // deliver sends n to the chat and returns Telegram's message id. Its
 // outcome becomes the Component's health.
-func (c *component) deliver(ctx context.Context, n *telegramapipb.Notification) (int64, error) {
+func (c *component) deliver(ctx context.Context, n *notificationpb.Notification) (int64, error) {
 	if !c.setUp() {
 		return 0, errNotSetUp
 	}
@@ -152,7 +154,7 @@ func (c *component) deliver(ctx context.Context, n *telegramapipb.Notification) 
 		ChatID:              c.chat,
 		Text:                render(n),
 		ParseMode:           "HTML",
-		DisableNotification: n.GetPriority() == 1 || n.GetPriority() == 2,
+		DisableNotification: n.GetPriority() == notificationpb.Priority_PRIORITY_MIN || n.GetPriority() == notificationpb.Priority_PRIORITY_LOW,
 		LinkPreview:         linkPreview{Disabled: true},
 	}
 	id, err := c.post(ctx, m)
@@ -196,7 +198,7 @@ const linkText = "Open in ddash"
 // render is n as sendMessage's HTML text: the title in bold behind its
 // tags' emoji, the message, and a link to n's click. A message too long
 // for Telegram is cut, marked with "…", keeping the title and the link.
-func render(n *telegramapipb.Notification) string {
+func render(n *notificationpb.Notification) string {
 	title := n.GetTitle()
 	var lead []string
 	for _, tag := range n.GetTags() {

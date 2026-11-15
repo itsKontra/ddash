@@ -7,6 +7,8 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -40,15 +42,15 @@ func start(t *testing.T, cfg *telegramapipb.TelegramApiConfig) (*sdktest.Harness
 	return h, telegramapipb.NewTelegramApiServiceClient(h.Conn)
 }
 
-func send(t *testing.T, c telegramapipb.TelegramApiServiceClient, n *telegramapipb.Notification) (*telegramapipb.SendResponse, error) {
+func send(t *testing.T, c telegramapipb.TelegramApiServiceClient, n *notificationpb.Notification) (*telegramapipb.SendResponse, error) {
 	t.Helper()
 	return c.Send(t.Context(), &telegramapipb.SendRequest{Notification: n})
 }
 
-var down = &telegramapipb.Notification{
+var down = &notificationpb.Notification{
 	Title:    "Jellyfin down",
 	Message:  "timeout",
-	Priority: 4,
+	Priority: notificationpb.Priority_PRIORITY_HIGH,
 	Tags:     []string{"red_circle"},
 	Click:    "https://ddash.home.example/checks/7",
 }
@@ -92,7 +94,7 @@ func TestMarkupInTheNotificationIsEscaped(t *testing.T) {
 	b, url := bot(t)
 	_, c := start(t, setUp(url))
 
-	n := &telegramapipb.Notification{
+	n := &notificationpb.Notification{
 		Title:   "<Grafana> & co",
 		Message: `nginx: [emerg] "upstream" <none> & 1 > 0`,
 		Click:   `https://ddash.home.example/checks?a=1&b="2"`,
@@ -114,7 +116,7 @@ func TestALowPriorityArrivesSilentlyAndNoClickMeansNoLink(t *testing.T) {
 	b, url := bot(t)
 	_, c := start(t, setUp(url))
 
-	if _, err := send(t, c, &telegramapipb.Notification{Title: "Backup done", Priority: 2, Tags: []string{"unknown_tag"}}); err != nil {
+	if _, err := send(t, c, &notificationpb.Notification{Title: "Backup done", Priority: notificationpb.Priority_PRIORITY_LOW, Tags: []string{"unknown_tag"}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -128,7 +130,7 @@ func TestALongMessageIsCutToTelegramsLimit(t *testing.T) {
 	b, url := bot(t)
 	_, c := start(t, setUp(url))
 
-	n := &telegramapipb.Notification{Title: "12 down", Message: strings.Repeat("NAS down: connection <refused>\n", 400), Click: "https://ddash.home.example/checks"}
+	n := &notificationpb.Notification{Title: "12 down", Message: strings.Repeat("NAS down: connection <refused>\n", 400), Click: "https://ddash.home.example/checks"}
 	if _, err := send(t, c, n); err != nil {
 		t.Fatalf("Send: %v", err)
 	}

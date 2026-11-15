@@ -5,6 +5,8 @@ import (
 	"sync"
 	"testing"
 
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
+
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -77,7 +79,7 @@ func (c *channel) set(state string) {
 type fakeNtfy struct {
 	ntfyapipb.NtfyApiServiceClient
 	*channel
-	got []*ntfyapipb.Notification
+	got []*notificationpb.Notification
 }
 
 func (f *fakeNtfy) Send(_ context.Context, req *ntfyapipb.SendRequest, _ ...grpc.CallOption) (*ntfyapipb.SendResponse, error) {
@@ -100,7 +102,7 @@ func (f *fakeNtfy) GetChannel(context.Context, *ntfyapipb.GetChannelRequest, ...
 type fakeTelegram struct {
 	telegramapipb.TelegramApiServiceClient
 	*channel
-	got []*telegramapipb.Notification
+	got []*notificationpb.Notification
 }
 
 func (f *fakeTelegram) Send(_ context.Context, req *telegramapipb.SendRequest, _ ...grpc.CallOption) (*telegramapipb.SendResponse, error) {
@@ -146,14 +148,20 @@ func start(t *testing.T, l *lab, cfg *notifypb.NotifyConfig) notifypb.NotifyServ
 
 func ptr[T any](v T) *T { return &v }
 
-var nasDown = &notifypb.Notification{
-	Title: "NAS down", Message: "connection refused", Priority: 4, Tags: []string{"red_circle"},
-	Click: "https://ddash.home.example/checks/7", Category: notifypb.Category_CATEGORY_CHECKS,
+var nasDown = &notificationpb.Notification{
+	Title: "NAS down", Message: "connection refused", Priority: notificationpb.Priority_PRIORITY_HIGH, Tags: []string{"red_circle"},
+	Click: "https://ddash.home.example/checks/7",
 }
 
-func send(t *testing.T, c notifypb.NotifyServiceClient, n *notifypb.Notification) (*notifypb.SendResponse, error) {
+// send sends n as a Notification about Checks.
+func send(t *testing.T, c notifypb.NotifyServiceClient, n *notificationpb.Notification) (*notifypb.SendResponse, error) {
 	t.Helper()
-	return c.Send(t.Context(), &notifypb.SendRequest{Notification: n})
+	return sendAs(t, c, n, notifypb.Category_CATEGORY_CHECKS)
+}
+
+func sendAs(t *testing.T, c notifypb.NotifyServiceClient, n *notificationpb.Notification, category notifypb.Category) (*notifypb.SendResponse, error) {
+	t.Helper()
+	return c.Send(t.Context(), &notifypb.SendRequest{Notification: n, Category: category})
 }
 
 func TestANotificationGoesToEveryChannelByDefault(t *testing.T) {
@@ -172,12 +180,12 @@ func TestANotificationGoesToEveryChannelByDefault(t *testing.T) {
 	if diff := cmp.Diff(want, resp.GetDeliveries(), protocmp.Transform()); diff != "" {
 		t.Errorf("deliveries (-want +got):\n%s", diff)
 	}
-	wantNtfy := &ntfyapipb.Notification{Title: "NAS down", Message: "connection refused", Priority: 4, Tags: []string{"red_circle"}, Click: "https://ddash.home.example/checks/7"}
-	if diff := cmp.Diff([]*ntfyapipb.Notification{wantNtfy}, l.ntfy.got, protocmp.Transform()); diff != "" {
+	wantNtfy := &notificationpb.Notification{Title: "NAS down", Message: "connection refused", Priority: notificationpb.Priority_PRIORITY_HIGH, Tags: []string{"red_circle"}, Click: "https://ddash.home.example/checks/7"}
+	if diff := cmp.Diff([]*notificationpb.Notification{wantNtfy}, l.ntfy.got, protocmp.Transform()); diff != "" {
 		t.Errorf("to ntfy (-want +got):\n%s", diff)
 	}
-	wantTelegram := &telegramapipb.Notification{Title: "NAS down", Message: "connection refused", Priority: 4, Tags: []string{"red_circle"}, Click: "https://ddash.home.example/checks/7"}
-	if diff := cmp.Diff([]*telegramapipb.Notification{wantTelegram}, l.telegram.got, protocmp.Transform()); diff != "" {
+	wantTelegram := &notificationpb.Notification{Title: "NAS down", Message: "connection refused", Priority: notificationpb.Priority_PRIORITY_HIGH, Tags: []string{"red_circle"}, Click: "https://ddash.home.example/checks/7"}
+	if diff := cmp.Diff([]*notificationpb.Notification{wantTelegram}, l.telegram.got, protocmp.Transform()); diff != "" {
 		t.Errorf("to Telegram (-want +got):\n%s", diff)
 	}
 }
@@ -186,13 +194,16 @@ func TestEachChannelGetsOnlyTheCategoriesItsFilterTakes(t *testing.T) {
 	l := newLab(working, working)
 	c := start(t, l, &notifypb.NotifyConfig{NtfyImageUpdates: ptr(false), TelegramChecks: ptr(false), TelegramActionOutcomes: ptr(true)})
 
-	for _, n := range []*notifypb.Notification{
-		{Title: "NAS down", Category: notifypb.Category_CATEGORY_CHECKS},
-		{Title: "2 images stale", Category: notifypb.Category_CATEGORY_IMAGE_UPDATES},
-		{Title: "Backup of pve done", Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES},
+	for _, n := range []struct {
+		title    string
+		category notifypb.Category
+	}{
+		{"NAS down", notifypb.Category_CATEGORY_CHECKS},
+		{"2 images stale", notifypb.Category_CATEGORY_IMAGE_UPDATES},
+		{"Backup of pve done", notifypb.Category_CATEGORY_ACTION_OUTCOMES},
 	} {
-		if _, err := send(t, c, n); err != nil {
-			t.Fatalf("Send %q: %v", n.GetTitle(), err)
+		if _, err := sendAs(t, c, &notificationpb.Notification{Title: n.title}, n.category); err != nil {
+			t.Fatalf("Send %q: %v", n.title, err)
 		}
 	}
 
@@ -275,7 +286,7 @@ func TestANotificationWithoutACategoryIsRefused(t *testing.T) {
 	l := newLab(working, working)
 	c := start(t, l, &notifypb.NotifyConfig{})
 
-	_, err := send(t, c, &notifypb.Notification{Title: "NAS down"})
+	_, err := sendAs(t, c, &notificationpb.Notification{Title: "NAS down"}, notifypb.Category_CATEGORY_UNSPECIFIED)
 
 	if status.Code(err) != codes.InvalidArgument {
 		t.Errorf("Send = %v, want InvalidArgument", err)

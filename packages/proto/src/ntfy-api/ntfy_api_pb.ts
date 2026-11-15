@@ -8,6 +8,8 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
+import type { Notification } from "../ddash/notification/notification_pb";
+import { file_ddash_notification_notification } from "../ddash/notification/notification_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -15,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ntfy-api/ntfy_api.proto.
  */
 export const file_ntfy_api_ntfy_api: GenFile = /*@__PURE__*/
-  fileDesc("ChdudGZ5LWFwaS9udGZ5X2FwaS5wcm90bxINZGRhc2gubnRmeWFwaSKXAwoNTnRmeUFwaUNvbmZpZxJhCgZzZXJ2ZXIYASABKAlCTJq1GEgKD2h0dHBzOi8vbnRmeS5zaCIzVGhlIG50Znkgc2VydmVyIHRoZSBwaG9uZSdzIG50ZnkgYXBwIHN1YnNjcmliZXMgdG8uOAFIAIgBARKRAQoFdG9waWMYAiABKAlCgQGatRh9ImtMZXR0ZXJzLCBkaWdpdHMsIC0gYW5kIF8sIGF0IG1vc3QgNjQuIE9uIGEgc2VydmVyIHdpdGhvdXQgYWNjZXNzIGNvbnRyb2wgdGhlIHRvcGljIG5hbWUgaXMgdGhlIG9ubHkgc2VjcmV0LioMZGRhc2gtYWxlcnRzMAESdAoFdG9rZW4YAyABKAlCZZq1GGEQARoMQWNjZXNzIHRva2VuIk9BIHRva2VuICh0a1/igKYpIHdpdGggd3JpdGUgYWNjZXNzIHRvIHRoZSB0b3BpYy4gTGVhdmUgZW1wdHkgZm9yIGFuIG9wZW4gdG9waWMuOg6qtRgKEghTZW5kVGVzdEIJCgdfc2VydmVyIl0KDE5vdGlmaWNhdGlvbhINCgV0aXRsZRgBIAEoCRIPCgdtZXNzYWdlGAIgASgJEhAKCHByaW9yaXR5GAMgASgFEgwKBHRhZ3MYBCADKAkSDQoFY2xpY2sYBSABKAkiQAoLU2VuZFJlcXVlc3QSMQoMbm90aWZpY2F0aW9uGAEgASgLMhsuZGRhc2gubnRmeWFwaS5Ob3RpZmljYXRpb24iGgoMU2VuZFJlc3BvbnNlEgoKAmlkGAEgASgJIhEKD1NlbmRUZXN0UmVxdWVzdCIeChBTZW5kVGVzdFJlc3BvbnNlEgoKAmlkGAEgASgJIhMKEUdldENoYW5uZWxSZXF1ZXN0IjkKEkdldENoYW5uZWxSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSEwoLZGVzdGluYXRpb24YAiABKAkygwIKDk50ZnlBcGlTZXJ2aWNlEkUKBFNlbmQSGi5kZGFzaC5udGZ5YXBpLlNlbmRSZXF1ZXN0GhsuZGRhc2gubnRmeWFwaS5TZW5kUmVzcG9uc2UiBJK1GAASUQoIU2VuZFRlc3QSHi5kZGFzaC5udGZ5YXBpLlNlbmRUZXN0UmVxdWVzdBofLmRkYXNoLm50ZnlhcGkuU2VuZFRlc3RSZXNwb25zZSIEkrUYABJXCgpHZXRDaGFubmVsEiAuZGRhc2gubnRmeWFwaS5HZXRDaGFubmVsUmVxdWVzdBohLmRkYXNoLm50ZnlhcGkuR2V0Q2hhbm5lbFJlc3BvbnNlIgSKtRgAQkRaQmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbnRmeS1hcGkvbnRmeWFwaXBiO250ZnlhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("ChdudGZ5LWFwaS9udGZ5X2FwaS5wcm90bxINZGRhc2gubnRmeWFwaSKXAwoNTnRmeUFwaUNvbmZpZxJhCgZzZXJ2ZXIYASABKAlCTJq1GEgKD2h0dHBzOi8vbnRmeS5zaCIzVGhlIG50Znkgc2VydmVyIHRoZSBwaG9uZSdzIG50ZnkgYXBwIHN1YnNjcmliZXMgdG8uOAFIAIgBARKRAQoFdG9waWMYAiABKAlCgQGatRh9ImtMZXR0ZXJzLCBkaWdpdHMsIC0gYW5kIF8sIGF0IG1vc3QgNjQuIE9uIGEgc2VydmVyIHdpdGhvdXQgYWNjZXNzIGNvbnRyb2wgdGhlIHRvcGljIG5hbWUgaXMgdGhlIG9ubHkgc2VjcmV0LioMZGRhc2gtYWxlcnRzMAESdAoFdG9rZW4YAyABKAlCZZq1GGEQARoMQWNjZXNzIHRva2VuIk9BIHRva2VuICh0a1/igKYpIHdpdGggd3JpdGUgYWNjZXNzIHRvIHRoZSB0b3BpYy4gTGVhdmUgZW1wdHkgZm9yIGFuIG9wZW4gdG9waWMuOg6qtRgKEghTZW5kVGVzdEIJCgdfc2VydmVyIkUKC1NlbmRSZXF1ZXN0EjYKDG5vdGlmaWNhdGlvbhgBIAEoCzIgLmRkYXNoLm5vdGlmaWNhdGlvbi5Ob3RpZmljYXRpb24iGgoMU2VuZFJlc3BvbnNlEgoKAmlkGAEgASgJIhEKD1NlbmRUZXN0UmVxdWVzdCIeChBTZW5kVGVzdFJlc3BvbnNlEgoKAmlkGAEgASgJIhMKEUdldENoYW5uZWxSZXF1ZXN0IjkKEkdldENoYW5uZWxSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSEwoLZGVzdGluYXRpb24YAiABKAkygwIKDk50ZnlBcGlTZXJ2aWNlEkUKBFNlbmQSGi5kZGFzaC5udGZ5YXBpLlNlbmRSZXF1ZXN0GhsuZGRhc2gubnRmeWFwaS5TZW5kUmVzcG9uc2UiBJK1GAASUQoIU2VuZFRlc3QSHi5kZGFzaC5udGZ5YXBpLlNlbmRUZXN0UmVxdWVzdBofLmRkYXNoLm50ZnlhcGkuU2VuZFRlc3RSZXNwb25zZSIEkrUYABJXCgpHZXRDaGFubmVsEiAuZGRhc2gubnRmeWFwaS5HZXRDaGFubmVsUmVxdWVzdBohLmRkYXNoLm50ZnlhcGkuR2V0Q2hhbm5lbFJlc3BvbnNlIgSKtRgAQkRaQmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbnRmeS1hcGkvbnRmeWFwaXBiO250ZnlhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_notification_notification, file_ddash_options]);
 
 /**
  * @generated from message ddash.ntfyapi.NtfyApiConfig
@@ -52,58 +54,11 @@ export const NtfyApiConfigSchema: GenMessage<NtfyApiConfig> = /*@__PURE__*/
   messageDesc(file_ntfy_api_ntfy_api, 0);
 
 /**
- * @generated from message ddash.ntfyapi.Notification
- */
-export type Notification = Message<"ddash.ntfyapi.Notification"> & {
-  /**
-   * e.g. "Jellyfin down".
-   *
-   * @generated from field: string title = 1;
-   */
-  title: string;
-
-  /**
-   * The message body, e.g. "timeout".
-   *
-   * @generated from field: string message = 2;
-   */
-  message: string;
-
-  /**
-   * 1 (min) to 5 (max); 0 leaves ntfy's default, 3.
-   *
-   * @generated from field: int32 priority = 3;
-   */
-  priority: number;
-
-  /**
-   * ntfy tags; emoji shortcodes such as "red_circle" render as emoji.
-   *
-   * @generated from field: repeated string tags = 4;
-   */
-  tags: string[];
-
-  /**
-   * The URL the phone opens when the Notification is tapped.
-   *
-   * @generated from field: string click = 5;
-   */
-  click: string;
-};
-
-/**
- * Describes the message ddash.ntfyapi.Notification.
- * Use `create(NotificationSchema)` to create a new message.
- */
-export const NotificationSchema: GenMessage<Notification> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 1);
-
-/**
  * @generated from message ddash.ntfyapi.SendRequest
  */
 export type SendRequest = Message<"ddash.ntfyapi.SendRequest"> & {
   /**
-   * @generated from field: ddash.ntfyapi.Notification notification = 1;
+   * @generated from field: ddash.notification.Notification notification = 1;
    */
   notification?: Notification | undefined;
 };
@@ -113,7 +68,7 @@ export type SendRequest = Message<"ddash.ntfyapi.SendRequest"> & {
  * Use `create(SendRequestSchema)` to create a new message.
  */
 export const SendRequestSchema: GenMessage<SendRequest> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 2);
+  messageDesc(file_ntfy_api_ntfy_api, 1);
 
 /**
  * @generated from message ddash.ntfyapi.SendResponse
@@ -132,7 +87,7 @@ export type SendResponse = Message<"ddash.ntfyapi.SendResponse"> & {
  * Use `create(SendResponseSchema)` to create a new message.
  */
 export const SendResponseSchema: GenMessage<SendResponse> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 3);
+  messageDesc(file_ntfy_api_ntfy_api, 2);
 
 /**
  * @generated from message ddash.ntfyapi.SendTestRequest
@@ -145,7 +100,7 @@ export type SendTestRequest = Message<"ddash.ntfyapi.SendTestRequest"> & {
  * Use `create(SendTestRequestSchema)` to create a new message.
  */
 export const SendTestRequestSchema: GenMessage<SendTestRequest> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 4);
+  messageDesc(file_ntfy_api_ntfy_api, 3);
 
 /**
  * @generated from message ddash.ntfyapi.SendTestResponse
@@ -164,7 +119,7 @@ export type SendTestResponse = Message<"ddash.ntfyapi.SendTestResponse"> & {
  * Use `create(SendTestResponseSchema)` to create a new message.
  */
 export const SendTestResponseSchema: GenMessage<SendTestResponse> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 5);
+  messageDesc(file_ntfy_api_ntfy_api, 4);
 
 /**
  * @generated from message ddash.ntfyapi.GetChannelRequest
@@ -177,7 +132,7 @@ export type GetChannelRequest = Message<"ddash.ntfyapi.GetChannelRequest"> & {
  * Use `create(GetChannelRequestSchema)` to create a new message.
  */
 export const GetChannelRequestSchema: GenMessage<GetChannelRequest> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 6);
+  messageDesc(file_ntfy_api_ntfy_api, 5);
 
 /**
  * @generated from message ddash.ntfyapi.GetChannelResponse
@@ -205,7 +160,7 @@ export type GetChannelResponse = Message<"ddash.ntfyapi.GetChannelResponse"> & {
  * Use `create(GetChannelResponseSchema)` to create a new message.
  */
 export const GetChannelResponseSchema: GenMessage<GetChannelResponse> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 7);
+  messageDesc(file_ntfy_api_ntfy_api, 6);
 
 /**
  * @generated from service ddash.ntfyapi.NtfyApiService
