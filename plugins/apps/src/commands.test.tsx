@@ -50,7 +50,9 @@ it("opens the App's URL in a new tab, as the Widget's icon does", async () => {
   renderScoped(<Probe />, { ListChecks: () => Response.json(allUp) });
   await settle();
 
-  seen!.find((c) => c.title === "Open Grafana")!.run();
+  const grafana = seen!.find((c) => c.title === "Open Grafana")!;
+  if (!("run" in grafana)) throw new Error("Open Grafana opens a Sheet");
+  grafana.run();
   expect(open).toHaveBeenCalledWith("https://grafana.home.example", "_blank", "noopener,noreferrer");
 });
 

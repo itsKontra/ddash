@@ -55,7 +55,8 @@ export function BulkProgress({ bulk }: { bulk: BulkUpdate }) {
   );
 }
 
-function UpdateAllDialog({ onClose }: { onClose: () => void }) {
+/** The "Update all running" Plan, confirmed in a Dialog, then its progress. */
+export function UpdateAllDialog({ onClose }: { onClose: () => void }) {
   const planQuery = useQuery(ProxmoxService.method.planUpdateAll, {});
   const run = useAction(ProxmoxService.method.runUpdateAll);
   const bulk = useUpdates()?.bulk;

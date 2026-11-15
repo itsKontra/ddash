@@ -1,8 +1,10 @@
 // The command palette (Ctrl K / ⌘ K, or / outside a text field): opens an
-// App, goes to a Page, runs a Concern's Action or a Plugin's Command. It
-// only calls what the Plugin offers; it never changes anything itself.
+// App, goes to a Page, runs a Concern's Action or a Plugin's Command, or
+// draws the Command's Sheet (a Plan, a form) in the Plugin's scope on any
+// Page. It only calls what the Plugin offers; it never changes anything
+// itself.
 import { PluginScope, type Command, type Fetch } from "@ddash/plugin";
-import { AppIcon, cx, Icon, Presence } from "@ddash/ui";
+import { AppIcon, Button, cx, Icon, Notice, Presence } from "@ddash/ui";
 import { backdropMotion } from "@ddash/ui/motion";
 import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { useNavigate } from "react-router";
@@ -109,10 +111,27 @@ export interface PaletteProps {
   pages: readonly Destination[];
 }
 
+/** The Sheet a Command has open: whose, which Command, and its Sheet as run. */
+interface OpenSheet {
+  plugin: string;
+  id: string;
+  sheet: (close: () => void) => ReactNode;
+}
+
+/** A Command whose run failed, as the palette shows it until dismissed or run again. */
+interface Failure {
+  /** The Command's entry key: "<plugin>:<id>". */
+  key: string;
+  title: string;
+  error: string;
+}
+
 /**
  * The palette: runs every installed Plugin's useCommands on every Page,
  * each in its scope behind an error boundary (one that throws offers
- * nothing), and draws the dialog while open.
+ * nothing), draws the dialog while open, the Sheet of the Command last
+ * run, if it has one, and each Command's newly set error, since the Page
+ * that would show it may not be mounted.
  */
 export function Palette({ state, plugins, fetch, pages }: PaletteProps) {
   useKeys(state);
@@ -122,6 +141,11 @@ export function Palette({ state, plugins, fetch, pages }: PaletteProps) {
   const [reports, setReports] = useState<ReadonlyMap<string, readonly Command[]>>(new Map());
   // Each Plugin's Commands as last rendered, so an entry runs the newest.
   const [live] = useState(() => new Map<string, readonly Command[]>());
+  const [sheet, setSheet] = useState<OpenSheet | null>(null);
+  const closeSheet = useCallback(() => setSheet(null), []);
+  const [failures, setFailures] = useState<readonly Failure[]>([]);
+  // Each Command's error as last reported, so only a newly set one is shown.
+  const seen = useRef(new Map<string, string>());
   const onReport = useCallback((plugin: string, commands: readonly Command[] | undefined) => {
     setReports((prev) => {
       const next = new Map(prev);
@@ -137,8 +161,27 @@ export function Palette({ state, plugins, fetch, pages }: PaletteProps) {
   });
   const offered = sources.flatMap((p) => (reports.has(p.name) ? [{ plugin: p.name, title: p.title, commands: reports.get(p.name)! }] : []));
 
+  useEffect(() => {
+    const now = [...reports].flatMap(([plugin, commands]) =>
+      commands.flatMap((c): Failure[] => (typeof c.error === "string" && c.error ? [{ key: `${plugin}:${c.id}`, title: c.title, error: c.error }] : [])),
+    );
+    const fresh = now.filter((f) => seen.current.get(f.key) !== f.error);
+    seen.current = new Map(now.map((f) => [f.key, f.error]));
+    if (fresh.length > 0) setFailures((prev) => [...prev.filter((p) => !fresh.some((f) => f.key === p.key)), ...fresh]);
+  }, [reports]);
+  const dismiss = useCallback((key: string) => setFailures((prev) => prev.filter((f) => f.key !== key)), []);
+
   const go = useCallback((to: string) => void navigate(to), [navigate]);
-  const runCommand = useCallback((plugin: string, id: string) => live.get(plugin)?.find((c) => c.id === id)?.run(), [live]);
+  const runCommand = useCallback(
+    (plugin: string, id: string) => {
+      const c = live.get(plugin)?.find((x) => x.id === id);
+      if (!c) return;
+      dismiss(`${plugin}:${id}`);
+      if ("sheet" in c) setSheet({ plugin, id, sheet: c.sheet });
+      else c.run();
+    },
+    [live, dismiss],
+  );
   const dark = scheme === "dark";
   const all = {
     concerns: concernEntries(needs.loud, act, go),
@@ -161,24 +204,46 @@ export function Palette({ state, plugins, fetch, pages }: PaletteProps) {
       {sources.map((p) => (
         <PluginScope key={p.name} plugin={p} fetch={fetch}>
           <ErrorBoundary fallback={() => null}>
-            <Source plugin={p} live={live} onReport={onReport} />
+            <Source plugin={p} live={live} open={sheet?.plugin === p.name ? sheet : null} onReport={onReport} onClose={closeSheet} />
           </ErrorBoundary>
         </PluginScope>
       ))}
       <Presence>{state.open && <Dialog key={state.opened} all={all} onClose={state.hide} />}</Presence>
+      {failures.length > 0 && (
+        <div className="fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-96">
+          {failures.map((f) => (
+            <div key={f.key} className="flex items-start gap-1 rounded-ui-lg border border-border bg-card p-1.5 shadow-elevation-raised">
+              <div className="min-w-0 flex-1">
+                <Notice tone="down">
+                  {f.title} failed: {f.error}
+                </Notice>
+              </div>
+              <Button size="sm" variant="ghost" icon="x" aria-label={`Dismiss: ${f.title} failed`} onClick={() => dismiss(f.key)} />
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }
 
-/** Runs one Plugin's useCommands in its scope: passes each changed report up and keeps the newest in live. */
+/**
+ * Runs one Plugin's useCommands in its scope: passes each changed report
+ * up, keeps the newest in live, and draws the Sheet of the Command run,
+ * which stays open when the Command goes away (a Start once it started).
+ */
 function Source({
   plugin,
   live,
+  open,
   onReport,
+  onClose,
 }: {
   plugin: LoadedPlugin;
   live: Map<string, readonly Command[]>;
+  open: OpenSheet | null;
   onReport: (plugin: string, commands: readonly Command[] | undefined) => void;
+  onClose: () => void;
 }) {
   const name = plugin.name;
   const commands = plugin.definition!.useCommands!();
@@ -191,7 +256,11 @@ function Source({
     onReport(name, live.get(name));
   }, [name, sig, live, onReport]);
   useEffect(() => () => onReport(name, undefined), [name, onReport]);
-  return null;
+
+  // The Command's newest Sheet while it lasts, then the one run.
+  const found = open && commands?.find((c) => c.id === open.id);
+  const sheet = open && (found && "sheet" in found ? found.sheet : open.sheet);
+  return <Presence>{sheet ? sheet(onClose) : null}</Presence>;
 }
 
 /**

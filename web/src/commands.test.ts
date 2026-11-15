@@ -61,9 +61,23 @@ describe("commandEntries", () => {
     expect(run).toHaveBeenCalledWith("apps", "open:a");
   });
 
-  it("drops a Command without a title or run, and a Plugin's second with the same id", () => {
+  it("keeps a Command that opens a Sheet, and runs it through the Plugin too", () => {
+    const run = vi.fn();
+    const [e] = commandEntries([{ plugin: "docker", title: "Docker", commands: [{ id: "restart:media/paperless", title: "Restart paperless", sheet: () => null }] }], run);
+    expect(e).toMatchObject({ key: "docker:restart:media/paperless", title: "Restart paperless" });
+    e!.run();
+    expect(run).toHaveBeenCalledWith("docker", "restart:media/paperless");
+  });
+
+  it("drops a Command without a title or with neither run nor sheet, and a Plugin's second with the same id", () => {
     const ok = { id: "a", title: "A", run: () => {} };
-    const bad = [ok, { ...ok, title: "A again" }, { id: "b", title: "", run: () => {} }, { id: "c", title: "C" } as unknown as Command];
+    const bad = [
+      ok,
+      { ...ok, title: "A again" },
+      { id: "b", title: "", run: () => {} },
+      { id: "c", title: "C" } as unknown as Command,
+      { id: "d", title: "D", sheet: "not a function" } as unknown as Command,
+    ];
     const entries = commandEntries(
       [
         { plugin: "apps", title: "Apps", commands: bad },

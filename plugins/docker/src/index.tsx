@@ -1,6 +1,7 @@
 import { definePlugin } from "@ddash/plugin";
 import { AddProjectPage } from "./add-project";
 import { AgentsPage } from "./agents";
+import { useCommands } from "./commands";
 import { useConcerns } from "./concerns";
 import "./index.css";
 import { ProjectPage } from "./project";
@@ -18,4 +19,5 @@ export default definePlugin({
   ],
   widgets: [dockerHosts, containers],
   useConcerns,
+  useCommands,
 });
