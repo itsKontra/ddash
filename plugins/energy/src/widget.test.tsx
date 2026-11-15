@@ -20,8 +20,13 @@ async function show(getFlow: Answer, size?: "S" | "M" | "L") {
 
 const widget = () => screen.getByRole("region", { name: "widget" });
 
-/** A figure of the S body: the value under its label. */
-const figure = (label: string) => within(widget()).getByText(label).nextElementSibling?.textContent;
+/** A reading: the value under its label. */
+const reading = (label: string) => within(widget()).getByText(label, { selector: "dt" }).nextElementSibling?.textContent;
+/** Whether a reading is dimmed as zero. */
+const dimmed = (label: string) => within(widget()).getByText(label, { selector: "dt" }).closest("[data-zero]") !== null;
+
+/** The night: the battery carries the house. */
+const night = { ...flow, power: { solar: 0, grid: 0.012, battery: -0.612, house: 0.47, heatPump: 0.075, loads: 0.545, consumption: 0.624 }, battery: { socPct: 48, voltage: 52.3 } };
 
 it("is the Energy now Widget, S, M or L, M by default", () => {
   const w = energyNow();
@@ -34,21 +39,61 @@ it("reports up with the solar power and the battery's charge", async () => {
   expect(reported.status).toEqual({ tone: "up", summary: `Solar ${kw(6.5)} · Battery 64 %` });
 });
 
-it("shows solar, use, the grid and the battery at S", async () => {
-  await show(() => Response.json(flow), "S");
+it.each(["S", "M", "L"] as const)("leads with what the readings add up to, then the battery, at %s", async (size) => {
+  await show(() => Response.json(flow), size);
 
-  expect([figure("Solar"), figure("Using"), figure("Export"), figure("Battery")]).toEqual([kw(6.5), kw(1), kw(1.1), "64 %"]);
+  expect(within(widget()).getByText(`Exporting ${kw(1.1)}`)).toBeTruthy();
+  expect(within(widget()).getByText(`64 % · charging at ${kw(4.4)}`)).toBeTruthy();
+  expect(within(widget()).getByRole("meter", { name: "Battery state of charge" }).getAttribute("aria-valuenow")).toBe("64");
+  expect([reading("Solar"), reading("House"), reading("Heat pump"), reading("Export")]).toEqual([kw(6.5), kw(0.62), kw(0.07), kw(1.1)]);
 });
 
-it("draws the flow at M, each part with its power", async () => {
-  await show(() => Response.json(flow));
+it("runs on the battery at night, with the time left once the capacity is known", async () => {
+  await show(() => Response.json({ ...night, battery: { ...night.battery, capacityKwh: 15 } }));
 
-  const part = (name: string) => within(widget()).getByRole("group", { name }).textContent;
-  expect(part("Grid")).toContain("Export");
-  expect(part("Solar")).toContain(kw(6.5));
-  expect(part("Heat pump")).toContain(kw(0.07));
-  expect(part("House")).toContain(kw(0.62));
-  expect(part("Battery")).toContain("64 %");
+  expect(within(widget()).getByText("Running on battery")).toBeTruthy();
+  expect(within(widget()).getByText(`48 % · about 12 h left at ${kw(0.612)}`)).toBeTruthy();
+});
+
+it("leaves the time left out without the capacity", async () => {
+  await show(() => Response.json(night));
+
+  expect(within(widget()).getByText(`48 % · discharging at ${kw(0.612)}`)).toBeTruthy();
+  expect(widget().textContent).not.toContain("left");
+});
+
+it("dims a reading at zero", async () => {
+  await show(() => Response.json(night));
+
+  expect([dimmed("Solar"), dimmed("House"), dimmed("Heat pump"), dimmed("Import")]).toEqual([true, false, false, false]);
+  expect(reading("Solar")).toBe(kw(0));
+});
+
+it("doesn't conclude from a stale reading", async () => {
+  await show(() => Response.json({ ...flow, at: local(0, 12, 40).toISOString() }));
+
+  expect(within(widget()).getByText("No current reading")).toBeTruthy();
+  expect(widget().textContent).not.toContain("Exporting");
+});
+
+it("keeps today to the curve and one line at M, and leaves it out at S", async () => {
+  await show(() => Response.json(flow), "M");
+
+  expect(within(widget()).getByRole("img", { name: "Solar power today" })).toBeTruthy();
+  const text = widget().textContent;
+  expect(text).toContain(`Today ${kwh(41.2)} solar`);
+  expect(text).toContain(`${eur(today.totals.savings)} saved`);
+  cleanup();
+
+  await show(() => Response.json(flow), "S");
+  expect(within(widget()).queryByRole("img", { name: "Solar power today" })).toBeNull();
+  expect(widget().textContent).not.toContain("Today");
+});
+
+it("draws no flow diagram: that stays on the Energy Page", async () => {
+  await show(() => Response.json(flow), "L");
+
+  expect(within(widget()).queryByRole("group", { name: "Victron" })).toBeNull();
 });
 
 it("adds today so far at L", async () => {
