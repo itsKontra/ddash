@@ -104,6 +104,32 @@ export interface Concern {
   href?: string;
 }
 
+/**
+ * An entry the Plugin offers the command palette (Ctrl K): open an App,
+ * go to one of its Pages, or start one of its Actions. The palette only
+ * calls run; it never changes anything itself.
+ */
+export interface Command {
+  /** Stable while the Command lasts, and unique within the Plugin. */
+  id: string;
+  /** What it does, verb first: "Open Grafana", "Restart paperless". */
+  title: string;
+  /** What it acts on, shown at the row's end: "grafana.example.org", "Compose Project on media". */
+  hint?: string;
+  /**
+   * A lucide icon, or an App's own icon as AppIcon draws it (its
+   * dashboard-icons name, else by the App's name, else its favicon).
+   */
+  icon?: IconName | { app: string; icon?: string; url?: string };
+  /** More words it is found by, e.g. a group or an alias: "media", "pull". */
+  keywords?: string[];
+  /**
+   * Does it the way the Plugin's Page does: opens the App, navigates, or
+   * runs the Action with the confirm or Plan its button asks.
+   */
+  run: () => void;
+}
+
 /** What a Plugin's bundle exports as default. */
 export interface PluginDefinition {
   /** Zero or one Nav Entry. */
@@ -113,10 +139,17 @@ export interface PluginDefinition {
   widgets?: Widget[];
   /**
    * A hook returning the Plugin's Concerns now: [] for none, undefined
-   * until known. It runs for every installed Plugin while the Overview is
-   * open, whether or not any of its Widgets is placed there.
+   * until known. It runs for every installed Plugin on every Page (the
+   * Overview lists them, the command palette offers the loud ones),
+   * whether or not any of its Widgets is placed.
    */
   useConcerns?: () => Concern[] | undefined;
+  /**
+   * A hook returning the Commands the Plugin offers the command palette
+   * now: [] for none, undefined until known. It runs for every installed
+   * Plugin on every Page, so the palette opens with them.
+   */
+  useCommands?: () => Command[] | undefined;
 }
 
 /**

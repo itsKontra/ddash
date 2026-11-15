@@ -184,7 +184,7 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
         </Notice>
       )}
       <OverviewHero state={h} placed={cards.length} up={tally(tones, "up")} reporting={tones.length} />
-      <NeedsYou plugins={plugins} fetch={fetch} />
+      <NeedsYou />
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {tiles.map((t) => (
           <MetricTile key={t.label} label={t.label} icon={t.icon} tone={t.tone} value={layout ? tally(tones, t.tone) : undefined} />

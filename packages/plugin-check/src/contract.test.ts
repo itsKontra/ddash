@@ -88,4 +88,14 @@ describe("checkDefinition", () => {
   it("fails useConcerns that isn't a hook", () => {
     expect(checkDefinition("docker", { useConcerns: [] })).toEqual(["useConcerns: must be a hook returning the Plugin's Concerns"]);
   });
+
+  it("passes a Plugin that offers Commands without any Widget", () => {
+    expect(checkDefinition("apps", { useCommands: () => [] })).toEqual([]);
+  });
+
+  it("fails useCommands that isn't a hook", () => {
+    expect(checkDefinition("apps", { useCommands: [{ id: "open", title: "Open", run: () => {} }] })).toEqual([
+      "useCommands: must be a hook returning the Plugin's Commands",
+    ]);
+  });
 });

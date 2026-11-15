@@ -1,9 +1,9 @@
 import { PluginScope, type Concern, type ConcernAction, type ConcernTone, type Fetch } from "@ddash/plugin";
-import { Button, cx, Icon, Panel, Pill, Presence, Skeleton, type IconName } from "@ddash/ui";
-import { useCallback, useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { Button, cx, Icon, Panel, Pill, Presence, Skeleton } from "@ddash/ui";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
-import { needs, offOnPurpose, type Listed } from "./concerns";
+import { needs, offOnPurpose, toneIcon, type Listed, type Needs } from "./concerns";
 import type { LoadedPlugin, Plugins } from "./plugins";
 
 /** The Sheet a Concern's Action has open: whose, which Concern, which Action, and its Sheet as clicked. */
@@ -14,13 +14,33 @@ interface Open {
   sheet: (close: () => void) => ReactNode;
 }
 
+/** Every installed Plugin's Concerns, as ConcernSources collects them. */
+export interface Concerns {
+  /** Split into loud and quiet, worst first. */
+  needs: Needs;
+  /** Still to say: Plugins whose bundle is loading, and those that haven't reported yet. */
+  waiting: boolean;
+  /** Runs a Concern's Action: its newest run, or its Sheet in the Plugin's scope. */
+  act: (l: Listed, a: ConcernAction) => void;
+}
+
+const ConcernsContext = createContext<Concerns | null>(null);
+
+/** The Concerns ConcernSources collects, for "Needs you" and the command palette. */
+export function useConcernList(): Concerns {
+  const c = useContext(ConcernsContext);
+  if (!c) throw new Error("useConcernList: not inside ConcernSources");
+  return c;
+}
+
 /**
- * "Needs you": every installed Plugin's Concerns in one list, worst first,
- * each with its Actions; the quiet ones folded under "Off on purpose". Each
- * Plugin's useConcerns runs in its own scope behind an error boundary,
- * placed Widget or not, and a crash is a warn Concern of its own.
+ * Runs every installed Plugin's useConcerns once for the whole shell, on
+ * every Page: each in its own scope behind an error boundary, placed
+ * Widget or not, and a crash is a warn Concern of its own. It draws the
+ * Sheet of the Action open on one, so "Needs you" and the command palette
+ * act through the same one.
  */
-export function NeedsYou({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }) {
+export function ConcernSources({ plugins, fetch, children }: { plugins: Plugins; fetch?: Fetch; children: ReactNode }) {
   const [reports, setReports] = useState<ReadonlyMap<string, readonly Concern[]>>(new Map());
   const [open, setOpen] = useState<Open | null>(null);
   // Each Plugin's Concerns as last rendered, so a button runs the newest Action.
@@ -34,27 +54,32 @@ export function NeedsYou({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }
     });
   }, []);
   const close = useCallback(() => setOpen(null), []);
-
-  const installed = plugins.installed ?? [];
-  const sources = installed.flatMap((p) => {
-    const loaded = plugins.loaded.get(p.name);
-    return loaded?.definition?.useConcerns ? [loaded] : [];
-  });
-  // Still to say: Plugins whose bundle is loading, and those that haven't reported yet.
-  const waiting = !plugins.installed || installed.some((p) => !plugins.loaded.has(p.name)) || sources.some((p) => !reports.has(p.name));
-  const n = needs(sources.flatMap((p) => (reports.has(p.name) ? [{ plugin: p.name, concerns: reports.get(p.name)! }] : [])));
-
-  const act = (l: Listed, a: ConcernAction) => {
+  const act = useCallback((l: Listed, a: ConcernAction) => {
     if ("sheet" in a) {
       setOpen({ plugin: l.plugin, id: l.concern.id, label: a.label, sheet: a.sheet });
       return;
     }
     const now = live.current.get(l.plugin)?.find((c) => c.id === l.concern.id)?.actions?.find((x) => x.label === a.label);
     if (now && "run" in now) void now.run();
-  };
+  }, []);
+
+  const installed = plugins.installed;
+  const sources = (installed ?? []).flatMap((p) => {
+    const loaded = plugins.loaded.get(p.name);
+    return loaded?.definition?.useConcerns ? [loaded] : [];
+  });
+  const value = useMemo(() => {
+    const reporting = (installed ?? []).flatMap((p) => {
+      const loaded = plugins.loaded.get(p.name);
+      return loaded?.definition?.useConcerns ? [loaded.name] : [];
+    });
+    const waiting = !installed || installed.some((p) => !plugins.loaded.has(p.name)) || reporting.some((name) => !reports.has(name));
+    const n = needs(reporting.flatMap((plugin) => (reports.has(plugin) ? [{ plugin, concerns: reports.get(plugin)! }] : [])));
+    return { needs: n, waiting, act };
+  }, [installed, plugins.loaded, reports, act]);
 
   return (
-    <>
+    <ConcernsContext.Provider value={value}>
       {sources.map((p) => (
         <PluginScope key={p.name} plugin={p} fetch={fetch}>
           <ErrorBoundary fallback={(error) => <Failed plugin={p} error={error} onReport={onReport} />}>
@@ -62,39 +87,50 @@ export function NeedsYou({ plugins, fetch }: { plugins: Plugins; fetch?: Fetch }
           </ErrorBoundary>
         </PluginScope>
       ))}
-      <Panel
-        flush
-        title={
-          <span className="flex items-center gap-2">
-            <Icon name="bell" />
-            Needs you
-            {n.tone && <Pill tone={n.tone}>{n.loud.length}</Pill>}
-          </span>
-        }
-      >
-        {n.loud.length === 0 && waiting ? (
-          <div className="p-5">
-            <Skeleton lines={2} />
-          </div>
-        ) : (
-          <>
-            {n.loud.length > 0 ? (
-              <ul aria-label="Needs you">
-                {n.loud.map((l) => (
-                  <Row key={`${l.plugin}:${l.concern.id}`} listed={l} onAct={act} />
-                ))}
-              </ul>
-            ) : (
-              <div className="flex items-center gap-3 px-5 py-4">
-                <Icon name="check" tone="up" />
-                <div className="text-sm font-semibold">Nothing needs you.</div>
-              </div>
-            )}
-            {n.quiet.length > 0 && <OffOnPurpose quiet={n.quiet} onAct={act} />}
-          </>
-        )}
-      </Panel>
-    </>
+      {children}
+    </ConcernsContext.Provider>
+  );
+}
+
+/**
+ * "Needs you": every installed Plugin's Concerns in one list, worst first,
+ * each with its Actions; the quiet ones folded under "Off on purpose".
+ */
+export function NeedsYou() {
+  const { needs: n, waiting, act } = useConcernList();
+  return (
+    <Panel
+      flush
+      title={
+        <span className="flex items-center gap-2">
+          <Icon name="bell" />
+          Needs you
+          {n.tone && <Pill tone={n.tone}>{n.loud.length}</Pill>}
+        </span>
+      }
+    >
+      {n.loud.length === 0 && waiting ? (
+        <div className="p-5">
+          <Skeleton lines={2} />
+        </div>
+      ) : (
+        <>
+          {n.loud.length > 0 ? (
+            <ul aria-label="Needs you">
+              {n.loud.map((l) => (
+                <Row key={`${l.plugin}:${l.concern.id}`} listed={l} onAct={act} />
+              ))}
+            </ul>
+          ) : (
+            <div className="flex items-center gap-3 px-5 py-4">
+              <Icon name="check" tone="up" />
+              <div className="text-sm font-semibold">Nothing needs you.</div>
+            </div>
+          )}
+          {n.quiet.length > 0 && <OffOnPurpose quiet={n.quiet} onAct={act} />}
+        </>
+      )}
+    </Panel>
   );
 }
 
@@ -121,8 +157,6 @@ function OffOnPurpose({ quiet, onAct }: { quiet: Listed[]; onAct: (l: Listed, a:
 
 const mark: Record<ConcernTone, string> = { down: "bg-down", warn: "bg-warn", info: "bg-info" };
 
-const icons: Record<ConcernTone, IconName> = { down: "circle-x", warn: "triangle-exclamation-point", info: "info" };
-
 /**
  * One Concern: its tone's mark and icon, title (a link to its detail),
  * cause, then its Actions with the main one last, filled when it is a fix.
@@ -143,7 +177,7 @@ function Row({ listed: l, onAct }: { listed: Listed; onAct: (l: Listed, a: Conce
     <li aria-label={c.title} className="relative flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-border px-5 py-3 first:border-t-0">
       {!quiet && <span aria-hidden className={cx("absolute inset-y-2.5 left-0 w-1 rounded-r-full", mark[c.tone])} />}
       <div className="flex min-w-48 flex-1 items-center gap-3">
-        <Icon name={c.icon ?? (quiet ? "bell-off" : icons[c.tone])} tone={quiet ? "idle" : c.tone} />
+        <Icon name={c.icon ?? (quiet ? "bell-off" : toneIcon[c.tone])} tone={quiet ? "idle" : c.tone} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">{c.href && main ? <Link to={c.href}>{c.title}</Link> : c.title}</div>
           {c.cause && <div className="text-xs text-muted-foreground">{c.cause}</div>}
@@ -168,8 +202,8 @@ function Row({ listed: l, onAct }: { listed: Listed; onAct: (l: Listed, a: Conce
   );
 }
 
-// What a report says, functions aside: a new one is only passed up when it changed.
-const signature = (concerns: readonly Concern[] | undefined) => JSON.stringify(concerns, (_, v: unknown) => (typeof v === "function" ? "ƒ" : v));
+// What a report (Concerns, Commands) says, functions aside: a new one is only passed up when it changed.
+export const signature = (report: unknown) => JSON.stringify(report, (_, v: unknown) => (typeof v === "function" ? "ƒ" : v));
 
 /**
  * Runs one Plugin's useConcerns, in its scope: passes each changed report
