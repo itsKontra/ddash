@@ -5,6 +5,8 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+## v0.0.3
+
 - **To do, for the Hosts Widget's meters**: give ddash's Proxmox API token
   `Sys.Audit` on `/nodes` and `Datastore.Audit` on `/storage`
   ([deployment](deployment.md)). Without them the new **Hosts** Widget
