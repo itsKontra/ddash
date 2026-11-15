@@ -3,13 +3,12 @@
   "plugins": ["typescript", "unicorn", "oxc", "react"],
   "categories": { "correctness": "error" },
   "rules": {
-    "react/rules-of-hooks": "error",
-    "react/static-components": "off"
+    "react/rules-of-hooks": "error"
   },
   "overrides": [
     {
       "files": ["**/*.test.ts", "**/*.test.tsx"],
-      "rules": { "react/immutability": "off", "react/globals": "off" }
+      "rules": { "react/immutability": "off", "react/globals": "off", "react/static-components": "off" }
     }
   ],
   "ignorePatterns": ["packages/proto/src/**", "**/dist/**"]

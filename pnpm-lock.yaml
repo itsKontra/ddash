@@ -168,9 +168,6 @@ importers:
 
   plugins/ai-helper:
     dependencies:
-      '@bufbuild/protobuf':
-        specifier: 2.17.0
-        version: 2.17.0
       '@ddash/draft':
         specifier: workspace:*
         version: link:../../packages/draft
@@ -284,9 +281,6 @@ importers:
 
   plugins/docker:
     dependencies:
-      '@bufbuild/protobuf':
-        specifier: 2.17.0
-        version: 2.17.0
       '@ddash/compose-ui':
         specifier: workspace:*
         version: link:../../packages/compose-ui

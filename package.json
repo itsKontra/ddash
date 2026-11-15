@@ -7,6 +7,7 @@
     "test": "pnpm -r test",
     "build": "pnpm -r build",
     "lint": "oxlint --deny-warnings && node packages/plugin-check/src/cli.ts style",
+    "lint:backlog": "oxlint -c .oxlintrc.backlog.json",
     "check-plugins": "node packages/plugin-check/src/cli.ts contract"
   },
   "devDependencies": {

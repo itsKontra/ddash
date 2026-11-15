@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react"],
+  "categories": {},
+  "rules": {
+    "typescript/no-non-null-assertion": "warn",
+    "react/no-array-index-key": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx", "**/testing/**", "**/testing.ts", "**/testing.tsx"],
+      "rules": { "typescript/no-non-null-assertion": "off", "react/no-array-index-key": "off" }
+    }
+  ],
+  "ignorePatterns": ["packages/proto/src/**", "**/dist/**"]
+}

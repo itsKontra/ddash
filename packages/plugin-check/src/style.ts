@@ -53,8 +53,9 @@ function lintStylesheet(file: string, text: string, plugin: string, problems: st
   const css = text.replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, " "));
   const line = (offset: number) => css.slice(0, offset).split("\n").length;
   const own: string[] = [];
-  const foreign = () =>
+  const foreign = () => {
     problems.push(`${file}: a Plugin's CSS may only @import "@ddash/ui/plugin.css" and hold @keyframes ${plugin}-<name>; style with @ddash/ui and Theme token classes`);
+  };
   let at = 0;
   const take = (re: RegExp) => {
     re.lastIndex = at;

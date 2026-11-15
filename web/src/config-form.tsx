@@ -401,12 +401,35 @@ function SecretField({ field: f, secret, onSecret, error }: { field: FormField; 
   );
 }
 
+/**
+ * A key per row of a repeated field, which has no id of its own. A row
+ * keeps its key when one before it is removed, so React keeps its input
+ * (focus and all) with it, not with the row that slides into its place.
+ * Rows added or dropped from outside (a reset, a config read again) are
+ * keyed from the end.
+ */
+function useRowKeys(count: number): [keys: readonly number[], remove: (i: number) => void] {
+  const [state, setState] = useState(() => ({ keys: Array.from({ length: count }, (_, i) => i), next: count }));
+  let { keys, next } = state;
+  if (keys.length !== count) {
+    keys = keys.slice(0, count);
+    while (keys.length < count) keys.push(next++);
+    setState({ keys, next });
+  }
+  return [keys, (i) => setState((s) => ({ ...s, keys: s.keys.filter((_, j) => j !== i) }))];
+}
+
 /** A repeated scalar: one input per item, with Add and Remove. */
 function List({ field: f, items, onChange, errors }: { field: FormField; items: JsonValue[]; onChange: (v: JsonValue[]) => void; errors: Errors }) {
+  const [keys, removeKey] = useRowKeys(items.length);
+  const remove = (i: number) => {
+    removeKey(i);
+    onChange(items.filter((_, j) => j !== i));
+  };
   return (
     <div className="flex flex-col gap-2">
       {items.map((item, i) => (
-        <div key={i} data-field={`${f.name}[${i}]`}>
+        <div key={keys[i]} data-field={`${f.name}[${i}]`}>
           <div className="flex gap-2">
             <Scalar
               field={f}
@@ -414,7 +437,7 @@ function List({ field: f, items, onChange, errors }: { field: FormField; items: 
               value={item}
               onChange={(v) => onChange(items.map((x, j) => (j === i ? (v ?? "") : x)))}
             />
-            <Button variant="ghost" icon="x" aria-label={`Remove item ${i + 1}`} onClick={() => onChange(items.filter((_, j) => j !== i))} />
+            <Button variant="ghost" icon="x" aria-label={`Remove item ${i + 1}`} onClick={() => remove(i)} />
           </div>
           <FieldError message={errors[`${f.name}[${i}]`]} />
         </div>
@@ -440,6 +463,11 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
         return next;
       }),
     );
+  const [keys, removeKey] = useRowKeys(rows.length);
+  const remove = (i: number) => {
+    removeKey(i);
+    onChange(rows.filter((_, j) => j !== i));
+  };
   return (
     <div className="flex flex-col gap-2">
       <div className="overflow-x-auto">
@@ -456,7 +484,7 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i} className="align-top">
+              <tr key={keys[i]} className="align-top">
                 {f.columns.map((c) => {
                   const path = `${f.name}[${i}].${c.name}`;
                   return (
@@ -467,7 +495,7 @@ function Table({ field: f, rows, onChange, errors }: { field: FormField; rows: J
                   );
                 })}
                 <td className="pb-2">
-                  <Button variant="ghost" icon="x" aria-label={`Remove row ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))} />
+                  <Button variant="ghost" icon="x" aria-label={`Remove row ${i + 1}`} onClick={() => remove(i)} />
                 </td>
               </tr>
             ))}

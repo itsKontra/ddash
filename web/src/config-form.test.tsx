@@ -239,6 +239,26 @@ it("resets a field to its default by unsetting it", async () => {
   expect(input(form, "Priority").placeholder).toBe("3");
 });
 
+it("keeps each remaining row's input when a middle row of a repeated field is removed", async () => {
+  await boot();
+  const form = await configure("ntfy-api");
+  fireEvent.click(within(form).getByRole("button", { name: "Add an item to Tags" }));
+  fireEvent.change(within(form).getByRole("textbox", { name: "Tags, item 3" }), { target: { value: "c" } });
+  const [a, b, c] = within(form).getAllByRole("textbox", { name: /^Tags/ }) as HTMLInputElement[];
+  c.focus();
+
+  fireEvent.click(within(form).getByRole("button", { name: "Remove item 2" }));
+
+  // The inputs of a and c are the ones still there: b's went with its row,
+  // and c's kept its focus instead of handing its place's input to c.
+  const left = within(form).getAllByRole("textbox", { name: /^Tags/ }) as HTMLInputElement[];
+  expect(left.map((t) => t.value)).toEqual(["a", "c"]);
+  expect(left[0]).toBe(a);
+  expect(left[1]).toBe(c);
+  expect(b.isConnected).toBe(false);
+  expect(document.activeElement).toBe(c);
+});
+
 it("checks required, format and min/max before saving, showing each error under its field", async () => {
   await boot();
   const form = await configure("ntfy-api");
