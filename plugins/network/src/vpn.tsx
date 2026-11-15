@@ -1,7 +1,6 @@
 import type { Status, Widget } from "@ddash/plugin";
 import { Tier } from "@ddash/proto/network/network_pb";
-import { Notice, Skeleton, StatusList } from "@ddash/ui";
-import { Unit } from "./rows";
+import { Notice, Skeleton, StatusList, Unit } from "@ddash/ui";
 import { members, ms, stateTone, tiers, useTunnel } from "./tunnel";
 
 /**

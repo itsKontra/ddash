@@ -48,6 +48,7 @@ export const certificates: Widget = {
   title: "Certificates",
   sizes: ["S"],
   defaultSize: "S",
+  defaultOrder: 80,
   Body,
   useStatus,
 };

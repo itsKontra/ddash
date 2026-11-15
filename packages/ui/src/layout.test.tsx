@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it } from "vitest";
-import { HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, SectionHeading, SetUp, StatRow, StatusList, WidgetCard } from "./index";
+import { HeroButton, HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, Row, Rows, SectionHeading, SetUp, StatRow, StatusList, Unit, WidgetCard } from "./index";
 
 afterEach(cleanup);
 
@@ -126,6 +126,40 @@ it("StatRow holds each figure as a group named by its label, a skeleton while it
   expect(within(screen.getByRole("group", { name: "365 d" })).getByRole("status", { name: "Loading" })).toBeTruthy();
 });
 
+it("Rows hold each figure as a group named by its label, a skeleton while its value is undefined", () => {
+  render(
+    <Rows>
+      <Row icon="monitor-smartphone" label="Devices" value={0} />
+      <Row label="Online" value={undefined} />
+      <Row label="Down" value={2} tone="down" />
+    </Rows>,
+  );
+
+  expect(screen.getByRole("group", { name: "Devices" }).textContent).toBe("Devices0");
+  expect(within(screen.getByRole("group", { name: "Online" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(screen.getByText("2").className).toContain("text-down-text");
+  expect(screen.getByText("0").className).not.toMatch(/text-\w+-text/);
+});
+
+it("Rows never cut a label or a value: a narrow Widget drops the icons and Units and wraps the value under its label", () => {
+  const { container } = render(
+    <Rows>
+      <Row icon="monitor-smartphone" label="Devices" value={<>12<Unit> online</Unit></>} />
+      <Row label="Host" value={<span className="truncate">a-very-long-name</span>} truncate />
+    </Rows>,
+  );
+
+  expect(container.firstElementChild!.className).toContain("@container");
+  const devices = screen.getByRole("group", { name: "Devices" });
+  expect(devices.className).toContain("flex-wrap");
+  for (const part of devices.children) expect(part.className).toContain("whitespace-nowrap");
+  expect(devices.querySelector("svg")!.parentElement!.className).toContain("@max-3xs:hidden");
+  expect(screen.getByText("online").className).toContain("@max-2xs:hidden");
+  // Only a value that asks for it may shrink, to truncate a free-form name.
+  expect(devices.children[1].className).not.toContain("min-w-0");
+  expect(screen.getByRole("group", { name: "Host" }).children[1].className).toContain("min-w-0");
+});
+
 it("HeroCard is a section named by its title, with kicker, caption, foot and aside", () => {
   render(
     <HeroCard
@@ -143,6 +177,17 @@ it("HeroCard is a section named by its title, with kicker, caption, foot and asi
   expect(within(hero).getByText("Proxmox is down")).toBeTruthy();
   expect(within(hero).getByText("9 up · 2 down")).toBeTruthy();
   expect(within(hero).getByRole("meter", { name: "Widgets up" })).toBeTruthy();
+});
+
+it("HeroCard's corner sits on the kicker's line, a HeroButton a plain button there", () => {
+  let clicked = 0;
+  render(<HeroCard kicker="Sunday" title="All up" corner={<HeroButton icon="pencil" onClick={() => clicked++}>Edit</HeroButton>} />);
+
+  const edit = within(screen.getByRole("region", { name: "All up" })).getByRole("button", { name: "Edit" });
+  expect(edit.getAttribute("type")).toBe("button");
+  expect(edit.parentElement!.parentElement!.textContent).toBe("SundayEdit");
+  edit.click();
+  expect(clicked).toBe(1);
 });
 
 it("HeroCard centres its halo on the aside, and draws none without one", () => {

@@ -19,8 +19,12 @@ it("exports exactly the spec's component set, plus cx, matches, noMatch and the 
       "Panel",
       "SectionHeading",
       "HeroCard",
+      "HeroButton",
       "MetricTile",
       "StatRow",
+      "Rows",
+      "Row",
+      "Unit",
       "WidgetCard",
       // forms
       "Field",

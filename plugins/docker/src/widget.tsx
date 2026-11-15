@@ -2,7 +2,7 @@ import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plug
 import { ComposeService, ImageState } from "@ddash/proto/compose/compose_pb";
 import { Health, State, type Container } from "@ddash/proto/ddash/container/container_pb";
 import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
-import { Facts, MetricTile, Pill, Skeleton, Summary } from "@ddash/ui";
+import { Facts, MetricTile, Pill, Row, Rows, Skeleton, Summary } from "@ddash/ui";
 import { containersLine, containersRunning, exitedRows, hostsStatus, updateState } from "./hosts";
 import { useNow } from "./now";
 
@@ -48,12 +48,26 @@ function useStatus(): Status | undefined {
   return { tone: "up", summary: `${running(all)} of ${all.length} running${waiting}`, fact };
 }
 
-/** S: the running and total counts. M: each host's counts too. */
+/**
+ * The running and total counts, and those needing attention or with an
+ * update waiting. S draws them as rows, so the narrowest S cuts no label
+ * or number; M as tiles, with each host's counts too.
+ */
 function Body({ size }: { size: WidgetSize }) {
   const { data } = useContainers();
   const all = data?.hosts.flatMap((h) => h.containers);
   const troubled = all?.filter((c) => unhealthy(c) || restarting(c)).length ?? 0;
   const updates = useUpdates();
+  if (size === "S") {
+    return (
+      <Rows>
+        <Row label="Running" value={all && running(all)} tone="up" />
+        <Row label="Containers" value={all?.length} />
+        {troubled > 0 && <Row label="Need attention" value={troubled} tone="warn" />}
+        {updates !== undefined && updates > 0 && <Row label={updates === 1 ? "Update waiting" : "Updates waiting"} value={updates} tone="warn" />}
+      </Rows>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
@@ -62,7 +76,7 @@ function Body({ size }: { size: WidgetSize }) {
         {troubled > 0 && <MetricTile label="need attention" value={troubled} tone="warn" />}
         {updates !== undefined && updates > 0 && <MetricTile label={updates === 1 ? "update waiting" : "updates waiting"} value={updates} tone="warn" />}
       </div>
-      {size === "M" && data && (
+      {data && (
         <Facts
           items={data.hosts.map((h) => ({
             label: h.host,
@@ -100,6 +114,7 @@ export const dockerHosts: Widget = {
   title: "Docker hosts",
   sizes: ["S", "M"],
   defaultSize: "S",
+  defaultOrder: 50,
   Body: HostsBody,
   useStatus: useHostsStatus,
 };

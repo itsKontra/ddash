@@ -2,14 +2,13 @@ import { ago } from "@ddash/display";
 import { useQuery, type Status, type Widget } from "@ddash/plugin";
 import type { GetStatsResponse, GetStatusResponse } from "@ddash/proto/adguard-api/adguard_api_pb";
 import { PfsenseApiService } from "@ddash/proto/pfsense-api/pfsense_api_pb";
-import { Icon, Notice, Pill, Skeleton, Sparkline } from "@ddash/ui";
+import { Icon, Notice, Pill, Row, Rows, Skeleton, Sparkline, Unit } from "@ddash/ui";
 import { Fragment, type ReactNode } from "react";
 import { blockedShare, count, pauseLeft, useAdguardStats, useAdguardStatus } from "./adguard";
 import { tally, useDevices } from "./devices";
 import { ProtectionSwitch } from "./protection";
 import { peerName, useRemoteAccess } from "./remote-access";
 import { lastSeen, latency, routeOut, wanGateways } from "./route";
-import { Row, Rows, Unit } from "./rows";
 import { bitRate, directions, useThroughput } from "./throughput";
 import { useTunnel } from "./tunnel";
 
@@ -188,7 +187,8 @@ export const networkWidget: Widget = {
   id: "network",
   title: "Network",
   sizes: ["S", "M"],
-  defaultSize: "S",
+  defaultSize: "M",
+  defaultOrder: 30,
   Body,
   useStatus,
 };

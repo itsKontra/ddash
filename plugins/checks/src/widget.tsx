@@ -1,5 +1,5 @@
 import type { Status, Widget, WidgetSize } from "@ddash/plugin";
-import { MetricTile, StatusList } from "@ddash/ui";
+import { MetricTile, Row, Rows, StatusList } from "@ddash/ui";
 import { latency, shownName, stateLabel, tally, toneOf, useChecks, warning } from "./checks";
 
 /**
@@ -28,9 +28,10 @@ function useStatus(): Status | undefined {
 }
 
 /**
- * S: up, down and Maintenance counts; down counts the muted ones too, in
- * idle with how many are muted while none else is down. M: each Check that
- * isn't up, too, the muted ones last and quiet.
+ * Up, down and Maintenance counts; down counts the muted ones too, in idle
+ * with how many are muted while none else is down. S draws them as rows,
+ * so the narrowest S cuts no label or number; M as tiles, with each Check
+ * that isn't up under them, the muted ones last and quiet.
  */
 function Body({ size }: { size: WidgetSize }) {
   const { data, error } = useChecks();
@@ -38,6 +39,26 @@ function Body({ size }: { size: WidgetSize }) {
   if (error && !data) return null;
   const t = data && tally(data.checks);
   const troubled = t?.enabled.filter((c) => toneOf(c) !== "up" && !t.muted.includes(c)) ?? [];
+  if (size === "S") {
+    return (
+      <Rows>
+        <Row label="Up" value={t?.up.length} tone="up" />
+        <Row
+          label="Down"
+          tone={t?.down.length ? "down" : "idle"}
+          value={
+            t && (
+              <>
+                {t.down.length + t.muted.length}
+                {t.muted.length > 0 && <span className="text-xs font-normal text-muted-foreground">{t.muted.length} muted</span>}
+              </>
+            )
+          }
+        />
+        <Row label="Maintenance" value={t?.maint.length} tone={t?.maint.length ? "maint" : "idle"} />
+      </Rows>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-3 gap-3">
@@ -50,7 +71,7 @@ function Body({ size }: { size: WidgetSize }) {
         />
         <MetricTile label="Maintenance" value={t?.maint.length} tone={t?.maint.length ? "maint" : "idle"} />
       </div>
-      {size === "M" && t && troubled.length + t.muted.length > 0 && (
+      {t && troubled.length + t.muted.length > 0 && (
         <StatusList
           items={[
             ...troubled.map((c) => ({
@@ -74,6 +95,7 @@ export const summary: Widget = {
   title: "Checks",
   sizes: ["S", "M"],
   defaultSize: "S",
+  defaultOrder: 60,
   Body,
   useStatus,
 };

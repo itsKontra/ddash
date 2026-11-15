@@ -24,13 +24,15 @@ const pluginOf = (key: string) => key.slice(0, key.indexOf("."));
  * given by Plugin name (undefined while a bundle loads, or when it failed):
  *
  * - a Plugin that isn't installed is forgotten, placed and seen, so a
- *   reinstall appends its Widgets again;
+ *   reinstall places its Widgets again;
  * - a Widget its loaded Plugin no longer offers is dropped and forgotten,
  *   and a size it no longer supports is reset to its default;
  * - a Plugin whose Widgets aren't known keeps its entries as they are;
  * - each Widget is placed at most once;
- * - every unseen Widget is appended at its default size. A seen Widget that
- *   isn't placed was removed by the Operator and stays removed.
+ * - every unseen Widget becomes seen; one with a defaultOrder is appended
+ *   at its default size, by that order, and one without waits under Add
+ *   Widget. A seen Widget that isn't placed was removed by the Operator (or
+ *   never placed) and stays so.
  */
 export function reconcile(layout: Layout, installed: ReadonlyMap<string, readonly Widget[] | undefined>): Layout {
   // undefined: the Widget's Plugin is installed but its Widgets aren't known.
@@ -49,13 +51,25 @@ export function reconcile(layout: Layout, installed: ReadonlyMap<string, readonl
     entries.push(w === undefined || w.sizes.includes(e.size) ? e : { widget: e.widget, size: w.defaultSize });
     if (!seen.includes(e.widget)) seen.push(e.widget);
   }
+  const offered: { placed: Placed; order: number }[] = [];
   for (const [plugin, widgets] of installed) {
     for (const w of widgets ?? []) {
       const key = widgetKey(plugin, w.id);
       if (seen.includes(key)) continue;
       seen.push(key);
-      entries.push({ widget: key, size: w.defaultSize });
+      if (w.defaultOrder !== undefined) offered.push({ placed: { widget: key, size: w.defaultSize }, order: w.defaultOrder });
     }
   }
+  entries.push(...offered.sort((a, b) => a.order - b.order).map((o) => o.placed));
   return { entries, seen };
+}
+
+/**
+ * Whether the shell waits before reconciling a layout that was never saved
+ * (nothing seen yet) while a Plugin's bundle still loads, so a fresh
+ * Overview places every Plugin's Widgets at once, in their defaultOrder,
+ * rather than in the order the bundles happen to load.
+ */
+export function waits(layout: Layout, installed: readonly string[], settled: (plugin: string) => boolean): boolean {
+  return layout.seen.length === 0 && installed.some((p) => !settled(p));
 }

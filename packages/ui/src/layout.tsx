@@ -1,5 +1,5 @@
 // The layout family: what a Page and a Widget are framed by.
-import { useId, type ReactNode } from "react";
+import { useId, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Skeleton, StatusDot } from "./atoms";
 import { EmptyState, Notice } from "./feedback";
@@ -226,11 +226,60 @@ function StatCell({ label, value }: StatRowItem) {
 }
 
 /**
+ * A small Widget's figures, one per row, divided: the label (after its
+ * icon) left, the value right. Nothing is cut: the label and the value
+ * each keep one line in full. Under 16rem (an S Widget in the Overview's
+ * grid of four) the icons drop out, under 18rem the Units; a value that
+ * still doesn't fit moves under its label, and only a free-form name in a
+ * value truncates (truncate). The rows are a size container for both.
+ */
+export function Rows({ children }: { children: ReactNode }) {
+  return <div className="@container flex flex-col divide-y divide-border">{children}</div>;
+}
+
+/** One figure in Rows, a group named by its label; an undefined value is still loading. `tone` colours the value, as a MetricTile's without an icon. */
+export function Row({ icon, label, value, tone = "idle", truncate }: { icon?: IconName; label: string; value: ReactNode; tone?: Tone; truncate?: boolean }) {
+  const id = useId();
+  return (
+    <div role="group" aria-labelledby={id} className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-1 py-1.5 text-sm">
+      <span className="flex shrink-0 items-center gap-2 whitespace-nowrap text-muted-foreground">
+        {icon && (
+          <span className="leading-none @max-3xs:hidden">
+            <Icon name={icon} size="sm" />
+          </span>
+        )}
+        <span id={id}>{label}</span>
+      </span>
+      {value === undefined ? (
+        <span className="ml-auto w-16">
+          <Skeleton />
+        </span>
+      ) : (
+        <span className={cx("ml-auto flex items-center justify-end gap-1.5 font-semibold whitespace-nowrap tabular-nums", tone !== "idle" && toneText[tone], truncate && "min-w-0")}>
+          {value}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The part of a value a narrow Widget drops, e.g. " of 61,122" after "4%"
+ * or " online" after "12 of 14": hidden while its size container (Rows,
+ * or an @container of the Widget's own) is under 18rem, as an S Widget
+ * is in the Overview's grid of four.
+ */
+export function Unit({ children }: { children: ReactNode }) {
+  return <span className="@max-2xs:hidden">{children}</span>;
+}
+
+/**
  * The dark gradient card at the top of the Overview, the only way onto the
  * hero surface: a kicker, the title (the status headline), a caption
  * clamped to three lines, a foot of counts and an aside such as a Ring.
  * A Ring in the aside and a StatusList in the caption draw themselves in
- * the hero's colours.
+ * the hero's colours. `corner` sits at the end of the kicker's line, e.g.
+ * a HeroButton, without making that line taller.
  */
 export function HeroCard({
   kicker,
@@ -238,12 +287,14 @@ export function HeroCard({
   caption,
   foot,
   aside,
+  corner,
 }: {
   kicker: string;
   title: ReactNode;
   caption?: ReactNode;
   foot?: ReactNode;
   aside?: ReactNode;
+  corner?: ReactNode;
 }) {
   const id = useId();
   return (
@@ -258,10 +309,11 @@ export function HeroCard({
       />
       {/* Raised so the aside's halo, later in the DOM, stays behind the text. */}
       <div className="relative z-1 min-w-0 flex-1">
-        <div className="mb-3">
+        <div className="mb-3 flex items-center justify-between gap-3">
           <OnHero value={true}>
             <Kicker>{kicker}</Kicker>
           </OnHero>
+          {corner && <div className="-my-1.5 flex shrink-0 items-center gap-2">{corner}</div>}
         </div>
         <h2 id={id} className="mb-3 text-2xl leading-tight font-extrabold tracking-tight text-nav-strong sm:text-3xl">
           {title}
@@ -286,6 +338,20 @@ export function HeroCard({
         </div>
       )}
     </section>
+  );
+}
+
+/** A small outlined button in the hero's colours, for a HeroCard's corner: e.g. the Overview's Edit. */
+export function HeroButton({ icon, children, ...rest }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "className" | "type"> & { icon?: IconName }) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-ui-sm border border-nav-strong/15 px-2.5 text-xs font-bold text-nav-strong transition-colors hover:bg-nav-strong/10"
+    >
+      {icon && <Icon name={icon} size="sm" />}
+      {children}
+    </button>
   );
 }
 

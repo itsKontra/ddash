@@ -25,6 +25,7 @@ const widget = (id: string, title: string, status: Status): Widget => ({
   title,
   sizes: ["S"],
   defaultSize: "S",
+  defaultOrder: 0,
   Body: () => <p>{`${title} body`}</p>,
   useStatus: () => status,
 });
@@ -92,6 +93,18 @@ it("lists every installed Plugin's Concerns in one place, worst first, Widget pl
   // The hero names what is down by its subject, once, though the Checks Widget is down too.
   expect(sentence()).toBe("nas is down. Everything else is up.");
   expect(overall()).toBe("Overall: down");
+});
+
+it("clamps a long cause to two lines, with the whole of it in its title, and breaks a long token", async () => {
+  const image = "registry.example.org/some/very-long-image-name@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+  plugins = [[installed("docker", "Docker"), definePlugin({ useConcerns: () => [down("media", { cause: `${image} is not ${image}` })] })]];
+
+  await boot();
+
+  const cause = within(panel()).getByText(/is not/);
+  expect(cause.getAttribute("title")).toBe(`${image} is not ${image}`);
+  expect(cause.className).toContain("line-clamp-2");
+  expect(cause.className).toContain("break-words");
 });
 
 it("says nothing needs the Operator once every Plugin reported none", async () => {

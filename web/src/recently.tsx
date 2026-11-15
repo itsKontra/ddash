@@ -88,15 +88,18 @@ export function subject(request: string): string {
 /**
  * Whether Recently lists a chain: what an Operator or ddash itself did to
  * the lab, not housekeeping. A Component's sync with another (e.g. apps
- * setting checks' App Checks) and the shell saving the Overview layout are
- * left to the Audit Log.
+ * setting checks' App Checks), the shell saving the Overview layout and
+ * the Operator signing in or out are left to the Audit Log.
  */
 export function listed(chain: AuditChain): boolean {
   const root = chain.entries[0];
   if (!root) return false;
   if (root.actorKind === "component") return false;
-  return !(root.target === "core" && root.method === "SaveLayout");
+  return !(root.target === "core" && housekeeping.has(root.method));
 }
+
+/** The core's own methods that are not Actions on the lab. */
+const housekeeping = new Set(["SaveLayout", "SignIn", "SignOut"]);
 
 /** How many chains Recently reads to find its four. */
 export const read = 20;

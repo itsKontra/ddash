@@ -185,6 +185,7 @@ export const energyNow: Widget = {
   title: "Energy now",
   sizes: ["S", "M", "L"],
   defaultSize: "M",
+  defaultOrder: 20,
   Body,
   useStatus,
 };

@@ -261,6 +261,7 @@ export const apps: Widget = {
   title: "Apps",
   sizes: ["M", "L"],
   defaultSize: "L",
+  defaultOrder: 10,
   Body,
   useStatus,
 };

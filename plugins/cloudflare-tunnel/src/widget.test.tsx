@@ -26,14 +26,15 @@ it("reports the Tunnel's state with its connectors and Public Hostnames", async 
 
   expect(reported.status).toEqual({ tone: "up", summary: "Up · 2 connectors · 2 Public Hostnames" });
   const s = screen.getByRole("region", { name: "widget" });
-  expect(metricValue("hostnames", s)).toBe("2");
-  expect(metricValue("connectors", s)).toBe("2");
+  expect(metricValue("Public Hostnames", s)).toBe("2");
+  expect(metricValue("Connectors", s)).toBe("2");
 });
 
 it("shows the Tunnel and the disabled ones at M", async () => {
   await show({}, "M");
   const m = screen.getByRole("region", { name: "widget" });
 
+  expect(metricValue("hostnames", m)).toBe("2");
   expect(within(m).getByText("Tunnel").nextElementSibling?.textContent).toBe("home: Up");
   expect(within(m).getByText("Disabled").nextElementSibling?.textContent).toBe("1");
 });

@@ -1,8 +1,7 @@
 import { useQuery, type Status, type Widget } from "@ddash/plugin";
 import { AdguardApiService, type GetStatsResponse, type GetStatusResponse, type TopEntry } from "@ddash/proto/adguard-api/adguard_api_pb";
-import { Bars, MetricTile, Notice, Pill, Skeleton, Sparkline, StatusDot, type Tone } from "@ddash/ui";
+import { Bars, MetricTile, Notice, Pill, Row, Rows, Skeleton, Sparkline, StatusDot, type Tone } from "@ddash/ui";
 import { ProtectionSwitch } from "./protection";
-import { Row, Rows } from "./rows";
 
 /** AdGuard's status (FAST), shared by the Page and the Widget. */
 export function useAdguardStatus() {

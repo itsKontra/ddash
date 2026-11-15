@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, type PluginDefinition, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
-import { settle, tracked } from "@ddash/plugin/testing";
+import { pending, settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -25,13 +25,15 @@ const widget = (id: string, title: string, status: Status | undefined, ...sizes:
   title,
   sizes,
   defaultSize: sizes[0],
+  defaultOrder: 0,
   Body: ({ size }) => <p>{`${title} body at ${size}`}</p>,
   useStatus: () => status,
 });
 
 const up = (summary: string): Status => ({ tone: "up", summary });
 
-type Bundle = PluginDefinition | Error;
+// A bundle, one that fails, or one that loads when the promise resolves.
+type Bundle = PluginDefinition | Error | Promise<PluginDefinition>;
 
 // The fake core: its installed Plugins and stored layout, and the layouts
 // saved, oldest first.
@@ -87,7 +89,7 @@ async function boot(path = "/", reload = vi.fn()) {
         importBundle={async (url) => {
           const b = bundles.get(url);
           if (b instanceof Error) throw b;
-          return { default: b };
+          return { default: await b };
         }}
       />
     </MemoryRouter>,
@@ -129,6 +131,41 @@ it("appends an installed Plugin's Widgets at their default size, and saves the l
       seen: ["docker.containers", "network.throughput", "network.vpn"],
     },
   ]);
+});
+
+it("a fresh Overview waits for every bundle, then places only the default Widgets, by their defaultOrder across Plugins, once", async () => {
+  const ordered = (w: Widget, defaultOrder?: number): Widget => ({ ...w, defaultOrder });
+  let loadApps!: (d: PluginDefinition) => void;
+  plugins = [
+    [installed("network", "Network"), definePlugin({ widgets: [ordered(widget("vpn", "VPN", up("on"), "S")), ordered(widget("network", "Network", up("online"), "M", "S"), 30)] })],
+    [installed("checks", "Checks"), definePlugin({ widgets: [ordered(widget("summary", "Checks", up("all up"), "S", "M"), 60)] })],
+    [installed("apps", "Apps"), new Promise<PluginDefinition>((r) => (loadApps = r))],
+  ];
+
+  await boot();
+
+  expect(cards()).toEqual([]);
+  expect(saves).toEqual([]);
+  expect(screen.queryByText("No Widgets on the Overview.")).toBeNull();
+
+  loadApps(definePlugin({ widgets: [ordered(widget("apps", "Apps", up("all up"), "L", "M"), 10)] }));
+  await settle();
+
+  expect(cards().map((c) => c.getAttribute("aria-label"))).toEqual(["Apps", "Network", "Checks"]);
+  expect(saves).toEqual([
+    {
+      entries: [
+        { widget: "apps.apps", size: "L" },
+        { widget: "network.network", size: "M" },
+        { widget: "checks.summary", size: "S" },
+      ],
+      seen: ["network.vpn", "network.network", "checks.summary", "apps.apps"],
+    },
+  ]);
+  // The others wait under Add Widget.
+  edit();
+  fireEvent.click(screen.getByRole("button", { name: "Add Widget" }));
+  expect(screen.getByRole("button", { name: "Add VPN" })).toBeTruthy();
 });
 
 it("draws each Widget in the host's frame: its title links to the Plugin's Page, next to its status", async () => {
@@ -258,6 +295,46 @@ it("the hero says when nothing is on the Overview", async () => {
   await boot();
 
   expect(headline()).toBe("No Widgets on the Overview.");
+});
+
+it("never says nothing is on the Overview before the layout is read: the hero waits on a placeholder", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  stored = { entries: [{ widget: "docker.containers", size: "S" }], seen: ["docker.containers"] };
+  let answer!: () => void;
+  const late = new Promise<void>((r) => (answer = r));
+  // Counted as stuck (pending) so the page settles, but answered later on.
+  intercept = (method) => (method === "GetLayout" ? (void pending(), late.then(() => Response.json({ layout: stored }))) : undefined);
+
+  await boot();
+
+  expect(screen.queryByText("No Widgets on the Overview.")).toBeNull();
+  const waiting = screen.getByRole("region", { name: "Loading" });
+  expect(within(waiting).getByRole("heading", { level: 2 })).toBeTruthy();
+  expect(within(waiting).queryByRole("button", { name: "Edit" })).toBeNull();
+
+  answer();
+  await settle();
+
+  expect(headline()).toBe("Everything you watch is up.");
+  expect(within(hero()).getByRole("button", { name: "Edit" })).toBeTruthy();
+});
+
+it("has no title block: the Page's one h1 is for screen readers, and Edit sits in the hero's corner", async () => {
+  plugins = [[installed("docker", "Docker"), docker()]];
+  stored = { entries: [{ widget: "docker.containers", size: "S" }], seen: ["docker.containers"] };
+
+  await boot();
+
+  const h1s = screen.getAllByRole("heading", { level: 1 });
+  expect(h1s.map((h) => h.textContent)).toEqual(["Overview"]);
+  expect(h1s[0].className).toContain("sr-only");
+  expect(screen.queryByText("Main")).toBeNull();
+  const edit = within(hero()).getByRole("button", { name: "Edit" });
+  edit.focus();
+  expect(document.activeElement).toBe(edit);
+  fireEvent.click(edit);
+  expect(screen.getByRole("toolbar", { name: "Edit the Overview" })).toBeTruthy();
+  expect(within(hero()).queryByRole("button", { name: "Edit" })).toBeNull();
 });
 
 it("lays the Widget grid out in one column on phones, two from small screens and four from wide ones", async () => {
