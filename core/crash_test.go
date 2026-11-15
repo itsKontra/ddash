@@ -2,6 +2,7 @@ package core_test
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -60,7 +61,11 @@ func (l *crashing) Launch(ctx context.Context, spec runtime.LaunchSpec) (runtime
 func (l *crashing) crash(name string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	close(l.running[name].crash)
+	p := l.running[name]
+	if p == nil {
+		panic(fmt.Sprintf("crash(%q): it was never launched (launched: %v)", name, l.launches))
+	}
+	close(p.crash)
 }
 
 func (l *crashing) launched(name string) int {
@@ -80,6 +85,15 @@ func crashHarness(t *testing.T, plugin coretest.Plugin, defs ...sdk.Definition) 
 		h.SeedConfig(d.Name(), configured)
 	}
 	h.Install(plugin.Name)
+	// A Component that didn't start says why here, not as a nil pointer in
+	// the test that then crashes it.
+	t.Cleanup(func() {
+		if t.Failed() {
+			for _, d := range defs {
+				t.Logf("%s: %+v, launched %d times", d.Name(), h.Status(d.Name()), l.launched(d.Name()))
+			}
+		}
+	})
 	return h, l
 }
 
@@ -87,6 +101,9 @@ func TestTheCatalogueOffersRestartForAComponentHeldDownAndTheCoreAPIRestartsIt(t
 	synctest.Test(t, func(t *testing.T) {
 		h, l := crashHarness(t, hello, greeter(sample.Hooks{}))
 		synctest.Wait()
+		if st := h.Status("greeter"); l.launched("greeter") == 0 {
+			t.Fatalf("greeter wasn't launched once everything settled: its status is %+v", st)
+		}
 		greeterIn := func() map[string]any {
 			plugins := coreJSON(t, h, "ListCatalogue", `{}`)["plugins"].([]any)
 			return plugins[0].(map[string]any)["components"].([]any)[0].(map[string]any)
