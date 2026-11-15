@@ -1,6 +1,6 @@
 # Spec (draft): ddash manages what runs on the hosts — Agents, Compose Projects, LXC updates and new integrations
 
-> **Draft.** This repo files specs as GitHub issues (`docs/agents/issue-tracker.md`). Unlike earlier specs, this one has no Wayfinder map behind it yet: the decisions marked **Proposed** are defaults chosen without a grilling ticket, and **Open Decisions** lists what a map should settle before implementation. Terms follow `GLOSSARY.md` (Operator, Action, Plan, Audit Log, Plugin, Component, Widget, Page, Release, App, Workload, Protected, Proxy Host, Host Override, Reverse Proxy, Check, Maintenance, Notification, Remote Access). New terms are proposed in [Glossary additions](#glossary-additions). Baseline: `main` at `02bec9a` (v0.0.2-rc.4). Source: `IDEAS.md`.
+> **Draft.** This repo files specs as GitHub issues (`docs/agents/issue-tracker.md`). Unlike earlier specs, this one has no Wayfinder map behind it yet: the decisions marked **Proposed** are defaults chosen without a grilling ticket, and **Open Decisions** lists what a map should settle before implementation. Terms follow `GLOSSARY.md` (Operator, Action, Plan, Audit Log, Plugin, Component, Widget, Page, Release, App, Workload, Protected, Proxy Host, Host Override, Reverse Proxy, Check, Maintenance, Notification, Remote Access). New terms are proposed in [Glossary additions](#glossary-additions). Baseline: `main` at `02bec9a` (v0.0.2-rc.4).
 
 ## Problem Statement
 
