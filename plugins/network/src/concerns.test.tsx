@@ -116,7 +116,7 @@ it("adopts a New Device with the name asked for in the Page's Adopt Sheet, and d
   expect(reported).toEqual([]);
 });
 
-it("blocks a New Device as the Page's No Internet does, and drops it once network Adopted it", async () => {
+it("blocks a New Device as the Page's No Internet does once confirmed, and drops it once network Adopted it", async () => {
   let devices: object[] = [tv, phone];
   const calls = await show({
     ListDevices: () => listed(devices)(),
@@ -126,11 +126,31 @@ it("blocks a New Device as the Page's No Internet does, and drops it once networ
     },
   });
 
-  const block = reported![0].actions![1];
-  await act(async () => void ("run" in block && (await block.run())));
+  const sets = () => calls.filter((c) => c.method === "SetInternetPath").map((c) => c.body);
+  const block = () => {
+    const b = reported![0].actions![1];
+    act(() => void ("run" in b && b.run()));
+  };
+
+  // Nothing is sent until the Operator confirms, nor when they cancel.
+  block();
+  await settle();
+  const dialog = screen.getByRole("alertdialog");
+  expect(dialog.textContent).toContain("Block galaxy-s24?");
+  expect(dialog.textContent).toContain(
+    "network Adopts 02:5e:00:00:20:01 (198.18.1.150, galaxy-s24) at the lowest free reserved address and adds it to NO_INTERNET: it loses Internet access.",
+  );
+  expect(sets()).toEqual([]);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+  await settle();
+  expect(sets()).toEqual([]);
+
+  block();
+  await settle();
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Block" }));
   await settle();
 
-  expect(calls.filter((c) => c.method === "SetInternetPath").map((c) => c.body)).toEqual([{ mac: phone.mac, path: "INTERNET_PATH_NO_INTERNET" }]);
+  expect(sets()).toEqual([{ mac: phone.mac, path: "INTERNET_PATH_NO_INTERNET" }]);
   expect(reported).toEqual([]);
 });
 
@@ -138,7 +158,9 @@ it("says why Block failed on its Device's row", async () => {
   await show({ ListDevices: listed([phone, unnamed]), SetInternetPath: () => unavailable("pfSense refused the change") });
 
   const block = reported![1].actions![1];
-  await act(async () => void ("run" in block && (await block.run())));
+  act(() => void ("run" in block && block.run()));
+  await settle();
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Block" }));
   await settle();
 
   expect(reported!.map((c) => c.actions![1].error)).toEqual([undefined, "pfSense refused the change"]);

@@ -1,6 +1,6 @@
 import { timestampFromMs } from "@bufbuild/protobuf/wkt";
 import { ago } from "@ddash/display";
-import type { Concern } from "@ddash/plugin";
+import { useConfirm, type Concern } from "@ddash/plugin";
 import { InternetPath } from "@ddash/proto/network/network_pb";
 import { useState } from "react";
 import { AdoptSheet } from "./adopt";
@@ -22,12 +22,14 @@ export function leaseStart(starts: string | undefined): number | undefined {
  * What needs the Operator in network: each New Device, with its MAC,
  * address, the hostname it sent and when its lease started, and the
  * Page's Adopt (its Sheet, asking for a name) and No Internet as Block,
- * which isn't drawn as a fix. Block is there only with a block alias, and
- * runs at once as the Page's picker does; network Adopts the Device first.
+ * which isn't drawn as a fix. Block is there only with a block alias. One
+ * click beside Adopt both Adopts the Device and cuts its Internet, so
+ * unlike the Page's picker it asks first, naming the Device.
  */
 export function useConcerns(): Concern[] | undefined {
   const { data, error, dataUpdatedAt } = useDevices();
   const block = useSetInternetPath();
+  const ask = useConfirm();
   // The Device Block last ran for, whose row shows its pending and error.
   const [blocking, setBlocking] = useState<string>();
   if (!data) return error ? [] : undefined;
@@ -54,7 +56,14 @@ export function useConcerns(): Concern[] | undefined {
                   secondary: true,
                   pending: mine && block.pending,
                   error: mine ? block.error?.rawMessage : undefined,
-                  run: () => {
+                  run: async () => {
+                    const which = [d.ip, d.name].filter(Boolean).join(", ");
+                    const yes = await ask({
+                      title: `Block ${nameOf(d)}?`,
+                      text: `network Adopts ${d.mac} (${which}) at the lowest free reserved address and adds it to ${data.blockAlias}: it loses Internet access.`,
+                      action: "Block",
+                    });
+                    if (!yes) return;
                     setBlocking(d.mac);
                     return block.run({ mac: d.mac, path: InternetPath.NO_INTERNET });
                   },
