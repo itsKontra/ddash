@@ -2918,6 +2918,102 @@ func (x *HostJobs) GetError() string {
 	return ""
 }
 
+type GetJobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetJobRequest) Reset() {
+	*x = GetJobRequest{}
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetJobRequest) ProtoMessage() {}
+
+func (x *GetJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetJobRequest.ProtoReflect.Descriptor instead.
+func (*GetJobRequest) Descriptor() ([]byte, []int) {
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *GetJobRequest) GetHost() string {
+	if x != nil {
+		return x.Host
+	}
+	return ""
+}
+
+func (x *GetJobRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetJobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *job.Job               `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetJobResponse) Reset() {
+	*x = GetJobResponse{}
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetJobResponse) ProtoMessage() {}
+
+func (x *GetJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetJobResponse.ProtoReflect.Descriptor instead.
+func (*GetJobResponse) Descriptor() ([]byte, []int) {
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *GetJobResponse) GetJob() *job.Job {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
 type CollectJobRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Host          string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
@@ -2928,7 +3024,7 @@ type CollectJobRequest struct {
 
 func (x *CollectJobRequest) Reset() {
 	*x = CollectJobRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2940,7 +3036,7 @@ func (x *CollectJobRequest) String() string {
 func (*CollectJobRequest) ProtoMessage() {}
 
 func (x *CollectJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2953,7 +3049,7 @@ func (x *CollectJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectJobRequest.ProtoReflect.Descriptor instead.
 func (*CollectJobRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{49}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *CollectJobRequest) GetHost() string {
@@ -2979,7 +3075,7 @@ type CollectJobResponse struct {
 
 func (x *CollectJobResponse) Reset() {
 	*x = CollectJobResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2991,7 +3087,7 @@ func (x *CollectJobResponse) String() string {
 func (*CollectJobResponse) ProtoMessage() {}
 
 func (x *CollectJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3004,7 +3100,7 @@ func (x *CollectJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectJobResponse.ProtoReflect.Descriptor instead.
 func (*CollectJobResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{50}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *CollectJobResponse) GetJob() *job.Job {
@@ -3204,7 +3300,12 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\bHostJobs\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\"\n" +
 	"\x04jobs\x18\x02 \x03(\v2\x0e.ddash.job.JobR\x04jobs\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error\"7\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"3\n" +
+	"\rGetJobRequest\x12\x12\n" +
+	"\x04host\x18\x01 \x01(\tR\x04host\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\"2\n" +
+	"\x0eGetJobResponse\x12 \n" +
+	"\x03job\x18\x01 \x01(\v2\x0e.ddash.job.JobR\x03job\"7\n" +
 	"\x11CollectJobRequest\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x0e\n" +
 	"\x02id\x18\x02 \x01(\tR\x02id\"6\n" +
@@ -3218,7 +3319,7 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\x14AGENT_STATE_OUTDATED\x10\x03\x12\x1b\n" +
 	"\x17AGENT_STATE_UNREACHABLE\x10\x04\x12#\n" +
 	"\x1fAGENT_STATE_FINGERPRINT_CHANGED\x10\x05\x12\x17\n" +
-	"\x13AGENT_STATE_REFUSED\x10\x062\xeb\x10\n" +
+	"\x13AGENT_STATE_REFUSED\x10\x062\xc8\x11\n" +
 	"\x15DockerAgentApiService\x12g\n" +
 	"\n" +
 	"ListAgents\x12'.ddash.dockeragentapi.ListAgentsRequest\x1a(.ddash.dockeragentapi.ListAgentsResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12_\n" +
@@ -3238,7 +3339,8 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\x0eRestartProject\x12+.ddash.dockeragentapi.RestartProjectRequest\x1a,.ddash.dockeragentapi.RestartProjectResponse\"\x06\x92\xb5\x18\x02\b\x01\x12h\n" +
 	"\vPullProject\x12(.ddash.dockeragentapi.PullProjectRequest\x1a).ddash.dockeragentapi.PullProjectResponse\"\x04\x92\xb5\x18\x00\x12p\n" +
 	"\rUpdateProject\x12*.ddash.dockeragentapi.UpdateProjectRequest\x1a+.ddash.dockeragentapi.UpdateProjectResponse\"\x06\x92\xb5\x18\x02\b\x01\x12a\n" +
-	"\bListJobs\x12%.ddash.dockeragentapi.ListJobsRequest\x1a&.ddash.dockeragentapi.ListJobsResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12e\n" +
+	"\bListJobs\x12%.ddash.dockeragentapi.ListJobsRequest\x1a&.ddash.dockeragentapi.ListJobsResponse\"\x06\x8a\xb5\x18\x02\b\x01\x12[\n" +
+	"\x06GetJob\x12#.ddash.dockeragentapi.GetJobRequest\x1a$.ddash.dockeragentapi.GetJobResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12e\n" +
 	"\n" +
 	"CollectJob\x12'.ddash.dockeragentapi.CollectJobRequest\x1a(.ddash.dockeragentapi.CollectJobResponse\"\x04\x92\xb5\x18\x00BZZXgithub.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb;dockeragentapipbb\x06proto3"
 
@@ -3255,7 +3357,7 @@ func file_docker_agent_api_docker_agent_api_proto_rawDescGZIP() []byte {
 }
 
 var file_docker_agent_api_docker_agent_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_docker_agent_api_docker_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 52)
+var file_docker_agent_api_docker_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
 var file_docker_agent_api_docker_agent_api_proto_goTypes = []any{
 	(AgentState)(0),                      // 0: ddash.dockeragentapi.AgentState
 	(*DockerAgentApiConfig)(nil),         // 1: ddash.dockeragentapi.DockerAgentApiConfig
@@ -3307,27 +3409,29 @@ var file_docker_agent_api_docker_agent_api_proto_goTypes = []any{
 	(*ListJobsRequest)(nil),              // 47: ddash.dockeragentapi.ListJobsRequest
 	(*ListJobsResponse)(nil),             // 48: ddash.dockeragentapi.ListJobsResponse
 	(*HostJobs)(nil),                     // 49: ddash.dockeragentapi.HostJobs
-	(*CollectJobRequest)(nil),            // 50: ddash.dockeragentapi.CollectJobRequest
-	(*CollectJobResponse)(nil),           // 51: ddash.dockeragentapi.CollectJobResponse
-	nil,                                  // 52: ddash.dockeragentapi.Container.LabelsEntry
-	(*timestamppb.Timestamp)(nil),        // 53: google.protobuf.Timestamp
-	(*job.Job)(nil),                      // 54: ddash.job.Job
+	(*GetJobRequest)(nil),                // 50: ddash.dockeragentapi.GetJobRequest
+	(*GetJobResponse)(nil),               // 51: ddash.dockeragentapi.GetJobResponse
+	(*CollectJobRequest)(nil),            // 52: ddash.dockeragentapi.CollectJobRequest
+	(*CollectJobResponse)(nil),           // 53: ddash.dockeragentapi.CollectJobResponse
+	nil,                                  // 54: ddash.dockeragentapi.Container.LabelsEntry
+	(*timestamppb.Timestamp)(nil),        // 55: google.protobuf.Timestamp
+	(*job.Job)(nil),                      // 56: ddash.job.Job
 }
 var file_docker_agent_api_docker_agent_api_proto_depIdxs = []int32{
 	4,  // 0: ddash.dockeragentapi.ListAgentsResponse.agents:type_name -> ddash.dockeragentapi.Agent
 	0,  // 1: ddash.dockeragentapi.Agent.state:type_name -> ddash.dockeragentapi.AgentState
-	53, // 2: ddash.dockeragentapi.Agent.added:type_name -> google.protobuf.Timestamp
-	53, // 3: ddash.dockeragentapi.Agent.paired:type_name -> google.protobuf.Timestamp
+	55, // 2: ddash.dockeragentapi.Agent.added:type_name -> google.protobuf.Timestamp
+	55, // 3: ddash.dockeragentapi.Agent.paired:type_name -> google.protobuf.Timestamp
 	4,  // 4: ddash.dockeragentapi.AddAgentResponse.agent:type_name -> ddash.dockeragentapi.Agent
 	9,  // 5: ddash.dockeragentapi.AddAgentResponse.setup:type_name -> ddash.dockeragentapi.AgentSetup
 	9,  // 6: ddash.dockeragentapi.GetAgentSetupResponse.setup:type_name -> ddash.dockeragentapi.AgentSetup
 	4,  // 7: ddash.dockeragentapi.PairAgentResponse.agent:type_name -> ddash.dockeragentapi.Agent
-	54, // 8: ddash.dockeragentapi.UpdateAgentResponse.job:type_name -> ddash.job.Job
+	56, // 8: ddash.dockeragentapi.UpdateAgentResponse.job:type_name -> ddash.job.Job
 	18, // 9: ddash.dockeragentapi.ListContainersResponse.hosts:type_name -> ddash.dockeragentapi.HostContainers
 	19, // 10: ddash.dockeragentapi.HostContainers.containers:type_name -> ddash.dockeragentapi.Container
 	20, // 11: ddash.dockeragentapi.Container.ports:type_name -> ddash.dockeragentapi.Port
-	52, // 12: ddash.dockeragentapi.Container.labels:type_name -> ddash.dockeragentapi.Container.LabelsEntry
-	53, // 13: ddash.dockeragentapi.Container.created:type_name -> google.protobuf.Timestamp
+	54, // 12: ddash.dockeragentapi.Container.labels:type_name -> ddash.dockeragentapi.Container.LabelsEntry
+	55, // 13: ddash.dockeragentapi.Container.created:type_name -> google.protobuf.Timestamp
 	23, // 14: ddash.dockeragentapi.ListComposeProjectsResponse.hosts:type_name -> ddash.dockeragentapi.HostProjects
 	24, // 15: ddash.dockeragentapi.HostProjects.projects:type_name -> ddash.dockeragentapi.Project
 	19, // 16: ddash.dockeragentapi.HostProjects.containers:type_name -> ddash.dockeragentapi.Container
@@ -3340,61 +3444,64 @@ var file_docker_agent_api_docker_agent_api_proto_depIdxs = []int32{
 	29, // 23: ddash.dockeragentapi.CreateComposeProjectResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
 	29, // 24: ddash.dockeragentapi.CreateComposeProjectResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
 	36, // 25: ddash.dockeragentapi.UpProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	54, // 26: ddash.dockeragentapi.UpProjectResponse.job:type_name -> ddash.job.Job
+	56, // 26: ddash.dockeragentapi.UpProjectResponse.job:type_name -> ddash.job.Job
 	36, // 27: ddash.dockeragentapi.DownProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	54, // 28: ddash.dockeragentapi.DownProjectResponse.job:type_name -> ddash.job.Job
+	56, // 28: ddash.dockeragentapi.DownProjectResponse.job:type_name -> ddash.job.Job
 	36, // 29: ddash.dockeragentapi.RestartProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	54, // 30: ddash.dockeragentapi.RestartProjectResponse.job:type_name -> ddash.job.Job
+	56, // 30: ddash.dockeragentapi.RestartProjectResponse.job:type_name -> ddash.job.Job
 	36, // 31: ddash.dockeragentapi.PullProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	54, // 32: ddash.dockeragentapi.PullProjectResponse.job:type_name -> ddash.job.Job
+	56, // 32: ddash.dockeragentapi.PullProjectResponse.job:type_name -> ddash.job.Job
 	36, // 33: ddash.dockeragentapi.UpdateProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	54, // 34: ddash.dockeragentapi.UpdateProjectResponse.job:type_name -> ddash.job.Job
+	56, // 34: ddash.dockeragentapi.UpdateProjectResponse.job:type_name -> ddash.job.Job
 	49, // 35: ddash.dockeragentapi.ListJobsResponse.hosts:type_name -> ddash.dockeragentapi.HostJobs
-	54, // 36: ddash.dockeragentapi.HostJobs.jobs:type_name -> ddash.job.Job
-	54, // 37: ddash.dockeragentapi.CollectJobResponse.job:type_name -> ddash.job.Job
-	2,  // 38: ddash.dockeragentapi.DockerAgentApiService.ListAgents:input_type -> ddash.dockeragentapi.ListAgentsRequest
-	5,  // 39: ddash.dockeragentapi.DockerAgentApiService.AddAgent:input_type -> ddash.dockeragentapi.AddAgentRequest
-	7,  // 40: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:input_type -> ddash.dockeragentapi.GetAgentSetupRequest
-	10, // 41: ddash.dockeragentapi.DockerAgentApiService.PairAgent:input_type -> ddash.dockeragentapi.PairAgentRequest
-	12, // 42: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:input_type -> ddash.dockeragentapi.RemoveAgentRequest
-	14, // 43: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:input_type -> ddash.dockeragentapi.UpdateAgentRequest
-	16, // 44: ddash.dockeragentapi.DockerAgentApiService.ListContainers:input_type -> ddash.dockeragentapi.ListContainersRequest
-	21, // 45: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:input_type -> ddash.dockeragentapi.ListComposeProjectsRequest
-	26, // 46: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:input_type -> ddash.dockeragentapi.GetComposeFileRequest
-	30, // 47: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:input_type -> ddash.dockeragentapi.ValidateComposeFileRequest
-	32, // 48: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:input_type -> ddash.dockeragentapi.WriteComposeFileRequest
-	34, // 49: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:input_type -> ddash.dockeragentapi.CreateComposeProjectRequest
-	37, // 50: ddash.dockeragentapi.DockerAgentApiService.UpProject:input_type -> ddash.dockeragentapi.UpProjectRequest
-	39, // 51: ddash.dockeragentapi.DockerAgentApiService.DownProject:input_type -> ddash.dockeragentapi.DownProjectRequest
-	41, // 52: ddash.dockeragentapi.DockerAgentApiService.RestartProject:input_type -> ddash.dockeragentapi.RestartProjectRequest
-	43, // 53: ddash.dockeragentapi.DockerAgentApiService.PullProject:input_type -> ddash.dockeragentapi.PullProjectRequest
-	45, // 54: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:input_type -> ddash.dockeragentapi.UpdateProjectRequest
-	47, // 55: ddash.dockeragentapi.DockerAgentApiService.ListJobs:input_type -> ddash.dockeragentapi.ListJobsRequest
-	50, // 56: ddash.dockeragentapi.DockerAgentApiService.CollectJob:input_type -> ddash.dockeragentapi.CollectJobRequest
-	3,  // 57: ddash.dockeragentapi.DockerAgentApiService.ListAgents:output_type -> ddash.dockeragentapi.ListAgentsResponse
-	6,  // 58: ddash.dockeragentapi.DockerAgentApiService.AddAgent:output_type -> ddash.dockeragentapi.AddAgentResponse
-	8,  // 59: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:output_type -> ddash.dockeragentapi.GetAgentSetupResponse
-	11, // 60: ddash.dockeragentapi.DockerAgentApiService.PairAgent:output_type -> ddash.dockeragentapi.PairAgentResponse
-	13, // 61: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:output_type -> ddash.dockeragentapi.RemoveAgentResponse
-	15, // 62: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:output_type -> ddash.dockeragentapi.UpdateAgentResponse
-	17, // 63: ddash.dockeragentapi.DockerAgentApiService.ListContainers:output_type -> ddash.dockeragentapi.ListContainersResponse
-	22, // 64: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:output_type -> ddash.dockeragentapi.ListComposeProjectsResponse
-	27, // 65: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:output_type -> ddash.dockeragentapi.GetComposeFileResponse
-	31, // 66: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:output_type -> ddash.dockeragentapi.ValidateComposeFileResponse
-	33, // 67: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:output_type -> ddash.dockeragentapi.WriteComposeFileResponse
-	35, // 68: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:output_type -> ddash.dockeragentapi.CreateComposeProjectResponse
-	38, // 69: ddash.dockeragentapi.DockerAgentApiService.UpProject:output_type -> ddash.dockeragentapi.UpProjectResponse
-	40, // 70: ddash.dockeragentapi.DockerAgentApiService.DownProject:output_type -> ddash.dockeragentapi.DownProjectResponse
-	42, // 71: ddash.dockeragentapi.DockerAgentApiService.RestartProject:output_type -> ddash.dockeragentapi.RestartProjectResponse
-	44, // 72: ddash.dockeragentapi.DockerAgentApiService.PullProject:output_type -> ddash.dockeragentapi.PullProjectResponse
-	46, // 73: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:output_type -> ddash.dockeragentapi.UpdateProjectResponse
-	48, // 74: ddash.dockeragentapi.DockerAgentApiService.ListJobs:output_type -> ddash.dockeragentapi.ListJobsResponse
-	51, // 75: ddash.dockeragentapi.DockerAgentApiService.CollectJob:output_type -> ddash.dockeragentapi.CollectJobResponse
-	57, // [57:76] is the sub-list for method output_type
-	38, // [38:57] is the sub-list for method input_type
-	38, // [38:38] is the sub-list for extension type_name
-	38, // [38:38] is the sub-list for extension extendee
-	0,  // [0:38] is the sub-list for field type_name
+	56, // 36: ddash.dockeragentapi.HostJobs.jobs:type_name -> ddash.job.Job
+	56, // 37: ddash.dockeragentapi.GetJobResponse.job:type_name -> ddash.job.Job
+	56, // 38: ddash.dockeragentapi.CollectJobResponse.job:type_name -> ddash.job.Job
+	2,  // 39: ddash.dockeragentapi.DockerAgentApiService.ListAgents:input_type -> ddash.dockeragentapi.ListAgentsRequest
+	5,  // 40: ddash.dockeragentapi.DockerAgentApiService.AddAgent:input_type -> ddash.dockeragentapi.AddAgentRequest
+	7,  // 41: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:input_type -> ddash.dockeragentapi.GetAgentSetupRequest
+	10, // 42: ddash.dockeragentapi.DockerAgentApiService.PairAgent:input_type -> ddash.dockeragentapi.PairAgentRequest
+	12, // 43: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:input_type -> ddash.dockeragentapi.RemoveAgentRequest
+	14, // 44: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:input_type -> ddash.dockeragentapi.UpdateAgentRequest
+	16, // 45: ddash.dockeragentapi.DockerAgentApiService.ListContainers:input_type -> ddash.dockeragentapi.ListContainersRequest
+	21, // 46: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:input_type -> ddash.dockeragentapi.ListComposeProjectsRequest
+	26, // 47: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:input_type -> ddash.dockeragentapi.GetComposeFileRequest
+	30, // 48: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:input_type -> ddash.dockeragentapi.ValidateComposeFileRequest
+	32, // 49: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:input_type -> ddash.dockeragentapi.WriteComposeFileRequest
+	34, // 50: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:input_type -> ddash.dockeragentapi.CreateComposeProjectRequest
+	37, // 51: ddash.dockeragentapi.DockerAgentApiService.UpProject:input_type -> ddash.dockeragentapi.UpProjectRequest
+	39, // 52: ddash.dockeragentapi.DockerAgentApiService.DownProject:input_type -> ddash.dockeragentapi.DownProjectRequest
+	41, // 53: ddash.dockeragentapi.DockerAgentApiService.RestartProject:input_type -> ddash.dockeragentapi.RestartProjectRequest
+	43, // 54: ddash.dockeragentapi.DockerAgentApiService.PullProject:input_type -> ddash.dockeragentapi.PullProjectRequest
+	45, // 55: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:input_type -> ddash.dockeragentapi.UpdateProjectRequest
+	47, // 56: ddash.dockeragentapi.DockerAgentApiService.ListJobs:input_type -> ddash.dockeragentapi.ListJobsRequest
+	50, // 57: ddash.dockeragentapi.DockerAgentApiService.GetJob:input_type -> ddash.dockeragentapi.GetJobRequest
+	52, // 58: ddash.dockeragentapi.DockerAgentApiService.CollectJob:input_type -> ddash.dockeragentapi.CollectJobRequest
+	3,  // 59: ddash.dockeragentapi.DockerAgentApiService.ListAgents:output_type -> ddash.dockeragentapi.ListAgentsResponse
+	6,  // 60: ddash.dockeragentapi.DockerAgentApiService.AddAgent:output_type -> ddash.dockeragentapi.AddAgentResponse
+	8,  // 61: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:output_type -> ddash.dockeragentapi.GetAgentSetupResponse
+	11, // 62: ddash.dockeragentapi.DockerAgentApiService.PairAgent:output_type -> ddash.dockeragentapi.PairAgentResponse
+	13, // 63: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:output_type -> ddash.dockeragentapi.RemoveAgentResponse
+	15, // 64: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:output_type -> ddash.dockeragentapi.UpdateAgentResponse
+	17, // 65: ddash.dockeragentapi.DockerAgentApiService.ListContainers:output_type -> ddash.dockeragentapi.ListContainersResponse
+	22, // 66: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:output_type -> ddash.dockeragentapi.ListComposeProjectsResponse
+	27, // 67: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:output_type -> ddash.dockeragentapi.GetComposeFileResponse
+	31, // 68: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:output_type -> ddash.dockeragentapi.ValidateComposeFileResponse
+	33, // 69: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:output_type -> ddash.dockeragentapi.WriteComposeFileResponse
+	35, // 70: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:output_type -> ddash.dockeragentapi.CreateComposeProjectResponse
+	38, // 71: ddash.dockeragentapi.DockerAgentApiService.UpProject:output_type -> ddash.dockeragentapi.UpProjectResponse
+	40, // 72: ddash.dockeragentapi.DockerAgentApiService.DownProject:output_type -> ddash.dockeragentapi.DownProjectResponse
+	42, // 73: ddash.dockeragentapi.DockerAgentApiService.RestartProject:output_type -> ddash.dockeragentapi.RestartProjectResponse
+	44, // 74: ddash.dockeragentapi.DockerAgentApiService.PullProject:output_type -> ddash.dockeragentapi.PullProjectResponse
+	46, // 75: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:output_type -> ddash.dockeragentapi.UpdateProjectResponse
+	48, // 76: ddash.dockeragentapi.DockerAgentApiService.ListJobs:output_type -> ddash.dockeragentapi.ListJobsResponse
+	51, // 77: ddash.dockeragentapi.DockerAgentApiService.GetJob:output_type -> ddash.dockeragentapi.GetJobResponse
+	53, // 78: ddash.dockeragentapi.DockerAgentApiService.CollectJob:output_type -> ddash.dockeragentapi.CollectJobResponse
+	59, // [59:79] is the sub-list for method output_type
+	39, // [39:59] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_docker_agent_api_docker_agent_api_proto_init() }
@@ -3408,7 +3515,7 @@ func file_docker_agent_api_docker_agent_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_docker_agent_api_docker_agent_api_proto_rawDesc), len(file_docker_agent_api_docker_agent_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   52,
+			NumMessages:   54,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

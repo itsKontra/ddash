@@ -752,6 +752,20 @@ func (c *component) ListJobs(ctx context.Context, _ *pb.ListJobsRequest) (*pb.Li
 	return out, nil
 }
 
+func (c *component) GetJob(ctx context.Context, req *pb.GetJobRequest) (*pb.GetJobResponse, error) {
+	r, err := c.row(ctx, req.GetHost())
+	if err != nil {
+		return nil, err
+	}
+	ctx, cancel := context.WithTimeout(ctx, readTimeout)
+	defer cancel()
+	var j agent.Job
+	if err := r.client().Get(ctx, agent.PathJobs+"/"+url.PathEscape(req.GetId()), nil, &j); err != nil {
+		return nil, agentErr(err)
+	}
+	return &pb.GetJobResponse{Job: jobproto.Of(j, r.name)}, nil
+}
+
 func (c *component) CollectJob(ctx context.Context, req *pb.CollectJobRequest) (*pb.CollectJobResponse, error) {
 	r, err := c.row(ctx, req.GetHost())
 	if err != nil {

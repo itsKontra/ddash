@@ -117,21 +117,14 @@ func (r *run) follow(ctx context.Context, c *component, job *jobpb.Job, first in
 			return status.Errorf(codes.DeadlineExceeded, "%s is still running on %s; ddash stopped following it", job.GetTitle(), host)
 		case <-time.After(followEvery):
 		}
-		res, err := c.agents.ListJobs(ctx, &dapb.ListJobsRequest{})
+		res, err := c.agents.GetJob(ctx, &dapb.GetJobRequest{Host: host, Id: job.GetId()})
+		if status.Code(err) == codes.NotFound {
+			return status.Errorf(codes.Unknown, "the Docker Agent on %s no longer knows %s: it may have restarted", host, job.GetTitle())
+		}
 		if err != nil {
 			continue // a failed read doesn't end the job
 		}
-		found := false
-		for _, h := range res.GetHosts() {
-			for _, j := range h.GetJobs() {
-				if j.GetId() == job.GetId() && h.GetHost() == host {
-					job, found = j, true
-				}
-			}
-		}
-		if !found {
-			return status.Errorf(codes.Unknown, "the Docker Agent on %s no longer knows %s: it may have restarted", host, job.GetTitle())
-		}
+		job = res.GetJob()
 		show(job)
 	}
 	callCtx, cancel := context.WithTimeout(ctx, callTimeout)
