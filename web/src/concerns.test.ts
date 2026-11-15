@@ -1,6 +1,6 @@
 import type { Concern, ConcernTone } from "@ddash/plugin";
 import { describe, expect, it } from "vitest";
-import { needs, offOnPurpose } from "./concerns";
+import { cap, capped, needs, offOnPurpose } from "./concerns";
 
 const concern = (id: string, tone: ConcernTone, quiet?: string): Concern => ({ id, tone, subject: id, title: `${id} is ${tone}`, quiet });
 
@@ -40,6 +40,30 @@ describe("needs", () => {
     ]);
 
     expect(ids(n.loud).sort()).toEqual(["apps:nas", "checks:nas"]);
+  });
+});
+
+describe("capped", () => {
+  const loud = (n: number) => needs([{ plugin: "checks", concerns: Array.from({ length: n }, (_, i) => concern(`c${String(i).padStart(2, "0")}`, i < 3 ? "warn" : "down")) }]).loud;
+
+  it("shows the worst five and counts the rest, all of them once expanded", () => {
+    const all = loud(31);
+
+    const folded = capped(all, false);
+    expect(ids([...folded.shown])).toEqual(["checks:c03", "checks:c04", "checks:c05", "checks:c06", "checks:c07"]);
+    expect(folded.more).toBe(26);
+
+    const expanded = capped(all, true);
+    expect(expanded.shown).toEqual(all);
+    expect(expanded.more).toBe(26);
+  });
+
+  it("folds nothing up to one past the cap", () => {
+    for (const n of [0, cap, cap + 1]) {
+      const all = loud(n);
+      expect(capped(all, false)).toEqual({ shown: all, more: 0 });
+    }
+    expect(capped(loud(cap + 2), false).more).toBe(2);
   });
 });
 

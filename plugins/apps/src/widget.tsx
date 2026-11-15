@@ -6,6 +6,8 @@ import { AppIcon, Button, cx, EmptyState, Icon, Notice, Select, Skeleton, Status
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { hostOf, useApps, visible, warned } from "./apps";
+import type { WorkloadCause } from "./cause";
+import { causedStatus, useDownCauses } from "./causes";
 import { mutedDown, useAppChecks, worst } from "./checks";
 import { pinned, usePins } from "./pins";
 
@@ -81,6 +83,8 @@ function Body({ size }: { size: WidgetSize }) {
   const { list, error } = useApps();
   const { byApp } = useAppChecks();
   const [editing, setEditing] = useState(false);
+  // Reads the Workloads only while a pinned App is down.
+  const { causes } = useDownCauses(list && pinned(list.apps), byApp);
   // While apps is unavailable, the Widget's status says so.
   if (!list) return error ? null : <Skeleton height={size === "L" ? "lg" : "md"} />;
   const apps = visible(list.apps);
@@ -95,7 +99,7 @@ function Body({ size }: { size: WidgetSize }) {
       <ul aria-label="Pinned Apps" className="grid grid-cols-3 sm:grid-cols-5 gap-1">
         {pins.map((a) => (
           <li key={a.id} className="min-w-0">
-            <Pinned app={a} check={byApp?.get(a.id)} />
+            <Pinned app={a} check={byApp?.get(a.id)} cause={causes.get(a.id)} />
           </li>
         ))}
       </ul>
@@ -166,10 +170,11 @@ const dot: Partial<Record<Tone, string>> = { down: "bg-down", warn: "bg-warn", m
  * A pinned App: its icon and name, opening it. Its Check rides on the
  * icon: nothing while up, else a dot in the Check's tone; down and not
  * muted greys the icon too. The tooltip gives the hostname and, unless
- * up, the Check's state with its cause.
+ * up, the Check's state with its cause: the Workload's when the App is
+ * down because of it, else the Check's own.
  */
-function Pinned({ app, check }: { app: App; check?: Check }) {
-  const status = checkStatus(check);
+function Pinned({ app, check, cause }: { app: App; check?: Check; cause?: WorkloadCause }) {
+  const status = causedStatus(check, cause);
   const muted = mutedDown(check);
   const label = muted ? `${status.label}, muted` : status.label;
   const marked = dot[status.tone];
