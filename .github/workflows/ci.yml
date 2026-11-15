@@ -21,14 +21,17 @@ jobs:
           node-version: 24
       - name: Install the pnpm workspace
         run: make install
-      # The shell and vendor ESM (embedded by package web) and the Plugin
-      # bundles (in the Release); go test needs them.
-      - name: Vite build
-        run: make build
       - name: buf lint
         run: make lint-proto
+      # Before the build: regenerating touches the generated sources, and
+      # a build older than a source runs again.
       - name: Codegen drift
         run: make check-generated
+      # The shell and vendor ESM (embedded by package web) and the Plugin
+      # bundles (in the Release); go test needs them. The steps below that
+      # need the build find it done.
+      - name: Vite build
+        run: make build
       - name: go vet
         run: make vet
       - name: golangci-lint
