@@ -25,6 +25,8 @@ it("says everything watched is up when nothing is down or warn, with the Widgets
     { value: 22, label: "of 22 Checks up" },
     { value: 12, label: "guests running" },
   ]);
+  // A second Widget counting the same thing isn't said twice.
+  expect(hero([...placed, widget("proxmox", "Hosts", up({ value: 12, label: "guests running" }))], [], false).facts).toHaveLength(2);
 });
 
 it("names the one thing down by its Concern's subject, the rest of the sentence quieter", () => {

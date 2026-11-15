@@ -19,7 +19,7 @@ export interface HeroState {
   tone: Tone;
   /** The sentence, in pieces: join them with a space to read it. */
   sentence: Part[];
-  /** The reporting Widgets' facts, in grid order. */
+  /** The reporting Widgets' facts, in grid order, each label once. */
   facts: Fact[];
 }
 
@@ -64,7 +64,8 @@ export function hero(placed: readonly Reporting[], concerns: readonly Listed[] |
     unique([...loud.filter((l) => l.concern.tone === tone).map((l) => l.concern.subject), ...troubled.filter((p) => p.status!.tone === tone).map((p) => p.title)]);
   const down = at("down");
   const warn = at("warn").filter((s) => !down.includes(s));
-  const facts = reported.flatMap((p) => p.status!.fact ?? []);
+  // Two Widgets may count the same thing (Guests and Hosts): the first in the grid says it.
+  const facts = reported.flatMap((p) => p.status!.fact ?? []).filter((f, i, all) => all.findIndex((g) => g.label === f.label) === i);
 
   const anything = reported.length > 0 || concerns !== undefined;
   let tone: Tone = down.length ? "down" : warn.length ? "warn" : anything ? "up" : "idle";
