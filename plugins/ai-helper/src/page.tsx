@@ -27,7 +27,7 @@ function draftJSON(d: Draft, host: string): DraftJSON {
 function NotSetUp() {
   return (
     <Notice tone="warn" title="Not set up">
-      Enter an Anthropic API key in the AI App helper&apos;s settings, under{" "}
+      Enter an Anthropic API key in anthropic-api&apos;s settings, under{" "}
       <Link to="/plugins" className="font-semibold text-primary hover:underline">
         Plugins
       </Link>

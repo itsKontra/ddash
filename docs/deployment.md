@@ -222,10 +222,11 @@ Do these by hand, in order, before first use.
       Plugin only if you want Claude to draft new Apps. No other Plugin
       requires it; Docker and Apps show "Draft with AI" only while it is
       installed. Create an API key at console.anthropic.com and enter it as
-      ai-helper's **Anthropic API key**: it is a write-only secret (the form
+      anthropic-api's **Anthropic API key**: it is a write-only secret (the form
       never shows it again, the Audit Log redacts it). Drafts are billed to
       that key; the **Model** defaults to `claude-sonnet-5-5`. Left empty,
-      ai-helper is "not set up" and its Page says so.
+      the helper is "not set up" and its Page says so. anthropic-api is the
+      one Component that talks to Anthropic; ai-helper asks it.
 
       What is sent, per draft, only when you press **Send to Anthropic**
       after the Page has shown it to you word for word: your description,

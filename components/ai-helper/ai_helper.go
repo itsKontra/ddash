@@ -1,48 +1,29 @@
 // Package aihelper is the ai-helper Component: it drafts a new App with
-// Claude through Anthropic's Messages API, as a Compose file and the Add
-// App fields, returned as structured output against a fixed JSON schema.
-// What it sends is the Operator's description and the context the
-// browser showed them (DraftContext), under a fixed system prompt, and
-// nothing else: it reads no Compose or .env file and calls no Agent.
-// Without an API key it is not set up: it starts, and DraftApp refuses.
+// Claude, as a Compose file and the Add App fields, returned as
+// structured output against a fixed JSON schema. It asks Claude through
+// anthropic-api, the one Component that talks to Anthropic. What it sends
+// is the Operator's description and the context the browser showed them
+// (DraftContext), under a fixed system prompt, and nothing else: it reads
+// no Compose or .env file and calls no Agent. While anthropic-api has no
+// API key it is not set up, and DraftApp refuses.
 package aihelper
 
 import (
 	"context"
 	_ "embed"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"net/http"
-	"net/url"
-	"slices"
 	"strings"
-	"time"
 
-	"github.com/anthropics/anthropic-sdk-go/v2"
-	"github.com/anthropics/anthropic-sdk-go/v2/option"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/ai-helper/aihelperpb"
+	apb "github.com/itsKontra/ddash/components/anthropic-api/anthropicapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
 
 //go:embed component.yaml
 var manifest []byte
-
-// The config's defaults, for a config the host didn't fill in (a test's).
-const (
-	DefaultModel  = "claude-sonnet-5-5"
-	DefaultServer = "https://api.anthropic.com"
-)
-
-// draftTimeout bounds one draft, inside the host's 60 s Action deadline.
-const draftTimeout = 55 * time.Second
-
-// maxTokens is the most a draft may take: a Compose file with a few
-// services and the fields fit well within it.
-const maxTokens = 16000
 
 // Definition is ai-helper, ready for sdk.Serve.
 func Definition() sdk.Definition {
@@ -55,61 +36,27 @@ func Definition() sdk.Definition {
 
 type component struct {
 	aihelperpb.UnimplementedAiHelperServiceServer
-	model  string
-	client *anthropic.Client
+	// claude asks Claude: the only way ai-helper reaches Anthropic.
+	claude apb.AnthropicApiServiceClient
 }
 
-func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *aihelperpb.AiHelperConfig) error {
-	var errs sdk.FieldErrors
-	server := DefaultServer
-	if cfg.Server != nil {
-		server = strings.TrimSpace(cfg.GetServer())
-	}
-	if u, err := url.Parse(server); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
-		errs.Add("server", "must be an http or https URL")
-	}
-	c.model = DefaultModel
-	if cfg.Model != nil {
-		c.model = strings.TrimSpace(cfg.GetModel())
-	}
-	if c.model == "" || strings.ContainsAny(c.model, " /") {
-		errs.Add("model", "must be a Claude model id, e.g. "+DefaultModel)
-	}
-	key := strings.TrimSpace(cfg.GetApiKey())
-	if key != "" && !strings.HasPrefix(key, "sk-ant-") {
-		errs.Add("api_key", "must be an Anthropic API key, starting sk-ant-")
-	}
-	if err := errs.Err(); err != nil {
-		return err
-	}
-	if key != "" {
-		// Only the config's key and server: never the environment's
-		// credentials or profiles.
-		cl := anthropic.NewClient(
-			option.WithoutEnvironmentDefaults(),
-			option.WithAPIKey(key),
-			option.WithBaseURL(server),
-			option.WithMaxRetries(1),
-			option.WithHTTPClient(&http.Client{Timeout: draftTimeout}),
-		)
-		c.client = &cl
-	}
+func (c *component) Start(_ context.Context, env *sdk.Env, _ *aihelperpb.AiHelperConfig) error {
+	c.claude = sdk.Require(env, apb.NewAnthropicApiServiceClient)
 	return nil
 }
 
-func (c *component) Health(context.Context) sdk.Health {
-	if c.client == nil {
-		return sdk.Health{State: sdk.OK, Message: "not set up"}
+// Health is ok: ai-helper keeps nothing; whether Claude can be asked is
+// anthropic-api's.
+func (c *component) Health(context.Context) sdk.Health { return sdk.Health{State: sdk.OK} }
+
+// GetStatus is anthropic-api's: whether an API key is saved, and the model.
+func (c *component) GetStatus(ctx context.Context, _ *aihelperpb.GetStatusRequest) (*aihelperpb.GetStatusResponse, error) {
+	st, err := c.claude.GetStatus(ctx, &apb.GetStatusRequest{})
+	if err != nil {
+		return nil, err
 	}
-	return sdk.Health{State: sdk.OK}
+	return &aihelperpb.GetStatusResponse{SetUp: st.GetSetUp(), Model: st.GetModel()}, nil
 }
-
-func (c *component) GetStatus(context.Context, *aihelperpb.GetStatusRequest) (*aihelperpb.GetStatusResponse, error) {
-	return &aihelperpb.GetStatusResponse{SetUp: c.client != nil, Model: c.model}, nil
-}
-
-// errNotSetUp is what DraftApp answers without an API key.
-var errNotSetUp = status.Error(codes.FailedPrecondition, "the AI App helper is not set up: enter an Anthropic API key in its settings")
 
 // SystemPrompt is the fixed instruction every draft is made under.
 const SystemPrompt = `You draft a new self-hosted app for a homelab dashboard called ddash. The operator describes the app; you answer with a Docker Compose file and the fields of ddash's Add App form. The operator reviews everything before anything runs, so draft something that runs as it is, without placeholders they must find.
@@ -213,15 +160,7 @@ type draftOut struct {
 	} `json:"app"`
 }
 
-// withFallbacks are the models that take the server-side refusal
-// fallback: a declined draft is retried on the model Anthropic routes it
-// to, within the same call.
-var withFallbacks = []string{"claude-sonnet-5-5", "claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-fable-5-2"}
-
 func (c *component) DraftApp(ctx context.Context, req *aihelperpb.DraftAppRequest) (*aihelperpb.DraftAppResponse, error) {
-	if c.client == nil {
-		return nil, errNotSetUp
-	}
 	if strings.TrimSpace(req.GetDescription()) == "" {
 		return nil, status.Error(codes.InvalidArgument, "describe the app to draft, e.g. \"Paperless-ngx with Postgres and Redis\"")
 	}
@@ -229,41 +168,24 @@ func (c *component) DraftApp(ctx context.Context, req *aihelperpb.DraftAppReques
 	if err != nil {
 		return nil, err
 	}
-	params := anthropic.BetaMessageNewParams{
-		Model:     c.model,
-		MaxTokens: maxTokens,
-		System:    []anthropic.BetaTextBlockParam{{Text: SystemPrompt}},
-		Messages:  []anthropic.BetaMessageParam{anthropic.NewBetaUserMessage(anthropic.NewBetaTextBlock(prompt))},
-		// A draft is routine work, and must fit the Action's deadline.
-		OutputConfig: anthropic.BetaOutputConfigParam{
-			Effort: anthropic.BetaOutputConfigEffortLow,
-			Format: anthropic.BetaJSONOutputFormatParam{Schema: draftSchema},
-		},
-	}
-	if slices.Contains(withFallbacks, c.model) {
-		params.Betas = []anthropic.AnthropicBeta{anthropic.AnthropicBetaServerSideFallback2026_07_01}
-		params.Fallbacks = anthropic.BetaFallbacksParamOfDefault()
-	}
-	ctx, cancel := context.WithTimeout(ctx, draftTimeout)
-	defer cancel()
-	msg, err := c.client.Beta.Messages.New(ctx, params)
+	schema, err := json.Marshal(draftSchema)
 	if err != nil {
-		return nil, apiError(err)
+		return nil, err
 	}
-	switch msg.StopReason {
-	case anthropic.BetaStopReasonRefusal:
+	// anthropic-api's refusals (no API key, a refused key, an unknown
+	// model, a limit) already read as the Operator's fix.
+	ans, err := c.claude.Generate(ctx, &apb.GenerateRequest{System: SystemPrompt, Prompt: prompt, JsonSchema: string(schema)})
+	if err != nil {
+		return nil, err
+	}
+	switch ans.GetStop() {
+	case apb.Stop_STOP_DECLINED:
 		return nil, status.Error(codes.FailedPrecondition, "Claude declined to draft this: describe the app differently")
-	case anthropic.BetaStopReasonMaxTokens:
+	case apb.Stop_STOP_CUT_OFF:
 		return nil, status.Error(codes.Unavailable, "the draft was cut off: describe a smaller app, or try again")
 	}
-	var text strings.Builder
-	for _, b := range msg.Content {
-		if t, ok := b.AsAny().(anthropic.BetaTextBlock); ok {
-			text.WriteString(t.Text)
-		}
-	}
 	var out draftOut
-	if err := json.Unmarshal([]byte(text.String()), &out); err != nil {
+	if err := json.Unmarshal([]byte(ans.GetText()), &out); err != nil {
 		return nil, status.Errorf(codes.Unavailable, "Claude's draft isn't the JSON asked for: %v", err)
 	}
 	if strings.TrimSpace(out.Compose) == "" {
@@ -277,39 +199,11 @@ func (c *component) DraftApp(ctx context.Context, req *aihelperpb.DraftAppReques
 		Name:    strings.TrimSpace(out.Name),
 		Compose: out.Compose,
 		Notes:   out.Notes,
-		Model:   string(msg.Model),
+		Model:   ans.GetModel(),
 		App: &aihelperpb.DraftedApp{
 			Url: strings.TrimSpace(out.App.URL), Name: strings.TrimSpace(out.App.Name),
 			Icon:  strings.ToLower(strings.TrimSpace(out.App.Icon)),
 			Group: strings.TrimSpace(out.App.Group), Service: strings.TrimSpace(out.App.Service), Port: port,
 		},
 	}}, nil
-}
-
-// apiError is a failed Messages API call as the Operator reads it.
-func apiError(err error) error {
-	var e *anthropic.Error
-	if errors.As(err, &e) {
-		switch e.StatusCode {
-		case http.StatusUnauthorized, http.StatusForbidden:
-			return status.Error(codes.PermissionDenied, "Anthropic refused the API key: enter a valid one in the AI App helper's settings")
-		case http.StatusNotFound:
-			return status.Error(codes.FailedPrecondition, "Anthropic doesn't know the model: pick another in the AI App helper's settings")
-		case http.StatusTooManyRequests:
-			return status.Error(codes.ResourceExhausted, "Anthropic is rate-limiting this key: try again in a minute")
-		}
-		return status.Errorf(codes.Unavailable, "Anthropic answered %d: %s", e.StatusCode, firstLine(e.Message))
-	}
-	if errors.Is(err, context.DeadlineExceeded) {
-		return status.Error(codes.DeadlineExceeded, "Claude took too long to draft: try again")
-	}
-	return status.Errorf(codes.Unavailable, "can't reach Anthropic: %v", err)
-}
-
-func firstLine(s string) string {
-	s, _, _ = strings.Cut(s, "\n")
-	if s == "" {
-		return "no message"
-	}
-	return fmt.Sprintf("%.200s", s)
 }
