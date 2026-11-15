@@ -18,7 +18,11 @@
 // changed.
 package agent
 
-import "time"
+import (
+	"time"
+
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+)
 
 // Release is the Release an Agent binary was built for, set at build time
 // with -ldflags "-X github.com/itsKontra/ddash/agent.Release=v1.2.3".
@@ -231,7 +235,7 @@ const (
 	LabelOneOff      = "com.docker.compose.oneoff"
 	// LabelProtected marks a container ddash may not stop, restart or
 	// recreate without an explicit override.
-	LabelProtected = "ddash.protected"
+	LabelProtected = containerpb.LabelProtected
 )
 
 // Project is one Compose Project, as GET /v1/projects lists it.

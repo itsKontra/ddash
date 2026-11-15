@@ -1,4 +1,4 @@
-import type { Host } from "@ddash/proto/compose/compose_pb";
+import type { Host, ProjectContainer } from "@ddash/proto/compose/compose_pb";
 
 // What the AI App helper sends, and the draft it hands on. The preview
 // shows prompt(): the very text ai-helper sends as the one user message
@@ -16,8 +16,8 @@ export interface DraftContext {
 /** The context of the Docker host picked (none: an empty one), with the networks and home domain typed. */
 export function contextOf(host: Host | undefined, networks: string, homeDomain: string): DraftContext {
   const ports = new Set<number>();
-  const add = (cs: readonly { ports: readonly { publicPort: number }[] }[]) => {
-    for (const c of cs) for (const p of c.ports) if (p.publicPort) ports.add(p.publicPort);
+  const add = (cs: readonly ProjectContainer[]) => {
+    for (const c of cs) for (const p of c.container?.ports ?? []) if (p.publicPort) ports.add(p.publicPort);
   };
   if (host) {
     add(host.containers);

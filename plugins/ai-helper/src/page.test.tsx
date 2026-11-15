@@ -19,10 +19,10 @@ const projects = {
         {
           host: "media",
           name: "jellyfin",
-          services: [{ name: "jellyfin", containers: [{ id: "a", name: "jellyfin-jellyfin-1", ports: [{ publicPort: 8096, privatePort: 8096, protocol: "tcp" }] }] }],
+          services: [{ name: "jellyfin", containers: [{ container: { id: "a", name: "jellyfin-jellyfin-1", ports: [{ publicPort: 8096, privatePort: 8096, protocol: "PROTOCOL_TCP" }] } }] }],
         },
       ],
-      containers: [{ id: "b", name: "portainer", ports: [{ publicPort: 9000, privatePort: 9000, protocol: "tcp" }, { privatePort: 8000 }] }],
+      containers: [{ container: { id: "b", name: "portainer", ports: [{ publicPort: 9000, privatePort: 9000, protocol: "PROTOCOL_TCP" }, { privatePort: 8000 }] } }],
     },
   ],
 };

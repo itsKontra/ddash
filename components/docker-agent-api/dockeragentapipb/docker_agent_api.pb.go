@@ -15,6 +15,7 @@ package dockeragentapipb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	container "github.com/itsKontra/ddash/proto/ddash/container"
 	job "github.com/itsKontra/ddash/proto/ddash/job"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -1007,8 +1008,8 @@ type HostContainers struct {
 	// The Agent's name.
 	Host string `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
 	// The host part of its URL.
-	Address    string       `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
-	Containers []*Container `protobuf:"bytes,3,rep,name=containers,proto3" json:"containers,omitempty"`
+	Address    string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
+	Containers []*container.Container `protobuf:"bytes,3,rep,name=containers,proto3" json:"containers,omitempty"`
 	// Why it couldn't be read; empty when it could.
 	Error         string `protobuf:"bytes,4,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -1059,7 +1060,7 @@ func (x *HostContainers) GetAddress() string {
 	return ""
 }
 
-func (x *HostContainers) GetContainers() []*Container {
+func (x *HostContainers) GetContainers() []*container.Container {
 	if x != nil {
 		return x.Containers
 	}
@@ -1073,211 +1074,6 @@ func (x *HostContainers) GetError() string {
 	return ""
 }
 
-type Container struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name  string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Image string                 `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
-	// Docker's state: created, running, paused, restarting, removing, exited or dead.
-	State  string  `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	Status string  `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Ports  []*Port `protobuf:"bytes,6,rep,name=ports,proto3" json:"ports,omitempty"`
-	// The local image's id and its "<repo>@sha256:…" digests: none for an
-	// image built locally.
-	ImageId     string            `protobuf:"bytes,7,opt,name=image_id,json=imageId,proto3" json:"image_id,omitempty"`
-	RepoDigests []string          `protobuf:"bytes,8,rep,name=repo_digests,json=repoDigests,proto3" json:"repo_digests,omitempty"`
-	Labels      map[string]string `protobuf:"bytes,9,rep,name=labels,proto3" json:"labels,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// Its Compose Project and service, from its labels; empty for one not
-	// started by Compose.
-	Project       string                 `protobuf:"bytes,10,opt,name=project,proto3" json:"project,omitempty"`
-	Service       string                 `protobuf:"bytes,11,opt,name=service,proto3" json:"service,omitempty"`
-	Created       *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created,proto3" json:"created,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Container) Reset() {
-	*x = Container{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Container) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Container) ProtoMessage() {}
-
-func (x *Container) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Container.ProtoReflect.Descriptor instead.
-func (*Container) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{18}
-}
-
-func (x *Container) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Container) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *Container) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *Container) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *Container) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *Container) GetPorts() []*Port {
-	if x != nil {
-		return x.Ports
-	}
-	return nil
-}
-
-func (x *Container) GetImageId() string {
-	if x != nil {
-		return x.ImageId
-	}
-	return ""
-}
-
-func (x *Container) GetRepoDigests() []string {
-	if x != nil {
-		return x.RepoDigests
-	}
-	return nil
-}
-
-func (x *Container) GetLabels() map[string]string {
-	if x != nil {
-		return x.Labels
-	}
-	return nil
-}
-
-func (x *Container) GetProject() string {
-	if x != nil {
-		return x.Project
-	}
-	return ""
-}
-
-func (x *Container) GetService() string {
-	if x != nil {
-		return x.Service
-	}
-	return ""
-}
-
-func (x *Container) GetCreated() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Created
-	}
-	return nil
-}
-
-type Port struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ip            string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
-	PublicPort    uint32                 `protobuf:"varint,2,opt,name=public_port,json=publicPort,proto3" json:"public_port,omitempty"`
-	PrivatePort   uint32                 `protobuf:"varint,3,opt,name=private_port,json=privatePort,proto3" json:"private_port,omitempty"`
-	Protocol      string                 `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Port) Reset() {
-	*x = Port{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Port) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Port) ProtoMessage() {}
-
-func (x *Port) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Port.ProtoReflect.Descriptor instead.
-func (*Port) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{19}
-}
-
-func (x *Port) GetIp() string {
-	if x != nil {
-		return x.Ip
-	}
-	return ""
-}
-
-func (x *Port) GetPublicPort() uint32 {
-	if x != nil {
-		return x.PublicPort
-	}
-	return 0
-}
-
-func (x *Port) GetPrivatePort() uint32 {
-	if x != nil {
-		return x.PrivatePort
-	}
-	return 0
-}
-
-func (x *Port) GetProtocol() string {
-	if x != nil {
-		return x.Protocol
-	}
-	return ""
-}
-
 type ListComposeProjectsRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -1286,7 +1082,7 @@ type ListComposeProjectsRequest struct {
 
 func (x *ListComposeProjectsRequest) Reset() {
 	*x = ListComposeProjectsRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[20]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1298,7 +1094,7 @@ func (x *ListComposeProjectsRequest) String() string {
 func (*ListComposeProjectsRequest) ProtoMessage() {}
 
 func (x *ListComposeProjectsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[20]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1311,7 +1107,7 @@ func (x *ListComposeProjectsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListComposeProjectsRequest.ProtoReflect.Descriptor instead.
 func (*ListComposeProjectsRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{20}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{18}
 }
 
 type ListComposeProjectsResponse struct {
@@ -1323,7 +1119,7 @@ type ListComposeProjectsResponse struct {
 
 func (x *ListComposeProjectsResponse) Reset() {
 	*x = ListComposeProjectsResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[21]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1335,7 +1131,7 @@ func (x *ListComposeProjectsResponse) String() string {
 func (*ListComposeProjectsResponse) ProtoMessage() {}
 
 func (x *ListComposeProjectsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[21]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1348,7 +1144,7 @@ func (x *ListComposeProjectsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListComposeProjectsResponse.ProtoReflect.Descriptor instead.
 func (*ListComposeProjectsResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{21}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ListComposeProjectsResponse) GetHosts() []*HostProjects {
@@ -1364,7 +1160,7 @@ type HostProjects struct {
 	Address  string                 `protobuf:"bytes,2,opt,name=address,proto3" json:"address,omitempty"`
 	Projects []*Project             `protobuf:"bytes,3,rep,name=projects,proto3" json:"projects,omitempty"`
 	// Every container on the host, those of no Compose Project too.
-	Containers []*Container `protobuf:"bytes,4,rep,name=containers,proto3" json:"containers,omitempty"`
+	Containers []*container.Container `protobuf:"bytes,4,rep,name=containers,proto3" json:"containers,omitempty"`
 	// The Compose roots the Agent mounts.
 	Roots         []string `protobuf:"bytes,5,rep,name=roots,proto3" json:"roots,omitempty"`
 	Error         string   `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
@@ -1374,7 +1170,7 @@ type HostProjects struct {
 
 func (x *HostProjects) Reset() {
 	*x = HostProjects{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[22]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1386,7 +1182,7 @@ func (x *HostProjects) String() string {
 func (*HostProjects) ProtoMessage() {}
 
 func (x *HostProjects) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[22]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1399,7 +1195,7 @@ func (x *HostProjects) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostProjects.ProtoReflect.Descriptor instead.
 func (*HostProjects) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{22}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *HostProjects) GetHost() string {
@@ -1423,7 +1219,7 @@ func (x *HostProjects) GetProjects() []*Project {
 	return nil
 }
 
-func (x *HostProjects) GetContainers() []*Container {
+func (x *HostProjects) GetContainers() []*container.Container {
 	if x != nil {
 		return x.Containers
 	}
@@ -1465,7 +1261,7 @@ type Project struct {
 
 func (x *Project) Reset() {
 	*x = Project{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[23]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1477,7 +1273,7 @@ func (x *Project) String() string {
 func (*Project) ProtoMessage() {}
 
 func (x *Project) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[23]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1490,7 +1286,7 @@ func (x *Project) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Project.ProtoReflect.Descriptor instead.
 func (*Project) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{23}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *Project) GetName() string {
@@ -1550,7 +1346,7 @@ type Service struct {
 
 func (x *Service) Reset() {
 	*x = Service{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[24]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1562,7 +1358,7 @@ func (x *Service) String() string {
 func (*Service) ProtoMessage() {}
 
 func (x *Service) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[24]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1575,7 +1371,7 @@ func (x *Service) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Service.ProtoReflect.Descriptor instead.
 func (*Service) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{24}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *Service) GetName() string {
@@ -1616,7 +1412,7 @@ type GetComposeFileRequest struct {
 
 func (x *GetComposeFileRequest) Reset() {
 	*x = GetComposeFileRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[25]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1628,7 +1424,7 @@ func (x *GetComposeFileRequest) String() string {
 func (*GetComposeFileRequest) ProtoMessage() {}
 
 func (x *GetComposeFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[25]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1641,7 +1437,7 @@ func (x *GetComposeFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetComposeFileRequest.ProtoReflect.Descriptor instead.
 func (*GetComposeFileRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{25}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *GetComposeFileRequest) GetHost() string {
@@ -1672,7 +1468,7 @@ type GetComposeFileResponse struct {
 
 func (x *GetComposeFileResponse) Reset() {
 	*x = GetComposeFileResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[26]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1684,7 +1480,7 @@ func (x *GetComposeFileResponse) String() string {
 func (*GetComposeFileResponse) ProtoMessage() {}
 
 func (x *GetComposeFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[26]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1697,7 +1493,7 @@ func (x *GetComposeFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetComposeFileResponse.ProtoReflect.Descriptor instead.
 func (*GetComposeFileResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{26}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *GetComposeFileResponse) GetFile() *ComposeFile {
@@ -1733,7 +1529,7 @@ type Dockerfile struct {
 
 func (x *Dockerfile) Reset() {
 	*x = Dockerfile{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[27]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1745,7 +1541,7 @@ func (x *Dockerfile) String() string {
 func (*Dockerfile) ProtoMessage() {}
 
 func (x *Dockerfile) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[27]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1758,7 +1554,7 @@ func (x *Dockerfile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Dockerfile.ProtoReflect.Descriptor instead.
 func (*Dockerfile) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{27}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *Dockerfile) GetFile() *ComposeFile {
@@ -1787,7 +1583,7 @@ type ComposeFile struct {
 
 func (x *ComposeFile) Reset() {
 	*x = ComposeFile{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[28]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1799,7 +1595,7 @@ func (x *ComposeFile) String() string {
 func (*ComposeFile) ProtoMessage() {}
 
 func (x *ComposeFile) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[28]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1812,7 +1608,7 @@ func (x *ComposeFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComposeFile.ProtoReflect.Descriptor instead.
 func (*ComposeFile) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{28}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *ComposeFile) GetPath() string {
@@ -1852,7 +1648,7 @@ type ValidateComposeFileRequest struct {
 
 func (x *ValidateComposeFileRequest) Reset() {
 	*x = ValidateComposeFileRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[29]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1864,7 +1660,7 @@ func (x *ValidateComposeFileRequest) String() string {
 func (*ValidateComposeFileRequest) ProtoMessage() {}
 
 func (x *ValidateComposeFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[29]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1877,7 +1673,7 @@ func (x *ValidateComposeFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateComposeFileRequest.ProtoReflect.Descriptor instead.
 func (*ValidateComposeFileRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{29}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ValidateComposeFileRequest) GetHost() string {
@@ -1926,7 +1722,7 @@ type ValidateComposeFileResponse struct {
 
 func (x *ValidateComposeFileResponse) Reset() {
 	*x = ValidateComposeFileResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[30]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1938,7 +1734,7 @@ func (x *ValidateComposeFileResponse) String() string {
 func (*ValidateComposeFileResponse) ProtoMessage() {}
 
 func (x *ValidateComposeFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[30]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1951,7 +1747,7 @@ func (x *ValidateComposeFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidateComposeFileResponse.ProtoReflect.Descriptor instead.
 func (*ValidateComposeFileResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{30}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ValidateComposeFileResponse) GetOk() bool {
@@ -1986,7 +1782,7 @@ type WriteComposeFileRequest struct {
 
 func (x *WriteComposeFileRequest) Reset() {
 	*x = WriteComposeFileRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[31]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1998,7 +1794,7 @@ func (x *WriteComposeFileRequest) String() string {
 func (*WriteComposeFileRequest) ProtoMessage() {}
 
 func (x *WriteComposeFileRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[31]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2011,7 +1807,7 @@ func (x *WriteComposeFileRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteComposeFileRequest.ProtoReflect.Descriptor instead.
 func (*WriteComposeFileRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{31}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *WriteComposeFileRequest) GetHost() string {
@@ -2065,7 +1861,7 @@ type WriteComposeFileResponse struct {
 
 func (x *WriteComposeFileResponse) Reset() {
 	*x = WriteComposeFileResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[32]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2077,7 +1873,7 @@ func (x *WriteComposeFileResponse) String() string {
 func (*WriteComposeFileResponse) ProtoMessage() {}
 
 func (x *WriteComposeFileResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[32]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2090,7 +1886,7 @@ func (x *WriteComposeFileResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WriteComposeFileResponse.ProtoReflect.Descriptor instead.
 func (*WriteComposeFileResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{32}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *WriteComposeFileResponse) GetFile() *ComposeFile {
@@ -2116,7 +1912,7 @@ type CreateComposeProjectRequest struct {
 
 func (x *CreateComposeProjectRequest) Reset() {
 	*x = CreateComposeProjectRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[33]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2128,7 +1924,7 @@ func (x *CreateComposeProjectRequest) String() string {
 func (*CreateComposeProjectRequest) ProtoMessage() {}
 
 func (x *CreateComposeProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[33]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2141,7 +1937,7 @@ func (x *CreateComposeProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateComposeProjectRequest.ProtoReflect.Descriptor instead.
 func (*CreateComposeProjectRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{33}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *CreateComposeProjectRequest) GetHost() string {
@@ -2190,7 +1986,7 @@ type CreateComposeProjectResponse struct {
 
 func (x *CreateComposeProjectResponse) Reset() {
 	*x = CreateComposeProjectResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[34]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2202,7 +1998,7 @@ func (x *CreateComposeProjectResponse) String() string {
 func (*CreateComposeProjectResponse) ProtoMessage() {}
 
 func (x *CreateComposeProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[34]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2215,7 +2011,7 @@ func (x *CreateComposeProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateComposeProjectResponse.ProtoReflect.Descriptor instead.
 func (*CreateComposeProjectResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{34}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *CreateComposeProjectResponse) GetFile() *ComposeFile {
@@ -2248,7 +2044,7 @@ type ComposeTarget struct {
 
 func (x *ComposeTarget) Reset() {
 	*x = ComposeTarget{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[35]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2260,7 +2056,7 @@ func (x *ComposeTarget) String() string {
 func (*ComposeTarget) ProtoMessage() {}
 
 func (x *ComposeTarget) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[35]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2273,7 +2069,7 @@ func (x *ComposeTarget) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComposeTarget.ProtoReflect.Descriptor instead.
 func (*ComposeTarget) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{35}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *ComposeTarget) GetHost() string {
@@ -2326,7 +2122,7 @@ type UpProjectRequest struct {
 
 func (x *UpProjectRequest) Reset() {
 	*x = UpProjectRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[36]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2338,7 +2134,7 @@ func (x *UpProjectRequest) String() string {
 func (*UpProjectRequest) ProtoMessage() {}
 
 func (x *UpProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[36]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2351,7 +2147,7 @@ func (x *UpProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpProjectRequest.ProtoReflect.Descriptor instead.
 func (*UpProjectRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{36}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *UpProjectRequest) GetTarget() *ComposeTarget {
@@ -2391,7 +2187,7 @@ type UpProjectResponse struct {
 
 func (x *UpProjectResponse) Reset() {
 	*x = UpProjectResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[37]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2403,7 +2199,7 @@ func (x *UpProjectResponse) String() string {
 func (*UpProjectResponse) ProtoMessage() {}
 
 func (x *UpProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[37]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2416,7 +2212,7 @@ func (x *UpProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpProjectResponse.ProtoReflect.Descriptor instead.
 func (*UpProjectResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{37}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *UpProjectResponse) GetJob() *job.Job {
@@ -2435,7 +2231,7 @@ type DownProjectRequest struct {
 
 func (x *DownProjectRequest) Reset() {
 	*x = DownProjectRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[38]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2447,7 +2243,7 @@ func (x *DownProjectRequest) String() string {
 func (*DownProjectRequest) ProtoMessage() {}
 
 func (x *DownProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[38]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2460,7 +2256,7 @@ func (x *DownProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownProjectRequest.ProtoReflect.Descriptor instead.
 func (*DownProjectRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{38}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *DownProjectRequest) GetTarget() *ComposeTarget {
@@ -2479,7 +2275,7 @@ type DownProjectResponse struct {
 
 func (x *DownProjectResponse) Reset() {
 	*x = DownProjectResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[39]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2491,7 +2287,7 @@ func (x *DownProjectResponse) String() string {
 func (*DownProjectResponse) ProtoMessage() {}
 
 func (x *DownProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[39]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2504,7 +2300,7 @@ func (x *DownProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DownProjectResponse.ProtoReflect.Descriptor instead.
 func (*DownProjectResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{39}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *DownProjectResponse) GetJob() *job.Job {
@@ -2523,7 +2319,7 @@ type RestartProjectRequest struct {
 
 func (x *RestartProjectRequest) Reset() {
 	*x = RestartProjectRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[40]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2535,7 +2331,7 @@ func (x *RestartProjectRequest) String() string {
 func (*RestartProjectRequest) ProtoMessage() {}
 
 func (x *RestartProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[40]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2548,7 +2344,7 @@ func (x *RestartProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartProjectRequest.ProtoReflect.Descriptor instead.
 func (*RestartProjectRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{40}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *RestartProjectRequest) GetTarget() *ComposeTarget {
@@ -2567,7 +2363,7 @@ type RestartProjectResponse struct {
 
 func (x *RestartProjectResponse) Reset() {
 	*x = RestartProjectResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[41]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2579,7 +2375,7 @@ func (x *RestartProjectResponse) String() string {
 func (*RestartProjectResponse) ProtoMessage() {}
 
 func (x *RestartProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[41]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2592,7 +2388,7 @@ func (x *RestartProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RestartProjectResponse.ProtoReflect.Descriptor instead.
 func (*RestartProjectResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{41}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *RestartProjectResponse) GetJob() *job.Job {
@@ -2611,7 +2407,7 @@ type PullProjectRequest struct {
 
 func (x *PullProjectRequest) Reset() {
 	*x = PullProjectRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[42]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2623,7 +2419,7 @@ func (x *PullProjectRequest) String() string {
 func (*PullProjectRequest) ProtoMessage() {}
 
 func (x *PullProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[42]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2636,7 +2432,7 @@ func (x *PullProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullProjectRequest.ProtoReflect.Descriptor instead.
 func (*PullProjectRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{42}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *PullProjectRequest) GetTarget() *ComposeTarget {
@@ -2655,7 +2451,7 @@ type PullProjectResponse struct {
 
 func (x *PullProjectResponse) Reset() {
 	*x = PullProjectResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[43]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2667,7 +2463,7 @@ func (x *PullProjectResponse) String() string {
 func (*PullProjectResponse) ProtoMessage() {}
 
 func (x *PullProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[43]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2680,7 +2476,7 @@ func (x *PullProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PullProjectResponse.ProtoReflect.Descriptor instead.
 func (*PullProjectResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{43}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *PullProjectResponse) GetJob() *job.Job {
@@ -2699,7 +2495,7 @@ type UpdateProjectRequest struct {
 
 func (x *UpdateProjectRequest) Reset() {
 	*x = UpdateProjectRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[44]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2711,7 +2507,7 @@ func (x *UpdateProjectRequest) String() string {
 func (*UpdateProjectRequest) ProtoMessage() {}
 
 func (x *UpdateProjectRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[44]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2724,7 +2520,7 @@ func (x *UpdateProjectRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProjectRequest.ProtoReflect.Descriptor instead.
 func (*UpdateProjectRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{44}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *UpdateProjectRequest) GetTarget() *ComposeTarget {
@@ -2743,7 +2539,7 @@ type UpdateProjectResponse struct {
 
 func (x *UpdateProjectResponse) Reset() {
 	*x = UpdateProjectResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[45]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2755,7 +2551,7 @@ func (x *UpdateProjectResponse) String() string {
 func (*UpdateProjectResponse) ProtoMessage() {}
 
 func (x *UpdateProjectResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[45]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2768,7 +2564,7 @@ func (x *UpdateProjectResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateProjectResponse.ProtoReflect.Descriptor instead.
 func (*UpdateProjectResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{45}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *UpdateProjectResponse) GetJob() *job.Job {
@@ -2786,7 +2582,7 @@ type ListJobsRequest struct {
 
 func (x *ListJobsRequest) Reset() {
 	*x = ListJobsRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[46]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2798,7 +2594,7 @@ func (x *ListJobsRequest) String() string {
 func (*ListJobsRequest) ProtoMessage() {}
 
 func (x *ListJobsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[46]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2811,7 +2607,7 @@ func (x *ListJobsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListJobsRequest.ProtoReflect.Descriptor instead.
 func (*ListJobsRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{46}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{44}
 }
 
 type ListJobsResponse struct {
@@ -2823,7 +2619,7 @@ type ListJobsResponse struct {
 
 func (x *ListJobsResponse) Reset() {
 	*x = ListJobsResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[47]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2835,7 +2631,7 @@ func (x *ListJobsResponse) String() string {
 func (*ListJobsResponse) ProtoMessage() {}
 
 func (x *ListJobsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[47]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2848,7 +2644,7 @@ func (x *ListJobsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListJobsResponse.ProtoReflect.Descriptor instead.
 func (*ListJobsResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{47}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *ListJobsResponse) GetHosts() []*HostJobs {
@@ -2869,7 +2665,7 @@ type HostJobs struct {
 
 func (x *HostJobs) Reset() {
 	*x = HostJobs{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[48]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2881,7 +2677,7 @@ func (x *HostJobs) String() string {
 func (*HostJobs) ProtoMessage() {}
 
 func (x *HostJobs) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[48]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2894,7 +2690,7 @@ func (x *HostJobs) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HostJobs.ProtoReflect.Descriptor instead.
 func (*HostJobs) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{48}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *HostJobs) GetHost() string {
@@ -2928,7 +2724,7 @@ type GetJobRequest struct {
 
 func (x *GetJobRequest) Reset() {
 	*x = GetJobRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2940,7 +2736,7 @@ func (x *GetJobRequest) String() string {
 func (*GetJobRequest) ProtoMessage() {}
 
 func (x *GetJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2953,7 +2749,7 @@ func (x *GetJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJobRequest.ProtoReflect.Descriptor instead.
 func (*GetJobRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{49}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *GetJobRequest) GetHost() string {
@@ -2979,7 +2775,7 @@ type GetJobResponse struct {
 
 func (x *GetJobResponse) Reset() {
 	*x = GetJobResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2991,7 +2787,7 @@ func (x *GetJobResponse) String() string {
 func (*GetJobResponse) ProtoMessage() {}
 
 func (x *GetJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3004,7 +2800,7 @@ func (x *GetJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJobResponse.ProtoReflect.Descriptor instead.
 func (*GetJobResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{50}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *GetJobResponse) GetJob() *job.Job {
@@ -3024,7 +2820,7 @@ type CollectJobRequest struct {
 
 func (x *CollectJobRequest) Reset() {
 	*x = CollectJobRequest{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[51]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3036,7 +2832,7 @@ func (x *CollectJobRequest) String() string {
 func (*CollectJobRequest) ProtoMessage() {}
 
 func (x *CollectJobRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[51]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3049,7 +2845,7 @@ func (x *CollectJobRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectJobRequest.ProtoReflect.Descriptor instead.
 func (*CollectJobRequest) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{51}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{49}
 }
 
 func (x *CollectJobRequest) GetHost() string {
@@ -3075,7 +2871,7 @@ type CollectJobResponse struct {
 
 func (x *CollectJobResponse) Reset() {
 	*x = CollectJobResponse{}
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[52]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3087,7 +2883,7 @@ func (x *CollectJobResponse) String() string {
 func (*CollectJobResponse) ProtoMessage() {}
 
 func (x *CollectJobResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[52]
+	mi := &file_docker_agent_api_docker_agent_api_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3100,7 +2896,7 @@ func (x *CollectJobResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectJobResponse.ProtoReflect.Descriptor instead.
 func (*CollectJobResponse) Descriptor() ([]byte, []int) {
-	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{52}
+	return file_docker_agent_api_docker_agent_api_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *CollectJobResponse) GetJob() *job.Job {
@@ -3114,7 +2910,7 @@ var File_docker_agent_api_docker_agent_api_proto protoreflect.FileDescriptor
 
 const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\n" +
-	"'docker-agent-api/docker_agent_api.proto\x12\x14ddash.dockeragentapi\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
+	"'docker-agent-api/docker_agent_api.proto\x12\x14ddash.dockeragentapi\x1a\x1fddash/container/container.proto\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x16\n" +
 	"\x14DockerAgentApiConfig\"\x13\n" +
 	"\x11ListAgentsRequest\"I\n" +
 	"\x12ListAgentsResponse\x123\n" +
@@ -3166,46 +2962,23 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\x03job\x18\x01 \x01(\v2\x0e.ddash.job.JobR\x03job\"\x17\n" +
 	"\x15ListContainersRequest\"T\n" +
 	"\x16ListContainersResponse\x12:\n" +
-	"\x05hosts\x18\x01 \x03(\v2$.ddash.dockeragentapi.HostContainersR\x05hosts\"\x95\x01\n" +
+	"\x05hosts\x18\x01 \x03(\v2$.ddash.dockeragentapi.HostContainersR\x05hosts\"\x90\x01\n" +
 	"\x0eHostContainers\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x18\n" +
-	"\aaddress\x18\x02 \x01(\tR\aaddress\x12?\n" +
+	"\aaddress\x18\x02 \x01(\tR\aaddress\x12:\n" +
 	"\n" +
-	"containers\x18\x03 \x03(\v2\x1f.ddash.dockeragentapi.ContainerR\n" +
+	"containers\x18\x03 \x03(\v2\x1a.ddash.container.ContainerR\n" +
 	"containers\x12\x14\n" +
-	"\x05error\x18\x04 \x01(\tR\x05error\"\xcd\x03\n" +
-	"\tContainer\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05image\x18\x03 \x01(\tR\x05image\x12\x14\n" +
-	"\x05state\x18\x04 \x01(\tR\x05state\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\x120\n" +
-	"\x05ports\x18\x06 \x03(\v2\x1a.ddash.dockeragentapi.PortR\x05ports\x12\x19\n" +
-	"\bimage_id\x18\a \x01(\tR\aimageId\x12!\n" +
-	"\frepo_digests\x18\b \x03(\tR\vrepoDigests\x12C\n" +
-	"\x06labels\x18\t \x03(\v2+.ddash.dockeragentapi.Container.LabelsEntryR\x06labels\x12\x18\n" +
-	"\aproject\x18\n" +
-	" \x01(\tR\aproject\x12\x18\n" +
-	"\aservice\x18\v \x01(\tR\aservice\x124\n" +
-	"\acreated\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\acreated\x1a9\n" +
-	"\vLabelsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"v\n" +
-	"\x04Port\x12\x0e\n" +
-	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x1f\n" +
-	"\vpublic_port\x18\x02 \x01(\rR\n" +
-	"publicPort\x12!\n" +
-	"\fprivate_port\x18\x03 \x01(\rR\vprivatePort\x12\x1a\n" +
-	"\bprotocol\x18\x04 \x01(\tR\bprotocol\"\x1c\n" +
+	"\x05error\x18\x04 \x01(\tR\x05error\"\x1c\n" +
 	"\x1aListComposeProjectsRequest\"W\n" +
 	"\x1bListComposeProjectsResponse\x128\n" +
-	"\x05hosts\x18\x01 \x03(\v2\".ddash.dockeragentapi.HostProjectsR\x05hosts\"\xe4\x01\n" +
+	"\x05hosts\x18\x01 \x03(\v2\".ddash.dockeragentapi.HostProjectsR\x05hosts\"\xdf\x01\n" +
 	"\fHostProjects\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x129\n" +
-	"\bprojects\x18\x03 \x03(\v2\x1d.ddash.dockeragentapi.ProjectR\bprojects\x12?\n" +
+	"\bprojects\x18\x03 \x03(\v2\x1d.ddash.dockeragentapi.ProjectR\bprojects\x12:\n" +
 	"\n" +
-	"containers\x18\x04 \x03(\v2\x1f.ddash.dockeragentapi.ContainerR\n" +
+	"containers\x18\x04 \x03(\v2\x1a.ddash.container.ContainerR\n" +
 	"containers\x12\x14\n" +
 	"\x05roots\x18\x05 \x03(\tR\x05roots\x12\x14\n" +
 	"\x05error\x18\x06 \x01(\tR\x05error\"\xc8\x01\n" +
@@ -3357,7 +3130,7 @@ func file_docker_agent_api_docker_agent_api_proto_rawDescGZIP() []byte {
 }
 
 var file_docker_agent_api_docker_agent_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_docker_agent_api_docker_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 54)
+var file_docker_agent_api_docker_agent_api_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
 var file_docker_agent_api_docker_agent_api_proto_goTypes = []any{
 	(AgentState)(0),                      // 0: ddash.dockeragentapi.AgentState
 	(*DockerAgentApiConfig)(nil),         // 1: ddash.dockeragentapi.DockerAgentApiConfig
@@ -3378,130 +3151,125 @@ var file_docker_agent_api_docker_agent_api_proto_goTypes = []any{
 	(*ListContainersRequest)(nil),        // 16: ddash.dockeragentapi.ListContainersRequest
 	(*ListContainersResponse)(nil),       // 17: ddash.dockeragentapi.ListContainersResponse
 	(*HostContainers)(nil),               // 18: ddash.dockeragentapi.HostContainers
-	(*Container)(nil),                    // 19: ddash.dockeragentapi.Container
-	(*Port)(nil),                         // 20: ddash.dockeragentapi.Port
-	(*ListComposeProjectsRequest)(nil),   // 21: ddash.dockeragentapi.ListComposeProjectsRequest
-	(*ListComposeProjectsResponse)(nil),  // 22: ddash.dockeragentapi.ListComposeProjectsResponse
-	(*HostProjects)(nil),                 // 23: ddash.dockeragentapi.HostProjects
-	(*Project)(nil),                      // 24: ddash.dockeragentapi.Project
-	(*Service)(nil),                      // 25: ddash.dockeragentapi.Service
-	(*GetComposeFileRequest)(nil),        // 26: ddash.dockeragentapi.GetComposeFileRequest
-	(*GetComposeFileResponse)(nil),       // 27: ddash.dockeragentapi.GetComposeFileResponse
-	(*Dockerfile)(nil),                   // 28: ddash.dockeragentapi.Dockerfile
-	(*ComposeFile)(nil),                  // 29: ddash.dockeragentapi.ComposeFile
-	(*ValidateComposeFileRequest)(nil),   // 30: ddash.dockeragentapi.ValidateComposeFileRequest
-	(*ValidateComposeFileResponse)(nil),  // 31: ddash.dockeragentapi.ValidateComposeFileResponse
-	(*WriteComposeFileRequest)(nil),      // 32: ddash.dockeragentapi.WriteComposeFileRequest
-	(*WriteComposeFileResponse)(nil),     // 33: ddash.dockeragentapi.WriteComposeFileResponse
-	(*CreateComposeProjectRequest)(nil),  // 34: ddash.dockeragentapi.CreateComposeProjectRequest
-	(*CreateComposeProjectResponse)(nil), // 35: ddash.dockeragentapi.CreateComposeProjectResponse
-	(*ComposeTarget)(nil),                // 36: ddash.dockeragentapi.ComposeTarget
-	(*UpProjectRequest)(nil),             // 37: ddash.dockeragentapi.UpProjectRequest
-	(*UpProjectResponse)(nil),            // 38: ddash.dockeragentapi.UpProjectResponse
-	(*DownProjectRequest)(nil),           // 39: ddash.dockeragentapi.DownProjectRequest
-	(*DownProjectResponse)(nil),          // 40: ddash.dockeragentapi.DownProjectResponse
-	(*RestartProjectRequest)(nil),        // 41: ddash.dockeragentapi.RestartProjectRequest
-	(*RestartProjectResponse)(nil),       // 42: ddash.dockeragentapi.RestartProjectResponse
-	(*PullProjectRequest)(nil),           // 43: ddash.dockeragentapi.PullProjectRequest
-	(*PullProjectResponse)(nil),          // 44: ddash.dockeragentapi.PullProjectResponse
-	(*UpdateProjectRequest)(nil),         // 45: ddash.dockeragentapi.UpdateProjectRequest
-	(*UpdateProjectResponse)(nil),        // 46: ddash.dockeragentapi.UpdateProjectResponse
-	(*ListJobsRequest)(nil),              // 47: ddash.dockeragentapi.ListJobsRequest
-	(*ListJobsResponse)(nil),             // 48: ddash.dockeragentapi.ListJobsResponse
-	(*HostJobs)(nil),                     // 49: ddash.dockeragentapi.HostJobs
-	(*GetJobRequest)(nil),                // 50: ddash.dockeragentapi.GetJobRequest
-	(*GetJobResponse)(nil),               // 51: ddash.dockeragentapi.GetJobResponse
-	(*CollectJobRequest)(nil),            // 52: ddash.dockeragentapi.CollectJobRequest
-	(*CollectJobResponse)(nil),           // 53: ddash.dockeragentapi.CollectJobResponse
-	nil,                                  // 54: ddash.dockeragentapi.Container.LabelsEntry
-	(*timestamppb.Timestamp)(nil),        // 55: google.protobuf.Timestamp
-	(*job.Job)(nil),                      // 56: ddash.job.Job
+	(*ListComposeProjectsRequest)(nil),   // 19: ddash.dockeragentapi.ListComposeProjectsRequest
+	(*ListComposeProjectsResponse)(nil),  // 20: ddash.dockeragentapi.ListComposeProjectsResponse
+	(*HostProjects)(nil),                 // 21: ddash.dockeragentapi.HostProjects
+	(*Project)(nil),                      // 22: ddash.dockeragentapi.Project
+	(*Service)(nil),                      // 23: ddash.dockeragentapi.Service
+	(*GetComposeFileRequest)(nil),        // 24: ddash.dockeragentapi.GetComposeFileRequest
+	(*GetComposeFileResponse)(nil),       // 25: ddash.dockeragentapi.GetComposeFileResponse
+	(*Dockerfile)(nil),                   // 26: ddash.dockeragentapi.Dockerfile
+	(*ComposeFile)(nil),                  // 27: ddash.dockeragentapi.ComposeFile
+	(*ValidateComposeFileRequest)(nil),   // 28: ddash.dockeragentapi.ValidateComposeFileRequest
+	(*ValidateComposeFileResponse)(nil),  // 29: ddash.dockeragentapi.ValidateComposeFileResponse
+	(*WriteComposeFileRequest)(nil),      // 30: ddash.dockeragentapi.WriteComposeFileRequest
+	(*WriteComposeFileResponse)(nil),     // 31: ddash.dockeragentapi.WriteComposeFileResponse
+	(*CreateComposeProjectRequest)(nil),  // 32: ddash.dockeragentapi.CreateComposeProjectRequest
+	(*CreateComposeProjectResponse)(nil), // 33: ddash.dockeragentapi.CreateComposeProjectResponse
+	(*ComposeTarget)(nil),                // 34: ddash.dockeragentapi.ComposeTarget
+	(*UpProjectRequest)(nil),             // 35: ddash.dockeragentapi.UpProjectRequest
+	(*UpProjectResponse)(nil),            // 36: ddash.dockeragentapi.UpProjectResponse
+	(*DownProjectRequest)(nil),           // 37: ddash.dockeragentapi.DownProjectRequest
+	(*DownProjectResponse)(nil),          // 38: ddash.dockeragentapi.DownProjectResponse
+	(*RestartProjectRequest)(nil),        // 39: ddash.dockeragentapi.RestartProjectRequest
+	(*RestartProjectResponse)(nil),       // 40: ddash.dockeragentapi.RestartProjectResponse
+	(*PullProjectRequest)(nil),           // 41: ddash.dockeragentapi.PullProjectRequest
+	(*PullProjectResponse)(nil),          // 42: ddash.dockeragentapi.PullProjectResponse
+	(*UpdateProjectRequest)(nil),         // 43: ddash.dockeragentapi.UpdateProjectRequest
+	(*UpdateProjectResponse)(nil),        // 44: ddash.dockeragentapi.UpdateProjectResponse
+	(*ListJobsRequest)(nil),              // 45: ddash.dockeragentapi.ListJobsRequest
+	(*ListJobsResponse)(nil),             // 46: ddash.dockeragentapi.ListJobsResponse
+	(*HostJobs)(nil),                     // 47: ddash.dockeragentapi.HostJobs
+	(*GetJobRequest)(nil),                // 48: ddash.dockeragentapi.GetJobRequest
+	(*GetJobResponse)(nil),               // 49: ddash.dockeragentapi.GetJobResponse
+	(*CollectJobRequest)(nil),            // 50: ddash.dockeragentapi.CollectJobRequest
+	(*CollectJobResponse)(nil),           // 51: ddash.dockeragentapi.CollectJobResponse
+	(*timestamppb.Timestamp)(nil),        // 52: google.protobuf.Timestamp
+	(*job.Job)(nil),                      // 53: ddash.job.Job
+	(*container.Container)(nil),          // 54: ddash.container.Container
 }
 var file_docker_agent_api_docker_agent_api_proto_depIdxs = []int32{
 	4,  // 0: ddash.dockeragentapi.ListAgentsResponse.agents:type_name -> ddash.dockeragentapi.Agent
 	0,  // 1: ddash.dockeragentapi.Agent.state:type_name -> ddash.dockeragentapi.AgentState
-	55, // 2: ddash.dockeragentapi.Agent.added:type_name -> google.protobuf.Timestamp
-	55, // 3: ddash.dockeragentapi.Agent.paired:type_name -> google.protobuf.Timestamp
+	52, // 2: ddash.dockeragentapi.Agent.added:type_name -> google.protobuf.Timestamp
+	52, // 3: ddash.dockeragentapi.Agent.paired:type_name -> google.protobuf.Timestamp
 	4,  // 4: ddash.dockeragentapi.AddAgentResponse.agent:type_name -> ddash.dockeragentapi.Agent
 	9,  // 5: ddash.dockeragentapi.AddAgentResponse.setup:type_name -> ddash.dockeragentapi.AgentSetup
 	9,  // 6: ddash.dockeragentapi.GetAgentSetupResponse.setup:type_name -> ddash.dockeragentapi.AgentSetup
 	4,  // 7: ddash.dockeragentapi.PairAgentResponse.agent:type_name -> ddash.dockeragentapi.Agent
-	56, // 8: ddash.dockeragentapi.UpdateAgentResponse.job:type_name -> ddash.job.Job
+	53, // 8: ddash.dockeragentapi.UpdateAgentResponse.job:type_name -> ddash.job.Job
 	18, // 9: ddash.dockeragentapi.ListContainersResponse.hosts:type_name -> ddash.dockeragentapi.HostContainers
-	19, // 10: ddash.dockeragentapi.HostContainers.containers:type_name -> ddash.dockeragentapi.Container
-	20, // 11: ddash.dockeragentapi.Container.ports:type_name -> ddash.dockeragentapi.Port
-	54, // 12: ddash.dockeragentapi.Container.labels:type_name -> ddash.dockeragentapi.Container.LabelsEntry
-	55, // 13: ddash.dockeragentapi.Container.created:type_name -> google.protobuf.Timestamp
-	23, // 14: ddash.dockeragentapi.ListComposeProjectsResponse.hosts:type_name -> ddash.dockeragentapi.HostProjects
-	24, // 15: ddash.dockeragentapi.HostProjects.projects:type_name -> ddash.dockeragentapi.Project
-	19, // 16: ddash.dockeragentapi.HostProjects.containers:type_name -> ddash.dockeragentapi.Container
-	25, // 17: ddash.dockeragentapi.Project.services:type_name -> ddash.dockeragentapi.Service
-	29, // 18: ddash.dockeragentapi.GetComposeFileResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
-	29, // 19: ddash.dockeragentapi.GetComposeFileResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
-	28, // 20: ddash.dockeragentapi.GetComposeFileResponse.dockerfiles:type_name -> ddash.dockeragentapi.Dockerfile
-	29, // 21: ddash.dockeragentapi.Dockerfile.file:type_name -> ddash.dockeragentapi.ComposeFile
-	29, // 22: ddash.dockeragentapi.WriteComposeFileResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
-	29, // 23: ddash.dockeragentapi.CreateComposeProjectResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
-	29, // 24: ddash.dockeragentapi.CreateComposeProjectResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
-	36, // 25: ddash.dockeragentapi.UpProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	56, // 26: ddash.dockeragentapi.UpProjectResponse.job:type_name -> ddash.job.Job
-	36, // 27: ddash.dockeragentapi.DownProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	56, // 28: ddash.dockeragentapi.DownProjectResponse.job:type_name -> ddash.job.Job
-	36, // 29: ddash.dockeragentapi.RestartProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	56, // 30: ddash.dockeragentapi.RestartProjectResponse.job:type_name -> ddash.job.Job
-	36, // 31: ddash.dockeragentapi.PullProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	56, // 32: ddash.dockeragentapi.PullProjectResponse.job:type_name -> ddash.job.Job
-	36, // 33: ddash.dockeragentapi.UpdateProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
-	56, // 34: ddash.dockeragentapi.UpdateProjectResponse.job:type_name -> ddash.job.Job
-	49, // 35: ddash.dockeragentapi.ListJobsResponse.hosts:type_name -> ddash.dockeragentapi.HostJobs
-	56, // 36: ddash.dockeragentapi.HostJobs.jobs:type_name -> ddash.job.Job
-	56, // 37: ddash.dockeragentapi.GetJobResponse.job:type_name -> ddash.job.Job
-	56, // 38: ddash.dockeragentapi.CollectJobResponse.job:type_name -> ddash.job.Job
-	2,  // 39: ddash.dockeragentapi.DockerAgentApiService.ListAgents:input_type -> ddash.dockeragentapi.ListAgentsRequest
-	5,  // 40: ddash.dockeragentapi.DockerAgentApiService.AddAgent:input_type -> ddash.dockeragentapi.AddAgentRequest
-	7,  // 41: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:input_type -> ddash.dockeragentapi.GetAgentSetupRequest
-	10, // 42: ddash.dockeragentapi.DockerAgentApiService.PairAgent:input_type -> ddash.dockeragentapi.PairAgentRequest
-	12, // 43: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:input_type -> ddash.dockeragentapi.RemoveAgentRequest
-	14, // 44: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:input_type -> ddash.dockeragentapi.UpdateAgentRequest
-	16, // 45: ddash.dockeragentapi.DockerAgentApiService.ListContainers:input_type -> ddash.dockeragentapi.ListContainersRequest
-	21, // 46: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:input_type -> ddash.dockeragentapi.ListComposeProjectsRequest
-	26, // 47: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:input_type -> ddash.dockeragentapi.GetComposeFileRequest
-	30, // 48: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:input_type -> ddash.dockeragentapi.ValidateComposeFileRequest
-	32, // 49: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:input_type -> ddash.dockeragentapi.WriteComposeFileRequest
-	34, // 50: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:input_type -> ddash.dockeragentapi.CreateComposeProjectRequest
-	37, // 51: ddash.dockeragentapi.DockerAgentApiService.UpProject:input_type -> ddash.dockeragentapi.UpProjectRequest
-	39, // 52: ddash.dockeragentapi.DockerAgentApiService.DownProject:input_type -> ddash.dockeragentapi.DownProjectRequest
-	41, // 53: ddash.dockeragentapi.DockerAgentApiService.RestartProject:input_type -> ddash.dockeragentapi.RestartProjectRequest
-	43, // 54: ddash.dockeragentapi.DockerAgentApiService.PullProject:input_type -> ddash.dockeragentapi.PullProjectRequest
-	45, // 55: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:input_type -> ddash.dockeragentapi.UpdateProjectRequest
-	47, // 56: ddash.dockeragentapi.DockerAgentApiService.ListJobs:input_type -> ddash.dockeragentapi.ListJobsRequest
-	50, // 57: ddash.dockeragentapi.DockerAgentApiService.GetJob:input_type -> ddash.dockeragentapi.GetJobRequest
-	52, // 58: ddash.dockeragentapi.DockerAgentApiService.CollectJob:input_type -> ddash.dockeragentapi.CollectJobRequest
-	3,  // 59: ddash.dockeragentapi.DockerAgentApiService.ListAgents:output_type -> ddash.dockeragentapi.ListAgentsResponse
-	6,  // 60: ddash.dockeragentapi.DockerAgentApiService.AddAgent:output_type -> ddash.dockeragentapi.AddAgentResponse
-	8,  // 61: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:output_type -> ddash.dockeragentapi.GetAgentSetupResponse
-	11, // 62: ddash.dockeragentapi.DockerAgentApiService.PairAgent:output_type -> ddash.dockeragentapi.PairAgentResponse
-	13, // 63: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:output_type -> ddash.dockeragentapi.RemoveAgentResponse
-	15, // 64: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:output_type -> ddash.dockeragentapi.UpdateAgentResponse
-	17, // 65: ddash.dockeragentapi.DockerAgentApiService.ListContainers:output_type -> ddash.dockeragentapi.ListContainersResponse
-	22, // 66: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:output_type -> ddash.dockeragentapi.ListComposeProjectsResponse
-	27, // 67: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:output_type -> ddash.dockeragentapi.GetComposeFileResponse
-	31, // 68: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:output_type -> ddash.dockeragentapi.ValidateComposeFileResponse
-	33, // 69: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:output_type -> ddash.dockeragentapi.WriteComposeFileResponse
-	35, // 70: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:output_type -> ddash.dockeragentapi.CreateComposeProjectResponse
-	38, // 71: ddash.dockeragentapi.DockerAgentApiService.UpProject:output_type -> ddash.dockeragentapi.UpProjectResponse
-	40, // 72: ddash.dockeragentapi.DockerAgentApiService.DownProject:output_type -> ddash.dockeragentapi.DownProjectResponse
-	42, // 73: ddash.dockeragentapi.DockerAgentApiService.RestartProject:output_type -> ddash.dockeragentapi.RestartProjectResponse
-	44, // 74: ddash.dockeragentapi.DockerAgentApiService.PullProject:output_type -> ddash.dockeragentapi.PullProjectResponse
-	46, // 75: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:output_type -> ddash.dockeragentapi.UpdateProjectResponse
-	48, // 76: ddash.dockeragentapi.DockerAgentApiService.ListJobs:output_type -> ddash.dockeragentapi.ListJobsResponse
-	51, // 77: ddash.dockeragentapi.DockerAgentApiService.GetJob:output_type -> ddash.dockeragentapi.GetJobResponse
-	53, // 78: ddash.dockeragentapi.DockerAgentApiService.CollectJob:output_type -> ddash.dockeragentapi.CollectJobResponse
-	59, // [59:79] is the sub-list for method output_type
-	39, // [39:59] is the sub-list for method input_type
-	39, // [39:39] is the sub-list for extension type_name
-	39, // [39:39] is the sub-list for extension extendee
-	0,  // [0:39] is the sub-list for field type_name
+	54, // 10: ddash.dockeragentapi.HostContainers.containers:type_name -> ddash.container.Container
+	21, // 11: ddash.dockeragentapi.ListComposeProjectsResponse.hosts:type_name -> ddash.dockeragentapi.HostProjects
+	22, // 12: ddash.dockeragentapi.HostProjects.projects:type_name -> ddash.dockeragentapi.Project
+	54, // 13: ddash.dockeragentapi.HostProjects.containers:type_name -> ddash.container.Container
+	23, // 14: ddash.dockeragentapi.Project.services:type_name -> ddash.dockeragentapi.Service
+	27, // 15: ddash.dockeragentapi.GetComposeFileResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
+	27, // 16: ddash.dockeragentapi.GetComposeFileResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
+	26, // 17: ddash.dockeragentapi.GetComposeFileResponse.dockerfiles:type_name -> ddash.dockeragentapi.Dockerfile
+	27, // 18: ddash.dockeragentapi.Dockerfile.file:type_name -> ddash.dockeragentapi.ComposeFile
+	27, // 19: ddash.dockeragentapi.WriteComposeFileResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
+	27, // 20: ddash.dockeragentapi.CreateComposeProjectResponse.file:type_name -> ddash.dockeragentapi.ComposeFile
+	27, // 21: ddash.dockeragentapi.CreateComposeProjectResponse.env:type_name -> ddash.dockeragentapi.ComposeFile
+	34, // 22: ddash.dockeragentapi.UpProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 23: ddash.dockeragentapi.UpProjectResponse.job:type_name -> ddash.job.Job
+	34, // 24: ddash.dockeragentapi.DownProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 25: ddash.dockeragentapi.DownProjectResponse.job:type_name -> ddash.job.Job
+	34, // 26: ddash.dockeragentapi.RestartProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 27: ddash.dockeragentapi.RestartProjectResponse.job:type_name -> ddash.job.Job
+	34, // 28: ddash.dockeragentapi.PullProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 29: ddash.dockeragentapi.PullProjectResponse.job:type_name -> ddash.job.Job
+	34, // 30: ddash.dockeragentapi.UpdateProjectRequest.target:type_name -> ddash.dockeragentapi.ComposeTarget
+	53, // 31: ddash.dockeragentapi.UpdateProjectResponse.job:type_name -> ddash.job.Job
+	47, // 32: ddash.dockeragentapi.ListJobsResponse.hosts:type_name -> ddash.dockeragentapi.HostJobs
+	53, // 33: ddash.dockeragentapi.HostJobs.jobs:type_name -> ddash.job.Job
+	53, // 34: ddash.dockeragentapi.GetJobResponse.job:type_name -> ddash.job.Job
+	53, // 35: ddash.dockeragentapi.CollectJobResponse.job:type_name -> ddash.job.Job
+	2,  // 36: ddash.dockeragentapi.DockerAgentApiService.ListAgents:input_type -> ddash.dockeragentapi.ListAgentsRequest
+	5,  // 37: ddash.dockeragentapi.DockerAgentApiService.AddAgent:input_type -> ddash.dockeragentapi.AddAgentRequest
+	7,  // 38: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:input_type -> ddash.dockeragentapi.GetAgentSetupRequest
+	10, // 39: ddash.dockeragentapi.DockerAgentApiService.PairAgent:input_type -> ddash.dockeragentapi.PairAgentRequest
+	12, // 40: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:input_type -> ddash.dockeragentapi.RemoveAgentRequest
+	14, // 41: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:input_type -> ddash.dockeragentapi.UpdateAgentRequest
+	16, // 42: ddash.dockeragentapi.DockerAgentApiService.ListContainers:input_type -> ddash.dockeragentapi.ListContainersRequest
+	19, // 43: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:input_type -> ddash.dockeragentapi.ListComposeProjectsRequest
+	24, // 44: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:input_type -> ddash.dockeragentapi.GetComposeFileRequest
+	28, // 45: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:input_type -> ddash.dockeragentapi.ValidateComposeFileRequest
+	30, // 46: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:input_type -> ddash.dockeragentapi.WriteComposeFileRequest
+	32, // 47: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:input_type -> ddash.dockeragentapi.CreateComposeProjectRequest
+	35, // 48: ddash.dockeragentapi.DockerAgentApiService.UpProject:input_type -> ddash.dockeragentapi.UpProjectRequest
+	37, // 49: ddash.dockeragentapi.DockerAgentApiService.DownProject:input_type -> ddash.dockeragentapi.DownProjectRequest
+	39, // 50: ddash.dockeragentapi.DockerAgentApiService.RestartProject:input_type -> ddash.dockeragentapi.RestartProjectRequest
+	41, // 51: ddash.dockeragentapi.DockerAgentApiService.PullProject:input_type -> ddash.dockeragentapi.PullProjectRequest
+	43, // 52: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:input_type -> ddash.dockeragentapi.UpdateProjectRequest
+	45, // 53: ddash.dockeragentapi.DockerAgentApiService.ListJobs:input_type -> ddash.dockeragentapi.ListJobsRequest
+	48, // 54: ddash.dockeragentapi.DockerAgentApiService.GetJob:input_type -> ddash.dockeragentapi.GetJobRequest
+	50, // 55: ddash.dockeragentapi.DockerAgentApiService.CollectJob:input_type -> ddash.dockeragentapi.CollectJobRequest
+	3,  // 56: ddash.dockeragentapi.DockerAgentApiService.ListAgents:output_type -> ddash.dockeragentapi.ListAgentsResponse
+	6,  // 57: ddash.dockeragentapi.DockerAgentApiService.AddAgent:output_type -> ddash.dockeragentapi.AddAgentResponse
+	8,  // 58: ddash.dockeragentapi.DockerAgentApiService.GetAgentSetup:output_type -> ddash.dockeragentapi.GetAgentSetupResponse
+	11, // 59: ddash.dockeragentapi.DockerAgentApiService.PairAgent:output_type -> ddash.dockeragentapi.PairAgentResponse
+	13, // 60: ddash.dockeragentapi.DockerAgentApiService.RemoveAgent:output_type -> ddash.dockeragentapi.RemoveAgentResponse
+	15, // 61: ddash.dockeragentapi.DockerAgentApiService.UpdateAgent:output_type -> ddash.dockeragentapi.UpdateAgentResponse
+	17, // 62: ddash.dockeragentapi.DockerAgentApiService.ListContainers:output_type -> ddash.dockeragentapi.ListContainersResponse
+	20, // 63: ddash.dockeragentapi.DockerAgentApiService.ListComposeProjects:output_type -> ddash.dockeragentapi.ListComposeProjectsResponse
+	25, // 64: ddash.dockeragentapi.DockerAgentApiService.GetComposeFile:output_type -> ddash.dockeragentapi.GetComposeFileResponse
+	29, // 65: ddash.dockeragentapi.DockerAgentApiService.ValidateComposeFile:output_type -> ddash.dockeragentapi.ValidateComposeFileResponse
+	31, // 66: ddash.dockeragentapi.DockerAgentApiService.WriteComposeFile:output_type -> ddash.dockeragentapi.WriteComposeFileResponse
+	33, // 67: ddash.dockeragentapi.DockerAgentApiService.CreateComposeProject:output_type -> ddash.dockeragentapi.CreateComposeProjectResponse
+	36, // 68: ddash.dockeragentapi.DockerAgentApiService.UpProject:output_type -> ddash.dockeragentapi.UpProjectResponse
+	38, // 69: ddash.dockeragentapi.DockerAgentApiService.DownProject:output_type -> ddash.dockeragentapi.DownProjectResponse
+	40, // 70: ddash.dockeragentapi.DockerAgentApiService.RestartProject:output_type -> ddash.dockeragentapi.RestartProjectResponse
+	42, // 71: ddash.dockeragentapi.DockerAgentApiService.PullProject:output_type -> ddash.dockeragentapi.PullProjectResponse
+	44, // 72: ddash.dockeragentapi.DockerAgentApiService.UpdateProject:output_type -> ddash.dockeragentapi.UpdateProjectResponse
+	46, // 73: ddash.dockeragentapi.DockerAgentApiService.ListJobs:output_type -> ddash.dockeragentapi.ListJobsResponse
+	49, // 74: ddash.dockeragentapi.DockerAgentApiService.GetJob:output_type -> ddash.dockeragentapi.GetJobResponse
+	51, // 75: ddash.dockeragentapi.DockerAgentApiService.CollectJob:output_type -> ddash.dockeragentapi.CollectJobResponse
+	56, // [56:76] is the sub-list for method output_type
+	36, // [36:56] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_docker_agent_api_docker_agent_api_proto_init() }
@@ -3515,7 +3283,7 @@ func file_docker_agent_api_docker_agent_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_docker_agent_api_docker_agent_api_proto_rawDesc), len(file_docker_agent_api_docker_agent_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   54,
+			NumMessages:   51,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

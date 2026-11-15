@@ -15,6 +15,7 @@ package composepb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
+	container "github.com/itsKontra/ddash/proto/ddash/container"
 	job "github.com/itsKontra/ddash/proto/ddash/job"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -401,7 +402,7 @@ type Host struct {
 	Roots    []string   `protobuf:"bytes,4,rep,name=roots,proto3" json:"roots,omitempty"`
 	Projects []*Project `protobuf:"bytes,5,rep,name=projects,proto3" json:"projects,omitempty"`
 	// Its containers that no Compose Project started.
-	Containers    []*Container `protobuf:"bytes,6,rep,name=containers,proto3" json:"containers,omitempty"`
+	Containers    []*ProjectContainer `protobuf:"bytes,6,rep,name=containers,proto3" json:"containers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,7 +472,7 @@ func (x *Host) GetProjects() []*Project {
 	return nil
 }
 
-func (x *Host) GetContainers() []*Container {
+func (x *Host) GetContainers() []*ProjectContainer {
 	if x != nil {
 		return x.Containers
 	}
@@ -606,8 +607,8 @@ type Service struct {
 	// The image as the file names it.
 	Image string `protobuf:"bytes,2,opt,name=image,proto3" json:"image,omitempty"`
 	// Its published ports as the file writes them.
-	Ports         []string     `protobuf:"bytes,3,rep,name=ports,proto3" json:"ports,omitempty"`
-	Containers    []*Container `protobuf:"bytes,4,rep,name=containers,proto3" json:"containers,omitempty"`
+	Ports         []string            `protobuf:"bytes,3,rep,name=ports,proto3" json:"ports,omitempty"`
+	Containers    []*ProjectContainer `protobuf:"bytes,4,rep,name=containers,proto3" json:"containers,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -663,42 +664,36 @@ func (x *Service) GetPorts() []string {
 	return nil
 }
 
-func (x *Service) GetContainers() []*Container {
+func (x *Service) GetContainers() []*ProjectContainer {
 	if x != nil {
 		return x.Containers
 	}
 	return nil
 }
 
-type Container struct {
+// A container of a Docker host, with what compose knows of its image.
+type ProjectContainer struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Image         string                 `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
-	State         string                 `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	Ports         []*Port                `protobuf:"bytes,6,rep,name=ports,proto3" json:"ports,omitempty"`
-	ImageStatus   *ImageStatus           `protobuf:"bytes,7,opt,name=image_status,json=imageStatus,proto3" json:"image_status,omitempty"`
-	Protected     bool                   `protobuf:"varint,8,opt,name=protected,proto3" json:"protected,omitempty"`
-	Created       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created,proto3" json:"created,omitempty"`
+	Container     *container.Container   `protobuf:"bytes,1,opt,name=container,proto3" json:"container,omitempty"`
+	ImageStatus   *ImageStatus           `protobuf:"bytes,2,opt,name=image_status,json=imageStatus,proto3" json:"image_status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Container) Reset() {
-	*x = Container{}
+func (x *ProjectContainer) Reset() {
+	*x = ProjectContainer{}
 	mi := &file_compose_compose_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Container) String() string {
+func (x *ProjectContainer) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Container) ProtoMessage() {}
+func (*ProjectContainer) ProtoMessage() {}
 
-func (x *Container) ProtoReflect() protoreflect.Message {
+func (x *ProjectContainer) ProtoReflect() protoreflect.Message {
 	mi := &file_compose_compose_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -710,140 +705,23 @@ func (x *Container) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Container.ProtoReflect.Descriptor instead.
-func (*Container) Descriptor() ([]byte, []int) {
+// Deprecated: Use ProjectContainer.ProtoReflect.Descriptor instead.
+func (*ProjectContainer) Descriptor() ([]byte, []int) {
 	return file_compose_compose_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *Container) GetId() string {
+func (x *ProjectContainer) GetContainer() *container.Container {
 	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Container) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *Container) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *Container) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *Container) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *Container) GetPorts() []*Port {
-	if x != nil {
-		return x.Ports
+		return x.Container
 	}
 	return nil
 }
 
-func (x *Container) GetImageStatus() *ImageStatus {
+func (x *ProjectContainer) GetImageStatus() *ImageStatus {
 	if x != nil {
 		return x.ImageStatus
 	}
 	return nil
-}
-
-func (x *Container) GetProtected() bool {
-	if x != nil {
-		return x.Protected
-	}
-	return false
-}
-
-func (x *Container) GetCreated() *timestamppb.Timestamp {
-	if x != nil {
-		return x.Created
-	}
-	return nil
-}
-
-type Port struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ip            string                 `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
-	PublicPort    uint32                 `protobuf:"varint,2,opt,name=public_port,json=publicPort,proto3" json:"public_port,omitempty"`
-	PrivatePort   uint32                 `protobuf:"varint,3,opt,name=private_port,json=privatePort,proto3" json:"private_port,omitempty"`
-	Protocol      string                 `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Port) Reset() {
-	*x = Port{}
-	mi := &file_compose_compose_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Port) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Port) ProtoMessage() {}
-
-func (x *Port) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Port.ProtoReflect.Descriptor instead.
-func (*Port) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *Port) GetIp() string {
-	if x != nil {
-		return x.Ip
-	}
-	return ""
-}
-
-func (x *Port) GetPublicPort() uint32 {
-	if x != nil {
-		return x.PublicPort
-	}
-	return 0
-}
-
-func (x *Port) GetPrivatePort() uint32 {
-	if x != nil {
-		return x.PrivatePort
-	}
-	return 0
-}
-
-func (x *Port) GetProtocol() string {
-	if x != nil {
-		return x.Protocol
-	}
-	return ""
 }
 
 // Whether a container's image is the newest for its tag.
@@ -863,7 +741,7 @@ type ImageStatus struct {
 
 func (x *ImageStatus) Reset() {
 	*x = ImageStatus{}
-	mi := &file_compose_compose_proto_msgTypes[8]
+	mi := &file_compose_compose_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -875,7 +753,7 @@ func (x *ImageStatus) String() string {
 func (*ImageStatus) ProtoMessage() {}
 
 func (x *ImageStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[8]
+	mi := &file_compose_compose_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -888,7 +766,7 @@ func (x *ImageStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageStatus.ProtoReflect.Descriptor instead.
 func (*ImageStatus) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{8}
+	return file_compose_compose_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ImageStatus) GetState() ImageState {
@@ -941,7 +819,7 @@ type ImageChecks struct {
 
 func (x *ImageChecks) Reset() {
 	*x = ImageChecks{}
-	mi := &file_compose_compose_proto_msgTypes[9]
+	mi := &file_compose_compose_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -953,7 +831,7 @@ func (x *ImageChecks) String() string {
 func (*ImageChecks) ProtoMessage() {}
 
 func (x *ImageChecks) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[9]
+	mi := &file_compose_compose_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -966,7 +844,7 @@ func (x *ImageChecks) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImageChecks.ProtoReflect.Descriptor instead.
 func (*ImageChecks) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{9}
+	return file_compose_compose_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ImageChecks) GetLast() *timestamppb.Timestamp {
@@ -1014,7 +892,7 @@ type RegistryProblem struct {
 
 func (x *RegistryProblem) Reset() {
 	*x = RegistryProblem{}
-	mi := &file_compose_compose_proto_msgTypes[10]
+	mi := &file_compose_compose_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1026,7 +904,7 @@ func (x *RegistryProblem) String() string {
 func (*RegistryProblem) ProtoMessage() {}
 
 func (x *RegistryProblem) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[10]
+	mi := &file_compose_compose_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1039,7 +917,7 @@ func (x *RegistryProblem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegistryProblem.ProtoReflect.Descriptor instead.
 func (*RegistryProblem) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{10}
+	return file_compose_compose_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RegistryProblem) GetRegistry() string {
@@ -1064,7 +942,7 @@ type CheckImagesRequest struct {
 
 func (x *CheckImagesRequest) Reset() {
 	*x = CheckImagesRequest{}
-	mi := &file_compose_compose_proto_msgTypes[11]
+	mi := &file_compose_compose_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1076,7 +954,7 @@ func (x *CheckImagesRequest) String() string {
 func (*CheckImagesRequest) ProtoMessage() {}
 
 func (x *CheckImagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[11]
+	mi := &file_compose_compose_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1089,7 +967,7 @@ func (x *CheckImagesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckImagesRequest.ProtoReflect.Descriptor instead.
 func (*CheckImagesRequest) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{11}
+	return file_compose_compose_proto_rawDescGZIP(), []int{10}
 }
 
 type CheckImagesResponse struct {
@@ -1101,7 +979,7 @@ type CheckImagesResponse struct {
 
 func (x *CheckImagesResponse) Reset() {
 	*x = CheckImagesResponse{}
-	mi := &file_compose_compose_proto_msgTypes[12]
+	mi := &file_compose_compose_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1113,7 +991,7 @@ func (x *CheckImagesResponse) String() string {
 func (*CheckImagesResponse) ProtoMessage() {}
 
 func (x *CheckImagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[12]
+	mi := &file_compose_compose_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1126,7 +1004,7 @@ func (x *CheckImagesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckImagesResponse.ProtoReflect.Descriptor instead.
 func (*CheckImagesResponse) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{12}
+	return file_compose_compose_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *CheckImagesResponse) GetChecks() *ImageChecks {
@@ -1156,7 +1034,7 @@ type ComposeAction struct {
 
 func (x *ComposeAction) Reset() {
 	*x = ComposeAction{}
-	mi := &file_compose_compose_proto_msgTypes[13]
+	mi := &file_compose_compose_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1168,7 +1046,7 @@ func (x *ComposeAction) String() string {
 func (*ComposeAction) ProtoMessage() {}
 
 func (x *ComposeAction) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[13]
+	mi := &file_compose_compose_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1181,7 +1059,7 @@ func (x *ComposeAction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComposeAction.ProtoReflect.Descriptor instead.
 func (*ComposeAction) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{13}
+	return file_compose_compose_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *ComposeAction) GetAction() isComposeAction_Action {
@@ -1316,7 +1194,7 @@ type SaveFile struct {
 
 func (x *SaveFile) Reset() {
 	*x = SaveFile{}
-	mi := &file_compose_compose_proto_msgTypes[14]
+	mi := &file_compose_compose_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1328,7 +1206,7 @@ func (x *SaveFile) String() string {
 func (*SaveFile) ProtoMessage() {}
 
 func (x *SaveFile) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[14]
+	mi := &file_compose_compose_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1341,7 +1219,7 @@ func (x *SaveFile) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveFile.ProtoReflect.Descriptor instead.
 func (*SaveFile) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{14}
+	return file_compose_compose_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SaveFile) GetHost() string {
@@ -1398,7 +1276,7 @@ type Start struct {
 
 func (x *Start) Reset() {
 	*x = Start{}
-	mi := &file_compose_compose_proto_msgTypes[15]
+	mi := &file_compose_compose_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1410,7 +1288,7 @@ func (x *Start) String() string {
 func (*Start) ProtoMessage() {}
 
 func (x *Start) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[15]
+	mi := &file_compose_compose_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1423,7 +1301,7 @@ func (x *Start) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Start.ProtoReflect.Descriptor instead.
 func (*Start) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{15}
+	return file_compose_compose_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Start) GetHost() string {
@@ -1458,7 +1336,7 @@ type Stop struct {
 
 func (x *Stop) Reset() {
 	*x = Stop{}
-	mi := &file_compose_compose_proto_msgTypes[16]
+	mi := &file_compose_compose_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1470,7 +1348,7 @@ func (x *Stop) String() string {
 func (*Stop) ProtoMessage() {}
 
 func (x *Stop) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[16]
+	mi := &file_compose_compose_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1483,7 +1361,7 @@ func (x *Stop) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Stop.ProtoReflect.Descriptor instead.
 func (*Stop) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{16}
+	return file_compose_compose_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *Stop) GetHost() string {
@@ -1518,7 +1396,7 @@ type Restart struct {
 
 func (x *Restart) Reset() {
 	*x = Restart{}
-	mi := &file_compose_compose_proto_msgTypes[17]
+	mi := &file_compose_compose_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1530,7 +1408,7 @@ func (x *Restart) String() string {
 func (*Restart) ProtoMessage() {}
 
 func (x *Restart) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[17]
+	mi := &file_compose_compose_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +1421,7 @@ func (x *Restart) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Restart.ProtoReflect.Descriptor instead.
 func (*Restart) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{17}
+	return file_compose_compose_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *Restart) GetHost() string {
@@ -1578,7 +1456,7 @@ type Update struct {
 
 func (x *Update) Reset() {
 	*x = Update{}
-	mi := &file_compose_compose_proto_msgTypes[18]
+	mi := &file_compose_compose_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1590,7 +1468,7 @@ func (x *Update) String() string {
 func (*Update) ProtoMessage() {}
 
 func (x *Update) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[18]
+	mi := &file_compose_compose_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1603,7 +1481,7 @@ func (x *Update) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Update.ProtoReflect.Descriptor instead.
 func (*Update) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{18}
+	return file_compose_compose_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *Update) GetHost() string {
@@ -1638,7 +1516,7 @@ type AddProject struct {
 
 func (x *AddProject) Reset() {
 	*x = AddProject{}
-	mi := &file_compose_compose_proto_msgTypes[19]
+	mi := &file_compose_compose_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1650,7 +1528,7 @@ func (x *AddProject) String() string {
 func (*AddProject) ProtoMessage() {}
 
 func (x *AddProject) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[19]
+	mi := &file_compose_compose_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1663,7 +1541,7 @@ func (x *AddProject) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddProject.ProtoReflect.Descriptor instead.
 func (*AddProject) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{19}
+	return file_compose_compose_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *AddProject) GetHost() string {
@@ -1729,7 +1607,7 @@ type Plan struct {
 
 func (x *Plan) Reset() {
 	*x = Plan{}
-	mi := &file_compose_compose_proto_msgTypes[20]
+	mi := &file_compose_compose_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1741,7 +1619,7 @@ func (x *Plan) String() string {
 func (*Plan) ProtoMessage() {}
 
 func (x *Plan) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[20]
+	mi := &file_compose_compose_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1754,7 +1632,7 @@ func (x *Plan) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Plan.ProtoReflect.Descriptor instead.
 func (*Plan) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{20}
+	return file_compose_compose_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *Plan) GetSteps() []*PlanStep {
@@ -1811,7 +1689,7 @@ type PlanStep struct {
 
 func (x *PlanStep) Reset() {
 	*x = PlanStep{}
-	mi := &file_compose_compose_proto_msgTypes[21]
+	mi := &file_compose_compose_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1823,7 +1701,7 @@ func (x *PlanStep) String() string {
 func (*PlanStep) ProtoMessage() {}
 
 func (x *PlanStep) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[21]
+	mi := &file_compose_compose_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1836,7 +1714,7 @@ func (x *PlanStep) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanStep.ProtoReflect.Descriptor instead.
 func (*PlanStep) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{21}
+	return file_compose_compose_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *PlanStep) GetSystem() System {
@@ -1871,7 +1749,7 @@ type PlanValue struct {
 
 func (x *PlanValue) Reset() {
 	*x = PlanValue{}
-	mi := &file_compose_compose_proto_msgTypes[22]
+	mi := &file_compose_compose_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1883,7 +1761,7 @@ func (x *PlanValue) String() string {
 func (*PlanValue) ProtoMessage() {}
 
 func (x *PlanValue) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[22]
+	mi := &file_compose_compose_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1896,7 +1774,7 @@ func (x *PlanValue) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanValue.ProtoReflect.Descriptor instead.
 func (*PlanValue) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{22}
+	return file_compose_compose_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *PlanValue) GetLabel() string {
@@ -1929,7 +1807,7 @@ type PlanActionRequest struct {
 
 func (x *PlanActionRequest) Reset() {
 	*x = PlanActionRequest{}
-	mi := &file_compose_compose_proto_msgTypes[23]
+	mi := &file_compose_compose_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1941,7 +1819,7 @@ func (x *PlanActionRequest) String() string {
 func (*PlanActionRequest) ProtoMessage() {}
 
 func (x *PlanActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[23]
+	mi := &file_compose_compose_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1954,7 +1832,7 @@ func (x *PlanActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanActionRequest.ProtoReflect.Descriptor instead.
 func (*PlanActionRequest) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{23}
+	return file_compose_compose_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *PlanActionRequest) GetAction() *ComposeAction {
@@ -1973,7 +1851,7 @@ type PlanActionResponse struct {
 
 func (x *PlanActionResponse) Reset() {
 	*x = PlanActionResponse{}
-	mi := &file_compose_compose_proto_msgTypes[24]
+	mi := &file_compose_compose_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1985,7 +1863,7 @@ func (x *PlanActionResponse) String() string {
 func (*PlanActionResponse) ProtoMessage() {}
 
 func (x *PlanActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[24]
+	mi := &file_compose_compose_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1998,7 +1876,7 @@ func (x *PlanActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PlanActionResponse.ProtoReflect.Descriptor instead.
 func (*PlanActionResponse) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{24}
+	return file_compose_compose_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *PlanActionResponse) GetPlan() *Plan {
@@ -2018,7 +1896,7 @@ type RunActionRequest struct {
 
 func (x *RunActionRequest) Reset() {
 	*x = RunActionRequest{}
-	mi := &file_compose_compose_proto_msgTypes[25]
+	mi := &file_compose_compose_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2030,7 +1908,7 @@ func (x *RunActionRequest) String() string {
 func (*RunActionRequest) ProtoMessage() {}
 
 func (x *RunActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[25]
+	mi := &file_compose_compose_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2043,7 +1921,7 @@ func (x *RunActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunActionRequest.ProtoReflect.Descriptor instead.
 func (*RunActionRequest) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{25}
+	return file_compose_compose_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *RunActionRequest) GetAction() *ComposeAction {
@@ -2070,7 +1948,7 @@ type RunActionResponse struct {
 
 func (x *RunActionResponse) Reset() {
 	*x = RunActionResponse{}
-	mi := &file_compose_compose_proto_msgTypes[26]
+	mi := &file_compose_compose_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2082,7 +1960,7 @@ func (x *RunActionResponse) String() string {
 func (*RunActionResponse) ProtoMessage() {}
 
 func (x *RunActionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[26]
+	mi := &file_compose_compose_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2095,7 +1973,7 @@ func (x *RunActionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunActionResponse.ProtoReflect.Descriptor instead.
 func (*RunActionResponse) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{26}
+	return file_compose_compose_proto_rawDescGZIP(), []int{25}
 }
 
 func (x *RunActionResponse) GetRun() *Run {
@@ -2134,7 +2012,7 @@ type Run struct {
 
 func (x *Run) Reset() {
 	*x = Run{}
-	mi := &file_compose_compose_proto_msgTypes[27]
+	mi := &file_compose_compose_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2146,7 +2024,7 @@ func (x *Run) String() string {
 func (*Run) ProtoMessage() {}
 
 func (x *Run) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[27]
+	mi := &file_compose_compose_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2159,7 +2037,7 @@ func (x *Run) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Run.ProtoReflect.Descriptor instead.
 func (*Run) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{27}
+	return file_compose_compose_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *Run) GetId() string {
@@ -2261,7 +2139,7 @@ type ListRunsRequest struct {
 
 func (x *ListRunsRequest) Reset() {
 	*x = ListRunsRequest{}
-	mi := &file_compose_compose_proto_msgTypes[28]
+	mi := &file_compose_compose_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2273,7 +2151,7 @@ func (x *ListRunsRequest) String() string {
 func (*ListRunsRequest) ProtoMessage() {}
 
 func (x *ListRunsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[28]
+	mi := &file_compose_compose_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2286,7 +2164,7 @@ func (x *ListRunsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunsRequest.ProtoReflect.Descriptor instead.
 func (*ListRunsRequest) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{28}
+	return file_compose_compose_proto_rawDescGZIP(), []int{27}
 }
 
 type ListRunsResponse struct {
@@ -2298,7 +2176,7 @@ type ListRunsResponse struct {
 
 func (x *ListRunsResponse) Reset() {
 	*x = ListRunsResponse{}
-	mi := &file_compose_compose_proto_msgTypes[29]
+	mi := &file_compose_compose_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2310,7 +2188,7 @@ func (x *ListRunsResponse) String() string {
 func (*ListRunsResponse) ProtoMessage() {}
 
 func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_compose_compose_proto_msgTypes[29]
+	mi := &file_compose_compose_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2323,7 +2201,7 @@ func (x *ListRunsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRunsResponse.ProtoReflect.Descriptor instead.
 func (*ListRunsResponse) Descriptor() ([]byte, []int) {
-	return file_compose_compose_proto_rawDescGZIP(), []int{29}
+	return file_compose_compose_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ListRunsResponse) GetRuns() []*Run {
@@ -2337,20 +2215,20 @@ var File_compose_compose_proto protoreflect.FileDescriptor
 
 const file_compose_compose_proto_rawDesc = "" +
 	"\n" +
-	"\x15compose/compose.proto\x12\rddash.compose\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"F\n" +
+	"\x15compose/compose.proto\x12\rddash.compose\x1a\x1fddash/container/container.proto\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"F\n" +
 	"\rComposeConfigJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x13docker_hub_registryR\x14registry_credentials\"\x15\n" +
 	"\x13ListProjectsRequest\"u\n" +
 	"\x14ListProjectsResponse\x12)\n" +
 	"\x05hosts\x18\x01 \x03(\v2\x13.ddash.compose.HostR\x05hosts\x122\n" +
-	"\x06checks\x18\x02 \x01(\v2\x1a.ddash.compose.ImageChecksR\x06checks\"\xce\x01\n" +
+	"\x06checks\x18\x02 \x01(\v2\x1a.ddash.compose.ImageChecksR\x06checks\"\xd5\x01\n" +
 	"\x04Host\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aaddress\x18\x02 \x01(\tR\aaddress\x12\x14\n" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x12\x14\n" +
 	"\x05roots\x18\x04 \x03(\tR\x05roots\x122\n" +
-	"\bprojects\x18\x05 \x03(\v2\x16.ddash.compose.ProjectR\bprojects\x128\n" +
+	"\bprojects\x18\x05 \x03(\v2\x16.ddash.compose.ProjectR\bprojects\x12?\n" +
 	"\n" +
-	"containers\x18\x06 \x03(\v2\x18.ddash.compose.ContainerR\n" +
+	"containers\x18\x06 \x03(\v2\x1f.ddash.compose.ProjectContainerR\n" +
 	"containers\"\xd0\x02\n" +
 	"\aProject\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
@@ -2365,30 +2243,17 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\tprotected\x18\b \x01(\bR\tprotected\x12\x14\n" +
 	"\x05error\x18\t \x01(\tR\x05error\x12\x15\n" +
 	"\x06run_id\x18\n" +
-	" \x01(\tR\x05runId\"\x83\x01\n" +
+	" \x01(\tR\x05runId\"\x8a\x01\n" +
 	"\aService\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x14\n" +
-	"\x05ports\x18\x03 \x03(\tR\x05ports\x128\n" +
+	"\x05ports\x18\x03 \x03(\tR\x05ports\x12?\n" +
 	"\n" +
-	"containers\x18\x04 \x03(\v2\x18.ddash.compose.ContainerR\n" +
-	"containers\"\xb1\x02\n" +
-	"\tContainer\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05image\x18\x03 \x01(\tR\x05image\x12\x14\n" +
-	"\x05state\x18\x04 \x01(\tR\x05state\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\x12)\n" +
-	"\x05ports\x18\x06 \x03(\v2\x13.ddash.compose.PortR\x05ports\x12=\n" +
-	"\fimage_status\x18\a \x01(\v2\x1a.ddash.compose.ImageStatusR\vimageStatus\x12\x1c\n" +
-	"\tprotected\x18\b \x01(\bR\tprotected\x124\n" +
-	"\acreated\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\acreated\"v\n" +
-	"\x04Port\x12\x0e\n" +
-	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x1f\n" +
-	"\vpublic_port\x18\x02 \x01(\rR\n" +
-	"publicPort\x12!\n" +
-	"\fprivate_port\x18\x03 \x01(\rR\vprivatePort\x12\x1a\n" +
-	"\bprotocol\x18\x04 \x01(\tR\bprotocol\"\xd8\x01\n" +
+	"containers\x18\x04 \x03(\v2\x1f.ddash.compose.ProjectContainerR\n" +
+	"containers\"\x8b\x01\n" +
+	"\x10ProjectContainer\x128\n" +
+	"\tcontainer\x18\x01 \x01(\v2\x1a.ddash.container.ContainerR\tcontainer\x12=\n" +
+	"\fimage_status\x18\x02 \x01(\v2\x1a.ddash.compose.ImageStatusR\vimageStatus\"\xd8\x01\n" +
 	"\vImageStatus\x12/\n" +
 	"\x05state\x18\x01 \x01(\x0e2\x19.ddash.compose.ImageStateR\x05state\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12%\n" +
@@ -2535,7 +2400,7 @@ func file_compose_compose_proto_rawDescGZIP() []byte {
 }
 
 var file_compose_compose_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_compose_compose_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
+var file_compose_compose_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
 var file_compose_compose_proto_goTypes = []any{
 	(ProjectState)(0),             // 0: ddash.compose.ProjectState
 	(ImageState)(0),               // 1: ddash.compose.ImageState
@@ -2547,85 +2412,84 @@ var file_compose_compose_proto_goTypes = []any{
 	(*Host)(nil),                  // 7: ddash.compose.Host
 	(*Project)(nil),               // 8: ddash.compose.Project
 	(*Service)(nil),               // 9: ddash.compose.Service
-	(*Container)(nil),             // 10: ddash.compose.Container
-	(*Port)(nil),                  // 11: ddash.compose.Port
-	(*ImageStatus)(nil),           // 12: ddash.compose.ImageStatus
-	(*ImageChecks)(nil),           // 13: ddash.compose.ImageChecks
-	(*RegistryProblem)(nil),       // 14: ddash.compose.RegistryProblem
-	(*CheckImagesRequest)(nil),    // 15: ddash.compose.CheckImagesRequest
-	(*CheckImagesResponse)(nil),   // 16: ddash.compose.CheckImagesResponse
-	(*ComposeAction)(nil),         // 17: ddash.compose.ComposeAction
-	(*SaveFile)(nil),              // 18: ddash.compose.SaveFile
-	(*Start)(nil),                 // 19: ddash.compose.Start
-	(*Stop)(nil),                  // 20: ddash.compose.Stop
-	(*Restart)(nil),               // 21: ddash.compose.Restart
-	(*Update)(nil),                // 22: ddash.compose.Update
-	(*AddProject)(nil),            // 23: ddash.compose.AddProject
-	(*Plan)(nil),                  // 24: ddash.compose.Plan
-	(*PlanStep)(nil),              // 25: ddash.compose.PlanStep
-	(*PlanValue)(nil),             // 26: ddash.compose.PlanValue
-	(*PlanActionRequest)(nil),     // 27: ddash.compose.PlanActionRequest
-	(*PlanActionResponse)(nil),    // 28: ddash.compose.PlanActionResponse
-	(*RunActionRequest)(nil),      // 29: ddash.compose.RunActionRequest
-	(*RunActionResponse)(nil),     // 30: ddash.compose.RunActionResponse
-	(*Run)(nil),                   // 31: ddash.compose.Run
-	(*ListRunsRequest)(nil),       // 32: ddash.compose.ListRunsRequest
-	(*ListRunsResponse)(nil),      // 33: ddash.compose.ListRunsResponse
+	(*ProjectContainer)(nil),      // 10: ddash.compose.ProjectContainer
+	(*ImageStatus)(nil),           // 11: ddash.compose.ImageStatus
+	(*ImageChecks)(nil),           // 12: ddash.compose.ImageChecks
+	(*RegistryProblem)(nil),       // 13: ddash.compose.RegistryProblem
+	(*CheckImagesRequest)(nil),    // 14: ddash.compose.CheckImagesRequest
+	(*CheckImagesResponse)(nil),   // 15: ddash.compose.CheckImagesResponse
+	(*ComposeAction)(nil),         // 16: ddash.compose.ComposeAction
+	(*SaveFile)(nil),              // 17: ddash.compose.SaveFile
+	(*Start)(nil),                 // 18: ddash.compose.Start
+	(*Stop)(nil),                  // 19: ddash.compose.Stop
+	(*Restart)(nil),               // 20: ddash.compose.Restart
+	(*Update)(nil),                // 21: ddash.compose.Update
+	(*AddProject)(nil),            // 22: ddash.compose.AddProject
+	(*Plan)(nil),                  // 23: ddash.compose.Plan
+	(*PlanStep)(nil),              // 24: ddash.compose.PlanStep
+	(*PlanValue)(nil),             // 25: ddash.compose.PlanValue
+	(*PlanActionRequest)(nil),     // 26: ddash.compose.PlanActionRequest
+	(*PlanActionResponse)(nil),    // 27: ddash.compose.PlanActionResponse
+	(*RunActionRequest)(nil),      // 28: ddash.compose.RunActionRequest
+	(*RunActionResponse)(nil),     // 29: ddash.compose.RunActionResponse
+	(*Run)(nil),                   // 30: ddash.compose.Run
+	(*ListRunsRequest)(nil),       // 31: ddash.compose.ListRunsRequest
+	(*ListRunsResponse)(nil),      // 32: ddash.compose.ListRunsResponse
+	(*container.Container)(nil),   // 33: ddash.container.Container
 	(*timestamppb.Timestamp)(nil), // 34: google.protobuf.Timestamp
 	(*job.Job)(nil),               // 35: ddash.job.Job
 }
 var file_compose_compose_proto_depIdxs = []int32{
 	7,  // 0: ddash.compose.ListProjectsResponse.hosts:type_name -> ddash.compose.Host
-	13, // 1: ddash.compose.ListProjectsResponse.checks:type_name -> ddash.compose.ImageChecks
+	12, // 1: ddash.compose.ListProjectsResponse.checks:type_name -> ddash.compose.ImageChecks
 	8,  // 2: ddash.compose.Host.projects:type_name -> ddash.compose.Project
-	10, // 3: ddash.compose.Host.containers:type_name -> ddash.compose.Container
+	10, // 3: ddash.compose.Host.containers:type_name -> ddash.compose.ProjectContainer
 	0,  // 4: ddash.compose.Project.state:type_name -> ddash.compose.ProjectState
 	9,  // 5: ddash.compose.Project.services:type_name -> ddash.compose.Service
-	10, // 6: ddash.compose.Service.containers:type_name -> ddash.compose.Container
-	11, // 7: ddash.compose.Container.ports:type_name -> ddash.compose.Port
-	12, // 8: ddash.compose.Container.image_status:type_name -> ddash.compose.ImageStatus
-	34, // 9: ddash.compose.Container.created:type_name -> google.protobuf.Timestamp
-	1,  // 10: ddash.compose.ImageStatus.state:type_name -> ddash.compose.ImageState
-	34, // 11: ddash.compose.ImageStatus.checked:type_name -> google.protobuf.Timestamp
-	34, // 12: ddash.compose.ImageChecks.last:type_name -> google.protobuf.Timestamp
-	34, // 13: ddash.compose.ImageChecks.next:type_name -> google.protobuf.Timestamp
-	14, // 14: ddash.compose.ImageChecks.problems:type_name -> ddash.compose.RegistryProblem
-	13, // 15: ddash.compose.CheckImagesResponse.checks:type_name -> ddash.compose.ImageChecks
-	18, // 16: ddash.compose.ComposeAction.save:type_name -> ddash.compose.SaveFile
-	19, // 17: ddash.compose.ComposeAction.start:type_name -> ddash.compose.Start
-	20, // 18: ddash.compose.ComposeAction.stop:type_name -> ddash.compose.Stop
-	21, // 19: ddash.compose.ComposeAction.restart:type_name -> ddash.compose.Restart
-	22, // 20: ddash.compose.ComposeAction.update:type_name -> ddash.compose.Update
-	23, // 21: ddash.compose.ComposeAction.add:type_name -> ddash.compose.AddProject
-	25, // 22: ddash.compose.Plan.steps:type_name -> ddash.compose.PlanStep
-	2,  // 23: ddash.compose.PlanStep.system:type_name -> ddash.compose.System
-	26, // 24: ddash.compose.PlanStep.values:type_name -> ddash.compose.PlanValue
-	17, // 25: ddash.compose.PlanActionRequest.action:type_name -> ddash.compose.ComposeAction
-	24, // 26: ddash.compose.PlanActionResponse.plan:type_name -> ddash.compose.Plan
-	17, // 27: ddash.compose.RunActionRequest.action:type_name -> ddash.compose.ComposeAction
-	24, // 28: ddash.compose.RunActionRequest.plan:type_name -> ddash.compose.Plan
-	31, // 29: ddash.compose.RunActionResponse.run:type_name -> ddash.compose.Run
-	25, // 30: ddash.compose.Run.steps:type_name -> ddash.compose.PlanStep
-	3,  // 31: ddash.compose.Run.states:type_name -> ddash.compose.StepState
-	35, // 32: ddash.compose.Run.job:type_name -> ddash.job.Job
-	34, // 33: ddash.compose.Run.started:type_name -> google.protobuf.Timestamp
-	34, // 34: ddash.compose.Run.ended:type_name -> google.protobuf.Timestamp
-	31, // 35: ddash.compose.ListRunsResponse.runs:type_name -> ddash.compose.Run
-	5,  // 36: ddash.compose.ComposeService.ListProjects:input_type -> ddash.compose.ListProjectsRequest
-	15, // 37: ddash.compose.ComposeService.CheckImages:input_type -> ddash.compose.CheckImagesRequest
-	27, // 38: ddash.compose.ComposeService.PlanAction:input_type -> ddash.compose.PlanActionRequest
-	29, // 39: ddash.compose.ComposeService.RunAction:input_type -> ddash.compose.RunActionRequest
-	32, // 40: ddash.compose.ComposeService.ListRuns:input_type -> ddash.compose.ListRunsRequest
-	6,  // 41: ddash.compose.ComposeService.ListProjects:output_type -> ddash.compose.ListProjectsResponse
-	16, // 42: ddash.compose.ComposeService.CheckImages:output_type -> ddash.compose.CheckImagesResponse
-	28, // 43: ddash.compose.ComposeService.PlanAction:output_type -> ddash.compose.PlanActionResponse
-	30, // 44: ddash.compose.ComposeService.RunAction:output_type -> ddash.compose.RunActionResponse
-	33, // 45: ddash.compose.ComposeService.ListRuns:output_type -> ddash.compose.ListRunsResponse
-	41, // [41:46] is the sub-list for method output_type
-	36, // [36:41] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	10, // 6: ddash.compose.Service.containers:type_name -> ddash.compose.ProjectContainer
+	33, // 7: ddash.compose.ProjectContainer.container:type_name -> ddash.container.Container
+	11, // 8: ddash.compose.ProjectContainer.image_status:type_name -> ddash.compose.ImageStatus
+	1,  // 9: ddash.compose.ImageStatus.state:type_name -> ddash.compose.ImageState
+	34, // 10: ddash.compose.ImageStatus.checked:type_name -> google.protobuf.Timestamp
+	34, // 11: ddash.compose.ImageChecks.last:type_name -> google.protobuf.Timestamp
+	34, // 12: ddash.compose.ImageChecks.next:type_name -> google.protobuf.Timestamp
+	13, // 13: ddash.compose.ImageChecks.problems:type_name -> ddash.compose.RegistryProblem
+	12, // 14: ddash.compose.CheckImagesResponse.checks:type_name -> ddash.compose.ImageChecks
+	17, // 15: ddash.compose.ComposeAction.save:type_name -> ddash.compose.SaveFile
+	18, // 16: ddash.compose.ComposeAction.start:type_name -> ddash.compose.Start
+	19, // 17: ddash.compose.ComposeAction.stop:type_name -> ddash.compose.Stop
+	20, // 18: ddash.compose.ComposeAction.restart:type_name -> ddash.compose.Restart
+	21, // 19: ddash.compose.ComposeAction.update:type_name -> ddash.compose.Update
+	22, // 20: ddash.compose.ComposeAction.add:type_name -> ddash.compose.AddProject
+	24, // 21: ddash.compose.Plan.steps:type_name -> ddash.compose.PlanStep
+	2,  // 22: ddash.compose.PlanStep.system:type_name -> ddash.compose.System
+	25, // 23: ddash.compose.PlanStep.values:type_name -> ddash.compose.PlanValue
+	16, // 24: ddash.compose.PlanActionRequest.action:type_name -> ddash.compose.ComposeAction
+	23, // 25: ddash.compose.PlanActionResponse.plan:type_name -> ddash.compose.Plan
+	16, // 26: ddash.compose.RunActionRequest.action:type_name -> ddash.compose.ComposeAction
+	23, // 27: ddash.compose.RunActionRequest.plan:type_name -> ddash.compose.Plan
+	30, // 28: ddash.compose.RunActionResponse.run:type_name -> ddash.compose.Run
+	24, // 29: ddash.compose.Run.steps:type_name -> ddash.compose.PlanStep
+	3,  // 30: ddash.compose.Run.states:type_name -> ddash.compose.StepState
+	35, // 31: ddash.compose.Run.job:type_name -> ddash.job.Job
+	34, // 32: ddash.compose.Run.started:type_name -> google.protobuf.Timestamp
+	34, // 33: ddash.compose.Run.ended:type_name -> google.protobuf.Timestamp
+	30, // 34: ddash.compose.ListRunsResponse.runs:type_name -> ddash.compose.Run
+	5,  // 35: ddash.compose.ComposeService.ListProjects:input_type -> ddash.compose.ListProjectsRequest
+	14, // 36: ddash.compose.ComposeService.CheckImages:input_type -> ddash.compose.CheckImagesRequest
+	26, // 37: ddash.compose.ComposeService.PlanAction:input_type -> ddash.compose.PlanActionRequest
+	28, // 38: ddash.compose.ComposeService.RunAction:input_type -> ddash.compose.RunActionRequest
+	31, // 39: ddash.compose.ComposeService.ListRuns:input_type -> ddash.compose.ListRunsRequest
+	6,  // 40: ddash.compose.ComposeService.ListProjects:output_type -> ddash.compose.ListProjectsResponse
+	15, // 41: ddash.compose.ComposeService.CheckImages:output_type -> ddash.compose.CheckImagesResponse
+	27, // 42: ddash.compose.ComposeService.PlanAction:output_type -> ddash.compose.PlanActionResponse
+	29, // 43: ddash.compose.ComposeService.RunAction:output_type -> ddash.compose.RunActionResponse
+	32, // 44: ddash.compose.ComposeService.ListRuns:output_type -> ddash.compose.ListRunsResponse
+	40, // [40:45] is the sub-list for method output_type
+	35, // [35:40] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_compose_compose_proto_init() }
@@ -2633,7 +2497,7 @@ func file_compose_compose_proto_init() {
 	if File_compose_compose_proto != nil {
 		return
 	}
-	file_compose_compose_proto_msgTypes[13].OneofWrappers = []any{
+	file_compose_compose_proto_msgTypes[12].OneofWrappers = []any{
 		(*ComposeAction_Save)(nil),
 		(*ComposeAction_Start)(nil),
 		(*ComposeAction_Stop)(nil),
@@ -2647,7 +2511,7 @@ func file_compose_compose_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_compose_compose_proto_rawDesc), len(file_compose_compose_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   30,
+			NumMessages:   29,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

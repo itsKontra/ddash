@@ -21,7 +21,7 @@ function Project({ workload: ref }: { workload: WorkloadRef }) {
   const { data } = useQuery(ComposeService.method.listProjects, {});
   const p = data?.hosts
     .find((h) => h.name === ref.host)
-    ?.projects.find((x) => x.services.some((s) => s.containers.some((c) => c.name === ref.id)));
+    ?.projects.find((x) => x.services.some((s) => s.containers.some((c) => c.container?.name === ref.id)));
   const docker = usePluginLink("docker", p ? `projects/${encodeURIComponent(p.host)}/${encodeURIComponent(p.name)}` : "");
   if (!p) return null;
   return (

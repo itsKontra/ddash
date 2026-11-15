@@ -30,11 +30,7 @@ const projects = {
               image: "jellyfin/jellyfin:10.10.3",
               containers: [
                 {
-                  id: "c1",
-                  name: "media-jellyfin-1",
-                  image: "jellyfin/jellyfin:10.10.3",
-                  state: "running",
-                  status: "Up 3 hours",
+                  container: { id: "c1", name: "media-jellyfin-1", image: "jellyfin/jellyfin:10.10.3", state: "STATE_RUNNING", status: "Up 3 hours" },
                   ...status("IMAGE_STATE_STALE", { currentDigest: "sha256:aaaaaaaaaaaaaaaa", latestDigest: "sha256:bbbbbbbbbbbbbbbb" }),
                 },
               ],
@@ -48,17 +44,17 @@ const projects = {
           configFile: "/opt/stacks/proxy/compose.yaml",
           state: "PROJECT_STATE_RUNNING",
           protected: true,
-          services: [{ name: "npm", containers: [{ id: "c2", name: "proxy-npm-1", state: "running", protected: true, ...status("IMAGE_STATE_UP_TO_DATE") }] }],
+          services: [{ name: "npm", containers: [{ container: { id: "c2", name: "proxy-npm-1", state: "STATE_RUNNING", protected: true }, ...status("IMAGE_STATE_UP_TO_DATE") }] }],
         },
         { host: "apps", name: "uptime", workingDir: "/opt/stacks/uptime", configFile: "/opt/stacks/uptime/compose.yaml", state: "PROJECT_STATE_NOT_STARTED", services: [{ name: "kuma" }] },
       ],
-      containers: [{ id: "c9", name: "portainer_agent", image: "portainer/agent:2.21.4", state: "running", ...status("IMAGE_STATE_UP_TO_DATE") }],
+      containers: [{ container: { id: "c9", name: "portainer_agent", image: "portainer/agent:2.21.4", state: "STATE_RUNNING" }, ...status("IMAGE_STATE_UP_TO_DATE") }],
     },
   ],
   checks: { last: "2026-11-14T08:00:00Z", next: "2026-11-14T14:00:00Z" },
 };
 
-const proxyHosts = { hosts: [{ host: "media", containers: [{ id: "a1", name: "plex", image: "plex", state: "running", status: "Up" }] }] };
+const proxyHosts = { hosts: [{ host: "media", containers: [{ id: "a1", name: "plex", image: "plex", state: "STATE_RUNNING", status: "Up" }] }] };
 
 const base: Answers = {
   ListProjects: () => Response.json(projects),

@@ -395,7 +395,7 @@ func TestSaveDockerfileRebuilds(t *testing.T) {
 	l := setup(t)
 	file := filepath.Join(l.docker.Root, "homebrew/Dockerfile")
 	b, _ := os.ReadFile(file)
-	before := l.project(t, "homebrew").GetServices()[0].GetContainers()[0].GetId()
+	before := l.project(t, "homebrew").GetServices()[0].GetContainers()[0].GetContainer().GetId()
 	a := &pb.ComposeAction{Action: &pb.ComposeAction_Save{Save: &pb.SaveFile{Host: "apps", Project: "homebrew", Path: file, Content: "FROM alpine:3.21\n", ExpectSha256: sha(b), Recreate: true}}}
 	plan, err := l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a})
 	if err != nil {
@@ -419,7 +419,7 @@ func TestSaveDockerfileRebuilds(t *testing.T) {
 	if !slices.Contains(l.docker.Calls(), "up homebrew -d --remove-orphans --build app") {
 		t.Fatalf("calls = %v", l.docker.Calls())
 	}
-	if after := l.project(t, "homebrew").GetServices()[0].GetContainers()[0].GetId(); after == before {
+	if after := l.project(t, "homebrew").GetServices()[0].GetContainers()[0].GetContainer().GetId(); after == before {
 		t.Fatal("app wasn't recreated from its new image")
 	}
 

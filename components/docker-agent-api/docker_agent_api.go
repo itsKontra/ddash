@@ -20,6 +20,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/itsKontra/ddash/components/internal/dockerread"
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -525,16 +528,17 @@ func (c *component) ListContainers(ctx context.Context, _ *pb.ListContainersRequ
 	return out, nil
 }
 
-func containerProto(c agent.Container) *pb.Container {
-	out := &pb.Container{
-		Id: c.ID, Name: c.Name, Image: c.Image, State: c.State, Status: c.Status, ImageId: c.ImageID,
+func containerProto(c agent.Container) *containerpb.Container {
+	out := &containerpb.Container{
+		Id: c.ID, Name: c.Name, Image: c.Image, State: dockerread.State(c.State), Status: c.Status, ImageId: c.ImageID,
 		RepoDigests: c.RepoDigests, Labels: c.Labels, Created: timestamppb.New(c.Created),
+		Health: dockerread.Health(c.Status), Protected: dockerread.Protected(c.Labels),
 	}
 	if c.Labels[agent.LabelOneOff] != "True" {
 		out.Project, out.Service = c.Labels[agent.LabelProject], c.Labels[agent.LabelService]
 	}
 	for _, p := range c.Ports {
-		out.Ports = append(out.Ports, &pb.Port{Ip: p.IP, PublicPort: uint32(p.PublicPort), PrivatePort: uint32(p.PrivatePort), Protocol: p.Protocol})
+		out.Ports = append(out.Ports, &containerpb.Port{Ip: p.IP, PublicPort: uint32(p.PublicPort), PrivatePort: uint32(p.PrivatePort), Protocol: dockerread.Protocol(p.Protocol)})
 	}
 	return out
 }

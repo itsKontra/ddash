@@ -1,4 +1,4 @@
-import { ImageState, ProjectState, type Container, type ImageStatus, type Project } from "@ddash/proto/compose/compose_pb";
+import { ImageState, ProjectState, type ImageStatus, type Project, type ProjectContainer } from "@ddash/proto/compose/compose_pb";
 import { Pill, type Tone } from "@ddash/ui";
 
 /** A digest as Docker shows image ids: its first 12 hex digits. */
@@ -34,10 +34,10 @@ export function ImageBadge({ status }: { status?: ImageStatus }) {
 }
 
 /** Every container of a Compose Project. */
-export const containersOf = (p: Project): Container[] => p.services.flatMap((s) => s.containers);
+export const containersOf = (p: Project): ProjectContainer[] => p.services.flatMap((s) => s.containers);
 
 /** The containers whose image is stale. */
-export const stale = (cs: readonly Container[]) => cs.filter((c) => c.imageStatus?.state === ImageState.STALE);
+export const stale = (cs: readonly ProjectContainer[]) => cs.filter((c) => c.imageStatus?.state === ImageState.STALE);
 
 const projectLook: Record<ProjectState, { tone: Tone; label: string }> = {
   [ProjectState.UNSPECIFIED]: { tone: "idle", label: "unknown" },

@@ -18,12 +18,12 @@ import (
 	"sync"
 	"time"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
 	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/itsKontra/ddash/agent"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	pb "github.com/itsKontra/ddash/components/compose/composepb"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
@@ -180,7 +180,7 @@ func (c *component) checkImages(ctx context.Context) {
 	refs := map[string]ref{}
 	for _, h := range res.GetHosts() {
 		for _, ct := range h.GetContainers() {
-			if ct.GetState() != "running" || len(ct.GetRepoDigests()) == 0 {
+			if ct.GetState() != containerpb.State_STATE_RUNNING || len(ct.GetRepoDigests()) == 0 {
 				continue
 			}
 			r := parseRef(ct.GetImage())
@@ -241,7 +241,7 @@ func (c *component) checkImages(ctx context.Context) {
 }
 
 // status is a container's image state from the last check.
-func (c *component) status(ct *dapb.Container) *pb.ImageStatus {
+func (c *component) status(ct *containerpb.Container) *pb.ImageStatus {
 	r := parseRef(ct.GetImage())
 	current := ""
 	for _, d := range ct.GetRepoDigests() {
@@ -254,7 +254,7 @@ func (c *component) status(ct *dapb.Container) *pb.ImageStatus {
 		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_NOT_CHECKED, Reason: "pinned by digest", CurrentDigest: r.digest}
 	case len(ct.GetRepoDigests()) == 0:
 		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_NOT_CHECKED, Reason: "a local image: it has no registry to check"}
-	case ct.GetState() != "running":
+	case ct.GetState() != containerpb.State_STATE_RUNNING:
 		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_UNKNOWN, Reason: "not running", CurrentDigest: current}
 	}
 	c.mu.Lock()
@@ -361,7 +361,7 @@ func (c *component) ListProjects(ctx context.Context, _ *pb.ListProjectsRequest)
 // host is h's Compose Projects as the Operator sees them.
 func (c *component) host(h *dapb.HostProjects) *pb.Host {
 	out := &pb.Host{Name: h.GetHost(), Address: h.GetAddress(), Error: h.GetError(), Roots: h.GetRoots()}
-	byID := map[string]*dapb.Container{}
+	byID := map[string]*containerpb.Container{}
 	for _, ct := range h.GetContainers() {
 		byID[ct.GetId()] = ct
 	}
@@ -384,13 +384,13 @@ func (c *component) host(h *dapb.HostProjects) *pb.Host {
 				containers++
 				cp := c.container(ct)
 				ss.Containers = append(ss.Containers, cp)
-				if ct.GetState() == "running" {
+				if ct.GetState() == containerpb.State_STATE_RUNNING {
 					up = true
 				}
 				if cp.GetImageStatus().GetState() == pb.ImageState_IMAGE_STATE_STALE {
 					pp.UpdateAvailable = true
 				}
-				if cp.GetProtected() {
+				if ct.GetProtected() {
 					pp.Protected = true
 				}
 			}
@@ -420,13 +420,6 @@ func (c *component) host(h *dapb.HostProjects) *pb.Host {
 	return out
 }
 
-func (c *component) container(ct *dapb.Container) *pb.Container {
-	out := &pb.Container{
-		Id: ct.GetId(), Name: ct.GetName(), Image: ct.GetImage(), State: ct.GetState(), Status: ct.GetStatus(),
-		ImageStatus: c.status(ct), Protected: ct.GetLabels()[agent.LabelProtected] == "true", Created: ct.GetCreated(),
-	}
-	for _, p := range ct.GetPorts() {
-		out.Ports = append(out.Ports, &pb.Port{Ip: p.GetIp(), PublicPort: p.GetPublicPort(), PrivatePort: p.GetPrivatePort(), Protocol: p.GetProtocol()})
-	}
-	return out
+func (c *component) container(ct *containerpb.Container) *pb.ProjectContainer {
+	return &pb.ProjectContainer{Container: ct, ImageStatus: c.status(ct)}
 }

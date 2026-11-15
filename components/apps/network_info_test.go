@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
@@ -24,7 +26,7 @@ func TestAppsShowTheirWorkloadsNetworkInfo(t *testing.T) {
 		}},
 		docker: &dockerFake{hosts: []*dockerapipb.HostContainers{{
 			Host: "media", Address: "198.18.1.208",
-			Containers: []*dockerapipb.Container{container("jellyfin", "8096")},
+			Containers: []*containerpb.Container{container("jellyfin", "8096")},
 		}}},
 	})
 	l.npm.AddProxyHost(proxyHost("http://198.18.1.208:8096", "jellyfin.home.example"))
@@ -61,7 +63,7 @@ func TestAppsGoWithoutNetworkInfoWhileNetworkCantAnswer(t *testing.T) {
 		networkUnconfigured: true,
 		docker: &dockerFake{hosts: []*dockerapipb.HostContainers{{
 			Host: "media", Address: "198.18.1.208",
-			Containers: []*dockerapipb.Container{container("jellyfin", "8096")},
+			Containers: []*containerpb.Container{container("jellyfin", "8096")},
 		}}},
 	})
 	l.npm.AddProxyHost(proxyHost("http://198.18.1.208:8096", "jellyfin.home.example"))

@@ -1,11 +1,12 @@
 import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { ComposeService, ImageState } from "@ddash/proto/compose/compose_pb";
-import { DockerApiService, type Container } from "@ddash/proto/docker-api/docker_api_pb";
+import { Health, State, type Container } from "@ddash/proto/ddash/container/container_pb";
+import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
 import { Facts, MetricTile, Pill } from "@ddash/ui";
 
-const unhealthy = (c: Container) => c.status.includes("(unhealthy)");
-const restarting = (c: Container) => c.state === "restarting";
-const running = (cs: readonly Container[]) => cs.filter((c) => c.state === "running").length;
+const unhealthy = (c: Container) => c.health === Health.UNHEALTHY;
+const restarting = (c: Container) => c.state === State.RESTARTING;
+const running = (cs: readonly Container[]) => cs.filter((c) => c.state === State.RUNNING).length;
 
 function useContainers() {
   return useQuery(DockerApiService.method.listContainers, {});

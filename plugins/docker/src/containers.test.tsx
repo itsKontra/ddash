@@ -12,8 +12,8 @@ const listed = {
     {
       host: "media",
       containers: [
-        { id: "a1", name: "jellyfin", image: "jellyfin/jellyfin:10.10", state: "running", status: "Up 3 hours (healthy)" },
-        { id: "b2", name: "sonarr", image: "linuxserver/sonarr", state: "exited", status: "Exited (0) 2 days ago" },
+        { id: "a1", name: "jellyfin", image: "jellyfin/jellyfin:10.10", state: "STATE_RUNNING", status: "Up 3 hours (healthy)", health: "HEALTH_HEALTHY" },
+        { id: "b2", name: "sonarr", image: "linuxserver/sonarr", state: "STATE_EXITED", status: "Exited (0) 2 days ago" },
       ],
     },
     { host: "tools", error: "dial tcp 198.18.2.11:2375: connect: connection refused" },

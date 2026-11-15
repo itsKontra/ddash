@@ -19,7 +19,7 @@ const projects = {
   hosts: [
     {
       name: "media",
-      projects: [{ host: "media", name: "media", workingDir: "/srv/compose/media", configFile: file, services: [{ name: "jellyfin", containers: [{ name: "jellyfin" }] }] }],
+      projects: [{ host: "media", name: "media", workingDir: "/srv/compose/media", configFile: file, services: [{ name: "jellyfin", containers: [{ container: { name: "jellyfin" } }] }] }],
     },
   ],
 };

@@ -1,11 +1,12 @@
 import { ComposeFiles, ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "@ddash/compose-ui";
 import { useQuery } from "@ddash/plugin";
-import { ComposeService, ImageState, type Container, type Project, type Run } from "@ddash/proto/compose/compose_pb";
+import { State } from "@ddash/proto/ddash/container/container_pb";
+import { ComposeService, ImageState, type Project, type ProjectContainer, type Run } from "@ddash/proto/compose/compose_pb";
 import { ago } from "@ddash/display";
-import { ActionStrip, Button, DataTable, EmptyState, Facts, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, type Column } from "@ddash/ui";
+import { ActionStrip, Button, DataTable, EmptyState, Facts, Notice, PageTitle, Panel, Pill, Skeleton, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { useParams } from "react-router";
-import { tones } from "./containers";
+import { ContainerState, isRunning, protocolWord } from "./containers";
 import { ImageBadge, ProjectStatePill, shortDigest } from "./images";
 import { useNow } from "./now";
 import { projectActions } from "./projects";
@@ -17,11 +18,11 @@ interface Row {
   service: string;
   image: string;
   ports: string[];
-  container?: Container;
+  container?: ProjectContainer;
 }
 
 /** "8096→8096/tcp", once per port: a port published on every IPv4 and IPv6 address reads as one. */
-const ports = (c: Container) => [...new Set(c.ports.map((p) => `${p.ip && p.ip !== "0.0.0.0" && p.ip !== "::" ? `${p.ip}:` : ""}${p.publicPort}→${p.privatePort}/${p.protocol}`))].join(", ");
+const ports = (c: ProjectContainer) => [...new Set((c.container?.ports ?? []).map((p) => `${p.ip && p.ip !== "0.0.0.0" && p.ip !== "::" ? `${p.ip}:` : ""}${p.publicPort}→${p.privatePort}/${protocolWord(p.protocol)}`))].join(", ");
 
 const columns: readonly Column<Row>[] = [
   { id: "service", header: "Compose service", rowHeader: true, cell: (r) => r.service },
@@ -31,10 +32,10 @@ const columns: readonly Column<Row>[] = [
     cell: (r) =>
       r.container ? (
         <span className="inline-flex items-center gap-2">
-          <StatusDot tone={tones[r.container.state] ?? "idle"} label={r.container.state} />
+          <ContainerState state={r.container.container?.state ?? State.UNSPECIFIED} word={false} />
           <span>
-            {r.container.name}
-            <span className="block text-xs text-muted-foreground">{r.container.status}</span>
+            {r.container.container?.name}
+            <span className="block text-xs text-muted-foreground">{r.container.container?.status}</span>
           </span>
         </span>
       ) : (
@@ -46,7 +47,7 @@ const columns: readonly Column<Row>[] = [
     header: "Image",
     cell: (r) => (
       <span className="flex flex-col gap-1">
-        <span className="font-mono text-xs break-all">{r.container?.image ?? r.image}</span>
+        <span className="font-mono text-xs break-all">{r.container?.container?.image ?? r.image}</span>
         <ImageBadge status={r.container?.imageStatus} />
       </span>
     ),
@@ -88,11 +89,11 @@ function ImagesFact({ project: p }: { project: Project }) {
 /** One Compose service's Actions: Start, or Restart and Stop, through the Project's Plan for just that service. */
 function ServiceStrip({ project: p, row: r, open, close }: { project: Project; row: Row; open: (d: ReactNode) => void; close: () => void }) {
   const target = { host: p.host, project: p.name, services: [r.service] };
-  const running = r.container?.state === "running";
+  const running = isRunning(r.container?.container);
   const dialog = (verb: "Start" | "Restart" | "Stop", action: ActionInit) =>
     open(<PlanDialog title={`${verb} ${p.name} (${r.service})`} action={action} confirm={verb} danger={verb !== "Start"} onClose={close} />);
   return (
-    <ActionStrip summary={r.container ? `${r.container.name}: ${r.container.status}` : "no container yet"}>
+    <ActionStrip summary={r.container ? `${r.container.container?.name}: ${r.container.container?.status}` : "no container yet"}>
       {running ? (
         <>
           <Button size="sm" variant="danger" disabled={!!p.runId} onClick={() => dialog("Restart", { action: { case: "restart", value: target } })}>
@@ -191,7 +192,7 @@ export function ProjectPage() {
         <Panel title="Compose services" flush>
           <DataTable
             rows={rows(p)}
-            rowKey={(r) => r.service + (r.container?.id ?? "")}
+            rowKey={(r) => r.service + (r.container?.container?.id ?? "")}
             columns={columns}
             empty="The file defines no Compose services"
             rowLabel={(r) => r.service}

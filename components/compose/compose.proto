@@ -8,6 +8,7 @@ syntax = "proto3";
 // through a Plan, each as a run that outlasts the Action's deadline.
 package ddash.compose;
 
+import "ddash/container/container.proto";
 import "ddash/job/job.proto";
 import "ddash/options.proto";
 import "google/protobuf/timestamp.proto";
@@ -74,7 +75,7 @@ message Host {
   repeated string roots = 4;
   repeated Project projects = 5;
   // Its containers that no Compose Project started.
-  repeated Container containers = 6;
+  repeated ProjectContainer containers = 6;
 }
 
 message Project {
@@ -114,26 +115,13 @@ message Service {
   string image = 2;
   // Its published ports as the file writes them.
   repeated string ports = 3;
-  repeated Container containers = 4;
+  repeated ProjectContainer containers = 4;
 }
 
-message Container {
-  string id = 1;
-  string name = 2;
-  string image = 3;
-  string state = 4;
-  string status = 5;
-  repeated Port ports = 6;
-  ImageStatus image_status = 7;
-  bool protected = 8;
-  google.protobuf.Timestamp created = 9;
-}
-
-message Port {
-  string ip = 1;
-  uint32 public_port = 2;
-  uint32 private_port = 3;
-  string protocol = 4;
+// A container of a Docker host, with what compose knows of its image.
+message ProjectContainer {
+  ddash.container.Container container = 1;
+  ImageStatus image_status = 2;
 }
 
 // Whether a container's image is the newest for its tag.
