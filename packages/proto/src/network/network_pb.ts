@@ -1189,8 +1189,10 @@ export const NetworkService: GenService<{
   /**
    * GetThroughput returns the WAN and LAN throughput samples taken after
    * since (all of the last hour when unset), oldest first. network samples
-   * every 5 s whether anyone is watching or not, and keeps the last 720
-   * samples in memory, so the ring is empty after a restart.
+   * every 5 s while it is asked (for 30 s after each call) and once a
+   * minute otherwise; the first call after an idle stretch reads the
+   * counters before it answers. It keeps the last 720 samples in memory,
+   * so the ring is empty after a restart.
    *
    * @generated from rpc ddash.network.NetworkService.GetThroughput
    */

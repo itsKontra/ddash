@@ -4,8 +4,11 @@ import (
 	"math"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
@@ -303,6 +306,38 @@ func TestAPeriodThatIsOverIsReadOnce(t *testing.T) {
 
 	if again := len(fake.Queries()) - n; again != 0 {
 		t.Errorf("read again with %d queries, want none", again)
+	}
+}
+
+// The Energy Page and its Widget ask for the same period at the same
+// moment.
+func TestCallersArrivingTogetherForAnUncachedPeriodShareOneRead(t *testing.T) {
+	fake, _, c := setUp(t, energyfake.Options{})
+	period(t, c, pb.Span_SPAN_DAY, "2026-11-09")
+	one := len(fake.Queries()) // what reading one period takes
+	slow, _, c := setUp(t, energyfake.Options{QueryDelay: 200 * time.Millisecond})
+	before := len(slow.Queries())
+
+	var wg sync.WaitGroup
+	answers := make([]*pb.GetPeriodResponse, 5)
+	for i := range answers {
+		wg.Go(func() {
+			resp, err := c.GetPeriod(t.Context(), &pb.GetPeriodRequest{Span: pb.Span_SPAN_DAY, Date: "2026-11-09", TimeZone: vienna})
+			if err != nil {
+				t.Error(err)
+			}
+			answers[i] = resp
+		})
+	}
+	wg.Wait()
+
+	if got := len(slow.Queries()) - before; got != one {
+		t.Errorf("%d queries for five callers of one period, want the %d of one read", got, one)
+	}
+	for i, a := range answers {
+		if !a.GetSetUp() || !proto.Equal(a, answers[0]) {
+			t.Errorf("caller %d got %v, want the shared answer", i, a)
+		}
 	}
 }
 

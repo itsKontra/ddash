@@ -44,6 +44,9 @@ type Options struct {
 	// Glitch is when the grid meter's 20 minutes of glitching start; two
 	// days before the clock started at 17:50 UTC when zero.
 	Glitch time.Time
+	// QueryDelay holds every query this long before it is answered, as a
+	// year's query against a busy InfluxDB takes.
+	QueryDelay time.Duration
 }
 
 // Server is the fake. It is safe for concurrent use.
@@ -89,6 +92,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `{"name":"influxdb","status":"pass","version":"v2.7.12"}`)
 		return
 	}
+	time.Sleep(s.opts.QueryDelay)
 	if r.Header.Get("Authorization") != "Token "+s.opts.Token {
 		fail(w, http.StatusUnauthorized, "unauthorized", "unauthorized access")
 		return
