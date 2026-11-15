@@ -7,6 +7,7 @@ import (
 	"net/netip"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -134,17 +135,31 @@ func (c *component) readDevices(ctx context.Context) (*networkpb.ListDevicesResp
 }
 
 func (c *component) readSnapshot(ctx context.Context) (*snapshot, error) {
-	leases, err := c.pfsense.ListLeases(ctx, &pfsenseapipb.ListLeasesRequest{})
-	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "can't read the DHCP leases: %s", status.Convert(err).Message())
+	// Four independent reads, made together.
+	var (
+		leases     *pfsenseapipb.ListLeasesResponse
+		servers    *pfsenseapipb.ListDhcpServersResponse
+		aliases    *pfsenseapipb.ListAliasesResponse
+		clients    *adguardapipb.ListClientsResponse
+		leasesErr  error
+		serversErr error
+		aliasesErr error
+		clientsErr error
+		reads      sync.WaitGroup
+	)
+	reads.Go(func() { leases, leasesErr = c.pfsense.ListLeases(ctx, &pfsenseapipb.ListLeasesRequest{}) })
+	reads.Go(func() { servers, serversErr = c.pfsense.ListDhcpServers(ctx, &pfsenseapipb.ListDhcpServersRequest{}) })
+	reads.Go(func() { aliases, aliasesErr = c.pfsense.ListAliases(ctx, &pfsenseapipb.ListAliasesRequest{}) })
+	reads.Go(func() { clients, clientsErr = c.adguard.ListClients(ctx, &adguardapipb.ListClientsRequest{}) })
+	reads.Wait()
+	if leasesErr != nil {
+		return nil, status.Errorf(codes.Unavailable, "can't read the DHCP leases: %s", status.Convert(leasesErr).Message())
 	}
-	servers, err := c.pfsense.ListDhcpServers(ctx, &pfsenseapipb.ListDhcpServersRequest{})
-	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "can't read the static mappings: %s", status.Convert(err).Message())
+	if serversErr != nil {
+		return nil, status.Errorf(codes.Unavailable, "can't read the static mappings: %s", status.Convert(serversErr).Message())
 	}
-	aliases, err := c.pfsense.ListAliases(ctx, &pfsenseapipb.ListAliasesRequest{})
-	if err != nil {
-		return nil, status.Errorf(codes.Unavailable, "can't read the aliases: %s", status.Convert(err).Message())
+	if aliasesErr != nil {
+		return nil, status.Errorf(codes.Unavailable, "can't read the aliases: %s", status.Convert(aliasesErr).Message())
 	}
 	if err := c.checkAliases(aliases.GetAliases()); err != nil {
 		return nil, err
@@ -156,8 +171,8 @@ func (c *component) readSnapshot(ctx context.Context) (*snapshot, error) {
 		BlockAlias:  c.blockAlias,
 	}
 	// The Devices list without AdGuard: only their ad-blocking is unknown.
-	if clients, err := c.adguard.ListClients(ctx, &adguardapipb.ListClientsRequest{}); err != nil {
-		s.list.AdguardError = "can't read AdGuard's clients: " + status.Convert(err).Message()
+	if clientsErr != nil {
+		s.list.AdguardError = "can't read AdGuard's clients: " + status.Convert(clientsErr).Message()
 	} else {
 		s.adsAllowed = adsAllowed(clients.GetClients())
 		for _, d := range s.list.GetDevices() {

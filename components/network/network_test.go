@@ -5,6 +5,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -57,7 +58,13 @@ type firewall struct {
 
 	// writes is every write request received, in order (devices_test.go).
 	writes []proto.Message
+
+	// slow is how long each of the Devices' reads takes to answer.
+	slow atomic.Int64
 }
+
+// wait holds a read of the Devices for f.slow.
+func (f *firewall) wait() { time.Sleep(time.Duration(f.slow.Load())) }
 
 func (f *firewall) ListGatewayGroups(context.Context, *pfsenseapipb.ListGatewayGroupsRequest, ...grpc.CallOption) (*pfsenseapipb.ListGatewayGroupsResponse, error) {
 	f.mu.Lock()

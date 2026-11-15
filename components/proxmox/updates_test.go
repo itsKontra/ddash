@@ -33,6 +33,7 @@ import (
 // --- proxmox-api's snapshots, on the lab of proxmox_test.go ---
 
 func (p proxmoxAPI) ListSnapshots(_ context.Context, req *proxmoxapipb.ListSnapshotsRequest, _ ...grpc.CallOption) (*proxmoxapipb.ListSnapshotsResponse, error) {
+	p.l.wait()
 	p.l.mu.Lock()
 	defer p.l.mu.Unlock()
 	vmid := req.GetWorkload().GetVmid()
@@ -117,6 +118,7 @@ func newAgents(l *lab) *agents {
 }
 
 func (a *agents) ListAgents(context.Context, *hostagentapipb.ListAgentsRequest, ...grpc.CallOption) (*hostagentapipb.ListAgentsResponse, error) {
+	a.l.wait()
 	out := &hostagentapipb.ListAgentsResponse{}
 	for _, vmid := range []uint32{101, 102, 103, 110} {
 		out.Agents = append(out.Agents, &hostagentapipb.Agent{Vmid: vmid, State: hostagentapipb.AgentState_AGENT_STATE_PAIRED})
@@ -125,6 +127,7 @@ func (a *agents) ListAgents(context.Context, *hostagentapipb.ListAgentsRequest, 
 }
 
 func (a *agents) ListPackages(context.Context, *hostagentapipb.ListPackagesRequest, ...grpc.CallOption) (*hostagentapipb.ListPackagesResponse, error) {
+	a.l.wait()
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	out := &hostagentapipb.ListPackagesResponse{}
@@ -634,6 +637,31 @@ func TestABackupIsFollowedToItsEnd(t *testing.T) {
 		want := []string{"proxmox-api Backup 102 to pbs BACKUP_MODE_SNAPSHOT", "notify Backed up LXC 102 media-stack: to pbs (CATEGORY_ACTION_OUTCOMES) " + sdktest.PublicURL + "/proxmox/workloads/102"}
 		if diff := cmp.Diff(want, l.calls()); diff != "" {
 			t.Errorf("calls (-want +got):\n%s", diff)
+		}
+	})
+}
+
+// The lab's four reads don't depend on each other, and neither do the
+// Workloads' snapshots: a Plan takes two reads' time, not one per call.
+func TestPlanUpdateAllReadsTheLabTogetherAndTheWorkloadsSnapshotsTogether(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := newLab()
+		c, _ := startAll(t, l, newAgents(l))
+		l.slow.Store(int64(time.Second))
+
+		begin := time.Now()
+		plan, err := c.PlanUpdateAll(actionCtx(t), &proxmoxpb.PlanUpdateAllRequest{})
+
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The lab's four reads together, then the two planned Workloads'
+		// snapshots together; one after another they take 6 s.
+		if took := time.Since(begin); took > 2*time.Second {
+			t.Errorf("PlanUpdateAll took %v with every read taking 1 s, want 2 s at most", took)
+		}
+		if len(plan.GetWorkloads()) != 2 || plan.GetWorkloads()[0].GetWorkload().GetId() != "102" || plan.GetWorkloads()[1].GetWorkload().GetId() != "110" {
+			t.Errorf("planned %v, want 102 then 110, in VMID order", plan.GetWorkloads())
 		}
 	})
 }

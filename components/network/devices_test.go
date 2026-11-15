@@ -5,6 +5,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc"
@@ -22,6 +24,7 @@ import (
 )
 
 func (f *firewall) ListLeases(context.Context, *pfsenseapipb.ListLeasesRequest, ...grpc.CallOption) (*pfsenseapipb.ListLeasesResponse, error) {
+	f.wait()
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
@@ -31,6 +34,7 @@ func (f *firewall) ListLeases(context.Context, *pfsenseapipb.ListLeasesRequest, 
 }
 
 func (f *firewall) ListDhcpServers(context.Context, *pfsenseapipb.ListDhcpServersRequest, ...grpc.CallOption) (*pfsenseapipb.ListDhcpServersResponse, error) {
+	f.wait()
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
@@ -94,6 +98,7 @@ func (f *firewall) written() []proto.Message {
 }
 
 func (f *firewall) ListAliases(context.Context, *pfsenseapipb.ListAliasesRequest, ...grpc.CallOption) (*pfsenseapipb.ListAliasesResponse, error) {
+	f.wait()
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.err != nil {
@@ -426,4 +431,29 @@ func TestStartAcceptsNoBlockAlias(t *testing.T) {
 	if err := startWith(t, &firewall{}, homeConfig()); err != nil {
 		t.Errorf("Start = %v, want ok", err)
 	}
+}
+
+// Leases, static mappings, aliases and AdGuard's clients don't depend on
+// each other: a cold read takes as long as the slowest, not their sum.
+func TestTheDevicesFourReadsAreMadeTogether(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fw, ag := &firewall{leases: homeLeases()}, &adguard{clients: homeClients()}
+		_, c := startWithAdGuard(t, fw, ag)
+		time.Sleep(10 * time.Minute) // past every cache
+		synctest.Wait()
+		fw.slow.Store(int64(time.Second))
+		ag.slow.Store(int64(2 * time.Second))
+		time.Sleep(10 * time.Minute)
+		synctest.Wait()
+
+		begin := time.Now()
+		got := devices(t, c)
+
+		if took := time.Since(begin); took > 2*time.Second {
+			t.Errorf("ListDevices took %v with reads of 1 s, 1 s, 1 s and 2 s; want the slowest's 2 s at most", took)
+		}
+		if len(got.GetDevices()) == 0 || got.GetAdguardError() != "" {
+			t.Errorf("devices %d, AdGuard error %q; want the list with ad-blocking read", len(got.GetDevices()), got.GetAdguardError())
+		}
+	})
 }
