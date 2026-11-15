@@ -6,8 +6,11 @@ import { useAppearance } from "./appearance";
 import { ErrorBoundary } from "./boundary";
 import { Catalogue } from "./catalogue";
 import { Chrome } from "./chrome";
+import type { Destination } from "./commands";
 import { navItems, type NavItem } from "./nav";
+import { ConcernSources } from "./needs-you";
 import { Overview, useOverviewLayout } from "./overview";
+import { Palette, usePalette } from "./palette";
 import { HostWatch, ReachContext, unreachableText, useReach } from "./reach";
 import { Settings } from "./settings";
 import { importBundle as defaultImport, usePlugins, type ImportBundle, type Plugins } from "./plugins";
@@ -41,20 +44,34 @@ export function App({ client, fetch, importBundle = defaultImport, reload = () =
 function Shell({ fetch, importBundle, client }: { fetch: Fetch; importBundle: ImportBundle; client: QueryClient }) {
   const plugins = usePlugins(importBundle, fetch);
   const overview = useOverviewLayout(plugins);
+  const palette = usePalette();
   useAppearance();
+  const items = navItems(plugins.loaded.values());
   return (
     <InstalledPlugins names={plugins.installed?.map((p) => p.name)}>
-      <Chrome items={navItems(plugins.loaded.values())} aside={(item) => <NavAside item={item} fetch={fetch} />} banner={<Unreachable />}>
-        <Routes>
-          <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} client={client} />} />
-          <Route path="plugins" element={<Catalogue />} />
-          <Route path="settings/*" element={<Settings />} />
-          <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
-        </Routes>
-      </Chrome>
+      <ConcernSources plugins={plugins} fetch={fetch}>
+        <Chrome items={items} aside={(item) => <NavAside item={item} fetch={fetch} />} onSearch={palette.show} banner={<Unreachable />}>
+          <Routes>
+            <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} client={client} />} />
+            <Route path="plugins" element={<Catalogue />} />
+            <Route path="settings/*" element={<Settings />} />
+            <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />
+          </Routes>
+        </Chrome>
+        <Palette state={palette} plugins={plugins} fetch={fetch} pages={destinations(items)} />
+      </ConcernSources>
     </InstalledPlugins>
   );
 }
+
+/** The Pages the command palette goes to: the sidebar's, and the Audit Log. */
+const destinations = (items: NavItem[]): Destination[] => [
+  { to: "/", label: "Overview", icon: "layout-dashboard" },
+  ...items.filter((i) => !i.broken).map((i) => ({ to: `/${i.plugin.name}`, label: i.label, icon: i.icon })),
+  { to: "/plugins", label: "Plugins", icon: "puzzle" },
+  { to: "/settings", label: "Settings", icon: "settings" },
+  { to: "/settings/audit-log", label: "Audit Log", icon: "scroll-text" },
+];
 
 /** A Plugin Nav Entry's end: failed to load, or its live badge in the Plugin's scope. */
 function NavAside({ item, fetch }: { item: NavItem; fetch?: Fetch }) {

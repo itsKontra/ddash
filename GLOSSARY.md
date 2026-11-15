@@ -12,7 +12,7 @@ _Avoid_: Admin, user
 
 **Action**:
 A change ddash makes to a home-network system or to its own state, such as Adopting a Device or restarting a Workload. A disruptive Action asks the Operator to confirm first.
-_Avoid_: Command, mutation, write, operation
+_Avoid_: Command (a palette entry, which may start one), mutation, write, operation
 
 **Plan**:
 The steps an Action will take on another system, each with the values it expects to find there, shown to the Operator before the Action runs. An Action whose Plan no longer holds refuses before its first step.
@@ -43,6 +43,10 @@ _Avoid_: Tile, card (as the defined term)
 **Concern**:
 Something a Plugin reports as needing the Operator, such as a down Check or a New Device: what it is, why, and the Actions that resolve it, the same ones its Page offers. The Overview lists every installed Plugin's Concerns in one place under "Needs you", worst first, whether or not the Plugin has a Widget there. A **quiet** Concern is known and silenced (a muted Check, one in Maintenance): it is folded away under "Off on purpose" and never sets the Overview's tone.
 _Avoid_: Issue, problem, alert, attention item, Warning (an App's own, which a Plugin may report as a Concern)
+
+**Command**:
+An entry of the command palette (Ctrl K), offered by the core or a Plugin: open an App, go to a Page, or start an Action through the same confirm or Plan its button on the Page asks. Running one never changes anything by itself.
+_Avoid_: Shortcut, quick action, Action (for the entry itself)
 
 **Nav Entry**:
 A link a Plugin adds to the left navigation, leading to one of its Pages. May carry a live badge, such as a count of what is down.
