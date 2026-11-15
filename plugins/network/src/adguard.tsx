@@ -2,6 +2,7 @@ import { useQuery, type Status, type Widget } from "@ddash/plugin";
 import { AdguardApiService, type GetStatsResponse, type GetStatusResponse, type TopEntry } from "@ddash/proto/adguard-api/adguard_api_pb";
 import { Bars, MetricTile, Notice, Pill, Skeleton, Sparkline, StatusDot, type Tone } from "@ddash/ui";
 import { ProtectionSwitch } from "./protection";
+import { Row, Rows } from "./rows";
 
 /** AdGuard's status (FAST), shared by the Page and the Widget. */
 export function useAdguardStatus() {
@@ -24,12 +25,18 @@ export function blockedShare(s: GetStatsResponse): string {
   return total ? `${Math.round((Number(s.blockedFiltering) / total) * 100)}%` : "—";
 }
 
+/** How many minutes a pause of protection has left, at least 1; undefined when it isn't paused. */
+export function pauseLeft(s: GetStatusResponse): number | undefined {
+  const paused = s.protectionPausedFor;
+  return paused && Math.max(1, Math.ceil(Number(paused.seconds) / 60));
+}
+
 /** Whether AdGuard protects the network, as a tone and a label. */
 export function protection(s: GetStatusResponse): { tone: Tone; label: string } {
   if (!s.running) return { tone: "down", label: "Not running" };
   if (s.protectionEnabled) return { tone: "up", label: "Protection on" };
-  const paused = s.protectionPausedFor;
-  if (paused) return { tone: "warn", label: `Protection paused, back on in ${Math.max(1, Math.ceil(Number(paused.seconds) / 60))} min` };
+  const left = pauseLeft(s);
+  if (left) return { tone: "warn", label: `Protection paused, back on in ${left} min` };
   return { tone: "warn", label: "Protection off" };
 }
 
@@ -45,7 +52,7 @@ function useStatus(): Status | undefined {
   return { tone: "up", summary: `${p.label}, ${blockedShare(stats)} of ${count(stats.dnsQueries)} queries blocked` };
 }
 
-/** S: protection with its switch, and the day's queries and share blocked. */
+/** S: protection with its switch, and the day's queries and share blocked, as rows. */
 function Body() {
   const { data, error } = useAdguardStatus();
   const { data: stats } = useAdguardStats();
@@ -59,10 +66,10 @@ function Body() {
       </p>
       <ProtectionSwitch status={data} />
       {data.running && (
-        <div className="grid grid-cols-2 gap-3">
-          <MetricTile label="queries, 24 h" value={stats && count(stats.dnsQueries)} />
-          <MetricTile label="blocked" value={stats && blockedShare(stats)} />
-        </div>
+        <Rows>
+          <Row label="Queries, 24 h" value={stats && count(stats.dnsQueries)} />
+          <Row label="Blocked" value={stats && blockedShare(stats)} />
+        </Rows>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ import { PowerAction, ProxmoxService, type PowerTask } from "@ddash/proto/proxmo
 import { ActionStrip, Button, Notice, Pill, Skeleton } from "@ddash/ui";
 import { kindLabel } from "@ddash/display";
 import { uptime } from "./format";
+import { StartAsked } from "./start-asked";
 
 /** The privilege ddash needs on a Workload to start, stop or restart it. */
 export const powerMgmt = "VM.PowerMgmt";
@@ -70,6 +71,7 @@ export function usePower(w: Workload) {
     known: privileges !== undefined,
     protected: privileges !== undefined && !privileges.includes(powerMgmt),
     items,
+    label,
     busy: task !== undefined || start.pending || stop.pending || restart.pending,
     task,
     error: start.error ?? stop.error ?? restart.error,
@@ -124,9 +126,18 @@ export function PowerStrip({ workload: w }: { workload: Workload }) {
   );
 }
 
-/** A Workload's detail: its power Actions as buttons, or the lock. */
+/** A Workload's detail: its power Actions as buttons, or the lock; ?start asks to start it. */
 export function PowerButtons({ workload: w }: { workload: Workload }) {
   const p = usePower(w);
+  return (
+    <>
+      <Buttons workload={w} power={p} />
+      <StartAsked label={p.label} start={p.protected ? undefined : p.items.find((i) => i.label === "Start")?.run} known={p.known} />
+    </>
+  );
+}
+
+function Buttons({ workload: w, power: p }: { workload: Workload; power: ReturnType<typeof usePower> }) {
   if (!p.known) return <Skeleton height="sm" />;
   if (p.protected) return <ProtectedLock />;
   return (

@@ -1,10 +1,12 @@
-import { checkStatus, workloadName } from "@ddash/display";
+import { workloadName } from "@ddash/display";
 import { useAction } from "@ddash/plugin";
 import { AppsService, Reach, type App, type Fix, type ListAppsResponse, type Warning, type Workload } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, Dialog, Facts, Field, FormActions, Notice, Panel, Pill, Presence, Select } from "@ddash/ui";
 import { useId, useState, type ReactNode } from "react";
 import { fixes, fixLabel, groupsOf, hostOf } from "./apps";
+import type { WorkloadCause } from "./cause";
+import { causedStatus } from "./causes";
 import { ComposePanel } from "./compose-panel";
 import { reachLook } from "./list";
 import { AddressPanel, DisplayPanel, NetworkPanel, ProxyPanel, WorkloadPanel, type Editing, type PanelName } from "./panels";
@@ -24,12 +26,15 @@ export function AppPane({
   app,
   list,
   check,
+  cause,
   showIgnored,
   onGone,
 }: {
   app: App;
   list: ListAppsResponse;
   check?: Check;
+  /** Why it is down, when its Workload isn't running. */
+  cause?: WorkloadCause;
   showIgnored: boolean;
   /** The App is gone, e.g. deleted: the pane empties. */
   onGone: () => void;
@@ -83,7 +88,7 @@ export function AppPane({
   };
   return (
     <article aria-labelledby={title} className="flex flex-col gap-4">
-      <Header id={title} app={app} check={check} onDelete={() => void remove()} />
+      <Header id={title} app={app} check={check} cause={cause} onDelete={() => void remove()} />
       {deleteRecord.error && <Notice tone="down">{deleteRecord.error.rawMessage}</Notice>}
       <WarningBoxes app={app} apps={list.apps} showIgnored={showIgnored} handlers={handlers} onGone={onGone} />
       {app.orphaned ? (
@@ -105,9 +110,9 @@ export function AppPane({
   );
 }
 
-/** The pane's header: icon, name, URL, Reach, Check and Hidden, Pin and Delete…. */
-function Header({ id, app, check, onDelete }: { id: string; app: App; check?: Check; onDelete: () => void }) {
-  const status = checkStatus(check);
+/** The pane's header: icon, name, URL, Reach, Check (with its Workload's cause) and Hidden, Pin and Delete…. */
+function Header({ id, app, check, cause, onDelete }: { id: string; app: App; check?: Check; cause?: WorkloadCause; onDelete: () => void }) {
+  const status = causedStatus(check, cause);
   const pins = usePins();
   return (
     <div className="flex items-start gap-3">
