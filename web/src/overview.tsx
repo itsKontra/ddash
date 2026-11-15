@@ -24,10 +24,9 @@ import {
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
-import type { Listed } from "./concerns";
 import { hero, oldestRead, readAgo, type HeroState } from "./hero";
 import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
-import { NeedsYou } from "./needs-you";
+import { NeedsYou, useConcernList } from "./needs-you";
 import type { LoadedPlugin, Plugins } from "./plugins";
 import { useReach } from "./reach";
 
@@ -99,7 +98,7 @@ export function Overview({ plugins, overview, fetch, client }: { plugins: Plugin
   const [adding, setAdding] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<ReadonlyMap<string, Status>>(new Map());
-  const [concerns, setConcerns] = useState<readonly Listed[]>();
+  const { listed: concerns } = useConcernList();
   const onStatus = useCallback((key: string, status: Status | undefined) => {
     setStatuses((prev) => {
       const old = prev.get(key);
@@ -171,7 +170,7 @@ export function Overview({ plugins, overview, fetch, client }: { plugins: Plugin
         </Notice>
       )}
       <OverviewHero state={h} client={client} />
-      <NeedsYou plugins={plugins} fetch={fetch} onConcerns={setConcerns} />
+      <NeedsYou />
       <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-1 gap-4 grid-flow-dense sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => {
           const key = c.entry.widget;

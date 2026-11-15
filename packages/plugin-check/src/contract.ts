@@ -11,7 +11,7 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
 export function checkDefinition(name: string, definition: unknown): string[] {
   if (!isObject(definition)) return ["the bundle's default export must be definePlugin({ nav, pages, widgets })"];
   const problems: string[] = [];
-  const { nav, pages, widgets, useConcerns } = definition;
+  const { nav, pages, widgets, useConcerns, useCommands } = definition;
   if (Array.isArray(nav)) problems.push("nav: at most one Nav Entry, not a list");
   if (pages !== undefined) checkRoutes(name, pages, "pages", problems);
   if (isObject(nav) && !(Array.isArray(pages) && pages.some((p) => isObject(p) && p.index === true))) {
@@ -19,6 +19,7 @@ export function checkDefinition(name: string, definition: unknown): string[] {
   }
   if (widgets !== undefined) checkWidgets(widgets, problems);
   if (useConcerns !== undefined && typeof useConcerns !== "function") problems.push("useConcerns: must be a hook returning the Plugin's Concerns");
+  if (useCommands !== undefined && typeof useCommands !== "function") problems.push("useCommands: must be a hook returning the Plugin's Commands");
   return problems;
 }
 

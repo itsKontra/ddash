@@ -1,4 +1,8 @@
 import type { Concern, ConcernTone } from "@ddash/plugin";
+import type { IconName } from "@ddash/ui";
+
+/** A Concern's icon when it names none: its tone's. */
+export const toneIcon: Record<ConcernTone, IconName> = { down: "circle-x", warn: "triangle-exclamation-point", info: "info" };
 
 /** A Concern as the Overview lists it, with the Plugin that reported it. */
 export interface Listed {

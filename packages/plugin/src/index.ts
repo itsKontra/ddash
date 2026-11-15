@@ -3,6 +3,7 @@
 export {
   definePlugin,
   type Badge,
+  type Command,
   type Concern,
   type ConcernAction,
   type ConcernTone,

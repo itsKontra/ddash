@@ -147,7 +147,8 @@ func TestTheWanDownScenarioHasTheWanAndTheTunnelDown(t *testing.T) {
 		t.Errorf("GetVpnTunnel = %s, want down", got)
 	}
 	res := h.Call("network", "pfsense-api", "ListGateways", `{}`)
-	if got := res.Body.String(); !strings.Contains(got, `"name":"WAN_DHCP","status":"down"`) {
+	// protojson puts a space after a comma or not, by the binary's build: compare without.
+	if got := res.Body.String(); !strings.Contains(strings.ReplaceAll(got, ", ", ","), `"name":"WAN_DHCP","status":"down"`) {
 		t.Errorf("ListGateways = %d %s, want WAN_DHCP down", res.Code, got)
 	}
 }

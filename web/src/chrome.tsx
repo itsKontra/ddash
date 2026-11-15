@@ -1,6 +1,6 @@
 // The shell's frame in the Control room look: the navy sidebar (a drawer on
-// phones), the top bar with the breadcrumb and the scheme toggle. Shell-only;
-// Plugins never reach the nav.
+// phones), the top bar with the breadcrumb, the command palette's trigger
+// and the scheme toggle. Shell-only; Plugins never reach the nav.
 import { useQuery } from "@ddash/plugin";
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
 import { cx, Icon, Presence, type IconName } from "@ddash/ui";
@@ -9,11 +9,14 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 import { NavLink, useLocation } from "react-router";
 import { useScheme } from "./appearance";
 import type { NavItem } from "./nav";
+import { PaletteTrigger } from "./palette";
 
 export interface ChromeProps {
   items: NavItem[];
   /** What a Plugin's Nav Entry shows at its end: its badge, or that it failed to load. */
   aside: (item: NavItem) => ReactNode;
+  /** Opens the command palette, from the top bar's "Search or run…". */
+  onSearch: () => void;
   /** Shown above the Page, e.g. the unreachable banner. */
   banner?: ReactNode;
   children: ReactNode;
@@ -52,7 +55,7 @@ function usePageLabel({ main, plugins, system }: Sections) {
   return [...main, ...plugins, ...system].find((e) => (e.end ? pathname === e.to : first === e.to))?.label;
 }
 
-export function Chrome({ items, aside, banner, children }: ChromeProps) {
+export function Chrome({ items, aside, onSearch, banner, children }: ChromeProps) {
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLButtonElement>(null);
   const all = sections(items, aside);
@@ -71,8 +74,9 @@ export function Chrome({ items, aside, banner, children }: ChromeProps) {
       </aside>
       <Presence>{open && <Drawer sections={all} onClose={close} />}</Presence>
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex items-center justify-between bg-nav px-4 py-3 lg:hidden">
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 bg-nav px-4 py-3 lg:hidden">
           <Brand sub={false} />
+          <PaletteTrigger onOpen={onSearch} className="flex-1 border-nav-border bg-nav-hover text-nav-foreground hover:text-nav-strong" />
           <div className="flex items-center gap-1">
             <SchemeToggle className="text-nav-strong hover:bg-nav-hover" />
             <button
@@ -98,7 +102,10 @@ export function Chrome({ items, aside, banner, children }: ChromeProps) {
                 {label ?? "Not found"}
               </span>
             </nav>
-            <SchemeToggle className="border border-border bg-card text-muted-foreground shadow-elevation hover:text-foreground" />
+            <div className="flex items-center gap-2">
+              <PaletteTrigger onOpen={onSearch} className="w-80 border-border bg-card text-muted-foreground shadow-elevation hover:text-foreground" />
+              <SchemeToggle className="border border-border bg-card text-muted-foreground shadow-elevation hover:text-foreground" />
+            </div>
           </div>
           {banner}
           {children}
