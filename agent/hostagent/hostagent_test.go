@@ -309,3 +309,58 @@ func TestRebootRequiredIsReadOnceInAWhileAndAnewAfterAnUpgrade(t *testing.T) {
 		}
 	})
 }
+
+// The new binary lands on the host's root disk, as root.
+func TestAnUpdateDownloadThatIsTooLargeOrBreaksOffLeavesNoFile(t *testing.T) {
+	old := maxUpdateBytes
+	maxUpdateBytes = 1 << 10
+	t.Cleanup(func() { maxUpdateBytes = old })
+	h := newHost(t, debian)
+	a, err := New(Options{Root: h.root, Run: h.run})
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "ddash-host-agent.new")
+	serve := func(handler http.HandlerFunc) string {
+		srv := httptest.NewServer(handler)
+		t.Cleanup(srv.Close)
+		return srv.URL
+	}
+	gone := func(what string, err error) {
+		t.Helper()
+		if err == nil {
+			t.Errorf("%s: the download succeeded", what)
+		}
+		if _, statErr := os.Stat(path); !errors.Is(statErr, os.ErrNotExist) {
+			t.Errorf("%s: %s is still there after %v", what, path, err)
+		}
+	}
+
+	_, err = a.download(t.Context(), serve(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write(bytes.Repeat([]byte("x"), 4<<10)) // says its length
+	}), path)
+	gone("an oversized download", err)
+
+	_, err = a.download(t.Context(), serve(func(w http.ResponseWriter, _ *http.Request) {
+		for range 8 { // streamed: no length to refuse up front
+			w.Write(bytes.Repeat([]byte("x"), 512))
+			w.(http.Flusher).Flush()
+		}
+	}), path)
+	gone("an oversized streamed download", err)
+
+	_, err = a.download(t.Context(), serve(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Length", "900")
+		w.Write([]byte("only the start"))
+		panic(http.ErrAbortHandler) // the connection breaks off
+	}), path)
+	gone("an interrupted download", err)
+
+	sum, err := a.download(t.Context(), serve(func(w http.ResponseWriter, _ *http.Request) { w.Write([]byte("the new agent")) }), path)
+	if err != nil || len(sum) != 64 {
+		t.Fatalf("a download within the cap: %q, %v", sum, err)
+	}
+	if b, _ := os.ReadFile(path); string(b) != "the new agent" {
+		t.Errorf("downloaded %q", b)
+	}
+}

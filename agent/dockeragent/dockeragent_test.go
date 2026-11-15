@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"slices"
@@ -483,5 +484,52 @@ func TestAListingReadsEachComposeFileOnce(t *testing.T) {
 		if n != 1 {
 			t.Errorf("%s was read %d times in one listing, want once", file, n)
 		}
+	}
+}
+
+// A symlink inside a root can point anywhere on the host: the path is
+// checked as the read or write that follows will see it.
+func TestAPathThatLeavesTheRootsThroughASymlinkIsRefused(t *testing.T) {
+	ctx := context.Background()
+	cl, root, _, _ := setup(t)
+	outside := t.TempDir()
+	secret := filepath.Join(outside, "compose.yaml")
+	if err := os.WriteFile(secret, []byte("services: {}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "escape")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(secret, filepath.Join(root, "media", "linked.yaml")); err != nil {
+		t.Fatal(err)
+	}
+	refusedOutOfRoots := func(what string, err error) {
+		t.Helper()
+		var refused *agent.APIError
+		if !errors.As(err, &refused) || refused.Code != agent.CodeOutOfRoots {
+			t.Errorf("%s: %v, want %s", what, err, agent.CodeOutOfRoots)
+		}
+	}
+
+	for _, path := range []string{
+		filepath.Join(root, "escape", "compose.yaml"),        // through a linked directory
+		filepath.Join(root, "escape", "new", "compose.yaml"), // to a file that isn't there yet
+		filepath.Join(root, "media", "linked.yaml"),          // a linked file
+	} {
+		var file agent.File
+		refusedOutOfRoots("read "+path, cl.Get(ctx, agent.PathFile, url.Values{"path": {path}}, &file))
+		refusedOutOfRoots("write "+path, cl.Post(ctx, agent.PathWrite, agent.WriteRequest{Path: path, Content: "services:\n  x: {}\n"}, &file))
+	}
+	if b, _ := os.ReadFile(secret); string(b) != "services: {}\n" {
+		t.Errorf("the file outside the roots now holds %q", b)
+	}
+	if _, err := os.Stat(filepath.Join(outside, "new")); err == nil {
+		t.Error("a directory was created outside the roots")
+	}
+
+	// A root that is itself reached through a symlink still works.
+	var file agent.File
+	if err := cl.Get(ctx, agent.PathFile, url.Values{"path": {filepath.Join(root, "media", "compose.yaml")}}, &file); err != nil {
+		t.Errorf("a file inside the roots: %v", err)
 	}
 }

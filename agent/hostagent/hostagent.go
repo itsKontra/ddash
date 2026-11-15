@@ -387,6 +387,52 @@ func (a *Agent) upgradeJob(ctx context.Context, p *agent.Progress) (map[string]s
 	return map[string]string{"updated": strconv.Itoa(len(before)), "reboot_required": strconv.FormatBool(reboot)}, nil
 }
 
+// maxUpdateBytes caps the download of a new Host Agent: the binary is
+// some tens of MB, and the disk it lands on is the host's root.
+var maxUpdateBytes int64 = 256 << 20
+
+// download saves what url serves to path, executable, and returns its
+// SHA-256. A failed, interrupted or oversized download leaves no file.
+func (a *Agent) download(ctx context.Context, url, path string) (sum string, err error) {
+	hreq, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return "", err
+	}
+	res, err := a.o.HTTP.Do(hreq)
+	if err != nil {
+		return "", err
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("ddash answered %s", res.Status)
+	}
+	if res.ContentLength > maxUpdateBytes {
+		return "", fmt.Errorf("the download is %d bytes, more than the %d a Host Agent may be", res.ContentLength, maxUpdateBytes)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o755)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if cerr := f.Close(); err == nil {
+			err = cerr
+		}
+		if err != nil {
+			os.Remove(path)
+		}
+	}()
+	h := sha256.New()
+	// One byte past the cap tells an oversized body from one at the cap.
+	n, err := io.Copy(io.MultiWriter(f, h), io.LimitReader(res.Body, maxUpdateBytes+1))
+	if err != nil {
+		return "", err
+	}
+	if n > maxUpdateBytes {
+		return "", fmt.Errorf("the download is more than the %d bytes a Host Agent may be", maxUpdateBytes)
+	}
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
+
 // rebootRequired is "reboot required" as last read. An answer older than
 // rebootTTL is read again in the background and returned meanwhile, so no
 // request waits for dnf; only the Agent's first read is waited for, as
@@ -470,37 +516,20 @@ func (a *Agent) update(w http.ResponseWriter, r *http.Request) {
 	}
 	job, err := a.jobs.Start("agent.update", "Update the Host Agent to "+req.Release, "agent", []string{"Download the new Host Agent", "Check its checksum", "Restart the Host Agent"}, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
 		p.Begin(0)
-		hreq, err := http.NewRequestWithContext(ctx, http.MethodGet, req.URL, nil)
-		if err != nil {
-			return nil, err
-		}
-		res, err := a.o.HTTP.Do(hreq)
-		if err != nil {
-			return nil, err
-		}
-		defer res.Body.Close()
-		if res.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("ddash answered %s", res.Status)
-		}
 		tmp := a.o.Binary + ".new"
-		f, err := os.OpenFile(tmp, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o755)
+		got, err := a.download(ctx, req.URL, tmp)
 		if err != nil {
 			return nil, err
 		}
-		h := sha256.New()
-		if _, err := io.Copy(io.MultiWriter(f, h), res.Body); err != nil {
-			f.Close()
-			return nil, err
-		}
-		f.Close()
 		p.Done(0, "")
 		p.Begin(1)
-		if got := hex.EncodeToString(h.Sum(nil)); got != strings.ToLower(req.SHA256) {
+		if got != strings.ToLower(req.SHA256) {
 			os.Remove(tmp)
 			return nil, fmt.Errorf("the download's SHA-256 is %s, not %s", got, req.SHA256)
 		}
 		p.Done(1, "")
 		if err := os.Rename(tmp, a.o.Binary); err != nil {
+			os.Remove(tmp)
 			return nil, err
 		}
 		p.Done(2, "restarting")

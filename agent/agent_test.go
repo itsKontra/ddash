@@ -6,8 +6,10 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/itsKontra/ddash/agent"
@@ -176,4 +178,49 @@ func TestCallsToOneAgentShareItsConnection(t *testing.T) {
 	if got := connections.Load() - before; got > 1 {
 		t.Errorf("5 calls opened %d connections, want at most 1", got)
 	}
+}
+
+// A command that hangs (a pull from a registry that stopped answering)
+// must not hold its target busy until the Agent restarts.
+func TestAJobThatNeverEndsIsStoppedByItsTimeoutAndFails(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		jobs := agent.NewJobs(nil)
+		heedsCtx, err := jobs.Start("compose.pull", "Pull media", "media", []string{"Pull"}, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
+			p.Begin(0)
+			<-ctx.Done() // as a command run with ctx does when it is killed
+			return nil, ctx.Err()
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		release := make(chan struct{})
+		defer close(release)
+		ignoresCtx, err := jobs.Start("packages.upgrade", "Update packages", "host", []string{"Install"}, func(_ context.Context, p *agent.Progress) (map[string]string, error) {
+			p.Begin(0)
+			<-release
+			p.Done(0, "too late") // after the job was given up on
+			return nil, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(agent.JobTimeout - time.Minute)
+		synctest.Wait()
+		if j, _ := jobs.Get(heedsCtx.ID); j.State != agent.Running {
+			t.Fatalf("a minute before the timeout the job is %s, want still running", j.State)
+		}
+		time.Sleep(2 * time.Minute)
+		synctest.Wait()
+
+		for _, id := range []string{heedsCtx.ID, ignoresCtx.ID} {
+			j, _ := jobs.Get(id)
+			if j.State != agent.Failed || !strings.Contains(j.Error, "didn't end within 2h") || j.Steps[0].State != agent.Failed {
+				t.Errorf("%s after the timeout: %s, error %q, step %s; want failed, saying it was stopped", j.Title, j.State, j.Error, j.Steps[0].State)
+			}
+		}
+		if _, err := jobs.Start("compose.up", "Start media", "media", nil, func(context.Context, *agent.Progress) (map[string]string, error) { return nil, nil }); err != nil {
+			t.Errorf("a new job on the target after the timeout: %v", err)
+		}
+	})
 }
