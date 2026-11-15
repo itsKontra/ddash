@@ -174,3 +174,24 @@ func TestTheDevReleaseIsNeverCached(t *testing.T) {
 		}
 	}
 }
+
+// ddash's UI runs Actions, so no other site may frame it, and no response
+// is to be sniffed into another type.
+func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
+	h := shelf(t)
+
+	for _, path := range []string{"/", "/healthz", "/api/icons?names=plus", "/assets/nope.js", "/api/core/nope"} {
+		res := h.Get(path)
+		for name, want := range map[string]string{
+			"X-Content-Type-Options":    "nosniff",
+			"X-Frame-Options":           "DENY",
+			"Referrer-Policy":           "same-origin",
+			"Content-Security-Policy":   "frame-ancestors 'none'",
+			"Strict-Transport-Security": "max-age=31536000",
+		} {
+			if got := res.Header().Get(name); got != want {
+				t.Errorf("GET %s: %s = %q, want %q", path, name, got, want)
+			}
+		}
+	}
+}
