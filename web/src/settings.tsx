@@ -104,7 +104,7 @@ function Appearance() {
       {save.error && (
         <div className="mt-4">
           <Notice tone="down" title="Saving the Theme failed">
-            {save.error.message}
+            {save.error.rawMessage}
           </Notice>
         </div>
       )}

@@ -185,7 +185,7 @@ function Page({
     if (data) report(data);
   }, [data]);
   useEffect(() => {
-    if (error && !data) fail(error.message);
+    if (error && !data) fail(error.rawMessage);
   }, [error, data]);
   return null;
 }

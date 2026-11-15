@@ -48,7 +48,7 @@ export function ChannelList() {
       }
     >
       <div className="flex flex-col gap-3">
-        {error && !data && <Notice tone="warn">Channels unknown: {error.message}</Notice>}
+        {error && !data && <Notice tone="warn">Channels unknown: {error.rawMessage}</Notice>}
         {data && !reached && (
           <Notice tone="warn" title="No channel gets Checks' Notifications">
             A Check going down reaches no one until a channel is set up and takes Checks.
