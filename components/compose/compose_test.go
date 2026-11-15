@@ -306,8 +306,19 @@ func TestProtected(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plan.GetPlan().GetBlocked()) == 0 || len(plan.GetPlan().GetProtected()) != 1 {
-		t.Fatalf("plan = %v", plan)
+	// Only the override keeps it from running: nothing else blocks it.
+	if plan.GetPlan().GetOverrideNeeded() == "" || len(plan.GetPlan().GetBlocked()) != 0 || len(plan.GetPlan().GetProtected()) != 1 {
+		t.Fatalf("plan = %v, want it to need the override for its one Protected container and nothing else", plan)
+	}
+	stream, err := l.c.RunAction(ctx, &pb.RunActionRequest{Action: a, Plan: plan.GetPlan()})
+	if err == nil {
+		_, err = stream.Recv()
+	}
+	if status.Code(err) != codes.FailedPrecondition || !strings.Contains(err.Error(), "Protected") {
+		t.Fatalf("run without the override: %v, want FailedPrecondition naming the Protected container", err)
+	}
+	if st := l.docker.State("infra-proxy-1"); st != "running" {
+		t.Fatalf("infra-proxy-1 is %s after the refused run, want it left running", st)
 	}
 	if !l.project(t, "infra").GetProtected() {
 		t.Fatal("infra isn't Protected")

@@ -1600,9 +1600,13 @@ type Plan struct {
 	Protected []string `protobuf:"bytes,5,rep,name=protected,proto3" json:"protected,omitempty"`
 	// Update: nothing to pull is known to be newer. It still runs: a pull
 	// may find more than the last check.
-	UpToDate      bool `protobuf:"varint,6,opt,name=up_to_date,json=upToDate,proto3" json:"up_to_date,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	UpToDate bool `protobuf:"varint,6,opt,name=up_to_date,json=upToDate,proto3" json:"up_to_date,omitempty"`
+	// Why it doesn't run without override_protected, as the Operator reads
+	// it; empty when nothing it touches is Protected or the override is
+	// given. Apart from blocked: the override lifts this, and only this.
+	OverrideNeeded string `protobuf:"bytes,7,opt,name=override_needed,json=overrideNeeded,proto3" json:"override_needed,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *Plan) Reset() {
@@ -1675,6 +1679,13 @@ func (x *Plan) GetUpToDate() bool {
 		return x.UpToDate
 	}
 	return false
+}
+
+func (x *Plan) GetOverrideNeeded() string {
+	if x != nil {
+		return x.OverrideNeeded
+	}
+	return ""
 }
 
 type PlanStep struct {
@@ -2310,7 +2321,7 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\tdirectory\x18\x03 \x01(\tR\tdirectory\x12\x18\n" +
 	"\acontent\x18\x04 \x01(\tR\acontent\x12\x14\n" +
 	"\x05start\x18\x05 \x01(\bR\x05start\x12\x10\n" +
-	"\x03env\x18\x06 \x01(\tR\x03env\"\xb5\x01\n" +
+	"\x03env\x18\x06 \x01(\tR\x03env\"\xde\x01\n" +
 	"\x04Plan\x12-\n" +
 	"\x05steps\x18\x01 \x03(\v2\x17.ddash.compose.PlanStepR\x05steps\x12\x18\n" +
 	"\ablocked\x18\x02 \x03(\tR\ablocked\x12\x14\n" +
@@ -2318,7 +2329,8 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\x04diff\x18\x04 \x01(\tR\x04diff\x12\x1c\n" +
 	"\tprotected\x18\x05 \x03(\tR\tprotected\x12\x1c\n" +
 	"\n" +
-	"up_to_date\x18\x06 \x01(\bR\bupToDate\"\x81\x01\n" +
+	"up_to_date\x18\x06 \x01(\bR\bupToDate\x12'\n" +
+	"\x0foverride_needed\x18\a \x01(\tR\x0eoverrideNeeded\"\x81\x01\n" +
 	"\bPlanStep\x12-\n" +
 	"\x06system\x18\x01 \x01(\x0e2\x15.ddash.compose.SystemR\x06system\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x120\n" +

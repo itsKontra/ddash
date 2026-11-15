@@ -97,7 +97,7 @@ it("links to Plugins while no calendar is set up", async () => {
 
   const notice = screen.getByRole("status");
   expect(within(notice).getByText("No calendar is set up")).toBeTruthy();
-  expect(within(notice).getByRole("link", { name: "Plugins" }).getAttribute("href")).toBe("/plugins");
+  expect(within(notice).getByRole("link", { name: "Configure it in Plugins" }).getAttribute("href")).toBe("/plugins");
 });
 
 it("says why when calendar-api can't list the events", async () => {

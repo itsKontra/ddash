@@ -14,9 +14,6 @@ export function useCertificates() {
   return { certificates: data?.certificates, error };
 }
 
-/** The error is the core's answer for a Component without config. */
-export const notConfigured = (error: { rawMessage: string } | null | undefined) => error?.rawMessage === "not configured";
-
 /** A time, machine-readable in dateTime. */
 export function Time({ at }: { at: Timestamp | Date }) {
   const d = at instanceof Date ? at : timestampDate(at);

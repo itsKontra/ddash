@@ -19,10 +19,16 @@ service LifecycleService {
   // such as "hosts[1].url". Start is called at most once per process.
   rpc Start(StartRequest) returns (StartResponse);
   // Health reports the Component's own state. Before a successful Start it
-  // fails with FAILED_PRECONDITION "not configured", or reports DOWN with the
-  // reason Start failed.
+  // fails with FAILED_PRECONDITION "not configured" and a NotConfigured
+  // detail, or reports DOWN with the reason Start failed.
   rpc Health(HealthRequest) returns (HealthResponse);
 }
+
+// The detail of the error a Component without config answers every call
+// with, from the host or from the Component itself. Callers that treat
+// "no config yet" apart from a failure (a Page offering to set it up)
+// look for this detail, never at the message's wording.
+message NotConfigured {}
 
 message DescribeRequest {}
 

@@ -44,6 +44,10 @@ export function pending(): Promise<Response> {
 /** The core's answer while a Component is down: Connect's unavailable, as a 503. */
 export const unavailable = (message: string) => Response.json({ code: "unavailable", message }, { status: 503 });
 
+/** What a Component without config answers every call with, as the host sends it: the NotConfigured detail and all. */
+export const notConfigured = () =>
+  Response.json({ code: "failed_precondition", message: "not configured", details: [{ type: "ddash.component.NotConfigured", value: "" }] }, { status: 400 });
+
 /** An error's detail as Connect JSON carries it: the message's full name and its binary encoding in unpadded base64. */
 export interface Detail {
   type: string;

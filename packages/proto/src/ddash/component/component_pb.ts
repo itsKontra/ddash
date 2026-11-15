@@ -15,7 +15,25 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ddash/component/component.proto.
  */
 export const file_ddash_component_component: GenFile = /*@__PURE__*/
-  fileDesc("Ch9kZGFzaC9jb21wb25lbnQvY29tcG9uZW50LnByb3RvEg9kZGFzaC5jb21wb25lbnQiEQoPRGVzY3JpYmVSZXF1ZXN0IqUBChBEZXNjcmliZVJlc3BvbnNlEgwKBG5hbWUYASABKAkSDwoHcmVsZWFzZRgCIAEoCRIQCghyZXF1aXJlcxgDIAMoCRIPCgdzZXJ2aWNlGAQgASgJEhYKDmNvbmZpZ19tZXNzYWdlGAUgASgJEjcKC2Rlc2NyaXB0b3JzGAYgASgLMiIuZ29vZ2xlLnByb3RvYnVmLkZpbGVEZXNjcmlwdG9yU2V0IjIKDFN0YXJ0UmVxdWVzdBIOCgZjb25maWcYASABKAwSEgoKcHVibGljX3VybBgCIAEoCSIPCg1TdGFydFJlc3BvbnNlIg8KDUhlYWx0aFJlcXVlc3QiTgoOSGVhbHRoUmVzcG9uc2USKwoFc3RhdGUYASABKA4yHC5kZGFzaC5jb21wb25lbnQuSGVhbHRoU3RhdGUSDwoHbWVzc2FnZRgCIAEoCSpyCgtIZWFsdGhTdGF0ZRIcChhIRUFMVEhfU1RBVEVfVU5TUEVDSUZJRUQQABITCg9IRUFMVEhfU1RBVEVfT0sQARIZChVIRUFMVEhfU1RBVEVfREVHUkFERUQQAhIVChFIRUFMVEhfU1RBVEVfRE9XThADMvYBChBMaWZlY3ljbGVTZXJ2aWNlEk8KCERlc2NyaWJlEiAuZGRhc2guY29tcG9uZW50LkRlc2NyaWJlUmVxdWVzdBohLmRkYXNoLmNvbXBvbmVudC5EZXNjcmliZVJlc3BvbnNlEkYKBVN0YXJ0Eh0uZGRhc2guY29tcG9uZW50LlN0YXJ0UmVxdWVzdBoeLmRkYXNoLmNvbXBvbmVudC5TdGFydFJlc3BvbnNlEkkKBkhlYWx0aBIeLmRkYXNoLmNvbXBvbmVudC5IZWFsdGhSZXF1ZXN0Gh8uZGRhc2guY29tcG9uZW50LkhlYWx0aFJlc3BvbnNlQj5aPGdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL2NvbXBvbmVudDtjb21wb25lbnRwYmIGcHJvdG8z", [file_google_protobuf_descriptor]);
+  fileDesc("Ch9kZGFzaC9jb21wb25lbnQvY29tcG9uZW50LnByb3RvEg9kZGFzaC5jb21wb25lbnQiDwoNTm90Q29uZmlndXJlZCIRCg9EZXNjcmliZVJlcXVlc3QipQEKEERlc2NyaWJlUmVzcG9uc2USDAoEbmFtZRgBIAEoCRIPCgdyZWxlYXNlGAIgASgJEhAKCHJlcXVpcmVzGAMgAygJEg8KB3NlcnZpY2UYBCABKAkSFgoOY29uZmlnX21lc3NhZ2UYBSABKAkSNwoLZGVzY3JpcHRvcnMYBiABKAsyIi5nb29nbGUucHJvdG9idWYuRmlsZURlc2NyaXB0b3JTZXQiMgoMU3RhcnRSZXF1ZXN0Eg4KBmNvbmZpZxgBIAEoDBISCgpwdWJsaWNfdXJsGAIgASgJIg8KDVN0YXJ0UmVzcG9uc2UiDwoNSGVhbHRoUmVxdWVzdCJOCg5IZWFsdGhSZXNwb25zZRIrCgVzdGF0ZRgBIAEoDjIcLmRkYXNoLmNvbXBvbmVudC5IZWFsdGhTdGF0ZRIPCgdtZXNzYWdlGAIgASgJKnIKC0hlYWx0aFN0YXRlEhwKGEhFQUxUSF9TVEFURV9VTlNQRUNJRklFRBAAEhMKD0hFQUxUSF9TVEFURV9PSxABEhkKFUhFQUxUSF9TVEFURV9ERUdSQURFRBACEhUKEUhFQUxUSF9TVEFURV9ET1dOEAMy9gEKEExpZmVjeWNsZVNlcnZpY2USTwoIRGVzY3JpYmUSIC5kZGFzaC5jb21wb25lbnQuRGVzY3JpYmVSZXF1ZXN0GiEuZGRhc2guY29tcG9uZW50LkRlc2NyaWJlUmVzcG9uc2USRgoFU3RhcnQSHS5kZGFzaC5jb21wb25lbnQuU3RhcnRSZXF1ZXN0Gh4uZGRhc2guY29tcG9uZW50LlN0YXJ0UmVzcG9uc2USSQoGSGVhbHRoEh4uZGRhc2guY29tcG9uZW50LkhlYWx0aFJlcXVlc3QaHy5kZGFzaC5jb21wb25lbnQuSGVhbHRoUmVzcG9uc2VCPlo8Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvcHJvdG8vZGRhc2gvY29tcG9uZW50O2NvbXBvbmVudHBiYgZwcm90bzM", [file_google_protobuf_descriptor]);
+
+/**
+ * The detail of the error a Component without config answers every call
+ * with, from the host or from the Component itself. Callers that treat
+ * "no config yet" apart from a failure (a Page offering to set it up)
+ * look for this detail, never at the message's wording.
+ *
+ * @generated from message ddash.component.NotConfigured
+ */
+export type NotConfigured = Message<"ddash.component.NotConfigured"> & {
+};
+
+/**
+ * Describes the message ddash.component.NotConfigured.
+ * Use `create(NotConfiguredSchema)` to create a new message.
+ */
+export const NotConfiguredSchema: GenMessage<NotConfigured> = /*@__PURE__*/
+  messageDesc(file_ddash_component_component, 0);
 
 /**
  * @generated from message ddash.component.DescribeRequest
@@ -28,7 +46,7 @@ export type DescribeRequest = Message<"ddash.component.DescribeRequest"> & {
  * Use `create(DescribeRequestSchema)` to create a new message.
  */
 export const DescribeRequestSchema: GenMessage<DescribeRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_component_component, 0);
+  messageDesc(file_ddash_component_component, 1);
 
 /**
  * @generated from message ddash.component.DescribeResponse
@@ -83,7 +101,7 @@ export type DescribeResponse = Message<"ddash.component.DescribeResponse"> & {
  * Use `create(DescribeResponseSchema)` to create a new message.
  */
 export const DescribeResponseSchema: GenMessage<DescribeResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_component_component, 1);
+  messageDesc(file_ddash_component_component, 2);
 
 /**
  * @generated from message ddash.component.StartRequest
@@ -110,7 +128,7 @@ export type StartRequest = Message<"ddash.component.StartRequest"> & {
  * Use `create(StartRequestSchema)` to create a new message.
  */
 export const StartRequestSchema: GenMessage<StartRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_component_component, 2);
+  messageDesc(file_ddash_component_component, 3);
 
 /**
  * @generated from message ddash.component.StartResponse
@@ -123,7 +141,7 @@ export type StartResponse = Message<"ddash.component.StartResponse"> & {
  * Use `create(StartResponseSchema)` to create a new message.
  */
 export const StartResponseSchema: GenMessage<StartResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_component_component, 3);
+  messageDesc(file_ddash_component_component, 4);
 
 /**
  * @generated from message ddash.component.HealthRequest
@@ -136,7 +154,7 @@ export type HealthRequest = Message<"ddash.component.HealthRequest"> & {
  * Use `create(HealthRequestSchema)` to create a new message.
  */
 export const HealthRequestSchema: GenMessage<HealthRequest> = /*@__PURE__*/
-  messageDesc(file_ddash_component_component, 4);
+  messageDesc(file_ddash_component_component, 5);
 
 /**
  * @generated from message ddash.component.HealthResponse
@@ -160,7 +178,7 @@ export type HealthResponse = Message<"ddash.component.HealthResponse"> & {
  * Use `create(HealthResponseSchema)` to create a new message.
  */
 export const HealthResponseSchema: GenMessage<HealthResponse> = /*@__PURE__*/
-  messageDesc(file_ddash_component_component, 5);
+  messageDesc(file_ddash_component_component, 6);
 
 /**
  * @generated from enum ddash.component.HealthState
@@ -224,8 +242,8 @@ export const LifecycleService: GenService<{
   },
   /**
    * Health reports the Component's own state. Before a successful Start it
-   * fails with FAILED_PRECONDITION "not configured", or reports DOWN with the
-   * reason Start failed.
+   * fails with FAILED_PRECONDITION "not configured" and a NotConfigured
+   * detail, or reports DOWN with the reason Start failed.
    *
    * @generated from rpc ddash.component.LifecycleService.Health
    */

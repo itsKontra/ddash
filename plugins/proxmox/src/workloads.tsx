@@ -1,8 +1,8 @@
-import { useQuery } from "@ddash/plugin";
+import { isNotConfigured, useQuery } from "@ddash/plugin";
 import { AddressSource, Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService } from "@ddash/proto/proxmox/proxmox_pb";
 import type { HostPackages } from "@ddash/proto/host-agent-api/host_agent_api_pb";
-import { Button, DataTable, EmptyState, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
+import { Button, DataTable, matches, noMatch, Notice, PageTitle, Panel, Pill, SearchField, Select, SetUp, Tabs, useQueryState, type Column, type Tone } from "@ddash/ui";
 import { Link, useNavigate } from "react-router";
 import { bytes, kindLabel } from "@ddash/display";
 import { cpu, uptime } from "./format";
@@ -51,21 +51,11 @@ export function Tags({ workload: w }: { workload: Workload }) {
 
 /** Why proxmox-api gave no Workloads: not configured yet (with the way to configure it), or the failure. */
 export function Unlisted({ error }: { error: { rawMessage: string } }) {
-  if (error.rawMessage === "not configured") {
+  if (isNotConfigured(error)) {
     return (
-      <Panel>
-        <EmptyState
-          icon="server"
-          title="proxmox-api isn't configured"
-          action={
-            <Link to="/plugins" className="text-sm font-semibold text-primary hover:underline">
-              Configure it in Plugins
-            </Link>
-          }
-        >
-          Give it a Proxmox API token to list the LXCs and VMs.
-        </EmptyState>
-      </Panel>
+      <SetUp icon="server" title="proxmox-api isn't configured">
+        Give it a Proxmox API token to list the LXCs and VMs.
+      </SetUp>
     );
   }
   return (

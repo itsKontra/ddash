@@ -1,9 +1,9 @@
-import type { Badge, Status, Widget } from "@ddash/plugin";
+import { isNotConfigured, type Badge, type Status, type Widget } from "@ddash/plugin";
 import { Status as NpmStatus, type Certificate } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
 import { Skeleton, StatusList, type Tone } from "@ddash/ui";
 import { expiry, relative } from "@ddash/display";
 import { stateLook } from "./certificates";
-import { notConfigured, Time, useCertificates, useStatus as useNpmStatus } from "./npm";
+import { Time, useCertificates, useStatus as useNpmStatus } from "./npm";
 
 const severity: Record<Tone, number> = { idle: 0, info: 0, maint: 0, up: 1, warn: 2, down: 3 };
 
@@ -25,7 +25,7 @@ function expiresText(cert: Certificate) {
 function useStatus(): Status | undefined {
   const { certificates, error } = useCertificates();
   if (!certificates) {
-    if (notConfigured(error)) return { tone: "warn", summary: "Set up Nginx Proxy Manager" };
+    if (isNotConfigured(error)) return { tone: "warn", summary: "Set up Nginx Proxy Manager" };
     return error ? { tone: "warn", summary: `nginx-proxy-manager-api unavailable: ${error.rawMessage}` } : undefined;
   }
   const n = nearest(certificates);

@@ -2,6 +2,7 @@
 import { useId, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Skeleton, StatusDot } from "./atoms";
+import { EmptyState, Notice } from "./feedback";
 import { Icon } from "./icon";
 import { Kicker } from "./kicker";
 import type { IconName } from "./icon-names";
@@ -320,3 +321,38 @@ export function WidgetCard({
   );
 }
 
+
+/**
+ * A Component that has no config yet, with the way to give it one: its
+ * settings on the Plugins page. title says what to set up ("Set up
+ * energy-api"), children what it needs and what the Operator gets for it.
+ * compact draws it as a Notice, for a place too small for the Panel.
+ */
+export function SetUp({ icon, title, children, compact }: { icon?: IconName; title: ReactNode; children: ReactNode; compact?: boolean }) {
+  if (compact) {
+    return (
+      <Notice tone="info" title={title}>
+        {children}{" "}
+        <Link to="/plugins" className="font-semibold text-primary hover:underline">
+          Configure it in Plugins
+        </Link>
+        .
+      </Notice>
+    );
+  }
+  return (
+    <Panel>
+      <EmptyState
+        icon={icon}
+        title={title}
+        action={
+          <Link to="/plugins" className="text-sm font-semibold text-primary hover:underline">
+            Configure it in Plugins
+          </Link>
+        }
+      >
+        {children}
+      </EmptyState>
+    </Panel>
+  );
+}

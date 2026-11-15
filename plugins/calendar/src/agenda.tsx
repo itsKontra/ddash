@@ -1,25 +1,21 @@
 import type { ListEventsResponse } from "@ddash/proto/calendar-api/calendar_api_pb";
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { EmptyState, Notice, PageTitle, Panel, Pill, Skeleton } from "@ddash/ui";
-import { Link } from "react-router";
+import { isNotConfigured } from "@ddash/plugin";
+import { EmptyState, Notice, PageTitle, Panel, Pill, SetUp, Skeleton } from "@ddash/ui";
 import { byDay, dayLabel, daysFrom, ended, entryTime, timed, useEvents, useNow, type Day } from "./events";
 
 /** The way to set up a calendar: calendar-api's config in Plugins. */
 export function NotSetUp() {
   return (
-    <Notice tone="info" title="No calendar is set up">
-      Give calendar-api each calendar's secret iCal address in{" "}
-      <Link to="/plugins" className="font-semibold text-primary hover:underline">
-        Plugins
-      </Link>
-      . ddash only reads it.
-    </Notice>
+    <SetUp compact title="No calendar is set up">
+      Give calendar-api each calendar&apos;s secret iCal address; ddash only reads it.
+    </SetUp>
   );
 }
 
 /** Why calendar-api gave no events: not configured yet, or the failure. */
 function Unlisted({ error }: { error: { rawMessage: string } }) {
-  if (error.rawMessage === "not configured") return <NotSetUp />;
+  if (isNotConfigured(error)) return <NotSetUp />;
   return (
     <Notice tone="down" title="calendar-api can't list the events">
       {error.rawMessage}

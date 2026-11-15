@@ -156,7 +156,7 @@ export function PlanDialog({
   const running = started && !ended && !failed && !refused;
   const blocked = plan && !run ? plan.blocked : [];
   const needsOverride = !!plan && plan.protected.length > 0;
-  const can = !!plan && blocked.filter((b) => !(override && b.includes("Protected"))).length === 0 && !running && !ended;
+  const can = !!plan && blocked.length === 0 && (override || !plan.overrideNeeded) && !running && !ended;
 
   const go = async () => {
     if (!plan) return;
@@ -199,13 +199,11 @@ export function PlanDialog({
             </div>
           </Notice>
         )}
-        {plan && blocked.filter((b) => !(needsOverride && b.includes("Protected"))).length > 0 && (
+        {plan && blocked.length > 0 && (
           <Notice tone="warn">
-            {blocked
-              .filter((b) => !(needsOverride && b.includes("Protected")))
-              .map((b) => (
-                <p key={b}>{b}</p>
-              ))}
+            {blocked.map((b) => (
+              <p key={b}>{b}</p>
+            ))}
           </Notice>
         )}
         {plan && plan.notes.length > 0 && !run && (

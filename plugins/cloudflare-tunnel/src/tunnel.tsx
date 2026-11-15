@@ -1,14 +1,13 @@
-import { useQuery } from "@ddash/plugin";
+import { isNotConfigured, useQuery } from "@ddash/plugin";
 import { CloudflareApiService, TunnelStatus, type Tunnel } from "@ddash/proto/cloudflare-api/cloudflare_api_pb";
 import { CloudflareTunnelService, DnsState, type PublicHostname } from "@ddash/proto/cloudflare-tunnel/cloudflare_tunnel_pb";
-import { EmptyState, Panel, type Tone } from "@ddash/ui";
-import { Link } from "react-router";
+import { SetUp as SetUpNotice, type Tone } from "@ddash/ui";
 
 /** The Tunnel as cloudflare-api reads it, and whether cloudflare-api is set up. */
 export function useTunnel() {
   const q = useQuery(CloudflareApiService.method.getTunnel, {});
   // Not set up: an empty config (set_up false), or none saved yet.
-  const notSetUp = q.data ? !q.data.setUp : q.error?.rawMessage === "not configured";
+  const notSetUp = q.data ? !q.data.setUp : isNotConfigured(q.error);
   return { ...q, tunnel: q.data?.tunnel, notSetUp };
 }
 
@@ -45,18 +44,8 @@ export const nameOf = (p: PublicHostname) => (p.fields?.path ? `${p.fields.hostn
 /** "Set up the Cloudflare Tunnel", while cloudflare-api has no account, Tunnel and token. */
 export function SetUp() {
   return (
-    <Panel>
-      <EmptyState
-        icon="cloud"
-        title="Set up the Cloudflare Tunnel"
-        action={
-          <Link to="/plugins" className="text-sm font-semibold text-primary hover:underline">
-            Configure it in Plugins
-          </Link>
-        }
-      >
-        Give cloudflare-api the account ID, the Tunnel&apos;s ID and an API token to see its connectors and Public Hostnames.
-      </EmptyState>
-    </Panel>
+    <SetUpNotice icon="cloud" title="Set up the Cloudflare Tunnel">
+      Give cloudflare-api the account ID, the Tunnel&apos;s ID and an API token to see its connectors and Public Hostnames.
+    </SetUpNotice>
   );
 }

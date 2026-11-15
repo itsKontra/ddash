@@ -1,5 +1,5 @@
 import { PlanDialog, type ActionInit } from "@ddash/compose-ui";
-import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
+import { isNotConfigured, useAction, usePluginLink, useQuery } from "@ddash/plugin";
 import { State } from "@ddash/proto/ddash/container/container_pb";
 import { ComposeService, ProjectState, type Host, type ImageChecks, type Project, type ProjectContainer } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
@@ -213,7 +213,7 @@ export function DockerPage() {
           </span>
         }
       />
-      {projects.error && !projects.data && projects.error.rawMessage !== "not configured" && (
+      {projects.error && !projects.data && !isNotConfigured(projects.error) && (
         <div className="mb-6">
           <Notice tone="down" title="compose can't list the Compose Projects">
             {projects.error.rawMessage}

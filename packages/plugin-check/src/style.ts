@@ -3,12 +3,28 @@
 // Tailwind build scans) and reports hard-coded colours, radii and fonts,
 // arbitrary Tailwind values, animations not behind motion-safe:,
 // design-system imports other than @ddash/ui, and a stylesheet holding
-// more than the plugin.css import and the Plugin's own @keyframes.
+// more than the plugin.css import and the Plugin's own @keyframes. It
+// also reports a script that decides by an error message's wording.
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join, relative } from "node:path";
 import { parseSync, Visitor } from "vite";
 
 const scripts = /\.[cm]?[jt]sx?$/;
+const tests = /\.test\.[cm]?[jt]sx?$/;
+
+// An error's message is what a Component wrote for the Operator: a Plugin
+// that compares it, or searches it, changes behaviour when the Component
+// rewords it (ADR-0002: they meet in proto). It matches rawMessage (and
+// message on something named error or err) compared to a string literal
+// or searched with includes, startsWith, endsWith or match.
+const text = String.raw`(?:rawMessage|\b(?:error|err)\??\.message)`;
+const literal = String.raw`["'\x60]`;
+const wording = new RegExp(
+  String.raw`${text}\s*[!=]==?\s*${literal}|${literal}\s*[!=]==?\s*[\w.?]*${text}|${text}\??\.(?:includes|startsWith|endsWith|match)\(`,
+  "g",
+);
+const decidesByWording =
+  "decides by an error's wording; use what the answer says in a field or an error detail (isNotConfigured from @ddash/plugin for a Component without config)";
 
 /**
  * The problems in the Plugin at dir (named after its directory), as
@@ -96,6 +112,9 @@ function lintScript(file: string, text: string, plugin: string, problems: string
   }
   const line = (offset: number) => text.slice(0, offset).split("\n").length;
   const at = (offset: number, problem: string) => problems.push(`${file}:${line(offset)}: ${problem}`);
+  if (!tests.test(file)) {
+    for (const m of text.matchAll(wording)) at(m.index, decidesByWording);
+  }
   const check = (value: string, offset: number) => {
     for (const p of checkString(value, plugin)) at(offset, p);
   };

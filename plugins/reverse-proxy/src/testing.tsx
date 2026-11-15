@@ -25,7 +25,7 @@ export const warn = {
 export const down = { status: "STATUS_DOWN", readAt: "2026-10-26T07:59:00Z", error: "sign-in refused: Invalid email or password" };
 
 /** Nginx Proxy Manager's answer while it has no config: the core's failed_precondition. */
-export const notConfigured = () => Response.json({ code: "failed_precondition", message: "not configured" }, { status: 400 });
+export { notConfigured } from "@ddash/plugin/testing";
 
 /** A certificate state as nginx-proxy-manager-api names it. */
 export type State = "OK" | "NOT_RENEWING" | "EXPIRES_SOON" | "EXPIRED";

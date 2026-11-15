@@ -77,6 +77,46 @@ func (HealthState) EnumDescriptor() ([]byte, []int) {
 	return file_ddash_component_component_proto_rawDescGZIP(), []int{0}
 }
 
+// The detail of the error a Component without config answers every call
+// with, from the host or from the Component itself. Callers that treat
+// "no config yet" apart from a failure (a Page offering to set it up)
+// look for this detail, never at the message's wording.
+type NotConfigured struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NotConfigured) Reset() {
+	*x = NotConfigured{}
+	mi := &file_ddash_component_component_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NotConfigured) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NotConfigured) ProtoMessage() {}
+
+func (x *NotConfigured) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_component_component_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NotConfigured.ProtoReflect.Descriptor instead.
+func (*NotConfigured) Descriptor() ([]byte, []int) {
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{0}
+}
+
 type DescribeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -85,7 +125,7 @@ type DescribeRequest struct {
 
 func (x *DescribeRequest) Reset() {
 	*x = DescribeRequest{}
-	mi := &file_ddash_component_component_proto_msgTypes[0]
+	mi := &file_ddash_component_component_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +137,7 @@ func (x *DescribeRequest) String() string {
 func (*DescribeRequest) ProtoMessage() {}
 
 func (x *DescribeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_component_component_proto_msgTypes[0]
+	mi := &file_ddash_component_component_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +150,7 @@ func (x *DescribeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeRequest.ProtoReflect.Descriptor instead.
 func (*DescribeRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_component_component_proto_rawDescGZIP(), []int{0}
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{1}
 }
 
 type DescribeResponse struct {
@@ -134,7 +174,7 @@ type DescribeResponse struct {
 
 func (x *DescribeResponse) Reset() {
 	*x = DescribeResponse{}
-	mi := &file_ddash_component_component_proto_msgTypes[1]
+	mi := &file_ddash_component_component_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -146,7 +186,7 @@ func (x *DescribeResponse) String() string {
 func (*DescribeResponse) ProtoMessage() {}
 
 func (x *DescribeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_component_component_proto_msgTypes[1]
+	mi := &file_ddash_component_component_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -159,7 +199,7 @@ func (x *DescribeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DescribeResponse.ProtoReflect.Descriptor instead.
 func (*DescribeResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_component_component_proto_rawDescGZIP(), []int{1}
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DescribeResponse) GetName() string {
@@ -217,7 +257,7 @@ type StartRequest struct {
 
 func (x *StartRequest) Reset() {
 	*x = StartRequest{}
-	mi := &file_ddash_component_component_proto_msgTypes[2]
+	mi := &file_ddash_component_component_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -229,7 +269,7 @@ func (x *StartRequest) String() string {
 func (*StartRequest) ProtoMessage() {}
 
 func (x *StartRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_component_component_proto_msgTypes[2]
+	mi := &file_ddash_component_component_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -242,7 +282,7 @@ func (x *StartRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartRequest.ProtoReflect.Descriptor instead.
 func (*StartRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_component_component_proto_rawDescGZIP(), []int{2}
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StartRequest) GetConfig() []byte {
@@ -267,7 +307,7 @@ type StartResponse struct {
 
 func (x *StartResponse) Reset() {
 	*x = StartResponse{}
-	mi := &file_ddash_component_component_proto_msgTypes[3]
+	mi := &file_ddash_component_component_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -279,7 +319,7 @@ func (x *StartResponse) String() string {
 func (*StartResponse) ProtoMessage() {}
 
 func (x *StartResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_component_component_proto_msgTypes[3]
+	mi := &file_ddash_component_component_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -292,7 +332,7 @@ func (x *StartResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartResponse.ProtoReflect.Descriptor instead.
 func (*StartResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_component_component_proto_rawDescGZIP(), []int{3}
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{4}
 }
 
 type HealthRequest struct {
@@ -303,7 +343,7 @@ type HealthRequest struct {
 
 func (x *HealthRequest) Reset() {
 	*x = HealthRequest{}
-	mi := &file_ddash_component_component_proto_msgTypes[4]
+	mi := &file_ddash_component_component_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -315,7 +355,7 @@ func (x *HealthRequest) String() string {
 func (*HealthRequest) ProtoMessage() {}
 
 func (x *HealthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_component_component_proto_msgTypes[4]
+	mi := &file_ddash_component_component_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -328,7 +368,7 @@ func (x *HealthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthRequest.ProtoReflect.Descriptor instead.
 func (*HealthRequest) Descriptor() ([]byte, []int) {
-	return file_ddash_component_component_proto_rawDescGZIP(), []int{4}
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{5}
 }
 
 type HealthResponse struct {
@@ -342,7 +382,7 @@ type HealthResponse struct {
 
 func (x *HealthResponse) Reset() {
 	*x = HealthResponse{}
-	mi := &file_ddash_component_component_proto_msgTypes[5]
+	mi := &file_ddash_component_component_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -354,7 +394,7 @@ func (x *HealthResponse) String() string {
 func (*HealthResponse) ProtoMessage() {}
 
 func (x *HealthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ddash_component_component_proto_msgTypes[5]
+	mi := &file_ddash_component_component_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -367,7 +407,7 @@ func (x *HealthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HealthResponse.ProtoReflect.Descriptor instead.
 func (*HealthResponse) Descriptor() ([]byte, []int) {
-	return file_ddash_component_component_proto_rawDescGZIP(), []int{5}
+	return file_ddash_component_component_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *HealthResponse) GetState() HealthState {
@@ -388,7 +428,8 @@ var File_ddash_component_component_proto protoreflect.FileDescriptor
 
 const file_ddash_component_component_proto_rawDesc = "" +
 	"\n" +
-	"\x1fddash/component/component.proto\x12\x0fddash.component\x1a google/protobuf/descriptor.proto\"\x11\n" +
+	"\x1fddash/component/component.proto\x12\x0fddash.component\x1a google/protobuf/descriptor.proto\"\x0f\n" +
+	"\rNotConfigured\"\x11\n" +
 	"\x0fDescribeRequest\"\xe3\x01\n" +
 	"\x10DescribeResponse\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
@@ -429,26 +470,27 @@ func file_ddash_component_component_proto_rawDescGZIP() []byte {
 }
 
 var file_ddash_component_component_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ddash_component_component_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_ddash_component_component_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_ddash_component_component_proto_goTypes = []any{
 	(HealthState)(0),                       // 0: ddash.component.HealthState
-	(*DescribeRequest)(nil),                // 1: ddash.component.DescribeRequest
-	(*DescribeResponse)(nil),               // 2: ddash.component.DescribeResponse
-	(*StartRequest)(nil),                   // 3: ddash.component.StartRequest
-	(*StartResponse)(nil),                  // 4: ddash.component.StartResponse
-	(*HealthRequest)(nil),                  // 5: ddash.component.HealthRequest
-	(*HealthResponse)(nil),                 // 6: ddash.component.HealthResponse
-	(*descriptorpb.FileDescriptorSet)(nil), // 7: google.protobuf.FileDescriptorSet
+	(*NotConfigured)(nil),                  // 1: ddash.component.NotConfigured
+	(*DescribeRequest)(nil),                // 2: ddash.component.DescribeRequest
+	(*DescribeResponse)(nil),               // 3: ddash.component.DescribeResponse
+	(*StartRequest)(nil),                   // 4: ddash.component.StartRequest
+	(*StartResponse)(nil),                  // 5: ddash.component.StartResponse
+	(*HealthRequest)(nil),                  // 6: ddash.component.HealthRequest
+	(*HealthResponse)(nil),                 // 7: ddash.component.HealthResponse
+	(*descriptorpb.FileDescriptorSet)(nil), // 8: google.protobuf.FileDescriptorSet
 }
 var file_ddash_component_component_proto_depIdxs = []int32{
-	7, // 0: ddash.component.DescribeResponse.descriptors:type_name -> google.protobuf.FileDescriptorSet
+	8, // 0: ddash.component.DescribeResponse.descriptors:type_name -> google.protobuf.FileDescriptorSet
 	0, // 1: ddash.component.HealthResponse.state:type_name -> ddash.component.HealthState
-	1, // 2: ddash.component.LifecycleService.Describe:input_type -> ddash.component.DescribeRequest
-	3, // 3: ddash.component.LifecycleService.Start:input_type -> ddash.component.StartRequest
-	5, // 4: ddash.component.LifecycleService.Health:input_type -> ddash.component.HealthRequest
-	2, // 5: ddash.component.LifecycleService.Describe:output_type -> ddash.component.DescribeResponse
-	4, // 6: ddash.component.LifecycleService.Start:output_type -> ddash.component.StartResponse
-	6, // 7: ddash.component.LifecycleService.Health:output_type -> ddash.component.HealthResponse
+	2, // 2: ddash.component.LifecycleService.Describe:input_type -> ddash.component.DescribeRequest
+	4, // 3: ddash.component.LifecycleService.Start:input_type -> ddash.component.StartRequest
+	6, // 4: ddash.component.LifecycleService.Health:input_type -> ddash.component.HealthRequest
+	3, // 5: ddash.component.LifecycleService.Describe:output_type -> ddash.component.DescribeResponse
+	5, // 6: ddash.component.LifecycleService.Start:output_type -> ddash.component.StartResponse
+	7, // 7: ddash.component.LifecycleService.Health:output_type -> ddash.component.HealthResponse
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name
@@ -467,7 +509,7 @@ func file_ddash_component_component_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_component_component_proto_rawDesc), len(file_ddash_component_component_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

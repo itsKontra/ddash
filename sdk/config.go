@@ -3,6 +3,8 @@ package sdk
 import (
 	"fmt"
 
+	componentpb "github.com/itsKontra/ddash/proto/ddash/component"
+
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -59,4 +61,25 @@ func FieldErrorsOf(err error) FieldErrors {
 		}
 	}
 	return out
+}
+
+// NotConfigured is the error a Component without config answers a call
+// with: FailedPrecondition "not configured", carrying a
+// componentpb.NotConfigured detail for callers to tell it by.
+func NotConfigured() error {
+	st, err := status.New(codes.FailedPrecondition, "not configured").WithDetails(&componentpb.NotConfigured{})
+	if err != nil {
+		return status.Error(codes.FailedPrecondition, "not configured")
+	}
+	return st.Err()
+}
+
+// IsNotConfigured reports whether err is NotConfigured, by its detail.
+func IsNotConfigured(err error) bool {
+	for _, d := range status.Convert(err).Details() {
+		if _, ok := d.(*componentpb.NotConfigured); ok {
+			return true
+		}
+	}
+	return false
 }

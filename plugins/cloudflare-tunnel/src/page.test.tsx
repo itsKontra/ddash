@@ -1,5 +1,5 @@
 import { PlanSchema, RunActionResponseSchema, System } from "@ddash/proto/cloudflare-tunnel/cloudflare_tunnel_pb";
-import { settle, unavailable } from "@ddash/plugin/testing";
+import { notConfigured, settle, unavailable } from "@ddash/plugin/testing";
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { bodies, failing, listed, plan, ranThrough, show, step, tunnel } from "./testing";
@@ -170,7 +170,7 @@ describe("a Plan Dialog", () => {
 describe("not set up", () => {
   it.each([
     ["an empty config", () => Response.json({})],
-    ["no config", () => Response.json({ code: "failed_precondition", message: "not configured" }, { status: 400 })],
+    ["no config", notConfigured],
   ])("with %s, links to Plugins to configure cloudflare-api", async (_, answer) => {
     await show({ GetTunnel: answer, ListPublicHostnames: () => Response.json({}) });
 

@@ -113,7 +113,7 @@ func (i *Instance) Register(s grpc.ServiceRegistrar) {
 func (i *Instance) configured() (component, error) {
 	r := i.ready.Load()
 	if r == nil {
-		return nil, status.Error(codes.FailedPrecondition, "not configured")
+		return nil, NotConfigured()
 	}
 	return r.c, nil
 }
