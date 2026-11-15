@@ -5,7 +5,8 @@
 // source: adguard-api/adguard_api.proto
 
 // adguard-api reads AdGuard Home through its HTTP API under /control, with
-// HTTP Basic auth, and turns ad-blocking off or on for one client.
+// HTTP Basic auth, turns ad-blocking off or on for one client, and pauses
+// and resumes protection.
 
 package adguardapipb
 
@@ -1084,6 +1085,159 @@ func (x *SetClientFilteringResponse) GetCreated() bool {
 	return false
 }
 
+type PauseProtectionRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// How long protection stays off: more than nothing, at most 24 hours.
+	Duration      *durationpb.Duration `protobuf:"bytes,1,opt,name=duration,proto3" json:"duration,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PauseProtectionRequest) Reset() {
+	*x = PauseProtectionRequest{}
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PauseProtectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PauseProtectionRequest) ProtoMessage() {}
+
+func (x *PauseProtectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PauseProtectionRequest.ProtoReflect.Descriptor instead.
+func (*PauseProtectionRequest) Descriptor() ([]byte, []int) {
+	return file_adguard_api_adguard_api_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *PauseProtectionRequest) GetDuration() *durationpb.Duration {
+	if x != nil {
+		return x.Duration
+	}
+	return nil
+}
+
+type PauseProtectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PauseProtectionResponse) Reset() {
+	*x = PauseProtectionResponse{}
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PauseProtectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PauseProtectionResponse) ProtoMessage() {}
+
+func (x *PauseProtectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PauseProtectionResponse.ProtoReflect.Descriptor instead.
+func (*PauseProtectionResponse) Descriptor() ([]byte, []int) {
+	return file_adguard_api_adguard_api_proto_rawDescGZIP(), []int{15}
+}
+
+type ResumeProtectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResumeProtectionRequest) Reset() {
+	*x = ResumeProtectionRequest{}
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeProtectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeProtectionRequest) ProtoMessage() {}
+
+func (x *ResumeProtectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeProtectionRequest.ProtoReflect.Descriptor instead.
+func (*ResumeProtectionRequest) Descriptor() ([]byte, []int) {
+	return file_adguard_api_adguard_api_proto_rawDescGZIP(), []int{16}
+}
+
+type ResumeProtectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ResumeProtectionResponse) Reset() {
+	*x = ResumeProtectionResponse{}
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ResumeProtectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ResumeProtectionResponse) ProtoMessage() {}
+
+func (x *ResumeProtectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_adguard_api_adguard_api_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ResumeProtectionResponse.ProtoReflect.Descriptor instead.
+func (*ResumeProtectionResponse) Descriptor() ([]byte, []int) {
+	return file_adguard_api_adguard_api_proto_rawDescGZIP(), []int{17}
+}
+
 var File_adguard_api_adguard_api_proto protoreflect.FileDescriptor
 
 const file_adguard_api_adguard_api_proto_rawDesc = "" +
@@ -1164,17 +1318,24 @@ const file_adguard_api_adguard_api_proto_rawDesc = "" +
 	"\aenabled\x18\x03 \x01(\bR\aenabled\"h\n" +
 	"\x1aSetClientFilteringResponse\x120\n" +
 	"\x06client\x18\x01 \x01(\v2\x18.ddash.adguardapi.ClientR\x06client\x12\x18\n" +
-	"\acreated\x18\x02 \x01(\bR\acreated*W\n" +
+	"\acreated\x18\x02 \x01(\bR\acreated\"O\n" +
+	"\x16PauseProtectionRequest\x125\n" +
+	"\bduration\x18\x01 \x01(\v2\x19.google.protobuf.DurationR\bduration\"\x19\n" +
+	"\x17PauseProtectionResponse\"\x19\n" +
+	"\x17ResumeProtectionRequest\"\x1a\n" +
+	"\x18ResumeProtectionResponse*W\n" +
 	"\tQueryMode\x12\x1a\n" +
 	"\x16QUERY_MODE_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12QUERY_MODE_BLOCKED\x10\x01\x12\x16\n" +
-	"\x12QUERY_MODE_ALLOWED\x10\x022\x87\x04\n" +
+	"\x12QUERY_MODE_ALLOWED\x10\x022\xe6\x05\n" +
 	"\x11AdguardApiService\x12\\\n" +
 	"\tGetStatus\x12\".ddash.adguardapi.GetStatusRequest\x1a#.ddash.adguardapi.GetStatusResponse\"\x06\x8a\xb5\x18\x02\b\x02\x12W\n" +
 	"\bGetStats\x12!.ddash.adguardapi.GetStatsRequest\x1a\".ddash.adguardapi.GetStatsResponse\"\x04\x8a\xb5\x18\x00\x12b\n" +
 	"\vListQueries\x12$.ddash.adguardapi.ListQueriesRequest\x1a%.ddash.adguardapi.ListQueriesResponse\"\x06\x8a\xb5\x18\x02\b\x03\x12`\n" +
 	"\vListClients\x12$.ddash.adguardapi.ListClientsRequest\x1a%.ddash.adguardapi.ListClientsResponse\"\x04\x8a\xb5\x18\x00\x12u\n" +
-	"\x12SetClientFiltering\x12+.ddash.adguardapi.SetClientFilteringRequest\x1a,.ddash.adguardapi.SetClientFilteringResponse\"\x04\x92\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/adguard-api/adguardapipb;adguardapipbb\x06proto3"
+	"\x12SetClientFiltering\x12+.ddash.adguardapi.SetClientFilteringRequest\x1a,.ddash.adguardapi.SetClientFilteringResponse\"\x04\x92\xb5\x18\x00\x12l\n" +
+	"\x0fPauseProtection\x12(.ddash.adguardapi.PauseProtectionRequest\x1a).ddash.adguardapi.PauseProtectionResponse\"\x04\x92\xb5\x18\x00\x12o\n" +
+	"\x10ResumeProtection\x12).ddash.adguardapi.ResumeProtectionRequest\x1a*.ddash.adguardapi.ResumeProtectionResponse\"\x04\x92\xb5\x18\x00BMZKgithub.com/itsKontra/ddash/components/adguard-api/adguardapipb;adguardapipbb\x06proto3"
 
 var (
 	file_adguard_api_adguard_api_proto_rawDescOnce sync.Once
@@ -1189,7 +1350,7 @@ func file_adguard_api_adguard_api_proto_rawDescGZIP() []byte {
 }
 
 var file_adguard_api_adguard_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_adguard_api_adguard_api_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_adguard_api_adguard_api_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_adguard_api_adguard_api_proto_goTypes = []any{
 	(QueryMode)(0),                     // 0: ddash.adguardapi.QueryMode
 	(*AdguardApiConfig)(nil),           // 1: ddash.adguardapi.AdguardApiConfig
@@ -1206,35 +1367,44 @@ var file_adguard_api_adguard_api_proto_goTypes = []any{
 	(*Client)(nil),                     // 12: ddash.adguardapi.Client
 	(*SetClientFilteringRequest)(nil),  // 13: ddash.adguardapi.SetClientFilteringRequest
 	(*SetClientFilteringResponse)(nil), // 14: ddash.adguardapi.SetClientFilteringResponse
-	(*durationpb.Duration)(nil),        // 15: google.protobuf.Duration
-	(*timestamppb.Timestamp)(nil),      // 16: google.protobuf.Timestamp
+	(*PauseProtectionRequest)(nil),     // 15: ddash.adguardapi.PauseProtectionRequest
+	(*PauseProtectionResponse)(nil),    // 16: ddash.adguardapi.PauseProtectionResponse
+	(*ResumeProtectionRequest)(nil),    // 17: ddash.adguardapi.ResumeProtectionRequest
+	(*ResumeProtectionResponse)(nil),   // 18: ddash.adguardapi.ResumeProtectionResponse
+	(*durationpb.Duration)(nil),        // 19: google.protobuf.Duration
+	(*timestamppb.Timestamp)(nil),      // 20: google.protobuf.Timestamp
 }
 var file_adguard_api_adguard_api_proto_depIdxs = []int32{
-	15, // 0: ddash.adguardapi.GetStatusResponse.protection_paused_for:type_name -> google.protobuf.Duration
+	19, // 0: ddash.adguardapi.GetStatusResponse.protection_paused_for:type_name -> google.protobuf.Duration
 	6,  // 1: ddash.adguardapi.GetStatsResponse.top_queried_domains:type_name -> ddash.adguardapi.TopEntry
 	6,  // 2: ddash.adguardapi.GetStatsResponse.top_blocked_domains:type_name -> ddash.adguardapi.TopEntry
 	6,  // 3: ddash.adguardapi.GetStatsResponse.top_clients:type_name -> ddash.adguardapi.TopEntry
 	0,  // 4: ddash.adguardapi.ListQueriesRequest.mode:type_name -> ddash.adguardapi.QueryMode
 	9,  // 5: ddash.adguardapi.ListQueriesResponse.queries:type_name -> ddash.adguardapi.Query
-	16, // 6: ddash.adguardapi.ListQueriesResponse.reached:type_name -> google.protobuf.Timestamp
-	16, // 7: ddash.adguardapi.Query.time:type_name -> google.protobuf.Timestamp
+	20, // 6: ddash.adguardapi.ListQueriesResponse.reached:type_name -> google.protobuf.Timestamp
+	20, // 7: ddash.adguardapi.Query.time:type_name -> google.protobuf.Timestamp
 	12, // 8: ddash.adguardapi.ListClientsResponse.clients:type_name -> ddash.adguardapi.Client
 	12, // 9: ddash.adguardapi.SetClientFilteringResponse.client:type_name -> ddash.adguardapi.Client
-	2,  // 10: ddash.adguardapi.AdguardApiService.GetStatus:input_type -> ddash.adguardapi.GetStatusRequest
-	4,  // 11: ddash.adguardapi.AdguardApiService.GetStats:input_type -> ddash.adguardapi.GetStatsRequest
-	7,  // 12: ddash.adguardapi.AdguardApiService.ListQueries:input_type -> ddash.adguardapi.ListQueriesRequest
-	10, // 13: ddash.adguardapi.AdguardApiService.ListClients:input_type -> ddash.adguardapi.ListClientsRequest
-	13, // 14: ddash.adguardapi.AdguardApiService.SetClientFiltering:input_type -> ddash.adguardapi.SetClientFilteringRequest
-	3,  // 15: ddash.adguardapi.AdguardApiService.GetStatus:output_type -> ddash.adguardapi.GetStatusResponse
-	5,  // 16: ddash.adguardapi.AdguardApiService.GetStats:output_type -> ddash.adguardapi.GetStatsResponse
-	8,  // 17: ddash.adguardapi.AdguardApiService.ListQueries:output_type -> ddash.adguardapi.ListQueriesResponse
-	11, // 18: ddash.adguardapi.AdguardApiService.ListClients:output_type -> ddash.adguardapi.ListClientsResponse
-	14, // 19: ddash.adguardapi.AdguardApiService.SetClientFiltering:output_type -> ddash.adguardapi.SetClientFilteringResponse
-	15, // [15:20] is the sub-list for method output_type
-	10, // [10:15] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	19, // 10: ddash.adguardapi.PauseProtectionRequest.duration:type_name -> google.protobuf.Duration
+	2,  // 11: ddash.adguardapi.AdguardApiService.GetStatus:input_type -> ddash.adguardapi.GetStatusRequest
+	4,  // 12: ddash.adguardapi.AdguardApiService.GetStats:input_type -> ddash.adguardapi.GetStatsRequest
+	7,  // 13: ddash.adguardapi.AdguardApiService.ListQueries:input_type -> ddash.adguardapi.ListQueriesRequest
+	10, // 14: ddash.adguardapi.AdguardApiService.ListClients:input_type -> ddash.adguardapi.ListClientsRequest
+	13, // 15: ddash.adguardapi.AdguardApiService.SetClientFiltering:input_type -> ddash.adguardapi.SetClientFilteringRequest
+	15, // 16: ddash.adguardapi.AdguardApiService.PauseProtection:input_type -> ddash.adguardapi.PauseProtectionRequest
+	17, // 17: ddash.adguardapi.AdguardApiService.ResumeProtection:input_type -> ddash.adguardapi.ResumeProtectionRequest
+	3,  // 18: ddash.adguardapi.AdguardApiService.GetStatus:output_type -> ddash.adguardapi.GetStatusResponse
+	5,  // 19: ddash.adguardapi.AdguardApiService.GetStats:output_type -> ddash.adguardapi.GetStatsResponse
+	8,  // 20: ddash.adguardapi.AdguardApiService.ListQueries:output_type -> ddash.adguardapi.ListQueriesResponse
+	11, // 21: ddash.adguardapi.AdguardApiService.ListClients:output_type -> ddash.adguardapi.ListClientsResponse
+	14, // 22: ddash.adguardapi.AdguardApiService.SetClientFiltering:output_type -> ddash.adguardapi.SetClientFilteringResponse
+	16, // 23: ddash.adguardapi.AdguardApiService.PauseProtection:output_type -> ddash.adguardapi.PauseProtectionResponse
+	18, // 24: ddash.adguardapi.AdguardApiService.ResumeProtection:output_type -> ddash.adguardapi.ResumeProtectionResponse
+	18, // [18:25] is the sub-list for method output_type
+	11, // [11:18] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_adguard_api_adguard_api_proto_init() }
@@ -1248,7 +1418,7 @@ func file_adguard_api_adguard_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_adguard_api_adguard_api_proto_rawDesc), len(file_adguard_api_adguard_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   14,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

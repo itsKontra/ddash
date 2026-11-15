@@ -1,6 +1,7 @@
 import { useQuery, type Status, type Widget } from "@ddash/plugin";
 import { AdguardApiService, type GetStatsResponse, type GetStatusResponse, type TopEntry } from "@ddash/proto/adguard-api/adguard_api_pb";
 import { Bars, MetricTile, Notice, Pill, Skeleton, Sparkline, StatusDot, type Tone } from "@ddash/ui";
+import { ProtectionSwitch } from "./protection";
 
 /** AdGuard's status (FAST), shared by the Page and the Widget. */
 export function useAdguardStatus() {
@@ -44,7 +45,7 @@ function useStatus(): Status | undefined {
   return { tone: "up", summary: `${p.label}, ${blockedShare(stats)} of ${count(stats.dnsQueries)} queries blocked` };
 }
 
-/** S: protection, and the day's queries and share blocked. */
+/** S: protection with its switch, and the day's queries and share blocked. */
 function Body() {
   const { data, error } = useAdguardStatus();
   const { data: stats } = useAdguardStats();
@@ -56,6 +57,7 @@ function Body() {
         <StatusDot tone={p.tone} />
         {p.label}
       </p>
+      <ProtectionSwitch status={data} />
       {data.running && (
         <div className="grid grid-cols-2 gap-3">
           <MetricTile label="queries, 24 h" value={stats && count(stats.dnsQueries)} />
@@ -76,12 +78,20 @@ export const adguard: Widget = {
   useStatus,
 };
 
-/** The Network Page section's header aside: protection, as a pill. */
+/**
+ * The Network Page section's header aside: protection, as a pill, and its
+ * switch; stacked on a phone, where the two don't fit beside the title.
+ */
 export function ProtectionBadge() {
   const { data } = useAdguardStatus();
   if (!data) return null;
   const p = protection(data);
-  return <Pill tone={p.tone}>{p.label}</Pill>;
+  return (
+    <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+      <Pill tone={p.tone}>{p.label}</Pill>
+      <ProtectionSwitch status={data} />
+    </div>
+  );
 }
 
 function Top({ label, entries }: { label: string; entries: TopEntry[] }) {
