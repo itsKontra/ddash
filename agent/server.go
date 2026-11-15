@@ -149,7 +149,11 @@ func (s *Server) ListenAndServe(ctx context.Context, addr string) error {
 		Handler:           s.mux,
 		TLSConfig:         s.TLSConfig(),
 		ReadHeaderTimeout: 10 * time.Second,
-		ErrorLog:          slog.NewLogLogger(s.o.Log.Handler(), slog.LevelDebug),
+		// /hello and /v1/pair answer anyone: no request may trickle in
+		// forever, and no idle connection stays open.
+		ReadTimeout: 30 * time.Second,
+		IdleTimeout: 2 * time.Minute,
+		ErrorLog:    slog.NewLogLogger(s.o.Log.Handler(), slog.LevelDebug),
 	}
 	go func() {
 		<-ctx.Done()

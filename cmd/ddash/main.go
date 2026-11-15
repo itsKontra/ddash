@@ -107,7 +107,15 @@ func serve(ctx context.Context, getenv func(string) string, listening func(addr 
 		_ = host.Shutdown(context.Background()) // the listen error matters more
 		return err
 	}
-	srv := &http.Server{Handler: host.Handler(), ReadHeaderTimeout: 10 * time.Second}
+	// No WriteTimeout: an Action streams its progress for up to
+	// ActionDeadline. A request, which is small, is read within
+	// ReadTimeout, and a kept-alive connection closes once idle.
+	srv := &http.Server{
+		Handler:           host.Handler(),
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
 	served := make(chan error, 1)
 	go func() { served <- srv.Serve(ln) }()
 	listening(ln.Addr().String())
