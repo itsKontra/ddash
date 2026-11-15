@@ -10,7 +10,7 @@ import (
 
 	"github.com/itsKontra/ddash/agent"
 	"github.com/itsKontra/ddash/agent/agentfake"
-	"github.com/itsKontra/ddash/components/compose/composepb"
+	"github.com/itsKontra/ddash/components/registry-api/registryapipb"
 )
 
 // DockerAgent is a fake Docker Agent the lab runs: ddash adds it by name
@@ -148,7 +148,7 @@ func serveAgent(serve func(addr string) (string, func(), error), host string, po
 }
 
 // startDocker starts the lab's Docker Agent and the registry its images
-// come from, and points compose at that registry.
+// come from, and points registry-api at that registry.
 func (l *Lab) startDocker(host string) error {
 	root, err := os.MkdirTemp("", "ddash-fakelab-stacks-")
 	if err != nil {
@@ -174,6 +174,6 @@ func (l *Lab) startDocker(host string) error {
 	go srv.Serve(ln) //nolint:errcheck // ends with Close
 	l.servers = append(l.servers, srv)
 	registry := "http://" + ln.Addr().String()
-	l.config["compose"] = &composepb.ComposeConfig{DockerHubRegistry: &registry}
+	l.config["registry-api"] = &registryapipb.RegistryApiConfig{DockerHubRegistry: &registry}
 	return nil
 }

@@ -26,6 +26,8 @@ import (
 	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	"github.com/itsKontra/ddash/components/notify/notifypb"
+	registryapi "github.com/itsKontra/ddash/components/registry-api"
+	regpb "github.com/itsKontra/ddash/components/registry-api/registryapipb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -124,13 +126,18 @@ func setup(t *testing.T) lab {
 	if _, err := agents.PairAgent(ctx, &dapb.PairAgentRequest{Name: "apps"}); err != nil {
 		t.Fatal(err)
 	}
+	// The real registry-api, reading the fake registry.
+	rh := sdktest.New(t, registryapi.Definition())
+	rh.MustStart(&regpb.RegistryApiConfig{DockerHubRegistry: &reg.URL})
+
 	l := lab{docker: docker, registry: registry, checks: &checksFake{}, notify: &notifyFake{}}
 	h := sdktest.New(t, compose.Definition(),
 		sdktest.WithClient[dapb.DockerAgentApiServiceClient](agents),
+		sdktest.WithClient[regpb.RegistryApiServiceClient](regpb.NewRegistryApiServiceClient(rh.Conn)),
 		sdktest.WithClient[checkspb.ChecksServiceClient](l.checks),
 		sdktest.WithClient[notifypb.NotifyServiceClient](l.notify),
 	)
-	h.MustStart(&pb.ComposeConfig{DockerHubRegistry: &reg.URL})
+	h.MustStart(&pb.ComposeConfig{})
 	l.c = pb.NewComposeServiceClient(h.Conn)
 	return l
 }
