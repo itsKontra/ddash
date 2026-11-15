@@ -103,6 +103,9 @@ describe("importMap", () => {
         "react-router": "/vendor/v1.2.3/react-router.js",
         "@ddash/ui": "/vendor/v1.2.3/ddash-ui.js",
         "@ddash/plugin": "/vendor/v1.2.3/ddash-plugin.js",
+        "@bufbuild/protobuf": "/vendor/v1.2.3/bufbuild-protobuf.js",
+        "@bufbuild/protobuf/codegenv2": "/vendor/v1.2.3/bufbuild-protobuf-codegenv2.js",
+        "@bufbuild/protobuf/wkt": "/vendor/v1.2.3/bufbuild-protobuf-wkt.js",
       },
     });
     expect(Object.keys(importMap("x").imports)).toEqual(importMapPackages);
