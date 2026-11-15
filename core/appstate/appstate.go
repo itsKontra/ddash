@@ -184,6 +184,7 @@ func record(req proto.Message) string {
 
 // redact blanks every field of m, and of the messages it holds, that has
 // the secret option: a string becomes Redacted, anything else is cleared.
+// A string with the audit_length_only option becomes its length.
 func redact(m protoreflect.Message) {
 	m.Range(func(fd protoreflect.FieldDescriptor, v protoreflect.Value) bool {
 		if opts, ok := proto.GetExtension(fd.Options(), configpb.E_Field).(*configpb.Field); ok && opts.GetSecret() {
@@ -192,6 +193,10 @@ func redact(m protoreflect.Message) {
 			} else {
 				m.Clear(fd)
 			}
+			return true
+		}
+		if only, _ := proto.GetExtension(fd.Options(), ddashpb.E_AuditLengthOnly).(bool); only && fd.Kind() == protoreflect.StringKind && !fd.IsList() && !fd.IsMap() {
+			m.Set(fd, protoreflect.ValueOfString(fmt.Sprintf("(%d bytes)", len(v.String()))))
 			return true
 		}
 		switch {

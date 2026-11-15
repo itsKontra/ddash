@@ -98,6 +98,7 @@ message ActRequest {
   string password = 2 [(ddash.config.field) = {secret: true}];
   Credentials credentials = 3;
   repeated Credentials more = 4;
+  string boilerplate = 5 [(ddash.audit_length_only) = true];
 }
 
 message Credentials {

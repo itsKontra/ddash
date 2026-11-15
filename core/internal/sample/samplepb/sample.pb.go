@@ -355,6 +355,7 @@ type ActRequest struct {
 	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	Credentials   *Credentials           `protobuf:"bytes,3,opt,name=credentials,proto3" json:"credentials,omitempty"`
 	More          []*Credentials         `protobuf:"bytes,4,rep,name=more,proto3" json:"more,omitempty"`
+	Boilerplate   string                 `protobuf:"bytes,5,opt,name=boilerplate,proto3" json:"boilerplate,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -415,6 +416,13 @@ func (x *ActRequest) GetMore() []*Credentials {
 		return x.More
 	}
 	return nil
+}
+
+func (x *ActRequest) GetBoilerplate() string {
+	if x != nil {
+		return x.Boilerplate
+	}
+	return ""
 }
 
 type Credentials struct {
@@ -883,13 +891,14 @@ const file_sample_sample_proto_rawDesc = "" +
 	"\v_wait_afterB\r\n" +
 	"\v_fail_after\"&\n" +
 	"\x10ProgressResponse\x12\x12\n" +
-	"\x04step\x18\x01 \x01(\x05R\x04step\"\xb0\x01\n" +
+	"\x04step\x18\x01 \x01(\x05R\x04step\"\xd8\x01\n" +
 	"\n" +
 	"ActRequest\x12\x12\n" +
 	"\x04note\x18\x01 \x01(\tR\x04note\x12\"\n" +
 	"\bpassword\x18\x02 \x01(\tB\x06\x9a\xb5\x18\x02\x10\x01R\bpassword\x12;\n" +
 	"\vcredentials\x18\x03 \x01(\v2\x19.ddash.sample.CredentialsR\vcredentials\x12-\n" +
-	"\x04more\x18\x04 \x03(\v2\x19.ddash.sample.CredentialsR\x04more\"?\n" +
+	"\x04more\x18\x04 \x03(\v2\x19.ddash.sample.CredentialsR\x04more\x12&\n" +
+	"\vboilerplate\x18\x05 \x01(\tB\x04\xb0\xb5\x18\x01R\vboilerplate\"?\n" +
 	"\vCredentials\x12\x12\n" +
 	"\x04user\x18\x01 \x01(\tR\x04user\x12\x1c\n" +
 	"\x05token\x18\x02 \x01(\tB\x06\x9a\xb5\x18\x02\x10\x01R\x05token\"#\n" +

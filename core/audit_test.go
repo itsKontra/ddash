@@ -257,6 +257,38 @@ func TestACallBetweenComponentsGetsTheHostsDeadline(t *testing.T) {
 	})
 }
 
+func TestALengthOnlyFieldIsRecordedByItsLengthButReachesTheComponent(t *testing.T) {
+	received := make(chan *samplepb.ActRequest, 1)
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{greeter(sample.Hooks{Act: func(_ context.Context, _ *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error) {
+			received <- req
+			return &samplepb.ActResponse{}, nil
+		}})},
+		Plugins: []coretest.Plugin{hello},
+	})
+	h.SeedConfig("greeter", configured)
+	h.Install("hello")
+	h.WaitState("greeter", runtime.OK)
+
+	res := h.Call("hello", "greeter", "Act", `{"note":"hi","boilerplate":"the same text, every time"}`)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", res.Code, res.Body)
+	}
+	if got := <-received; got.GetBoilerplate() != "the same text, every time" {
+		t.Errorf("greeter received %q, want the text unchanged", got.GetBoilerplate())
+	}
+	entries := componentEntries(h)
+	if len(entries) != 1 {
+		t.Fatalf("entries = %+v, want 1", entries)
+	}
+	var got map[string]any
+	json.Unmarshal([]byte(entries[0].Request), &got)
+	if want := map[string]any{"note": "hi", "boilerplate": "(25 bytes)"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("recorded %s, want %v", entries[0].Request, want)
+	}
+}
+
 func TestSecretsAreRedactedOnEveryHopButReachTheComponent(t *testing.T) {
 	forward := sample.Hooks{Act: func(ctx context.Context, env *sdk.Env, req *samplepb.ActRequest) (*samplepb.ActResponse, error) {
 		return sdk.Require(env, samplepb.NewSampleServiceClient).Act(ctx, req)
