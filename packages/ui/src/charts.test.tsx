@@ -197,7 +197,7 @@ it("Summary draws its headline, its line's parts, its meters toned by use and it
   expect(screen.getByText("21 containers").parentElement?.textContent).toBe("21 containers · 1 exited");
   const memory = screen.getByRole("meter", { name: "Memory" });
   expect(memory.querySelector("[data-colour]")?.getAttribute("data-colour")).toBe("warn");
-  expect(memory.previousElementSibling?.textContent).toBe("Memory51 GiB of 64 GiB");
+  expect(memory.parentElement?.parentElement?.textContent).toBe("Memory51 GiB of 64 GiB");
   expect(screen.getByRole("listitem").textContent).toBe("grafana" + "disk 91 %");
 });
 

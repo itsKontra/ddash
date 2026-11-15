@@ -331,16 +331,22 @@ export function Summary({
         )}
       </div>
       {meters && meters.length > 0 && (
-        <div className="flex flex-col gap-2.5 text-sm">
-          {meters.map((m) => (
-            <div key={m.label} className="flex flex-col gap-1">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                <span className="text-muted-foreground">{m.label}</span>
-                <span className="tabular-nums">{m.value}</span>
+        // Narrow: label and value over the bar. From 28rem: label, bar and value on one line.
+        <div className="@container">
+          <div className="flex flex-col gap-2.5 text-sm @md:gap-2">
+            {meters.map((m) => (
+              <div
+                key={m.label}
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 @md:grid-cols-[5.5rem_minmax(0,1fr)_10.5rem] @md:gap-x-4"
+              >
+                <span className="col-start-1 row-start-1 text-muted-foreground">{m.label}</span>
+                <span className="col-start-2 row-start-1 text-right tabular-nums @md:col-start-3">{m.value}</span>
+                <div className="col-span-2 row-start-2 @md:col-span-1 @md:col-start-2 @md:row-start-1">
+                  <Meter label={m.label} ratio={m.ratio} tone={meterTone(m.ratio)} />
+                </div>
               </div>
-              <Meter label={m.label} ratio={m.ratio} tone={meterTone(m.ratio)} />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
       {rows && rows.length > 0 && (
