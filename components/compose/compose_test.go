@@ -19,6 +19,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/agent/agentfake"
@@ -30,6 +31,7 @@ import (
 	"github.com/itsKontra/ddash/components/notify/notifypb"
 	registryapi "github.com/itsKontra/ddash/components/registry-api"
 	regpb "github.com/itsKontra/ddash/components/registry-api/registryapipb"
+	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
@@ -467,6 +469,132 @@ func TestFailedStepStops(t *testing.T) {
 	}
 	if titles := l.notify.titles(); len(titles) != 1 || titles[0] != "Restart media failed" {
 		t.Fatalf("notified %v", titles)
+	}
+}
+
+// start plans action and runs it in the background, returning the run's
+// id once its first state arrived and a func waiting for its end.
+func (l lab) start(t *testing.T, a *pb.ComposeAction) (string, func() (*pb.Run, error)) {
+	t.Helper()
+	ctx := context.Background()
+	plan, err := l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a})
+	if err != nil {
+		t.Fatal(err)
+	}
+	stream, err := l.c.RunAction(ctx, &pb.RunActionRequest{Action: a, Plan: plan.GetPlan()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := stream.Recv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return first.GetRun().GetId(), func() (*pb.Run, error) {
+		last := first.GetRun()
+		for {
+			msg, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				return last, nil
+			}
+			if err != nil {
+				return last, err
+			}
+			last = msg.GetRun()
+		}
+	}
+}
+
+// asAlice is a call the host routed for the Operator alice.
+func asAlice() context.Context {
+	return metadata.AppendToOutgoingContext(context.Background(), sdk.ActorMetadata, "operator:alice")
+}
+
+func TestACancelledUpdateStopsItsPullAndSaysWhatItLeft(t *testing.T) {
+	ctx := context.Background()
+	l := setup(t)
+	if _, err := l.c.CheckImages(ctx, &pb.CheckImagesRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	pulling := l.docker.HoldNext("pull")
+	id, wait := l.start(t, &pb.ComposeAction{Action: &pb.ComposeAction_Update{Update: &pb.Update{Host: "apps", Project: "media"}}})
+	<-pulling
+	// The run reads its job once a second: cancel once it shows the job.
+	for deadline := time.Now().Add(5 * time.Second); ; time.Sleep(50 * time.Millisecond) {
+		res, err := l.c.ListRuns(ctx, &pb.ListRunsRequest{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r := res.GetRuns()[0]; r.GetJob().GetId() != "" && r.GetJob().GetEnd() == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("the run never showed its job")
+		}
+	}
+	res, err := l.c.CancelRun(asAlice(), &pb.CancelRunRequest{Id: id})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.GetRun().GetCancelledBy() != "operator:alice" || res.GetRun().GetEnded() != nil {
+		t.Errorf("right after the cancel: %v, want it cancelled by alice and still stopping", res.GetRun())
+	}
+	if _, err := l.c.CancelRun(ctx, &pb.CancelRunRequest{Id: id}); status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("cancelling it again: %v, want FailedPrecondition", err)
+	}
+
+	r, err := wait()
+	if status.Code(err) != codes.Canceled {
+		t.Errorf("RunAction ended %v, want Canceled", err)
+	}
+	if r.GetEnded() == nil || r.GetError() != "" || r.GetCancelledBy() != "operator:alice" {
+		t.Fatalf("run = %v, want ended, cancelled and not failed", r)
+	}
+	want := []pb.StepState{pb.StepState_STEP_STATE_DONE, pb.StepState_STEP_STATE_CANCELLED, pb.StepState_STEP_STATE_PENDING, pb.StepState_STEP_STATE_PENDING}
+	if !slices.Equal(r.GetStates(), want) {
+		t.Errorf("states = %v, want the Maintenance done, the pull cancelled, the rest not run", r.GetStates())
+	}
+	for _, says := range []string{"Cancelled by alice", "“Pull images”", "images pulled until then stay", "no container was changed", "Nothing was rolled back", "Maintenance it started"} {
+		if !strings.Contains(r.GetOutcome(), says) {
+			t.Errorf("outcome %q doesn't say %q", r.GetOutcome(), says)
+		}
+	}
+	if st := image(l.project(t, "media"), "jellyfin"); st.GetState() != pb.ImageState_IMAGE_STATE_STALE {
+		t.Errorf("jellyfin after the cancelled update: %v, want still stale", st)
+	}
+	if _, err := l.c.CancelRun(ctx, &pb.CancelRunRequest{Id: id}); status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("cancelling an ended run: %v, want FailedPrecondition", err)
+	}
+	if _, err := l.c.CancelRun(ctx, &pb.CancelRunRequest{Id: "nope"}); status.Code(err) != codes.NotFound {
+		t.Errorf("cancelling no run: %v, want NotFound", err)
+	}
+	// Another run on the Compose Project can start.
+	if r, err := l.run(t, &pb.ComposeAction{Action: &pb.ComposeAction_Update{Update: &pb.Update{Host: "apps", Project: "media"}}}); err != nil || r.GetError() != "" {
+		t.Fatalf("the update again: %v, %v", r, err)
+	}
+}
+
+func TestACancelledRestartSaysItsComposeServicesMayBeHalfDone(t *testing.T) {
+	l := setup(t)
+	restarting := l.docker.HoldNext("restart")
+	id, wait := l.start(t, &pb.ComposeAction{Action: &pb.ComposeAction_Restart{Restart: &pb.Restart{Host: "apps", Project: "media"}}})
+	<-restarting
+	// Cancelled at once: whether or not the run showed its job yet, the
+	// job is stopped.
+	if _, err := l.c.CancelRun(asAlice(), &pb.CancelRunRequest{Id: id}); err != nil {
+		t.Fatal(err)
+	}
+	r, err := wait()
+	if status.Code(err) != codes.Canceled || r.GetCancelledBy() == "" {
+		t.Fatalf("run = %v, %v; want cancelled", r, err)
+	}
+	if last := r.GetStates()[len(r.GetStates())-1]; last != pb.StepState_STEP_STATE_CANCELLED {
+		t.Errorf("states = %v, want the restart cancelled", r.GetStates())
+	}
+	if !strings.Contains(r.GetOutcome(), "stopped part-way") || !strings.Contains(r.GetOutcome(), "Run it again") {
+		t.Errorf("outcome %q doesn't say its Compose services may be half-done", r.GetOutcome())
+	}
+	if titles := l.notify.titles(); len(titles) != 0 {
+		t.Errorf("a run cancelled while watched notified %v", titles)
 	}
 }
 

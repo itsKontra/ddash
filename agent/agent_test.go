@@ -224,3 +224,87 @@ func TestAJobThatNeverEndsIsStoppedByItsTimeoutAndFails(t *testing.T) {
 		}
 	})
 }
+
+func TestACancelledComposeJobStopsItsCommandAndEndsCancelled(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		jobs := agent.NewJobs(nil)
+		pull, err := jobs.StartCancellable("compose.pull", "Pull media", "media", []string{"Pull", "Recreate"}, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
+			p.Begin(0)
+			<-ctx.Done() // as a command run with ctx does when it is killed
+			return nil, errors.New("signal: killed")
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		release := make(chan struct{})
+		defer close(release)
+		stuck, err := jobs.StartCancellable("compose.up", "Start paperless", "paperless", []string{"Start"}, func(_ context.Context, p *agent.Progress) (map[string]string, error) {
+			p.Begin(0)
+			<-release
+			return nil, nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		synctest.Wait()
+
+		for _, id := range []string{pull.ID, stuck.ID} {
+			if _, err := jobs.Cancel(id); err != nil {
+				t.Fatalf("cancel: %v", err)
+			}
+		}
+		if _, err := jobs.Cancel(stuck.ID); err != nil {
+			t.Errorf("cancelling a job still stopping again: %v", err)
+		}
+		synctest.Wait()
+		if j, _ := jobs.Get(pull.ID); j.State != agent.Cancelled || j.Error != "" || j.Steps[0].State != agent.Cancelled || j.Steps[1].State != agent.Pending {
+			t.Errorf("the pull once its command was killed: %s, error %q, steps %+v; want cancelled, its later step pending", j.State, j.Error, j.Steps)
+		}
+		// A body that doesn't return is given up on after the grace.
+		if j, _ := jobs.Get(stuck.ID); j.State != agent.Running {
+			t.Errorf("a body that hasn't returned yet: %s, want still running", j.State)
+		}
+		time.Sleep(11 * time.Second)
+		synctest.Wait()
+		if j, _ := jobs.Get(stuck.ID); j.State != agent.Cancelled || j.Steps[0].State != agent.Cancelled {
+			t.Errorf("a body that never returns, after the grace: %s, want cancelled", j.State)
+		}
+		if _, err := jobs.StartCancellable("compose.up", "Start paperless", "paperless", nil, func(context.Context, *agent.Progress) (map[string]string, error) { return nil, nil }); err != nil {
+			t.Errorf("a new job on the target after the cancel: %v", err)
+		}
+		if _, err := jobs.Cancel(pull.ID); !errors.Is(err, agent.ErrEnded) {
+			t.Errorf("cancelling an ended job: %v, want ErrEnded", err)
+		}
+	})
+}
+
+func TestAPackageUpgradeCantBeCancelledAndRunsOn(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		jobs := agent.NewJobs(nil)
+		release := make(chan struct{})
+		upgrade, err := jobs.Start("packages.upgrade", "Update packages", "host", []string{"Install"}, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
+			p.Begin(0)
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-release:
+				return nil, nil
+			}
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := jobs.Cancel(upgrade.ID); !errors.Is(err, agent.ErrNotCancellable) || !strings.Contains(err.Error(), "leave the host broken") {
+			t.Fatalf("cancelling a package upgrade: %v, want ErrNotCancellable saying why", err)
+		}
+		synctest.Wait()
+		if j, _ := jobs.Get(upgrade.ID); j.State != agent.Running {
+			t.Fatalf("the upgrade after the refused cancel: %s, want still running", j.State)
+		}
+		close(release)
+		synctest.Wait()
+		if j, _ := jobs.Get(upgrade.ID); j.State != agent.Done {
+			t.Errorf("the upgrade: %s, want done", j.State)
+		}
+	})
+}

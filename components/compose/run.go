@@ -1,7 +1,9 @@
 package compose
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -85,16 +87,21 @@ func (r *run) state(i int, s pb.StepState, detail string) {
 
 // jobStates maps a job step's state onto a Plan step's.
 var jobStates = map[jobpb.State]pb.StepState{
-	jobpb.State_STATE_PENDING: pb.StepState_STEP_STATE_PENDING,
-	jobpb.State_STATE_RUNNING: pb.StepState_STEP_STATE_RUNNING,
-	jobpb.State_STATE_DONE:    pb.StepState_STEP_STATE_DONE,
-	jobpb.State_STATE_FAILED:  pb.StepState_STEP_STATE_FAILED,
-	jobpb.State_STATE_SKIPPED: pb.StepState_STEP_STATE_SKIPPED,
+	jobpb.State_STATE_PENDING:   pb.StepState_STEP_STATE_PENDING,
+	jobpb.State_STATE_RUNNING:   pb.StepState_STEP_STATE_RUNNING,
+	jobpb.State_STATE_DONE:      pb.StepState_STEP_STATE_DONE,
+	jobpb.State_STATE_FAILED:    pb.StepState_STEP_STATE_FAILED,
+	jobpb.State_STATE_SKIPPED:   pb.StepState_STEP_STATE_SKIPPED,
+	jobpb.State_STATE_CANCELLED: pb.StepState_STEP_STATE_CANCELLED,
 }
+
+// errCancelled is a step's end when the Operator cancelled the run.
+var errCancelled = errors.New("cancelled")
 
 // follow reads job's progress into the run's steps from first on, until
 // it ends, then collects it (in the run's Audit Log chain: the collect
-// fails with the job's error when it failed).
+// fails with the job's error when it failed). A job that ended cancelled
+// returns errCancelled.
 func (r *run) follow(ctx context.Context, c *component, job *jobpb.Job, first int) error {
 	host := job.GetAgent()
 	show := func(j *jobpb.Job) {
@@ -114,6 +121,15 @@ func (r *run) follow(ctx context.Context, c *component, job *jobpb.Job, first in
 		})
 	}
 	show(job)
+	if r.snapshot().GetCancelledBy() != "" && job.GetEnd() == nil {
+		// Cancelled while the job was starting: CancelRun found none to
+		// stop, so the run stops it.
+		callCtx, cancel := context.WithTimeout(ctx, callTimeout)
+		if _, err := c.agents.CancelJob(callCtx, &dapb.CancelJobRequest{Host: host, Id: job.GetId()}); err != nil {
+			c.log.Warn("can't cancel a job of a cancelled run", "job", job.GetTitle(), "err", err)
+		}
+		cancel()
+	}
 	for job.GetEnd() == nil {
 		select {
 		case <-ctx.Done():
@@ -132,10 +148,15 @@ func (r *run) follow(ctx context.Context, c *component, job *jobpb.Job, first in
 	}
 	callCtx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	if _, err := c.agents.CollectJob(callCtx, &dapb.CollectJobRequest{Host: host, Id: job.GetId()}); err != nil {
-		return err
+	_, err := c.agents.CollectJob(callCtx, &dapb.CollectJobRequest{Host: host, Id: job.GetId()})
+	if job.GetState() == jobpb.State_STATE_CANCELLED {
+		// Its collect fails CANCELED, which records it in the Audit Log.
+		if status.Code(err) != codes.Canceled {
+			c.log.Warn("can't collect a cancelled job", "job", job.GetTitle(), "err", err)
+		}
+		return errCancelled
 	}
-	return nil
+	return err
 }
 
 func plural(n int, one, many string) string {
@@ -247,6 +268,9 @@ func (c *component) RunAction(req *pb.RunActionRequest, stream pb.ComposeService
 			if snap.GetError() != "" {
 				return status.Error(codes.Aborted, snap.GetError())
 			}
+			if snap.GetCancelledBy() != "" {
+				return status.Errorf(codes.Canceled, "%s was cancelled by %s", snap.GetTitle(), snap.GetCancelledBy())
+			}
 			return nil
 		}
 		select {
@@ -291,14 +315,21 @@ func (c *component) claim(host, project, title string, plan *pb.Plan, actor stri
 	return r, nil
 }
 
-// execute runs w's steps in order and stops at the first that fails.
+// execute runs w's steps in order and stops at the first that fails, or
+// once the run was cancelled.
 func (c *component) execute(ctx context.Context, r *run, w *work) {
 	var failed error
+	cancelled := false
 	for i, s := range w.steps {
 		if s.run == nil {
 			continue // shown by an earlier step's job
 		}
-		if snap := r.snapshot(); snap.GetStates()[i] != pb.StepState_STEP_STATE_PENDING {
+		snap := r.snapshot()
+		if snap.GetCancelledBy() != "" {
+			cancelled = true
+			break
+		}
+		if snap.GetStates()[i] != pb.StepState_STEP_STATE_PENDING {
 			continue
 		}
 		r.state(i, pb.StepState_STEP_STATE_RUNNING, "")
@@ -309,6 +340,10 @@ func (c *component) execute(ctx context.Context, r *run, w *work) {
 		}
 		err := s.run(callCtx, r, i)
 		cancel()
+		if errors.Is(err, errCancelled) {
+			cancelled = true
+			break
+		}
 		if err != nil {
 			failed = fmt.Errorf("%s: %s", r.snapshot().GetSteps()[i].GetTitle(), status.Convert(err).Message())
 			r.edit(func(p *pb.Run) {
@@ -339,13 +374,74 @@ func (c *component) execute(ctx context.Context, r *run, w *work) {
 	}
 	r.edit(func(p *pb.Run) {
 		p.Ended = timestamppb.Now()
-		if failed != nil {
+		switch {
+		case failed != nil:
 			p.Error = failed.Error()
-		} else if p.Outcome == "" {
+		case cancelled:
+			for k := range p.States {
+				if p.States[k] == pb.StepState_STEP_STATE_RUNNING {
+					p.States[k] = pb.StepState_STEP_STATE_CANCELLED
+				}
+			}
+			p.Outcome = cancelledOutcome(p)
+		case p.Outcome == "":
 			p.Outcome = "done"
 		}
 	})
 	c.outcome(ctx, r)
+}
+
+// cancelledOutcome says, as the Operator reads it, who cancelled p, where
+// it stopped, and what it left half-done.
+func cancelledOutcome(p *pb.Run) string {
+	title := func(i int) string { return "“" + p.GetSteps()[i].GetTitle() + "”" }
+	stopped, next := -1, -1
+	for i, s := range p.GetStates() {
+		if s == pb.StepState_STEP_STATE_CANCELLED && stopped < 0 {
+			stopped = i
+		}
+		if s == pb.StepState_STEP_STATE_PENDING && next < 0 {
+			next = i
+		}
+	}
+	// Maintenance this run started: a ddash step done before it stopped.
+	maintenance := false
+	for i, s := range p.GetStates() {
+		if (stopped < 0 || i < stopped) && (next < 0 || i < next) && s == pb.StepState_STEP_STATE_DONE && p.GetSteps()[i].GetSystem() == pb.System_SYSTEM_DDASH {
+			maintenance = true
+		}
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "Cancelled by %s", strings.TrimPrefix(p.GetCancelledBy(), "operator:"))
+	switch job := p.GetJob(); {
+	case stopped >= 0 && pulledOnly(job):
+		fmt.Fprintf(&b, " during %s: the images pulled until then stay, and no container was changed.", title(stopped))
+	case stopped >= 0:
+		fmt.Fprintf(&b, " during %s, whose Compose command was stopped part-way: some Compose services may be recreated, started or stopped and others not. Run it again to finish.", title(stopped))
+	case next >= 0:
+		fmt.Fprintf(&b, " before %s: the steps from there on didn't run.", title(next))
+	default:
+		b.WriteString(" after its last step: it did everything.")
+	}
+	b.WriteString(" Nothing was rolled back.")
+	if maintenance {
+		b.WriteString(" The Maintenance it started ends as planned, or when you end it.")
+	}
+	return b.String()
+}
+
+// pulledOnly reports whether a cancelled job had only pulled images: a
+// pull, or an update stopped before it recreated anything.
+func pulledOnly(j *jobpb.Job) bool {
+	switch j.GetOp() {
+	case "compose.pull":
+		return true
+	case "compose.update":
+		// Its steps: pull, compare digests, recreate.
+		steps := j.GetSteps()
+		return len(steps) == 3 && steps[2].GetState() == jobpb.State_STATE_PENDING
+	}
+	return false
 }
 
 // outcome notifies how a run ended when the Operator may not be watching:
@@ -359,9 +455,12 @@ func (c *component) outcome(ctx context.Context, r *run) {
 		return
 	}
 	n := &notificationpb.Notification{Click: c.public + "/docker"}
-	if p.GetError() != "" {
+	switch {
+	case p.GetError() != "":
 		n.Title, n.Message, n.Tags, n.Priority = p.GetTitle()+" failed", p.GetError(), []string{"warning"}, notificationpb.Priority_PRIORITY_HIGH
-	} else {
+	case p.GetCancelledBy() != "":
+		n.Title, n.Message, n.Tags = p.GetTitle()+" cancelled", p.GetOutcome(), []string{"stop_sign"}
+	default:
 		n.Title, n.Message, n.Tags = p.GetTitle()+" done", p.GetOutcome(), []string{"white_check_mark"}
 	}
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
@@ -385,4 +484,53 @@ func (c *component) ListRuns(context.Context, *pb.ListRunsRequest) (*pb.ListRuns
 	}
 	slices.SortFunc(out.Runs, func(a, b *pb.Run) int { return a.GetStarted().AsTime().Compare(b.GetStarted().AsTime()) })
 	return out, nil
+}
+
+func (c *component) CancelRun(ctx context.Context, req *pb.CancelRunRequest) (*pb.CancelRunResponse, error) {
+	c.mu.Lock()
+	r, ok := c.runs[req.GetId()]
+	c.mu.Unlock()
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "no run %s: it ended over 15 minutes ago, or ddash restarted since", req.GetId())
+	}
+	// A call the host routed always names its actor.
+	actor := cmp.Or(sdk.Actor(ctx), "an unnamed actor")
+	var job *jobpb.Job
+	var was *pb.Run
+	r.edit(func(p *pb.Run) {
+		was = proto.Clone(p).(*pb.Run)
+		if p.GetEnded() == nil && p.GetCancelledBy() == "" {
+			// From now on no step starts: execute stops before the next.
+			p.CancelledBy, job = actor, p.GetJob()
+		}
+	})
+	switch {
+	case was.GetEnded() != nil:
+		return nil, status.Errorf(codes.FailedPrecondition, "%s already ended", was.GetTitle())
+	case was.GetCancelledBy() != "":
+		return nil, status.Errorf(codes.FailedPrecondition, "%s is being cancelled already", was.GetTitle())
+	}
+	// The job running now, if any: its Agent stops its command, and
+	// following it ends the run. Without one (a ddash step, or a job
+	// still starting), the run stops before its next step, and follow
+	// cancels a job that started meanwhile.
+	if job != nil && job.GetEnd() == nil {
+		_, err := c.agents.CancelJob(ctx, &dapb.CancelJobRequest{Host: job.GetAgent(), Id: job.GetId()})
+		if err != nil && !c.jobEnded(ctx, job) {
+			// Refused while it runs on (an Agent too old to cancel, one
+			// out of reach): the run goes on as if never cancelled.
+			r.edit(func(p *pb.Run) { p.CancelledBy = "" })
+			return nil, err
+		}
+	}
+	return &pb.CancelRunResponse{Run: r.snapshot()}, nil
+}
+
+// jobEnded reports whether job has ended (or is gone) on its Agent by now.
+func (c *component) jobEnded(ctx context.Context, job *jobpb.Job) bool {
+	res, err := c.agents.GetJob(ctx, &dapb.GetJobRequest{Host: job.GetAgent(), Id: job.GetId()})
+	if status.Code(err) == codes.NotFound {
+		return true
+	}
+	return err == nil && res.GetJob().GetEnd() != nil
 }

@@ -11,6 +11,8 @@ const look: Record<State, { tone: Tone; aside: string }> = {
   [State.DONE]: { tone: "up", aside: "done" },
   [State.FAILED]: { tone: "down", aside: "failed" },
   [State.SKIPPED]: { tone: "idle", aside: "skipped" },
+  // Never a Host Agent job's: only a Compose job can be cancelled.
+  [State.CANCELLED]: { tone: "warn", aside: "cancelled" },
 };
 
 /** How a run or a step reads in one word: "running", "done", "failed". */
@@ -21,13 +23,14 @@ export const stateWord: Record<State, string> = {
   [State.DONE]: "done",
   [State.FAILED]: "failed",
   [State.SKIPPED]: "skipped",
+  [State.CANCELLED]: "cancelled",
 };
 
 /** A run's or a step's tone. */
 export const stateTone = (s: State): Tone => look[s].tone;
 
 /** Whether a run has ended. */
-export const ended = (s: State) => s === State.DONE || s === State.FAILED || s === State.SKIPPED;
+export const ended = (s: State) => s === State.DONE || s === State.FAILED || s === State.SKIPPED || s === State.CANCELLED;
 
 /** The steps in order, as a timeline; a running or failed step shows its last output lines. */
 export function JobSteps({ steps }: { steps: readonly Step[] }) {

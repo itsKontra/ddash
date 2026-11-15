@@ -704,7 +704,9 @@ func (a *Agent) compose(w http.ResponseWriter, r *http.Request) {
 	if len(req.Services) > 0 {
 		what += " (" + strings.Join(req.Services, ", ") + ")"
 	}
-	job, err := a.jobs.Start("compose."+string(req.Op), title+" "+what, "project:"+req.Project, steps, run)
+	// A Compose command stopped part-way leaves nothing `up -d` doesn't
+	// mend: ddash may cancel it.
+	job, err := a.jobs.StartCancellable("compose."+string(req.Op), title+" "+what, "project:"+req.Project, steps, run)
 	if errors.Is(err, agent.ErrBusy) {
 		agent.WriteError(w, http.StatusConflict, agent.CodeBusy, err.Error())
 		return

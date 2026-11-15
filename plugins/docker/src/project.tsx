@@ -1,4 +1,4 @@
-import { ComposeFiles, ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "@ddash/compose-ui";
+import { CancelRun, ComposeFiles, ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "@ddash/compose-ui";
 import { useQuery } from "@ddash/plugin";
 import { State } from "@ddash/proto/ddash/container/container_pb";
 import { ComposeService, ImageState, type Project, type ProjectContainer, type Run } from "@ddash/proto/compose/compose_pb";
@@ -129,6 +129,7 @@ function RunPanel({ run }: { run: Run }) {
         {end ? <Notice tone={end.tone}>{end.text}</Notice> : null}
         <PlanSteps steps={run.steps} run={run} />
         {!run.ended && <JobLog run={run} />}
+        <CancelRun run={run} />
       </div>
     </Panel>
   );

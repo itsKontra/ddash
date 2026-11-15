@@ -219,3 +219,76 @@ it("says why Check now failed", async () => {
 
   expect(screen.getByText("docker.io refused ddash")).toBeTruthy();
 });
+
+const pulling = {
+  id: "r1",
+  host: "apps",
+  project: "media",
+  title: "Update media",
+  steps: plan.steps,
+  states: ["STEP_STATE_DONE", "STEP_STATE_RUNNING", "STEP_STATE_PENDING", "STEP_STATE_PENDING"],
+  details: ["", "", "", ""],
+  started: "2026-11-14T10:00:00Z",
+};
+const left = "Cancelled by alice during “Pull images”: the images pulled until then stay, and no container was changed. Nothing was rolled back.";
+const cancelled = { ...pulling, states: ["STEP_STATE_DONE", "STEP_STATE_CANCELLED", "STEP_STATE_PENDING", "STEP_STATE_PENDING"], cancelledBy: "operator:alice", ended: "2026-11-14T10:01:00Z", outcome: left };
+
+it("cancels a running update from its Plan Dialog once confirmed, then says what it left half-done", async () => {
+  let runs: object[] = [pulling];
+  const calls = await showPlugin(plugin, docker, "/docker", {
+    answers: {
+      ...base,
+      PlanAction: () => Response.json({ plan }),
+      RunAction: (_, init) => streamed([{ run: pulling }], { openUntil: init?.signal }),
+      ListRuns: () => Response.json({ runs }),
+      CancelRun: () => {
+        runs = [cancelled];
+        return Response.json({ run: { ...pulling, cancelledBy: "operator:alice" } });
+      },
+    },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Actions for media" }));
+  fireEvent.click(within(screen.getByRole("group", { name: "Actions for media" })).getByRole("button", { name: "Update" }));
+  await settle();
+  const dialog = screen.getByRole("dialog", { name: "Update media" });
+  fireEvent.click(within(dialog).getByRole("button", { name: "Update" }));
+  await settle();
+
+  fireEvent.click(within(dialog).getByRole("button", { name: "Cancel run" }));
+  await settle();
+  const ask = screen.getByRole("alertdialog");
+  expect(ask.textContent).toContain("Nothing is rolled back");
+  expect(calls.filter((c) => c.method === "CancelRun")).toEqual([]);
+  fireEvent.click(within(ask).getByRole("button", { name: "Cancel run" }));
+  await settle();
+
+  expect(calls.filter((c) => c.method === "CancelRun").map((c) => c.body)).toEqual([{ id: "r1" }]);
+  expect(within(dialog).getByText(left)).toBeTruthy();
+  expect(within(dialog).getByText("cancelled")).toBeTruthy();
+  expect(within(dialog).queryByRole("button", { name: "Cancel run" })).toBeNull();
+});
+
+it("shows why a run couldn't be cancelled, and offers no cancel once it ended", async () => {
+  let runs: object[] = [pulling];
+  const page = { ...base, GetComposeFile: () => Response.json({ file: { path: "/opt/stacks/media/compose.yaml", content: "services: {}\n", sha256: "a" } }) };
+  await showPlugin(plugin, docker, "/docker/projects/apps/media", {
+    answers: {
+      ...page,
+      ListRuns: () => Response.json({ runs }),
+      CancelRun: () => Response.json({ code: "failed_precondition", message: "the Docker Agent on apps is too old to cancel a job: update the Agent, then cancel again" }, { status: 400 }),
+    },
+  });
+  const panel = screen.getByRole("region", { name: "Update media" });
+  fireEvent.click(within(panel).getByRole("button", { name: "Cancel run" }));
+  await settle();
+  fireEvent.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Cancel run" }));
+  await settle();
+  expect(within(panel).getByText(/too old to cancel a job: update the Agent/)).toBeTruthy();
+
+  cleanup();
+  runs = [cancelled];
+  await showPlugin(plugin, docker, "/docker/projects/apps/media", { answers: { ...page, ListRuns: () => Response.json({ runs }) } });
+  const ended = screen.getByRole("region", { name: "Update media" });
+  expect(within(ended).getByText(left)).toBeTruthy();
+  expect(within(ended).queryByRole("button", { name: "Cancel run" })).toBeNull();
+});

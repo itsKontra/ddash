@@ -47,4 +47,7 @@ enum State {
   STATE_FAILED = 4;
   // A step that didn't need to run, e.g. recreating when no image changed.
   STATE_SKIPPED = 5;
+  // The Operator cancelled it (only a Compose job can be), and its
+  // command was stopped part-way: a job and its step running then.
+  STATE_CANCELLED = 6;
 }

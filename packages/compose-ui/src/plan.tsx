@@ -1,5 +1,5 @@
 import type { MessageInitShape } from "@bufbuild/protobuf";
-import { useQuery, useStreamingAction } from "@ddash/plugin";
+import { useAction, useQuery, useStreamingAction } from "@ddash/plugin";
 import {
   ComposeService,
   PlanSchema,
@@ -16,7 +16,8 @@ import { useState, type ReactNode } from "react";
 // Compose Project Actions on screen: their Plan (steps, the Compose file's
 // diff, what blocks it, the Protected override), and their run, which goes
 // on after the Dialog closes: its steps' progress and the Agent's output
-// come from RunAction's stream, then from ListRuns.
+// come from RunAction's stream, then from ListRuns. A run in flight can be
+// cancelled.
 
 export type ActionInit = MessageInitShape<typeof ComposeActionSchema>;
 
@@ -33,6 +34,7 @@ const look: Record<StepState, { tone: Tone; aside?: string }> = {
   [StepState.DONE]: { tone: "up", aside: "done" },
   [StepState.FAILED]: { tone: "down", aside: "failed" },
   [StepState.SKIPPED]: { tone: "idle", aside: "skipped" },
+  [StepState.CANCELLED]: { tone: "warn", aside: "cancelled" },
 };
 
 /** A Plan's steps, each with its system, values and (once running) its state and detail. */
@@ -107,11 +109,50 @@ export function useRun(id: string | undefined): Run | undefined {
   return id ? runs.data?.runs.find((r) => r.id === id) : undefined;
 }
 
-/** How a run ended, as one line, or undefined while it runs. */
-export function ending(run: Run | undefined): { tone: "down" | "info"; text: string } | undefined {
+/** How a run ended, as one line, or undefined while it runs. A cancelled run says what it left half-done. */
+export function ending(run: Run | undefined): { tone: "down" | "warn" | "info"; text: string } | undefined {
   if (!run?.ended) return undefined;
   if (run.error) return { tone: "down", text: run.error };
+  if (run.cancelledBy) return { tone: "warn", text: run.outcome };
   return { tone: "info", text: run.outcome === "done" ? "Done." : `Done: ${run.outcome}.` };
+}
+
+/**
+ * Cancel for a run in flight, after the Operator confirmed: its Compose
+ * command is stopped part-way and no later step runs. Once asked, it says
+ * the run is stopping; a refusal (an Agent too old to cancel) shows why.
+ * Nothing once the run ended.
+ */
+export function CancelRun({ run }: { run: Run }) {
+  const cancel = useAction(ComposeService.method.cancelRun);
+  if (run.ended) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="danger"
+          disabled={!!run.cancelledBy || cancel.pending}
+          onClick={() =>
+            void cancel.run(
+              { id: run.id },
+              {
+                confirm: {
+                  title: `Cancel ${run.title}?`,
+                  text: "ddash stops its Compose command part-way and runs none of its later steps. Nothing is rolled back: some Compose services may be left recreated, started or stopped and others not.",
+                  action: "Cancel run",
+                },
+              },
+            )
+          }
+        >
+          {run.cancelledBy ? "Cancelling…" : "Cancel run"}
+        </Button>
+        {run.cancelledBy && <span className="text-xs text-muted-foreground">The Docker Agent is stopping its Compose command.</span>}
+      </div>
+      {cancel.error && <Notice tone="down">{cancel.error.rawMessage}</Notice>}
+    </div>
+  );
 }
 
 /**
@@ -220,6 +261,7 @@ export function PlanDialog({
         {plan?.diff && !run && <Diff diff={plan.diff} />}
         {plan && <PlanSteps steps={plan.steps} run={run} />}
         {run && !run.ended && <JobLog run={run} />}
+        {run && !run.ended && <CancelRun run={run} />}
       </div>
     </Dialog>
   );

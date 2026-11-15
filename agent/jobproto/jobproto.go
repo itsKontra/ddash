@@ -10,11 +10,12 @@ import (
 )
 
 var states = map[agent.JobState]jobpb.State{
-	agent.Pending: jobpb.State_STATE_PENDING,
-	agent.Running: jobpb.State_STATE_RUNNING,
-	agent.Done:    jobpb.State_STATE_DONE,
-	agent.Failed:  jobpb.State_STATE_FAILED,
-	agent.Skipped: jobpb.State_STATE_SKIPPED,
+	agent.Pending:   jobpb.State_STATE_PENDING,
+	agent.Running:   jobpb.State_STATE_RUNNING,
+	agent.Done:      jobpb.State_STATE_DONE,
+	agent.Failed:    jobpb.State_STATE_FAILED,
+	agent.Skipped:   jobpb.State_STATE_SKIPPED,
+	agent.Cancelled: jobpb.State_STATE_CANCELLED,
 }
 
 // Of is j, run by the Agent named agentName.

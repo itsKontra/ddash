@@ -49,7 +49,9 @@ const (
 	PathPair  = "/v1/pair"
 	PathInfo  = "/v1/info"
 	PathJobs  = "/v1/jobs"
-	// PathJob is PathJobs + "/<id>": GET reads one, DELETE collects it.
+	// PathJob is PathJobs + "/<id>": GET reads one, DELETE collects it,
+	// and POST to it + "/cancel" cancels it (an Agent older than cancel
+	// answers that 404 without an Error).
 	PathUpdate = "/v1/agent/update"
 
 	// The Docker Agent's.
@@ -94,6 +96,10 @@ const (
 	CodeFailed     = "failed"
 	CodeTooMany    = "too_many_attempts"
 	CodeOutOfRoots = "outside_roots"
+	// A cancel of a job that already ended, or of one that can't be
+	// cancelled (only Compose jobs can).
+	CodeEnded          = "ended"
+	CodeNotCancellable = "not_cancellable"
 )
 
 // Hello is GET /v1/hello: what an Agent says before pairing.
@@ -160,10 +166,12 @@ const (
 	// Skipped: a step that didn't need to run, e.g. recreating when no
 	// image changed.
 	Skipped JobState = "skipped"
+	// Cancelled: ddash cancelled it while it ran, and it stopped.
+	Cancelled JobState = "cancelled"
 )
 
 // Ended reports whether s is a final state.
-func (s JobState) Ended() bool { return s == Done || s == Failed || s == Skipped }
+func (s JobState) Ended() bool { return s == Done || s == Failed || s == Skipped || s == Cancelled }
 
 // Job is a long operation an Agent runs on its own, so it outlasts the
 // call that started it (and ddash's 60 s Action deadline).

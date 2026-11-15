@@ -759,3 +759,16 @@ func (c *component) CollectJob(ctx context.Context, req *pb.CollectJobRequest) (
 	}
 	return &pb.CollectJobResponse{Job: jobproto.Of(j, r.name)}, nil
 }
+
+func (c *component) CancelJob(ctx context.Context, req *pb.CancelJobRequest) (*pb.CancelJobResponse, error) {
+	// An Agent on another Release is refused here, asking for its update.
+	client, r, err := c.paired(ctx, req.GetHost())
+	if err != nil {
+		return nil, err
+	}
+	j, err := agentcall.Cancel(ctx, client, req.GetId(), "the Docker Agent on "+r.name)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.CancelJobResponse{Job: jobproto.Of(j, r.name)}, nil
+}

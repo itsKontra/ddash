@@ -21,6 +21,8 @@ type Jobs struct {
 	mu   sync.Mutex
 	seq  int
 	jobs map[string]*Job
+	// cancels ends the context of each running job ddash may cancel.
+	cancels map[string]context.CancelCauseFunc
 	// life ends every job's context when the Agent stops.
 	life context.Context
 }
@@ -36,7 +38,7 @@ func NewJobs(now func() time.Time) *Jobs {
 	if now == nil {
 		now = time.Now
 	}
-	return &Jobs{now: now, jobs: map[string]*Job{}, life: context.Background()}
+	return &Jobs{now: now, jobs: map[string]*Job{}, cancels: map[string]context.CancelCauseFunc{}, life: context.Background()}
 }
 
 // SetContext makes every job's context end with ctx.
@@ -51,13 +53,37 @@ var ErrBusy = errors.New("busy")
 
 var errNoJob = errors.New("no such job")
 
+// Cancel's refusals: the job already ended, or it isn't one ddash may
+// cancel.
+var (
+	ErrEnded          = errors.New("ended")
+	ErrNotCancellable = errors.New("not cancellable")
+)
+
+// errCancelled ends a cancelled job's context.
+var errCancelled = errors.New("the job was cancelled")
+
 // Run is a job's body. It reports through p and returns the job's result,
 // or why it failed.
 type Run func(ctx context.Context, p *Progress) (map[string]string, error)
 
 // Start registers a job with steps (their titles) and runs it in the
 // background. It refuses with ErrBusy while another job on target runs.
+// The job can't be cancelled: Start is for an operation that a command
+// stopped part-way may leave the host broken by, such as a package
+// upgrade or the Agent's own update.
 func (j *Jobs) Start(op, title, target string, steps []string, run Run) (Job, error) {
+	return j.start(op, title, target, steps, run, false)
+}
+
+// StartCancellable is Start for a job ddash may Cancel: one whose command,
+// stopped part-way, leaves nothing that running it again doesn't mend,
+// such as a Compose operation.
+func (j *Jobs) StartCancellable(op, title, target string, steps []string, run Run) (Job, error) {
+	return j.start(op, title, target, steps, run, true)
+}
+
+func (j *Jobs) start(op, title, target string, steps []string, run Run, cancellable bool) (Job, error) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
 	for _, other := range j.jobs {
@@ -80,7 +106,11 @@ func (j *Jobs) Start(op, title, target string, steps []string, run Run) (Job, er
 	}
 	j.jobs[job.ID] = job
 	p := &Progress{jobs: j, id: job.ID}
-	ctx, cancel := context.WithTimeout(j.life, JobTimeout)
+	life, cancelLife := context.WithCancelCause(j.life)
+	if cancellable {
+		j.cancels[job.ID] = cancelLife
+	}
+	ctx, cancel := context.WithTimeout(life, JobTimeout)
 	type outcome struct {
 		result map[string]string
 		err    error
@@ -100,15 +130,27 @@ func (j *Jobs) Start(op, title, target string, steps []string, run Run) (Job, er
 	}()
 	go func() {
 		defer cancel()
-		timedOut := fmt.Errorf("the job didn't end within %s and was stopped", JobTimeout)
+		defer cancelLife(nil)
+		// stopped is why ctx ended when a cancel or the timeout stopped
+		// the job, else nil.
+		stopped := func() error {
+			switch cause := context.Cause(ctx); {
+			case errors.Is(cause, errCancelled):
+				return cause
+			case errors.Is(cause, context.DeadlineExceeded):
+				return fmt.Errorf("the job didn't end within %s and was stopped", JobTimeout)
+			}
+			return nil
+		}
 		select {
 		case o := <-ended:
-			if o.err != nil && errors.Is(context.Cause(ctx), context.DeadlineExceeded) {
-				o.err = timedOut
+			if why := stopped(); o.err != nil && why != nil {
+				o.err = why
 			}
 			p.finish(o.result, o.err)
 		case <-ctx.Done():
-			if !errors.Is(context.Cause(ctx), context.DeadlineExceeded) {
+			why := stopped()
+			if why == nil {
 				// The Agent is stopping: the job ends with it.
 				o := <-ended
 				p.finish(o.result, o.err)
@@ -124,9 +166,33 @@ func (j *Jobs) Start(op, title, target string, steps []string, run Run) (Job, er
 				}
 			case <-time.After(stopGrace):
 			}
-			p.finish(nil, timedOut)
+			p.finish(nil, why)
 		}
 	}()
+	return clone(job), nil
+}
+
+// Cancel stops the running job id: its context ends, which kills the
+// command it runs, and it ends Cancelled (or Done, when it got to its end
+// first). A body that doesn't return is given up on after the same grace
+// as at the timeout. It refuses ErrEnded for a job that ended, and
+// ErrNotCancellable for one started with Start. Cancelling a job that is
+// still stopping again is no error.
+func (j *Jobs) Cancel(id string) (Job, error) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	job, ok := j.jobs[id]
+	switch {
+	case !ok:
+		return Job{}, fmt.Errorf("%w %s", errNoJob, id)
+	case job.State.Ended():
+		return Job{}, fmt.Errorf("%w: %s already ended (%s)", ErrEnded, job.Title, job.State)
+	}
+	stop, ok := j.cancels[id]
+	if !ok {
+		return Job{}, fmt.Errorf("%w: %s can't be cancelled, since a command stopped part-way could leave the host broken; it ends by itself", ErrNotCancellable, job.Title)
+	}
+	stop(errCancelled)
 	return clone(job), nil
 }
 
@@ -247,21 +313,29 @@ func (p *Progress) Skip(i int, why string) {
 }
 
 // finish ends the job: a step still running fails with err, and steps
-// never begun stay pending.
+// never begun stay pending. A cancelled job (err is errCancelled) and its
+// running step end Cancelled, with no error.
 func (p *Progress) finish(result map[string]string, err error) {
 	p.edit(func(j *Job) {
+		delete(p.jobs.cancels, p.id)
 		j.End = p.jobs.now().UTC()
 		j.Result = result
 		if err == nil {
 			j.State = Done
 			return
 		}
-		j.State, j.Error = Failed, err.Error()
+		state, detail := Failed, err.Error()
+		if errors.Is(err, errCancelled) {
+			state, detail = Cancelled, "cancelled"
+		} else {
+			j.Error = err.Error()
+		}
+		j.State = state
 		for i := range j.Steps {
 			if j.Steps[i].State == Running {
-				j.Steps[i].State = Failed
-				if j.Steps[i].Detail == "" {
-					j.Steps[i].Detail = err.Error()
+				j.Steps[i].State = state
+				if j.Steps[i].Detail == "" || state == Cancelled {
+					j.Steps[i].Detail = detail
 				}
 			}
 		}

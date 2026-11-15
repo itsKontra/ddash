@@ -45,7 +45,8 @@ service ComposeService {
   // differs. Otherwise it starts a run, which goes on after the Action
   // returns: it streams the run's state each time a step changes for up
   // to 45 s; a run still going then is followed in ListRuns. It stops at
-  // the first failed step, with nothing rolled back.
+  // the first failed step, with nothing rolled back, and fails ABORTED; a
+  // run cancelled while it streams fails CANCELED.
   rpc RunAction(RunActionRequest) returns (stream RunActionResponse) {
     option (ddash.action) = {};
   }
@@ -53,6 +54,15 @@ service ComposeService {
   // 15 minutes, from memory.
   rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
     option (ddash.getter) = {refresh: LIVE};
+  }
+  // CancelRun stops a run in flight for the Operator: the Compose command
+  // its Docker Agent runs now is stopped part-way, no later step runs, and
+  // nothing is rolled back. The run ends a moment later, cancelled. It
+  // fails FAILED_PRECONDITION for a run that ended or is being cancelled
+  // already, and with the Agent's refusal (one too old to cancel asks for
+  // its update), leaving the run going; NOT_FOUND for no such run.
+  rpc CancelRun(CancelRunRequest) returns (CancelRunResponse) {
+    option (ddash.action) = {disruptive: true};
   }
 }
 
@@ -303,6 +313,8 @@ enum StepState {
   STEP_STATE_FAILED = 4;
   // Not needed, e.g. recreating when no image changed.
   STEP_STATE_SKIPPED = 5;
+  // Running when the run was cancelled, and stopped part-way.
+  STEP_STATE_CANCELLED = 6;
 }
 
 // How far a run has got.
@@ -325,16 +337,30 @@ message Run {
   ddash.job.Job job = 8;
   google.protobuf.Timestamp started = 9;
   google.protobuf.Timestamp ended = 10;
-  // Why it stopped; empty while it runs and when it ended well.
+  // Why it failed; empty while it runs, when it ended well, and when it
+  // was cancelled.
   string error = 11;
   // How it ended, as the Operator reads it, e.g. "already up to date",
-  // "2 Compose services updated".
+  // "2 Compose services updated", or for a cancelled run what it left
+  // half-done.
   string outcome = 12;
   // Who started it.
   string actor = 13;
+  // Who cancelled it, e.g. "operator:alice": set from the cancel on, while
+  // its command stops and once it ended cancelled.
+  string cancelled_by = 14;
 }
 
 message ListRunsRequest {}
+
+message CancelRunRequest {
+  string id = 1;
+}
+
+message CancelRunResponse {
+  // The run as it is once its cancel was asked for: still stopping.
+  Run run = 1;
+}
 
 message ListRunsResponse {
   repeated Run runs = 1;

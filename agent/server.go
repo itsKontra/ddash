@@ -102,6 +102,7 @@ func NewServer(o ServerOptions) (*Server, error) {
 	s.Handle("GET "+PathJobs, s.listJobs)
 	s.Handle("GET "+PathJobs+"/{id}", s.getJob)
 	s.Handle("DELETE "+PathJobs+"/{id}", s.collectJob)
+	s.Handle("POST "+PathJobs+"/{id}/cancel", s.cancelJob)
 	return s, nil
 }
 
@@ -258,6 +259,24 @@ func (s *Server) collectJob(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusConflict, CodeBusy, err.Error())
 	default:
 		WriteJSON(w, http.StatusOK, j)
+	}
+}
+
+// cancelJob answers 202 with the job as it was when asked to stop: it
+// ends a moment later, read with GET.
+func (s *Server) cancelJob(w http.ResponseWriter, r *http.Request) {
+	j, err := s.jobs.Cancel(r.PathValue("id"))
+	switch {
+	case errors.Is(err, errNoJob):
+		WriteError(w, http.StatusNotFound, CodeNotFound, err.Error())
+	case errors.Is(err, ErrEnded):
+		WriteError(w, http.StatusConflict, CodeEnded, err.Error())
+	case errors.Is(err, ErrNotCancellable):
+		WriteError(w, http.StatusConflict, CodeNotCancellable, err.Error())
+	case err != nil:
+		WriteError(w, http.StatusInternalServerError, CodeFailed, err.Error())
+	default:
+		WriteJSON(w, http.StatusAccepted, JobRef{Job: j})
 	}
 }
 

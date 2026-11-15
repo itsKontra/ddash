@@ -36,6 +36,9 @@ const (
 	State_STATE_FAILED      State = 4
 	// A step that didn't need to run, e.g. recreating when no image changed.
 	State_STATE_SKIPPED State = 5
+	// The Operator cancelled it (only a Compose job can be), and its
+	// command was stopped part-way: a job and its step running then.
+	State_STATE_CANCELLED State = 6
 )
 
 // Enum value maps for State.
@@ -47,6 +50,7 @@ var (
 		3: "STATE_DONE",
 		4: "STATE_FAILED",
 		5: "STATE_SKIPPED",
+		6: "STATE_CANCELLED",
 	}
 	State_value = map[string]int32{
 		"STATE_UNSPECIFIED": 0,
@@ -55,6 +59,7 @@ var (
 		"STATE_DONE":        3,
 		"STATE_FAILED":      4,
 		"STATE_SKIPPED":     5,
+		"STATE_CANCELLED":   6,
 	}
 )
 
@@ -311,7 +316,7 @@ const file_ddash_job_job_proto_rawDesc = "" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12&\n" +
 	"\x05state\x18\x02 \x01(\x0e2\x10.ddash.job.StateR\x05state\x12\x16\n" +
 	"\x06detail\x18\x03 \x01(\tR\x06detail\x12\x10\n" +
-	"\x03log\x18\x04 \x03(\tR\x03log*y\n" +
+	"\x03log\x18\x04 \x03(\tR\x03log*\x8e\x01\n" +
 	"\x05State\x12\x15\n" +
 	"\x11STATE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rSTATE_PENDING\x10\x01\x12\x11\n" +
@@ -319,7 +324,8 @@ const file_ddash_job_job_proto_rawDesc = "" +
 	"\n" +
 	"STATE_DONE\x10\x03\x12\x10\n" +
 	"\fSTATE_FAILED\x10\x04\x12\x11\n" +
-	"\rSTATE_SKIPPED\x10\x05B2Z0github.com/itsKontra/ddash/proto/ddash/job;jobpbb\x06proto3"
+	"\rSTATE_SKIPPED\x10\x05\x12\x13\n" +
+	"\x0fSTATE_CANCELLED\x10\x06B2Z0github.com/itsKontra/ddash/proto/ddash/job;jobpbb\x06proto3"
 
 var (
 	file_ddash_job_job_proto_rawDescOnce sync.Once
