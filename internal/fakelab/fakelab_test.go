@@ -1,6 +1,7 @@
 package fakelab_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -147,7 +148,12 @@ func TestTheWanDownScenarioHasTheWanAndTheTunnelDown(t *testing.T) {
 		t.Errorf("GetVpnTunnel = %s, want down", got)
 	}
 	res := h.Call("network", "pfsense-api", "ListGateways", `{}`)
-	if got := res.Body.String(); !strings.Contains(got, `"name":"WAN_DHCP","status":"down"`) {
+	// protojson varies its whitespace on purpose, per build.
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, res.Body.Bytes()); err != nil {
+		t.Fatalf("ListGateways = %d %s: %v", res.Code, res.Body, err)
+	}
+	if got := compact.String(); !strings.Contains(got, `"name":"WAN_DHCP","status":"down"`) {
 		t.Errorf("ListGateways = %d %s, want WAN_DHCP down", res.Code, got)
 	}
 }
