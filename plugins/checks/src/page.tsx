@@ -70,7 +70,13 @@ export function ChecksPage() {
       <div className="flex flex-col gap-5">
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <MetricTile label="Up" icon="circle-check" tone="up" value={t?.up.length} desc={t && `of ${t.enabled.length} enabled`} />
-          <MetricTile label="Down" icon="circle-x" tone={t?.down.length ? "down" : "idle"} value={t?.down.length} desc="after 3 failures in a row" />
+          <MetricTile
+            label="Down"
+            icon="circle-x"
+            tone={t?.down.length ? "down" : "idle"}
+            value={t && t.down.length + t.muted.length}
+            desc={t?.muted.length ? `${t.muted.length} of them muted` : "after 3 failures in a row"}
+          />
           <MetricTile
             label="Maintenance"
             icon="wrench"

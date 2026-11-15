@@ -148,6 +148,10 @@ _Avoid_: Monitor, health check, ping
 A period during which a Check's results don't count toward uptime and trigger no notifications. Started by the operator, or automatically when ddash itself restarts or stops a Workload.
 _Avoid_: Downtime, pause
 
+**Muted**:
+Said of a Check the Operator set to stay quiet: it is still probed and counts toward uptime, but sends no Notification, and while down it turns neither the Overview nor a Nav Entry's badge down; it is shown beside them as muted. Unlike Maintenance it has no end, and it means "I know, stop telling me" rather than "this is expected to fail for a while".
+_Avoid_: Silenced, snoozed, acknowledged
+
 **Notification**:
 A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering. It goes out through each channel that is set up (ntfy, Telegram) and whose filter takes its category: Checks, image updates or Action outcomes.
 _Avoid_: Alert, push
