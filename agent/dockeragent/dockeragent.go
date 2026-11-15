@@ -8,7 +8,6 @@
 package dockeragent
 
 import (
-	"bufio"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -548,8 +547,10 @@ func (a *Agent) write(w http.ResponseWriter, r *http.Request) {
 	// A .env holds secrets: readable by its owner only.
 	perm := os.FileMode(0o600)
 	if !create {
-		fi, _ := os.Stat(req.Path)
-		perm = fi.Mode().Perm()
+		// Gone since it was read: the backup below still gets the default.
+		if fi, err := os.Stat(req.Path); err == nil {
+			perm = fi.Mode().Perm()
+		}
 		if err := agent.WriteFileAtomic(req.Path+".bak", old, perm); err != nil {
 			agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, "can't keep the backup: "+err.Error())
 			return
@@ -887,7 +888,10 @@ func Recreate(ctx context.Context, file, dir, project, image string, c Compose) 
 	if !agentImage.Match(b) {
 		return fmt.Errorf("%s doesn't name the Docker Agent's image", file)
 	}
-	fi, _ := os.Stat(file)
+	fi, err := os.Stat(file)
+	if err != nil {
+		return err
+	}
 	if err := agent.WriteFileAtomic(file, agentImage.ReplaceAll(b, []byte(image)), fi.Mode().Perm()); err != nil {
 		return err
 	}
@@ -905,24 +909,5 @@ func (CLI) Run(ctx context.Context, dir string, args []string, out func(string))
 	}
 	cmd := exec.CommandContext(ctx, bin[0], append(bin[1:], args...)...)
 	cmd.Dir = dir
-	pr, pw := io.Pipe()
-	cmd.Stdout, cmd.Stderr = pw, pw
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	done := make(chan struct{})
-	go func() {
-		sc := bufio.NewScanner(pr)
-		sc.Buffer(make([]byte, 64<<10), 1<<20)
-		for sc.Scan() {
-			if out != nil {
-				out(sc.Text())
-			}
-		}
-		close(done)
-	}()
-	err := cmd.Wait()
-	pw.Close()
-	<-done
-	return err
+	return agent.RunLines(cmd, out)
 }
