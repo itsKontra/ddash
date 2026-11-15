@@ -94,12 +94,14 @@ function Body({ size }: { size: WidgetSize }) {
   const muted = apps.filter((a) => mutedDown(byApp?.get(a.id))).length;
   const edit = <Button variant="ghost" size="sm" icon="pin" aria-label="Edit pins" title="Pin, unpin and order Apps" onClick={() => setEditing(true)} />;
   if (pins.length === 0) return <Every apps={apps} byApp={byApp} size={size} muted={muted} edit={edit} />;
+  const large = size === "L";
   return (
-    <div className="flex flex-col gap-2">
-      <ul aria-label="Pinned Apps" className="grid grid-cols-3 sm:grid-cols-5 gap-1">
+    <div className={cx("flex flex-col gap-2", large && "h-full")}>
+      {/* L is two rows tall: larger icons, four a row, the rows spread over its height. */}
+      <ul aria-label="Pinned Apps" className={cx("grid grid-cols-3", large ? "flex-1 content-evenly gap-3 sm:grid-cols-4" : "gap-1 sm:grid-cols-5")}>
         {pins.map((a) => (
           <li key={a.id} className="min-w-0">
-            <Pinned app={a} check={byApp?.get(a.id)} cause={causes.get(a.id)} />
+            <Pinned app={a} check={byApp?.get(a.id)} cause={causes.get(a.id)} large={large} />
           </li>
         ))}
       </ul>
@@ -171,9 +173,10 @@ const dot: Partial<Record<Tone, string>> = { down: "bg-down", warn: "bg-warn", m
  * icon: nothing while up, else a dot in the Check's tone; down and not
  * muted greys the icon too. The tooltip gives the hostname and, unless
  * up, the Check's state with its cause: the Workload's when the App is
- * down because of it, else the Check's own.
+ * down because of it, else the Check's own. Large (L): a 48 px icon, and
+ * a long name wraps to a second line before it is cut.
  */
-function Pinned({ app, check, cause }: { app: App; check?: Check; cause?: WorkloadCause }) {
+function Pinned({ app, check, cause, large }: { app: App; check?: Check; cause?: WorkloadCause; large?: boolean }) {
   const status = causedStatus(check, cause);
   const muted = mutedDown(check);
   const label = muted ? `${status.label}, muted` : status.label;
@@ -185,16 +188,19 @@ function Pinned({ app, check, cause }: { app: App; check?: Check; cause?: Worklo
       target="_blank"
       rel="noreferrer"
       title={marked ? `${hostOf(app)} · ${label}` : hostOf(app)}
-      className="flex min-w-0 flex-col items-center gap-1.5 rounded-ui px-1 pt-3 pb-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className={cx(
+        "flex min-w-0 flex-col items-center rounded-ui px-1 font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+        large ? "gap-2 pt-3 pb-2.5 text-sm" : "gap-1.5 pt-3 pb-2.5 text-xs",
+      )}
     >
       <span className="relative">
         {/* A square, whatever the icon's own aspect, so the names line up. */}
-        <span data-greyed={greyed || undefined} className={cx("flex h-9 w-9 items-center justify-center", greyed && "opacity-50 grayscale")}>
-          <AppIcon name={app.name} icon={app.icon} url={app.url} size={36} />
+        <span data-greyed={greyed || undefined} className={cx("flex items-center justify-center", large ? "h-12 w-12" : "h-9 w-9", greyed && "opacity-50 grayscale")}>
+          <AppIcon name={app.name} icon={app.icon} url={app.url} size={large ? 48 : 36} />
         </span>
         {marked && <span role="img" aria-label={label} className={cx("absolute -top-1 -right-1.5 h-2.5 w-2.5 rounded-full border-2 border-card", marked)} />}
       </span>
-      <span className="max-w-full truncate">{app.name}</span>
+      <span className={cx("max-w-full", large ? "line-clamp-2 text-center leading-tight break-words" : "truncate")}>{app.name}</span>
     </a>
   );
 }

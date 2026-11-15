@@ -35,7 +35,7 @@ const guest = (vmid: number, name: string, mem: number, disk: number, extra: obj
 });
 const listed = (...workloads: object[]) => () => Response.json({ workloads });
 
-it("warns of each running guest whose memory or disk is 75 % full or more, with the fuller one's figures", async () => {
+it("names each running guest whose memory or disk is 75 % full or more, with the fuller one's figures, down from 90 %", async () => {
   await show({
     ListWorkloads: listed(
       guest(101, "nginx", 1, 4),
@@ -50,7 +50,7 @@ it("warns of each running guest whose memory or disk is 75 % full or more, with 
   expect(reported).toEqual([
     {
       id: "102",
-      tone: "warn",
+      tone: "down",
       subject: "grafana",
       title: "grafana is running out of disk",
       cause: "disk 91 % · 29.0 GiB of 32.0 GiB",
@@ -79,6 +79,40 @@ it("reports none while no guest is tight, nothing until proxmox-api answered, an
   expect(reported).toBeUndefined();
 
   cleanup();
-  await show({ ListWorkloads: () => unavailable("Proxmox is restarting") });
+  await show({ ListWorkloads: () => unavailable("Proxmox is restarting"), ListNodes: () => unavailable("Proxmox is restarting") });
   expect(reported).toEqual([]);
+});
+
+const node = (memGiB: number, usedGiB: number) => ({
+  name: "pve",
+  status: "online",
+  cpu: 0.05,
+  maxCpu: 16,
+  mem: String(memGiB * GiB),
+  maxMem: String(64 * GiB),
+  storages: [{ name: "local-lvm", content: ["images", "rootdir"], active: true, total: String(476 * GiB), avail: String((476 - usedGiB) * GiB) }],
+});
+const nodes = (memGiB: number, usedGiB: number) => () => Response.json({ nodes: [node(memGiB, usedGiB)] });
+
+it("names the node when its storage is 75 % full or its memory 90 %, first, without naming its guests twice", async () => {
+  await show({ ListWorkloads: listed(guest(102, "grafana", 1, 29)), ListNodes: nodes(60, 440) });
+
+  expect(reported).toEqual([
+    { id: "node-memory", tone: "warn", subject: "pve", title: "pve's memory is 94 % full", cause: "memory 94 % · 60.0 GiB of 64.0 GiB", icon: "memory-stick", href: "/proxmox" },
+    { id: "node-storage", tone: "down", subject: "pve", title: "pve is running out of storage", cause: "storage 92 % · 440 GiB of 476 GiB", icon: "hard-drive", href: "/proxmox" },
+    expect.objectContaining({ id: "102", subject: "grafana" }),
+  ]);
+});
+
+it("leaves the node's memory at 78 % unnamed, waits for the nodes, and names the guests when the nodes can't be read", async () => {
+  await show({ ListWorkloads: listed(guest(101, "nginx", 1, 4)), ListNodes: nodes(50, 100) });
+  expect(reported).toEqual([]);
+
+  cleanup();
+  await show({ ListWorkloads: listed(guest(102, "grafana", 1, 29)), ListNodes: () => pending() });
+  expect(reported).toBeUndefined();
+
+  cleanup();
+  await show({ ListWorkloads: listed(guest(102, "grafana", 1, 29)), ListNodes: () => unavailable("no Sys.Audit") });
+  expect(reported).toEqual([expect.objectContaining({ id: "102" })]);
 });

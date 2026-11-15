@@ -5,7 +5,7 @@ import { CoreScope, createQueryClient, PluginHost } from "@ddash/plugin";
 import { AuditChainSchema, AuditEntrySchema, type AuditEntry } from "@ddash/proto/ddash/core/core_pb";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ago, listed, recent, Recently, subject, words } from "./recently";
+import { ago, collapsed, listed, recent, Recently, subject, words, type Recent } from "./recently";
 
 const now = Date.parse("2026-11-15T19:45:00Z");
 
@@ -115,6 +115,42 @@ describe("recent", () => {
   });
 });
 
+describe("collapsed", () => {
+  const item = (id: string, more: Partial<Recent> = {}): Recent => ({
+    id,
+    what: "Set pins",
+    subject: "",
+    target: "apps",
+    who: "alice",
+    at: now - Number(id.slice(1)) * 60_000,
+    outcome: "done",
+    detail: "done in 20 ms",
+    ...more,
+  });
+
+  it("makes a run of the same Action one row with its count and the newest's time", () => {
+    expect(collapsed([item("r1"), item("r2"), item("r3"), item("r4")])).toEqual([{ ...item("r1"), count: 4 }]);
+  });
+
+  it("shows a run's failure, the newest one's, whatever ended last", () => {
+    const run = [item("r1"), item("r2", { outcome: "failed", detail: "apps is down" }), item("r3", { outcome: "failed", detail: "timed out" })];
+    expect(collapsed(run)).toEqual([{ ...item("r1"), outcome: "failed", detail: "apps is down", count: 3 }]);
+  });
+
+  it("keeps apart what differs in who, what, target or subject, and the same Action that isn't in a row", () => {
+    const items = [
+      item("r1"),
+      item("r2", { who: "bob" }),
+      item("r3", { what: "Pin" }),
+      item("r4", { target: "docker" }),
+      item("r5", { subject: "grafana" }),
+      item("r6"),
+    ];
+    expect(collapsed(items)).toEqual(items);
+    expect(collapsed([])).toEqual([]);
+  });
+});
+
 it.each([
   [10_000, "just now"],
   [5 * 60_000, "5 min ago"],
@@ -181,7 +217,7 @@ it("lists the last four Actions, telling a failed one from a finished one by its
     json(chain("c2", hop("proxmox", "RunUpdateAll", 120, 20))),
   ];
   await show();
-  expect(requests).toEqual([{ pageSize: 20 }]);
+  expect(requests).toEqual([{ pageSize: 50 }]);
   expect(rows().map((r) => r.getAttribute("aria-label"))).toEqual(["Install: failed", "Run update all: done"]);
   expect(rows()[0].textContent).toContain("Install · weather");
   expect(within(rows()[0]).getByRole("img", { name: "failed" })).toBeTruthy();
@@ -220,6 +256,26 @@ it("passes over housekeeping to find the last four Actions", async () => {
   ];
   await show();
   expect(rows().map((r) => r.textContent?.split(" · ")[1].split("done")[0].trim())).toEqual(["docker", "network", "energy", "checks"]);
+});
+
+it("lists the Operator ordering pins over and over as one row, and still four distinct ones", async () => {
+  const pins = (id: string, secs: number, more = {}) => json(chain(id, hop("apps", "SetPins", secs, 20, more)));
+  const action = (id: string, plugin: string) => json(chain(id, hop("core", "Install", 600, 10, { request: `{"plugin":"${plugin}"}` })));
+  chains = [
+    pins("p1", 10),
+    json(chain("s1", hop("core", "SaveLayout", 11, 5))),
+    pins("p2", 12, { outcome: "Unavailable", message: "apps is restarting" }),
+    ...Array.from({ length: 20 }, (_, i) => pins(`p${i + 3}`, 13 + i)),
+    action("a1", "docker"),
+    action("a2", "network"),
+    action("a3", "energy"),
+    action("a4", "checks"),
+  ];
+  await show();
+  expect(rows().map((r) => r.getAttribute("aria-label"))).toEqual(["Set pins ×22: failed", "Install: done", "Install: done", "Install: done"]);
+  expect(rows()[0].textContent).toContain("Set pins ×22 apps");
+  expect(rows()[0].textContent).toContain("apps is restarting");
+  expect(rows()[0].textContent).toContain("alice · just now");
 });
 
 it("says so when nothing has run yet", async () => {

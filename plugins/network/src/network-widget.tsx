@@ -5,7 +5,7 @@ import { PfsenseApiService } from "@ddash/proto/pfsense-api/pfsense_api_pb";
 import { Icon, Notice, Pill, Row, Rows, Skeleton, Sparkline, Unit } from "@ddash/ui";
 import { Fragment, type ReactNode } from "react";
 import { blockedShare, count, pauseLeft, useAdguardStats, useAdguardStatus } from "./adguard";
-import { tally, useDevices } from "./devices";
+import { onlineFact, tally, useDevices } from "./devices";
 import { ProtectionSwitch } from "./protection";
 import { peerName, useRemoteAccess } from "./remote-access";
 import { lastSeen, latency, routeOut, wanGateways } from "./route";
@@ -20,11 +20,17 @@ function useRoute() {
   return { tunnel, wan, route: tunnel.data && routeOut(tunnel.data, wan) };
 }
 
-/** The route out's tone and summary; warn when network is unavailable. */
+/**
+ * The route out's tone and summary; warn when network is unavailable. Its
+ * fact, once the Devices are read: the Devices online, as the Devices
+ * Widget has it, so the hero keeps it with either Widget placed.
+ */
 function useStatus(): Status | undefined {
   const { tunnel, route } = useRoute();
-  if (tunnel.error) return { tone: "warn", summary: `network unavailable: ${tunnel.error.rawMessage}` };
-  return route && { tone: route.tone, summary: route.summary };
+  const { data: devices } = useDevices();
+  const fact = devices && { fact: onlineFact(devices.devices) };
+  if (tunnel.error) return { tone: "warn", summary: `network unavailable: ${tunnel.error.rawMessage}`, ...fact };
+  return route && { tone: route.tone, summary: route.summary, ...fact };
 }
 
 /** "Online via WireGuard", and the VPN Tunnel's and the WAN's latency and loss. */
