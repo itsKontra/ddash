@@ -55,8 +55,19 @@ check-plugins: build
 # Build the web with Vite: the shell and vendor ESM into web/dist/shell
 # (embedded by package web, so build before building the core) and each
 # Plugin's bundle into plugins/<name>/dist/ (copied into the Release).
-build:
+#
+# Built once: test-go, check-plugins, release-dir, image and dev all need
+# it, and it runs again only when a file of the workspace is newer than
+# the last build (`make -B build` forces it). The stamp sits in
+# node_modules, which is ignored and not embedded.
+WEB_SOURCES := $(wildcard $(shell git ls-files -co --exclude-standard -- web packages plugins package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json))
+WEB_BUILT := node_modules/.ddash-web-built
+
+build: $(WEB_BUILT)
+
+$(WEB_BUILT): $(WEB_SOURCES)
 	$(PNPM) -r build
+	@touch $@
 
 test: test-go test-web
 
