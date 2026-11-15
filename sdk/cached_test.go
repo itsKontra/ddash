@@ -31,11 +31,113 @@ func TestCachedServesFromMemoryUntilTheTTLEnds(t *testing.T) {
 		first, _ := c.Get(t.Context())
 		time.Sleep(sdk.TTLFast - time.Second)
 		again, _ := c.Get(t.Context())
-		time.Sleep(time.Second)
-		expired, _ := c.Get(t.Context())
+		synctest.Wait()
 
-		if first != 1 || again != 1 || expired != 2 {
-			t.Errorf("values = %d, %d, %d; want 1, 1 (cached), 2 (after TTL)", first, again, expired)
+		if first != 1 || again != 1 || calls.Load() != 1 {
+			t.Errorf("values = %d, %d after %d fetches; want 1, 1 after 1", first, again, calls.Load())
+		}
+	})
+}
+
+// A caller who comes every refresh tier finds the value just past its TTL:
+// it gets that value at once, and the next caller gets the one fetched
+// behind it.
+func TestCachedAnswersWithAStaleValueWhileItFetchesTheNext(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var calls atomic.Int32
+		c := sdk.Cached(sdk.TTLFast, func(context.Context) (int32, error) {
+			if calls.Load() > 0 {
+				time.Sleep(2 * time.Second) // a slow upstream
+			}
+			return calls.Add(1), nil
+		})
+		c.Get(t.Context())
+
+		time.Sleep(sdk.TTLFast + time.Second)
+		asked := time.Now()
+		stale, err := c.Get(t.Context())
+		if err != nil || stale != 1 || time.Since(asked) != 0 {
+			t.Errorf("past the TTL: %d, %v after %v; want the stale 1 at once", stale, err, time.Since(asked))
+		}
+
+		time.Sleep(3 * time.Second)
+		next, _ := c.Get(t.Context())
+		if next != 2 || calls.Load() != 2 {
+			t.Errorf("after the fetch behind it: %d after %d fetches; want 2 after 2", next, calls.Load())
+		}
+	})
+}
+
+func TestCachedWaitsForAFetchOnceTheValueIsTwoTTLsOld(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var calls atomic.Int32
+		c := sdk.Cached(sdk.TTLFast, counter(&calls))
+		c.Get(t.Context())
+
+		time.Sleep(2 * sdk.TTLFast)
+		got, _ := c.Get(t.Context())
+
+		if got != 2 {
+			t.Errorf("two TTLs later got %d, want a fetched 2", got)
+		}
+	})
+}
+
+func TestCachedKeepsAStaleValueWhenTheFetchBehindItFails(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		fail := false
+		c := sdk.Cached(sdk.TTLFast, func(context.Context) (string, error) {
+			if fail {
+				return "", errors.New("connection refused")
+			}
+			return "up", nil
+		})
+		c.Get(t.Context())
+		fail = true
+
+		time.Sleep(sdk.TTLFast + time.Second)
+		stale, err := c.Get(t.Context())
+		synctest.Wait()
+		if stale != "up" || err != nil {
+			t.Errorf("past the TTL: %q, %v; want the stale value", stale, err)
+		}
+
+		time.Sleep(sdk.TTLFast)
+		if _, err := c.Get(t.Context()); err == nil {
+			t.Error("two TTLs after the last good fetch: want the fetch error")
+		}
+	})
+}
+
+// The getter of a browser that left is cancelled; the fetch it started
+// goes on for the callers sharing it.
+func TestCachedFetchOutlivesTheCallerWhoStartedIt(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		c := sdk.Cached(sdk.TTLFast, func(ctx context.Context) (string, error) {
+			select {
+			case <-time.After(time.Second):
+				return "up", nil
+			case <-ctx.Done():
+				return "", ctx.Err()
+			}
+		})
+		leaving, leave := context.WithCancel(t.Context())
+		var first, second error
+		var got string
+		var wg sync.WaitGroup
+		wg.Go(func() { _, first = c.Get(leaving) })
+		synctest.Wait()
+		wg.Go(func() { got, second = c.Get(t.Context()) })
+		synctest.Wait()
+
+		leave()
+		wg.Wait()
+
+		if !errors.Is(first, context.Canceled) {
+			t.Errorf("the caller who left got %v, want context.Canceled", first)
+		}
+		if second != nil || got != "up" {
+			t.Errorf("the caller who stayed got %q, %v; want the value", got, second)
 		}
 	})
 }

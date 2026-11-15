@@ -226,8 +226,13 @@ func TestInterfaceCountersAreCachedForTwoSeconds(t *testing.T) {
 	if got := srv.hits.Load(); got != 1 {
 		t.Errorf("%d requests for two reads in a row, want 1", got)
 	}
+	// Just past the TTL the read is answered from the cache at once, and
+	// the next counters are fetched behind it.
 	time.Sleep(2100 * time.Millisecond)
 	read()
+	for wait := time.Now(); srv.hits.Load() < 2 && time.Since(wait) < 2*time.Second; {
+		time.Sleep(10 * time.Millisecond)
+	}
 	if got := srv.hits.Load(); got != 2 {
 		t.Errorf("%d requests after 2 s, want 2", got)
 	}
