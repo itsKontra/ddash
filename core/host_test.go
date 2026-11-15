@@ -59,7 +59,7 @@ func TestInstallingDockerServesDockerApiContainersToTheUI(t *testing.T) {
 	if len(got.Hosts) != 1 || got.Hosts[0].Host != "media" || len(got.Hosts[0].Containers) != 6 {
 		t.Fatalf("got %s, want media's 6 containers", res.Body)
 	}
-	if c := got.Hosts[0].Containers[0]; c.Name != "socket-proxy" || c.State != "running" {
+	if c := got.Hosts[0].Containers[0]; c.Name != "socket-proxy" || c.State != "STATE_RUNNING" {
 		t.Errorf("first container = %+v, want socket-proxy running", c)
 	}
 }

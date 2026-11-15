@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+// A container, as Docker reports it. Shared by the Components that read
+// Docker (docker-api through a socket-proxy, docker-agent-api through a
+// Docker Agent) and those that show or act on what they read.
+package ddash.container;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/itsKontra/ddash/proto/ddash/container;containerpb";
+
+message Container {
+  string id = 1;
+  // The container's name, without Docker's leading slash.
+  string name = 2;
+  string image = 3;
+  State state = 4;
+  // Docker's human-readable status, e.g. "Up 3 hours (healthy)": to show,
+  // never to decide by.
+  string status = 5;
+  // Ports published on the host.
+  repeated Port ports = 6;
+  // The local image's id and its "<repo>@sha256:…" digests: none for an
+  // image built locally. Read through a Docker Agent only.
+  string image_id = 7;
+  repeated string repo_digests = 8;
+  // Read through a Docker Agent only.
+  map<string, string> labels = 9;
+  // Its Compose Project and service, from its labels; empty for one not
+  // started by Compose.
+  string project = 10;
+  string service = 11;
+  // Read through a Docker Agent only.
+  google.protobuf.Timestamp created = 12;
+  // What its health check says; HEALTH_UNSPECIFIED for a container
+  // without one, or not running.
+  Health health = 13;
+  // It carries the label ddash.protected=true: ddash doesn't stop,
+  // restart or update it.
+  bool protected = 14;
+}
+
+// Docker's container states.
+enum State {
+  STATE_UNSPECIFIED = 0;
+  STATE_CREATED = 1;
+  STATE_RUNNING = 2;
+  STATE_PAUSED = 3;
+  STATE_RESTARTING = 4;
+  STATE_REMOVING = 5;
+  STATE_EXITED = 6;
+  STATE_DEAD = 7;
+}
+
+enum Health {
+  HEALTH_UNSPECIFIED = 0;
+  // Its health check hasn't passed yet.
+  HEALTH_STARTING = 1;
+  HEALTH_HEALTHY = 2;
+  HEALTH_UNHEALTHY = 3;
+}
+
+message Port {
+  // The host address the port is bound to; empty when Docker reports none.
+  string ip = 1;
+  uint32 public_port = 2;
+  uint32 private_port = 3;
+  Protocol protocol = 4;
+}
+
+enum Protocol {
+  PROTOCOL_UNSPECIFIED = 0;
+  PROTOCOL_TCP = 1;
+  PROTOCOL_UDP = 2;
+  PROTOCOL_SCTP = 3;
+}

@@ -6,7 +6,15 @@ import { docker } from "./testing";
 
 afterEach(cleanup);
 
-const container = (name: string, state: string, status: string) => ({ id: name, name, image: `${name}:latest`, state, status });
+// A container as docker-api answers it (Connect JSON): the state and health as enums, read from Docker's words.
+const container = (name: string, state: string, status: string) => ({
+  id: name,
+  name,
+  image: `${name}:latest`,
+  state: `STATE_${state.toUpperCase()}`,
+  status,
+  health: status.includes("(unhealthy)") ? "HEALTH_UNHEALTHY" : status.includes("(healthy)") ? "HEALTH_HEALTHY" : undefined,
+});
 
 const healthy = {
   hosts: [

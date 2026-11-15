@@ -11,6 +11,8 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Container } from "../ddash/container/container_pb";
+import { file_ddash_container_container } from "../ddash/container/container_pb";
 import type { Job } from "../ddash/job/job_pb";
 import { file_ddash_job_job } from "../ddash/job/job_pb";
 import { file_ddash_options } from "../ddash/options_pb";
@@ -22,7 +24,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file compose/compose.proto.
  */
 export const file_compose_compose: GenFile = /*@__PURE__*/
-  fileDesc("ChVjb21wb3NlL2NvbXBvc2UucHJvdG8SDWRkYXNoLmNvbXBvc2UiRgoNQ29tcG9zZUNvbmZpZ0oECAEQAkoECAIQA1ITZG9ja2VyX2h1Yl9yZWdpc3RyeVIUcmVnaXN0cnlfY3JlZGVudGlhbHMiFQoTTGlzdFByb2plY3RzUmVxdWVzdCJmChRMaXN0UHJvamVjdHNSZXNwb25zZRIiCgVob3N0cxgBIAMoCzITLmRkYXNoLmNvbXBvc2UuSG9zdBIqCgZjaGVja3MYAiABKAsyGi5kZGFzaC5jb21wb3NlLkltYWdlQ2hlY2tzIpsBCgRIb3N0EgwKBG5hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRINCgVlcnJvchgDIAEoCRINCgVyb290cxgEIAMoCRIoCghwcm9qZWN0cxgFIAMoCzIWLmRkYXNoLmNvbXBvc2UuUHJvamVjdBIsCgpjb250YWluZXJzGAYgAygLMhguZGRhc2guY29tcG9zZS5Db250YWluZXIi8QEKB1Byb2plY3QSDAoEaG9zdBgBIAEoCRIMCgRuYW1lGAIgASgJEhMKC3dvcmtpbmdfZGlyGAMgASgJEhMKC2NvbmZpZ19maWxlGAQgASgJEioKBXN0YXRlGAUgASgOMhsuZGRhc2guY29tcG9zZS5Qcm9qZWN0U3RhdGUSKAoIc2VydmljZXMYBiADKAsyFi5kZGFzaC5jb21wb3NlLlNlcnZpY2USGAoQdXBkYXRlX2F2YWlsYWJsZRgHIAEoCBIRCglwcm90ZWN0ZWQYCCABKAgSDQoFZXJyb3IYCSABKAkSDgoGcnVuX2lkGAogASgJImMKB1NlcnZpY2USDAoEbmFtZRgBIAEoCRINCgVpbWFnZRgCIAEoCRINCgVwb3J0cxgDIAMoCRIsCgpjb250YWluZXJzGAQgAygLMhguZGRhc2guY29tcG9zZS5Db250YWluZXIi6QEKCUNvbnRhaW5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg0KBXN0YXRlGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIiCgVwb3J0cxgGIAMoCzITLmRkYXNoLmNvbXBvc2UuUG9ydBIwCgxpbWFnZV9zdGF0dXMYByABKAsyGi5kZGFzaC5jb21wb3NlLkltYWdlU3RhdHVzEhEKCXByb3RlY3RlZBgIIAEoCBIrCgdjcmVhdGVkGAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJPCgRQb3J0EgoKAmlwGAEgASgJEhMKC3B1YmxpY19wb3J0GAIgASgNEhQKDHByaXZhdGVfcG9ydBgDIAEoDRIQCghwcm90b2NvbBgEIAEoCSKjAQoLSW1hZ2VTdGF0dXMSKAoFc3RhdGUYASABKA4yGS5kZGFzaC5jb21wb3NlLkltYWdlU3RhdGUSDgoGcmVhc29uGAIgASgJEhYKDmN1cnJlbnRfZGlnZXN0GAMgASgJEhUKDWxhdGVzdF9kaWdlc3QYBCABKAkSKwoHY2hlY2tlZBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAitgEKC0ltYWdlQ2hlY2tzEigKBGxhc3QYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBG5leHQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKCHByb2JsZW1zGAMgAygLMh4uZGRhc2guY29tcG9zZS5SZWdpc3RyeVByb2JsZW0SEAoIcmVxdWVzdHMYBCABKAUSDwoHcnVubmluZxgFIAEoCCI0Cg9SZWdpc3RyeVByb2JsZW0SEAoIcmVnaXN0cnkYASABKAkSDwoHbWVzc2FnZRgCIAEoCSIUChJDaGVja0ltYWdlc1JlcXVlc3QiQQoTQ2hlY2tJbWFnZXNSZXNwb25zZRIqCgZjaGVja3MYASABKAsyGi5kZGFzaC5jb21wb3NlLkltYWdlQ2hlY2tzIqgCCg1Db21wb3NlQWN0aW9uEicKBHNhdmUYASABKAsyFy5kZGFzaC5jb21wb3NlLlNhdmVGaWxlSAASJQoFc3RhcnQYAiABKAsyFC5kZGFzaC5jb21wb3NlLlN0YXJ0SAASIwoEc3RvcBgDIAEoCzITLmRkYXNoLmNvbXBvc2UuU3RvcEgAEikKB3Jlc3RhcnQYBCABKAsyFi5kZGFzaC5jb21wb3NlLlJlc3RhcnRIABInCgZ1cGRhdGUYBSABKAsyFS5kZGFzaC5jb21wb3NlLlVwZGF0ZUgAEigKA2FkZBgGIAEoCzIZLmRkYXNoLmNvbXBvc2UuQWRkUHJvamVjdEgAEhoKEm92ZXJyaWRlX3Byb3RlY3RlZBgHIAEoCEIICgZhY3Rpb24icQoIU2F2ZUZpbGUSDAoEaG9zdBgBIAEoCRIPCgdwcm9qZWN0GAIgASgJEgwKBHBhdGgYAyABKAkSDwoHY29udGVudBgEIAEoCRIVCg1leHBlY3Rfc2hhMjU2GAUgASgJEhAKCHJlY3JlYXRlGAYgASgIIjgKBVN0YXJ0EgwKBGhvc3QYASABKAkSDwoHcHJvamVjdBgCIAEoCRIQCghzZXJ2aWNlcxgDIAMoCSI3CgRTdG9wEgwKBGhvc3QYASABKAkSDwoHcHJvamVjdBgCIAEoCRIQCghzZXJ2aWNlcxgDIAMoCSI6CgdSZXN0YXJ0EgwKBGhvc3QYASABKAkSDwoHcHJvamVjdBgCIAEoCRIQCghzZXJ2aWNlcxgDIAMoCSInCgZVcGRhdGUSDAoEaG9zdBgBIAEoCRIPCgdwcm9qZWN0GAIgASgJImgKCkFkZFByb2plY3QSDAoEaG9zdBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWRpcmVjdG9yeRgDIAEoCRIPCgdjb250ZW50GAQgASgJEg0KBXN0YXJ0GAUgASgIEgsKA2VudhgGIAEoCSKDAQoEUGxhbhImCgVzdGVwcxgBIAMoCzIXLmRkYXNoLmNvbXBvc2UuUGxhblN0ZXASDwoHYmxvY2tlZBgCIAMoCRINCgVub3RlcxgDIAMoCRIMCgRkaWZmGAQgASgJEhEKCXByb3RlY3RlZBgFIAMoCRISCgp1cF90b19kYXRlGAYgASgIImoKCFBsYW5TdGVwEiUKBnN5c3RlbRgBIAEoDjIVLmRkYXNoLmNvbXBvc2UuU3lzdGVtEg0KBXRpdGxlGAIgASgJEigKBnZhbHVlcxgDIAMoCzIYLmRkYXNoLmNvbXBvc2UuUGxhblZhbHVlIjkKCVBsYW5WYWx1ZRINCgVsYWJlbBgBIAEoCRIOCgZiZWZvcmUYAiABKAkSDQoFYWZ0ZXIYAyABKAkiQQoRUGxhbkFjdGlvblJlcXVlc3QSLAoGYWN0aW9uGAEgASgLMhwuZGRhc2guY29tcG9zZS5Db21wb3NlQWN0aW9uIjcKElBsYW5BY3Rpb25SZXNwb25zZRIhCgRwbGFuGAEgASgLMhMuZGRhc2guY29tcG9zZS5QbGFuImMKEFJ1bkFjdGlvblJlcXVlc3QSLAoGYWN0aW9uGAEgASgLMhwuZGRhc2guY29tcG9zZS5Db21wb3NlQWN0aW9uEiEKBHBsYW4YAiABKAsyEy5kZGFzaC5jb21wb3NlLlBsYW4iNAoRUnVuQWN0aW9uUmVzcG9uc2USHwoDcnVuGAEgASgLMhIuZGRhc2guY29tcG9zZS5SdW4ixgIKA1J1bhIKCgJpZBgBIAEoCRIMCgRob3N0GAIgASgJEg8KB3Byb2plY3QYAyABKAkSDQoFdGl0bGUYBCABKAkSJgoFc3RlcHMYBSADKAsyFy5kZGFzaC5jb21wb3NlLlBsYW5TdGVwEigKBnN0YXRlcxgGIAMoDjIYLmRkYXNoLmNvbXBvc2UuU3RlcFN0YXRlEg8KB2RldGFpbHMYByADKAkSGwoDam9iGAggASgLMg4uZGRhc2guam9iLkpvYhIrCgdzdGFydGVkGAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIpCgVlbmRlZBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFZXJyb3IYCyABKAkSDwoHb3V0Y29tZRgMIAEoCRINCgVhY3RvchgNIAEoCSIRCg9MaXN0UnVuc1JlcXVlc3QiNAoQTGlzdFJ1bnNSZXNwb25zZRIgCgRydW5zGAEgAygLMhIuZGRhc2guY29tcG9zZS5SdW4qnQEKDFByb2plY3RTdGF0ZRIdChlQUk9KRUNUX1NUQVRFX1VOU1BFQ0lGSUVEEAASGQoVUFJPSkVDVF9TVEFURV9SVU5OSU5HEAESGQoVUFJPSkVDVF9TVEFURV9QQVJUSUFMEAISGQoVUFJPSkVDVF9TVEFURV9TVE9QUEVEEAMSHQoZUFJPSkVDVF9TVEFURV9OT1RfU1RBUlRFRBAEKqkBCgpJbWFnZVN0YXRlEhsKF0lNQUdFX1NUQVRFX1VOU1BFQ0lGSUVEEAASFwoTSU1BR0VfU1RBVEVfVU5LTk9XThABEhoKFklNQUdFX1NUQVRFX1VQX1RPX0RBVEUQAhIVChFJTUFHRV9TVEFURV9TVEFMRRADEhsKF0lNQUdFX1NUQVRFX05PVF9DSEVDS0VEEAQSFQoRSU1BR0VfU1RBVEVfRVJST1IQBSpLCgZTeXN0ZW0SFgoSU1lTVEVNX1VOU1BFQ0lGSUVEEAASFwoTU1lTVEVNX0RPQ0tFUl9BR0VOVBABEhAKDFNZU1RFTV9EREFTSBACKpsBCglTdGVwU3RhdGUSGgoWU1RFUF9TVEFURV9VTlNQRUNJRklFRBAAEhYKElNURVBfU1RBVEVfUEVORElORxABEhYKElNURVBfU1RBVEVfUlVOTklORxACEhMKD1NURVBfU1RBVEVfRE9ORRADEhUKEVNURVBfU1RBVEVfRkFJTEVEEAQSFgoSU1RFUF9TVEFURV9TS0lQUEVEEAUy1QMKDkNvbXBvc2VTZXJ2aWNlEl8KDExpc3RQcm9qZWN0cxIiLmRkYXNoLmNvbXBvc2UuTGlzdFByb2plY3RzUmVxdWVzdBojLmRkYXNoLmNvbXBvc2UuTGlzdFByb2plY3RzUmVzcG9uc2UiBoq1GAIIAhJaCgtDaGVja0ltYWdlcxIhLmRkYXNoLmNvbXBvc2UuQ2hlY2tJbWFnZXNSZXF1ZXN0GiIuZGRhc2guY29tcG9zZS5DaGVja0ltYWdlc1Jlc3BvbnNlIgSStRgAElkKClBsYW5BY3Rpb24SIC5kZGFzaC5jb21wb3NlLlBsYW5BY3Rpb25SZXF1ZXN0GiEuZGRhc2guY29tcG9zZS5QbGFuQWN0aW9uUmVzcG9uc2UiBoq1GAIIAxJWCglSdW5BY3Rpb24SHy5kZGFzaC5jb21wb3NlLlJ1bkFjdGlvblJlcXVlc3QaIC5kZGFzaC5jb21wb3NlLlJ1bkFjdGlvblJlc3BvbnNlIgSStRgAMAESUwoITGlzdFJ1bnMSHi5kZGFzaC5jb21wb3NlLkxpc3RSdW5zUmVxdWVzdBofLmRkYXNoLmNvbXBvc2UuTGlzdFJ1bnNSZXNwb25zZSIGirUYAggBQkNaQWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvY29tcG9zZS9jb21wb3NlcGI7Y29tcG9zZXBiYgZwcm90bzM", [file_ddash_job_job, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("ChVjb21wb3NlL2NvbXBvc2UucHJvdG8SDWRkYXNoLmNvbXBvc2UiRgoNQ29tcG9zZUNvbmZpZ0oECAEQAkoECAIQA1ITZG9ja2VyX2h1Yl9yZWdpc3RyeVIUcmVnaXN0cnlfY3JlZGVudGlhbHMiFQoTTGlzdFByb2plY3RzUmVxdWVzdCJmChRMaXN0UHJvamVjdHNSZXNwb25zZRIiCgVob3N0cxgBIAMoCzITLmRkYXNoLmNvbXBvc2UuSG9zdBIqCgZjaGVja3MYAiABKAsyGi5kZGFzaC5jb21wb3NlLkltYWdlQ2hlY2tzIqIBCgRIb3N0EgwKBG5hbWUYASABKAkSDwoHYWRkcmVzcxgCIAEoCRINCgVlcnJvchgDIAEoCRINCgVyb290cxgEIAMoCRIoCghwcm9qZWN0cxgFIAMoCzIWLmRkYXNoLmNvbXBvc2UuUHJvamVjdBIzCgpjb250YWluZXJzGAYgAygLMh8uZGRhc2guY29tcG9zZS5Qcm9qZWN0Q29udGFpbmVyIvEBCgdQcm9qZWN0EgwKBGhvc3QYASABKAkSDAoEbmFtZRgCIAEoCRITCgt3b3JraW5nX2RpchgDIAEoCRITCgtjb25maWdfZmlsZRgEIAEoCRIqCgVzdGF0ZRgFIAEoDjIbLmRkYXNoLmNvbXBvc2UuUHJvamVjdFN0YXRlEigKCHNlcnZpY2VzGAYgAygLMhYuZGRhc2guY29tcG9zZS5TZXJ2aWNlEhgKEHVwZGF0ZV9hdmFpbGFibGUYByABKAgSEQoJcHJvdGVjdGVkGAggASgIEg0KBWVycm9yGAkgASgJEg4KBnJ1bl9pZBgKIAEoCSJqCgdTZXJ2aWNlEgwKBG5hbWUYASABKAkSDQoFaW1hZ2UYAiABKAkSDQoFcG9ydHMYAyADKAkSMwoKY29udGFpbmVycxgEIAMoCzIfLmRkYXNoLmNvbXBvc2UuUHJvamVjdENvbnRhaW5lciJzChBQcm9qZWN0Q29udGFpbmVyEi0KCWNvbnRhaW5lchgBIAEoCzIaLmRkYXNoLmNvbnRhaW5lci5Db250YWluZXISMAoMaW1hZ2Vfc3RhdHVzGAIgASgLMhouZGRhc2guY29tcG9zZS5JbWFnZVN0YXR1cyKjAQoLSW1hZ2VTdGF0dXMSKAoFc3RhdGUYASABKA4yGS5kZGFzaC5jb21wb3NlLkltYWdlU3RhdGUSDgoGcmVhc29uGAIgASgJEhYKDmN1cnJlbnRfZGlnZXN0GAMgASgJEhUKDWxhdGVzdF9kaWdlc3QYBCABKAkSKwoHY2hlY2tlZBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAitgEKC0ltYWdlQ2hlY2tzEigKBGxhc3QYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEigKBG5leHQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKCHByb2JsZW1zGAMgAygLMh4uZGRhc2guY29tcG9zZS5SZWdpc3RyeVByb2JsZW0SEAoIcmVxdWVzdHMYBCABKAUSDwoHcnVubmluZxgFIAEoCCI0Cg9SZWdpc3RyeVByb2JsZW0SEAoIcmVnaXN0cnkYASABKAkSDwoHbWVzc2FnZRgCIAEoCSIUChJDaGVja0ltYWdlc1JlcXVlc3QiQQoTQ2hlY2tJbWFnZXNSZXNwb25zZRIqCgZjaGVja3MYASABKAsyGi5kZGFzaC5jb21wb3NlLkltYWdlQ2hlY2tzIqgCCg1Db21wb3NlQWN0aW9uEicKBHNhdmUYASABKAsyFy5kZGFzaC5jb21wb3NlLlNhdmVGaWxlSAASJQoFc3RhcnQYAiABKAsyFC5kZGFzaC5jb21wb3NlLlN0YXJ0SAASIwoEc3RvcBgDIAEoCzITLmRkYXNoLmNvbXBvc2UuU3RvcEgAEikKB3Jlc3RhcnQYBCABKAsyFi5kZGFzaC5jb21wb3NlLlJlc3RhcnRIABInCgZ1cGRhdGUYBSABKAsyFS5kZGFzaC5jb21wb3NlLlVwZGF0ZUgAEigKA2FkZBgGIAEoCzIZLmRkYXNoLmNvbXBvc2UuQWRkUHJvamVjdEgAEhoKEm92ZXJyaWRlX3Byb3RlY3RlZBgHIAEoCEIICgZhY3Rpb24icQoIU2F2ZUZpbGUSDAoEaG9zdBgBIAEoCRIPCgdwcm9qZWN0GAIgASgJEgwKBHBhdGgYAyABKAkSDwoHY29udGVudBgEIAEoCRIVCg1leHBlY3Rfc2hhMjU2GAUgASgJEhAKCHJlY3JlYXRlGAYgASgIIjgKBVN0YXJ0EgwKBGhvc3QYASABKAkSDwoHcHJvamVjdBgCIAEoCRIQCghzZXJ2aWNlcxgDIAMoCSI3CgRTdG9wEgwKBGhvc3QYASABKAkSDwoHcHJvamVjdBgCIAEoCRIQCghzZXJ2aWNlcxgDIAMoCSI6CgdSZXN0YXJ0EgwKBGhvc3QYASABKAkSDwoHcHJvamVjdBgCIAEoCRIQCghzZXJ2aWNlcxgDIAMoCSInCgZVcGRhdGUSDAoEaG9zdBgBIAEoCRIPCgdwcm9qZWN0GAIgASgJImgKCkFkZFByb2plY3QSDAoEaG9zdBgBIAEoCRIMCgRuYW1lGAIgASgJEhEKCWRpcmVjdG9yeRgDIAEoCRIPCgdjb250ZW50GAQgASgJEg0KBXN0YXJ0GAUgASgIEgsKA2VudhgGIAEoCSKDAQoEUGxhbhImCgVzdGVwcxgBIAMoCzIXLmRkYXNoLmNvbXBvc2UuUGxhblN0ZXASDwoHYmxvY2tlZBgCIAMoCRINCgVub3RlcxgDIAMoCRIMCgRkaWZmGAQgASgJEhEKCXByb3RlY3RlZBgFIAMoCRISCgp1cF90b19kYXRlGAYgASgIImoKCFBsYW5TdGVwEiUKBnN5c3RlbRgBIAEoDjIVLmRkYXNoLmNvbXBvc2UuU3lzdGVtEg0KBXRpdGxlGAIgASgJEigKBnZhbHVlcxgDIAMoCzIYLmRkYXNoLmNvbXBvc2UuUGxhblZhbHVlIjkKCVBsYW5WYWx1ZRINCgVsYWJlbBgBIAEoCRIOCgZiZWZvcmUYAiABKAkSDQoFYWZ0ZXIYAyABKAkiQQoRUGxhbkFjdGlvblJlcXVlc3QSLAoGYWN0aW9uGAEgASgLMhwuZGRhc2guY29tcG9zZS5Db21wb3NlQWN0aW9uIjcKElBsYW5BY3Rpb25SZXNwb25zZRIhCgRwbGFuGAEgASgLMhMuZGRhc2guY29tcG9zZS5QbGFuImMKEFJ1bkFjdGlvblJlcXVlc3QSLAoGYWN0aW9uGAEgASgLMhwuZGRhc2guY29tcG9zZS5Db21wb3NlQWN0aW9uEiEKBHBsYW4YAiABKAsyEy5kZGFzaC5jb21wb3NlLlBsYW4iNAoRUnVuQWN0aW9uUmVzcG9uc2USHwoDcnVuGAEgASgLMhIuZGRhc2guY29tcG9zZS5SdW4ixgIKA1J1bhIKCgJpZBgBIAEoCRIMCgRob3N0GAIgASgJEg8KB3Byb2plY3QYAyABKAkSDQoFdGl0bGUYBCABKAkSJgoFc3RlcHMYBSADKAsyFy5kZGFzaC5jb21wb3NlLlBsYW5TdGVwEigKBnN0YXRlcxgGIAMoDjIYLmRkYXNoLmNvbXBvc2UuU3RlcFN0YXRlEg8KB2RldGFpbHMYByADKAkSGwoDam9iGAggASgLMg4uZGRhc2guam9iLkpvYhIrCgdzdGFydGVkGAkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIpCgVlbmRlZBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFZXJyb3IYCyABKAkSDwoHb3V0Y29tZRgMIAEoCRINCgVhY3RvchgNIAEoCSIRCg9MaXN0UnVuc1JlcXVlc3QiNAoQTGlzdFJ1bnNSZXNwb25zZRIgCgRydW5zGAEgAygLMhIuZGRhc2guY29tcG9zZS5SdW4qnQEKDFByb2plY3RTdGF0ZRIdChlQUk9KRUNUX1NUQVRFX1VOU1BFQ0lGSUVEEAASGQoVUFJPSkVDVF9TVEFURV9SVU5OSU5HEAESGQoVUFJPSkVDVF9TVEFURV9QQVJUSUFMEAISGQoVUFJPSkVDVF9TVEFURV9TVE9QUEVEEAMSHQoZUFJPSkVDVF9TVEFURV9OT1RfU1RBUlRFRBAEKqkBCgpJbWFnZVN0YXRlEhsKF0lNQUdFX1NUQVRFX1VOU1BFQ0lGSUVEEAASFwoTSU1BR0VfU1RBVEVfVU5LTk9XThABEhoKFklNQUdFX1NUQVRFX1VQX1RPX0RBVEUQAhIVChFJTUFHRV9TVEFURV9TVEFMRRADEhsKF0lNQUdFX1NUQVRFX05PVF9DSEVDS0VEEAQSFQoRSU1BR0VfU1RBVEVfRVJST1IQBSpLCgZTeXN0ZW0SFgoSU1lTVEVNX1VOU1BFQ0lGSUVEEAASFwoTU1lTVEVNX0RPQ0tFUl9BR0VOVBABEhAKDFNZU1RFTV9EREFTSBACKpsBCglTdGVwU3RhdGUSGgoWU1RFUF9TVEFURV9VTlNQRUNJRklFRBAAEhYKElNURVBfU1RBVEVfUEVORElORxABEhYKElNURVBfU1RBVEVfUlVOTklORxACEhMKD1NURVBfU1RBVEVfRE9ORRADEhUKEVNURVBfU1RBVEVfRkFJTEVEEAQSFgoSU1RFUF9TVEFURV9TS0lQUEVEEAUy1QMKDkNvbXBvc2VTZXJ2aWNlEl8KDExpc3RQcm9qZWN0cxIiLmRkYXNoLmNvbXBvc2UuTGlzdFByb2plY3RzUmVxdWVzdBojLmRkYXNoLmNvbXBvc2UuTGlzdFByb2plY3RzUmVzcG9uc2UiBoq1GAIIAhJaCgtDaGVja0ltYWdlcxIhLmRkYXNoLmNvbXBvc2UuQ2hlY2tJbWFnZXNSZXF1ZXN0GiIuZGRhc2guY29tcG9zZS5DaGVja0ltYWdlc1Jlc3BvbnNlIgSStRgAElkKClBsYW5BY3Rpb24SIC5kZGFzaC5jb21wb3NlLlBsYW5BY3Rpb25SZXF1ZXN0GiEuZGRhc2guY29tcG9zZS5QbGFuQWN0aW9uUmVzcG9uc2UiBoq1GAIIAxJWCglSdW5BY3Rpb24SHy5kZGFzaC5jb21wb3NlLlJ1bkFjdGlvblJlcXVlc3QaIC5kZGFzaC5jb21wb3NlLlJ1bkFjdGlvblJlc3BvbnNlIgSStRgAMAESUwoITGlzdFJ1bnMSHi5kZGFzaC5jb21wb3NlLkxpc3RSdW5zUmVxdWVzdBofLmRkYXNoLmNvbXBvc2UuTGlzdFJ1bnNSZXNwb25zZSIGirUYAggBQkNaQWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvY29tcG9zZS9jb21wb3NlcGI7Y29tcG9zZXBiYgZwcm90bzM", [file_ddash_container_container, file_ddash_job_job, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * compose has nothing to configure: registries and their credentials are
@@ -117,9 +119,9 @@ export type Host = Message<"ddash.compose.Host"> & {
   /**
    * Its containers that no Compose Project started.
    *
-   * @generated from field: repeated ddash.compose.Container containers = 6;
+   * @generated from field: repeated ddash.compose.ProjectContainer containers = 6;
    */
-  containers: Container[];
+  containers: ProjectContainer[];
 };
 
 /**
@@ -226,9 +228,9 @@ export type Service = Message<"ddash.compose.Service"> & {
   ports: string[];
 
   /**
-   * @generated from field: repeated ddash.compose.Container containers = 4;
+   * @generated from field: repeated ddash.compose.ProjectContainer containers = 4;
    */
-  containers: Container[];
+  containers: ProjectContainer[];
 };
 
 /**
@@ -239,93 +241,28 @@ export const ServiceSchema: GenMessage<Service> = /*@__PURE__*/
   messageDesc(file_compose_compose, 5);
 
 /**
- * @generated from message ddash.compose.Container
+ * A container of a Docker host, with what compose knows of its image.
+ *
+ * @generated from message ddash.compose.ProjectContainer
  */
-export type Container = Message<"ddash.compose.Container"> & {
+export type ProjectContainer = Message<"ddash.compose.ProjectContainer"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: ddash.container.Container container = 1;
    */
-  id: string;
+  container?: Container | undefined;
 
   /**
-   * @generated from field: string name = 2;
-   */
-  name: string;
-
-  /**
-   * @generated from field: string image = 3;
-   */
-  image: string;
-
-  /**
-   * @generated from field: string state = 4;
-   */
-  state: string;
-
-  /**
-   * @generated from field: string status = 5;
-   */
-  status: string;
-
-  /**
-   * @generated from field: repeated ddash.compose.Port ports = 6;
-   */
-  ports: Port[];
-
-  /**
-   * @generated from field: ddash.compose.ImageStatus image_status = 7;
+   * @generated from field: ddash.compose.ImageStatus image_status = 2;
    */
   imageStatus?: ImageStatus | undefined;
-
-  /**
-   * @generated from field: bool protected = 8;
-   */
-  protected: boolean;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp created = 9;
-   */
-  created?: Timestamp | undefined;
 };
 
 /**
- * Describes the message ddash.compose.Container.
- * Use `create(ContainerSchema)` to create a new message.
+ * Describes the message ddash.compose.ProjectContainer.
+ * Use `create(ProjectContainerSchema)` to create a new message.
  */
-export const ContainerSchema: GenMessage<Container> = /*@__PURE__*/
+export const ProjectContainerSchema: GenMessage<ProjectContainer> = /*@__PURE__*/
   messageDesc(file_compose_compose, 6);
-
-/**
- * @generated from message ddash.compose.Port
- */
-export type Port = Message<"ddash.compose.Port"> & {
-  /**
-   * @generated from field: string ip = 1;
-   */
-  ip: string;
-
-  /**
-   * @generated from field: uint32 public_port = 2;
-   */
-  publicPort: number;
-
-  /**
-   * @generated from field: uint32 private_port = 3;
-   */
-  privatePort: number;
-
-  /**
-   * @generated from field: string protocol = 4;
-   */
-  protocol: string;
-};
-
-/**
- * Describes the message ddash.compose.Port.
- * Use `create(PortSchema)` to create a new message.
- */
-export const PortSchema: GenMessage<Port> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 7);
 
 /**
  * Whether a container's image is the newest for its tag.
@@ -369,7 +306,7 @@ export type ImageStatus = Message<"ddash.compose.ImageStatus"> & {
  * Use `create(ImageStatusSchema)` to create a new message.
  */
 export const ImageStatusSchema: GenMessage<ImageStatus> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 8);
+  messageDesc(file_compose_compose, 7);
 
 /**
  * @generated from message ddash.compose.ImageChecks
@@ -410,7 +347,7 @@ export type ImageChecks = Message<"ddash.compose.ImageChecks"> & {
  * Use `create(ImageChecksSchema)` to create a new message.
  */
 export const ImageChecksSchema: GenMessage<ImageChecks> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 9);
+  messageDesc(file_compose_compose, 8);
 
 /**
  * @generated from message ddash.compose.RegistryProblem
@@ -432,7 +369,7 @@ export type RegistryProblem = Message<"ddash.compose.RegistryProblem"> & {
  * Use `create(RegistryProblemSchema)` to create a new message.
  */
 export const RegistryProblemSchema: GenMessage<RegistryProblem> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 10);
+  messageDesc(file_compose_compose, 9);
 
 /**
  * @generated from message ddash.compose.CheckImagesRequest
@@ -445,7 +382,7 @@ export type CheckImagesRequest = Message<"ddash.compose.CheckImagesRequest"> & {
  * Use `create(CheckImagesRequestSchema)` to create a new message.
  */
 export const CheckImagesRequestSchema: GenMessage<CheckImagesRequest> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 11);
+  messageDesc(file_compose_compose, 10);
 
 /**
  * @generated from message ddash.compose.CheckImagesResponse
@@ -462,7 +399,7 @@ export type CheckImagesResponse = Message<"ddash.compose.CheckImagesResponse"> &
  * Use `create(CheckImagesResponseSchema)` to create a new message.
  */
 export const CheckImagesResponseSchema: GenMessage<CheckImagesResponse> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 12);
+  messageDesc(file_compose_compose, 11);
 
 /**
  * A Compose Project Action.
@@ -524,7 +461,7 @@ export type ComposeAction = Message<"ddash.compose.ComposeAction"> & {
  * Use `create(ComposeActionSchema)` to create a new message.
  */
 export const ComposeActionSchema: GenMessage<ComposeAction> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 13);
+  messageDesc(file_compose_compose, 12);
 
 /**
  * Save a Compose Project's Compose file, the .env beside it, or a
@@ -579,7 +516,7 @@ export type SaveFile = Message<"ddash.compose.SaveFile"> & {
  * Use `create(SaveFileSchema)` to create a new message.
  */
 export const SaveFileSchema: GenMessage<SaveFile> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 14);
+  messageDesc(file_compose_compose, 13);
 
 /**
  * @generated from message ddash.compose.Start
@@ -608,7 +545,7 @@ export type Start = Message<"ddash.compose.Start"> & {
  * Use `create(StartSchema)` to create a new message.
  */
 export const StartSchema: GenMessage<Start> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 15);
+  messageDesc(file_compose_compose, 14);
 
 /**
  * @generated from message ddash.compose.Stop
@@ -635,7 +572,7 @@ export type Stop = Message<"ddash.compose.Stop"> & {
  * Use `create(StopSchema)` to create a new message.
  */
 export const StopSchema: GenMessage<Stop> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 16);
+  messageDesc(file_compose_compose, 15);
 
 /**
  * @generated from message ddash.compose.Restart
@@ -662,7 +599,7 @@ export type Restart = Message<"ddash.compose.Restart"> & {
  * Use `create(RestartSchema)` to create a new message.
  */
 export const RestartSchema: GenMessage<Restart> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 17);
+  messageDesc(file_compose_compose, 16);
 
 /**
  * Pull, then recreate only the Compose services whose image changed.
@@ -686,7 +623,7 @@ export type Update = Message<"ddash.compose.Update"> & {
  * Use `create(UpdateSchema)` to create a new message.
  */
 export const UpdateSchema: GenMessage<Update> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 18);
+  messageDesc(file_compose_compose, 17);
 
 /**
  * A new Compose Project: its directory under one of the host's roots, its
@@ -735,7 +672,7 @@ export type AddProject = Message<"ddash.compose.AddProject"> & {
  * Use `create(AddProjectSchema)` to create a new message.
  */
 export const AddProjectSchema: GenMessage<AddProject> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 19);
+  messageDesc(file_compose_compose, 18);
 
 /**
  * @generated from message ddash.compose.Plan
@@ -789,7 +726,7 @@ export type Plan = Message<"ddash.compose.Plan"> & {
  * Use `create(PlanSchema)` to create a new message.
  */
 export const PlanSchema: GenMessage<Plan> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 20);
+  messageDesc(file_compose_compose, 19);
 
 /**
  * @generated from message ddash.compose.PlanStep
@@ -818,7 +755,7 @@ export type PlanStep = Message<"ddash.compose.PlanStep"> & {
  * Use `create(PlanStepSchema)` to create a new message.
  */
 export const PlanStepSchema: GenMessage<PlanStep> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 21);
+  messageDesc(file_compose_compose, 20);
 
 /**
  * @generated from message ddash.compose.PlanValue
@@ -845,7 +782,7 @@ export type PlanValue = Message<"ddash.compose.PlanValue"> & {
  * Use `create(PlanValueSchema)` to create a new message.
  */
 export const PlanValueSchema: GenMessage<PlanValue> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 22);
+  messageDesc(file_compose_compose, 21);
 
 /**
  * @generated from message ddash.compose.PlanActionRequest
@@ -862,7 +799,7 @@ export type PlanActionRequest = Message<"ddash.compose.PlanActionRequest"> & {
  * Use `create(PlanActionRequestSchema)` to create a new message.
  */
 export const PlanActionRequestSchema: GenMessage<PlanActionRequest> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 23);
+  messageDesc(file_compose_compose, 22);
 
 /**
  * @generated from message ddash.compose.PlanActionResponse
@@ -879,7 +816,7 @@ export type PlanActionResponse = Message<"ddash.compose.PlanActionResponse"> & {
  * Use `create(PlanActionResponseSchema)` to create a new message.
  */
 export const PlanActionResponseSchema: GenMessage<PlanActionResponse> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 24);
+  messageDesc(file_compose_compose, 23);
 
 /**
  * @generated from message ddash.compose.RunActionRequest
@@ -901,7 +838,7 @@ export type RunActionRequest = Message<"ddash.compose.RunActionRequest"> & {
  * Use `create(RunActionRequestSchema)` to create a new message.
  */
 export const RunActionRequestSchema: GenMessage<RunActionRequest> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 25);
+  messageDesc(file_compose_compose, 24);
 
 /**
  * How far a run has got.
@@ -920,7 +857,7 @@ export type RunActionResponse = Message<"ddash.compose.RunActionResponse"> & {
  * Use `create(RunActionResponseSchema)` to create a new message.
  */
 export const RunActionResponseSchema: GenMessage<RunActionResponse> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 26);
+  messageDesc(file_compose_compose, 25);
 
 /**
  * A Compose Project Action's run.
@@ -1012,7 +949,7 @@ export type Run = Message<"ddash.compose.Run"> & {
  * Use `create(RunSchema)` to create a new message.
  */
 export const RunSchema: GenMessage<Run> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 27);
+  messageDesc(file_compose_compose, 26);
 
 /**
  * @generated from message ddash.compose.ListRunsRequest
@@ -1025,7 +962,7 @@ export type ListRunsRequest = Message<"ddash.compose.ListRunsRequest"> & {
  * Use `create(ListRunsRequestSchema)` to create a new message.
  */
 export const ListRunsRequestSchema: GenMessage<ListRunsRequest> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 28);
+  messageDesc(file_compose_compose, 27);
 
 /**
  * @generated from message ddash.compose.ListRunsResponse
@@ -1042,7 +979,7 @@ export type ListRunsResponse = Message<"ddash.compose.ListRunsResponse"> & {
  * Use `create(ListRunsResponseSchema)` to create a new message.
  */
 export const ListRunsResponseSchema: GenMessage<ListRunsResponse> = /*@__PURE__*/
-  messageDesc(file_compose_compose, 29);
+  messageDesc(file_compose_compose, 28);
 
 /**
  * @generated from enum ddash.compose.ProjectState

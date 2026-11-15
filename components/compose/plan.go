@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strings"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -20,7 +22,7 @@ type target struct {
 	host    *dapb.HostProjects
 	project *dapb.Project
 	// containers are the Project's, by id.
-	containers []*dapb.Container
+	containers []*containerpb.Container
 }
 
 func (t target) file() string {
@@ -47,10 +49,10 @@ func (t target) protected(services []string) []string {
 }
 
 // running lists the Project's running containers among services.
-func (t target) running(services []string) []*dapb.Container {
-	var out []*dapb.Container
+func (t target) running(services []string) []*containerpb.Container {
+	var out []*containerpb.Container
 	for _, ct := range t.containers {
-		if ct.GetState() == "running" && (len(services) == 0 || slices.Contains(services, ct.GetService())) {
+		if ct.GetState() == containerpb.State_STATE_RUNNING && (len(services) == 0 || slices.Contains(services, ct.GetService())) {
 			out = append(out, ct)
 		}
 	}
@@ -117,7 +119,7 @@ func maintenanceStep(names []string, how string) *pb.PlanStep {
 	return &pb.PlanStep{System: pb.System_SYSTEM_DDASH, Title: "Maintenance for " + strings.Join(names, ", "), Values: []*pb.PlanValue{{Label: "Until", After: how}}}
 }
 
-func names(cs []*dapb.Container) []string {
+func names(cs []*containerpb.Container) []string {
 	var out []string
 	for _, c := range cs {
 		out = append(out, c.GetName())
@@ -382,7 +384,7 @@ func (c *component) planUpdate(ctx context.Context, u *pb.Update, override bool)
 	guard(p, t.protected(nil), override, "recreate")
 	w := &work{title: "Update " + t.project.GetName(), tgt: t}
 	pull := &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Pull images", Values: nil}
-	var stale []*dapb.Container
+	var stale []*containerpb.Container
 	for _, ct := range t.containers {
 		st := c.status(ct)
 		v := &pb.PlanValue{Label: ct.GetService() + " (" + ct.GetImage() + ")", Before: short(st.GetCurrentDigest())}

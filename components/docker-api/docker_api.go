@@ -17,6 +17,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/itsKontra/ddash/components/internal/dockerread"
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 
@@ -181,13 +184,9 @@ func (c *component) agentHosts(ctx context.Context) []*dockerapipb.HostContainer
 	var out []*dockerapipb.HostContainers
 	for _, h := range res.GetHosts() {
 		hc := &dockerapipb.HostContainers{Host: h.GetHost(), Address: h.GetAddress(), Error: h.GetError()}
-		for _, ct := range h.GetContainers() {
-			c := &dockerapipb.Container{Id: ct.GetId(), Name: ct.GetName(), Image: ct.GetImage(), State: ct.GetState(), Status: ct.GetStatus()}
-			for _, p := range ct.GetPorts() {
-				c.Ports = append(c.Ports, &dockerapipb.Port{Ip: p.GetIp(), PublicPort: p.GetPublicPort(), PrivatePort: p.GetPrivatePort(), Protocol: p.GetProtocol()})
-			}
-			hc.Containers = append(hc.Containers, c)
-		}
+		// The same message: what docker-api doesn't read itself (the
+		// image's digests, the labels) comes along.
+		hc.Containers = append(hc.Containers, h.GetContainers()...)
 		out = append(out, hc)
 	}
 	return out
@@ -209,12 +208,14 @@ func (h host) list(ctx context.Context) (*dockerapipb.HostContainers, error) {
 	return out, nil
 }
 
-func toContainer(s container.Summary) *dockerapipb.Container {
-	c := &dockerapipb.Container{
-		Id:     s.ID,
-		Image:  s.Image,
-		State:  string(s.State),
-		Status: s.Status,
+func toContainer(s container.Summary) *containerpb.Container {
+	c := &containerpb.Container{
+		Id:        s.ID,
+		Image:     s.Image,
+		State:     dockerread.State(string(s.State)),
+		Status:    s.Status,
+		Health:    dockerread.Health(s.Status),
+		Protected: dockerread.Protected(s.Labels),
 	}
 	if len(s.Names) > 0 {
 		c.Name = strings.TrimPrefix(s.Names[0], "/")
@@ -223,7 +224,7 @@ func toContainer(s container.Summary) *dockerapipb.Container {
 		if p.PublicPort == 0 {
 			continue // exposed, not published
 		}
-		port := &dockerapipb.Port{PublicPort: uint32(p.PublicPort), PrivatePort: uint32(p.PrivatePort), Protocol: p.Type}
+		port := &containerpb.Port{PublicPort: uint32(p.PublicPort), PrivatePort: uint32(p.PrivatePort), Protocol: dockerread.Protocol(p.Type)}
 		if p.IP.IsValid() {
 			port.Ip = p.IP.String()
 		}

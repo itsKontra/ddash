@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
 	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 
 	"google.golang.org/grpc/codes"
@@ -152,7 +153,7 @@ func workloadRef(host, container string) *workloadpb.WorkloadRef {
 // maintain puts containers into Maintenance for d (0: until ended) or
 // until their Checks are up. A failure doesn't stop the run: the Operator
 // may get paged, but gets what they asked for.
-func (c *component) maintain(cs []*dapb.Container, d time.Duration, untilUp bool) func(context.Context, *run, int) error {
+func (c *component) maintain(cs []*containerpb.Container, d time.Duration, untilUp bool) func(context.Context, *run, int) error {
 	return func(ctx context.Context, r *run, i int) error {
 		host := r.snapshot().GetHost()
 		var failed []string

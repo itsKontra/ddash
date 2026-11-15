@@ -12,6 +12,7 @@ package dockerapipb
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
+	container "github.com/itsKontra/ddash/proto/ddash/container"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -208,8 +209,8 @@ func (x *ListContainersResponse) GetHosts() []*HostContainers {
 type HostContainers struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The host's configured name.
-	Host       string       `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
-	Containers []*Container `protobuf:"bytes,2,rep,name=containers,proto3" json:"containers,omitempty"`
+	Host       string                 `protobuf:"bytes,1,opt,name=host,proto3" json:"host,omitempty"`
+	Containers []*container.Container `protobuf:"bytes,2,rep,name=containers,proto3" json:"containers,omitempty"`
 	// Why the host couldn't be read; empty when it could.
 	Error string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	// The host part of its socket-proxy URL, e.g. "198.18.2.10": where a
@@ -256,7 +257,7 @@ func (x *HostContainers) GetHost() string {
 	return ""
 }
 
-func (x *HostContainers) GetContainers() []*Container {
+func (x *HostContainers) GetContainers() []*container.Container {
 	if x != nil {
 		return x.Containers
 	}
@@ -277,169 +278,11 @@ func (x *HostContainers) GetAddress() string {
 	return ""
 }
 
-type Container struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Id    string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	// The container's name, without Docker's leading slash.
-	Name  string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Image string `protobuf:"bytes,3,opt,name=image,proto3" json:"image,omitempty"`
-	// Docker's state: created, running, paused, restarting, removing, exited or dead.
-	State string `protobuf:"bytes,4,opt,name=state,proto3" json:"state,omitempty"`
-	// Docker's human-readable status, e.g. "Up 3 hours (healthy)".
-	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	// Ports published on the host.
-	Ports         []*Port `protobuf:"bytes,6,rep,name=ports,proto3" json:"ports,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Container) Reset() {
-	*x = Container{}
-	mi := &file_docker_api_docker_api_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Container) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Container) ProtoMessage() {}
-
-func (x *Container) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_api_docker_api_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Container.ProtoReflect.Descriptor instead.
-func (*Container) Descriptor() ([]byte, []int) {
-	return file_docker_api_docker_api_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *Container) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *Container) GetName() string {
-	if x != nil {
-		return x.Name
-	}
-	return ""
-}
-
-func (x *Container) GetImage() string {
-	if x != nil {
-		return x.Image
-	}
-	return ""
-}
-
-func (x *Container) GetState() string {
-	if x != nil {
-		return x.State
-	}
-	return ""
-}
-
-func (x *Container) GetStatus() string {
-	if x != nil {
-		return x.Status
-	}
-	return ""
-}
-
-func (x *Container) GetPorts() []*Port {
-	if x != nil {
-		return x.Ports
-	}
-	return nil
-}
-
-type Port struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The host address the port is bound to; empty when Docker reports none.
-	Ip          string `protobuf:"bytes,1,opt,name=ip,proto3" json:"ip,omitempty"`
-	PublicPort  uint32 `protobuf:"varint,2,opt,name=public_port,json=publicPort,proto3" json:"public_port,omitempty"`
-	PrivatePort uint32 `protobuf:"varint,3,opt,name=private_port,json=privatePort,proto3" json:"private_port,omitempty"`
-	// tcp, udp or sctp.
-	Protocol      string `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Port) Reset() {
-	*x = Port{}
-	mi := &file_docker_api_docker_api_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Port) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Port) ProtoMessage() {}
-
-func (x *Port) ProtoReflect() protoreflect.Message {
-	mi := &file_docker_api_docker_api_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Port.ProtoReflect.Descriptor instead.
-func (*Port) Descriptor() ([]byte, []int) {
-	return file_docker_api_docker_api_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *Port) GetIp() string {
-	if x != nil {
-		return x.Ip
-	}
-	return ""
-}
-
-func (x *Port) GetPublicPort() uint32 {
-	if x != nil {
-		return x.PublicPort
-	}
-	return 0
-}
-
-func (x *Port) GetPrivatePort() uint32 {
-	if x != nil {
-		return x.PrivatePort
-	}
-	return 0
-}
-
-func (x *Port) GetProtocol() string {
-	if x != nil {
-		return x.Protocol
-	}
-	return ""
-}
-
 var File_docker_api_docker_api_proto protoreflect.FileDescriptor
 
 const file_docker_api_docker_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1bdocker-api/docker_api.proto\x12\x0fddash.dockerapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\"\x85\x01\n" +
+	"\x1bdocker-api/docker_api.proto\x12\x0fddash.dockerapi\x1a\x19ddash/config/config.proto\x1a\x1fddash/container/container.proto\x1a\x13ddash/options.proto\"\x85\x01\n" +
 	"\x0fDockerApiConfig\x12r\n" +
 	"\x05hosts\x18\x01 \x03(\v2\x15.ddash.dockerapi.HostBE\x9a\xb5\x18A\x1a\fDocker hosts\"1Each host's read-only socket-proxy. None is fine.R\x05hosts\"o\n" +
 	"\x04Host\x12!\n" +
@@ -451,23 +294,10 @@ const file_docker_api_docker_api_proto_rawDesc = "" +
 	"\x0eHostContainers\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12:\n" +
 	"\n" +
-	"containers\x18\x02 \x03(\v2\x1a.ddash.dockerapi.ContainerR\n" +
+	"containers\x18\x02 \x03(\v2\x1a.ddash.container.ContainerR\n" +
 	"containers\x12\x14\n" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x12\x18\n" +
-	"\aaddress\x18\x04 \x01(\tR\aaddress\"\xa0\x01\n" +
-	"\tContainer\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05image\x18\x03 \x01(\tR\x05image\x12\x14\n" +
-	"\x05state\x18\x04 \x01(\tR\x05state\x12\x16\n" +
-	"\x06status\x18\x05 \x01(\tR\x06status\x12+\n" +
-	"\x05ports\x18\x06 \x03(\v2\x15.ddash.dockerapi.PortR\x05ports\"v\n" +
-	"\x04Port\x12\x0e\n" +
-	"\x02ip\x18\x01 \x01(\tR\x02ip\x12\x1f\n" +
-	"\vpublic_port\x18\x02 \x01(\rR\n" +
-	"publicPort\x12!\n" +
-	"\fprivate_port\x18\x03 \x01(\rR\vprivatePort\x12\x1a\n" +
-	"\bprotocol\x18\x04 \x01(\tR\bprotocol2}\n" +
+	"\aaddress\x18\x04 \x01(\tR\aaddress2}\n" +
 	"\x10DockerApiService\x12i\n" +
 	"\x0eListContainers\x12&.ddash.dockerapi.ListContainersRequest\x1a'.ddash.dockerapi.ListContainersResponse\"\x06\x8a\xb5\x18\x02\b\x02BJZHgithub.com/itsKontra/ddash/components/docker-api/dockerapipb;dockerapipbb\x06proto3"
 
@@ -483,28 +313,26 @@ func file_docker_api_docker_api_proto_rawDescGZIP() []byte {
 	return file_docker_api_docker_api_proto_rawDescData
 }
 
-var file_docker_api_docker_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_docker_api_docker_api_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_docker_api_docker_api_proto_goTypes = []any{
 	(*DockerApiConfig)(nil),        // 0: ddash.dockerapi.DockerApiConfig
 	(*Host)(nil),                   // 1: ddash.dockerapi.Host
 	(*ListContainersRequest)(nil),  // 2: ddash.dockerapi.ListContainersRequest
 	(*ListContainersResponse)(nil), // 3: ddash.dockerapi.ListContainersResponse
 	(*HostContainers)(nil),         // 4: ddash.dockerapi.HostContainers
-	(*Container)(nil),              // 5: ddash.dockerapi.Container
-	(*Port)(nil),                   // 6: ddash.dockerapi.Port
+	(*container.Container)(nil),    // 5: ddash.container.Container
 }
 var file_docker_api_docker_api_proto_depIdxs = []int32{
 	1, // 0: ddash.dockerapi.DockerApiConfig.hosts:type_name -> ddash.dockerapi.Host
 	4, // 1: ddash.dockerapi.ListContainersResponse.hosts:type_name -> ddash.dockerapi.HostContainers
-	5, // 2: ddash.dockerapi.HostContainers.containers:type_name -> ddash.dockerapi.Container
-	6, // 3: ddash.dockerapi.Container.ports:type_name -> ddash.dockerapi.Port
-	2, // 4: ddash.dockerapi.DockerApiService.ListContainers:input_type -> ddash.dockerapi.ListContainersRequest
-	3, // 5: ddash.dockerapi.DockerApiService.ListContainers:output_type -> ddash.dockerapi.ListContainersResponse
-	5, // [5:6] is the sub-list for method output_type
-	4, // [4:5] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5, // 2: ddash.dockerapi.HostContainers.containers:type_name -> ddash.container.Container
+	2, // 3: ddash.dockerapi.DockerApiService.ListContainers:input_type -> ddash.dockerapi.ListContainersRequest
+	3, // 4: ddash.dockerapi.DockerApiService.ListContainers:output_type -> ddash.dockerapi.ListContainersResponse
+	4, // [4:5] is the sub-list for method output_type
+	3, // [3:4] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_docker_api_docker_api_proto_init() }
@@ -518,7 +346,7 @@ func file_docker_api_docker_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_docker_api_docker_api_proto_rawDesc), len(file_docker_api_docker_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

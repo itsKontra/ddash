@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -68,72 +70,73 @@ func TestListsContainersPerHostWithStateAndPublishedPorts(t *testing.T) {
 	got := list(t, c)
 
 	want := &dockerapipb.ListContainersResponse{Hosts: []*dockerapipb.HostContainers{
-		{Host: "docker-host", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
+		{Host: "docker-host", Address: "127.0.0.1", Containers: []*containerpb.Container{
 			{
 				Id:     "396078928a5f698954921986afe3d75b569a5dc2d6956e8f94fcda5d52fc8efd",
 				Name:   "socket-proxy",
 				Image:  "lscr.io/linuxserver/socket-proxy:latest",
-				State:  "running",
+				State:  containerpb.State_STATE_RUNNING,
 				Status: "Up 22 minutes",
-				Ports:  []*dockerapipb.Port{{Ip: "198.18.1.201", PublicPort: 2375, PrivatePort: 2375, Protocol: "tcp"}},
+				Ports:  []*containerpb.Port{{Ip: "198.18.1.201", PublicPort: 2375, PrivatePort: 2375, Protocol: containerpb.Protocol_PROTOCOL_TCP}},
 			},
 			{
 				// Ports exposed but not published (no public port) are left out.
 				Id:     "f22403eb0c64661ef95f7be3323febe4a822174bf42a326e8b014d068a3b1564",
 				Name:   "portainer-portainer-1",
 				Image:  "portainer/portainer-ce:latest",
-				State:  "running",
+				State:  containerpb.State_STATE_RUNNING,
 				Status: "Up 14 hours",
-				Ports: []*dockerapipb.Port{
-					{Ip: "0.0.0.0", PublicPort: 9000, PrivatePort: 9000, Protocol: "tcp"},
-					{Ip: "::", PublicPort: 9000, PrivatePort: 9000, Protocol: "tcp"},
+				Ports: []*containerpb.Port{
+					{Ip: "0.0.0.0", PublicPort: 9000, PrivatePort: 9000, Protocol: containerpb.Protocol_PROTOCOL_TCP},
+					{Ip: "::", PublicPort: 9000, PrivatePort: 9000, Protocol: containerpb.Protocol_PROTOCOL_TCP},
 				},
 			},
 			{
 				Id:     "306ed2636a9b5fff505ac534b065456194fe6b4311007edbb935a680b8d36583",
 				Name:   "grav-grav-1",
 				Image:  "grav-grav",
-				State:  "exited",
+				State:  containerpb.State_STATE_EXITED,
 				Status: "Exited (137) 9 months ago",
 			},
 			{
 				Id:     "e5d4dc90007dde92072a51e37c6c327e5cc1c050da2d6db13906c0747346442e",
 				Name:   "keycloak-server-1",
 				Image:  "keycloak-server",
-				State:  "running",
+				State:  containerpb.State_STATE_RUNNING,
 				Status: "Up 14 hours",
-				Ports: []*dockerapipb.Port{
-					{Ip: "0.0.0.0", PublicPort: 8443, PrivatePort: 8443, Protocol: "tcp"},
-					{Ip: "::", PublicPort: 8443, PrivatePort: 8443, Protocol: "tcp"},
+				Ports: []*containerpb.Port{
+					{Ip: "0.0.0.0", PublicPort: 8443, PrivatePort: 8443, Protocol: containerpb.Protocol_PROTOCOL_TCP},
+					{Ip: "::", PublicPort: 8443, PrivatePort: 8443, Protocol: containerpb.Protocol_PROTOCOL_TCP},
 				},
 			},
 			{
 				Id:     "2d59cb543aeaaf499397037a4e5cd9e9a3136b9ebb8fabac14bf11c9670ee5de",
 				Name:   "keycloak-postgresdb-1",
 				Image:  "postgres:latest",
-				State:  "running",
+				State:  containerpb.State_STATE_RUNNING,
 				Status: "Up 14 hours",
 			},
 			{
 				Id:     "47790040c68e641fead92ecc2cef85021757e2aa0d7608f7b867d22d611ad406",
 				Name:   "homepage",
 				Image:  "ghcr.io/gethomepage/homepage:latest",
-				State:  "running",
+				State:  containerpb.State_STATE_RUNNING,
 				Status: "Up 14 hours (healthy)",
-				Ports: []*dockerapipb.Port{
-					{Ip: "0.0.0.0", PublicPort: 3000, PrivatePort: 3000, Protocol: "tcp"},
-					{Ip: "::", PublicPort: 3000, PrivatePort: 3000, Protocol: "tcp"},
+				Health: containerpb.Health_HEALTH_HEALTHY,
+				Ports: []*containerpb.Port{
+					{Ip: "0.0.0.0", PublicPort: 3000, PrivatePort: 3000, Protocol: containerpb.Protocol_PROTOCOL_TCP},
+					{Ip: "::", PublicPort: 3000, PrivatePort: 3000, Protocol: containerpb.Protocol_PROTOCOL_TCP},
 				},
 			},
 		}},
-		{Host: "docker-env", Address: "127.0.0.1", Containers: []*dockerapipb.Container{
+		{Host: "docker-env", Address: "127.0.0.1", Containers: []*containerpb.Container{
 			{
 				Id:     "4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b",
 				Name:   "grafana",
 				Image:  "grafana/grafana:12.2.0",
-				State:  "running",
+				State:  containerpb.State_STATE_RUNNING,
 				Status: "Up 12 days",
-				Ports:  []*dockerapipb.Port{{Ip: "198.18.2.20", PublicPort: 3000, PrivatePort: 3000, Protocol: "tcp"}},
+				Ports:  []*containerpb.Port{{Ip: "198.18.2.20", PublicPort: 3000, PrivatePort: 3000, Protocol: containerpb.Protocol_PROTOCOL_TCP}},
 			},
 		}},
 	}}

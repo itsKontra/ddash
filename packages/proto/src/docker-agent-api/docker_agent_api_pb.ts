@@ -11,6 +11,8 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Container } from "../ddash/container/container_pb";
+import { file_ddash_container_container } from "../ddash/container/container_pb";
 import type { Job } from "../ddash/job/job_pb";
 import { file_ddash_job_job } from "../ddash/job/job_pb";
 import { file_ddash_options } from "../ddash/options_pb";
@@ -22,7 +24,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file docker-agent-api/docker_agent_api.proto.
  */
 export const file_docker_agent_api_docker_agent_api: GenFile = /*@__PURE__*/
-  fileDesc("Cidkb2NrZXItYWdlbnQtYXBpL2RvY2tlcl9hZ2VudF9hcGkucHJvdG8SFGRkYXNoLmRvY2tlcmFnZW50YXBpIhYKFERvY2tlckFnZW50QXBpQ29uZmlnIhMKEUxpc3RBZ2VudHNSZXF1ZXN0IkEKEkxpc3RBZ2VudHNSZXNwb25zZRIrCgZhZ2VudHMYASADKAsyGy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5BZ2VudCLEAgoFQWdlbnQSDAoEbmFtZRgBIAEoCRILCgN1cmwYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIvCgVzdGF0ZRgEIAEoDjIgLmRkYXNoLmRvY2tlcmFnZW50YXBpLkFnZW50U3RhdGUSDwoHbWVzc2FnZRgFIAEoCRINCgVyb290cxgGIAMoCRIPCgdyZWxlYXNlGAcgASgJEhAKCGhvc3RuYW1lGAggASgJEhYKDmRvY2tlcl92ZXJzaW9uGAkgASgJEhcKD2NvbXBvc2VfdmVyc2lvbhgKIAEoCRITCgtmaW5nZXJwcmludBgLIAEoCRIpCgVhZGRlZBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKgoGcGFpcmVkGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCI7Cg9BZGRBZ2VudFJlcXVlc3QSDAoEbmFtZRgBIAEoCRILCgN1cmwYAiABKAkSDQoFcm9vdHMYAyADKAkibwoQQWRkQWdlbnRSZXNwb25zZRIqCgVhZ2VudBgBIAEoCzIbLmRkYXNoLmRvY2tlcmFnZW50YXBpLkFnZW50Ei8KBXNldHVwGAIgASgLMiAuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWdlbnRTZXR1cCIkChRHZXRBZ2VudFNldHVwUmVxdWVzdBIMCgRuYW1lGAEgASgJIkgKFUdldEFnZW50U2V0dXBSZXNwb25zZRIvCgVzZXR1cBgBIAEoCzIgLmRkYXNoLmRvY2tlcmFnZW50YXBpLkFnZW50U2V0dXAiWwoKQWdlbnRTZXR1cBIUCgxjb21wb3NlX2ZpbGUYASABKAkSFgoOZW5yb2xtZW50X2NvZGUYAiABKAkSEAoIY29tbWFuZHMYAyADKAkSDQoFaW1hZ2UYBCABKAkiLwoQUGFpckFnZW50UmVxdWVzdBIMCgRuYW1lGAEgASgJEg0KBXJlc2V0GAIgASgIIj8KEVBhaXJBZ2VudFJlc3BvbnNlEioKBWFnZW50GAEgASgLMhsuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWdlbnQiIgoSUmVtb3ZlQWdlbnRSZXF1ZXN0EgwKBG5hbWUYASABKAkiKAoTUmVtb3ZlQWdlbnRSZXNwb25zZRIRCgl1bmluc3RhbGwYASADKAkiIgoSVXBkYXRlQWdlbnRSZXF1ZXN0EgwKBG5hbWUYASABKAkiMgoTVXBkYXRlQWdlbnRSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIhcKFUxpc3RDb250YWluZXJzUmVxdWVzdCJNChZMaXN0Q29udGFpbmVyc1Jlc3BvbnNlEjMKBWhvc3RzGAEgAygLMiQuZGRhc2guZG9ja2VyYWdlbnRhcGkuSG9zdENvbnRhaW5lcnMicwoOSG9zdENvbnRhaW5lcnMSDAoEaG9zdBgBIAEoCRIPCgdhZGRyZXNzGAIgASgJEjMKCmNvbnRhaW5lcnMYAyADKAsyHy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db250YWluZXISDQoFZXJyb3IYBCABKAki4QIKCUNvbnRhaW5lchIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEg0KBWltYWdlGAMgASgJEg0KBXN0YXRlGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIpCgVwb3J0cxgGIAMoCzIaLmRkYXNoLmRvY2tlcmFnZW50YXBpLlBvcnQSEAoIaW1hZ2VfaWQYByABKAkSFAoMcmVwb19kaWdlc3RzGAggAygJEjsKBmxhYmVscxgJIAMoCzIrLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbnRhaW5lci5MYWJlbHNFbnRyeRIPCgdwcm9qZWN0GAogASgJEg8KB3NlcnZpY2UYCyABKAkSKwoHY3JlYXRlZBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAaLQoLTGFiZWxzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASJPCgRQb3J0EgoKAmlwGAEgASgJEhMKC3B1YmxpY19wb3J0GAIgASgNEhQKDHByaXZhdGVfcG9ydBgDIAEoDRIQCghwcm90b2NvbBgEIAEoCSIcChpMaXN0Q29tcG9zZVByb2plY3RzUmVxdWVzdCJQChtMaXN0Q29tcG9zZVByb2plY3RzUmVzcG9uc2USMQoFaG9zdHMYASADKAsyIi5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Ib3N0UHJvamVjdHMisQEKDEhvc3RQcm9qZWN0cxIMCgRob3N0GAEgASgJEg8KB2FkZHJlc3MYAiABKAkSLwoIcHJvamVjdHMYAyADKAsyHS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Qcm9qZWN0EjMKCmNvbnRhaW5lcnMYBCADKAsyHy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db250YWluZXISDQoFcm9vdHMYBSADKAkSDQoFZXJyb3IYBiABKAkikQEKB1Byb2plY3QSDAoEbmFtZRgBIAEoCRITCgt3b3JraW5nX2RpchgCIAEoCRIUCgxjb25maWdfZmlsZXMYAyADKAkSLwoIc2VydmljZXMYBCADKAsyHS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5TZXJ2aWNlEg0KBWZvdW5kGAUgAygJEg0KBWVycm9yGAYgASgJIkwKB1NlcnZpY2USDAoEbmFtZRgBIAEoCRINCgVpbWFnZRgCIAEoCRINCgVwb3J0cxgDIAMoCRIVCg1jb250YWluZXJfaWRzGAQgAygJIjMKFUdldENvbXBvc2VGaWxlUmVxdWVzdBIMCgRob3N0GAEgASgJEgwKBHBhdGgYAiABKAkisAEKFkdldENvbXBvc2VGaWxlUmVzcG9uc2USLwoEZmlsZRgBIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlEi4KA2VudhgCIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlEjUKC2RvY2tlcmZpbGVzGAMgAygLMiAuZGRhc2guZG9ja2VyYWdlbnRhcGkuRG9ja2VyZmlsZSJPCgpEb2NrZXJmaWxlEi8KBGZpbGUYASABKAsyIS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db21wb3NlRmlsZRIQCghzZXJ2aWNlcxgCIAMoCSI8CgtDb21wb3NlRmlsZRIMCgRwYXRoGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSDgoGc2hhMjU2GAMgASgJImcKGlZhbGlkYXRlQ29tcG9zZUZpbGVSZXF1ZXN0EgwKBGhvc3QYASABKAkSDAoEcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJEg8KB3Byb2plY3QYBCABKAkSCwoDZW52GAUgASgJIjgKG1ZhbGlkYXRlQ29tcG9zZUZpbGVSZXNwb25zZRIKCgJvaxgBIAEoCBINCgVlcnJvchgCIAEoCSKEAQoXV3JpdGVDb21wb3NlRmlsZVJlcXVlc3QSDAoEaG9zdBgBIAEoCRIMCgRwYXRoGAIgASgJEg8KB2NvbnRlbnQYAyABKAkSFQoNZXhwZWN0X3NoYTI1NhgEIAEoCRIPCgdwcm9qZWN0GAUgASgJEhQKDGNvbXBvc2VfZmlsZRgGIAEoCSJLChhXcml0ZUNvbXBvc2VGaWxlUmVzcG9uc2USLwoEZmlsZRgBIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlImoKG0NyZWF0ZUNvbXBvc2VQcm9qZWN0UmVxdWVzdBIMCgRob3N0GAEgASgJEgwKBG5hbWUYAiABKAkSEQoJZGlyZWN0b3J5GAMgASgJEg8KB2NvbnRlbnQYBCABKAkSCwoDZW52GAUgASgJIn8KHENyZWF0ZUNvbXBvc2VQcm9qZWN0UmVzcG9uc2USLwoEZmlsZRgBIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlEi4KA2VudhgCIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlImMKDUNvbXBvc2VUYXJnZXQSDAoEaG9zdBgBIAEoCRIPCgdwcm9qZWN0GAIgASgJEhMKC3dvcmtpbmdfZGlyGAMgASgJEgwKBGZpbGUYBCABKAkSEAoIc2VydmljZXMYBSADKAkicgoQVXBQcm9qZWN0UmVxdWVzdBIzCgZ0YXJnZXQYASABKAsyIy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db21wb3NlVGFyZ2V0EgwKBHB1bGwYAiABKAgSDAoEd2FpdBgDIAEoCBINCgVidWlsZBgEIAEoCCIwChFVcFByb2plY3RSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIkkKEkRvd25Qcm9qZWN0UmVxdWVzdBIzCgZ0YXJnZXQYASABKAsyIy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db21wb3NlVGFyZ2V0IjIKE0Rvd25Qcm9qZWN0UmVzcG9uc2USGwoDam9iGAEgASgLMg4uZGRhc2guam9iLkpvYiJMChVSZXN0YXJ0UHJvamVjdFJlcXVlc3QSMwoGdGFyZ2V0GAEgASgLMiMuZGRhc2guZG9ja2VyYWdlbnRhcGkuQ29tcG9zZVRhcmdldCI1ChZSZXN0YXJ0UHJvamVjdFJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2IiSQoSUHVsbFByb2plY3RSZXF1ZXN0EjMKBnRhcmdldBgBIAEoCzIjLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VUYXJnZXQiMgoTUHVsbFByb2plY3RSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIksKFFVwZGF0ZVByb2plY3RSZXF1ZXN0EjMKBnRhcmdldBgBIAEoCzIjLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VUYXJnZXQiNAoVVXBkYXRlUHJvamVjdFJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2IiEQoPTGlzdEpvYnNSZXF1ZXN0IkEKEExpc3RKb2JzUmVzcG9uc2USLQoFaG9zdHMYASADKAsyHi5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Ib3N0Sm9icyJFCghIb3N0Sm9icxIMCgRob3N0GAEgASgJEhwKBGpvYnMYAiADKAsyDi5kZGFzaC5qb2IuSm9iEg0KBWVycm9yGAMgASgJIikKDUdldEpvYlJlcXVlc3QSDAoEaG9zdBgBIAEoCRIKCgJpZBgCIAEoCSItCg5HZXRKb2JSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIi0KEUNvbGxlY3RKb2JSZXF1ZXN0EgwKBGhvc3QYASABKAkSCgoCaWQYAiABKAkiMQoSQ29sbGVjdEpvYlJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2Iq0QEKCkFnZW50U3RhdGUSGwoXQUdFTlRfU1RBVEVfVU5TUEVDSUZJRUQQABIZChVBR0VOVF9TVEFURV9FTlJPTExJTkcQARIWChJBR0VOVF9TVEFURV9QQUlSRUQQAhIYChRBR0VOVF9TVEFURV9PVVREQVRFRBADEhsKF0FHRU5UX1NUQVRFX1VOUkVBQ0hBQkxFEAQSIwofQUdFTlRfU1RBVEVfRklOR0VSUFJJTlRfQ0hBTkdFRBAFEhcKE0FHRU5UX1NUQVRFX1JFRlVTRUQQBjLIEQoVRG9ja2VyQWdlbnRBcGlTZXJ2aWNlEmcKCkxpc3RBZ2VudHMSJy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0QWdlbnRzUmVxdWVzdBooLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RBZ2VudHNSZXNwb25zZSIGirUYAggCEl8KCEFkZEFnZW50EiUuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWRkQWdlbnRSZXF1ZXN0GiYuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWRkQWdlbnRSZXNwb25zZSIEkrUYABJwCg1HZXRBZ2VudFNldHVwEiouZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0QWdlbnRTZXR1cFJlcXVlc3QaKy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5HZXRBZ2VudFNldHVwUmVzcG9uc2UiBoq1GAIIAxJiCglQYWlyQWdlbnQSJi5kZGFzaC5kb2NrZXJhZ2VudGFwaS5QYWlyQWdlbnRSZXF1ZXN0GicuZGRhc2guZG9ja2VyYWdlbnRhcGkuUGFpckFnZW50UmVzcG9uc2UiBJK1GAASagoLUmVtb3ZlQWdlbnQSKC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5SZW1vdmVBZ2VudFJlcXVlc3QaKS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5SZW1vdmVBZ2VudFJlc3BvbnNlIgaStRgCCAESagoLVXBkYXRlQWdlbnQSKC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5VcGRhdGVBZ2VudFJlcXVlc3QaKS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5VcGRhdGVBZ2VudFJlc3BvbnNlIgaStRgCCAEScwoOTGlzdENvbnRhaW5lcnMSKy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0Q29udGFpbmVyc1JlcXVlc3QaLC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0Q29udGFpbmVyc1Jlc3BvbnNlIgaKtRgCCAISggEKE0xpc3RDb21wb3NlUHJvamVjdHMSMC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0Q29tcG9zZVByb2plY3RzUmVxdWVzdBoxLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RDb21wb3NlUHJvamVjdHNSZXNwb25zZSIGirUYAggCEnMKDkdldENvbXBvc2VGaWxlEisuZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0Q29tcG9zZUZpbGVSZXF1ZXN0GiwuZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0Q29tcG9zZUZpbGVSZXNwb25zZSIGirUYAggDEoABChNWYWxpZGF0ZUNvbXBvc2VGaWxlEjAuZGRhc2guZG9ja2VyYWdlbnRhcGkuVmFsaWRhdGVDb21wb3NlRmlsZVJlcXVlc3QaMS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5WYWxpZGF0ZUNvbXBvc2VGaWxlUmVzcG9uc2UiBJK1GAASdwoQV3JpdGVDb21wb3NlRmlsZRItLmRkYXNoLmRvY2tlcmFnZW50YXBpLldyaXRlQ29tcG9zZUZpbGVSZXF1ZXN0Gi4uZGRhc2guZG9ja2VyYWdlbnRhcGkuV3JpdGVDb21wb3NlRmlsZVJlc3BvbnNlIgSStRgAEoMBChRDcmVhdGVDb21wb3NlUHJvamVjdBIxLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNyZWF0ZUNvbXBvc2VQcm9qZWN0UmVxdWVzdBoyLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNyZWF0ZUNvbXBvc2VQcm9qZWN0UmVzcG9uc2UiBJK1GAASYgoJVXBQcm9qZWN0EiYuZGRhc2guZG9ja2VyYWdlbnRhcGkuVXBQcm9qZWN0UmVxdWVzdBonLmRkYXNoLmRvY2tlcmFnZW50YXBpLlVwUHJvamVjdFJlc3BvbnNlIgSStRgAEmoKC0Rvd25Qcm9qZWN0EiguZGRhc2guZG9ja2VyYWdlbnRhcGkuRG93blByb2plY3RSZXF1ZXN0GikuZGRhc2guZG9ja2VyYWdlbnRhcGkuRG93blByb2plY3RSZXNwb25zZSIGkrUYAggBEnMKDlJlc3RhcnRQcm9qZWN0EisuZGRhc2guZG9ja2VyYWdlbnRhcGkuUmVzdGFydFByb2plY3RSZXF1ZXN0GiwuZGRhc2guZG9ja2VyYWdlbnRhcGkuUmVzdGFydFByb2plY3RSZXNwb25zZSIGkrUYAggBEmgKC1B1bGxQcm9qZWN0EiguZGRhc2guZG9ja2VyYWdlbnRhcGkuUHVsbFByb2plY3RSZXF1ZXN0GikuZGRhc2guZG9ja2VyYWdlbnRhcGkuUHVsbFByb2plY3RSZXNwb25zZSIEkrUYABJwCg1VcGRhdGVQcm9qZWN0EiouZGRhc2guZG9ja2VyYWdlbnRhcGkuVXBkYXRlUHJvamVjdFJlcXVlc3QaKy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5VcGRhdGVQcm9qZWN0UmVzcG9uc2UiBpK1GAIIARJhCghMaXN0Sm9icxIlLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RKb2JzUmVxdWVzdBomLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RKb2JzUmVzcG9uc2UiBoq1GAIIARJbCgZHZXRKb2ISIy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5HZXRKb2JSZXF1ZXN0GiQuZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0Sm9iUmVzcG9uc2UiBoq1GAIIAxJlCgpDb2xsZWN0Sm9iEicuZGRhc2guZG9ja2VyYWdlbnRhcGkuQ29sbGVjdEpvYlJlcXVlc3QaKC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db2xsZWN0Sm9iUmVzcG9uc2UiBJK1GABCWlpYZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9kb2NrZXItYWdlbnQtYXBpL2RvY2tlcmFnZW50YXBpcGI7ZG9ja2VyYWdlbnRhcGlwYmIGcHJvdG8z", [file_ddash_job_job, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("Cidkb2NrZXItYWdlbnQtYXBpL2RvY2tlcl9hZ2VudF9hcGkucHJvdG8SFGRkYXNoLmRvY2tlcmFnZW50YXBpIhYKFERvY2tlckFnZW50QXBpQ29uZmlnIhMKEUxpc3RBZ2VudHNSZXF1ZXN0IkEKEkxpc3RBZ2VudHNSZXNwb25zZRIrCgZhZ2VudHMYASADKAsyGy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5BZ2VudCLEAgoFQWdlbnQSDAoEbmFtZRgBIAEoCRILCgN1cmwYAiABKAkSDwoHYWRkcmVzcxgDIAEoCRIvCgVzdGF0ZRgEIAEoDjIgLmRkYXNoLmRvY2tlcmFnZW50YXBpLkFnZW50U3RhdGUSDwoHbWVzc2FnZRgFIAEoCRINCgVyb290cxgGIAMoCRIPCgdyZWxlYXNlGAcgASgJEhAKCGhvc3RuYW1lGAggASgJEhYKDmRvY2tlcl92ZXJzaW9uGAkgASgJEhcKD2NvbXBvc2VfdmVyc2lvbhgKIAEoCRITCgtmaW5nZXJwcmludBgLIAEoCRIpCgVhZGRlZBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKgoGcGFpcmVkGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCI7Cg9BZGRBZ2VudFJlcXVlc3QSDAoEbmFtZRgBIAEoCRILCgN1cmwYAiABKAkSDQoFcm9vdHMYAyADKAkibwoQQWRkQWdlbnRSZXNwb25zZRIqCgVhZ2VudBgBIAEoCzIbLmRkYXNoLmRvY2tlcmFnZW50YXBpLkFnZW50Ei8KBXNldHVwGAIgASgLMiAuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWdlbnRTZXR1cCIkChRHZXRBZ2VudFNldHVwUmVxdWVzdBIMCgRuYW1lGAEgASgJIkgKFUdldEFnZW50U2V0dXBSZXNwb25zZRIvCgVzZXR1cBgBIAEoCzIgLmRkYXNoLmRvY2tlcmFnZW50YXBpLkFnZW50U2V0dXAiWwoKQWdlbnRTZXR1cBIUCgxjb21wb3NlX2ZpbGUYASABKAkSFgoOZW5yb2xtZW50X2NvZGUYAiABKAkSEAoIY29tbWFuZHMYAyADKAkSDQoFaW1hZ2UYBCABKAkiLwoQUGFpckFnZW50UmVxdWVzdBIMCgRuYW1lGAEgASgJEg0KBXJlc2V0GAIgASgIIj8KEVBhaXJBZ2VudFJlc3BvbnNlEioKBWFnZW50GAEgASgLMhsuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWdlbnQiIgoSUmVtb3ZlQWdlbnRSZXF1ZXN0EgwKBG5hbWUYASABKAkiKAoTUmVtb3ZlQWdlbnRSZXNwb25zZRIRCgl1bmluc3RhbGwYASADKAkiIgoSVXBkYXRlQWdlbnRSZXF1ZXN0EgwKBG5hbWUYASABKAkiMgoTVXBkYXRlQWdlbnRSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIhcKFUxpc3RDb250YWluZXJzUmVxdWVzdCJNChZMaXN0Q29udGFpbmVyc1Jlc3BvbnNlEjMKBWhvc3RzGAEgAygLMiQuZGRhc2guZG9ja2VyYWdlbnRhcGkuSG9zdENvbnRhaW5lcnMibgoOSG9zdENvbnRhaW5lcnMSDAoEaG9zdBgBIAEoCRIPCgdhZGRyZXNzGAIgASgJEi4KCmNvbnRhaW5lcnMYAyADKAsyGi5kZGFzaC5jb250YWluZXIuQ29udGFpbmVyEg0KBWVycm9yGAQgASgJIhwKGkxpc3RDb21wb3NlUHJvamVjdHNSZXF1ZXN0IlAKG0xpc3RDb21wb3NlUHJvamVjdHNSZXNwb25zZRIxCgVob3N0cxgBIAMoCzIiLmRkYXNoLmRvY2tlcmFnZW50YXBpLkhvc3RQcm9qZWN0cyKsAQoMSG9zdFByb2plY3RzEgwKBGhvc3QYASABKAkSDwoHYWRkcmVzcxgCIAEoCRIvCghwcm9qZWN0cxgDIAMoCzIdLmRkYXNoLmRvY2tlcmFnZW50YXBpLlByb2plY3QSLgoKY29udGFpbmVycxgEIAMoCzIaLmRkYXNoLmNvbnRhaW5lci5Db250YWluZXISDQoFcm9vdHMYBSADKAkSDQoFZXJyb3IYBiABKAkikQEKB1Byb2plY3QSDAoEbmFtZRgBIAEoCRITCgt3b3JraW5nX2RpchgCIAEoCRIUCgxjb25maWdfZmlsZXMYAyADKAkSLwoIc2VydmljZXMYBCADKAsyHS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5TZXJ2aWNlEg0KBWZvdW5kGAUgAygJEg0KBWVycm9yGAYgASgJIkwKB1NlcnZpY2USDAoEbmFtZRgBIAEoCRINCgVpbWFnZRgCIAEoCRINCgVwb3J0cxgDIAMoCRIVCg1jb250YWluZXJfaWRzGAQgAygJIjMKFUdldENvbXBvc2VGaWxlUmVxdWVzdBIMCgRob3N0GAEgASgJEgwKBHBhdGgYAiABKAkisAEKFkdldENvbXBvc2VGaWxlUmVzcG9uc2USLwoEZmlsZRgBIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlEi4KA2VudhgCIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlEjUKC2RvY2tlcmZpbGVzGAMgAygLMiAuZGRhc2guZG9ja2VyYWdlbnRhcGkuRG9ja2VyZmlsZSJPCgpEb2NrZXJmaWxlEi8KBGZpbGUYASABKAsyIS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db21wb3NlRmlsZRIQCghzZXJ2aWNlcxgCIAMoCSI8CgtDb21wb3NlRmlsZRIMCgRwYXRoGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSDgoGc2hhMjU2GAMgASgJImcKGlZhbGlkYXRlQ29tcG9zZUZpbGVSZXF1ZXN0EgwKBGhvc3QYASABKAkSDAoEcGF0aBgCIAEoCRIPCgdjb250ZW50GAMgASgJEg8KB3Byb2plY3QYBCABKAkSCwoDZW52GAUgASgJIjgKG1ZhbGlkYXRlQ29tcG9zZUZpbGVSZXNwb25zZRIKCgJvaxgBIAEoCBINCgVlcnJvchgCIAEoCSKEAQoXV3JpdGVDb21wb3NlRmlsZVJlcXVlc3QSDAoEaG9zdBgBIAEoCRIMCgRwYXRoGAIgASgJEg8KB2NvbnRlbnQYAyABKAkSFQoNZXhwZWN0X3NoYTI1NhgEIAEoCRIPCgdwcm9qZWN0GAUgASgJEhQKDGNvbXBvc2VfZmlsZRgGIAEoCSJLChhXcml0ZUNvbXBvc2VGaWxlUmVzcG9uc2USLwoEZmlsZRgBIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlImoKG0NyZWF0ZUNvbXBvc2VQcm9qZWN0UmVxdWVzdBIMCgRob3N0GAEgASgJEgwKBG5hbWUYAiABKAkSEQoJZGlyZWN0b3J5GAMgASgJEg8KB2NvbnRlbnQYBCABKAkSCwoDZW52GAUgASgJIn8KHENyZWF0ZUNvbXBvc2VQcm9qZWN0UmVzcG9uc2USLwoEZmlsZRgBIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlEi4KA2VudhgCIAEoCzIhLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VGaWxlImMKDUNvbXBvc2VUYXJnZXQSDAoEaG9zdBgBIAEoCRIPCgdwcm9qZWN0GAIgASgJEhMKC3dvcmtpbmdfZGlyGAMgASgJEgwKBGZpbGUYBCABKAkSEAoIc2VydmljZXMYBSADKAkicgoQVXBQcm9qZWN0UmVxdWVzdBIzCgZ0YXJnZXQYASABKAsyIy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db21wb3NlVGFyZ2V0EgwKBHB1bGwYAiABKAgSDAoEd2FpdBgDIAEoCBINCgVidWlsZBgEIAEoCCIwChFVcFByb2plY3RSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIkkKEkRvd25Qcm9qZWN0UmVxdWVzdBIzCgZ0YXJnZXQYASABKAsyIy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db21wb3NlVGFyZ2V0IjIKE0Rvd25Qcm9qZWN0UmVzcG9uc2USGwoDam9iGAEgASgLMg4uZGRhc2guam9iLkpvYiJMChVSZXN0YXJ0UHJvamVjdFJlcXVlc3QSMwoGdGFyZ2V0GAEgASgLMiMuZGRhc2guZG9ja2VyYWdlbnRhcGkuQ29tcG9zZVRhcmdldCI1ChZSZXN0YXJ0UHJvamVjdFJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2IiSQoSUHVsbFByb2plY3RSZXF1ZXN0EjMKBnRhcmdldBgBIAEoCzIjLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VUYXJnZXQiMgoTUHVsbFByb2plY3RSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIksKFFVwZGF0ZVByb2plY3RSZXF1ZXN0EjMKBnRhcmdldBgBIAEoCzIjLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNvbXBvc2VUYXJnZXQiNAoVVXBkYXRlUHJvamVjdFJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2IiEQoPTGlzdEpvYnNSZXF1ZXN0IkEKEExpc3RKb2JzUmVzcG9uc2USLQoFaG9zdHMYASADKAsyHi5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Ib3N0Sm9icyJFCghIb3N0Sm9icxIMCgRob3N0GAEgASgJEhwKBGpvYnMYAiADKAsyDi5kZGFzaC5qb2IuSm9iEg0KBWVycm9yGAMgASgJIikKDUdldEpvYlJlcXVlc3QSDAoEaG9zdBgBIAEoCRIKCgJpZBgCIAEoCSItCg5HZXRKb2JSZXNwb25zZRIbCgNqb2IYASABKAsyDi5kZGFzaC5qb2IuSm9iIi0KEUNvbGxlY3RKb2JSZXF1ZXN0EgwKBGhvc3QYASABKAkSCgoCaWQYAiABKAkiMQoSQ29sbGVjdEpvYlJlc3BvbnNlEhsKA2pvYhgBIAEoCzIOLmRkYXNoLmpvYi5Kb2Iq0QEKCkFnZW50U3RhdGUSGwoXQUdFTlRfU1RBVEVfVU5TUEVDSUZJRUQQABIZChVBR0VOVF9TVEFURV9FTlJPTExJTkcQARIWChJBR0VOVF9TVEFURV9QQUlSRUQQAhIYChRBR0VOVF9TVEFURV9PVVREQVRFRBADEhsKF0FHRU5UX1NUQVRFX1VOUkVBQ0hBQkxFEAQSIwofQUdFTlRfU1RBVEVfRklOR0VSUFJJTlRfQ0hBTkdFRBAFEhcKE0FHRU5UX1NUQVRFX1JFRlVTRUQQBjLIEQoVRG9ja2VyQWdlbnRBcGlTZXJ2aWNlEmcKCkxpc3RBZ2VudHMSJy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0QWdlbnRzUmVxdWVzdBooLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RBZ2VudHNSZXNwb25zZSIGirUYAggCEl8KCEFkZEFnZW50EiUuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWRkQWdlbnRSZXF1ZXN0GiYuZGRhc2guZG9ja2VyYWdlbnRhcGkuQWRkQWdlbnRSZXNwb25zZSIEkrUYABJwCg1HZXRBZ2VudFNldHVwEiouZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0QWdlbnRTZXR1cFJlcXVlc3QaKy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5HZXRBZ2VudFNldHVwUmVzcG9uc2UiBoq1GAIIAxJiCglQYWlyQWdlbnQSJi5kZGFzaC5kb2NrZXJhZ2VudGFwaS5QYWlyQWdlbnRSZXF1ZXN0GicuZGRhc2guZG9ja2VyYWdlbnRhcGkuUGFpckFnZW50UmVzcG9uc2UiBJK1GAASagoLUmVtb3ZlQWdlbnQSKC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5SZW1vdmVBZ2VudFJlcXVlc3QaKS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5SZW1vdmVBZ2VudFJlc3BvbnNlIgaStRgCCAESagoLVXBkYXRlQWdlbnQSKC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5VcGRhdGVBZ2VudFJlcXVlc3QaKS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5VcGRhdGVBZ2VudFJlc3BvbnNlIgaStRgCCAEScwoOTGlzdENvbnRhaW5lcnMSKy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0Q29udGFpbmVyc1JlcXVlc3QaLC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0Q29udGFpbmVyc1Jlc3BvbnNlIgaKtRgCCAISggEKE0xpc3RDb21wb3NlUHJvamVjdHMSMC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5MaXN0Q29tcG9zZVByb2plY3RzUmVxdWVzdBoxLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RDb21wb3NlUHJvamVjdHNSZXNwb25zZSIGirUYAggCEnMKDkdldENvbXBvc2VGaWxlEisuZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0Q29tcG9zZUZpbGVSZXF1ZXN0GiwuZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0Q29tcG9zZUZpbGVSZXNwb25zZSIGirUYAggDEoABChNWYWxpZGF0ZUNvbXBvc2VGaWxlEjAuZGRhc2guZG9ja2VyYWdlbnRhcGkuVmFsaWRhdGVDb21wb3NlRmlsZVJlcXVlc3QaMS5kZGFzaC5kb2NrZXJhZ2VudGFwaS5WYWxpZGF0ZUNvbXBvc2VGaWxlUmVzcG9uc2UiBJK1GAASdwoQV3JpdGVDb21wb3NlRmlsZRItLmRkYXNoLmRvY2tlcmFnZW50YXBpLldyaXRlQ29tcG9zZUZpbGVSZXF1ZXN0Gi4uZGRhc2guZG9ja2VyYWdlbnRhcGkuV3JpdGVDb21wb3NlRmlsZVJlc3BvbnNlIgSStRgAEoMBChRDcmVhdGVDb21wb3NlUHJvamVjdBIxLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNyZWF0ZUNvbXBvc2VQcm9qZWN0UmVxdWVzdBoyLmRkYXNoLmRvY2tlcmFnZW50YXBpLkNyZWF0ZUNvbXBvc2VQcm9qZWN0UmVzcG9uc2UiBJK1GAASYgoJVXBQcm9qZWN0EiYuZGRhc2guZG9ja2VyYWdlbnRhcGkuVXBQcm9qZWN0UmVxdWVzdBonLmRkYXNoLmRvY2tlcmFnZW50YXBpLlVwUHJvamVjdFJlc3BvbnNlIgSStRgAEmoKC0Rvd25Qcm9qZWN0EiguZGRhc2guZG9ja2VyYWdlbnRhcGkuRG93blByb2plY3RSZXF1ZXN0GikuZGRhc2guZG9ja2VyYWdlbnRhcGkuRG93blByb2plY3RSZXNwb25zZSIGkrUYAggBEnMKDlJlc3RhcnRQcm9qZWN0EisuZGRhc2guZG9ja2VyYWdlbnRhcGkuUmVzdGFydFByb2plY3RSZXF1ZXN0GiwuZGRhc2guZG9ja2VyYWdlbnRhcGkuUmVzdGFydFByb2plY3RSZXNwb25zZSIGkrUYAggBEmgKC1B1bGxQcm9qZWN0EiguZGRhc2guZG9ja2VyYWdlbnRhcGkuUHVsbFByb2plY3RSZXF1ZXN0GikuZGRhc2guZG9ja2VyYWdlbnRhcGkuUHVsbFByb2plY3RSZXNwb25zZSIEkrUYABJwCg1VcGRhdGVQcm9qZWN0EiouZGRhc2guZG9ja2VyYWdlbnRhcGkuVXBkYXRlUHJvamVjdFJlcXVlc3QaKy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5VcGRhdGVQcm9qZWN0UmVzcG9uc2UiBpK1GAIIARJhCghMaXN0Sm9icxIlLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RKb2JzUmVxdWVzdBomLmRkYXNoLmRvY2tlcmFnZW50YXBpLkxpc3RKb2JzUmVzcG9uc2UiBoq1GAIIARJbCgZHZXRKb2ISIy5kZGFzaC5kb2NrZXJhZ2VudGFwaS5HZXRKb2JSZXF1ZXN0GiQuZGRhc2guZG9ja2VyYWdlbnRhcGkuR2V0Sm9iUmVzcG9uc2UiBoq1GAIIAxJlCgpDb2xsZWN0Sm9iEicuZGRhc2guZG9ja2VyYWdlbnRhcGkuQ29sbGVjdEpvYlJlcXVlc3QaKC5kZGFzaC5kb2NrZXJhZ2VudGFwaS5Db2xsZWN0Sm9iUmVzcG9uc2UiBJK1GABCWlpYZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9kb2NrZXItYWdlbnQtYXBpL2RvY2tlcmFnZW50YXBpcGI7ZG9ja2VyYWdlbnRhcGlwYmIGcHJvdG8z", [file_ddash_container_container, file_ddash_job_job, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * docker-agent-api has no config: Docker Agents are added on the Docker
@@ -461,7 +463,7 @@ export type HostContainers = Message<"ddash.dockeragentapi.HostContainers"> & {
   address: string;
 
   /**
-   * @generated from field: repeated ddash.dockeragentapi.Container containers = 3;
+   * @generated from field: repeated ddash.container.Container containers = 3;
    */
   containers: Container[];
 
@@ -481,118 +483,6 @@ export const HostContainersSchema: GenMessage<HostContainers> = /*@__PURE__*/
   messageDesc(file_docker_agent_api_docker_agent_api, 17);
 
 /**
- * @generated from message ddash.dockeragentapi.Container
- */
-export type Container = Message<"ddash.dockeragentapi.Container"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string name = 2;
-   */
-  name: string;
-
-  /**
-   * @generated from field: string image = 3;
-   */
-  image: string;
-
-  /**
-   * Docker's state: created, running, paused, restarting, removing, exited or dead.
-   *
-   * @generated from field: string state = 4;
-   */
-  state: string;
-
-  /**
-   * @generated from field: string status = 5;
-   */
-  status: string;
-
-  /**
-   * @generated from field: repeated ddash.dockeragentapi.Port ports = 6;
-   */
-  ports: Port[];
-
-  /**
-   * The local image's id and its "<repo>@sha256:…" digests: none for an
-   * image built locally.
-   *
-   * @generated from field: string image_id = 7;
-   */
-  imageId: string;
-
-  /**
-   * @generated from field: repeated string repo_digests = 8;
-   */
-  repoDigests: string[];
-
-  /**
-   * @generated from field: map<string, string> labels = 9;
-   */
-  labels: { [key: string]: string };
-
-  /**
-   * Its Compose Project and service, from its labels; empty for one not
-   * started by Compose.
-   *
-   * @generated from field: string project = 10;
-   */
-  project: string;
-
-  /**
-   * @generated from field: string service = 11;
-   */
-  service: string;
-
-  /**
-   * @generated from field: google.protobuf.Timestamp created = 12;
-   */
-  created?: Timestamp | undefined;
-};
-
-/**
- * Describes the message ddash.dockeragentapi.Container.
- * Use `create(ContainerSchema)` to create a new message.
- */
-export const ContainerSchema: GenMessage<Container> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 18);
-
-/**
- * @generated from message ddash.dockeragentapi.Port
- */
-export type Port = Message<"ddash.dockeragentapi.Port"> & {
-  /**
-   * @generated from field: string ip = 1;
-   */
-  ip: string;
-
-  /**
-   * @generated from field: uint32 public_port = 2;
-   */
-  publicPort: number;
-
-  /**
-   * @generated from field: uint32 private_port = 3;
-   */
-  privatePort: number;
-
-  /**
-   * @generated from field: string protocol = 4;
-   */
-  protocol: string;
-};
-
-/**
- * Describes the message ddash.dockeragentapi.Port.
- * Use `create(PortSchema)` to create a new message.
- */
-export const PortSchema: GenMessage<Port> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 19);
-
-/**
  * @generated from message ddash.dockeragentapi.ListComposeProjectsRequest
  */
 export type ListComposeProjectsRequest = Message<"ddash.dockeragentapi.ListComposeProjectsRequest"> & {
@@ -603,7 +493,7 @@ export type ListComposeProjectsRequest = Message<"ddash.dockeragentapi.ListCompo
  * Use `create(ListComposeProjectsRequestSchema)` to create a new message.
  */
 export const ListComposeProjectsRequestSchema: GenMessage<ListComposeProjectsRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 20);
+  messageDesc(file_docker_agent_api_docker_agent_api, 18);
 
 /**
  * @generated from message ddash.dockeragentapi.ListComposeProjectsResponse
@@ -620,7 +510,7 @@ export type ListComposeProjectsResponse = Message<"ddash.dockeragentapi.ListComp
  * Use `create(ListComposeProjectsResponseSchema)` to create a new message.
  */
 export const ListComposeProjectsResponseSchema: GenMessage<ListComposeProjectsResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 21);
+  messageDesc(file_docker_agent_api_docker_agent_api, 19);
 
 /**
  * @generated from message ddash.dockeragentapi.HostProjects
@@ -644,7 +534,7 @@ export type HostProjects = Message<"ddash.dockeragentapi.HostProjects"> & {
   /**
    * Every container on the host, those of no Compose Project too.
    *
-   * @generated from field: repeated ddash.dockeragentapi.Container containers = 4;
+   * @generated from field: repeated ddash.container.Container containers = 4;
    */
   containers: Container[];
 
@@ -666,7 +556,7 @@ export type HostProjects = Message<"ddash.dockeragentapi.HostProjects"> & {
  * Use `create(HostProjectsSchema)` to create a new message.
  */
 export const HostProjectsSchema: GenMessage<HostProjects> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 22);
+  messageDesc(file_docker_agent_api_docker_agent_api, 20);
 
 /**
  * A Compose Project, in Compose's own terms.
@@ -720,7 +610,7 @@ export type Project = Message<"ddash.dockeragentapi.Project"> & {
  * Use `create(ProjectSchema)` to create a new message.
  */
 export const ProjectSchema: GenMessage<Project> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 23);
+  messageDesc(file_docker_agent_api_docker_agent_api, 21);
 
 /**
  * @generated from message ddash.dockeragentapi.Service
@@ -758,7 +648,7 @@ export type Service = Message<"ddash.dockeragentapi.Service"> & {
  * Use `create(ServiceSchema)` to create a new message.
  */
 export const ServiceSchema: GenMessage<Service> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 24);
+  messageDesc(file_docker_agent_api_docker_agent_api, 22);
 
 /**
  * @generated from message ddash.dockeragentapi.GetComposeFileRequest
@@ -780,7 +670,7 @@ export type GetComposeFileRequest = Message<"ddash.dockeragentapi.GetComposeFile
  * Use `create(GetComposeFileRequestSchema)` to create a new message.
  */
 export const GetComposeFileRequestSchema: GenMessage<GetComposeFileRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 25);
+  messageDesc(file_docker_agent_api_docker_agent_api, 23);
 
 /**
  * @generated from message ddash.dockeragentapi.GetComposeFileResponse
@@ -812,7 +702,7 @@ export type GetComposeFileResponse = Message<"ddash.dockeragentapi.GetComposeFil
  * Use `create(GetComposeFileResponseSchema)` to create a new message.
  */
 export const GetComposeFileResponseSchema: GenMessage<GetComposeFileResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 26);
+  messageDesc(file_docker_agent_api_docker_agent_api, 24);
 
 /**
  * A Dockerfile some Compose services build from.
@@ -838,7 +728,7 @@ export type Dockerfile = Message<"ddash.dockeragentapi.Dockerfile"> & {
  * Use `create(DockerfileSchema)` to create a new message.
  */
 export const DockerfileSchema: GenMessage<Dockerfile> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 27);
+  messageDesc(file_docker_agent_api_docker_agent_api, 25);
 
 /**
  * @generated from message ddash.dockeragentapi.ComposeFile
@@ -867,7 +757,7 @@ export type ComposeFile = Message<"ddash.dockeragentapi.ComposeFile"> & {
  * Use `create(ComposeFileSchema)` to create a new message.
  */
 export const ComposeFileSchema: GenMessage<ComposeFile> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 28);
+  messageDesc(file_docker_agent_api_docker_agent_api, 26);
 
 /**
  * @generated from message ddash.dockeragentapi.ValidateComposeFileRequest
@@ -909,7 +799,7 @@ export type ValidateComposeFileRequest = Message<"ddash.dockeragentapi.ValidateC
  * Use `create(ValidateComposeFileRequestSchema)` to create a new message.
  */
 export const ValidateComposeFileRequestSchema: GenMessage<ValidateComposeFileRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 29);
+  messageDesc(file_docker_agent_api_docker_agent_api, 27);
 
 /**
  * @generated from message ddash.dockeragentapi.ValidateComposeFileResponse
@@ -933,7 +823,7 @@ export type ValidateComposeFileResponse = Message<"ddash.dockeragentapi.Validate
  * Use `create(ValidateComposeFileResponseSchema)` to create a new message.
  */
 export const ValidateComposeFileResponseSchema: GenMessage<ValidateComposeFileResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 30);
+  messageDesc(file_docker_agent_api_docker_agent_api, 28);
 
 /**
  * @generated from message ddash.dockeragentapi.WriteComposeFileRequest
@@ -982,7 +872,7 @@ export type WriteComposeFileRequest = Message<"ddash.dockeragentapi.WriteCompose
  * Use `create(WriteComposeFileRequestSchema)` to create a new message.
  */
 export const WriteComposeFileRequestSchema: GenMessage<WriteComposeFileRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 31);
+  messageDesc(file_docker_agent_api_docker_agent_api, 29);
 
 /**
  * @generated from message ddash.dockeragentapi.WriteComposeFileResponse
@@ -999,7 +889,7 @@ export type WriteComposeFileResponse = Message<"ddash.dockeragentapi.WriteCompos
  * Use `create(WriteComposeFileResponseSchema)` to create a new message.
  */
 export const WriteComposeFileResponseSchema: GenMessage<WriteComposeFileResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 32);
+  messageDesc(file_docker_agent_api_docker_agent_api, 30);
 
 /**
  * @generated from message ddash.dockeragentapi.CreateComposeProjectRequest
@@ -1041,7 +931,7 @@ export type CreateComposeProjectRequest = Message<"ddash.dockeragentapi.CreateCo
  * Use `create(CreateComposeProjectRequestSchema)` to create a new message.
  */
 export const CreateComposeProjectRequestSchema: GenMessage<CreateComposeProjectRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 33);
+  messageDesc(file_docker_agent_api_docker_agent_api, 31);
 
 /**
  * @generated from message ddash.dockeragentapi.CreateComposeProjectResponse
@@ -1065,7 +955,7 @@ export type CreateComposeProjectResponse = Message<"ddash.dockeragentapi.CreateC
  * Use `create(CreateComposeProjectResponseSchema)` to create a new message.
  */
 export const CreateComposeProjectResponseSchema: GenMessage<CreateComposeProjectResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 34);
+  messageDesc(file_docker_agent_api_docker_agent_api, 32);
 
 /**
  * The Compose Project a Compose operation acts on.
@@ -1108,7 +998,7 @@ export type ComposeTarget = Message<"ddash.dockeragentapi.ComposeTarget"> & {
  * Use `create(ComposeTargetSchema)` to create a new message.
  */
 export const ComposeTargetSchema: GenMessage<ComposeTarget> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 35);
+  messageDesc(file_docker_agent_api_docker_agent_api, 33);
 
 /**
  * @generated from message ddash.dockeragentapi.UpProjectRequest
@@ -1146,7 +1036,7 @@ export type UpProjectRequest = Message<"ddash.dockeragentapi.UpProjectRequest"> 
  * Use `create(UpProjectRequestSchema)` to create a new message.
  */
 export const UpProjectRequestSchema: GenMessage<UpProjectRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 36);
+  messageDesc(file_docker_agent_api_docker_agent_api, 34);
 
 /**
  * @generated from message ddash.dockeragentapi.UpProjectResponse
@@ -1163,7 +1053,7 @@ export type UpProjectResponse = Message<"ddash.dockeragentapi.UpProjectResponse"
  * Use `create(UpProjectResponseSchema)` to create a new message.
  */
 export const UpProjectResponseSchema: GenMessage<UpProjectResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 37);
+  messageDesc(file_docker_agent_api_docker_agent_api, 35);
 
 /**
  * @generated from message ddash.dockeragentapi.DownProjectRequest
@@ -1180,7 +1070,7 @@ export type DownProjectRequest = Message<"ddash.dockeragentapi.DownProjectReques
  * Use `create(DownProjectRequestSchema)` to create a new message.
  */
 export const DownProjectRequestSchema: GenMessage<DownProjectRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 38);
+  messageDesc(file_docker_agent_api_docker_agent_api, 36);
 
 /**
  * @generated from message ddash.dockeragentapi.DownProjectResponse
@@ -1197,7 +1087,7 @@ export type DownProjectResponse = Message<"ddash.dockeragentapi.DownProjectRespo
  * Use `create(DownProjectResponseSchema)` to create a new message.
  */
 export const DownProjectResponseSchema: GenMessage<DownProjectResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 39);
+  messageDesc(file_docker_agent_api_docker_agent_api, 37);
 
 /**
  * @generated from message ddash.dockeragentapi.RestartProjectRequest
@@ -1214,7 +1104,7 @@ export type RestartProjectRequest = Message<"ddash.dockeragentapi.RestartProject
  * Use `create(RestartProjectRequestSchema)` to create a new message.
  */
 export const RestartProjectRequestSchema: GenMessage<RestartProjectRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 40);
+  messageDesc(file_docker_agent_api_docker_agent_api, 38);
 
 /**
  * @generated from message ddash.dockeragentapi.RestartProjectResponse
@@ -1231,7 +1121,7 @@ export type RestartProjectResponse = Message<"ddash.dockeragentapi.RestartProjec
  * Use `create(RestartProjectResponseSchema)` to create a new message.
  */
 export const RestartProjectResponseSchema: GenMessage<RestartProjectResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 41);
+  messageDesc(file_docker_agent_api_docker_agent_api, 39);
 
 /**
  * @generated from message ddash.dockeragentapi.PullProjectRequest
@@ -1248,7 +1138,7 @@ export type PullProjectRequest = Message<"ddash.dockeragentapi.PullProjectReques
  * Use `create(PullProjectRequestSchema)` to create a new message.
  */
 export const PullProjectRequestSchema: GenMessage<PullProjectRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 42);
+  messageDesc(file_docker_agent_api_docker_agent_api, 40);
 
 /**
  * @generated from message ddash.dockeragentapi.PullProjectResponse
@@ -1265,7 +1155,7 @@ export type PullProjectResponse = Message<"ddash.dockeragentapi.PullProjectRespo
  * Use `create(PullProjectResponseSchema)` to create a new message.
  */
 export const PullProjectResponseSchema: GenMessage<PullProjectResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 43);
+  messageDesc(file_docker_agent_api_docker_agent_api, 41);
 
 /**
  * @generated from message ddash.dockeragentapi.UpdateProjectRequest
@@ -1282,7 +1172,7 @@ export type UpdateProjectRequest = Message<"ddash.dockeragentapi.UpdateProjectRe
  * Use `create(UpdateProjectRequestSchema)` to create a new message.
  */
 export const UpdateProjectRequestSchema: GenMessage<UpdateProjectRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 44);
+  messageDesc(file_docker_agent_api_docker_agent_api, 42);
 
 /**
  * @generated from message ddash.dockeragentapi.UpdateProjectResponse
@@ -1299,7 +1189,7 @@ export type UpdateProjectResponse = Message<"ddash.dockeragentapi.UpdateProjectR
  * Use `create(UpdateProjectResponseSchema)` to create a new message.
  */
 export const UpdateProjectResponseSchema: GenMessage<UpdateProjectResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 45);
+  messageDesc(file_docker_agent_api_docker_agent_api, 43);
 
 /**
  * @generated from message ddash.dockeragentapi.ListJobsRequest
@@ -1312,7 +1202,7 @@ export type ListJobsRequest = Message<"ddash.dockeragentapi.ListJobsRequest"> & 
  * Use `create(ListJobsRequestSchema)` to create a new message.
  */
 export const ListJobsRequestSchema: GenMessage<ListJobsRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 46);
+  messageDesc(file_docker_agent_api_docker_agent_api, 44);
 
 /**
  * @generated from message ddash.dockeragentapi.ListJobsResponse
@@ -1329,7 +1219,7 @@ export type ListJobsResponse = Message<"ddash.dockeragentapi.ListJobsResponse"> 
  * Use `create(ListJobsResponseSchema)` to create a new message.
  */
 export const ListJobsResponseSchema: GenMessage<ListJobsResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 47);
+  messageDesc(file_docker_agent_api_docker_agent_api, 45);
 
 /**
  * @generated from message ddash.dockeragentapi.HostJobs
@@ -1356,7 +1246,7 @@ export type HostJobs = Message<"ddash.dockeragentapi.HostJobs"> & {
  * Use `create(HostJobsSchema)` to create a new message.
  */
 export const HostJobsSchema: GenMessage<HostJobs> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 48);
+  messageDesc(file_docker_agent_api_docker_agent_api, 46);
 
 /**
  * @generated from message ddash.dockeragentapi.GetJobRequest
@@ -1378,7 +1268,7 @@ export type GetJobRequest = Message<"ddash.dockeragentapi.GetJobRequest"> & {
  * Use `create(GetJobRequestSchema)` to create a new message.
  */
 export const GetJobRequestSchema: GenMessage<GetJobRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 49);
+  messageDesc(file_docker_agent_api_docker_agent_api, 47);
 
 /**
  * @generated from message ddash.dockeragentapi.GetJobResponse
@@ -1395,7 +1285,7 @@ export type GetJobResponse = Message<"ddash.dockeragentapi.GetJobResponse"> & {
  * Use `create(GetJobResponseSchema)` to create a new message.
  */
 export const GetJobResponseSchema: GenMessage<GetJobResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 50);
+  messageDesc(file_docker_agent_api_docker_agent_api, 48);
 
 /**
  * @generated from message ddash.dockeragentapi.CollectJobRequest
@@ -1417,7 +1307,7 @@ export type CollectJobRequest = Message<"ddash.dockeragentapi.CollectJobRequest"
  * Use `create(CollectJobRequestSchema)` to create a new message.
  */
 export const CollectJobRequestSchema: GenMessage<CollectJobRequest> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 51);
+  messageDesc(file_docker_agent_api_docker_agent_api, 49);
 
 /**
  * @generated from message ddash.dockeragentapi.CollectJobResponse
@@ -1434,7 +1324,7 @@ export type CollectJobResponse = Message<"ddash.dockeragentapi.CollectJobRespons
  * Use `create(CollectJobResponseSchema)` to create a new message.
  */
 export const CollectJobResponseSchema: GenMessage<CollectJobResponse> = /*@__PURE__*/
-  messageDesc(file_docker_agent_api_docker_agent_api, 52);
+  messageDesc(file_docker_agent_api_docker_agent_api, 50);
 
 /**
  * @generated from enum ddash.dockeragentapi.AgentState

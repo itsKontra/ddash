@@ -7,6 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/itsKontra/ddash/components/internal/dockerread"
+
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -143,9 +147,9 @@ func (s sources) match(to hostPort) *appspb.Workload {
 
 // publishes reports whether c answers on to: a tcp port published on to's
 // port, bound to to's address or, unbound, on its host's address.
-func publishes(h *dockerapipb.HostContainers, c *dockerapipb.Container, to hostPort) bool {
+func publishes(h *dockerapipb.HostContainers, c *containerpb.Container, to hostPort) bool {
 	for _, p := range c.GetPorts() {
-		if int(p.GetPublicPort()) != to.port || (p.GetProtocol() != "" && p.GetProtocol() != "tcp") {
+		if int(p.GetPublicPort()) != to.port || (p.GetProtocol() != containerpb.Protocol_PROTOCOL_UNSPECIFIED && p.GetProtocol() != containerpb.Protocol_PROTOCOL_TCP) {
 			continue
 		}
 		bound := canonHost(p.GetIp())
@@ -203,11 +207,11 @@ func (s sources) all() []*appspb.Workload {
 	return out
 }
 
-func containerWorkload(h *dockerapipb.HostContainers, c *dockerapipb.Container) *appspb.Workload {
+func containerWorkload(h *dockerapipb.HostContainers, c *containerpb.Container) *appspb.Workload {
 	return &appspb.Workload{
 		Ref:   &workloadpb.WorkloadRef{Kind: workloadpb.Kind_KIND_DOCKER, Host: h.GetHost(), Id: c.GetName()},
 		Name:  c.GetName(),
-		State: c.GetState(),
+		State: dockerread.StateWord(c.GetState()),
 	}
 }
 

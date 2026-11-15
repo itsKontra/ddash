@@ -5,6 +5,7 @@ syntax = "proto3";
 package ddash.dockerapi;
 
 import "ddash/config/config.proto";
+import "ddash/container/container.proto";
 import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/docker-api/dockerapipb;dockerapipb";
@@ -49,7 +50,7 @@ message ListContainersResponse {
 message HostContainers {
   // The host's configured name.
   string host = 1;
-  repeated Container containers = 2;
+  repeated ddash.container.Container containers = 2;
   // Why the host couldn't be read; empty when it could.
   string error = 3;
   // The host part of its socket-proxy URL, e.g. "198.18.2.10": where a
@@ -57,24 +58,3 @@ message HostContainers {
   string address = 4;
 }
 
-message Container {
-  string id = 1;
-  // The container's name, without Docker's leading slash.
-  string name = 2;
-  string image = 3;
-  // Docker's state: created, running, paused, restarting, removing, exited or dead.
-  string state = 4;
-  // Docker's human-readable status, e.g. "Up 3 hours (healthy)".
-  string status = 5;
-  // Ports published on the host.
-  repeated Port ports = 6;
-}
-
-message Port {
-  // The host address the port is bound to; empty when Docker reports none.
-  string ip = 1;
-  uint32 public_port = 2;
-  uint32 private_port = 3;
-  // tcp, udp or sctp.
-  string protocol = 4;
-}

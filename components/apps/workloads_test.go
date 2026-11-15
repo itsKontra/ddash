@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -24,8 +26,8 @@ func guest(kind proxmoxapipb.Kind, vmid uint32, name string, ips ...string) *pro
 
 // container is a running container publishing ports ("8096" on every
 // address, "198.18.2.11:8989" on one).
-func container(name string, ports ...string) *dockerapipb.Container {
-	c := &dockerapipb.Container{Id: name + "-id", Name: name, State: "running"}
+func container(name string, ports ...string) *containerpb.Container {
+	c := &containerpb.Container{Id: name + "-id", Name: name, State: containerpb.State_STATE_RUNNING}
 	for _, p := range ports {
 		ip, port := "0.0.0.0", p
 		if i := strings.LastIndex(p, ":"); i >= 0 {
@@ -35,7 +37,7 @@ func container(name string, ports ...string) *dockerapipb.Container {
 		for _, r := range port {
 			n = n*10 + uint32(r-'0')
 		}
-		c.Ports = append(c.Ports, &dockerapipb.Port{Ip: ip, PublicPort: n, PrivatePort: n, Protocol: "tcp"})
+		c.Ports = append(c.Ports, &containerpb.Port{Ip: ip, PublicPort: n, PrivatePort: n, Protocol: containerpb.Protocol_PROTOCOL_TCP})
 	}
 	return c
 }
@@ -53,7 +55,7 @@ func workloadLab(t *testing.T) *lab {
 		}},
 		docker: &dockerFake{hosts: []*dockerapipb.HostContainers{{
 			Host: "media", Address: "198.18.2.10",
-			Containers: []*dockerapipb.Container{
+			Containers: []*containerpb.Container{
 				container("jellyfin", "8096", "[::]:8096"),
 				container("sonarr", "198.18.2.11:8989"),
 			},

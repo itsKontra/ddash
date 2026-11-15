@@ -8,6 +8,8 @@
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
+import type { Container } from "../ddash/container/container_pb";
+import { file_ddash_container_container } from "../ddash/container/container_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -15,7 +17,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file docker-api/docker_api.proto.
  */
 export const file_docker_api_docker_api: GenFile = /*@__PURE__*/
-  fileDesc("Chtkb2NrZXItYXBpL2RvY2tlcl9hcGkucHJvdG8SD2RkYXNoLmRvY2tlcmFwaSJ+Cg9Eb2NrZXJBcGlDb25maWcSawoFaG9zdHMYASADKAsyFS5kZGFzaC5kb2NrZXJhcGkuSG9zdEJFmrUYQRoMRG9ja2VyIGhvc3RzIjFFYWNoIGhvc3QncyByZWFkLW9ubHkgc29ja2V0LXByb3h5LiBOb25lIGlzIGZpbmUuImQKBEhvc3QSGwoEbmFtZRgBIAEoCUINmrUYCSoFbWVkaWEwARI/CgN1cmwYAiABKAlCMpq1GC4aEFNvY2tldC1wcm94eSBVUkwqFnRjcDovLzE5OC4xOC4yLjEwOjIzNzUwATgBIhcKFUxpc3RDb250YWluZXJzUmVxdWVzdCJIChZMaXN0Q29udGFpbmVyc1Jlc3BvbnNlEi4KBWhvc3RzGAEgAygLMh8uZGRhc2guZG9ja2VyYXBpLkhvc3RDb250YWluZXJzIm4KDkhvc3RDb250YWluZXJzEgwKBGhvc3QYASABKAkSLgoKY29udGFpbmVycxgCIAMoCzIaLmRkYXNoLmRvY2tlcmFwaS5Db250YWluZXISDQoFZXJyb3IYAyABKAkSDwoHYWRkcmVzcxgEIAEoCSJ5CglDb250YWluZXISCgoCaWQYASABKAkSDAoEbmFtZRgCIAEoCRINCgVpbWFnZRgDIAEoCRINCgVzdGF0ZRgEIAEoCRIOCgZzdGF0dXMYBSABKAkSJAoFcG9ydHMYBiADKAsyFS5kZGFzaC5kb2NrZXJhcGkuUG9ydCJPCgRQb3J0EgoKAmlwGAEgASgJEhMKC3B1YmxpY19wb3J0GAIgASgNEhQKDHByaXZhdGVfcG9ydBgDIAEoDRIQCghwcm90b2NvbBgEIAEoCTJ9ChBEb2NrZXJBcGlTZXJ2aWNlEmkKDkxpc3RDb250YWluZXJzEiYuZGRhc2guZG9ja2VyYXBpLkxpc3RDb250YWluZXJzUmVxdWVzdBonLmRkYXNoLmRvY2tlcmFwaS5MaXN0Q29udGFpbmVyc1Jlc3BvbnNlIgaKtRgCCAJCSlpIZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9kb2NrZXItYXBpL2RvY2tlcmFwaXBiO2RvY2tlcmFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("Chtkb2NrZXItYXBpL2RvY2tlcl9hcGkucHJvdG8SD2RkYXNoLmRvY2tlcmFwaSJ+Cg9Eb2NrZXJBcGlDb25maWcSawoFaG9zdHMYASADKAsyFS5kZGFzaC5kb2NrZXJhcGkuSG9zdEJFmrUYQRoMRG9ja2VyIGhvc3RzIjFFYWNoIGhvc3QncyByZWFkLW9ubHkgc29ja2V0LXByb3h5LiBOb25lIGlzIGZpbmUuImQKBEhvc3QSGwoEbmFtZRgBIAEoCUINmrUYCSoFbWVkaWEwARI/CgN1cmwYAiABKAlCMpq1GC4aEFNvY2tldC1wcm94eSBVUkwqFnRjcDovLzE5OC4xOC4yLjEwOjIzNzUwATgBIhcKFUxpc3RDb250YWluZXJzUmVxdWVzdCJIChZMaXN0Q29udGFpbmVyc1Jlc3BvbnNlEi4KBWhvc3RzGAEgAygLMh8uZGRhc2guZG9ja2VyYXBpLkhvc3RDb250YWluZXJzIm4KDkhvc3RDb250YWluZXJzEgwKBGhvc3QYASABKAkSLgoKY29udGFpbmVycxgCIAMoCzIaLmRkYXNoLmNvbnRhaW5lci5Db250YWluZXISDQoFZXJyb3IYAyABKAkSDwoHYWRkcmVzcxgEIAEoCTJ9ChBEb2NrZXJBcGlTZXJ2aWNlEmkKDkxpc3RDb250YWluZXJzEiYuZGRhc2guZG9ja2VyYXBpLkxpc3RDb250YWluZXJzUmVxdWVzdBonLmRkYXNoLmRvY2tlcmFwaS5MaXN0Q29udGFpbmVyc1Jlc3BvbnNlIgaKtRgCCAJCSlpIZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9kb2NrZXItYXBpL2RvY2tlcmFwaXBiO2RvY2tlcmFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_container_container, file_ddash_options]);
 
 /**
  * @generated from message ddash.dockerapi.DockerApiConfig
@@ -104,7 +106,7 @@ export type HostContainers = Message<"ddash.dockerapi.HostContainers"> & {
   host: string;
 
   /**
-   * @generated from field: repeated ddash.dockerapi.Container containers = 2;
+   * @generated from field: repeated ddash.container.Container containers = 2;
    */
   containers: Container[];
 
@@ -130,92 +132,6 @@ export type HostContainers = Message<"ddash.dockerapi.HostContainers"> & {
  */
 export const HostContainersSchema: GenMessage<HostContainers> = /*@__PURE__*/
   messageDesc(file_docker_api_docker_api, 4);
-
-/**
- * @generated from message ddash.dockerapi.Container
- */
-export type Container = Message<"ddash.dockerapi.Container"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * The container's name, without Docker's leading slash.
-   *
-   * @generated from field: string name = 2;
-   */
-  name: string;
-
-  /**
-   * @generated from field: string image = 3;
-   */
-  image: string;
-
-  /**
-   * Docker's state: created, running, paused, restarting, removing, exited or dead.
-   *
-   * @generated from field: string state = 4;
-   */
-  state: string;
-
-  /**
-   * Docker's human-readable status, e.g. "Up 3 hours (healthy)".
-   *
-   * @generated from field: string status = 5;
-   */
-  status: string;
-
-  /**
-   * Ports published on the host.
-   *
-   * @generated from field: repeated ddash.dockerapi.Port ports = 6;
-   */
-  ports: Port[];
-};
-
-/**
- * Describes the message ddash.dockerapi.Container.
- * Use `create(ContainerSchema)` to create a new message.
- */
-export const ContainerSchema: GenMessage<Container> = /*@__PURE__*/
-  messageDesc(file_docker_api_docker_api, 5);
-
-/**
- * @generated from message ddash.dockerapi.Port
- */
-export type Port = Message<"ddash.dockerapi.Port"> & {
-  /**
-   * The host address the port is bound to; empty when Docker reports none.
-   *
-   * @generated from field: string ip = 1;
-   */
-  ip: string;
-
-  /**
-   * @generated from field: uint32 public_port = 2;
-   */
-  publicPort: number;
-
-  /**
-   * @generated from field: uint32 private_port = 3;
-   */
-  privatePort: number;
-
-  /**
-   * tcp, udp or sctp.
-   *
-   * @generated from field: string protocol = 4;
-   */
-  protocol: string;
-};
-
-/**
- * Describes the message ddash.dockerapi.Port.
- * Use `create(PortSchema)` to create a new message.
- */
-export const PortSchema: GenMessage<Port> = /*@__PURE__*/
-  messageDesc(file_docker_api_docker_api, 6);
 
 /**
  * @generated from service ddash.dockerapi.DockerApiService

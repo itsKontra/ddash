@@ -8,6 +8,7 @@ syntax = "proto3";
 // what to do and when is the compose Component's.
 package ddash.dockeragentapi;
 
+import "ddash/container/container.proto";
 import "ddash/job/job.proto";
 import "ddash/options.proto";
 import "google/protobuf/timestamp.proto";
@@ -249,36 +250,9 @@ message HostContainers {
   string host = 1;
   // The host part of its URL.
   string address = 2;
-  repeated Container containers = 3;
+  repeated ddash.container.Container containers = 3;
   // Why it couldn't be read; empty when it could.
   string error = 4;
-}
-
-message Container {
-  string id = 1;
-  string name = 2;
-  string image = 3;
-  // Docker's state: created, running, paused, restarting, removing, exited or dead.
-  string state = 4;
-  string status = 5;
-  repeated Port ports = 6;
-  // The local image's id and its "<repo>@sha256:…" digests: none for an
-  // image built locally.
-  string image_id = 7;
-  repeated string repo_digests = 8;
-  map<string, string> labels = 9;
-  // Its Compose Project and service, from its labels; empty for one not
-  // started by Compose.
-  string project = 10;
-  string service = 11;
-  google.protobuf.Timestamp created = 12;
-}
-
-message Port {
-  string ip = 1;
-  uint32 public_port = 2;
-  uint32 private_port = 3;
-  string protocol = 4;
 }
 
 message ListComposeProjectsRequest {}
@@ -292,7 +266,7 @@ message HostProjects {
   string address = 2;
   repeated Project projects = 3;
   // Every container on the host, those of no Compose Project too.
-  repeated Container containers = 4;
+  repeated ddash.container.Container containers = 4;
   // The Compose roots the Agent mounts.
   repeated string roots = 5;
   string error = 6;

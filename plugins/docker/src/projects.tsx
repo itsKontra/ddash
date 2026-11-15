@@ -1,13 +1,14 @@
 import { PlanDialog, type ActionInit } from "@ddash/compose-ui";
 import { useAction, usePluginLink, useQuery } from "@ddash/plugin";
-import { ComposeService, ProjectState, type Container, type Host, type ImageChecks, type Project } from "@ddash/proto/compose/compose_pb";
+import { State } from "@ddash/proto/ddash/container/container_pb";
+import { ComposeService, ProjectState, type Host, type ImageChecks, type Project, type ProjectContainer } from "@ddash/proto/compose/compose_pb";
 import { DockerAgentApiService } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { DockerApiService } from "@ddash/proto/docker-api/docker_api_pb";
 import { ago, until } from "@ddash/display";
-import { ActionStrip, Button, DataTable, EmptyState, Notice, PageTitle, Panel, Pill, Skeleton, StatusDot, type Column } from "@ddash/ui";
+import { ActionStrip, Button, DataTable, EmptyState, Notice, PageTitle, Panel, Pill, Skeleton, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
-import { Host as ProxyHost, tones } from "./containers";
+import { ContainerState, Host as ProxyHost, isRunning } from "./containers";
 import { containersOf, ImageBadge, ProjectStatePill, stale } from "./images";
 import { useNow } from "./now";
 
@@ -63,27 +64,22 @@ function ProjectStrip({ project: p, open, close }: { project: Project; open: (d:
   );
 }
 
-const containerColumns: readonly Column<Container>[] = [
-  { id: "name", header: "Container", rowHeader: true, cell: (c) => c.name },
+const containerColumns: readonly Column<ProjectContainer>[] = [
+  { id: "name", header: "Container", rowHeader: true, cell: (c) => c.container?.name },
   {
     id: "state",
     header: "State",
-    cell: (c) => (
-      <span className="inline-flex items-center gap-2">
-        <StatusDot tone={tones[c.state] ?? "idle"} label={c.state} />
-        {c.state}
-      </span>
-    ),
+    cell: (c) => <ContainerState state={c.container?.state ?? State.UNSPECIFIED} />,
   },
-  { id: "image", header: "Image", mono: true, hideBelow: "sm", cell: (c) => c.image },
+  { id: "image", header: "Image", mono: true, hideBelow: "sm", cell: (c) => c.container?.image },
   { id: "update", header: "Image state", cell: (c) => <ImageBadge status={c.imageStatus} /> },
-  { id: "status", header: "Status", hideBelow: "sm", cell: (c) => c.status },
+  { id: "status", header: "Status", hideBelow: "sm", cell: (c) => c.container?.status },
 ];
 
 /** A Docker host with an Agent: its Compose Projects, then the containers no Compose Project started. */
 function AgentHost({ host: h, open, close }: { host: Host; open: (d: ReactNode) => void; close: () => void }) {
   const all = h.projects.flatMap(containersOf).concat(h.containers);
-  const running = all.filter((c) => c.state === "running").length;
+  const running = all.filter((c) => isRunning(c.container)).length;
   const updates = stale(all).length;
   const columns: readonly Column<Project>[] = [
     {
@@ -136,7 +132,7 @@ function AgentHost({ host: h, open, close }: { host: Host; open: (d: ReactNode) 
           {h.containers.length > 0 && (
             <div className="border-t border-border">
               <p className="px-6 pt-4 pb-2 text-xs font-semibold text-muted-foreground">Not started by Compose</p>
-              <DataTable rows={h.containers} rowKey={(c) => c.id} columns={containerColumns} />
+              <DataTable rows={h.containers} rowKey={(c) => c.container?.id ?? ""} columns={containerColumns} />
             </div>
           )}
         </div>

@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/itsKontra/ddash/components/internal/dockerread"
+
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"go.yaml.in/yaml/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -177,7 +181,7 @@ func (p planning) newCompose(out *planned, a *appspb.NewComposeProject, reach ap
 	if h != nil && r.port != 0 {
 		for _, ct := range h.GetContainers() {
 			for _, pt := range ct.GetPorts() {
-				if pt.GetPublicPort() == r.port && (pt.GetProtocol() == "" || pt.GetProtocol() == "tcp") {
+				if pt.GetPublicPort() == r.port && (pt.GetProtocol() == containerpb.Protocol_PROTOCOL_UNSPECIFIED || pt.GetProtocol() == containerpb.Protocol_PROTOCOL_TCP) {
 					block("Port %d is already published on %s, by %s.", r.port, r.host, ct.GetName())
 				}
 			}
@@ -410,7 +414,7 @@ func (c *component) waitRunning(ctx context.Context, r *composeRun, deadline tim
 				if ct.GetProject() != r.name || ct.GetService() != r.service {
 					continue
 				}
-				if state = ct.GetState(); state == "running" {
+				if state = dockerread.StateWord(ct.GetState()); ct.GetState() == containerpb.State_STATE_RUNNING {
 					c.startedContainer(h.GetHost(), h.GetAddress(), ct)
 					return nil
 				}
@@ -441,18 +445,15 @@ func sleep(ctx context.Context, d time.Duration) error {
 // docker-api lists it or startedFor has passed.
 type started struct {
 	host, address string
-	container     *dockerapipb.Container
+	container     *containerpb.Container
 	until         time.Time
 }
 
 // startedContainer keeps the container ct an Add App started on host, so
 // the App's Workload matches it at once, as wroteProxyHost keeps a Proxy
 // Host.
-func (c *component) startedContainer(host, address string, ct *dapb.Container) {
-	out := &dockerapipb.Container{Id: ct.GetId(), Name: ct.GetName(), Image: ct.GetImage(), State: ct.GetState(), Status: ct.GetStatus()}
-	for _, p := range ct.GetPorts() {
-		out.Ports = append(out.Ports, &dockerapipb.Port{Ip: p.GetIp(), PublicPort: p.GetPublicPort(), PrivatePort: p.GetPrivatePort(), Protocol: p.GetProtocol()})
-	}
+func (c *component) startedContainer(host, address string, ct *containerpb.Container) {
+	out := ct
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.started = append(c.started, started{host: host, address: address, container: out, until: time.Now().Add(startedFor)})
@@ -463,7 +464,7 @@ func (c *component) startedContainer(host, address string, ct *dapb.Container) {
 		h.Containers = append(h.Containers, out)
 		docker[i] = h
 	} else {
-		docker = append(docker, &dockerapipb.HostContainers{Host: host, Address: address, Containers: []*dockerapipb.Container{out}})
+		docker = append(docker, &dockerapipb.HostContainers{Host: host, Address: address, Containers: []*containerpb.Container{out}})
 	}
 	c.src.docker = docker
 }
@@ -476,7 +477,7 @@ func (c *component) withStarted(hosts []*dockerapipb.HostContainers) []*dockerap
 	keep := c.started[:0]
 	for _, s := range c.started {
 		i := slices.IndexFunc(hosts, func(h *dockerapipb.HostContainers) bool { return h.GetHost() == s.host })
-		listed := i >= 0 && slices.ContainsFunc(hosts[i].GetContainers(), func(x *dockerapipb.Container) bool { return x.GetName() == s.container.GetName() })
+		listed := i >= 0 && slices.ContainsFunc(hosts[i].GetContainers(), func(x *containerpb.Container) bool { return x.GetName() == s.container.GetName() })
 		if listed || time.Now().After(s.until) {
 			continue
 		}

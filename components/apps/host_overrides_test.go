@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
+
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
@@ -192,7 +194,7 @@ func TestALinkOnlyAppAbsorbsAHostOverrideForItsHostname(t *testing.T) {
 func TestANotProxiedAppsWorkloadIsMatchedAtItsAddress(t *testing.T) {
 	docker := &dockerFake{hosts: []*dockerapipb.HostContainers{{
 		Host: "docker", Address: "198.18.1.201",
-		Containers: []*dockerapipb.Container{container("portainer", "443"), container("homepage", "3000")},
+		Containers: []*containerpb.Container{container("portainer", "443"), container("homepage", "3000")},
 	}}}
 	proxmox := &proxmoxFake{guests: []*proxmoxapipb.Workload{guest(proxmoxapipb.Kind_KIND_LXC, 201, "docker-host", "198.18.1.201")}}
 	l := newLab(t, labOptions{docker: docker, proxmox: proxmox})
