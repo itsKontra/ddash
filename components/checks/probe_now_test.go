@@ -21,8 +21,10 @@ func probeNow(t *testing.T, c checkspb.ChecksServiceClient, scope *checkspb.Main
 }
 
 var (
-	n8nLXC  = &workloadpb.WorkloadRef{Kind: workloadpb.Kind_KIND_LXC, Host: "pve1", Id: "206"}
-	n8n     = func() *checkspb.AppCheck { return on(app("proxy:n8n.home.example", "N8n", "http://n8n.home.example"), n8nLXC) }
+	n8nLXC = &workloadpb.WorkloadRef{Kind: workloadpb.Kind_KIND_LXC, Host: "pve1", Id: "206"}
+	n8n    = func() *checkspb.AppCheck {
+		return on(app("proxy:n8n.home.example", "N8n", "http://n8n.home.example"), n8nLXC)
+	}
 	grafana = func() *checkspb.AppCheck {
 		return on(app("proxy:grafana.home.example", "Grafana", "http://grafana.home.example"), &workloadpb.WorkloadRef{Kind: workloadpb.Kind_KIND_LXC, Host: "pve1", Id: "204"})
 	}
