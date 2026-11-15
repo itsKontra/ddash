@@ -32,6 +32,12 @@ func AppFile(plugin string) string { return plugin + AppExt }
 // ComponentFile is component's file in a Release.
 func ComponentFile(component string) string { return component + ComponentExt }
 
+// HostAgentArchs are the architectures the Host Agent is built for.
+var HostAgentArchs = []string{"amd64", "arm64"}
+
+// HostAgentFile is the Host Agent's binary for arch in a Release.
+func HostAgentFile(arch string) string { return "ddash-host-agent-linux-" + arch }
+
 // packTime is every packed file's modification time, so packing the same
 // files gives the same bytes, and the same checksum.
 var packTime = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
