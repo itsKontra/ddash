@@ -320,12 +320,34 @@ func (a *Agent) inRoots(path string) bool {
 	if !filepath.IsAbs(path) {
 		return false
 	}
+	// As the reads and writes that follow will see it: a symlink inside a
+	// root may lead out of it.
+	path = resolve(path)
 	for _, r := range a.o.Roots {
+		r = resolve(r)
 		if path == r || strings.HasPrefix(path, r+string(filepath.Separator)) {
 			return true
 		}
 	}
 	return false
+}
+
+// resolve follows the symlinks in path, an absolute clean path. What
+// doesn't exist yet (a new Compose Project's directory and file) is kept
+// as written under the deepest directory that does.
+func resolve(path string) string {
+	rest := ""
+	for dir := path; ; {
+		if real, err := filepath.EvalSymlinks(dir); err == nil {
+			return filepath.Join(real, rest)
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return path
+		}
+		rest = filepath.Join(filepath.Base(dir), rest)
+		dir = parent
+	}
 }
 
 // composeFile checks that path is a Compose file under the roots.

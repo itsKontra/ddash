@@ -80,22 +80,63 @@ func (j *Jobs) Start(op, title, target string, steps []string, run Run) (Job, er
 	}
 	j.jobs[job.ID] = job
 	p := &Progress{jobs: j, id: job.ID}
-	ctx := j.life
+	ctx, cancel := context.WithTimeout(j.life, JobTimeout)
+	type outcome struct {
+		result map[string]string
+		err    error
+	}
+	ended := make(chan outcome, 1)
 	go func() {
-		var result map[string]string
-		var err error
+		var o outcome
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					err = fmt.Errorf("the Agent's job panicked: %v", r)
+					o.err = fmt.Errorf("the Agent's job panicked: %v", r)
 				}
 			}()
-			result, err = run(ctx, p)
+			o.result, o.err = run(ctx, p)
 		}()
-		p.finish(result, err)
+		ended <- o
+	}()
+	go func() {
+		defer cancel()
+		timedOut := fmt.Errorf("the job didn't end within %s and was stopped", JobTimeout)
+		select {
+		case o := <-ended:
+			if o.err != nil && errors.Is(context.Cause(ctx), context.DeadlineExceeded) {
+				o.err = timedOut
+			}
+			p.finish(o.result, o.err)
+		case <-ctx.Done():
+			if !errors.Is(context.Cause(ctx), context.DeadlineExceeded) {
+				// The Agent is stopping: the job ends with it.
+				o := <-ended
+				p.finish(o.result, o.err)
+				return
+			}
+			// Its commands were killed with ctx; a body that still
+			// doesn't return is given up on.
+			select {
+			case o := <-ended:
+				if o.err == nil {
+					p.finish(o.result, nil)
+					return
+				}
+			case <-time.After(stopGrace):
+			}
+			p.finish(nil, timedOut)
+		}
 	}()
 	return clone(job), nil
 }
+
+// JobTimeout is how long a job may run: far longer than a pull of large
+// images or a distribution's upgrade takes, so only a job that hangs
+// reaches it. Its ctx ends then, which kills the command it runs.
+var JobTimeout = 2 * time.Hour
+
+// stopGrace is how long a job has to return once its ctx ended.
+const stopGrace = 10 * time.Second
 
 // sweep forgets ended jobs older than KeepFor. Call with j.mu held.
 func (j *Jobs) sweep() {
@@ -166,10 +207,12 @@ type Progress struct {
 	id   string
 }
 
+// edit changes the job while it runs. A body that reports after its job
+// ended (it was given up on) changes nothing.
 func (p *Progress) edit(f func(*Job)) {
 	p.jobs.mu.Lock()
 	defer p.jobs.mu.Unlock()
-	if job, ok := p.jobs.jobs[p.id]; ok {
+	if job, ok := p.jobs.jobs[p.id]; ok && !job.State.Ended() {
 		f(job)
 	}
 }
