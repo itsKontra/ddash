@@ -145,7 +145,7 @@ func (c *component) applyDNS(ctx context.Context) error {
 	var state struct {
 		Applied bool `json:"applied"`
 	}
-	return c.api.sendWithin(ctx, applyTimeout, http.MethodPost, dnsApplyPath, map[string]any{"async": false}, &state)
+	return c.api.sendWithin(ctx, applyTimeout, http.MethodPost, dnsApplyPath, applyBody{Async: false}, &state)
 }
 
 // runStep sends one step, looking its target up right before. wrote is
@@ -162,7 +162,7 @@ func (c *component) runStep(ctx context.Context, s *pfsenseapipb.HostOverrideSte
 		if err := free(all, h.GetHost(), h.GetDomain()); err != nil {
 			return false, err
 		}
-		body := map[string]any{"host": h.GetHost(), "domain": h.GetDomain(), "ip": h.GetIps(), "descr": h.GetDescription()}
+		body := hostOverrideCreate{Host: h.GetHost(), Domain: h.GetDomain(), IP: h.GetIps(), Descr: h.GetDescription()}
 		return true, c.api.send(ctx, http.MethodPost, hostOverridePath, body, &discard)
 	case *pfsenseapipb.HostOverrideStep_Delete:
 		id, err := find(all, ch.Delete)
@@ -176,7 +176,7 @@ func (c *component) runStep(ctx context.Context, s *pfsenseapipb.HostOverrideSte
 		if err != nil {
 			return false, err
 		}
-		body := map[string]any{"id": id, "ip": ch.Readdress.GetIps()}
+		body := hostOverrideReaddress{ID: id, IP: ch.Readdress.GetIps()}
 		return true, c.api.send(ctx, http.MethodPatch, hostOverridePath, body, &discard)
 	case *pfsenseapipb.HostOverrideStep_AddAlias:
 		parent, err := find(all, ch.AddAlias.GetParent())
@@ -187,7 +187,7 @@ func (c *component) runStep(ctx context.Context, s *pfsenseapipb.HostOverrideSte
 		if err := free(all, a.GetHost(), a.GetDomain()); err != nil {
 			return false, err
 		}
-		body := map[string]any{"parent_id": parent, "host": a.GetHost(), "domain": a.GetDomain(), "descr": a.GetDescription()}
+		body := hostOverrideAliasCreate{ParentID: parent, Host: a.GetHost(), Domain: a.GetDomain(), Descr: a.GetDescription()}
 		return true, c.api.send(ctx, http.MethodPost, overrideAliasPath, body, &discard)
 	case *pfsenseapipb.HostOverrideStep_RemoveAlias:
 		parent, err := find(all, ch.RemoveAlias.GetParent())

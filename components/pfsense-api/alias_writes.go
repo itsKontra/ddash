@@ -63,7 +63,7 @@ func findAlias(all []alias, name string) (*alias, int, error) {
 // applies it, returning the alias as pfSense answers it.
 func (c *component) patchAlias(ctx context.Context, id int, addresses, details []string) (*pfsenseapipb.Alias, error) {
 	var updated alias
-	body := map[string]any{"id": id, "address": addresses, "detail": details, "apply": true}
+	body := aliasPatch{ID: id, Address: addresses, Detail: details, Apply: true}
 	if err := c.api.send(ctx, http.MethodPatch, aliasPath, body, &updated); err != nil {
 		return nil, err
 	}
@@ -182,7 +182,7 @@ func (c *component) MoveAliasAddress(ctx context.Context, req *pfsenseapipb.Move
 		var werr error
 		for i, p := range patches {
 			var updated alias
-			body := map[string]any{"id": p.id, "address": p.addresses, "detail": p.details, "apply": i == len(patches)-1}
+			body := aliasPatch{ID: p.id, Address: p.addresses, Detail: p.details, Apply: i == len(patches)-1}
 			if werr = c.api.send(ctx, http.MethodPatch, aliasPath, body, &updated); werr != nil {
 				break
 			}
@@ -192,7 +192,7 @@ func (c *component) MoveAliasAddress(ctx context.Context, req *pfsenseapipb.Move
 			return werr
 		}
 		var applied any
-		if aerr := c.api.send(context.WithoutCancel(ctx), http.MethodPost, firewallApplyPath, map[string]any{}, &applied); aerr != nil {
+		if aerr := c.api.send(context.WithoutCancel(ctx), http.MethodPost, firewallApplyPath, firewallApplyBody{}, &applied); aerr != nil {
 			return status.Errorf(status.Code(werr), "%s. pfSense also holds alias changes it hasn't applied, because applying them failed (%s): apply the pending changes in pfSense",
 				status.Convert(werr).Message(), status.Convert(aerr).Message())
 		}

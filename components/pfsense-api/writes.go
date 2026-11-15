@@ -86,14 +86,7 @@ func (c *component) CreateStaticMapping(ctx context.Context, req *pfsenseapipb.C
 			}
 		}
 		var created staticMapping
-		body := map[string]any{
-			"parent_id": server.ID,
-			"mac":       mac,
-			"ipaddr":    m.GetIp(),
-			"hostname":  m.GetHostname(),
-			"descr":     m.GetDescription(),
-			"apply":     true,
-		}
+		body := staticMappingCreate{ParentID: server.ID, MAC: mac, IPAddr: m.GetIp(), Hostname: m.GetHostname(), Descr: m.GetDescription(), Apply: true}
 		if err := c.api.send(ctx, http.MethodPost, staticMappingPath, body, &created); err != nil {
 			return err
 		}
@@ -117,7 +110,7 @@ func (c *component) RenameStaticMapping(ctx context.Context, req *pfsenseapipb.R
 			return status.Errorf(codes.NotFound, "%s has no static mapping on %s", strings.ToLower(req.GetMac()), server.ID)
 		}
 		var renamed staticMapping
-		body := map[string]any{"parent_id": server.ID, "id": id, "descr": req.GetDescription(), "apply": true}
+		body := staticMappingRename{ParentID: server.ID, ID: id, Descr: req.GetDescription(), Apply: true}
 		if err := c.api.send(ctx, http.MethodPatch, staticMappingPath, body, &renamed); err != nil {
 			return err
 		}
