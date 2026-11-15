@@ -37,18 +37,3 @@ export function contextOf(host: Host | undefined, networks: string, homeDomain: 
 
 /** The user message sent: the description and the context. */
 export const prompt = (description: string, context: DraftContext) => `Description:\n${description.trim()}\n\nContext:\n${JSON.stringify(context, null, 2)}`;
-
-/** A draft as the Docker Plugin's Add Compose Project and the apps Plugin's Add App read it from "#draft=…". */
-export interface DraftJSON {
-  host?: string;
-  name: string;
-  compose: string;
-  app?: { url?: string; name?: string; icon?: string; group?: string; service?: string; port?: number };
-}
-
-/** The fragment carrying draft: "#draft=" and its JSON, UTF-8, base64url without padding. */
-export function draftFragment(draft: DraftJSON): string {
-  let bin = "";
-  for (const b of new TextEncoder().encode(JSON.stringify(draft))) bin += String.fromCharCode(b);
-  return "#draft=" + btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}

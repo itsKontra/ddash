@@ -1,7 +1,6 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { settle, showPlugin, showWidget, streamed, type Answers } from "@ddash/plugin/testing";
 import { afterEach, expect, it } from "vitest";
-import { readDraft } from "./add-project";
 import plugin from "./index";
 import { docker } from "./testing";
 import { containers as widget } from "./widget";
@@ -173,11 +172,17 @@ it("edits a Compose file and shows the change as a diff in the save's Plan", asy
 it("opens a draft from the URL fragment in Add Compose Project", async () => {
   const json = JSON.stringify({ host: "apps", name: "paperless", compose: "services:\n  web:\n    image: paperlessngx/paperless-ngx:2.13.5\n" });
   const draft = btoa(json).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-  expect(readDraft(`#draft=${draft}`)?.name).toBe("paperless");
   await showPlugin(plugin, docker, `/docker/projects/new#draft=${draft}`, { answers: base });
   expect((screen.getByRole("textbox", { name: "Name" }) as HTMLInputElement).value).toBe("paperless");
   expect((screen.getByRole("textbox", { name: "Directory" }) as HTMLInputElement).value).toBe("/opt/stacks/paperless");
   expect(screen.getByText(/This is a draft/)).toBeTruthy();
+});
+
+it("opens Add Compose Project empty when the fragment's draft has fields of the wrong type", async () => {
+  const draft = btoa(JSON.stringify({ host: "apps", name: 123, compose: "services: {}\n" })).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  await showPlugin(plugin, docker, `/docker/projects/new#draft=${draft}`, { answers: base });
+  expect((screen.getByRole("textbox", { name: "Name" }) as HTMLInputElement).value).toBe("");
+  expect(screen.queryByText(/This is a draft/)).toBeNull();
 });
 
 it("counts the updates waiting in the Widget", async () => {

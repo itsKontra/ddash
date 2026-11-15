@@ -2,7 +2,7 @@ import { Button, EmptyState, Notice, PageTitle, Panel, Skeleton, useQueryState }
 import { useState } from "react";
 import { useLocation, useSearchParams } from "react-router";
 import { useApps } from "./apps";
-import { parseDraft } from "./draft";
+import { parseDraft } from "@ddash/draft";
 import { useAppChecks } from "./checks";
 import { AddApp } from "./add-app";
 import { AppList } from "./list";

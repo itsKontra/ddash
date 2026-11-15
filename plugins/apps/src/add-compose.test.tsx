@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, screen, within } from "@testing-library/react"
 import { afterEach, expect, it } from "vitest";
 import { settle } from "@ddash/plugin/testing";
 import { planDelay } from "./add-app";
-import { draftFragment, type Draft } from "./draft";
+import { draftFragment, type Draft } from "@ddash/draft";
 import plugin from "./index";
 import { actions, ranThrough, renderScoped, split } from "./testing";
 
