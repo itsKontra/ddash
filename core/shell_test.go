@@ -73,6 +73,51 @@ func TestTheCoreListsInstalledPluginsWithTheirManifestsAndBundleURLs(t *testing.
 	}
 }
 
+// Vite writes a stylesheet of only a marker comment for a Plugin without
+// CSS; the shell would link it for nothing.
+func TestAPluginWhoseStylesheetHoldsNoRuleIsListedWithoutOne(t *testing.T) {
+	h := coretest.New(t, coretest.Options{
+		Release:    "v1.2.3",
+		Shell:      builtShell,
+		Components: []sdk.Definition{sample.Define("docker-api", nil, sample.Hooks{}), sample.Define("checks", nil, sample.Hooks{}), sample.Define("calendar-api", nil, sample.Hooks{})},
+		Plugins: []coretest.Plugin{
+			{Name: "docker", Requires: []string{"docker-api"}},
+			{Name: "checks", Requires: []string{"checks"}},
+			{Name: "calendar", Requires: []string{"calendar-api"}},
+		},
+		ReleaseFiles: map[string]string{
+			"docker/index.js":   "export default {}",
+			"docker/index.css":  "/* a comment */\n@keyframes docker-spin{}",
+			"checks/index.js":   "export default {}",
+			"checks/index.css":  "\n/*$vite$:1*/",
+			"calendar/index.js": "export default {}", // no stylesheet at all
+		},
+	})
+	for _, p := range []string{"docker", "checks", "calendar"} {
+		h.Install(p)
+	}
+
+	res := h.CoreCall("ListInstalledPlugins", `{}`)
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("status %d: %s", res.Code, res.Body)
+	}
+	var got struct {
+		Plugins []struct{ Name, Style string }
+	}
+	if err := json.Unmarshal(res.Body.Bytes(), &got); err != nil {
+		t.Fatal(err)
+	}
+	styles := map[string]string{}
+	for _, p := range got.Plugins {
+		styles[p.Name] = p.Style
+	}
+	want := map[string]string{"docker": "/plugins/docker/v1.2.3/index.css", "checks": "", "calendar": ""}
+	if diff := cmp.Diff(want, styles); diff != "" {
+		t.Errorf("styles (-want +got):\n%s", diff)
+	}
+}
+
 // immutable is how Release-versioned paths are cached.
 const immutable = "public, max-age=31536000, immutable"
 

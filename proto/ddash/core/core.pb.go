@@ -1160,7 +1160,8 @@ type InstalledPlugin struct {
 	Requires []string `protobuf:"bytes,6,rep,name=requires,proto3" json:"requires,omitempty"`
 	// The bundle's ESM entry: /plugins/<name>/<release>/index.js.
 	Script string `protobuf:"bytes,7,opt,name=script,proto3" json:"script,omitempty"`
-	// The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+	// The bundle's stylesheet: /plugins/<name>/<release>/index.css. Empty
+	// when it holds no rule, e.g. Vite's marker for a Plugin without CSS.
 	Style         string `protobuf:"bytes,8,opt,name=style,proto3" json:"style,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

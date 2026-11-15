@@ -44,6 +44,36 @@ func (h *Host) bundle(w http.ResponseWriter, r *http.Request) {
 	serveFile(w, r, h.release, path.Join(plugin, file), versioned(rel))
 }
 
+// bundleStyleURL is the URL of the plugin's stylesheet under base, its
+// bundle's URL prefix, or empty when the stylesheet holds no rule: Vite
+// writes one of only a marker comment for a Plugin without CSS, and the
+// shell links no empty stylesheet.
+func (h *Host) bundleStyleURL(plugin, base string) string {
+	b, err := fs.ReadFile(h.release, path.Join(plugin, bundleStyle))
+	if err != nil || cssEmpty(b) {
+		return ""
+	}
+	return base + bundleStyle
+}
+
+// cssEmpty reports whether css holds only whitespace and comments.
+func cssEmpty(css []byte) bool {
+	for {
+		css = bytes.TrimLeft(css, " \t\n\r\f")
+		if len(css) == 0 {
+			return true
+		}
+		rest, ok := bytes.CutPrefix(css, []byte("/*"))
+		if !ok {
+			return false
+		}
+		_, css, ok = bytes.Cut(rest, []byte("*/"))
+		if !ok {
+			return true // an unclosed comment runs to the end
+		}
+	}
+}
+
 // ReleasePlaceholder stands for the running Release in the shell's
 // index.html, so its static import map points at /vendor/<release>/.
 const ReleasePlaceholder = "__DDASH_RELEASE__"

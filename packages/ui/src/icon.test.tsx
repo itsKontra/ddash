@@ -1,6 +1,6 @@
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { Icon } from "./index";
+import { Icon, type IconName } from "./index";
 
 // The core's icons (core/icons), as GET /api/icons serves them.
 const served: Record<string, unknown> = {
@@ -16,22 +16,26 @@ const served: Record<string, unknown> = {
 let requests: string[];
 
 beforeEach(() => {
+  vi.useFakeTimers();
   requests = [];
   document.head.innerHTML = `<meta name="ddash-release" content="v1.2.3">`;
   vi.stubGlobal("fetch", async (url: string) => {
     requests.push(url);
     const names = new URL(url, "http://ddash").searchParams.get("names")!.split(",");
-    return Response.json(Object.fromEntries(names.map((n) => [n, served[n] ?? served.puzzle])));
+    const body = Object.fromEntries(names.map((n) => [n, served[n] ?? served.puzzle]));
+    return { ok: true, json: async () => body };
   });
 });
 
-afterEach(() => {
+afterEach(async () => {
+  await settle(500); // what a test left waiting goes out before the next one's requests
   cleanup();
   vi.unstubAllGlobals();
+  vi.useRealTimers();
 });
 
-/** Lets the batched request go out and its response arrive. */
-const settle = () => act(() => new Promise((r) => setTimeout(r, 0)));
+/** Lets ms pass: by default the quiet moment after which asked-for icons go out, and their response arrive. */
+const settle = (ms = 100) => act(() => vi.advanceTimersByTimeAsync(ms));
 
 const svg = () => document.querySelector("svg")!;
 
@@ -92,6 +96,32 @@ it("icons drawn in one render go out as one request, and each is fetched once pe
   await settle();
 
   expect(requests).toEqual(["/api/icons?names=a-arrow-down,a-arrow-up&release=v1.2.3"]);
+});
+
+it("icons asked for at about the same moment share one request, the shell's with a Widget's drawn just after", async () => {
+  render(<Icon name="layout-dashboard" />); // the shell's
+  await settle(60);
+  render(<Icon name="container" />); // a Widget's, its bundle just loaded
+  await settle(60);
+  expect(requests).toEqual([]);
+
+  await settle(40);
+
+  expect(requests).toEqual(["/api/icons?names=container,layout-dashboard&release=v1.2.3"]);
+});
+
+it("icons asked for one after another wait half a second at most", async () => {
+  const names = ["bell", "bike", "bird", "bold", "bomb", "bone", "book", "bot"] as IconName[];
+  for (const name of names) {
+    render(<Icon name={name} />);
+    await settle(80);
+  }
+  await settle();
+
+  expect(requests).toEqual([
+    "/api/icons?names=bell,bike,bird,bold,bomb,bone,book&release=v1.2.3", // asked for by 480 ms
+    "/api/icons?names=bot&release=v1.2.3",
+  ]);
 });
 
 it("a loading Icon reserves its box", () => {

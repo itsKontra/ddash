@@ -65,14 +65,25 @@ function Glyph({ name, size = "md", label }: Omit<IconProps, "tone">) {
 }
 
 /**
- * The page's icons: each fetched at most once, the names asked for in one
- * render batched into one GET /api/icons.
+ * How icons asked for at about the same moment share a request: one goes
+ * out once no new name was asked for in quiet ms, or max ms after the
+ * first name waiting. A page's Widgets, badges and Nav Entries each render
+ * at their own time, so the names of one render alone would make a request
+ * per Widget.
+ */
+const iconBatch = { quiet: 100, max: 500 } as const;
+
+/**
+ * The page's icons: each fetched at most once, the names asked for at
+ * about the same moment (iconBatch) batched into one GET /api/icons.
  */
 class IconCache {
   private nodes = new Map<string, IconNodes>();
   private requested = new Set<string>();
   private queued = new Set<string>();
   private listeners = new Map<string, Set<() => void>>();
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private firstQueued = 0;
 
   get(name: string): IconNodes | undefined {
     return this.nodes.get(name);
@@ -89,12 +100,17 @@ class IconCache {
   private request(name: string) {
     if (this.requested.has(name)) return;
     this.requested.add(name);
-    if (this.queued.size === 0) queueMicrotask(() => void this.flush());
+    const now = Date.now();
+    if (this.queued.size === 0) this.firstQueued = now;
     this.queued.add(name);
+    clearTimeout(this.timer);
+    const wait = Math.min(iconBatch.quiet, this.firstQueued + iconBatch.max - now);
+    this.timer = setTimeout(() => void this.flush(), Math.max(0, wait));
   }
 
   private async flush() {
-    const names = [...this.queued];
+    // Sorted, so the same names make the same URL, which the browser caches.
+    const names = [...this.queued].sort();
     this.queued.clear();
     try {
       const res = await globalThis.fetch(`/api/icons?names=${names.map(encodeURIComponent).join(",")}&release=${encodeURIComponent(release())}`);

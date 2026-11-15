@@ -532,7 +532,8 @@ export type InstalledPlugin = Message<"ddash.core.InstalledPlugin"> & {
   script: string;
 
   /**
-   * The bundle's stylesheet: /plugins/<name>/<release>/index.css.
+   * The bundle's stylesheet: /plugins/<name>/<release>/index.css. Empty
+   * when it holds no rule, e.g. Vite's marker for a Plugin without CSS.
    *
    * @generated from field: string style = 8;
    */
