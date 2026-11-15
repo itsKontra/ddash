@@ -24,6 +24,9 @@ func TestTheSmokeEnvExampleConfiguresEverySystem(t *testing.T) {
 			t.Errorf("%s: %v", EnvVar(s.def.Name()), err)
 		}
 	}
+	if agents, err := dockerAgents(env); err != nil || len(agents) == 0 {
+		t.Errorf("%s: %d Agents, %v", DockerAgentsVar, len(agents), err)
+	}
 	for _, v := range []string{"SCRUB_KEY", "SCRUB_SUBNETS", "SCRUB_DOMAINS", UnusedAddressVar, HostOverrideVar, ProxyHostVar} {
 		if env[v] == "" {
 			t.Errorf("smoke.env.example lacks %s", v)

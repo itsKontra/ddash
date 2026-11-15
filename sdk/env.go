@@ -19,6 +19,9 @@ type Env struct {
 	DB *sql.DB
 	// Log is the Component's logger.
 	Log *slog.Logger
+	// Release is the Release the Component runs as: InstanceOptions'
+	// Release, else the one built in.
+	Release string
 
 	host    grpc.ClientConnInterface
 	clients []any

@@ -34,6 +34,40 @@ which produces one artifact set:
    **Cut the Release only if it passes.** If it fails, fix the Component (and
    re-record its fixtures, one PR) first. `make smoke` never runs in CI.
 
+   Docker is read the way the lab reads it: each host with a socket-proxy
+   from `SMOKE_DOCKER_API`, each host with a Docker Agent from
+   `SMOKE_DOCKER_AGENT_API`, or both. With neither, it is skipped. Every
+   host must answer and run a container. For the Agents:
+
+   - An Agent accepts only the token of its one pairing, so the smoke run
+     borrows the deployed ddash's. It only reads, never pairs, and never
+     prints the token. Copy every paired Agent's name, URL, token and
+     certificate fingerprint from the deployed ddash's DB into `smoke.env`
+     in one step, so the token never shows on screen:
+
+     ```sh
+     ssh root@<ddash-ip> sqlite3 -readonly /opt/ddash/data/db/docker-agent-api.db >> smoke.env <<'SQL'
+     SELECT 'SMOKE_DOCKER_AGENT_API=''' || json_object('agents', json_group_array(json_object('name', name, 'url', url, 'token', token, 'fingerprint', fingerprint))) || ''''
+     FROM agent WHERE token != '';
+     SQL
+     ```
+
+     (`apt install sqlite3` on the LXC first, if it lacks it; a later line
+     in `smoke.env` replaces an earlier one.) The Docker
+     Page lists the same Agents with their fingerprints. Copy them again
+     after an Agent is added, removed or paired again: an old token fails
+     as `refuses ddash's token`, an old fingerprint as `certificate isn't
+     the one pinned`.
+   - The dev machine must reach each Agent's port 7443. The firewall lets
+     in only `<ddash-ip>` ([deployment](deployment.md#5-firewall)): add an
+     `IN ACCEPT` rule for the dev machine's address above the `REJECT`.
+   - The Agents run the deployed Release, not the one you're about to cut,
+     so the smoke run reads them as that Release (it prints `docker-agent-api
+     runs as …`). It checks what the Agents read from Docker, not this
+     build's Agent: that one runs after **Update Agent**.
+   - `make record` doesn't record the Agents: docker-api's fixtures come
+     from a socket-proxy host only.
+
    To re-record, fill in the `SCRUB_*` lines of `smoke.env` and a gitignored
    `scrub.map` (every other real name, `real = replacement` per line), then
    run `make record` (`SCENARIO=recorded` by default). It writes each answer,
