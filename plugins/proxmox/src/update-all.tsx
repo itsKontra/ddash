@@ -67,7 +67,7 @@ function UpdateAllDialog({ onClose }: { onClose: () => void }) {
   const go = async () => {
     if (!plan) return;
     // The Plan Dialog is the confirmation.
-    const res = await run.run({ workloads: plan.workloads.map((p) => p.workload!) });
+    const res = await run.run({ workloads: plan.workloads.flatMap((p) => (p.workload ? [p.workload] : [])) });
     if (res?.bulk) setStarted(res.bulk.id);
   };
 
