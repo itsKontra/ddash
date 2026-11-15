@@ -126,6 +126,16 @@ it("updates a Compose Project through its Plan, listing each image's current and
   expect(calls.find((c) => c.method === "RunAction")?.body).toMatchObject({ action: { update: { host: "apps", project: "media" } }, plan });
 });
 
+it("doesn't ask for the runs while a Compose Plan Dialog has no run to follow", async () => {
+  const calls = await showPlugin(plugin, docker, "/docker", { answers: { ...base, PlanAction: () => Response.json({ plan }) } });
+  fireEvent.click(screen.getByRole("button", { name: "Actions for media" }));
+  fireEvent.click(within(screen.getByRole("group", { name: "Actions for media" })).getByRole("button", { name: "Restart" }));
+  await settle();
+
+  expect(screen.getByRole("dialog", { name: "Restart media" })).toBeTruthy();
+  expect(calls.filter((c) => c.method === "ListRuns")).toEqual([]);
+});
+
 it("asks for the Protected override before stopping a Protected Compose Project", async () => {
   // The Plan says the override is needed in a field of its own; its wording is the Operator's to read, not the dialog's to parse.
   const blocked = { ...plan, protected: ["proxy-npm-1"], overrideNeeded: "ddash may stop proxy-npm-1 only with the override." };

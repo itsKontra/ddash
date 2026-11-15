@@ -1,6 +1,6 @@
 import { timestampDate, type Timestamp } from "@bufbuild/protobuf/wkt";
 import { ago } from "@ddash/display";
-import { useQuery } from "@ddash/plugin";
+import { useQuery, useSettled } from "@ddash/plugin";
 import { AdguardApiService, QueryMode, type Query } from "@ddash/proto/adguard-api/adguard_api_pb";
 import {
   Button,
@@ -226,21 +226,19 @@ function QueriesSheet({
   anonymized: boolean;
   onClose: () => void;
 }) {
-  const text = filter.q.trim();
+  // AdGuard scans up to 2,000 log lines per search: it is asked once typing stops.
+  const text = useSettled(filter.q.trim()).settled;
   // A text search or a type filter runs in ddash within the scan budget; mode alone runs in AdGuard.
   const searched = Boolean(text || filter.type);
   // A cursor goes stale as the log grows, so the scan isn't in the URL; a new filter starts from the newest.
   const of = JSON.stringify(filter);
   const [kept, setScan] = useState<Scan>({ of, olderThan: "", linesBefore: 0 });
   const from = kept.of === of ? kept : { of, olderThan: "", linesBefore: 0 };
-  const { data, error } = useQuery(AdguardApiService.method.listQueries, {
-    client: ip,
-    limit: SheetLimit,
-    mode: queryMode[filter.mode],
-    text,
-    type: filter.type,
-    olderThan: from.olderThan,
-  });
+  const { data, error } = useQuery(
+    AdguardApiService.method.listQueries,
+    { client: ip, limit: SheetLimit, mode: queryMode[filter.mode], text, type: filter.type, olderThan: from.olderThan },
+    { keepPrevious: true },
+  );
   const rows = data?.queries ?? [];
   const lines = from.linesBefore + (data?.linesRead ?? 0);
   const outOfBudget = searched && data !== undefined && rows.length < SheetLimit && data.oldest !== "";

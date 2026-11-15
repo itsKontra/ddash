@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient } from "@ddash/plugin";
-import { settle, tracked } from "@ddash/plugin/testing";
+import { settle, tracked, typed } from "@ddash/plugin/testing";
 import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -20,7 +20,7 @@ const entry = (target: string, method: string, more: Record<string, unknown> = {
 });
 
 // What ListAuditLog answers, by request; requests holds every request sent.
-type Answer = (request: Record<string, unknown>) => Record<string, unknown> | Response;
+type Answer = (request: Record<string, unknown>) => Record<string, unknown> | Response | Promise<Record<string, unknown>>;
 let requests: Record<string, unknown>[];
 
 // Where the router is, and a way to move it, as the browser's Back would.
@@ -45,7 +45,7 @@ async function boot(path: string, answer: Answer) {
       const body = init?.body;
       const request = JSON.parse(typeof body === "string" ? body : new TextDecoder().decode(body as Uint8Array));
       requests.push(request);
-      const answered = answer(request);
+      const answered = await answer(request);
       return answered instanceof Response ? answered : Response.json(answered);
     }
     return Response.json({ plugins: [] });
@@ -180,7 +180,7 @@ it("keeps the search, the filters and the sort in the URL, so they survive a rel
   fireEvent.change(screen.getByRole("combobox", { name: "Target" }), { target: { value: "greeter" } });
   await settle();
   fireEvent.change(screen.getByRole("searchbox", { name: "Search Actions" }), { target: { value: "alice" } });
-  await settle();
+  await typed();
   fireEvent.click(screen.getByRole("button", { name: /When/ }));
   await settle();
   expect(requests.at(-1)).toEqual({ target: "greeter", query: "alice", order: "oldest" });
@@ -251,13 +251,35 @@ it("searches on the server, a new search starting again from the first page", as
   expect(rows()).toHaveLength(2);
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search Actions" }), { target: { value: "relay act" } });
-  await settle();
+  await typed();
   expect(requests.at(-1)).toEqual({ actorKind: "operator", query: "relay act" });
   expect(rows().map((r) => r.textContent)).toEqual([expect.stringMatching(/relay/)]);
 
   fireEvent.change(screen.getByRole("searchbox", { name: "Search Actions" }), { target: { value: "zzz" } });
-  await settle();
+  await typed();
   expect(screen.getByText('No Actions match "zzz"')).toBeTruthy();
+});
+
+it("asks the core once for a typed word, and keeps the rows on screen until the answer is in", async () => {
+  let answerSearch: (found: Record<string, unknown>) => void = () => {};
+  await boot("/settings/audit-log", (req) =>
+    req.query ? new Promise<Record<string, unknown>>((resolve) => (answerSearch = resolve)) : { chains: [relayed, installed], targets: [] },
+  );
+  expect(rows()).toHaveLength(2);
+  const before = requests.length;
+
+  const search = screen.getByRole("searchbox", { name: "Search Actions" });
+  for (const text of ["r", "re", "rel", "rela", "relay"]) fireEvent.change(search, { target: { value: text } });
+  // Past the delay, with the answer still out: settle() would wait for it.
+  await act(() => new Promise((r) => setTimeout(r, 500)));
+
+  // One request, for the whole word, and the table still shows what it had.
+  expect(requests.slice(before)).toEqual([{ actorKind: "operator", query: "relay" }]);
+  expect(rows()).toHaveLength(2);
+
+  await act(async () => answerSearch({ chains: [relayed], targets: [] }));
+  await settle();
+  expect(rows()).toHaveLength(1);
 });
 
 it("loads older chains a page at a time", async () => {

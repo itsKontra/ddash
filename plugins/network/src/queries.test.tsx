@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, screen, within } from "@testing-library/react";
-import { settle, unavailable, type Answers } from "@ddash/plugin/testing";
+import { settle, typed, unavailable, type Answers } from "@ddash/plugin/testing";
 import { afterEach, expect, it } from "vitest";
 import { show as showNetwork, withAdguard } from "./testing";
 
@@ -130,6 +130,17 @@ it("says how far it reached once 50 match", async () => {
   expect(within(sheet()).getByText(/^The newest 50 matches, back to \d\d:\d\d:\d\d\. Search or filter to reach older ones\.$/)).toBeTruthy();
 });
 
+it("asks AdGuard once for a typed word, not once per character", async () => {
+  const calls = await show(`${page}?queries.open=1`, { ListQueries: () => Response.json({ queries: [] }) });
+  const before = sheetCalls(calls).length;
+
+  const search = within(sheet()).getByRole("searchbox", { name: "Search queries" });
+  for (const text of ["a", "ad", "ads"]) fireEvent.change(search, { target: { value: text } });
+  await typed();
+
+  expect(sheetCalls(calls).slice(before)).toEqual([{ client: "198.18.1.20", limit: 50, text: "ads" }]);
+});
+
 it("says when the scan budget ran out first, and searches 2,000 older from where it stopped", async () => {
   const windows: Record<string, unknown> = {
     "": { queries: [blockedQuery("ads1.example")], oldest: "c2000", linesRead: 2000, reached: "2026-10-20T08:15:00Z" },
@@ -140,7 +151,7 @@ it("says when the scan budget ran out first, and searches 2,000 older from where
   });
 
   fireEvent.change(within(sheet()).getByRole("searchbox", { name: "Search queries" }), { target: { value: "ads" } });
-  await settle();
+  await typed();
 
   expect(sheetCalls(calls).at(-1)).toEqual({ client: "198.18.1.20", limit: 50, text: "ads" });
   let notice = within(sheet()).getByText("1 of 50 found").closest<HTMLElement>("[role=status]")!;

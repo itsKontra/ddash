@@ -11,6 +11,7 @@ export {
   type WidgetSize,
 } from "./define";
 export { createQueryClient, isNotConfigured, refreshOf, Refresh, tiers, useQuery, type QueryClient, type QueryOptions } from "./query";
+export { settleDelay, useSettled } from "./settled";
 export { useTail, type Tail } from "./tail";
 export { InstalledPlugins, usePluginLink } from "./link";
 export {

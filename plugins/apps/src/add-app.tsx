@@ -1,7 +1,7 @@
-import { PlanSteps, usePluginLink, useQuery } from "@ddash/plugin";
+import { PlanSteps, settleDelay, usePluginLink, useQuery, useSettled } from "@ddash/plugin";
 import { AppsService, Reach, System, type ListAppsResponse, type Plan } from "@ddash/proto/apps/apps_pb";
 import { Button, Field, FormActions, Notice, Panel, Segmented, TextInput } from "@ddash/ui";
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { groupsOf } from "./apps";
 import { ComposeFields, composeSource, newCompose, type ComposeDraft } from "./compose-fields";
@@ -11,7 +11,8 @@ import { blocking, NameNotes, steps, useRunAction, type ActionInit } from "./pla
 import { newProxy, ProxyFields, resolve, useCertificates, type ProxyDraft } from "./proxy-fields";
 
 /** How long typing must pause before "ddash will" asks for the Plan again. */
-export const planDelay = 300;
+/** How long the form waits after the last keystroke before it asks for a Plan. */
+export const planDelay = settleDelay;
 
 const reaches = ["Reverse proxy", "Host Override", "Link only"] as const;
 type Way = (typeof reaches)[number];
@@ -50,18 +51,6 @@ function unreadable(list: ListAppsResponse): { disabled: Way[]; why: string[] } 
   if (npm) why.push(cantCheck("Nginx Proxy Manager"));
   if (pf) why.push(cantCheck("pfSense"));
   return { disabled, why };
-}
-
-/** value, once it stopped changing for planDelay; bigints compare as strings. */
-function useSettled<T>(value: T): { settled: T; current: boolean } {
-  const key = JSON.stringify(value, (_, v: unknown) => (typeof v === "bigint" ? v.toString() : v));
-  const [settled, setSettled] = useState({ key, value });
-  useEffect(() => {
-    if (key === settled.key) return;
-    const t = setTimeout(() => setSettled({ key, value }), planDelay);
-    return () => clearTimeout(t);
-  }, [key, settled.key, value]);
-  return { settled: settled.value, current: key === settled.key };
 }
 
 /** The upstream a Plan's Proxy Host step writes, e.g. "http://198.18.2.10:8010"; "" for none. */
