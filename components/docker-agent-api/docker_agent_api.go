@@ -28,6 +28,7 @@ import (
 	"github.com/itsKontra/ddash/agent/jobproto"
 	pb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/migrate"
 )
 
 //go:embed component.yaml
@@ -284,7 +285,7 @@ func (c *component) AddAgent(ctx context.Context, req *pb.AddAgentRequest) (*pb.
 	_, err := c.db.ExecContext(ctx, `INSERT INTO agent (name, url, roots, code, added) VALUES (?, ?, ?, ?, ?)`,
 		req.GetName(), strings.TrimRight(req.GetUrl(), "/"), strings.Join(req.GetRoots(), "\n"), code, time.Now().UTC().Format(time.RFC3339))
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if migrate.IsTaken(err) {
 			return nil, status.Errorf(codes.AlreadyExists, "a Docker Agent is already named %s", req.GetName())
 		}
 		return nil, err
