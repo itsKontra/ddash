@@ -122,17 +122,11 @@ func (c *component) CreateWireguardPeer(ctx context.Context, req *pfsenseapipb.C
 		if err := peerFree(all, req.GetTunnel(), req.GetPublicKey(), allowed); err != nil {
 			return err
 		}
-		ips := make([]map[string]any, 0, len(allowed))
+		ips := make([]wireguardAllowedIP, 0, len(allowed))
 		for _, p := range allowed {
-			ips = append(ips, map[string]any{"address": p.Addr().String(), "mask": p.Bits(), "descr": ""})
+			ips = append(ips, wireguardAllowedIP{Address: p.Addr().String(), Mask: p.Bits()})
 		}
-		body := map[string]any{
-			"enabled":    true,
-			"tun":        req.GetTunnel(),
-			"publickey":  req.GetPublicKey(),
-			"descr":      req.GetDescription(),
-			"allowedips": ips,
-		}
+		body := wireguardPeerCreate{Enabled: true, Tun: req.GetTunnel(), PublicKey: req.GetPublicKey(), Descr: req.GetDescription(), AllowedIPs: ips}
 		var created wireguardPeer
 		if err := c.api.send(ctx, http.MethodPost, wireguardPeerPath, body, &created); err != nil {
 			return err
@@ -163,7 +157,7 @@ func (c *component) applyWireguard(ctx context.Context) error {
 	var state struct {
 		Applied bool `json:"applied"`
 	}
-	return c.api.sendWithin(ctx, applyTimeout, http.MethodPost, wireguardApplyPath, map[string]any{"async": false}, &state)
+	return c.api.sendWithin(ctx, applyTimeout, http.MethodPost, wireguardApplyPath, applyBody{Async: false}, &state)
 }
 
 // checkPeer refuses a request naming no tunnel, a public key that isn't
