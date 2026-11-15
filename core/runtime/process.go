@@ -263,9 +263,11 @@ func (r *Runtime) pollHealth(ctx context.Context, name string) {
 	lc := componentpb.NewLifecycleServiceClient(proc.Conn())
 	r.mu.Unlock()
 
-	ctx, cancel := context.WithTimeout(ctx, callTimeout)
+	// Its own name, so ctx below still says "stopping", not "timed out":
+	// a Health that never answers is Down.
+	callCtx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	resp, err := lc.Health(ctx, &componentpb.HealthRequest{})
+	resp, err := lc.Health(callCtx, &componentpb.HealthRequest{})
 	if ctx.Err() != nil && err != nil {
 		return // stopping
 	}

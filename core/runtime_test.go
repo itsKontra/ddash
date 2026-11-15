@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -148,6 +149,36 @@ func TestHealthIsPolledRightAfterStartAndEveryThirtySeconds(t *testing.T) {
 		want := runtime.Status{State: runtime.Degraded, Message: "media unreachable", Configurable: true}
 		if got := h.Status("greeter"); polls != 2 || got != want {
 			t.Errorf("30 s later: %d polls, %v; want 2, %v", polls, got, want)
+		}
+	})
+}
+
+func TestAHealthThatNeverAnswersIsDown(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		var hang atomic.Bool
+		hooks := sample.Hooks{Health: func(ctx context.Context) sdk.Health {
+			if hang.Load() {
+				<-ctx.Done()
+			}
+			return sdk.Health{State: sdk.OK}
+		}}
+		h := coretest.New(t, coretest.Options{
+			Components: []sdk.Definition{greeter(hooks)},
+			Plugins:    []coretest.Plugin{hello},
+		})
+		h.SeedConfig("greeter", configured)
+		h.Install("hello")
+		synctest.Wait()
+		if got := h.Status("greeter").State; got != runtime.OK {
+			t.Fatalf("after Start: %s, want ok", got)
+		}
+
+		hang.Store(true)
+		time.Sleep(runtime.HealthInterval + 15*time.Second) // past the Health call's own timeout
+		synctest.Wait()
+
+		if got := h.Status("greeter").State; got != runtime.Down {
+			t.Errorf("after a Health that never answered: %s, want down", got)
 		}
 	})
 }
