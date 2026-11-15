@@ -373,3 +373,45 @@ func TestUpdate(t *testing.T) {
 		t.Fatalf("recreated with %v", last)
 	}
 }
+
+// The Agent offers named operations only (ADR-0005): its own update runs
+// the Docker Agent's image and no other, since the helper container gets
+// the Docker socket.
+func TestUpdateSelfRunsOnlyTheDockerAgentsImage(t *testing.T) {
+	ctx := context.Background()
+	cl, _, _, c := setup(t)
+
+	for _, image := range []string{
+		"alpine:3",
+		"evil.example/itskontra/ddash-docker-agent:v1.2.3",
+		"--privileged",
+		"ghcr.io/itskontra/ddash-docker-agent:v1.2.3 alpine",
+	} {
+		var ref agent.JobRef
+		err := cl.Post(ctx, agent.PathUpdate, agent.UpdateRequest{Release: "v1.2.3", Image: image}, &ref)
+		var refused *agent.APIError
+		if !errors.As(err, &refused) || refused.Code != agent.CodeInvalid {
+			t.Errorf("image %q: %v, want %s", image, err, agent.CodeInvalid)
+		}
+	}
+	if len(c.calls) != 0 {
+		t.Errorf("ran %v", c.calls)
+	}
+}
+
+func TestAComposeOperationStaysInTheRoots(t *testing.T) {
+	ctx := context.Background()
+	cl, root, _, c := setup(t)
+	req := agent.ComposeRequest{Op: agent.Up, Project: "media", WorkingDir: "/etc", File: filepath.Join(root, "media/compose.yaml")}
+
+	var ref agent.JobRef
+	err := cl.Post(ctx, agent.PathCompose, req, &ref)
+
+	var refused *agent.APIError
+	if !errors.As(err, &refused) || refused.Code != agent.CodeOutOfRoots {
+		t.Errorf("working dir /etc: %v, want %s", err, agent.CodeOutOfRoots)
+	}
+	if len(c.calls) != 0 {
+		t.Errorf("ran %v", c.calls)
+	}
+}
