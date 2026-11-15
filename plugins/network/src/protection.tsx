@@ -10,9 +10,10 @@ export const pauseLabel = (minutes: number) => (minutes % 60 ? `${minutes} min` 
 
 /**
  * AdGuard's protection switch: on, flipping it pauses protection for ten
- * minutes, and with durations the pauses sit beside it; paused or off,
- * flipping it or Resume turns protection back on. Both apply at once, no
- * confirm, audited. AdGuard ends a pause by itself; the time left is in
+ * minutes; paused or off, flipping it turns protection back on. With
+ * durations the pauses sit beside it while on, and Resume (or Turn on)
+ * while not; without, it is the switch alone, for a row of a small
+ * Widget. Each applies at once, no confirm, audited. AdGuard ends a pause by itself; the time left is in
  * the status (protection's label). Nothing while AdGuard isn't running.
  */
 export function ProtectionSwitch({ status, durations = true }: { status: GetStatusResponse; durations?: boolean }) {
@@ -24,7 +25,7 @@ export function ProtectionSwitch({ status, durations = true }: { status: GetStat
   const pauseFor = (minutes: number) => void pause.run({ duration: { seconds: BigInt(minutes * 60) } });
   const error = pause.error ?? resume.error;
   return (
-    <div className="flex flex-col items-end gap-2">
+    <div className="flex flex-col items-end gap-2 whitespace-normal">
       <span className="inline-flex items-center gap-1.5">
         {durations &&
           on &&
@@ -33,7 +34,7 @@ export function ProtectionSwitch({ status, durations = true }: { status: GetStat
               {pauseLabel(m)}
             </Button>
           ))}
-        {!on && (
+        {durations && !on && (
           <Button variant="outline" size="sm" disabled={busy} onClick={() => void resume.run({})}>
             {status.protectionPausedFor ? "Resume" : "Turn on"}
           </Button>
