@@ -89,9 +89,11 @@ type Firewall struct {
 	peers, tunnels     []map[string]any
 	wireguardPending   bool
 	failWireGuardApply bool
-	log                []string
-	writing            int
-	maxW               int
+	// failFirewallApply fails the next POST firewall/apply.
+	failFirewallApply bool
+	log               []string
+	writing           int
+	maxW              int
 }
 
 // New serves the scenario in dir: its services/dhcp_servers.json and
@@ -171,6 +173,14 @@ func (f *Firewall) Aliases() []Alias {
 		out = append(out, Alias{Name: text(a["name"]), Addresses: texts(a["address"]), Details: texts(a["detail"])})
 	}
 	return out
+}
+
+// FailFirewallApply makes the next POST firewall/apply fail with a 500
+// and apply nothing. An alias write's own "apply": true is not one.
+func (f *Firewall) FailFirewallApply() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.failFirewallApply = true
 }
 
 // FirewallPending reports whether alias changes wait for an apply.
@@ -269,6 +279,14 @@ func (f *Firewall) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		f.mu.Unlock()
 		reply(w, http.StatusOK, "SUCCESS", "", map[string]any{"applied": applied, "pending_subsystems": subsystems})
 	case "POST " + firewallApplyPath:
+		f.mu.Lock()
+		fail := f.failFirewallApply
+		f.failFirewallApply = false
+		f.mu.Unlock()
+		if fail {
+			reply(w, http.StatusInternalServerError, "PFSENSEFAKE_INJECTED", "pfsensefake failed this apply as told.", nil)
+			return
+		}
 		apply := func() {
 			f.mu.Lock()
 			f.applyFirewall()
