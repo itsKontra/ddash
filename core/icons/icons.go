@@ -1,7 +1,7 @@
 // Package icons is ddash's icon source: lucide's icons, pinned per Release,
 // as the element lists lucide-static ships; and the names of the
 // homarr-labs/dashboard-icons logos an App may use, pinned to a commit per
-// Release, whose images the browser loads from jsDelivr at that commit.
+// Release, whose logos the core downloads once each and serves (AppIcons).
 package icons
 
 import (

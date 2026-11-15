@@ -3,10 +3,12 @@ package core
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/fs"
 	"mime"
 	"net/http"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -114,6 +116,46 @@ const appIconSearchPath = iconsPath + "/apps/search"
 // q matches by name or alias, best first (icons.AppSearch).
 func (h *Host) appIconSearch(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, icons.AppSearch(r.URL.Query().Get("q")), cacheNone)
+}
+
+// appIconPath serves the dashboard-icons logos: GET appIconPath<name>?v=<commit>.
+const appIconPath = iconsPath + "/apps/logo/"
+
+// appIcon serves GET /api/icons/apps/logo/{name}: the dashboard-icons logo
+// of that name, downloaded once and kept (icons.AppIcons), so the browser
+// asks no CDN. The URL carries the pinned commit, so a logo is immutable.
+// Behind sign-in, since asking can make the core download.
+func (h *Host) appIcon(w http.ResponseWriter, r *http.Request) {
+	cache := cacheNone
+	if r.URL.Query().Get("v") == icons.DashboardIconsCommit {
+		cache = cacheImmutable
+	}
+	icon, err := h.appIcons.Get(r.Context(), r.PathValue("name"))
+	switch {
+	case errors.Is(err, icons.ErrNoAppIcon):
+		// As lasting as a logo: the pinned commit will never have it.
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.Header().Set("Cache-Control", cache)
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("no such App icon\n"))
+		return
+	case err != nil:
+		h.log.Warn("App icon", "name", r.PathValue("name"), "err", err)
+		http.Error(w, "the App icon can't be downloaded right now", http.StatusBadGateway)
+		return
+	}
+	b, err := os.ReadFile(icon.Path)
+	if err != nil {
+		http.Error(w, "the App icon can't be read", http.StatusInternalServerError)
+		return
+	}
+	// A logo is someone else's file served from ddash's origin: opened as
+	// a page, an SVG may run nothing and load nothing.
+	w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("Content-Type", icon.ContentType)
+	w.Header().Set("Cache-Control", cache)
+	w.Write(b)
 }
 
 // writeJSON writes v as a JSON response with the given Cache-Control.

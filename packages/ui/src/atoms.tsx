@@ -136,12 +136,13 @@ export function Skeleton({ lines, height }: { lines?: number; height?: keyof typ
 }
 
 /**
- * Where an icon of homarr-labs/dashboard-icons is served, by its name: as
- * SVG, or as PNG for the icons upstream has no SVG of. At the commit the
- * core's App icon search knows, so what it finds is what's drawn.
+ * Where the core serves an icon of homarr-labs/dashboard-icons, by its
+ * name: as SVG, or as PNG for the icons upstream has no SVG of. The core
+ * downloads each logo once and keeps it, so the browser asks no CDN. The
+ * URL carries the commit the core's App icon search knows, so what it
+ * finds is what's drawn, immutably.
  */
-export const dashboardIcon = (name: string, format: "svg" | "png" = "svg") =>
-  `https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons@${dashboardIconsCommit}/${format}/${name}.${format}`;
+export const dashboardIcon = (name: string) => `/api/icons/apps/logo/${encodeURIComponent(name)}?v=${dashboardIconsCommit}`;
 
 /** A dashboard-icons name read off an App's name: "Home Assistant" → "home-assistant". */
 export const iconName = (name: string) =>
@@ -153,13 +154,13 @@ export const iconName = (name: string) =>
 
 /**
  * An App's icon: the dashboard-icons icon named icon (else matched by the
- * App's name), as SVG else PNG, falling back to the favicon of its url,
- * then to the name's first letter.
+ * App's name), falling back to the favicon of its url, then to the name's
+ * first letter.
  */
 export function AppIcon({ name, icon, url, size = 36 }: { name: string; icon?: string; url?: string; size?: number }) {
   const sources: string[] = [];
   const slug = icon || iconName(name);
-  if (slug) sources.push(dashboardIcon(slug), dashboardIcon(slug, "png"));
+  if (slug) sources.push(dashboardIcon(slug));
   try {
     if (url) sources.push(new URL("/favicon.ico", url).href);
   } catch {

@@ -5,12 +5,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"slices"
+	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/itsKontra/ddash/core/auth/oidctest"
 	"github.com/itsKontra/ddash/core/coretest"
+	"github.com/itsKontra/ddash/core/icons"
 )
 
 // iconNodes decodes a GET /api/icons response.
@@ -206,5 +209,76 @@ func TestAppIconSearchNeedsNoSignIn(t *testing.T) {
 
 	if got := appIconSearch(t, h, "jellyfin"); len(got) == 0 || got[0] != "jellyfin" {
 		t.Errorf("got %v, want jellyfin first", got)
+	}
+}
+
+// logos is a fake dashboard-icons CDN holding jellyfin's SVG, counting
+// what it is asked.
+func logos(t *testing.T) (url string, asked *atomic.Int32) {
+	asked = &atomic.Int32{}
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked.Add(1)
+		if r.URL.Path != "/svg/jellyfin.svg" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Write([]byte("<svg/>"))
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL, asked
+}
+
+func TestTheCoreServesAnAppIconsLogoItDownloadedOnce(t *testing.T) {
+	url, asked := logos(t)
+	h := coretest.New(t, coretest.Options{Release: "v1.2.3", AppIconsURL: url})
+	path := "/api/icons/apps/logo/jellyfin?v=" + icons.DashboardIconsCommit
+
+	for range 2 {
+		res := h.Get(path)
+		if res.Code != http.StatusOK || res.Body.String() != "<svg/>" {
+			t.Fatalf("status %d: %s", res.Code, res.Body)
+		}
+		if got := res.Header().Get("Content-Type"); got != "image/svg+xml" {
+			t.Errorf("Content-Type %q", got)
+		}
+		if got := res.Header().Get("Cache-Control"); got != immutable {
+			t.Errorf("Cache-Control %q, want %q", got, immutable)
+		}
+		// Someone else's SVG, from ddash's origin: it may run nothing.
+		if got := res.Header().Get("Content-Security-Policy"); !strings.Contains(got, "sandbox") || !strings.Contains(got, "default-src 'none'") {
+			t.Errorf("Content-Security-Policy %q", got)
+		}
+	}
+	if got := asked.Load(); got != 1 {
+		t.Errorf("asked upstream %d times, want once", got)
+	}
+}
+
+func TestAnAppIconDashboardIconsLacksIsNotFoundWithoutAskingUpstream(t *testing.T) {
+	url, asked := logos(t)
+	h := coretest.New(t, coretest.Options{Release: "v1.2.3", AppIconsURL: url})
+
+	res := h.Get("/api/icons/apps/logo/no-such-app-icon?v=" + icons.DashboardIconsCommit)
+
+	if res.Code != http.StatusNotFound {
+		t.Errorf("status %d, want 404", res.Code)
+	}
+	if got := res.Header().Get("Cache-Control"); got != immutable {
+		t.Errorf("Cache-Control %q, want %q: the pinned commit never gains it", got, immutable)
+	}
+	if asked.Load() != 0 {
+		t.Error("asked upstream")
+	}
+}
+
+func TestAnAppIconsLogoNeedsSignIn(t *testing.T) {
+	url, asked := logos(t)
+	h := coretest.New(t, coretest.Options{Keycloak: oidctest.New(t), Release: "v1.2.3", AppIconsURL: url})
+
+	if res := h.Get("/api/icons/apps/logo/jellyfin"); res.Code == http.StatusOK {
+		t.Errorf("status %d without a session", res.Code)
+	}
+	if asked.Load() != 0 {
+		t.Error("a request without a session made the core download")
 	}
 }
