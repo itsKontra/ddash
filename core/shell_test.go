@@ -1,13 +1,18 @@
 package core_test
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/itsKontra/ddash/core/auth/oidctest"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
 	"github.com/itsKontra/ddash/sdk"
@@ -231,12 +236,80 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 			"X-Content-Type-Options":    "nosniff",
 			"X-Frame-Options":           "DENY",
 			"Referrer-Policy":           "same-origin",
-			"Content-Security-Policy":   "frame-ancestors 'none'",
 			"Strict-Transport-Security": "max-age=31536000",
 		} {
 			if got := res.Header().Get(name); got != want {
 				t.Errorf("GET %s: %s = %q, want %q", path, name, got, want)
 			}
 		}
+		if got := policy(res)["frame-ancestors"]; got != "'none'" {
+			t.Errorf("GET %s: frame-ancestors %q, want 'none'", path, got)
+		}
+	}
+}
+
+// policy is res's Content-Security-Policy, by directive.
+func policy(res *httptest.ResponseRecorder) map[string]string {
+	directives := map[string]string{}
+	for d := range strings.SplitSeq(res.Header().Get("Content-Security-Policy"), ";") {
+		name, value, _ := strings.Cut(strings.TrimSpace(d), " ")
+		directives[name] = value
+	}
+	return directives
+}
+
+// hashSource is the CSP source that allows the inline script script.
+func hashSource(script string) string {
+	sum := sha256.Sum256([]byte(script))
+	return "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
+}
+
+// An injected script would run with the Operator's session: the shell's
+// page loads only ddash's own files, and runs no inline script but its
+// import map.
+func TestTheShellsPolicyAllowsItsOwnFilesAndOfInlineScriptsOnlyTheImportMap(t *testing.T) {
+	importMap := `{"imports":{"react":"/vendor/v1.2.3/react.js"}}`
+	injected := `fetch("/api/ddash.core.CoreService/Uninstall")`
+	h := coretest.New(t, coretest.Options{
+		Release: "v1.2.3",
+		Shell: fstest.MapFS{"index.html": {Data: []byte(`<script type="importmap">{"imports":{"react":"/vendor/__DDASH_RELEASE__/react.js"}}</script>` +
+			`<script>` + injected + `</script>`)}},
+	})
+
+	for _, path := range []string{"/", "/docker/hosts/media"} {
+		got := policy(h.Get(path))
+
+		want := map[string]string{
+			"default-src":     "'none'",
+			"script-src":      "'self' " + hashSource(importMap),
+			"style-src":       "'self'",
+			"img-src":         "'self' http: https:", // each App's favicon
+			"connect-src":     "'self'",
+			"form-action":     "'self'",
+			"base-uri":        "'none'",
+			"frame-ancestors": "'none'",
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("GET %s: Content-Security-Policy (-want +got):\n%s", path, diff)
+		}
+		if strings.Contains(got["script-src"], hashSource(injected)) {
+			t.Errorf("GET %s: script-src %q allows the injected script", path, got["script-src"])
+		}
+	}
+}
+
+// Sign out posts a form that redirects to Keycloak's end-session endpoint,
+// and the browser holds that redirect to form-action.
+func TestTheShellsPolicyLetsSignOutGoOnToKeycloak(t *testing.T) {
+	h := coretest.New(t, coretest.Options{Shell: builtShell, Keycloak: oidctest.New(t)})
+	h.SignIn()
+
+	res := h.Get("/")
+
+	if res.Code != http.StatusOK {
+		t.Fatalf("GET /: %d", res.Code)
+	}
+	if got, want := policy(res)["form-action"], "'self' https://keycloak.home.example"; got != want {
+		t.Errorf("form-action %q, want %q", got, want)
 	}
 }

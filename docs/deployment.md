@@ -61,6 +61,9 @@ Do these by hand, in order, before first use.
       Check with
       `curl -sI -H 'Accept-Encoding: gzip' https://ddash.<domain>/assets/<file>.js`
       (signed in): it answers `content-encoding: gzip`.
+- [ ] The Proxy Host leaves ddash's pages as they are: the shell's
+      Content-Security-Policy refuses any script the proxy injects, and a
+      second policy the proxy adds only narrows ddash's.
 
 ### 4. Keycloak
 

@@ -5,6 +5,14 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- The shell's page now carries a full Content-Security-Policy: it runs
+  scripts and loads styles only from ddash itself, connects only to
+  ddash, and shows images from ddash or any http(s) site (Apps'
+  favicons); Sign out may go on to Keycloak's origin. Nothing to do,
+  unless your reverse proxy injects scripts or styles into ddash's pages
+  (analytics, a CDN's script rewriting) or sets a Content-Security-Policy
+  of its own: the browser now refuses the injected ones, and a second
+  policy only narrows ddash's ([deployment](deployment.md#3-the-name-and-the-proxy)).
 - Nothing to do: the registry credentials and the Anthropic API key that
   `v0.0.3-rc.2` left in compose's and ai-helper's stored config are removed
   from the core DB when each Component next starts. From now on a config
