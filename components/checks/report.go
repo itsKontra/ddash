@@ -40,8 +40,7 @@ func (c *component) ReportState(ctx context.Context, req *checkspb.ReportStateRe
 		return nil, status.Error(codes.InvalidArgument, problem)
 	}
 	item := reportItem(strings.TrimSpace(req.GetItem()))
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	r := &reported{name: strings.TrimSpace(req.GetName()), state: req.GetState(), since: now(), reason: req.GetReason(), path: req.GetPath()}
 	last := c.reported[item]
 	if last != nil && last.state == r.state {

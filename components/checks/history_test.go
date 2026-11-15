@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	ddashpb "github.com/itsKontra/ddash/proto/ddash"
@@ -295,6 +296,64 @@ func TestADailySweepKeepsBeatsForADayAndStateChangesForAYear(t *testing.T) {
 			t.Errorf("after 367 days, %d check_event rows, want none", n)
 		}
 	})
+}
+
+func TestListBeatsReturnsOnlyTheBeatsFromSinceOn(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := newLab()
+		l.set("nas:22", "up")
+		_, c := startIn(t, l)
+		id := create(t, c, tcp("nas:22")).GetId()
+		synctest.Wait()
+		for range 4 {
+			next(t, c, id)
+		}
+		all := beats(t, c, id)
+		if len(all) != 5 {
+			t.Fatalf("%d beats, want 5", len(all))
+		}
+
+		since := all[2].at
+		got := beatsSince(t, c, id, timestamppb.New(since))
+		if !slices.Equal(got, all[2:]) {
+			t.Errorf("beats since the 3rd %v, want the last 3 %v", got, all[2:])
+		}
+		if got := beatsSince(t, c, id, timestamppb.New(since.Add(time.Millisecond))); !slices.Equal(got, all[3:]) {
+			t.Errorf("beats since just after the 3rd %v, want the last 2 %v", got, all[3:])
+		}
+		if got := beatsSince(t, c, id, timestamppb.New(time.Now().Add(time.Minute))); len(got) != 0 {
+			t.Errorf("beats since a minute from now %v, want none", got)
+		}
+	})
+}
+
+func TestListBeatsReturnsTheLast24HoursUnlessAskedForMore(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		l := newLab()
+		l.set("nas:22", "up")
+		_, c := startIn(t, l)
+		id := create(t, c, tcp("nas:22")).GetId() // pending → up: a change
+		synctest.Wait()
+		next(t, c, id) // up again
+		setDisabled(t, c, id, true)
+		after(3 * day)
+		setDisabled(t, c, id, false) // resumes up: no change
+		synctest.Wait()
+
+		if got := states(beatsSince(t, c, id, nil)); !slices.Equal(got, []string{"up"}) {
+			t.Errorf("beats by default %v, want only the one of the last 24 h", got)
+		}
+		if got := states(beats(t, c, id)); !slices.Equal(got, []string{"up", "up"}) {
+			t.Errorf("beats of the last 365 d %v, want the state change 3 days ago too", got)
+		}
+	})
+}
+
+func setDisabled(t *testing.T, c checkspb.ChecksServiceClient, id int64, disabled bool) {
+	t.Helper()
+	if _, err := c.SetDisabled(t.Context(), &checkspb.SetDisabledRequest{Id: id, Disabled: disabled}); err != nil {
+		t.Fatalf("SetDisabled: %v", err)
+	}
 }
 
 func TestADailySweepDropsMinuteBucketsAfterADayHourBucketsAfter30DaysAndDayBucketsAfterAYear(t *testing.T) {

@@ -16,6 +16,7 @@ import (
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
@@ -145,11 +146,18 @@ type beat struct {
 	state string
 }
 
-// beats reads Check id's kept beats through ListBeats, oldest first. A
-// deleted Check has none.
+// beats reads every beat Check id keeps through ListBeats, oldest first.
+// A deleted Check has none.
 func beats(t *testing.T, c checkspb.ChecksServiceClient, id int64) []beat {
 	t.Helper()
-	resp, err := c.ListBeats(t.Context(), &checkspb.ListBeatsRequest{Id: id})
+	return beatsSince(t, c, id, timestamppb.New(time.Now().Add(-checks.ChangesKept)))
+}
+
+// beatsSince reads Check id's kept beats from since on (the default when
+// nil) through ListBeats, oldest first. A deleted Check has none.
+func beatsSince(t *testing.T, c checkspb.ChecksServiceClient, id int64, since *timestamppb.Timestamp) []beat {
+	t.Helper()
+	resp, err := c.ListBeats(t.Context(), &checkspb.ListBeatsRequest{Id: id, Since: since})
 	if status.Code(err) == codes.NotFound {
 		return nil
 	}

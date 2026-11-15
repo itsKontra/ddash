@@ -53,9 +53,10 @@ service ChecksService {
   rpc GetHistory(GetHistoryRequest) returns (GetHistoryResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
-  // ListBeats returns the beats a Check keeps: every beat of about the last
-  // 24 h and its state changes of the last 365 d (a daily sweep drops the
-  // rest), oldest first.
+  // ListBeats returns a Check's beats from a time on, oldest first: every
+  // beat of about the last 24 h and, before that, only its state changes,
+  // kept for 365 d (a daily sweep drops the rest). It returns the last 24 h
+  // unless asked for more or less.
   rpc ListBeats(ListBeatsRequest) returns (ListBeatsResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
@@ -323,6 +324,9 @@ message GetHistoryResponse {
 
 message ListBeatsRequest {
   int64 id = 1;
+  // The earliest beat returned; unset is 24 h ago. An earlier time adds the
+  // state changes kept since then.
+  google.protobuf.Timestamp since = 2;
 }
 
 message ListBeatsResponse {
