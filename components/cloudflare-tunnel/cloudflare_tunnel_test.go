@@ -1,6 +1,7 @@
 package cloudflaretunnel_test
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -8,6 +9,9 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
+
+	"google.golang.org/grpc"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
@@ -451,5 +455,62 @@ func TestARunStopsAtTheFailedStepNamingIt(t *testing.T) {
 	}
 	if got := rules(l); len(got) != 5 {
 		t.Errorf("ingress %v, want the rule kept: nothing is rolled back", got)
+	}
+}
+
+// slowRecords is cloudflare-api answering each zone's DNS records late.
+type slowRecords struct {
+	cfpb.CloudflareApiServiceClient
+	delay time.Duration
+}
+
+func (s slowRecords) ListDnsRecords(ctx context.Context, req *cfpb.ListDnsRecordsRequest, opts ...grpc.CallOption) (*cfpb.ListDnsRecordsResponse, error) {
+	time.Sleep(s.delay)
+	if req.GetZoneId() == secondZone {
+		return &cfpb.ListDnsRecordsResponse{}, nil
+	}
+	return s.CloudflareApiServiceClient.ListDnsRecords(ctx, req, opts...)
+}
+
+// secondZone is a zone the account has besides the fixtures' one.
+const secondZone = "0000000000000000000000000000002b"
+
+func (s slowRecords) ListZones(ctx context.Context, req *cfpb.ListZonesRequest, opts ...grpc.CallOption) (*cfpb.ListZonesResponse, error) {
+	resp, err := s.CloudflareApiServiceClient.ListZones(ctx, req, opts...)
+	if err == nil {
+		resp.Zones = append(resp.Zones, &cfpb.Zone{Id: secondZone, Name: "lab.example"})
+	}
+	return resp, err
+}
+
+// Each zone's DNS records are a read of their own: with two zones a cold
+// read takes one read's time, not two.
+func TestTheZonesDNSRecordsAreReadTogether(t *testing.T) {
+	fake, err := cloudflarefake.New("../cloudflare-api/testdata/baseline", cloudflarefake.Options{Miss: func(r string, err error) { t.Errorf("unanswered %s: %v", r, err) }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	srv := httptest.NewServer(fake)
+	t.Cleanup(srv.Close)
+	url := srv.URL
+	api := sdktest.New(t, cloudflareapi.Definition())
+	api.MustStart(&cfpb.CloudflareApiConfig{AccountId: cloudflarefake.AccountID, TunnelId: cloudflarefake.TunnelID, ApiToken: cloudflarefake.DefaultToken, ApiUrl: &url})
+	const delay = 400 * time.Millisecond
+	h := sdktest.New(t, cloudflaretunnel.Definition(),
+		sdktest.WithClient[cfpb.CloudflareApiServiceClient](slowRecords{cfpb.NewCloudflareApiServiceClient(api.Conn), delay}))
+	h.MustStart(&pb.CloudflareTunnelConfig{})
+	c := pb.NewCloudflareTunnelServiceClient(h.Conn)
+
+	begin := time.Now()
+	got, err := c.ListPublicHostnames(t.Context(), &pb.ListPublicHostnamesRequest{})
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.GetZones()) < 2 {
+		t.Fatalf("zones %v: the test needs two", got.GetZones())
+	}
+	if took := time.Since(begin); took < delay || took > 2*delay-50*time.Millisecond {
+		t.Errorf("ListPublicHostnames took %v with %d zones' records taking %v each, want about one read's time", took, len(got.GetZones()), delay)
 	}
 }

@@ -9,7 +9,10 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -118,21 +121,25 @@ type lab struct {
 }
 
 func (c *component) readLab(ctx context.Context) (*lab, error) {
-	list, err := c.api.ListWorkloads(ctx, &proxmoxapipb.ListWorkloadsRequest{})
-	if err != nil {
-		return nil, err
-	}
-	perms, err := c.api.ListPermissions(ctx, &proxmoxapipb.ListPermissionsRequest{})
-	if err != nil {
-		return nil, err
-	}
-	agents, err := c.agents.ListAgents(ctx, &hostagentapipb.ListAgentsRequest{})
-	if err != nil {
-		return nil, err
-	}
-	pkgs, err := c.agents.ListPackages(ctx, &hostagentapipb.ListPackagesRequest{})
-	if err != nil {
-		return nil, err
+	// Four independent reads of two other Components, made together; the
+	// first that fails, in this order, is the error.
+	var (
+		list   *proxmoxapipb.ListWorkloadsResponse
+		perms  *proxmoxapipb.ListPermissionsResponse
+		agents *hostagentapipb.ListAgentsResponse
+		pkgs   *hostagentapipb.ListPackagesResponse
+		errs   [4]error
+		reads  sync.WaitGroup
+	)
+	reads.Go(func() { list, errs[0] = c.api.ListWorkloads(ctx, &proxmoxapipb.ListWorkloadsRequest{}) })
+	reads.Go(func() { perms, errs[1] = c.api.ListPermissions(ctx, &proxmoxapipb.ListPermissionsRequest{}) })
+	reads.Go(func() { agents, errs[2] = c.agents.ListAgents(ctx, &hostagentapipb.ListAgentsRequest{}) })
+	reads.Go(func() { pkgs, errs[3] = c.agents.ListPackages(ctx, &hostagentapipb.ListPackagesRequest{}) })
+	reads.Wait()
+	for _, err := range errs {
+		if err != nil {
+			return nil, err
+		}
 	}
 	settings, err := c.settings(ctx)
 	if err != nil {
@@ -243,6 +250,10 @@ func (c *component) PlanUpdate(ctx context.Context, req *proxmoxpb.PlanUpdateReq
 	return &proxmoxpb.PlanUpdateResponse{Plan: c.plan(ctx, l, w)}, nil
 }
 
+// planReaders is how many Workloads' Plans are read at once, as
+// proxmox-api reads addresses.
+const planReaders = 4
+
 // planAll is "Update all running"'s Plan: every Workload that isn't a
 // template, in VMID order, as updated or skipped with why.
 func (c *component) planAll(ctx context.Context) (*proxmoxpb.PlanUpdateAllResponse, error) {
@@ -250,8 +261,27 @@ func (c *component) planAll(ctx context.Context) (*proxmoxpb.PlanUpdateAllRespon
 	if err != nil {
 		return nil, err
 	}
+	// A Plan reads its Workload's snapshots from Proxmox: those of the
+	// Workloads that get one are read planReaders at a time.
+	planned := func(w workload) bool {
+		r, _ := c.skip(l, w)
+		return !w.GetTemplate() && r == proxmoxpb.SkipReason_SKIP_REASON_UNSPECIFIED && !l.protected[w.GetVmid()]
+	}
+	plans := make([]*proxmoxpb.UpdatePlan, len(l.workloads))
+	var readers errgroup.Group
+	readers.SetLimit(planReaders)
+	for i, w := range l.workloads {
+		if planned(w) {
+			readers.Go(func() error {
+				plans[i] = c.plan(ctx, l, w)
+				return nil
+			})
+		}
+	}
+	_ = readers.Wait()
+
 	out := &proxmoxpb.PlanUpdateAllResponse{}
-	for _, w := range l.workloads {
+	for i, w := range l.workloads {
 		if w.GetTemplate() {
 			continue
 		}
@@ -266,7 +296,7 @@ func (c *component) planAll(ctx context.Context) (*proxmoxpb.PlanUpdateAllRespon
 			skipped(proxmoxpb.SkipReason_SKIP_REASON_PROTECTED, "ddash holds no "+PowerMgmt+" on it: update it on its own Page")
 			continue
 		}
-		p := c.plan(ctx, l, w)
+		p := plans[i]
 		switch {
 		case p.GetBlocked() != "":
 			skipped(proxmoxpb.SkipReason_SKIP_REASON_AGENT_NOT_READY, p.GetBlocked())

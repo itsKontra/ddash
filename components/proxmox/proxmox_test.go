@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -41,7 +42,13 @@ type lab struct {
 	snaps        map[uint32][]*proxmoxapipb.Snapshot
 	noSnap       map[uint32]bool
 	failSnapshot string
+	// slow is how long each read of proxmox-api and host-agent-api takes
+	// to answer.
+	slow atomic.Int64
 }
+
+// wait holds a read for l.slow.
+func (l *lab) wait() { time.Sleep(time.Duration(l.slow.Load())) }
 
 func newLab() *lab {
 	return &lab{
@@ -99,6 +106,7 @@ type proxmoxAPI struct {
 }
 
 func (p proxmoxAPI) ListWorkloads(context.Context, *proxmoxapipb.ListWorkloadsRequest, ...grpc.CallOption) (*proxmoxapipb.ListWorkloadsResponse, error) {
+	p.l.wait()
 	p.l.mu.Lock()
 	defer p.l.mu.Unlock()
 	out := &proxmoxapipb.ListWorkloadsResponse{}
@@ -113,6 +121,7 @@ func (p proxmoxAPI) ListWorkloads(context.Context, *proxmoxapipb.ListWorkloadsRe
 var names = map[uint32]string{101: "nginx", 102: "media-stack", 103: "ddash-smoke", 110: "home-assistant"}
 
 func (p proxmoxAPI) ListPermissions(context.Context, *proxmoxapipb.ListPermissionsRequest, ...grpc.CallOption) (*proxmoxapipb.ListPermissionsResponse, error) {
+	p.l.wait()
 	p.l.mu.Lock()
 	defer p.l.mu.Unlock()
 	out := &proxmoxapipb.ListPermissionsResponse{}

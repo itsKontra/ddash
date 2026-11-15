@@ -235,12 +235,26 @@ func (c *component) sync(ctx context.Context, fresh bool) error {
 // syncLocked is sync for a caller holding c.turn. It returns each source
 // it couldn't read, named, with why.
 func (c *component) syncLocked(ctx context.Context, fresh bool) (failed []string) {
-	hosts, hostsErr := c.npm.ListProxyHosts(ctx, &npmpb.ListProxyHostsRequest{Fresh: fresh})
+	// Independent reads, made together.
+	var (
+		hosts        *npmpb.ListProxyHostsResponse
+		st           *npmpb.GetStatusResponse
+		overrides    *pfpb.ListHostOverridesResponse
+		src          sources
+		hostsErr     error
+		stErr        error
+		overridesErr error
+		reads        sync.WaitGroup
+	)
+	reads.Go(func() { hosts, hostsErr = c.npm.ListProxyHosts(ctx, &npmpb.ListProxyHostsRequest{Fresh: fresh}) })
 	// The Reverse Proxy's address comes from the config, so it is known
 	// while Nginx Proxy Manager can't be read too.
-	st, stErr := c.npm.GetStatus(ctx, &npmpb.GetStatusRequest{})
-	overrides, overridesErr := c.pfsense.ListHostOverrides(ctx, &pfpb.ListHostOverridesRequest{Fresh: fresh})
-	src := c.readSources(ctx)
+	reads.Go(func() { st, stErr = c.npm.GetStatus(ctx, &npmpb.GetStatusRequest{}) })
+	reads.Go(func() {
+		overrides, overridesErr = c.pfsense.ListHostOverrides(ctx, &pfpb.ListHostOverridesRequest{Fresh: fresh})
+	})
+	reads.Go(func() { src = c.readSources(ctx) })
+	reads.Wait()
 
 	c.mu.Lock()
 	c.src = src
@@ -325,9 +339,13 @@ func (c *component) ListApps(ctx context.Context, _ *appspb.ListAppsRequest) (*a
 	}
 	v := c.view()
 	apps := derive(recs, v)
-	networkErr, adguardErr := c.fillNetwork(ctx, apps, v.src)
-	c.fillCertificates(ctx, apps)
-	cloudflareErr := c.fillPublicHostnames(ctx, apps)
+	// Three systems, read together: each fills fields of its own.
+	var networkErr, adguardErr, cloudflareErr string
+	var fills sync.WaitGroup
+	fills.Go(func() { networkErr, adguardErr = c.fillNetwork(ctx, apps, v.src) })
+	fills.Go(func() { c.fillCertificates(ctx, apps) })
+	fills.Go(func() { cloudflareErr = c.fillPublicHostnames(ctx, apps) })
+	fills.Wait()
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	hosts := c.hostsRead.proto()

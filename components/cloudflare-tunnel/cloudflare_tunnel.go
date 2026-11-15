@@ -89,12 +89,22 @@ func (c *component) read(ctx context.Context, fresh bool) (*snapshot, error) {
 		return nil, err
 	}
 	s.zones = zones.GetZones()
-	for _, z := range s.zones {
-		recs, err := c.cf.ListDnsRecords(ctx, &cfpb.ListDnsRecordsRequest{ZoneId: z.GetId(), Fresh: fresh})
-		if err != nil {
-			return nil, err
+	// One read per zone, made together; the first zone that fails is the
+	// error.
+	records := make([]*cfpb.ListDnsRecordsResponse, len(s.zones))
+	errs := make([]error, len(s.zones))
+	var reads sync.WaitGroup
+	for i, z := range s.zones {
+		reads.Go(func() {
+			records[i], errs[i] = c.cf.ListDnsRecords(ctx, &cfpb.ListDnsRecordsRequest{ZoneId: z.GetId(), Fresh: fresh})
+		})
+	}
+	reads.Wait()
+	for i, z := range s.zones {
+		if errs[i] != nil {
+			return nil, errs[i]
 		}
-		s.records[z.GetId()] = recs.GetRecords()
+		s.records[z.GetId()] = records[i].GetRecords()
 	}
 	if s.disabled, err = c.store.all(ctx); err != nil {
 		return nil, err

@@ -4,7 +4,9 @@ import (
 	"context"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc"
@@ -28,9 +30,12 @@ type adguard struct {
 	err     error
 	// calls is every SetClientFiltering request, in order.
 	calls []*adguardapipb.SetClientFilteringRequest
+	// slow is how long ListClients takes to answer.
+	slow atomic.Int64
 }
 
 func (a *adguard) ListClients(context.Context, *adguardapipb.ListClientsRequest, ...grpc.CallOption) (*adguardapipb.ListClientsResponse, error) {
+	time.Sleep(time.Duration(a.slow.Load()))
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	if a.err != nil {
