@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -31,13 +32,16 @@ type OIDC struct {
 	ClientID     string
 	ClientSecret string
 	// HTTPClient makes the back-channel requests to Keycloak. Nil uses
-	// http.DefaultClient.
+	// one that gives each request oidcTimeout.
 	HTTPClient *http.Client
 }
 
 // OperatorRole is the role on ddash's Keycloak client that the ID token
 // must carry for a sign-in to succeed.
 const OperatorRole = "operator"
+
+// oidcTimeout bounds one back-channel request to Keycloak.
+const oidcTimeout = 10 * time.Second
 
 // The audited sign-in events, as the Audit Log's method.
 const (
@@ -104,7 +108,9 @@ func NewKeycloak(opts KeycloakOptions) (*Keycloak, error) {
 	}
 	opts.PublicURL = strings.TrimSuffix(opts.PublicURL, "/")
 	if opts.OIDC.HTTPClient == nil {
-		opts.OIDC.HTTPClient = http.DefaultClient
+		// Bounded: discovery holds a lock, so a Keycloak that hangs would
+		// otherwise hang every sign-in and sign-out behind it.
+		opts.OIDC.HTTPClient = &http.Client{Timeout: oidcTimeout}
 	}
 	logger := opts.Logger
 	if logger == nil {
