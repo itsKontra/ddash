@@ -2,6 +2,7 @@ import type { GetFlowResponse } from "@ddash/proto/energy-api/energy_api_pb";
 import { cx, Icon, type IconName } from "@ddash/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { colours, kw } from "./energy";
+import { idle } from "./now";
 
 // The diagram's grid, in its viewBox: the AC bus runs along y 150 from
 // where grid and solar join it, past the heat pump, to the Victron, which
@@ -92,9 +93,6 @@ function useNarrow(px: number) {
   return [ref, narrow] as const;
 }
 
-/** Below this a line counts as idle. */
-const idle = 0.01;
-
 /**
  * One line of the diagram: a muted track, and while power flows a line in
  * its colour with dots running in the flow's direction, faster with more
@@ -179,12 +177,12 @@ export function batteryText(battery: number | undefined): string | undefined {
 /**
  * Where the power flows now, drawn as the house is wired: grid and solar
  * on the AC bus with the heat pump, the Victron between the bus, the house
- * and the battery. compact draws it small, for a Widget.
+ * and the battery.
  */
-export function FlowDiagram({ flow, compact: small }: { flow: GetFlowResponse; compact?: boolean }) {
+export function FlowDiagram({ flow }: { flow: GetFlowResponse }) {
   const still = useReducedMotion();
   const [ref, narrow] = useNarrow(520);
-  const compact = small || narrow;
+  const compact = narrow;
   const layout: Layout = narrow ? tall : wide;
   const { at, H } = layout;
   const p = flow.power;
@@ -202,7 +200,7 @@ export function FlowDiagram({ flow, compact: small }: { flow: GetFlowResponse; c
   const [ox] = at.house;
   const [, by] = at.battery;
   return (
-    <div ref={ref} className={cx("relative mx-auto w-full", small ? "max-w-xl" : "max-w-3xl")} style={{ aspectRatio: `${W} / ${H}` }}>
+    <div ref={ref} className="relative mx-auto w-full max-w-3xl" style={{ aspectRatio: `${W} / ${H}` }}>
       <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
         <Line d={`M${gx},${gy} H${busJoin} V${vy}`} kw={grid} colour={colours.grid} still={still} />
         <Line d={`M${sx},${sy} H${busJoin} V${vy}`} kw={solar} colour={colours.solar} still={still} />

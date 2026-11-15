@@ -94,6 +94,8 @@ func TestConfigIsChecked(t *testing.T) {
 		{"an empty bucket", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", Bucket: new(" ")}, []string{"bucket: is required"}},
 		{"a price that isn't a number", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BuyPrice: "24 ct"}, []string{"buy_price: must be € per kWh, e.g. 0.2418"}},
 		{"a feed-in tariff without a price", &pb.EnergyApiConfig{SellPrice: "0.05"}, []string{"buy_price: is required with a feed-in tariff"}},
+		{"a battery capacity that isn't kWh", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryCapacity: "10 kWh"}, []string{"battery_capacity: must be kWh, e.g. 10"}},
+		{"a battery without capacity", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryCapacity: "0"}, []string{"battery_capacity: must be kWh, e.g. 10"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h := sdktest.New(t, energyapi.DefineAt(now))
@@ -141,6 +143,25 @@ func TestFlowIsTheLatestReadings(t *testing.T) {
 	}
 	if got := h.Health(); got.State != sdk.OK {
 		t.Errorf("health = %v, want ok", got)
+	}
+}
+
+func TestFlowCarriesTheBatterysCapacityOnlyWhenConfigured(t *testing.T) {
+	_, addr := serve(t, energyfake.Options{})
+	for _, tc := range []struct {
+		capacity string
+		want     *float64
+	}{{"", nil}, {"13,5", new(13.5)}} {
+		_, c := start(t, &pb.EnergyApiConfig{Url: addr, Token: "fake-token", BatteryCapacity: tc.capacity})
+
+		got, err := c.GetFlow(t.Context(), &pb.GetFlowRequest{})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(tc.want, got.GetBattery().CapacityKwh); diff != "" {
+			t.Errorf("capacity %q: capacity_kwh (-want +got):\n%s", tc.capacity, diff)
+		}
 	}
 }
 
