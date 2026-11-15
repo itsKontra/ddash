@@ -5,12 +5,12 @@ import { CoreScope, createQueryClient, PluginHost } from "@ddash/plugin";
 import { AuditChainSchema, AuditEntrySchema, type AuditEntry } from "@ddash/proto/ddash/core/core_pb";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { ago, recent, Recently, words } from "./recently";
+import { ago, listed, recent, Recently, subject, words } from "./recently";
 
 const now = Date.parse("2026-11-15T19:45:00Z");
 
 // A hop, started secs before now, that took ms (undefined: still running).
-const hop = (target: string, method: string, secs: number, ms: number | undefined, more: Partial<Pick<AuditEntry, "outcome" | "message" | "actorKind" | "username">> = {}) => ({
+const hop = (target: string, method: string, secs: number, ms: number | undefined, more: Partial<Pick<AuditEntry, "outcome" | "message" | "actorKind" | "username" | "request">> = {}) => ({
   time: timestampFromMs(now - secs * 1000),
   actorKind: "operator",
   username: "alice",
@@ -31,10 +31,55 @@ describe("words", () => {
   ])("%s reads %s", (method, text) => expect(words(method)).toBe(text));
 });
 
+describe("subject", () => {
+  it.each([
+    ['{"action":{"restart":{"host":"media","project":"paperless"}},"plan":{"steps":[{"title":"Restart","values":[{"label":"x"}]}]}}', "restart paperless on media"],
+    ['{"duration":"600s"}', "10 min"],
+    ['{"duration":"3600s"}', "1 h"],
+    ['{"plugin":"docker"}', "docker"],
+    ['{"vmid":101,"name":"homeassist","url":"https://10.0.0.5:7000"}', "homeassist"],
+    ['{"vmid":206,"code":"REDACTED"}', "206"],
+    ['{"workloads":[{"kind":"KIND_LXC","host":"pve","id":"206"}]}', "206 on pve"],
+    ['{"action":"ACTION_STOP","workload":{"host":"pve","id":"104"}}', "stop 104 on pve"],
+    ['{"layout":{"entries":[{"widget":"apps.apps","size":"L"}]}}', ""],
+    ["{}", ""],
+    ["(unrecordable: oops)", ""],
+  ])("%s reads %j", (request, text) => expect(subject(request)).toBe(text));
+
+  it("reads a request the Audit Log cut short", () => {
+    expect(subject('{"action":{"update":{"host":"apps","project":"media"}},"plan":{"steps":[{"title":"Pull…(truncated)')).toBe("update media on apps");
+  });
+
+  it("is never longer than a row can take", () => {
+    const long = subject(`{"name":"${"x".repeat(200)}"}`);
+    expect(long).toHaveLength(60);
+    expect(long.endsWith("…")).toBe(true);
+  });
+});
+
+describe("listed", () => {
+  it("lists what an Operator or ddash did, and leaves housekeeping to the Audit Log", () => {
+    expect(listed(chain("c", hop("core", "Install", 5, 1)))).toBe(true);
+    expect(listed(chain("c", hop("core", "Install", 5, 1, { actorKind: "core", username: "" })))).toBe(true);
+    expect(listed(chain("c", hop("core", "SaveLayout", 5, 1)))).toBe(false);
+    expect(listed(chain("c", hop("checks", "SetAppChecks", 5, 1, { actorKind: "component", username: "apps" })))).toBe(false);
+  });
+});
+
 describe("recent", () => {
   it("says what the actor started, who and when, and how long it took to the last hop's end", () => {
-    const r = recent(chain("c1", hop("proxmox", "RunUpdateAll", 60, 20), hop("host-agent-api", "CollectJob", 48, 5_000)), now)!;
-    expect(r).toEqual({ id: "c1", what: "Run update all", target: "proxmox", who: "alice", at: now - 60_000, outcome: "done", detail: "done in 17 s" });
+    const root = hop("proxmox", "RunUpdateAll", 60, 20, { request: '{"workloads":[{"kind":"KIND_LXC","host":"pve","id":"201"}]}' });
+    const r = recent(chain("c1", root, hop("host-agent-api", "CollectJob", 48, 5_000)), now)!;
+    expect(r).toEqual({
+      id: "c1",
+      what: "Run update all",
+      subject: "201 on pve",
+      target: "proxmox",
+      who: "alice",
+      at: now - 60_000,
+      outcome: "done",
+      detail: "done in 17 s",
+    });
   });
 
   it("runs while any hop runs, and names the step it is at", () => {
@@ -99,6 +144,7 @@ const json = (c: ReturnType<typeof chain>) => ({
     method: e.method,
     outcome: e.outcome,
     message: e.message,
+    request: e.request,
     ...(e.duration ? { duration: `${Number(e.duration.seconds) + e.duration.nanos / 1e9}s` } : {}),
   })),
 });
@@ -128,12 +174,13 @@ const rows = () => within(screen.getByRole("list", { name: "Recent Actions" })).
 
 it("lists the last four Actions, telling a failed one from a finished one by its icon", async () => {
   chains = [
-    json(chain("c3", hop("core", "Install", 30, 10, { outcome: "Unavailable", message: "the Release has no such Plugin" }))),
+    json(chain("c3", hop("core", "Install", 30, 10, { outcome: "Unavailable", message: "the Release has no such Plugin", request: '{"plugin":"weather"}' }))),
     json(chain("c2", hop("proxmox", "RunUpdateAll", 120, 20))),
   ];
   await show();
-  expect(requests).toEqual([{ pageSize: 4 }]);
+  expect(requests).toEqual([{ pageSize: 20 }]);
   expect(rows().map((r) => r.getAttribute("aria-label"))).toEqual(["Install: failed", "Run update all: done"]);
+  expect(rows()[0].textContent).toContain("Install · weather");
   expect(within(rows()[0]).getByRole("img", { name: "failed" })).toBeTruthy();
   expect(rows()[0].textContent).toContain("the Release has no such Plugin");
   expect(within(rows()[1]).getByRole("img", { name: "done" })).toBeTruthy();
@@ -152,6 +199,22 @@ it("shows an Action started elsewhere within 5 s, with its progress, without a r
   expect(rows().map((r) => r.getAttribute("aria-label"))).toEqual(["Run update all: running", "Install: done"]);
   expect(within(rows()[0]).getByRole("img", { name: "running" })).toBeTruthy();
   expect(rows()[0].textContent).toContain("Create snapshot");
+});
+
+it("passes over housekeeping to find the last four Actions", async () => {
+  const action = (id: string, plugin: string) => json(chain(id, hop("core", "Install", 60, 10, { request: `{"plugin":"${plugin}"}` })));
+  chains = [
+    json(chain("s1", hop("core", "SaveLayout", 1, 5))),
+    action("a1", "docker"),
+    json(chain("s2", hop("checks", "SetAppChecks", 2, 5, { actorKind: "component", username: "apps" }))),
+    action("a2", "network"),
+    action("a3", "energy"),
+    json(chain("s3", hop("core", "SaveLayout", 3, 5))),
+    action("a4", "checks"),
+    action("a5", "apps"),
+  ];
+  await show();
+  expect(rows().map((r) => r.textContent?.split(" · ")[1].split("done")[0].trim())).toEqual(["docker", "network", "energy", "checks"]);
 });
 
 it("says so when nothing has run yet", async () => {

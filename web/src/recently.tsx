@@ -14,6 +14,8 @@ export interface Recent {
   id: string;
   /** What the actor started, e.g. "Run update all". */
   what: string;
+  /** What it was done to, from its request, e.g. "restart paperless on media"; empty when the request names nothing. */
+  subject: string;
   /** Where it ran: a Component's name, or "core". */
   target: string;
   outcome: Outcome;
@@ -30,6 +32,74 @@ export function words(method: string): string {
   const parts = method.match(/[A-Z]+(?![a-z])|[A-Z]?[a-z0-9]+/g) ?? [method];
   return parts.map((p, i) => (i === 0 || (p.length > 1 && p === p.toUpperCase()) ? p : p.toLowerCase())).join(" ");
 }
+
+// The request fields that name what an Action was done to, the host it ran
+// on and how long it lasts. Any Plugin's request is read by the same rule:
+// the core knows no Plugin's methods.
+// A Plan's step titles and labels come after these, so they aren't names.
+const names = new Set(["name", "project", "plugin", "component", "app", "hostname", "device", "peer", "storage"]);
+const ids = new Set(["vmid", "id", "mac", "address"]);
+const hosts = new Set(["host", "node"]);
+
+/** "600s" as "10 min", "3600s" as "1 h". */
+function lasting(protoDuration: string): string {
+  const s = Number(protoDuration.replace(/s$/, ""));
+  if (!Number.isFinite(s) || s <= 0) return "";
+  if (s % 3600 === 0) return `${s / 3600} h`;
+  if (s % 60 === 0) return `${s / 60} min`;
+  return formatDuration(s * 1000);
+}
+
+/** The most of subject a row shows. */
+const subjectMax = 60;
+
+/**
+ * What an Action was done to, read from its request as the Audit Log keeps
+ * it (compact protojson, perhaps cut short): the case of an "action" oneof
+ * or enum, the first name (or else id), the host it ran on, and a duration.
+ * {"action":{"restart":{"target":{"host":"media","project":"paperless"}}}}
+ * reads "restart paperless on media", {"duration":"600s"} "10 min". Never
+ * the raw request: empty when it names nothing.
+ */
+export function subject(request: string): string {
+  const verb =
+    /"action":\s*\{"(\w+)"/.exec(request)?.[1] ?? /"action":\s*"(?:[A-Z]+_)*([A-Z]+)"/.exec(request)?.[1]?.toLowerCase() ?? "";
+  // Every string and number field, in the order the request has them.
+  const fields: [string, string][] = [];
+  for (const m of request.matchAll(/"(\w+)":\s*(?:"((?:[^"\\]|\\.)*)"|(-?\d+(?:\.\d+)?)(?=[,}\]]))/g)) {
+    const value = m[2] ?? m[3];
+    if (value && value !== "REDACTED") fields.push([m[1], value]);
+  }
+  const first = (keys: Set<string>) => fields.find(([k]) => keys.has(k))?.[1];
+  const what = first(names) ?? first(ids);
+  const host = first(hosts);
+  const duration = fields.find(([k]) => k === "duration")?.[1];
+  const text = [
+    verb && words(verb).toLowerCase(),
+    what,
+    what && host && host !== what ? `on ${host}` : "",
+    duration ? lasting(duration) : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  return text.length > subjectMax ? `${text.slice(0, subjectMax - 1)}…` : text;
+}
+
+/**
+ * Whether Recently lists a chain: what an Operator or ddash itself did to
+ * the lab, not housekeeping. A Component's sync with another (e.g. apps
+ * setting checks' App Checks) and the shell saving the Overview layout are
+ * left to the Audit Log.
+ */
+export function listed(chain: AuditChain): boolean {
+  const root = chain.entries[0];
+  if (!root) return false;
+  if (root.actorKind === "component") return false;
+  return !(root.target === "core" && root.method === "SaveLayout");
+}
+
+/** How many chains Recently reads to find its four. */
+export const read = 20;
 
 const ended = (e: AuditEntry) => (e.time ? timestampMs(e.time) : 0) + (e.duration ? durationMs(e.duration) : 0);
 const failed = (e: AuditEntry) => e.outcome !== "" && e.outcome !== "ok" && e.outcome !== "interrupted";
@@ -49,6 +119,7 @@ export function recent(chain: AuditChain, now: number): Recent | undefined {
   const base = {
     id: chain.id,
     what: words(root.method),
+    subject: subject(root.request),
     target: root.target,
     who: root.actorKind === "core" ? "ddash" : root.username || root.actorKind,
     at,
@@ -103,15 +174,19 @@ function useNow(): number {
 }
 
 /**
- * The Overview's last Actions, by anyone, from the Audit Log: what, how it
- * ended (or how far it got), who and when. Read every 5 s while on screen,
+ * The Overview's last Actions an Operator or ddash took, from the Audit
+ * Log: what, to what, how it ended (or how far it got), who and when. It
+ * reads the last 20 chains and lists the first four that pass listed. Read every 5 s while on screen,
  * and at once after an Action from this tab, so one started anywhere shows
  * without a reload.
  */
 export function Recently() {
-  const { data, error } = useQuery(CoreService.method.listAuditLog, { pageSize: shown }, { refresh: Refresh.LIVE });
+  const { data, error } = useQuery(CoreService.method.listAuditLog, { pageSize: read }, { refresh: Refresh.LIVE });
   const now = useNow();
-  const items = (data?.chains ?? []).flatMap((c) => recent(c, now) ?? []);
+  const items = (data?.chains ?? [])
+    .filter(listed)
+    .slice(0, shown)
+    .flatMap((c) => recent(c, now) ?? []);
   return (
     <Panel
       title="Recently"
@@ -153,8 +228,9 @@ function Row({ item: r, now }: { item: Recent; now: number }) {
         <Icon name={icon} tone={tone} size="sm" label={r.outcome} />
       )}
       <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-3">
-        <div className="truncate text-sm font-semibold sm:max-w-[45%] sm:shrink-0">
-          {r.what} <span className="text-xs font-normal text-muted-foreground">{r.target}</span>
+        <div className="truncate text-sm font-semibold sm:max-w-[55%] sm:shrink-0" title={`${r.target} · ${r.what}${r.subject ? ` · ${r.subject}` : ""}`}>
+          {r.what}
+          {r.subject ? <span className="font-normal"> · {r.subject}</span> : <span className="text-xs font-normal text-muted-foreground"> {r.target}</span>}
         </div>
         <div className={cx("truncate text-xs", r.outcome === "failed" ? "text-down-text" : "text-muted-foreground")} title={r.detail}>
           {r.detail}
