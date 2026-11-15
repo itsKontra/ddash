@@ -29,6 +29,7 @@ import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
 import { NeedsYou, useConcernList } from "./needs-you";
 import type { LoadedPlugin, Plugins } from "./plugins";
 import { useReach } from "./reach";
+import { Recently } from "./recently";
 
 /** The Overview layout as the shell shows it, and how to save a new one. */
 export interface OverviewLayout {
@@ -90,7 +91,7 @@ const span: Record<WidgetSize, string> = {
   L: "col-span-1 row-span-2 sm:col-span-2",
 };
 
-/** /: the hero and "Needs you" over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode. */
+/** /: the hero and "Needs you" over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode, and the last Actions under it. */
 export function Overview({ plugins, overview, fetch, client }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch; client: QueryClient }) {
   const reach = useReach();
   // While editing, the Operator's unsaved layout.
@@ -229,6 +230,7 @@ export function Overview({ plugins, overview, fetch, client }: { plugins: Plugin
           );
         })}
       </ul>
+      <Recently />
       <Presence>
         {draft && adding && (
           <AddWidget

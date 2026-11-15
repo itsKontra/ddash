@@ -1,9 +1,9 @@
 import { PluginScope, type Concern, type ConcernAction, type ConcernTone, type Fetch } from "@ddash/plugin";
 import { Button, cx, Icon, Panel, Pill, Presence, Skeleton } from "@ddash/ui";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
-import { needs, offOnPurpose, toneIcon, type Listed, type Needs } from "./concerns";
+import { capped, needs, offOnPurpose, toneIcon, type Listed, type Needs } from "./concerns";
 import type { LoadedPlugin, Plugins } from "./plugins";
 
 /** The Sheet a Concern's Action has open: whose, which Concern, which Action, and its Sheet as clicked. */
@@ -96,10 +96,15 @@ export function ConcernSources({ plugins, fetch, children }: { plugins: Plugins;
 
 /**
  * "Needs you": every installed Plugin's Concerns in one list, worst first,
- * each with its Actions; the quiet ones folded under "Off on purpose".
+ * each with its Actions; past the worst five, the rest behind "and 26
+ * more", which expands them in place; the quiet ones folded under "Off on
+ * purpose".
  */
 export function NeedsYou() {
   const { needs: n, waiting, act } = useConcernList();
+  const [expanded, setExpanded] = useState(false);
+  const { shown, more } = capped(n.loud, expanded);
+  const id = useId();
   return (
     <Panel
       flush
@@ -118,11 +123,25 @@ export function NeedsYou() {
       ) : (
         <>
           {n.loud.length > 0 ? (
-            <ul aria-label="Needs you">
-              {n.loud.map((l) => (
-                <Row key={`${l.plugin}:${l.concern.id}`} listed={l} onAct={act} />
-              ))}
-            </ul>
+            <>
+              <ul id={id} aria-label="Needs you">
+                {shown.map((l) => (
+                  <Row key={`${l.plugin}:${l.concern.id}`} listed={l} onAct={act} />
+                ))}
+              </ul>
+              {more > 0 && (
+                <button
+                  type="button"
+                  aria-expanded={expanded}
+                  aria-controls={id}
+                  onClick={() => setExpanded((e) => !e)}
+                  className="flex w-full cursor-pointer items-center gap-2 border-t border-border px-5 py-3 text-left text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  <Icon name={expanded ? "chevron-up" : "chevron-down"} size="sm" />
+                  {expanded ? "Show fewer" : `and ${more} more`}
+                </button>
+              )}
+            </>
           ) : (
             <div className="flex items-center gap-3 px-5 py-4">
               <Icon name="check" tone="up" />

@@ -50,6 +50,7 @@ const fetchFake = async (input: RequestInfo | URL) => {
     case "SaveLayout":
     case "GetCoreSettings":
     case "GetOperator":
+    case "ListAuditLog":
       return Response.json({});
   }
   return Response.json({ code: "unimplemented" }, { status: 501 });
@@ -197,6 +198,54 @@ it("draws an Action's Sheet in the Plugin's scope, and keeps it open when the Co
   await settle();
   expect(rows()).toEqual([]);
   expect(screen.getByRole("dialog", { name: "Start LXC 206" }).textContent).toContain("planned by proxmox");
+});
+
+it("shows the worst five, the rest behind a line that expands them in place and folds them again", async () => {
+  function PlanSheet({ onClose }: { onClose: () => void }) {
+    return (
+      <Sheet title="Start LXC 208" onClose={onClose}>
+        <p>{`planned by ${usePlugin().name}`}</p>
+      </Sheet>
+    );
+  }
+  const concerns = [1, 2, 3, 4, 5, 6, 7].map((i) => down(`ct${i}`));
+  concerns.push(down("ct8", { actions: [{ label: "Start", sheet: (close) => <PlanSheet onClose={close} /> }] }));
+  plugins = [
+    [installed("checks", "Checks"), definePlugin({ useConcerns: () => [{ id: "vpn", tone: "warn", subject: "vpn", title: "vpn is slow" }, down("backup", { quiet: "muted" })] })],
+    [installed("proxmox", "Proxmox"), definePlugin({ useConcerns: () => concerns })],
+  ];
+
+  await boot();
+
+  const first = ["ct1 is down", "ct2 is down", "ct3 is down", "ct4 is down", "ct5 is down"];
+  const loudRows = () =>
+    within(screen.getByRole("list", { name: "Needs you" }))
+      .getAllByRole("listitem")
+      .map((li) => li.getAttribute("aria-label"));
+  expect(loudRows()).toEqual(first);
+  // The count is of every loud Concern, folded or not.
+  expect(within(panel()).getByRole("heading").textContent).toBe("Needs you9");
+  const more = within(panel()).getByRole("button", { name: "and 4 more" });
+  expect(more.tagName).toBe("BUTTON");
+  expect(more.getAttribute("aria-expanded")).toBe("false");
+  expect(more.getAttribute("aria-controls")).toBe(screen.getByRole("list", { name: "Needs you" }).id);
+  // The quiet ones keep their own folded line.
+  expect(within(panel()).getByText(/^Off on purpose/).textContent).toBe("Off on purpose · 1 muted");
+
+  fireEvent.click(more);
+  expect(loudRows()).toEqual([...first, "ct6 is down", "ct7 is down", "ct8 is down", "vpn is slow"]);
+  expect(more.getAttribute("aria-expanded")).toBe("true");
+  expect(more.textContent).toBe("Show fewer");
+
+  // A row past the cap acts once shown, and its Sheet outlives folding it again.
+  fireEvent.click(within(within(panel()).getByRole("listitem", { name: "ct8 is down" })).getByRole("button", { name: "Start" }));
+  await settle();
+  expect(screen.getByRole("dialog", { name: "Start LXC 208" }).textContent).toContain("planned by proxmox");
+
+  fireEvent.click(within(panel()).getByRole("button", { name: "Show fewer" }));
+  expect(loudRows()).toEqual(first);
+  expect(within(panel()).getByRole("button", { name: "and 4 more" }).getAttribute("aria-expanded")).toBe("false");
+  expect(screen.getByRole("dialog", { name: "Start LXC 208" })).toBeTruthy();
 });
 
 it("says so when a Plugin's useConcerns throws, and lists the others", async () => {

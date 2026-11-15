@@ -72,11 +72,12 @@ it("lists Overview first, then Nav Entries by order and title, then Plugins and 
 
   expect(navLinks()).toEqual(["Overview", "Applications", "Checks", "Bravo", "Docker", "Plugins", "Settings"]);
   expect(screen.getByRole("link", { name: "Docker" }).getAttribute("href")).toBe("/docker");
-  // The shell reads the installed Plugins, the Overview layout, the core settings (the Theme) and the Operator, once each.
+  // The shell reads the installed Plugins, the Overview layout, the core settings (the Theme) and the Operator, once each; the Overview reads its last Actions.
   expect(coreCalls.toSorted()).toEqual([
     "/api/core/ddash.core.CoreService/GetCoreSettings",
     "/api/core/ddash.core.CoreService/GetLayout",
     "/api/core/ddash.core.CoreService/GetOperator",
+    "/api/core/ddash.core.CoreService/ListAuditLog",
     "/api/core/ddash.core.CoreService/ListInstalledPlugins",
   ]);
 });

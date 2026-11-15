@@ -150,7 +150,7 @@ it("shows a running update's steps on the Workload, wherever it was started, and
   expect((within(panel("Updates")).getByRole("button", { name: "Update" }) as HTMLButtonElement).disabled).toBe(true);
 });
 
-it("shows reboot required after an update, with the Restart beside it", async () => {
+it("shows reboot required after an update, with the Restart beside it, once the run has left the Page", async () => {
   await show("/proxmox/workloads/102", {
     ListAgents: () => Response.json(agents(102, "AGENT_STATE_PAIRED")),
     ListPackages: () => Response.json({ hosts: [{ vmid: 102, read: daysAgo(0), rebootRequired: true }] }),
@@ -174,7 +174,8 @@ it("shows reboot required after an update, with the Restart beside it", async ()
 
   const updates = panel("Updates");
   expect(updates.textContent).toContain("Up to date");
-  expect(updates.textContent).toContain("Updated 2 packages");
+  // The run ended before the Page opened: its outcome is in the Audit Log.
+  expect(updates.textContent).not.toContain("Updated 2 packages");
   expect(within(updates).getByText("reboot required")).toBeTruthy();
   expect(within(updates).getByRole("button", { name: "Restart" })).toBeTruthy();
 });

@@ -1,4 +1,4 @@
-import { useAction, useQuery } from "@ddash/plugin";
+import { useAction, useQuery, useShownRuns } from "@ddash/plugin";
 import { State } from "@ddash/proto/ddash/job/job_pb";
 import { HostAgentApiService, type HostPackages } from "@ddash/proto/host-agent-api/host_agent_api_pb";
 import type { Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
@@ -39,11 +39,13 @@ export const updatesText = (n: number) => `${n} ${n === 1 ? "update" : "updates"
 /** The "Updates" Panel's body, for a Workload with a paired Host Agent. */
 export function Updates({ workload: w }: { workload: Workload }) {
   const packages = usePackages();
-  const updates = useUpdates();
+  const updates = useQuery(ProxmoxService.method.listUpdates, {});
   const [planning, setPlanning] = useState(false);
   const refresh = useAction(HostAgentApiService.method.refreshPackages);
   const host = packages?.get(w.vmid);
-  const run = updates?.runs.find((r) => r.workload?.id === String(w.vmid));
+  const run = updates.data?.runs.find((r) => r.workload?.id === String(w.vmid));
+  // The run while it runs, or once it ended with the Page open.
+  const [shown] = useShownRuns(updates.data && (run ? [run] : []), updates.isFetchedAfterMount, (r) => ({ id: r.id, ended: ended(r.state) }));
   const running = run !== undefined && !ended(run.state);
   const reboot = host?.rebootRequired || (run?.state === State.DONE && run.rebootRequired);
 
@@ -61,7 +63,7 @@ export function Updates({ workload: w }: { workload: Workload }) {
         </Button>
         <SnapshotSetting vmid={w.vmid} />
       </div>
-      {run && <RunProgress run={run} />}
+      {shown && <RunProgress run={shown} />}
       {reboot && !running && (
         <div className="flex flex-col gap-2">
           <p className="flex items-center gap-2 text-sm">

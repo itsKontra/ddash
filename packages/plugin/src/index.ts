@@ -18,6 +18,7 @@ export {
 } from "./define";
 export { createQueryClient, isNotConfigured, refreshOf, Refresh, tiers, useQuery, type QueryClient, type QueryOptions } from "./query";
 export { settleDelay, useSettled } from "./settled";
+export { shownRuns, useShownRuns, type RunState } from "./runs";
 export { useTail, type Tail } from "./tail";
 export { InstalledPlugins, usePluginLink } from "./link";
 export {
