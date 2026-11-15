@@ -44,19 +44,28 @@ export function stateLabel(c: Check): string {
 /**
  * The enabled Checks, split by tone. Pending ones are only in `enabled`.
  * `up` holds every up Check outside Maintenance; `warn` those of them that
- * are Flapping or whose certificate is expiring.
+ * are Flapping or whose certificate is expiring. A down Check is in `down`,
+ * or in `muted` when the Operator muted it: that one doesn't count as down.
  */
 export function tally(checks: readonly Check[]) {
   const enabled = checks.filter((c) => !c.disabled);
   const by = (tone: Tone) => enabled.filter((c) => toneOf(c) === tone);
   const up = enabled.filter((c) => !c.maintenance && c.state === State.UP);
-  return { enabled, up, warn: up.filter((c) => c.flapping || c.certExpiring), down: by("down"), maint: by("maint") };
+  const down = by("down");
+  return {
+    enabled,
+    up,
+    warn: up.filter((c) => c.flapping || c.certExpiring),
+    down: down.filter((c) => !c.muted),
+    muted: down.filter((c) => c.muted),
+    maint: by("maint"),
+  };
 }
 
 /** Why an up Check warns: "nas flapping", "Jellyfin certificate expiring". */
 export const warning = (c: Check) => `${shownName(c)} ${c.flapping ? "flapping" : "certificate expiring"}`;
 
-/** The Nav Entry's badge: "N down", or none. */
+/** The Nav Entry's badge: "N down", muted Checks left out, or none. */
 export function useDownBadge(): Badge | null {
   const { data } = useChecks();
   const down = data ? tally(data.checks).down.length : 0;

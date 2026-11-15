@@ -397,7 +397,8 @@ it("heads the Page with the up, down and Maintenance counts and the median laten
 
   expect(screen.getByRole("heading", { level: 1, name: "Checks" })).toBeTruthy();
   expect(metricValue("Up")).toBe("3of 7 enabled");
-  expect(metricValue("Down")).toBe("1after 3 failures in a row");
+  // router is down but muted: counted, and said to be muted.
+  expect(metricValue("Down")).toBe("11 of them muted");
   expect(metricValue("Maintenance")).toBe("2left out of uptime");
   // nas at 12.4 ms and camera at 30 ms; Jellyfin hasn't beaten yet.
   expect(metricValue("Median latency")).toBe("21 msacross up Checks");

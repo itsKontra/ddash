@@ -8,6 +8,7 @@ import { fixes, fixLabel, groupsOf, hostOf } from "./apps";
 import { ComposePanel } from "./compose-panel";
 import { reachLook } from "./list";
 import { AddressPanel, DisplayPanel, NetworkPanel, ProxyPanel, WorkloadPanel, type Editing, type PanelName } from "./panels";
+import { usePins } from "./pins";
 import { PlanDialog, type DialogSlot } from "./plan";
 import { WarningBoxes, type FixHandlers } from "./warnings";
 
@@ -104,9 +105,10 @@ export function AppPane({
   );
 }
 
-/** The pane's header: icon, name, URL, Reach, Check and Hidden, and Delete…. */
+/** The pane's header: icon, name, URL, Reach, Check and Hidden, Pin and Delete…. */
 function Header({ id, app, check, onDelete }: { id: string; app: App; check?: Check; onDelete: () => void }) {
   const status = checkStatus(check);
+  const pins = usePins();
   return (
     <div className="flex items-start gap-3">
       <AppIcon name={app.name} icon={app.icon} url={app.url} size={48} />
@@ -126,11 +128,31 @@ function Header({ id, app, check, onDelete }: { id: string; app: App; check?: Ch
         </div>
       </div>
       {!app.orphaned && (
-        <Button size="sm" variant="danger" onClick={onDelete}>
-          Delete…
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          <div className="flex gap-2">
+            <PinButton app={app} pins={pins} />
+            <Button size="sm" variant="danger" onClick={onDelete}>
+              Delete…
+            </Button>
+          </div>
+          {pins.error && <p className="text-xs text-down-text">{pins.error.rawMessage}</p>}
+        </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Pins the App to the Overview's Apps Widget, last, or unpins it. A Hidden
+ * App doesn't show there, so it is offered only to unpin.
+ */
+function PinButton({ app, pins }: { app: App; pins: ReturnType<typeof usePins> }) {
+  const on = app.pin > 0;
+  if (app.hidden && !on) return null;
+  return (
+    <Button size="sm" variant="outline" icon={on ? "pin-off" : "pin"} aria-pressed={on} disabled={pins.pending} onClick={() => void pins.pin(app.id, !on)}>
+      {on ? "Unpin" : "Pin to Overview"}
+    </Button>
   );
 }
 

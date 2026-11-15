@@ -46,6 +46,13 @@ message EnergyApiConfig {
     placeholder: "0.05786"
     help: "What a kWh fed into the grid earns."
   }];
+  // The battery's usable capacity in kWh, with a decimal point; empty
+  // leaves the time to empty or full out.
+  string battery_capacity = 6 [(ddash.config.field) = {
+    label: "Battery capacity (kWh)"
+    placeholder: "10"
+    help: "The battery's usable capacity, to estimate how long it lasts or takes to fill at the current rate. Leave empty to show no estimate."
+  }];
 }
 
 service EnergyApiService {
@@ -95,6 +102,8 @@ message Battery {
   // State of charge, 0 to 100.
   optional double soc_pct = 1;
   optional double voltage = 2;
+  // The usable capacity in kWh, as configured; unset while none is.
+  optional double capacity_kwh = 3;
 }
 
 message GetPeriodRequest {

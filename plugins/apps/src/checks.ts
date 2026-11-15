@@ -12,12 +12,16 @@ export function useAppChecks() {
 
 const worse: Tone[] = ["down", "warn", "maint", "up"];
 
+/** Whether c is down but muted: the Operator knows, so it doesn't count as down. */
+export const mutedDown = (c: Check | undefined) => !!c?.muted && checkStatus(c).tone === "down";
+
 /**
  * The worst of the Apps' Checks with the Apps in it, or undefined when
- * none has a Check that counts (none yet, or all disabled or pending).
+ * none has a Check that counts (none yet, all disabled or pending, or
+ * down but muted).
  */
 export function worst(apps: readonly App[], byApp: ReadonlyMap<string, Check>) {
-  const rated = apps.map((app) => ({ app, status: checkStatus(byApp.get(app.id)) }));
+  const rated = apps.filter((app) => !mutedDown(byApp.get(app.id))).map((app) => ({ app, status: checkStatus(byApp.get(app.id)) }));
   for (const tone of worse) {
     const hit = rated.filter((r) => r.status.tone === tone);
     if (hit.length) return { tone, hit };

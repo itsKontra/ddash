@@ -33,12 +33,16 @@ A single-purpose backend unit, such as access to one external system or one Plug
 _Avoid_: Plugin (for backend units), service, module
 
 **Overview**:
-The startpage: a status summary over a grid of Widgets the operator arranges. Owned by the core, not by any Plugin.
+The startpage: a status summary and the Concerns of every installed Plugin, over a grid of Widgets the operator arranges. Owned by the core, not by any Plugin.
 _Avoid_: Dashboard, home, startpage (as the defined term)
 
 **Widget**:
 A card a Plugin offers for the Overview. It declares the sizes it supports and reports a status that the Overview summarises.
 _Avoid_: Tile, card (as the defined term)
+
+**Concern**:
+Something a Plugin reports as needing the Operator, such as a down Check or a New Device: what it is, why, and the Actions that resolve it, the same ones its Page offers. The Overview lists every installed Plugin's Concerns in one place under "Needs you", worst first, whether or not the Plugin has a Widget there. A **quiet** Concern is known and silenced (a muted Check, one in Maintenance): it is folded away under "Off on purpose" and never sets the Overview's tone.
+_Avoid_: Issue, problem, alert, attention item, Warning (an App's own, which a Plugin may report as a Concern)
 
 **Nav Entry**:
 A link a Plugin adds to the left navigation, leading to one of its Pages. May carry a live badge, such as a count of what is down.
@@ -147,6 +151,10 @@ _Avoid_: Monitor, health check, ping
 **Maintenance**:
 A period during which a Check's results don't count toward uptime and trigger no notifications. Started by the operator, or automatically when ddash itself restarts or stops a Workload.
 _Avoid_: Downtime, pause
+
+**Muted**:
+Said of a Check the Operator set to stay quiet: it is still probed and counts toward uptime, but sends no Notification, and while down it turns neither the Overview nor a Nav Entry's badge down; it is shown beside them as muted. Unlike Maintenance it has no end, and it means "I know, stop telling me" rather than "this is expected to fail for a while".
+_Avoid_: Silenced, snoozed, acknowledged
 
 **Notification**:
 A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering. It goes out through each channel that is set up (ntfy, Telegram) and whose filter takes its category: Checks, image updates or Action outcomes.

@@ -316,8 +316,9 @@ it("switches light and dark from the phone top bar too, in step with the desktop
   window.localStorage.clear();
   document.documentElement.className = "";
   await boot("/", []);
-  // The phone top bar is the first banner: jsdom counts a Panel's header as one too.
-  const phone = within(screen.getAllByRole("banner")[0]).getByRole("button", { name: "Dark mode" });
+  // The top bar: testing-library counts a Panel's header in main (the Overview's "Needs you") as a banner too.
+  const bar = screen.getAllByRole("banner").find((b) => !b.closest("main"))!;
+  const phone = within(bar).getByRole("button", { name: "Dark mode" });
   const desktop = within(screen.getByRole("main")).getByRole("button", { name: "Dark mode" });
 
   fireEvent.click(phone);

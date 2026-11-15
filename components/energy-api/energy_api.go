@@ -71,8 +71,10 @@ type component struct {
 	// db is nil while not set up.
 	db     *influx
 	prices *pb.Prices
-	flow   *sdk.Cache[*pb.GetFlowResponse]
-	first  *sdk.Cache[time.Time]
+	// capacity is the battery's usable kWh, nil while not configured.
+	capacity *float64
+	flow     *sdk.Cache[*pb.GetFlowResponse]
+	first    *sdk.Cache[time.Time]
 
 	mu      sync.Mutex
 	periods map[string]cachedPeriod
@@ -90,6 +92,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pb.EnergyApiConfig
 	addr, token := strings.TrimSpace(cfg.GetUrl()), strings.TrimSpace(cfg.GetToken())
 	var errs sdk.FieldErrors
 	prices := parsePrices(cfg, &errs)
+	capacity := parseCapacity(cfg.GetBatteryCapacity(), &errs)
 	if addr == "" && token == "" {
 		return errs.Err()
 	}
@@ -112,6 +115,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pb.EnergyApiConfig
 	}
 	c.db = newInflux(addr, token, bucket, &http.Client{Timeout: requestTimeout})
 	c.prices = prices
+	c.capacity = capacity
 	c.flow = sdk.Cached(sdk.TTLFast, c.readFlow)
 	c.first = sdk.Cached(24*time.Hour, c.readFirst)
 	c.periods = map[string]cachedPeriod{}
@@ -140,6 +144,21 @@ func parsePrices(cfg *pb.EnergyApiConfig, errs *sdk.FieldErrors) *pb.Prices {
 		return nil
 	}
 	return &pb.Prices{Buy: buy, Sell: sell}
+}
+
+// parseCapacity reads the battery's capacity, kWh with a decimal point or
+// comma. Empty is none.
+func parseCapacity(s string, errs *sdk.FieldErrors) *float64 {
+	s = strings.ReplaceAll(strings.TrimSpace(s), ",", ".")
+	if s == "" {
+		return nil
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil || !(v > 0 && v < 10000) {
+		errs.Add("battery_capacity", "must be kWh, e.g. 10")
+		return nil
+	}
+	return &v
 }
 
 // Health is down while InfluxDB can't be read, and degraded while it has
@@ -185,7 +204,7 @@ func (c *component) readFlow(ctx context.Context) (*pb.GetFlowResponse, error) {
 	}
 	resp.At = timestamppb.New(at)
 	resp.Power = powerOf(values)
-	resp.Battery = &pb.Battery{SocPct: opt(values, socPct), Voltage: opt(values, batteryV)}
+	resp.Battery = &pb.Battery{SocPct: opt(values, socPct), Voltage: opt(values, batteryV), CapacityKwh: c.capacity}
 	return resp, nil
 }
 

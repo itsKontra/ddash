@@ -3,6 +3,10 @@
 export {
   definePlugin,
   type Badge,
+  type Concern,
+  type ConcernAction,
+  type ConcernTone,
+  type Fact,
   type NavEntry,
   type PluginDefinition,
   type Status,

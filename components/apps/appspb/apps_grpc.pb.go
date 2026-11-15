@@ -27,6 +27,7 @@ const (
 	AppsService_ListApps_FullMethodName        = "/ddash.apps.AppsService/ListApps"
 	AppsService_Refresh_FullMethodName         = "/ddash.apps.AppsService/Refresh"
 	AppsService_SetSettings_FullMethodName     = "/ddash.apps.AppsService/SetSettings"
+	AppsService_SetPins_FullMethodName         = "/ddash.apps.AppsService/SetPins"
 	AppsService_IgnoreWarning_FullMethodName   = "/ddash.apps.AppsService/IgnoreWarning"
 	AppsService_UnignoreWarning_FullMethodName = "/ddash.apps.AppsService/UnignoreWarning"
 	AppsService_Reattach_FullMethodName        = "/ddash.apps.AppsService/Reattach"
@@ -52,6 +53,10 @@ type AppsServiceClient interface {
 	// SetSettings sets an App's ddash-only settings: name, icon, group,
 	// Hidden and Workload override. They take effect at once.
 	SetSettings(ctx context.Context, in *SetSettingsRequest, opts ...grpc.CallOption) (*SetSettingsResponse, error)
+	// SetPins pins the Apps ids to the Overview's Apps Widget in their
+	// order, unpinning every other App. A pin touches its App. It takes
+	// effect at once.
+	SetPins(ctx context.Context, in *SetPinsRequest, opts ...grpc.CallOption) (*SetPinsResponse, error)
 	// IgnoreWarning Ignores one kind of Warning on an App until it is
 	// un-ignored: it is still listed, flagged, but doesn't count.
 	IgnoreWarning(ctx context.Context, in *IgnoreWarningRequest, opts ...grpc.CallOption) (*IgnoreWarningResponse, error)
@@ -142,6 +147,16 @@ func (c *appsServiceClient) SetSettings(ctx context.Context, in *SetSettingsRequ
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SetSettingsResponse)
 	err := c.cc.Invoke(ctx, AppsService_SetSettings_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *appsServiceClient) SetPins(ctx context.Context, in *SetPinsRequest, opts ...grpc.CallOption) (*SetPinsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetPinsResponse)
+	err := c.cc.Invoke(ctx, AppsService_SetPins_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -270,6 +285,10 @@ type AppsServiceServer interface {
 	// SetSettings sets an App's ddash-only settings: name, icon, group,
 	// Hidden and Workload override. They take effect at once.
 	SetSettings(context.Context, *SetSettingsRequest) (*SetSettingsResponse, error)
+	// SetPins pins the Apps ids to the Overview's Apps Widget in their
+	// order, unpinning every other App. A pin touches its App. It takes
+	// effect at once.
+	SetPins(context.Context, *SetPinsRequest) (*SetPinsResponse, error)
 	// IgnoreWarning Ignores one kind of Warning on an App until it is
 	// un-ignored: it is still listed, flagged, but doesn't count.
 	IgnoreWarning(context.Context, *IgnoreWarningRequest) (*IgnoreWarningResponse, error)
@@ -344,6 +363,9 @@ func (UnimplementedAppsServiceServer) Refresh(context.Context, *RefreshRequest) 
 }
 func (UnimplementedAppsServiceServer) SetSettings(context.Context, *SetSettingsRequest) (*SetSettingsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetSettings not implemented")
+}
+func (UnimplementedAppsServiceServer) SetPins(context.Context, *SetPinsRequest) (*SetPinsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetPins not implemented")
 }
 func (UnimplementedAppsServiceServer) IgnoreWarning(context.Context, *IgnoreWarningRequest) (*IgnoreWarningResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method IgnoreWarning not implemented")
@@ -446,6 +468,24 @@ func _AppsService_SetSettings_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AppsServiceServer).SetSettings(ctx, req.(*SetSettingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AppsService_SetPins_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetPinsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AppsServiceServer).SetPins(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AppsService_SetPins_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AppsServiceServer).SetPins(ctx, req.(*SetPinsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -641,6 +681,10 @@ var AppsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetSettings",
 			Handler:    _AppsService_SetSettings_Handler,
+		},
+		{
+			MethodName: "SetPins",
+			Handler:    _AppsService_SetPins_Handler,
 		},
 		{
 			MethodName: "IgnoreWarning",

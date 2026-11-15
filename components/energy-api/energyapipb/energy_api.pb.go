@@ -104,9 +104,12 @@ type EnergyApiConfig struct {
 	// leaves costs out.
 	BuyPrice string `protobuf:"bytes,4,opt,name=buy_price,json=buyPrice,proto3" json:"buy_price,omitempty"`
 	// What a kWh fed into the grid earns, in € with a decimal point.
-	SellPrice     string `protobuf:"bytes,5,opt,name=sell_price,json=sellPrice,proto3" json:"sell_price,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	SellPrice string `protobuf:"bytes,5,opt,name=sell_price,json=sellPrice,proto3" json:"sell_price,omitempty"`
+	// The battery's usable capacity in kWh, with a decimal point; empty
+	// leaves the time to empty or full out.
+	BatteryCapacity string `protobuf:"bytes,6,opt,name=battery_capacity,json=batteryCapacity,proto3" json:"battery_capacity,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *EnergyApiConfig) Reset() {
@@ -170,6 +173,13 @@ func (x *EnergyApiConfig) GetBuyPrice() string {
 func (x *EnergyApiConfig) GetSellPrice() string {
 	if x != nil {
 		return x.SellPrice
+	}
+	return ""
+}
+
+func (x *EnergyApiConfig) GetBatteryCapacity() string {
+	if x != nil {
+		return x.BatteryCapacity
 	}
 	return ""
 }
@@ -384,8 +394,10 @@ func (x *Power) GetConsumption() float64 {
 type Battery struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// State of charge, 0 to 100.
-	SocPct        *float64 `protobuf:"fixed64,1,opt,name=soc_pct,json=socPct,proto3,oneof" json:"soc_pct,omitempty"`
-	Voltage       *float64 `protobuf:"fixed64,2,opt,name=voltage,proto3,oneof" json:"voltage,omitempty"`
+	SocPct  *float64 `protobuf:"fixed64,1,opt,name=soc_pct,json=socPct,proto3,oneof" json:"soc_pct,omitempty"`
+	Voltage *float64 `protobuf:"fixed64,2,opt,name=voltage,proto3,oneof" json:"voltage,omitempty"`
+	// The usable capacity in kWh, as configured; unset while none is.
+	CapacityKwh   *float64 `protobuf:"fixed64,3,opt,name=capacity_kwh,json=capacityKwh,proto3,oneof" json:"capacity_kwh,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -430,6 +442,13 @@ func (x *Battery) GetSocPct() float64 {
 func (x *Battery) GetVoltage() float64 {
 	if x != nil && x.Voltage != nil {
 		return *x.Voltage
+	}
+	return 0
+}
+
+func (x *Battery) GetCapacityKwh() float64 {
+	if x != nil && x.CapacityKwh != nil {
+		return *x.CapacityKwh
 	}
 	return 0
 }
@@ -935,7 +954,7 @@ var File_energy_api_energy_api_proto protoreflect.FileDescriptor
 
 const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1benergy-api/energy_api.proto\x12\x0fddash.energyapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xff\x03\n" +
+	"\x1benergy-api/energy_api.proto\x12\x0fddash.energyapi\x1a\x19ddash/config/config.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd5\x05\n" +
 	"\x0fEnergyApiConfig\x12I\n" +
 	"\x03url\x18\x01 \x01(\tB7\x9a\xb5\x183\x1a\x10InfluxDB address*\x1dhttps://influxdb.home.example8\x01R\x03url\x12j\n" +
 	"\x05token\x18\x02 \x01(\tBT\x9a\xb5\x18P\x10\x01\x1a\tAPI token\"AA read-only token for the bucket. ddash never writes to InfluxDB.R\x05token\x12%\n" +
@@ -943,7 +962,8 @@ const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\x02PVH\x00R\x06bucket\x88\x01\x01\x12\x95\x01\n" +
 	"\tbuy_price\x18\x04 \x01(\tBx\x9a\xb5\x18t\x1a\x14Grid price (€/kWh)\"TWhat a kWh bought from the grid costs, taxes included. Leave empty to show no costs.*\x060.2418R\bbuyPrice\x12k\n" +
 	"\n" +
-	"sell_price\x18\x05 \x01(\tBL\x9a\xb5\x18H\x1a\x18Feed-in tariff (€/kWh)\"#What a kWh fed into the grid earns.*\a0.05786R\tsellPriceB\t\n" +
+	"sell_price\x18\x05 \x01(\tBL\x9a\xb5\x18H\x1a\x18Feed-in tariff (€/kWh)\"#What a kWh fed into the grid earns.*\a0.05786R\tsellPrice\x12\xd3\x01\n" +
+	"\x10battery_capacity\x18\x06 \x01(\tB\xa7\x01\x9a\xb5\x18\xa2\x01\x1a\x16Battery capacity (kWh)\"\x83\x01The battery's usable capacity, to estimate how long it lasts or takes to fill at the current rate. Leave empty to show no estimate.*\x0210R\x0fbatteryCapacityB\t\n" +
 	"\a_bucket\"\x10\n" +
 	"\x0eGetFlowRequest\"\xb6\x01\n" +
 	"\x0fGetFlowResponse\x12\x15\n" +
@@ -967,14 +987,16 @@ const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\n" +
 	"_heat_pumpB\b\n" +
 	"\x06_loadsB\x0e\n" +
-	"\f_consumption\"^\n" +
+	"\f_consumption\"\x97\x01\n" +
 	"\aBattery\x12\x1c\n" +
 	"\asoc_pct\x18\x01 \x01(\x01H\x00R\x06socPct\x88\x01\x01\x12\x1d\n" +
-	"\avoltage\x18\x02 \x01(\x01H\x01R\avoltage\x88\x01\x01B\n" +
+	"\avoltage\x18\x02 \x01(\x01H\x01R\avoltage\x88\x01\x01\x12&\n" +
+	"\fcapacity_kwh\x18\x03 \x01(\x01H\x02R\vcapacityKwh\x88\x01\x01B\n" +
 	"\n" +
 	"\b_soc_pctB\n" +
 	"\n" +
-	"\b_voltage\"n\n" +
+	"\b_voltageB\x0f\n" +
+	"\r_capacity_kwh\"n\n" +
 	"\x10GetPeriodRequest\x12)\n" +
 	"\x04span\x18\x01 \x01(\x0e2\x15.ddash.energyapi.SpanR\x04span\x12\x12\n" +
 	"\x04date\x18\x02 \x01(\tR\x04date\x12\x1b\n" +

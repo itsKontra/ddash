@@ -341,6 +341,57 @@
       "maxcpu": 4,
       "diskwrite": 0,
       "memhost": 0
+    },
+    {
+      "id": "node/pve",
+      "type": "node",
+      "node": "pve",
+      "status": "online",
+      "level": "",
+      "cgroup-mode": 2,
+      "cpu": 0.0215,
+      "maxcpu": 16,
+      "mem": 10093813760,
+      "maxmem": 68719476736,
+      "disk": 12884901888,
+      "maxdisk": 100861726720,
+      "uptime": 238410
+    },
+    {
+      "id": "storage/pve/local",
+      "type": "storage",
+      "node": "pve",
+      "storage": "local",
+      "plugintype": "dir",
+      "content": "iso,vztmpl,backup",
+      "shared": 0,
+      "status": "available",
+      "disk": 39038095360,
+      "maxdisk": 100861726720
+    },
+    {
+      "id": "storage/pve/local-lvm",
+      "type": "storage",
+      "node": "pve",
+      "storage": "local-lvm",
+      "plugintype": "lvmthin",
+      "content": "images,rootdir",
+      "shared": 0,
+      "status": "available",
+      "disk": 120259084288,
+      "maxdisk": 429496729600
+    },
+    {
+      "id": "storage/pve/pbs",
+      "type": "storage",
+      "node": "pve",
+      "storage": "pbs",
+      "plugintype": "pbs",
+      "content": "backup",
+      "shared": 1,
+      "status": "available",
+      "disk": 2123705987072,
+      "maxdisk": 3936142082048
     }
   ]
 }

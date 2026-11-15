@@ -47,6 +47,12 @@ service ProxmoxApiService {
   rpc ListWorkloads(ListWorkloadsRequest) returns (ListWorkloadsResponse) {
     option (ddash.getter) = {refresh: FAST};
   }
+  // ListNodes returns every node the token may audit (Sys.Audit on
+  // /nodes), with its CPU and memory use and the storages on it the token
+  // may audit (Datastore.Audit on /storage), by name.
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse) {
+    option (ddash.getter) = {refresh: FAST};
+  }
   // ListPermissions returns ddash's effective privileges on each Workload
   // ListWorkloads lists, from /access/permissions.
   rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
@@ -167,6 +173,28 @@ message Nic {
   string mac = 2;
   // Addresses without their prefix length; link-local ones left out.
   repeated string ips = 3;
+}
+
+message ListNodesRequest {}
+
+message ListNodesResponse {
+  repeated Node nodes = 1;
+}
+
+// A Proxmox VE node, from /cluster/resources.
+message Node {
+  string name = 1;
+  // Proxmox's status: online, offline or unknown.
+  string status = 2;
+  // CPU use as a fraction of max_cpu, 0 to 1.
+  double cpu = 3;
+  uint32 max_cpu = 4;
+  // Memory in bytes.
+  uint64 mem = 5;
+  uint64 max_mem = 6;
+  uint64 uptime_seconds = 7;
+  // Its storages, a shared one under every node it is on.
+  repeated Storage storages = 8;
 }
 
 message ListPermissionsRequest {}
@@ -339,4 +367,7 @@ message Storage {
   // Bytes free and in all; 0 when Proxmox doesn't say.
   uint64 avail = 5;
   uint64 total = 6;
+  // What it may hold, e.g. "images" and "rootdir" (guest disks),
+  // "backup", "iso".
+  repeated string content = 7;
 }
