@@ -11,14 +11,18 @@ function useWorkloads() {
   return { ...q, workloads: q.data?.workloads.filter((w) => !w.template) };
 }
 
-/** Up, with the counts; warn while proxmox-api is unavailable. */
+/** Up, with the counts and the running guests as its fact; warn while proxmox-api is unavailable. */
 function useStatus(): Status | undefined {
   const { workloads, error } = useWorkloads();
   if (error) return { tone: "warn", summary: `proxmox-api unavailable: ${error.rawMessage}` };
   if (!workloads) return undefined;
   const lxcs = workloads.filter((w) => w.kind === Kind.LXC).length;
   const vms = workloads.filter((w) => w.kind === Kind.VM).length;
-  return { tone: "up", summary: `${running(workloads)} of ${workloads.length} running · ${plural(lxcs, "LXC")}, ${plural(vms, "VM")}` };
+  return {
+    tone: "up",
+    summary: `${running(workloads)} of ${workloads.length} running · ${plural(lxcs, "LXC")}, ${plural(vms, "VM")}`,
+    fact: { value: running(workloads), label: "guests running" },
+  };
 }
 
 /** S: the running and total counts. M: each kind's counts too. */

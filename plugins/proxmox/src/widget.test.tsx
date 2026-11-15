@@ -44,7 +44,7 @@ it("is the guests Widget, S or M, S by default", () => {
 it("reports up with the counts in its summary", async () => {
   const reported = await show(() => Response.json(listed));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "3 of 5 running · 3 LXCs, 2 VMs" });
+  expect(reported.status).toEqual({ tone: "up", summary: "3 of 5 running · 3 LXCs, 2 VMs" , fact: { value: 3, label: "guests running" } });
 });
 
 it("shows the counts at S, and each kind's at M", async () => {

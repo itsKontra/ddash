@@ -8,7 +8,7 @@ import { latency, shownName, stateLabel, tally, toneOf, useChecks, warning } fro
  * with the count. A muted Check that is down doesn't count: it is only
  * told after the summary, and the up count is then of the watched
  * (unmuted) Checks; idle when none is watched. Idle without Checks; warn
- * when checks is unavailable.
+ * when checks is unavailable. Its fact: how many of the watched Checks are up.
  */
 function useStatus(): Status | undefined {
   const { data, error } = useChecks();
@@ -16,14 +16,15 @@ function useStatus(): Status | undefined {
   if (!data) return undefined;
   const { enabled, up, warn, down, muted, maint } = tally(data.checks);
   if (!enabled.length) return { tone: "idle", summary: "No Checks yet" };
-  const also = muted.length ? ` · ${muted.length} muted down` : "";
-  if (down.length) return { tone: "down", summary: `${down.length} down: ${down.map(shownName).join(", ")}${also}` };
-  if (warn.length) return { tone: "warn", summary: warn.map(warning).join("; ") + also };
-  if (maint.length) return { tone: "maint", summary: `${maint.length} in Maintenance${also}` };
-  if (!muted.length) return { tone: "up", summary: `${up.length} of ${enabled.length} up` };
   const watched = enabled.filter((c) => !c.muted);
+  const fact = watched.length ? { value: up.filter((c) => !c.muted).length, label: `of ${watched.length} ${watched.length === 1 ? "Check" : "Checks"} up` } : undefined;
+  const also = muted.length ? ` · ${muted.length} muted down` : "";
+  if (down.length) return { tone: "down", summary: `${down.length} down: ${down.map(shownName).join(", ")}${also}`, fact };
+  if (warn.length) return { tone: "warn", summary: warn.map(warning).join("; ") + also, fact };
+  if (maint.length) return { tone: "maint", summary: `${maint.length} in Maintenance${also}`, fact };
+  if (!muted.length) return { tone: "up", summary: `${up.length} of ${enabled.length} up`, fact };
   if (!watched.length) return { tone: "idle", summary: `${muted.length} muted down` };
-  return { tone: "up", summary: `${up.filter((c) => !c.muted).length} of ${watched.length} watched up${also}` };
+  return { tone: "up", summary: `${fact!.value} of ${watched.length} watched up${also}`, fact };
 }
 
 /**

@@ -70,7 +70,9 @@ const rows = () =>
   within(panel())
     .queryAllByRole("listitem")
     .map((li) => li.getAttribute("aria-label"));
-const overall = () => within(screen.getByText("Status").closest("section")!).getByRole("img", { name: /^Overall: / }).getAttribute("aria-label");
+const overall = () => screen.getByRole("img", { name: /^Overall: / }).getAttribute("aria-label");
+// The hero: the region named by its sentence.
+const sentence = () => screen.getByRole("img", { name: /^Overall: / }).closest("section")!.querySelector("h2")!.textContent;
 
 it("lists every installed Plugin's Concerns in one place, worst first, Widget placed or not", async () => {
   plugins = [
@@ -86,6 +88,9 @@ it("lists every installed Plugin's Concerns in one place, worst first, Widget pl
   expect(rows()).toEqual(["nas is down", "media disk is 92 % full", "New Device on the network"]);
   expect(within(panel()).getByRole("heading").textContent).toBe("Needs you3");
   expect(panel().textContent).toContain("timeout · 6 min ago");
+  // The hero names what is down by its subject, once, though the Checks Widget is down too.
+  expect(sentence()).toBe("nas is down. Everything else is up.");
+  expect(overall()).toBe("Overall: down");
 });
 
 it("says nothing needs the Operator once every Plugin reported none", async () => {
@@ -140,6 +145,7 @@ it("folds the quiet ones under one line, and they leave the hero's tone alone", 
   // Folded, they are still there, each with its detail.
   expect(within(screen.getByRole("list", { name: "Off on purpose", hidden: true })).getByRole("link", { name: "Details", hidden: true }).getAttribute("href")).toBe("/checks/1");
   expect(overall()).toBe("Overall: up");
+  expect(sentence()).toBe("Everything you watch is up.");
 });
 
 it("runs an Action's newest run, through the Plugin's own confirm", async () => {

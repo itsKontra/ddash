@@ -25,7 +25,7 @@ function useUpdates(): number | undefined {
  * Up, with the running count (and the image updates waiting on hosts with
  * a Docker Agent), while every container is fine. Warn when a
  * container is unhealthy or restarting, a Docker host can't be read, or
- * docker-api is unavailable.
+ * docker-api is unavailable. Its fact: the running containers.
  */
 function useStatus(): Status | undefined {
   const { data, error } = useContainers();
@@ -33,6 +33,7 @@ function useStatus(): Status | undefined {
   if (error) return { tone: "warn", summary: `docker-api unavailable: ${error.rawMessage}` };
   if (!data) return undefined;
   const all = data.hosts.flatMap((h) => h.containers);
+  const fact = { value: running(all), label: "containers running" };
   const problems = [
     [all.filter(unhealthy).length, "unhealthy"],
     [all.filter(restarting).length, "restarting"],
@@ -40,9 +41,9 @@ function useStatus(): Status | undefined {
     .filter(([n]) => n)
     .map(([n, what]) => `${n} ${what}`);
   const unreadable = data.hosts.filter((h) => h.error).map((h) => `${h.host} unreadable`);
-  if (problems.length || unreadable.length) return { tone: "warn", summary: [...problems, ...unreadable].join(" · ") };
+  if (problems.length || unreadable.length) return { tone: "warn", summary: [...problems, ...unreadable].join(" · "), fact };
   const waiting = updates ? ` · ${updates} ${updates === 1 ? "update" : "updates"} waiting` : "";
-  return { tone: "up", summary: `${running(all)} of ${all.length} running${waiting}` };
+  return { tone: "up", summary: `${running(all)} of ${all.length} running${waiting}`, fact };
 }
 
 /** S: the running and total counts. M: each host's counts too. */
