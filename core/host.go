@@ -86,6 +86,9 @@ type Host struct {
 	handler   http.Handler
 	// keycloak is sign-in, when the host runs with OIDC.
 	keycloak *auth.Keycloak
+	// signInOrigin is Keycloak's origin, where Sign out sends the
+	// Operator, or empty without OIDC (shellPolicy).
+	signInOrigin string
 
 	log *slog.Logger
 
@@ -156,6 +159,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 			return nil, err
 		}
 		guard = h.keycloak.Guard
+		h.signInOrigin = origin(opts.OIDC.Issuer)
 	}
 	h.handler = forwarded(h.secured(h.routes(guard)))
 	return h, nil
@@ -171,7 +175,8 @@ func (h *Host) auditSignIn(ctx context.Context, actor auth.Actor, event string, 
 // Actions, so no other site may frame it; nothing it serves is to be
 // sniffed into another type; and a link out tells the other site nothing.
 // Reached over https, it asks the browser never to fall back to http. A
-// handler may still set a stricter Content-Security-Policy of its own.
+// handler may set a fuller Content-Security-Policy of its own, as the
+// shell's page does (shellPolicy).
 func (h *Host) secured(next http.Handler) http.Handler {
 	https := strings.HasPrefix(h.publicURL, "https://")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

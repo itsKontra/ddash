@@ -2,12 +2,15 @@ package core
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"io"
 	"io/fs"
 	"mime"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -111,7 +114,65 @@ func (h *Host) index(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	b = bytes.ReplaceAll(b, []byte(ReleasePlaceholder), []byte(h.runtime.Release()))
+	w.Header().Set("Content-Security-Policy", shellPolicy(importMapHash(b), h.signInOrigin))
 	serveContent(w, r, "index.html", b, cacheNone)
+}
+
+// shellPolicy is the shell page's Content-Security-Policy: the shell and
+// Plugins load scripts, stylesheets and data from ddash itself only, and
+// no inline script runs but the import map, allowed by its hash. React
+// sets style props through the CSSOM, which style-src doesn't govern, so
+// no inline style is allowed either. Images may come from any http(s)
+// site, for each App's own favicon at its URL. A form may post to ddash
+// and, when it signs in with Keycloak, to signInOrigin: Sign out is a
+// form whose answer redirects to Keycloak's end-session endpoint, and a
+// browser holds a form's redirects to form-action too.
+func shellPolicy(importMap, signInOrigin string) string {
+	script := "script-src 'self'"
+	if importMap != "" {
+		script += " " + importMap
+	}
+	form := "form-action 'self'"
+	if signInOrigin != "" {
+		form += " " + signInOrigin
+	}
+	return strings.Join([]string{
+		"default-src 'none'",
+		script,
+		"style-src 'self'",
+		"img-src 'self' http: https:",
+		"connect-src 'self'",
+		form,
+		"base-uri 'none'",
+		"frame-ancestors 'none'",
+	}, "; ")
+}
+
+// importMapTag opens the shell's inline import map in index.html.
+const importMapTag = `<script type="importmap">`
+
+// importMapHash is the CSP hash source of the import map in html, or empty
+// when it has none.
+func importMapHash(html []byte) string {
+	_, rest, ok := bytes.Cut(html, []byte(importMapTag))
+	if !ok {
+		return ""
+	}
+	importMap, _, ok := bytes.Cut(rest, []byte("</script>"))
+	if !ok {
+		return ""
+	}
+	sum := sha256.Sum256(importMap)
+	return "'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "'"
+}
+
+// origin is rawURL's scheme://host, or empty when it has none.
+func origin(rawURL string) string {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return ""
+	}
+	return u.Scheme + "://" + u.Host
 }
 
 // iconsPath serves lucide icons: GET iconsPath?names=a,b&release=<release>.
