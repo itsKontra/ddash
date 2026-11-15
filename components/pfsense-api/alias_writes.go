@@ -176,7 +176,9 @@ func (c *component) MoveAliasAddress(ctx context.Context, req *pfsenseapipb.Move
 		// The last write applies them all: pfSense answers it once the
 		// filter reloaded, but answers POST firewall/apply before. That
 		// apply only follows a failed write, so the filter runs what
-		// pfSense holds.
+		// pfSense holds. It runs even when ctx is done (the failed write
+		// may have used the request's deadline up): what was written
+		// shouldn't stay pending.
 		var werr error
 		for i, p := range patches {
 			var updated alias
@@ -190,7 +192,10 @@ func (c *component) MoveAliasAddress(ctx context.Context, req *pfsenseapipb.Move
 			return werr
 		}
 		var applied any
-		_ = c.api.send(ctx, http.MethodPost, firewallApplyPath, map[string]any{}, &applied)
+		if aerr := c.api.send(context.WithoutCancel(ctx), http.MethodPost, firewallApplyPath, map[string]any{}, &applied); aerr != nil {
+			return status.Errorf(status.Code(werr), "%s. pfSense also holds alias changes it hasn't applied, because applying them failed (%s): apply the pending changes in pfSense",
+				status.Convert(werr).Message(), status.Convert(aerr).Message())
+		}
 		return werr
 	})
 	if err != nil {

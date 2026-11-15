@@ -1,6 +1,7 @@
 package pfsenseapi_test
 
 import (
+	"context"
 	"fmt"
 	"slices"
 	"strings"
@@ -411,5 +412,56 @@ func TestAMoveWhoseLastWriteIsRefusedStillAppliesTheOnesBefore(t *testing.T) {
 	}
 	if got := aliasWrites(fw); !slices.Contains(got, firewallPost) {
 		t.Errorf("calls = %v, want POST firewall/apply after the refusal", got)
+	}
+}
+
+// The apply that follows a failed write can fail too: pfSense then holds
+// changes its filter doesn't run, and the Operator must hear that.
+func TestAMoveWhoseApplyAlsoFailsSaysPfSenseHoldsUnappliedChanges(t *testing.T) {
+	fw := firewall(t, "baseline")
+	_, c := start(t, fw.URL)
+	if _, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "VPN_BYPASS", Address: "2001:db8::6"}); err != nil {
+		t.Fatal(err)
+	}
+	fw.FailFirewallApply()
+
+	_, err := c.MoveAliasAddress(t.Context(), &pfsenseapipb.MoveAliasAddressRequest{Address: "2001:db8::6", From: []string{"VPN_BYPASS"}, To: "WAN_SUBNETWORK"})
+
+	if status.Code(err) != codes.FailedPrecondition {
+		t.Errorf("Move = %v, want the code of pfSense's refusal", err)
+	}
+	for _, want := range []string{"not a valid CIDR", "hasn't applied", "pfsensefake failed this apply"} {
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("Move = %v, want it to say %q", err, want)
+		}
+	}
+	if !fw.FirewallPending() {
+		t.Error("nothing pending, want the first write waiting for an apply")
+	}
+}
+
+// The failed write may be the one that used the request's deadline up.
+func TestTheApplyAfterAFailedWriteRunsThoughTheRequestIsOver(t *testing.T) {
+	fw := firewallWith(t, "baseline", pfsensefake.Options{WriteDelay: 400 * time.Millisecond})
+	_, c := start(t, fw.URL)
+	if _, err := c.AddAliasAddress(t.Context(), &pfsenseapipb.AddAliasAddressRequest{Alias: "VPN_BYPASS", Address: "198.18.1.77"}); err != nil {
+		t.Fatal(err)
+	}
+	// Time for the first write, not for the second.
+	ctx, cancel := context.WithTimeout(t.Context(), 600*time.Millisecond)
+	defer cancel()
+
+	_, err := c.MoveAliasAddress(ctx, &pfsenseapipb.MoveAliasAddressRequest{Address: "198.18.1.77", From: []string{"VPN_BYPASS"}, To: "KILL_SWITCH"})
+
+	if err == nil {
+		t.Fatal("Move succeeded, want the second write's deadline")
+	}
+	// The caller has its answer; the Component is still at work.
+	deadline := time.Now().Add(5 * time.Second)
+	for !slices.Contains(aliasWrites(fw), firewallPost) {
+		if time.Now().After(deadline) {
+			t.Fatalf("calls = %v, want POST firewall/apply after the request ended", aliasWrites(fw))
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
