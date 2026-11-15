@@ -1,6 +1,6 @@
-import { useAction, useQuery } from "@ddash/plugin";
+import { useAction, useQuery, type Action } from "@ddash/plugin";
 import { Kind as RefKind } from "@ddash/proto/ddash/workload/workload_pb";
-import { Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
+import { Kind, ProxmoxApiService, type ListPermissionsResponse, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { PowerAction, ProxmoxService, type PowerTask } from "@ddash/proto/proxmox/proxmox_pb";
 import { ActionStrip, Button, Notice, Pill, Skeleton } from "@ddash/ui";
 import { kindLabel } from "@ddash/display";
@@ -30,10 +30,56 @@ export function taskOf(tasks: readonly PowerTask[] | undefined, w: Workload): st
 }
 
 /** One power Action offered on a Workload. */
-interface Item {
+export interface PowerItem {
   label: "Start" | "Stop" | "Restart";
   danger: boolean;
   run: () => void;
+}
+
+/** The three power Actions, as useAction gives them. */
+export interface PowerActions {
+  start: Action<typeof ProxmoxService.method.startWorkload>;
+  stop: Action<typeof ProxmoxService.method.stopWorkload>;
+  restart: Action<typeof ProxmoxService.method.restartWorkload>;
+}
+
+/** The power Actions, for the Page's buttons and the command palette alike. */
+export function usePowerActions(): PowerActions {
+  return {
+    start: useAction(ProxmoxService.method.startWorkload),
+    stop: useAction(ProxmoxService.method.stopWorkload),
+    restart: useAction(ProxmoxService.method.restartWorkload),
+  };
+}
+
+/**
+ * The power Actions a Workload's status allows, with the confirm each
+ * asks: Restart and Stop while it runs, Start while it is stopped, none
+ * for a template. Whether ddash may (Protected) is the caller's to say.
+ */
+export function powerItems(w: Workload, { start, stop, restart }: PowerActions): PowerItem[] {
+  const label = workloadLabel(w);
+  const request = { workload: refOf(w) };
+  if (w.template) return [];
+  if (w.status === "running") {
+    return [
+      { label: "Restart", danger: true, run: () => void restart.run(request, { confirm: { text: `Restart ${label}?`, action: "Restart" } }) },
+      {
+        label: "Stop",
+        danger: true,
+        run: () =>
+          void stop.run(request, { confirm: { text: `Stop ${label}? Proxmox shuts it down cleanly and turns it off after 45 s if it hasn't stopped.`, action: "Stop" } }),
+      },
+    ];
+  }
+  if (w.status === "stopped") return [{ label: "Start", danger: false, run: () => void start.run(request) }];
+  return [];
+}
+
+/** Whether ddash may change a Workload's power: undefined until its permissions are known, false where it is Protected. */
+export function mayPower(perms: ListPermissionsResponse | undefined, w: Workload): boolean | undefined {
+  const privileges = perms?.workloads.find((p) => p.vmid === w.vmid)?.privileges;
+  return privileges && privileges.includes(powerMgmt);
 }
 
 /**
@@ -45,31 +91,16 @@ interface Item {
 export function usePower(w: Workload) {
   const perms = useQuery(ProxmoxApiService.method.listPermissions, {});
   const tasks = useQuery(ProxmoxService.method.listPowerTasks, {});
-  const start = useAction(ProxmoxService.method.startWorkload);
-  const stop = useAction(ProxmoxService.method.stopWorkload);
-  const restart = useAction(ProxmoxService.method.restartWorkload);
+  const actions = usePowerActions();
+  const { start, stop, restart } = actions;
 
-  const privileges = perms.data?.workloads.find((p) => p.vmid === w.vmid)?.privileges;
+  const may = mayPower(perms.data, w);
   const task = taskOf(tasks.data?.tasks, w);
   const label = workloadLabel(w);
-  const request = { workload: refOf(w) };
-  const items: Item[] = [];
-  if (!w.template && w.status === "running") {
-    items.push(
-      { label: "Restart", danger: true, run: () => void restart.run(request, { confirm: { text: `Restart ${label}?`, action: "Restart" } }) },
-      {
-        label: "Stop",
-        danger: true,
-        run: () =>
-          void stop.run(request, { confirm: { text: `Stop ${label}? Proxmox shuts it down cleanly and turns it off after 45 s if it hasn't stopped.`, action: "Stop" } }),
-      },
-    );
-  } else if (!w.template && w.status === "stopped") {
-    items.push({ label: "Start", danger: false, run: () => void start.run(request) });
-  }
+  const items = powerItems(w, actions);
   return {
-    known: privileges !== undefined,
-    protected: privileges !== undefined && !privileges.includes(powerMgmt),
+    known: may !== undefined,
+    protected: may === false,
     items,
     label,
     busy: task !== undefined || start.pending || stop.pending || restart.pending,

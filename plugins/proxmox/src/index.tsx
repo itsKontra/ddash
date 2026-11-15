@@ -1,5 +1,6 @@
 import { definePlugin } from "@ddash/plugin";
 import "./index.css";
+import { useCommands } from "./commands";
 import { useConcerns } from "./concerns";
 import { WorkloadDetail } from "./detail";
 import { SSHKeys } from "./ssh-keys";
@@ -16,4 +17,5 @@ export default definePlugin({
   ],
   widgets: [hosts, guests],
   useConcerns,
+  useCommands,
 });

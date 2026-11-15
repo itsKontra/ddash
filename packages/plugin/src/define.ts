@@ -118,9 +118,31 @@ export interface Concern {
 /**
  * An entry the Plugin offers the command palette (Ctrl K): open an App,
  * go to one of its Pages, or start one of its Actions. The palette only
- * calls run; it never changes anything itself.
+ * calls run or draws sheet; it never changes anything itself.
  */
-export interface Command {
+export type Command = CommandEntry &
+  (
+    | {
+        /**
+         * Does it the way the Plugin's Page does: opens the App, navigates, or
+         * runs the Action with the confirm its button asks.
+         */
+        run: () => void;
+      }
+    | {
+        /**
+         * Draws the Plugin's own Sheet for it, the one its button on the
+         * Page opens (a Plan, a form), in the Plugin's scope on whatever
+         * Page the palette was opened, until it calls close. Called on
+         * every render while open, so what it returns must be elements of
+         * stable components.
+         */
+        sheet: (close: () => void) => ReactNode;
+      }
+  );
+
+/** What every Command has, whether it runs or opens a Sheet. */
+export interface CommandEntry {
   /** Stable while the Command lasts, and unique within the Plugin. */
   id: string;
   /** What it does, verb first: "Open Grafana", "Restart paperless". */
@@ -139,11 +161,6 @@ export interface Command {
    * palette lists it under Pinned, in the order the Plugin gives.
    */
   pinned?: boolean;
-  /**
-   * Does it the way the Plugin's Page does: opens the App, navigates, or
-   * runs the Action with the confirm or Plan its button asks.
-   */
-  run: () => void;
 }
 
 /** What a Plugin's bundle exports as default. */

@@ -60,15 +60,17 @@ export interface Offered {
 
 /**
  * Every Plugin's Commands as entries, in the Plugins' order and each
- * Plugin's, grouped under the Plugin's title. A Command without a title or run is dropped, and so
- * is a Plugin's second one with an id it already used.
+ * Plugin's, grouped under the Plugin's title. A Command without a title,
+ * or with neither a run nor a sheet, is dropped, and so is a Plugin's
+ * second one with an id it already used.
  */
 export function commandEntries(offered: readonly Offered[], run: (plugin: string, id: string) => void): Entry[] {
   const out: Entry[] = [];
   for (const { plugin, title, commands } of offered) {
     const ids = new Set<string>();
     for (const c of commands) {
-      if (typeof c.title !== "string" || c.title === "" || typeof c.run !== "function" || ids.has(c.id)) continue;
+      const does = "sheet" in c ? c.sheet : (c as { run?: unknown }).run;
+      if (typeof c.title !== "string" || c.title === "" || typeof does !== "function" || ids.has(c.id)) continue;
       ids.add(c.id);
       out.push({
         key: `${plugin}:${c.id}`,

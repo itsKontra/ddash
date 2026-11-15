@@ -9,7 +9,12 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
   opens a command palette on every Page, also from "Search or run…" in
   the top bar. Type a word's start to open an App, go to a Page or the
   Audit Log, or switch light and dark; empty, it leads with what needs you
-  and your pinned Apps.
+  and your pinned Apps. It also starts the Plugins' Actions: start,
+  restart, stop or update a Proxmox guest, update all running guests,
+  start, restart or update a Compose Project, go to a Device, add a
+  Remote Access device ("restart pap" → Restart paperless). Each opens
+  the same confirm or Plan as its button on the Page, and a Protected
+  Workload offers no stop or restart.
 - Nothing to do: a muted Check that is down no longer turns the Checks and
   Apps Widgets, the Overview or the Checks badge down; they say "N muted
   down" beside it instead.

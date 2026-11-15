@@ -1,5 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { createQueryClient, definePlugin, type Command, type Concern, type PluginDefinition } from "@ddash/plugin";
+import { createQueryClient, definePlugin, usePlugin, type Command, type Concern, type PluginDefinition } from "@ddash/plugin";
+import { Button, Dialog } from "@ddash/ui";
 import { settle, tracked } from "@ddash/plugin/testing";
 import { useEffect } from "react";
 import { MemoryRouter, useLocation } from "react-router";
@@ -206,6 +207,33 @@ it("reads the Concerns Needs you lists, running each Plugin's useConcerns once",
   expect(within(screen.getByRole("list", { name: "Needs you" })).getAllByRole("listitem")).toHaveLength(1);
   expect(within(palette()!).getByRole("group", { name: "Needs you" }).textContent).toMatch(/n8n is down/);
   expect(mounted).toBe(1);
+});
+
+// A Plugin's Plan Dialog: whose scope it is drawn in, and its close.
+function PlanSheet({ name, onClose }: { name: string; onClose: () => void }) {
+  return <Dialog title={`Restart ${name}`} subtitle={`in ${usePlugin().name}'s scope`} onClose={onClose} footer={<Button onClick={onClose}>Cancel</Button>} />;
+}
+
+it("draws a Command's Sheet in its Plugin's scope on a Page that isn't the Plugin's, until it closes", async () => {
+  const commands: Command[] = [
+    { id: "restart:media/paperless", title: "Restart paperless", hint: "Compose Project on media", sheet: (close) => <PlanSheet name="paperless" onClose={close} /> },
+  ];
+  plugins = [docker(), [installed("compose", "Compose"), definePlugin({ useCommands: () => commands })]];
+  await boot("/settings");
+
+  press("k", { ctrlKey: true });
+  await settle();
+  await type("restart pap");
+  press("Enter");
+  await settle();
+
+  expect(palette()).toBeNull();
+  const plan = screen.getByRole("dialog", { name: "Restart paperless" });
+  expect(plan.textContent).toMatch(/in compose's scope/);
+  expect(path()).toBe("/settings");
+  fireEvent.click(within(plan).getByRole("button", { name: "Cancel" }));
+  await settle();
+  expect(screen.queryByRole("dialog", { name: "Restart paperless" })).toBeNull();
 });
 
 it("switches the scheme", async () => {

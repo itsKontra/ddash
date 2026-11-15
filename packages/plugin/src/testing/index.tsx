@@ -3,10 +3,10 @@
 // however long a loaded machine takes, and the answers and queries every
 // Plugin's tests need. Only tests import it; no bundle does.
 import { act, render, within } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { MemoryRouter, Route, Routes, useRoutes } from "react-router";
 import { afterEach, vi } from "vitest";
-import type { PluginDefinition, Status, Widget, WidgetSize } from "../define";
+import type { Command, PluginDefinition, Status, Widget, WidgetSize } from "../define";
 import { InstalledPlugins } from "../link";
 import { createQueryClient } from "../query";
 import { PluginHost, PluginScope } from "../scope";
@@ -258,4 +258,41 @@ export function metricValue(label: string, container: HTMLElement = document.bod
 export async function typed() {
   await act(() => new Promise((r) => setTimeout(r, settleDelay + 50)));
   await settle();
+}
+
+/** What showCommands gives: the Commands as last reported, the calls, and what Enter does on one. */
+export interface ShownCommands {
+  commands: () => Command[] | undefined;
+  calls: Call[];
+  /** Does what the palette's Enter does on the Command titled so: runs it, or draws its Sheet until it closes. It throws when there is none. */
+  choose: (title: string) => Promise<void>;
+}
+
+/**
+ * Runs a Plugin's useCommands as the command palette does, in its scope on
+ * a Page that isn't the Plugin's (path, "/settings" by default), and draws
+ * the Sheet of the Command chosen; settles, and returns them.
+ */
+export async function showCommands(plugin: PluginDefinition, scope: Scope, options: ScopedOptions = {}): Promise<ShownCommands> {
+  const seen: { commands?: Command[]; open: (id: string) => void } = { open: () => {} };
+  function Palette() {
+    const commands = plugin.useCommands!();
+    const [open, setOpen] = useState<string>();
+    seen.commands = commands;
+    seen.open = setOpen;
+    const c = open === undefined ? undefined : commands?.find((x) => x.id === open);
+    return c && "sheet" in c ? c.sheet(() => setOpen(undefined)) : null;
+  }
+  const calls = renderScoped(scope, <Palette />, { path: "/settings", ...options });
+  await settle();
+  return {
+    commands: () => seen.commands,
+    calls,
+    choose: async (title) => {
+      const c = seen.commands?.find((x) => x.title === title);
+      if (!c) throw new Error(`no Command "${title}" among ${seen.commands?.map((x) => `"${x.title}"`).join(", ")}`);
+      act(() => ("sheet" in c ? seen.open(c.id) : c.run()));
+      await settle();
+    },
+  };
 }

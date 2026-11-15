@@ -15,24 +15,43 @@ import { useNow } from "./now";
 /** The link to a Compose Project's Page. */
 export const projectPath = (host: string, name: string) => `projects/${encodeURIComponent(host)}/${encodeURIComponent(name)}`;
 
-/** The Compose Project Actions a Project offers, as Plan Dialogs. */
-export function projectActions(p: Project, open: (d: ReactNode) => void, close: () => void) {
+/** A Compose Project Action a Project offers: its button, and the Plan Dialog it opens. */
+export interface ProjectPlan {
+  /** The button's label: "Start", "Restart", "Stop", "Update" or "Pull & update". */
+  label: string;
+  danger: boolean;
+  /** The Plan Dialog's title and confirming button. */
+  title: string;
+  confirm: string;
+  action: ActionInit;
+}
+
+/** The Compose Project Actions a Project's state allows, for its buttons and the command palette alike. */
+export function projectPlans(p: Project): ProjectPlan[] {
   const target = { host: p.host, project: p.name };
-  const dialog = (title: string, action: ActionInit, confirm: string, danger: boolean) =>
-    open(<PlanDialog title={title} action={action} confirm={confirm} danger={danger} onClose={close} />);
-  const items: { label: string; danger: boolean; run: () => void }[] = [];
+  const plan = (label: string, verb: "start" | "restart" | "stop" | "update", confirm: string, danger: boolean): ProjectPlan => ({
+    label,
+    danger,
+    title: `${confirm} ${p.name}`,
+    confirm,
+    action: { action: { case: verb, value: target } },
+  });
+  const plans: ProjectPlan[] = [];
   const running = p.state === ProjectState.RUNNING || p.state === ProjectState.PARTIAL;
-  if (p.state !== ProjectState.RUNNING) items.push({ label: "Start", danger: false, run: () => dialog(`Start ${p.name}`, { action: { case: "start", value: target } }, "Start", false) });
-  if (running) {
-    items.push(
-      { label: "Restart", danger: true, run: () => dialog(`Restart ${p.name}`, { action: { case: "restart", value: target } }, "Restart", true) },
-      { label: "Stop", danger: true, run: () => dialog(`Stop ${p.name}`, { action: { case: "stop", value: target } }, "Stop", true) },
-    );
-  }
-  if (p.state !== ProjectState.NOT_STARTED) {
-    items.push({ label: p.updateAvailable ? "Update" : "Pull & update", danger: false, run: () => dialog(`Update ${p.name}`, { action: { case: "update", value: target } }, "Update", false) });
-  }
-  return items;
+  if (p.state !== ProjectState.RUNNING) plans.push(plan("Start", "start", "Start", false));
+  if (running) plans.push(plan("Restart", "restart", "Restart", true), plan("Stop", "stop", "Stop", true));
+  if (p.state !== ProjectState.NOT_STARTED) plans.push(plan(p.updateAvailable ? "Update" : "Pull & update", "update", "Update", false));
+  return plans;
+}
+
+/** A Compose Project Action's Plan Dialog. */
+export const planDialog = (plan: ProjectPlan, close: () => void) => (
+  <PlanDialog title={plan.title} action={plan.action} confirm={plan.confirm} danger={plan.danger} onClose={close} />
+);
+
+/** The Compose Project Actions a Project offers, as buttons opening their Plan Dialogs. */
+export function projectActions(p: Project, open: (d: ReactNode) => void, close: () => void) {
+  return projectPlans(p).map((plan) => ({ label: plan.label, danger: plan.danger, run: () => open(planDialog(plan, close)) }));
 }
 
 /** "jellyfin, sonarr" or "3 Compose services". */
