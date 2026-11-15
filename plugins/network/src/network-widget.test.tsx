@@ -63,6 +63,9 @@ const answers = (over: Answers = {}): Answers => ({
 
 const widget = () => plugin.widgets!.find((w) => w.id === "network")!;
 
+// The fixture's Devices online, the hero's fact.
+const online = { value: 3, label: "Devices online" };
+
 const show = (over?: Answers, size?: "S" | "M") => showWidget(withAdguard, widget(), { answers: answers(over), size });
 
 const body = () => screen.getByRole("region", { name: "widget" });
@@ -76,7 +79,7 @@ it("is the Network Widget, S or M, first among network's Widgets", () => {
 it("says the network is online via WireGuard, with the VPN Tunnel's and the WAN's latency and no loss", async () => {
   const { reported } = await show();
 
-  expect(reported.status).toEqual({ tone: "up", summary: "Online via WireGuard" });
+  expect(reported.status).toEqual({ tone: "up", summary: "Online via WireGuard", fact: online });
   expect(within(body()).getByText("Online via WireGuard")).toBeTruthy();
   expect(within(body()).getByText("Online via WireGuard").nextElementSibling!.textContent).toBe("VPN Tunnel 16 ms · WAN 5 ms · no loss");
 });
@@ -87,7 +90,7 @@ it("warns while online via the OpenVPN fallback, saying WireGuard is down", asyn
     ListGateways: () => Response.json(gateways(true, false, true)),
   });
 
-  expect(reported.status).toEqual({ tone: "warn", summary: "WireGuard is down" });
+  expect(reported.status).toEqual({ tone: "warn", summary: "WireGuard is down", fact: online });
   expect(within(body()).getByText("Online via the OpenVPN fallback").nextElementSibling!.textContent).toBe("VPN Tunnel 33 ms · WAN 5 ms · no loss");
 });
 
@@ -97,7 +100,7 @@ it("is down when the VPN Tunnel is down with no fallback left", async () => {
     ListGateways: () => Response.json(gateways(true, false, false)),
   });
 
-  expect(reported.status).toEqual({ tone: "down", summary: "WireGuard and OpenVPN down" });
+  expect(reported.status).toEqual({ tone: "down", summary: "WireGuard and OpenVPN down", fact: online });
   expect(within(body()).getByText("The VPN Tunnel is down").nextElementSibling!.textContent).toBe("VPN Tunnel down · WAN 5 ms · no loss");
 });
 
@@ -107,20 +110,31 @@ it("is down when the WAN is down", async () => {
     ListGateways: () => Response.json(gateways(false, false, false)),
   });
 
-  expect(reported.status).toEqual({ tone: "down", summary: "No route to the internet" });
+  expect(reported.status).toEqual({ tone: "down", summary: "No route to the internet", fact: online });
   expect(within(body()).getByText("The WAN is down")).toBeTruthy();
 });
 
 it("still says the route out while pfSense's gateways can't be read", async () => {
   const { reported } = await show({ ListGateways: () => unavailable("pfSense unreachable") });
 
-  expect(reported.status).toEqual({ tone: "up", summary: "Online via WireGuard" });
+  expect(reported.status).toEqual({ tone: "up", summary: "Online via WireGuard", fact: online });
 });
 
 it("warns when network is unavailable", async () => {
-  const { reported } = await show({ GetVpnTunnel: () => unavailable("network unreachable") });
+  const { reported } = await show({ GetVpnTunnel: () => unavailable("network unreachable"), ListDevices: () => unavailable("network unreachable") });
 
   expect(reported.status).toEqual({ tone: "warn", summary: "network unavailable: network unreachable" });
+});
+
+it("gives the hero the Devices online as the Devices Widget does, so either one placed keeps it, and none until they are read", async () => {
+  const { reported } = await show();
+  const small = await showWidget(withAdguard, plugin.widgets!.find((w) => w.id === "devices")!, { answers: answers() });
+  expect(reported.status?.fact).toEqual({ value: 3, label: "Devices online" });
+  expect(small.reported.status?.fact).toEqual(reported.status?.fact);
+
+  cleanup();
+  const loading = await show({ ListDevices: () => pending() });
+  expect(loading.reported.status).toEqual({ tone: "up", summary: "Online via WireGuard" });
 });
 
 it("draws the WAN's last hour with its current download and upload", async () => {

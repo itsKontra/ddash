@@ -288,6 +288,17 @@ it("marks a down pinned App with a dot and a greyed icon, a muted one with the d
   expect(pfsense.getAttribute("title")).toBe("198.18.0.1");
 });
 
+it.each([
+  ["L", "48"],
+  ["M", "36"],
+] as const)("draws the pinned Apps' icons at %s %s px", async (size, px) => {
+  renderScoped(<widget.Body size={size} />, pinning(["proxy:grafana.home.example", "app:00aa11bb22cc33dd"]));
+  await settle();
+
+  const links = within(screen.getByRole("list", { name: "Pinned Apps" })).getAllByRole("link");
+  expect(links.map((l) => l.querySelector("img")?.getAttribute("width"))).toEqual([px, px]);
+});
+
 it("names a down pinned App's stopped Workload as the cause in its tooltip and dot, else the Check's reason", async () => {
   // Jellyfin's container exited; Grafana's guest runs, so its Check says why.
   const states = withChecks({

@@ -1,27 +1,17 @@
-import { bytes } from "@ddash/display";
 import { useQuery, type Concern } from "@ddash/plugin";
 import { ProxmoxApiService } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { percent, tightGuests } from "./hosts";
+import { guestConcerns, nodeConcerns } from "./hosts";
 
 /**
- * What needs the Operator in proxmox: each running guest whose memory or
- * disk is 75 % full or more, with the fuller one's figures and a link to
- * the guest. Nothing to run: freeing space is the guest's own business.
+ * What needs the Operator in proxmox: whatever makes the Hosts Widget warn
+ * or down. The node's meters as nodeTone has them (to the Proxmox Page),
+ * then each running guest whose memory or disk is 75 % full or more (to
+ * the guest). Nothing to run: freeing space is the guest's own business.
+ * The nodes left unread (no Sys.Audit) report nothing of the node.
  */
 export function useConcerns(): Concern[] | undefined {
   const { data, error } = useQuery(ProxmoxApiService.method.listWorkloads, {});
-  if (!data) return error ? [] : undefined;
-  return tightGuests(data.workloads).map(({ workload: w, resource, ratio }): Concern => {
-    const name = w.name || String(w.vmid);
-    const [used, max] = resource === "disk" ? [w.disk, w.maxDisk] : [w.mem, w.maxMem];
-    return {
-      id: String(w.vmid),
-      tone: "warn",
-      subject: name,
-      title: `${name} is running out of ${resource}`,
-      cause: `${resource} ${percent(ratio)} · ${bytes(used)} of ${bytes(max)}`,
-      icon: resource === "disk" ? "hard-drive" : "memory-stick",
-      href: `/proxmox/workloads/${w.vmid}`,
-    };
-  });
+  const nodes = useQuery(ProxmoxApiService.method.listNodes, {});
+  if ((!data && !error) || (!nodes.data && !nodes.error)) return undefined;
+  return [...nodeConcerns(nodes.data?.nodes ?? []), ...guestConcerns(data?.workloads ?? [])];
 }

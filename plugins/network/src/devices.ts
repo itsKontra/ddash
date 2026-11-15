@@ -1,4 +1,4 @@
-import { useQuery, type Badge } from "@ddash/plugin";
+import { useQuery, type Badge, type Fact } from "@ddash/plugin";
 import { NetworkService, type Device } from "@ddash/proto/network/network_pb";
 
 /** network's Device join, shared by the Page, the detail, the badge and the Widget. */
@@ -14,6 +14,9 @@ export function tally(devices: readonly Device[]) {
     new: devices.filter((d) => !d.adopted).length,
   };
 }
+
+/** The hero's fact of the Widgets that count Devices: how many are online, under one label. */
+export const onlineFact = (devices: readonly Device[]): Fact => ({ value: tally(devices).online, label: "Devices online" });
 
 /** The Nav Entry's "N new" while there are New Devices. */
 export function useNewBadge(): Badge | null {

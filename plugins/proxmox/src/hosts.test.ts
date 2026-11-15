@@ -1,7 +1,20 @@
 import { create } from "@bufbuild/protobuf";
 import { NodeSchema, StorageSchema, WorkloadSchema } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { expect, it } from "vitest";
-import { guestsRunning, hostsStatus, nodeMeters, pressure, pressureRow, tightGuests, underPressure } from "./hosts";
+import type { Concern } from "@ddash/plugin";
+import {
+  guestConcerns,
+  guestsRunning,
+  hostsStatus,
+  nodeConcerns,
+  nodeMeters,
+  nodeTone,
+  pressure,
+  pressureRow,
+  tightGuests,
+  underPressure,
+  type NodeMeter,
+} from "./hosts";
 
 const GiB = 1024n ** 3n;
 
@@ -78,9 +91,9 @@ const node = (name: string, extra = {}) =>
 
 it("the node's meters are CPU, memory and the storage holding guest disks", () => {
   expect(nodeMeters([node("pve")])).toEqual([
-    { label: "CPU", ratio: 0.022, value: "2.2 % of 16" },
-    { label: "Memory", ratio: 11 / 64, value: "11.0 GiB of 64.0 GiB" },
-    { label: "Storage", ratio: 145 / 476, value: "145 GiB of 476 GiB" },
+    { resource: "cpu", label: "CPU", ratio: 0.022, value: "2.2 % of 16" },
+    { resource: "memory", label: "Memory", ratio: 11 / 64, value: "11.0 GiB of 64.0 GiB" },
+    { resource: "storage", label: "Storage", ratio: 145 / 476, value: "145 GiB of 476 GiB" },
   ]);
 });
 
@@ -109,14 +122,82 @@ it("is up with the running count while nothing is tight; a stopped guest is no p
   expect(hostsStatus([workloads[0], workloads[3]], meters, rows)).toEqual({ tone: "up", summary: "1 of 2 guests running", fact: { value: 1, label: "guests running" } });
 });
 
-it("is warn from 75 % and down from 90 %, naming what is tight", () => {
+const meter = (resource: NodeMeter["resource"], r: number): NodeMeter => ({ resource, label: resource, ratio: r, value: "" });
+
+it("a node's storage warns from 75 % and is down from 90 %", () => {
+  expect([0.7499, 0.75, 0.8999, 0.9, 1].map((r) => nodeTone(meter("storage", r)))).toEqual(["up", "warn", "warn", "down", "down"]);
+});
+
+it("a node's memory and CPU warn only from 90 % and are never down", () => {
+  for (const resource of ["memory", "cpu"] as const) {
+    expect([0.75, 0.8999, 0.9, 1].map((r) => nodeTone(meter(resource, r)))).toEqual(["up", "up", "warn", "warn"]);
+  }
+});
+
+it("guests warn from 75 % and are down from 90 %, naming what is tight; the node's memory at 78 % is no problem", () => {
   const meters = nodeMeters([node("pve", { mem: 50n * GiB })]);
   const rows = underPressure(workloads).map(pressureRow);
 
-  expect(hostsStatus(workloads, meters, [])).toEqual({ tone: "warn", summary: "Memory 78 %", fact: { value: 3, label: "guests running" } });
+  expect(hostsStatus(workloads, meters, [])).toEqual({ tone: "up", summary: "3 of 4 guests running", fact: { value: 3, label: "guests running" } });
+  expect(hostsStatus(workloads, meters, rows.slice(1))).toEqual({ tone: "warn", summary: "busy memory 82 %", fact: { value: 3, label: "guests running" } });
   expect(hostsStatus(workloads, meters, rows)).toEqual({
     tone: "down",
-    summary: "Memory 78 % · full-disk disk 91 % · busy memory 82 %",
+    summary: "full-disk disk 91 % · busy memory 82 %",
     fact: { value: 3, label: "guests running" },
   });
+});
+
+it("the node's memory warns from 90 % and its storage is down from 90 %, named in the summary", () => {
+  const full = storage("local-lvm", ["images"], 440, 476);
+  expect(hostsStatus([], nodeMeters([node("pve", { mem: 60n * GiB })]), [])).toMatchObject({ tone: "warn", summary: "Memory 94 %" });
+  expect(hostsStatus([], nodeMeters([node("pve", { mem: 60n * GiB, storages: [full] })]), [])).toMatchObject({ tone: "down", summary: "Memory 94 % · Storage 92 %" });
+});
+
+it("names the node's tight meters as Concerns in nodeTone's tone, to the Proxmox Page", () => {
+  const meters = { cpu: 0.95, mem: 60n * GiB, storages: [storage("local-lvm", ["images"], 380, 476)] };
+  expect(nodeConcerns([node("pve", meters), node("off", { status: "offline" })])).toEqual([
+    { id: "node-cpu", tone: "warn", subject: "pve", title: "pve's CPU is 95 % busy", cause: "CPU 95 % of 16 cores", icon: "cpu", href: "/proxmox" },
+    { id: "node-memory", tone: "warn", subject: "pve", title: "pve's memory is 94 % full", cause: "memory 94 % · 60.0 GiB of 64.0 GiB", icon: "memory-stick", href: "/proxmox" },
+    { id: "node-storage", tone: "warn", subject: "pve", title: "pve is running out of storage", cause: "storage 80 % · 380 GiB of 476 GiB", icon: "hard-drive", href: "/proxmox" },
+  ]);
+  expect(nodeConcerns([node("pve", { mem: 50n * GiB })])).toEqual([]);
+  const ceph = storage("ceph", ["images"], 950, 1000, { shared: true });
+  expect(nodeConcerns([node("a", { storages: [ceph] }), node("b", { storages: [ceph] })])).toMatchObject([
+    { tone: "down", subject: "the nodes", title: "the nodes are running out of storage" },
+  ]);
+  expect(nodeConcerns([])).toEqual([]);
+});
+
+it("names each tight guest as a Concern, down from 90 %", () => {
+  expect(guestConcerns(workloads).map((c) => [c.subject, c.tone, c.title])).toEqual([
+    ["full-disk", "down", "full-disk is running out of disk"],
+    ["busy", "warn", "busy is running out of memory"],
+  ]);
+});
+
+const loudest = (cs: readonly Concern[]) => cs.reduce((t, c) => (c.tone === "down" || (c.tone === "warn" && t !== "down") ? c.tone : t), "none" as string);
+
+it("whenever the Hosts Widget warns or is down, a Concern says so in at least that tone", () => {
+  const guestSets = [[], [workloads[0]], [workloads[2]], workloads];
+  const nodeSets = [
+    [],
+    [node("pve")],
+    ...[0.5, 0.75, 0.89, 0.9, 0.99].flatMap((r) => [
+      [node("pve", { cpu: r })],
+      [node("pve", { mem: BigInt(Math.round(r * 64)) * GiB })],
+      [node("pve", { storages: [storage("local-lvm", ["images"], Math.round(r * 476), 476)] })],
+      [node("a", { cpu: r }), node("b", { storages: [storage("local-lvm", ["rootdir"], Math.round(r * 100), 100)] })],
+    ]),
+  ];
+  const seen = new Set<string>();
+  for (const ws of guestSets) {
+    for (const nodes of nodeSets) {
+      const status = hostsStatus(ws, nodeMeters(nodes), underPressure(ws).map(pressureRow));
+      const loud = loudest([...nodeConcerns(nodes), ...guestConcerns(ws)]);
+      seen.add(status.tone);
+      if (status.tone === "down") expect(loud).toBe("down");
+      if (status.tone === "warn") expect(["warn", "down"]).toContain(loud);
+    }
+  }
+  expect([...seen].sort()).toEqual(["down", "up", "warn"]);
 });

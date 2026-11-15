@@ -143,11 +143,20 @@ it("Hosts is up with the running count while nothing is tight", async () => {
   expect(reported.status).toEqual({ tone: "up", summary: "1 of 2 guests running", fact: { value: 1, label: "guests running" } });
 });
 
-it("Hosts is down when a node's meter is at 90 % or more", async () => {
-  const full = { ...pveNode, mem: String(60 * GiB) };
+it("Hosts warns when the node's memory is at 90 % or more, but not at 78 %", async () => {
+  const calm = { workloads: hostsListed.workloads.filter((w) => w.vmid !== 102) };
+  const show = (memGiB: number) => showHosts({ ListWorkloads: () => Response.json(calm), ListNodes: () => Response.json({ nodes: [{ ...pveNode, mem: String(memGiB * GiB) }] }) });
+
+  expect((await show(60)).reported.status).toEqual({ tone: "warn", summary: "Memory 94 %", fact: { value: 1, label: "guests running" } });
+  cleanup();
+  expect((await show(50)).reported.status).toMatchObject({ tone: "up", summary: "1 of 2 guests running" });
+});
+
+it("Hosts is down when the node's storage is at 90 % or more", async () => {
+  const full = { ...pveNode, storages: [{ ...pveNode.storages[1], avail: String(36 * GiB) }] };
   const { reported } = await showHosts({ ListWorkloads: () => Response.json(hostsListed), ListNodes: () => Response.json({ nodes: [full] }) });
 
-  expect(reported.status).toEqual({ tone: "down", summary: "Memory 94 % · busy memory 82 %", fact: { value: 2, label: "guests running" } });
+  expect(reported.status).toEqual({ tone: "down", summary: "Storage 92 % · busy memory 82 %", fact: { value: 2, label: "guests running" } });
 });
 
 it("Hosts says why it has no meters when the token can't read the node", async () => {

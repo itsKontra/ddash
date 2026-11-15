@@ -25,6 +25,8 @@ export interface Recent {
   who: string;
   /** When it started, in ms. */
   at: number;
+  /** How many Actions in a row the row stands for (collapsed); 1 when left out. */
+  count?: number;
 }
 
 /** "RunUpdateAll" as "Run update all", "AddSSHKey" as "Add SSH key". */
@@ -101,8 +103,8 @@ export function listed(chain: AuditChain): boolean {
 /** The core's own methods that are not Actions on the lab. */
 const housekeeping = new Set(["SaveLayout", "SignIn", "SignOut"]);
 
-/** How many chains Recently reads to find its four. */
-export const read = 20;
+/** How many chains Recently reads to find its four, housekeeping and repeats passed over. */
+export const read = 50;
 
 const ended = (e: AuditEntry) => (e.time ? timestampMs(e.time) : 0) + (e.duration ? durationMs(e.duration) : 0);
 const failed = (e: AuditEntry) => e.outcome !== "" && e.outcome !== "ok" && e.outcome !== "interrupted";
@@ -145,6 +147,27 @@ export function recent(chain: AuditChain, now: number): Recent | undefined {
   return { ...base, outcome: "done", detail: `done in ${took}` };
 }
 
+/**
+ * The Actions, newest first, with each run of the same Action in a row
+ * (same who, what, target and subject, e.g. the Operator ordering pins
+ * four times) as one row with its count: the newest's time, and its
+ * outcome unless one of them failed, then the newest failure's.
+ */
+export function collapsed(items: readonly Recent[]): Recent[] {
+  const runs: Recent[][] = [];
+  const same = (a: Recent, b: Recent) => a.who === b.who && a.what === b.what && a.target === b.target && a.subject === b.subject;
+  for (const r of items) {
+    const run = runs.at(-1);
+    if (run && same(run[0], r)) run.push(r);
+    else runs.push([r]);
+  }
+  return runs.map(([newest, ...older]) => {
+    if (older.length === 0) return newest;
+    const failure = [newest, ...older].find((r) => r.outcome === "failed");
+    return { ...newest, ...(failure && { outcome: failure.outcome, detail: failure.detail }), count: older.length + 1 };
+  });
+}
+
 const looks: Record<Outcome, { icon: IconName; tone: Tone }> = {
   running: { icon: "loader-circle", tone: "info" },
   done: { icon: "circle-check", tone: "up" },
@@ -179,17 +202,15 @@ function useNow(): number {
 /**
  * The Overview's last Actions an Operator or ddash took, from the Audit
  * Log: what, to what, how it ended (or how far it got), who and when. It
- * reads the last 20 chains and lists the first four that pass listed. Read every 5 s while on screen,
+ * reads the last 50 chains and lists the first four rows of those that
+ * pass listed, repeats collapsed. Read every 5 s while on screen,
  * and at once after an Action from this tab, so one started anywhere shows
  * without a reload.
  */
 export function Recently() {
   const { data, error } = useQuery(CoreService.method.listAuditLog, { pageSize: read }, { refresh: Refresh.LIVE });
   const now = useNow();
-  const items = (data?.chains ?? [])
-    .filter(listed)
-    .slice(0, shown)
-    .flatMap((c) => recent(c, now) ?? []);
+  const items = collapsed((data?.chains ?? []).filter(listed).flatMap((c) => recent(c, now) ?? [])).slice(0, shown);
   return (
     <Panel
       title="Recently"
@@ -219,8 +240,9 @@ export function Recently() {
 
 function Row({ item: r, now }: { item: Recent; now: number }) {
   const { icon, tone } = looks[r.outcome];
+  const what = r.count ? `${r.what} ×${r.count}` : r.what;
   return (
-    <li aria-label={`${r.what}: ${r.outcome}`} className="flex items-center gap-3 py-2.5">
+    <li aria-label={`${what}: ${r.outcome}`} className="flex items-center gap-3 py-2.5">
       {r.outcome === "running" ? (
         <span role="img" aria-label="running" className="inline-grid size-7 shrink-0 place-items-center rounded-ui-sm bg-info-tint text-info-text">
           <span className="inline-grid motion-safe:animate-spin">
@@ -231,8 +253,8 @@ function Row({ item: r, now }: { item: Recent; now: number }) {
         <Icon name={icon} tone={tone} size="sm" label={r.outcome} />
       )}
       <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:gap-3">
-        <div className="truncate text-sm font-semibold sm:max-w-[55%] sm:shrink-0" title={`${r.target} · ${r.what}${r.subject ? ` · ${r.subject}` : ""}`}>
-          {r.what}
+        <div className="truncate text-sm font-semibold sm:max-w-[55%] sm:shrink-0" title={`${r.target} · ${what}${r.subject ? ` · ${r.subject}` : ""}`}>
+          {what}
           {r.subject ? <span className="font-normal"> · {r.subject}</span> : <span className="text-xs font-normal text-muted-foreground"> {r.target}</span>}
         </div>
         <div className={cx("truncate text-xs", r.outcome === "failed" ? "text-down-text" : "text-muted-foreground")} title={r.detail}>
