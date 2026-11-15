@@ -1,7 +1,8 @@
 syntax = "proto3";
 
 // adguard-api reads AdGuard Home through its HTTP API under /control, with
-// HTTP Basic auth, and turns ad-blocking off or on for one client.
+// HTTP Basic auth, turns ad-blocking off or on for one client, and pauses
+// and resumes protection.
 package ddash.adguardapi;
 
 import "ddash/config/config.proto";
@@ -61,6 +62,18 @@ service AdguardApiService {
   // other settings stay as they are. Turning it on when there is no such
   // client changes nothing, so no client exists before first use.
   rpc SetClientFiltering(SetClientFilteringRequest) returns (SetClientFilteringResponse) {
+    option (ddash.action) = {};
+  }
+  // PauseProtection turns protection off for duration (POST
+  // /control/protection with enabled false and the duration). AdGuard
+  // turns it back on by itself when the time is up; ddash runs no timer.
+  // Pausing while paused starts the pause anew.
+  rpc PauseProtection(PauseProtectionRequest) returns (PauseProtectionResponse) {
+    option (ddash.action) = {};
+  }
+  // ResumeProtection turns protection back on, whether it is paused or
+  // off (POST /control/protection with enabled true).
+  rpc ResumeProtection(ResumeProtectionRequest) returns (ResumeProtectionResponse) {
     option (ddash.action) = {};
   }
 }
@@ -225,3 +238,14 @@ message SetClientFilteringResponse {
   // Whether the client was created for this.
   bool created = 2;
 }
+
+message PauseProtectionRequest {
+  // How long protection stays off: more than nothing, at most 24 hours.
+  google.protobuf.Duration duration = 1;
+}
+
+message PauseProtectionResponse {}
+
+message ResumeProtectionRequest {}
+
+message ResumeProtectionResponse {}

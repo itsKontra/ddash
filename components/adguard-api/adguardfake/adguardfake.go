@@ -1,9 +1,11 @@
 // Package adguardfake is a stateful fake of AdGuard Home's HTTP API for
-// adguard-api's Action and `make smoke-writes`. It keeps the persistent
-// clients (add, update, delete, list) and answers the query log from a
-// scenario's recorded entries, filtered and paged as AdGuard filters and
-// pages them; anything else is served from the scenario's fixtures
-// (fixture.Scenario). adguard-api's tests and fakelab serve it.
+// adguard-api's Actions and `make smoke-writes`. It keeps the persistent
+// clients (add, update, delete, list) and protection (paused, resumed and
+// back on by itself when a pause is up, read in the status), and answers
+// the query log from a scenario's recorded entries, filtered and paged as
+// AdGuard filters and pages them; anything else is served from the
+// scenario's fixtures (fixture.Scenario). adguard-api's tests and fakelab
+// serve it.
 //
 // Like AdGuard Home, an update replaces the whole client: a field the
 // request leaves out is reset to its zero value, except ignore_querylog
@@ -31,6 +33,10 @@ const (
 	updatePath   = "/control/clients/update"
 	deletePath   = "/control/clients/delete"
 	querylogPath = "/control/querylog"
+	// statusPath is the scenario's status with protection as it is now;
+	// protectionPath sets it (SetProtectionRequest).
+	statusPath     = "/control/status"
+	protectionPath = "/control/protection"
 	// querylogConfigPath is served from the scenario's fixture; its
 	// anonymize_client_ip masks the log's client addresses.
 	querylogConfigPath = "/control/querylog/config"
@@ -54,6 +60,8 @@ type Options struct {
 	// ScanCap is how many log lines a query log request without offset
 	// reads at most; 0 is AdGuard's DefaultScanCap.
 	ScanCap int
+	// Now is the clock a pause runs on; nil is time.Now.
+	Now func() time.Time
 }
 
 // AdGuard is the fake, an http.Handler.
@@ -67,13 +75,28 @@ type AdGuard struct {
 	rest    map[string]any
 	queries []map[string]any
 	log     []string
+	// status is the scenario's status.json; protection and pausedUntil
+	// (zero unless paused) override its protection fields.
+	status      map[string]any
+	protection  bool
+	pausedUntil time.Time
 }
 
 // New serves the scenario in dir: its control/clients.json and
 // control/querylog.json (else its sibling baseline's) are the starting
 // state.
 func New(dir string, opts Options) (*AdGuard, error) {
+	if opts.Now == nil {
+		opts.Now = time.Now
+	}
 	a := &AdGuard{fixtures: fixture.Scenario(dir, opts.Miss), opts: opts}
+	if err := load(dir, statusPath, &a.status); err != nil {
+		return nil, err
+	}
+	a.protection, _ = a.status["protection_enabled"].(bool)
+	if ms, _ := a.status["protection_disabled_duration"].(float64); !a.protection && ms > 0 {
+		a.pausedUntil = opts.Now().Add(time.Duration(ms) * time.Millisecond)
+	}
 	var clients map[string]any
 	if err := load(dir, clientsPath, &clients); err != nil {
 		return nil, err
@@ -252,9 +275,58 @@ func (a *AdGuard) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		a.clients = slices.Delete(a.clients, i, i+1)
 	case "GET " + querylogPath:
 		a.querylog(w, r)
+	case "GET " + statusPath:
+		a.mu.Lock()
+		body := maps.Clone(a.status)
+		on, until := a.protectionNow()
+		body["protection_enabled"] = on
+		body["protection_disabled_duration"] = 0
+		if !until.IsZero() {
+			body["protection_disabled_duration"] = until.Sub(a.opts.Now()).Milliseconds()
+		}
+		a.mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(body)
+	case "POST " + protectionPath:
+		var req struct {
+			Enabled  bool   `json:"enabled"`
+			Duration uint64 `json:"duration"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "reading req: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		if req.Enabled && req.Duration > 0 {
+			http.Error(w, "Setting a duration is only allowed with protection disabling", http.StatusBadRequest)
+			return
+		}
+		a.mu.Lock()
+		a.protection, a.pausedUntil = req.Enabled, time.Time{}
+		if req.Duration > 0 {
+			a.pausedUntil = a.opts.Now().Add(time.Duration(req.Duration) * time.Millisecond)
+		}
+		a.mu.Unlock()
+		_, _ = w.Write([]byte("OK\n"))
 	default:
 		a.fixtures.ServeHTTP(w, r)
 	}
+}
+
+// Protection returns whether protection is on and, while it is paused,
+// when it comes back on (zero otherwise).
+func (a *AdGuard) Protection() (on bool, until time.Time) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.protectionNow()
+}
+
+// protectionNow is protection now, turned back on once a pause is up, as
+// AdGuard turns it back on by itself. a.mu is held.
+func (a *AdGuard) protectionNow() (bool, time.Time) {
+	if !a.pausedUntil.IsZero() && !a.opts.Now().Before(a.pausedUntil) {
+		a.protection, a.pausedUntil = true, time.Time{}
+	}
+	return a.protection, a.pausedUntil
 }
 
 // clash says why c can't be stored beside the other clients (skip is the

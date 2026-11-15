@@ -1,5 +1,6 @@
-import { cleanup, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { metricValue, renderScoped, settle, showWidget as show, unavailable, type Answers } from "@ddash/plugin/testing";
+import { pauseLabel } from "./protection";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
 import { withAdguard } from "./testing";
@@ -92,4 +93,82 @@ it("says on the Network Page when AdGuard isn't running", async () => {
   await showPage({ GetStatus: () => Response.json({ ...on, running: false }), GetStats: () => Response.json(stats) });
 
   expect(within(screen.getByRole("region", { name: "AdGuard" })).getByText("Not running")).toBeTruthy();
+});
+
+const paused = { ...on, protectionEnabled: false, protectionPausedFor: "420s" };
+
+it("pauses protection for ten minutes from the Widget's switch, at once and without a confirm", async () => {
+  let status: object = on;
+  const { calls } = await showWidget({
+    GetStatus: () => Response.json(status),
+    GetStats: () => Response.json(stats),
+    PauseProtection: () => ((status = { ...on, protectionEnabled: false, protectionPausedFor: "600s" }), Response.json({})),
+  });
+
+  const body = screen.getByRole("region", { name: "widget" });
+  const toggle = within(body).getByRole("switch", { name: "AdGuard protection" });
+  expect(toggle.getAttribute("aria-checked")).toBe("true");
+  fireEvent.click(toggle);
+  await settle();
+
+  expect(screen.queryByRole("alertdialog")).toBeNull();
+  expect(calls.filter((c) => c.method === "PauseProtection").map((c) => c.body)).toEqual([{ duration: "600s" }]);
+  expect(within(body).getByText("Protection paused, back on in 10 min")).toBeTruthy();
+  expect(within(body).getByRole("switch", { name: "AdGuard protection" }).getAttribute("aria-checked")).toBe("false");
+  expect(within(body).getByRole("button", { name: "Resume" })).toBeTruthy();
+});
+
+it("offers ten minutes and an hour beside the switch", async () => {
+  const { calls } = await showWidget({ GetStatus: () => Response.json(on), GetStats: () => Response.json(stats), PauseProtection: () => Response.json({}) });
+
+  fireEvent.click(screen.getByRole("button", { name: "Pause protection for 1 h" }));
+  await settle();
+  fireEvent.click(screen.getByRole("button", { name: "Pause protection for 10 min" }));
+  await settle();
+
+  expect(calls.filter((c) => c.method === "PauseProtection").map((c) => c.body)).toEqual([{ duration: "3600s" }, { duration: "600s" }]);
+});
+
+it("shows AdGuard's time left while paused, and resumes from Resume or the switch", async () => {
+  const { reported, calls } = await showWidget({ GetStatus: () => Response.json(paused), GetStats: () => Response.json(stats), ResumeProtection: () => Response.json({}) });
+
+  expect(reported.status).toEqual({ tone: "warn", summary: "Protection paused, back on in 7 min" });
+  expect(screen.queryByRole("button", { name: /Pause protection/ })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+  await settle();
+  fireEvent.click(screen.getByRole("switch", { name: "AdGuard protection" }));
+  await settle();
+
+  expect(calls.filter((c) => c.method === "ResumeProtection")).toHaveLength(2);
+});
+
+it("says why a pause failed", async () => {
+  await showWidget({
+    GetStatus: () => Response.json(on),
+    GetStats: () => Response.json(stats),
+    PauseProtection: () => unavailable("AdGuard Home unreachable: connection refused"),
+  });
+
+  fireEvent.click(screen.getByRole("switch", { name: "AdGuard protection" }));
+  await settle();
+
+  expect(screen.getByText("AdGuard Home unreachable: connection refused")).toBeTruthy();
+});
+
+it("has no switch while AdGuard's DNS server isn't running", async () => {
+  await showWidget({ GetStatus: () => Response.json({ ...on, running: false }) });
+
+  expect(screen.queryByRole("switch")).toBeNull();
+});
+
+it("leads the Network Page's AdGuard section with the switch and the two pauses", async () => {
+  await showPage({ GetStatus: () => Response.json(on), GetStats: () => Response.json(stats) });
+
+  const section = screen.getByRole("region", { name: "AdGuard" });
+  expect(within(section).getByRole("switch", { name: "AdGuard protection" })).toBeTruthy();
+  expect(within(section).getAllByRole("button", { name: /Pause protection/ }).map((b) => b.textContent)).toEqual(["10 min", "1 h"]);
+});
+
+it("names a pause in minutes or hours", () => {
+  expect([10, 60, 90, 120].map(pauseLabel)).toEqual(["10 min", "1 h", "90 min", "2 h"]);
 });

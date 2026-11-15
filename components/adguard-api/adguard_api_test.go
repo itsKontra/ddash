@@ -87,7 +87,9 @@ func TestStatusSaysWhenProtectionIsOffOrPausedAndForHowLong(t *testing.T) {
 		t.Errorf("protection off = %v, want off indefinitely", got)
 	}
 
-	_, c = start(t, adguard(t, "paused").URL)
+	// A still clock: AdGuard counts a pause down to the millisecond.
+	srv, _ := adguardOn(t, "paused")
+	_, c = start(t, srv.URL)
 	want := &adguardapipb.GetStatusResponse{Running: true, Version: "v0.107.79", ProtectionPausedFor: durationpb.New(10 * time.Minute)}
 	if diff := cmp.Diff(want, getStatus(t, c), protocmp.Transform()); diff != "" {
 		t.Errorf("GetStatus while paused (-want +got):\n%s", diff)
