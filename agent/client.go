@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -44,9 +45,27 @@ var ErrFingerprint = errors.New("the Agent's certificate changed since pairing")
 const requestTimeout = 20 * time.Second
 
 // Dial returns a client of the Agent at base (https://host:port), sending
-// token and pinning fingerprint.
+// token and pinning fingerprint. Clients of one fingerprint share their
+// connections, so dialling per call costs no handshake per call.
 func Dial(base, token, fingerprint string) *Client {
-	return dial(base, token, pinned(fingerprint))
+	return dial(base, token, shared(fingerprint))
+}
+
+// transports holds one transport per pinned fingerprint: one per Agent
+// ever paired, since an Agent keeps its certificate.
+var transports sync.Map // fingerprint → http.RoundTripper
+
+// shared is the transport pinning fp that every Dial of fp uses. The
+// first contact ("" accepts any certificate) gets one of its own.
+func shared(fp string) http.RoundTripper {
+	if fp == "" {
+		return pinned(fp)
+	}
+	if t, ok := transports.Load(fp); ok {
+		return t.(http.RoundTripper)
+	}
+	t, _ := transports.LoadOrStore(fp, pinned(fp))
+	return t.(http.RoundTripper)
 }
 
 func dial(base, token string, transport http.RoundTripper) *Client {
