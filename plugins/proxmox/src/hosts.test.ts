@@ -106,13 +106,17 @@ it("is up with the running count while nothing is tight; a stopped guest is no p
   const meters = nodeMeters([node("pve")]);
   const rows = underPressure([workloads[0], workloads[3]]).map(pressureRow);
 
-  expect(hostsStatus([workloads[0], workloads[3]], meters, rows)).toEqual({ tone: "up", summary: "1 of 2 guests running" });
+  expect(hostsStatus([workloads[0], workloads[3]], meters, rows)).toEqual({ tone: "up", summary: "1 of 2 guests running", fact: { value: 1, label: "guests running" } });
 });
 
 it("is warn from 75 % and down from 90 %, naming what is tight", () => {
   const meters = nodeMeters([node("pve", { mem: 50n * GiB })]);
   const rows = underPressure(workloads).map(pressureRow);
 
-  expect(hostsStatus(workloads, meters, [])).toEqual({ tone: "warn", summary: "Memory 78 %" });
-  expect(hostsStatus(workloads, meters, rows)).toEqual({ tone: "down", summary: "Memory 78 % · full-disk disk 91 % · busy memory 82 %" });
+  expect(hostsStatus(workloads, meters, [])).toEqual({ tone: "warn", summary: "Memory 78 %", fact: { value: 3, label: "guests running" } });
+  expect(hostsStatus(workloads, meters, rows)).toEqual({
+    tone: "down",
+    summary: "Memory 78 % · full-disk disk 91 % · busy memory 82 %",
+    fact: { value: 3, label: "guests running" },
+  });
 });

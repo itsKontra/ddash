@@ -38,7 +38,7 @@ it("asks network for the Devices", async () => {
 it("reports up with the counts, and shows Devices, online and new", async () => {
   const { reported } = await show(() => Response.json(devices));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "5 Devices, 3 online, 2 new" });
+  expect(reported.status).toEqual({ tone: "up", summary: "5 Devices, 3 online, 2 new" , fact: { value: 3, label: "Devices online" } });
   const body = screen.getByRole("region", { name: "widget" });
   expect(metricValue("Devices", body)).toMatch(/5/);
   expect(metricValue("online", body)).toMatch(/3/);
@@ -55,7 +55,7 @@ it("shows each count loading until network first answers", async () => {
 it("leaves New out of the summary when there are none", async () => {
   const { reported } = await show(() => Response.json({ ...devices, devices: devices.devices.slice(0, 3) }));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "3 Devices, 2 online" });
+  expect(reported.status).toEqual({ tone: "up", summary: "3 Devices, 2 online" , fact: { value: 2, label: "Devices online" } });
 });
 
 it("warns when network can't list the Devices", async () => {

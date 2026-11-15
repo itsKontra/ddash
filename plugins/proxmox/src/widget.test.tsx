@@ -44,7 +44,7 @@ it("is the guests Widget, S or M, S by default", () => {
 it("reports up with the counts in its summary", async () => {
   const reported = await show(() => Response.json(listed));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "3 of 5 running · 3 LXCs, 2 VMs" });
+  expect(reported.status).toEqual({ tone: "up", summary: "3 of 5 running · 3 LXCs, 2 VMs" , fact: { value: 3, label: "guests running" } });
 });
 
 it("shows the counts at S, and each kind's at M", async () => {
@@ -131,7 +131,7 @@ it("Hosts shows the guests running, the node's three meters and the guest under 
   expect(within(widget).getByText("11.0 GiB of 64.0 GiB")).toBeTruthy();
   // A guest above 75 % is named, with the resource and how full.
   expect(within(widget).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["busymemory 82 %", "quietdisk 30 %"]);
-  expect(reported.status).toEqual({ tone: "warn", summary: "busy memory 82 %" });
+  expect(reported.status).toEqual({ tone: "warn", summary: "busy memory 82 %", fact: { value: 2, label: "guests running" } });
   // No containers line: they're the docker Plugin's Docker hosts Widget.
   expect(within(widget).queryByText(/container/)).toBeNull();
 });
@@ -140,14 +140,14 @@ it("Hosts is up with the running count while nothing is tight", async () => {
   const calm = { workloads: hostsListed.workloads.filter((w) => w.vmid !== 102) };
   const { reported } = await showHosts({ ListWorkloads: () => Response.json(calm), ListNodes: () => Response.json({ nodes: [pveNode] }) });
 
-  expect(reported.status).toEqual({ tone: "up", summary: "1 of 2 guests running" });
+  expect(reported.status).toEqual({ tone: "up", summary: "1 of 2 guests running", fact: { value: 1, label: "guests running" } });
 });
 
 it("Hosts is down when a node's meter is at 90 % or more", async () => {
   const full = { ...pveNode, mem: String(60 * GiB) };
   const { reported } = await showHosts({ ListWorkloads: () => Response.json(hostsListed), ListNodes: () => Response.json({ nodes: [full] }) });
 
-  expect(reported.status).toEqual({ tone: "down", summary: "Memory 94 % · busy memory 82 %" });
+  expect(reported.status).toEqual({ tone: "down", summary: "Memory 94 % · busy memory 82 %", fact: { value: 2, label: "guests running" } });
 });
 
 it("Hosts says why it has no meters when the token can't read the node", async () => {

@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createQueryClient, definePlugin, type PluginDefinition, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
-import { pending, settle, tracked } from "@ddash/plugin/testing";
+import { settle, tracked } from "@ddash/plugin/testing";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { App } from "./app";
@@ -96,14 +96,10 @@ async function boot(path = "/", reload = vi.fn()) {
 
 const cards = () => within(screen.getByRole("list", { name: "Widgets" })).queryAllByRole("listitem");
 const card = (title: string) => within(screen.getByRole("list", { name: "Widgets" })).getByRole("listitem", { name: title });
-// The HeroCard: the region named by its headline, under the "Status" kicker.
-const hero = () => screen.getByText("Status").closest("section")!;
+// The HeroCard: the region named by its sentence, around the overall tone's dot.
+const hero = () => screen.getByRole("img", { name: /^Overall: / }).closest("section")!;
 const headline = () => within(hero()).getByRole("heading", { level: 2 }).textContent;
 const overall = () => within(hero()).getByRole("img", { name: /^Overall: / }).getAttribute("aria-label");
-const problems = () =>
-  within(hero())
-    .queryAllByRole("listitem")
-    .map((li) => li.textContent);
 
 const docker = () =>
   definePlugin({
@@ -168,7 +164,7 @@ it("reconciles on every page, so an uninstall from the Catalogue forgets the Plu
   expect(saves).toEqual([{ entries: [], seen: [] }]);
 });
 
-it("the hero lists the placed Widgets that aren't up, ignoring one that hasn't reported", async () => {
+it("the hero names a placed Widget that is down by its title, and counts the ones getting tight, ignoring one that hasn't reported", async () => {
   plugins = [
     [
       installed("checks", "Checks"),
@@ -185,15 +181,12 @@ it("the hero lists the placed Widgets that aren't up, ignoring one that hasn't r
 
   await boot();
 
-  expect(problems()).toEqual(["Checkspaperless down 14 min", "VPNon the fallback"]);
-  expect(within(hero()).getAllByRole("img", { name: /^(down|warn)$/ }).map((d) => d.getAttribute("aria-label"))).toEqual(["down", "warn"]);
+  expect(headline()).toBe("Checks is down. Everything else is up.");
   expect(overall()).toBe("Overall: down");
-  // The headline counts the worst tone, as its tile does: the warn one isn't down.
-  expect(headline()).toBe("1 Widget down");
-  expect(screen.getByRole("region", { name: "1 Widget down" })).toBe(hero());
+  expect(screen.getByRole("region", { name: "Checks is down. Everything else is up." })).toBe(hero());
 });
 
-it("the hero's headline counts only the Widgets needing attention, as their tile does, when none is down", async () => {
+it("the hero says what is getting tight when nothing is down, and leaves Maintenance out", async () => {
   plugins = [
     [
       installed("lab", "Lab"),
@@ -209,91 +202,61 @@ it("the hero's headline counts only the Widgets needing attention, as their tile
 
   await boot();
 
-  expect(headline()).toBe("2 Widgets need attention");
-  expect(screen.getByRole("group", { name: "Needs attention" }).textContent).toBe("Needs attention2");
+  expect(headline()).toBe("Everything is up. Two things are getting tight.");
+  expect(overall()).toBe("Overall: warn");
 });
 
-it("the hero's headline counts the Widgets in Maintenance when nothing worse is wrong", async () => {
-  plugins = [[installed("lab", "Lab"), definePlugin({ widgets: [widget("b", "Bravo", { tone: "maint", summary: "patching" }, "S")] })]];
-
-  await boot();
-
-  expect(headline()).toBe("1 Widget in Maintenance");
-});
-
-it("the hero says everything is up when every reporting Widget is", async () => {
+it("the hero says everything watched is up when every reporting Widget is", async () => {
   plugins = [[installed("docker", "Docker"), docker()]];
 
   await boot();
 
-  expect(problems()).toEqual([]);
   expect(overall()).toBe("Overall: up");
-  expect(headline()).toBe("Everything is up");
+  expect(headline()).toBe("Everything you watch is up.");
 });
 
-const mixed = () =>
-  definePlugin({
-    widgets: [
-      widget("a", "Alpha", up("a"), "S"),
-      widget("b", "Bravo", up("b"), "S"),
-      widget("c", "Charlie", { tone: "down", summary: "gone" }, "S"),
-      widget("d", "Delta", { tone: "warn", summary: "flapping" }, "S"),
-      widget("e", "Echo", { tone: "maint", summary: "patching" }, "S"),
-      widget("f", "Foxtrot", undefined, "S"),
-    ],
-  });
-
-it("the hero's foot counts the placed, reporting and up Widgets, and its ring shows the share up", async () => {
-  plugins = [[installed("lab", "Lab"), mixed()]];
-
-  await boot();
-
-  const foot = within(hero()).getByRole("img", { name: /^Overall: / }).parentElement!;
-  expect([...foot.children].slice(1).map((s) => s.textContent)).toEqual(["6 Widgets on the Overview", "5 reporting", "2 up"]);
-  const ring = within(hero()).getByRole("meter", { name: "Widgets up" });
-  expect(ring.getAttribute("aria-valuenow")).toBe("33");
-  expect(ring.getAttribute("aria-valuetext")).toBe("33%");
-});
-
-it("the hero clamps its problems to the first three and says how many more there are", async () => {
+it("the hero's date line, then one line of the Widgets' facts after the tone's dot, and the age of the oldest read", async () => {
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date(2026, 10, 15, 19, 45, 0));
   plugins = [
     [
       installed("lab", "Lab"),
-      definePlugin({ widgets: ["One", "Two", "Three", "Four", "Five"].map((t) => widget(t.toLowerCase(), t, { tone: "warn", summary: "slow" }, "S")) }),
+      definePlugin({
+        widgets: [
+          widget("a", "Alpha", { tone: "up", summary: "a", fact: { value: 22, label: "of 22 Checks up" } }, "S"),
+          widget("b", "Bravo", up("b"), "S"),
+          widget("c", "Charlie", { tone: "up", summary: "c", fact: { value: 12, label: "guests running" } }, "S"),
+        ],
+      }),
     ],
   ];
 
   await boot();
 
-  expect(problems()).toEqual(["Oneslow", "Twoslow", "Threeslow"]);
-  expect(within(hero()).getByText("and 2 more")).toBeTruthy();
+  expect(within(hero()).getByText(/^Sunday, .*15.* · /)).toBeTruthy();
+  const foot = within(hero()).getByRole("img", { name: /^Overall: / }).parentElement!;
+  expect([...foot.children].slice(1).map((s) => s.textContent)).toEqual(["22 of 22 Checks up", "12 guests running", "read 0 s ago"]);
 });
 
-it("the hero has no ring while nothing is on the Overview", async () => {
+it("the hero has no ring and no tiles counting Widgets", async () => {
+  plugins = [
+    [
+      installed("lab", "Lab"),
+      definePlugin({ widgets: [widget("a", "Alpha", up("a"), "S"), widget("c", "Charlie", { tone: "down", summary: "gone" }, "S"), widget("e", "Echo", undefined, "S")] }),
+    ],
+  ];
+
   await boot();
 
-  expect(headline()).toBe("No Widgets on the Overview");
   expect(within(hero()).queryByRole("meter")).toBeNull();
+  for (const label of ["Up", "Needs attention", "Down", "Maintenance"]) expect(screen.queryByRole("group", { name: label })).toBeNull();
+  expect(hero().textContent).not.toMatch(/Widget/);
 });
 
-it("four metric tiles count the reporting Widgets that are up, need attention, are down and are in Maintenance", async () => {
-  plugins = [[installed("lab", "Lab"), mixed()]];
-
+it("the hero says when nothing is on the Overview", async () => {
   await boot();
 
-  const tiles = ["Up", "Needs attention", "Down", "Maintenance"].map((label) => screen.getByRole("group", { name: label }));
-  expect(tiles.map((t) => t.textContent)).toEqual(["Up2", "Needs attention1", "Down1", "Maintenance1"]);
-  // Each tile's icon chip carries its tone's tint.
-  const chipTone = (tile: HTMLElement) => tile.querySelector("[class*='-tint']")?.className.match(/bg-(\w+)-tint/)?.[1];
-  expect(tiles.map(chipTone)).toEqual(["up", "warn", "down", "maint"]);
-});
-
-it("the metric tiles load until the layout has come", async () => {
-  intercept = (method) => (method === "GetLayout" ? pending() : undefined);
-
-  await boot();
-
-  expect(within(screen.getByRole("group", { name: "Up" })).getByRole("status", { name: "Loading" })).toBeTruthy();
+  expect(headline()).toBe("No Widgets on the Overview.");
 });
 
 it("lays the Widget grid out in one column on phones, two from small screens and four from wide ones", async () => {
@@ -345,7 +308,7 @@ it("shows a Widget whose body or status crashes as an error frame, reported to t
 
   expect(within(card("Guests")).getByRole("alert").textContent).toMatch(/Guests failed to render.*body boom/);
   expect(within(card("nginx")).getByRole("alert").textContent).toMatch(/nginx failed to render.*status boom/);
-  expect(problems()).toEqual(["GuestsGuests failed to render", "nginxnginx failed to render"]);
+  expect(headline()).toBe("Everything is up. Two things are getting tight.");
   expect(overall()).toBe("Overall: warn");
   quiet.mockRestore();
 });
@@ -357,7 +320,7 @@ it("shows a placed Widget of a Plugin whose bundle failed as an error frame", as
   await boot();
 
   expect(within(cards()[0]).getByRole("alert").textContent).toMatch(/Docker failed to load/);
-  expect(problems()).toEqual(["DockerDocker failed to load"]);
+  expect(overall()).toBe("Overall: warn");
   expect(saves).toEqual([]);
 });
 

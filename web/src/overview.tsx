@@ -1,5 +1,5 @@
 import { CoreService } from "@ddash/proto/ddash/core/core_pb";
-import { PluginScope, useAction, useQuery, type Action, type Fetch, type Status, type Tone, type Widget, type WidgetSize } from "@ddash/plugin";
+import { PluginScope, useAction, useQuery, type Action, type Fetch, type QueryClient, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import {
   Button,
   cx,
@@ -8,26 +8,24 @@ import {
   FormActions,
   HeroCard,
   Icon,
-  MetricTile,
   noMatch,
   Notice,
   PageTitle,
   Pill,
   Presence,
-  Ring,
   SearchField,
   Segmented,
   Sheet,
   Skeleton,
   StatusDot,
-  StatusList,
   WidgetCard,
   type IconName,
 } from "@ddash/ui";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
-import { hero, type HeroState } from "./hero";
+import type { Listed } from "./concerns";
+import { hero, oldestRead, readAgo, type HeroState } from "./hero";
 import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
 import { NeedsYou } from "./needs-you";
 import type { LoadedPlugin, Plugins } from "./plugins";
@@ -93,28 +91,19 @@ const span: Record<WidgetSize, string> = {
   L: "col-span-1 row-span-2 sm:col-span-2",
 };
 
-/** The metric tiles under the hero: how many reporting Widgets are at each tone. */
-const tiles: { label: string; icon: IconName; tone: Tone }[] = [
-  { label: "Up", icon: "circle-check", tone: "up" },
-  { label: "Needs attention", icon: "triangle-exclamation-point", tone: "warn" },
-  { label: "Down", icon: "circle-x", tone: "down" },
-  { label: "Maintenance", icon: "wrench", tone: "maint" },
-];
-
-const tally = (tones: readonly Tone[], tone: Tone) => tones.filter((t) => t === tone).length;
-
-/** /: the hero and metric tiles over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode. */
-export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch }) {
+/** /: the hero and "Needs you" over the grid of placed Widgets (1, 2 or 4 columns by width), with Edit mode. */
+export function Overview({ plugins, overview, fetch, client }: { plugins: Plugins; overview: OverviewLayout; fetch?: Fetch; client: QueryClient }) {
   const reach = useReach();
   // While editing, the Operator's unsaved layout.
   const [draft, setDraft] = useState<Layout | null>(null);
   const [adding, setAdding] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [statuses, setStatuses] = useState<ReadonlyMap<string, Status>>(new Map());
+  const [concerns, setConcerns] = useState<readonly Listed[]>();
   const onStatus = useCallback((key: string, status: Status | undefined) => {
     setStatuses((prev) => {
       const old = prev.get(key);
-      if (old?.tone === status?.tone && old?.summary === status?.summary) return prev;
+      if (JSON.stringify(old) === JSON.stringify(status)) return prev;
       const next = new Map(prev);
       if (status) next.set(key, status);
       else next.delete(key);
@@ -128,11 +117,10 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
     return card ? [card] : [];
   });
   const h = hero(
-    cards.map((c) => ({ title: c.title, status: statuses.get(c.entry.widget) })),
+    cards.map((c) => ({ plugin: pluginOf(c.entry.widget), title: c.title, status: statuses.get(c.entry.widget) })),
+    concerns,
     reach.unreachable,
   );
-  // The tones of the placed Widgets that have reported.
-  const tones = cards.flatMap((c) => statuses.get(c.entry.widget)?.tone ?? []);
 
   const edit = (change: (l: Layout) => Layout) => setDraft((d) => (d ? change(d) : d));
   const move = (from: string, to: string) =>
@@ -168,7 +156,6 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
       <PageTitle
         kicker="Main"
         title="Overview"
-        subtitle="Every Widget's latest report. Arrange the grid with Edit."
         actions={
           layout &&
           !draft && (
@@ -183,13 +170,8 @@ export function Overview({ plugins, overview, fetch }: { plugins: Plugins; overv
           {overview.error.rawMessage}
         </Notice>
       )}
-      <OverviewHero state={h} placed={cards.length} up={tally(tones, "up")} reporting={tones.length} />
-      <NeedsYou plugins={plugins} fetch={fetch} />
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        {tiles.map((t) => (
-          <MetricTile key={t.label} label={t.label} icon={t.icon} tone={t.tone} value={layout ? tally(tones, t.tone) : undefined} />
-        ))}
-      </div>
+      <OverviewHero state={h} client={client} />
+      <NeedsYou plugins={plugins} fetch={fetch} onConcerns={setConcerns} />
       <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-1 gap-4 grid-flow-dense sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => {
           const key = c.entry.widget;
@@ -315,37 +297,69 @@ function EditBar({ changed, onAdd, onCancel, onDone }: { changed: boolean; onAdd
 }
 
 /**
- * The status headline over the Widgets that aren't up, a foot of counts and
- * the share of placed Widgets that are up.
+ * The hero: today's date and the time, the sentence about the network,
+ * then the overall tone's dot, the Widgets' facts and how long ago the
+ * oldest data on screen was read.
  */
-function OverviewHero({ state, placed, reporting, up }: { state: HeroState; placed: number; reporting: number; up: number }) {
+function OverviewHero({ state, client }: { state: HeroState; client: QueryClient }) {
+  const now = useNow();
+  const readAt = useOldestRead(client);
+  const date = new Date(now);
   return (
     <HeroCard
-      kicker="Status"
-      title={state.headline}
-      caption={
-        state.problems.length > 0 && (
-          <>
-            <StatusList items={state.problems.slice(0, shown).map((p) => ({ tone: p.tone, title: p.title, meta: p.summary }))} />
-            {state.problems.length > shown && <p className="mt-2">and {state.problems.length - shown} more</p>}
-          </>
-        )
+      kicker={`${date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} · ${date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`}
+      title={
+        <span className="block max-w-[24ch] text-balance sm:text-4xl">
+          {state.sentence.map((p, i) => (
+            <Fragment key={i}>
+              {i > 0 && " "}
+              <span className={cx(p.quiet && "font-bold text-nav-foreground")}>{p.text}</span>
+            </Fragment>
+          ))}
+        </span>
       }
       foot={
         <>
           <StatusDot tone={state.tone} label={`Overall: ${state.tone}`} pulse={state.tone !== "up" && state.tone !== "idle"} />
-          <span>{count(placed, "Widget")} on the Overview</span>
-          <span>{reporting} reporting</span>
-          <span>{up} up</span>
+          {state.facts.map((f, i) => (
+            <span key={i} className="text-sm">
+              <b className="font-bold text-nav-strong tabular-nums">{f.value}</b> {f.label}
+            </span>
+          ))}
+          {readAt !== undefined && <span className="text-sm">{readAgo(now - readAt)}</span>}
         </>
       }
-      aside={placed > 0 && <Ring ratio={up / placed} value={`${Math.round((up / placed) * 100)}%`} label="Widgets up" />}
     />
   );
 }
 
-// The most problems the hero lists; the caption counts the rest.
-const shown = 3;
+/** The time now, ticking every second. */
+function useNow(): number {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
+}
+
+/** When the oldest data on screen was read: over the shell's QueryClient's mounted queries that refetch on a tier. */
+function useOldestRead(client: QueryClient): number | undefined {
+  const cache = client.getQueryCache();
+  return useSyncExternalStore(
+    useCallback((listener) => cache.subscribe(listener), [cache]),
+    () =>
+      oldestRead(
+        cache.findAll({ type: "active" }).map((q) => ({
+          readAt: q.state.dataUpdatedAt,
+          refetches: q.observers.some((o) => typeof o.options.refetchInterval === "number" && o.options.refetchInterval > 0),
+        })),
+      ),
+  );
+}
+
+/** The Plugin a Widget key ("docker.containers") belongs to. */
+const pluginOf = (key: string) => key.slice(0, key.indexOf("."));
 
 const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
@@ -430,10 +444,13 @@ function Live({
 function Report({ widget, status, onStatus }: { widget: string; status?: Status; onStatus: (key: string, s: Status | undefined) => void }) {
   const tone = status?.tone;
   const summary = status?.summary;
+  const value = status?.fact?.value;
+  const label = status?.fact?.label;
   useEffect(() => {
-    onStatus(widget, tone === undefined ? undefined : { tone, summary: summary ?? "" });
+    if (tone === undefined) onStatus(widget, undefined);
+    else onStatus(widget, { tone, summary: summary ?? "", ...(value !== undefined && label !== undefined && { fact: { value, label } }) });
     return () => onStatus(widget, undefined);
-  }, [widget, tone, summary, onStatus]);
+  }, [widget, tone, summary, value, label, onStatus]);
   return null;
 }
 
