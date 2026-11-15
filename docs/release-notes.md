@@ -5,6 +5,9 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- Nothing to do: a muted Check that is down no longer turns the Checks and
+  Apps Widgets, the Overview or the Checks badge down; they say "N muted
+  down" beside it instead.
 - **Cancel run**: a Compose Project's run in flight (in its Plan Dialog and
   on its Page) can now be cancelled. Its Compose command is stopped
   part-way, its later steps don't run, nothing is rolled back, and the run

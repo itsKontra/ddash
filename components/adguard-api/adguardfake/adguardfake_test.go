@@ -175,3 +175,49 @@ func TestAnAnonymizingAdGuardLogsMaskedClientAddresses(t *testing.T) {
 		t.Errorf("config = %s, want anonymize_client_ip on", w.Body)
 	}
 }
+
+func TestProtectionRefusesADurationWithProtectionOn(t *testing.T) {
+	a, err := adguardfake.New("../testdata/baseline", adguardfake.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if w := post(a, "/control/protection", `{"enabled": true, "duration": 600000}`); w.Code != http.StatusBadRequest {
+		t.Errorf("enabled with a duration = %d, want 400", w.Code)
+	}
+	if on, _ := a.Protection(); !on {
+		t.Errorf("a refused write turned protection off")
+	}
+}
+
+func TestStatusCountsAPauseDownAndShowsProtectionBackOnOnceItIsUp(t *testing.T) {
+	now := time.Date(2026, 11, 15, 12, 0, 0, 0, time.UTC)
+	a, err := adguardfake.New("../testdata/baseline", adguardfake.Options{Now: func() time.Time { return now }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := post(a, "/control/protection", `{"enabled": false, "duration": 600000}`); w.Code != http.StatusOK {
+		t.Fatalf("pause = %d %s", w.Code, w.Body)
+	}
+
+	status := func() (s struct {
+		Enabled  bool  `json:"protection_enabled"`
+		Duration int64 `json:"protection_disabled_duration"`
+		Running  bool  `json:"running"`
+	}) {
+		w := httptest.NewRecorder()
+		a.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/control/status", nil))
+		if err := json.Unmarshal(w.Body.Bytes(), &s); err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	now = now.Add(4 * time.Minute)
+	if s := status(); s.Enabled || s.Duration != 360000 || !s.Running {
+		t.Errorf("status 4 min into a 10 min pause = %+v, want off for 360000 ms more", s)
+	}
+	now = now.Add(6 * time.Minute)
+	if s := status(); !s.Enabled || s.Duration != 0 {
+		t.Errorf("status once the pause is up = %+v, want on", s)
+	}
+}
