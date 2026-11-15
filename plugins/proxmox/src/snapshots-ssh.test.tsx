@@ -38,6 +38,7 @@ it("says snapshots aren't supported where the storage can't take one", async () 
 });
 
 it("backs up to the storage picked, and follows the backup", async () => {
+  let backups: object[] = [{ workload: media, storage: "local", upid: "UPID:old", state: "STATE_DONE", started: daysAgo(1), ended: daysAgo(1) }];
   const calls = await show("/proxmox/workloads/102", {
     ListBackupStorages: () =>
       Response.json({
@@ -46,17 +47,24 @@ it("backs up to the storage picked, and follows the backup", async () => {
           { name: "pbs", type: "pbs", active: true },
         ],
       }),
-    ListBackups: () => Response.json({ backups: [{ workload: media, storage: "pbs", state: "STATE_DONE", started: daysAgo(1), ended: daysAgo(1) }] }),
+    ListBackups: () => Response.json({ backups }),
+    Backup: () => {
+      backups = [{ workload: media, storage: "pbs", upid: "UPID:new", state: "STATE_RUNNING", started: daysAgo(0) }, ...backups];
+      return Response.json({});
+    },
   });
 
+  // Yesterday's backup ended before the Page opened: its outcome is in the Audit Log.
   const snaps = panel("Snapshots & backups");
+  expect(snaps.textContent).not.toContain("Backup to");
   expect(bodies(calls, "ListBackupStorages")).toEqual([{ node: "pve" }]);
   fireEvent.change(within(snaps).getByRole("combobox", { name: "Backup storage" }), { target: { value: "pbs" } });
   fireEvent.click(within(snaps).getByRole("button", { name: "Back up" }));
   await settle();
   expect(bodies(calls, "Backup")).toEqual([{ workload: media, storage: "pbs" }]);
   expect(calls.find((c) => c.method === "Backup")?.url).toBe("/api/c/proxmox/ddash.proxmox.ProxmoxService/Backup");
-  expect(snaps.textContent).toContain("Backup to pbs");
+  expect(snaps.textContent).toContain("Backup to pbsrunning…");
+  expect(snaps.textContent).not.toContain("Backup to local");
 });
 
 const ssh = {

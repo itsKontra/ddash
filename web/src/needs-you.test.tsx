@@ -50,6 +50,7 @@ const fetchFake = async (input: RequestInfo | URL) => {
     case "SaveLayout":
     case "GetCoreSettings":
     case "GetOperator":
+    case "ListAuditLog":
       return Response.json({});
   }
   return Response.json({ code: "unimplemented" }, { status: 501 });

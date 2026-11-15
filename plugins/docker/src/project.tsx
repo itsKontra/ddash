@@ -1,5 +1,5 @@
 import { CancelRun, ComposeFiles, ending, JobLog, PlanDialog, PlanSteps, type ActionInit } from "@ddash/compose-ui";
-import { useQuery } from "@ddash/plugin";
+import { useQuery, useShownRuns } from "@ddash/plugin";
 import { State } from "@ddash/proto/ddash/container/container_pb";
 import { ComposeService, ImageState, type Project, type ProjectContainer, type Run } from "@ddash/proto/compose/compose_pb";
 import { ago } from "@ddash/display";
@@ -112,12 +112,12 @@ function ServiceStrip({ project: p, row: r, open, close }: { project: Project; r
   );
 }
 
-/** The Project's run in flight, or its last one in the past 15 minutes. */
+/** The Project's run in flight, or its last one if it ended with the Page open. */
 function useProjectRun(p: Project | undefined): Run | undefined {
   const runs = useQuery(ComposeService.method.listRuns, {});
-  if (!p) return undefined;
-  const mine = runs.data?.runs.filter((r) => r.host === p.host && r.project === p.name) ?? [];
-  return mine[mine.length - 1];
+  const mine = p && runs.data?.runs.filter((r) => r.host === p.host && r.project === p.name);
+  const shown = useShownRuns(mine, runs.isFetchedAfterMount, (r) => ({ id: r.id, ended: !!r.ended }));
+  return shown[shown.length - 1];
 }
 
 function RunPanel({ run }: { run: Run }) {

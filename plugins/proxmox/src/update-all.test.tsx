@@ -50,25 +50,51 @@ it("plans Update all running: who it updates in order, and who it skips and why"
   expect(bodies(calls, "RunUpdateAll")).toEqual([{ workloads: [ref(102), ref(105)] }]);
 });
 
-it("shows the last Update all running, one Workload after another, and where it stopped", async () => {
-  await show("/proxmox", {
-    ListUpdates: () =>
-      Response.json({
-        bulk: {
-          id: "b1",
-          state: "STATE_FAILED",
-          started: daysAgo(0),
-          error: "LXC 105 grafana: apt-get failed",
-          items: [
-            { workload: ref(102), label: "LXC 102 media-stack", state: "STATE_DONE" },
-            { workload: ref(105), label: "LXC 105 grafana", state: "STATE_FAILED" },
-            { workload: ref(107), label: "LXC 107 telegraf", state: "STATE_SKIPPED" },
-          ],
-        },
-      }),
-  });
+const failed = (id: string) => ({
+  id,
+  state: "STATE_FAILED",
+  started: daysAgo(0),
+  error: "LXC 105 grafana: apt-get failed",
+  items: [
+    { workload: ref(102), label: "LXC 102 media-stack", state: "STATE_DONE" },
+    { workload: ref(105), label: "LXC 105 grafana", state: "STATE_FAILED" },
+    { workload: ref(107), label: "LXC 107 telegraf", state: "STATE_SKIPPED" },
+  ],
+});
+
+it("shows the Update all running started here, one Workload after another, and where it stopped, until the Page is left", async () => {
+  let bulk = failed("b1");
+  const answers = {
+    PlanUpdateAll: () => Response.json(planned),
+    ListUpdates: () => Response.json({ bulk }),
+    RunUpdateAll: () => {
+      bulk = failed("b2");
+      return Response.json({ bulk: { id: "b2", state: "STATE_RUNNING" } });
+    },
+  };
+  await show("/proxmox", answers);
+  // The last run ended before the Page opened: its outcome is in the Audit Log.
+  expect(screen.queryByRole("region", { name: "Update all running" })).toBeNull();
+
+  fireEvent.click(screen.getByRole("button", { name: "Update all running" }));
+  await settle();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Update all" }));
+  await settle();
+  fireEvent.click(within(screen.getByRole("dialog")).getAllByRole("button", { name: "Close" }).at(-1)!);
+  await settle();
 
   const progress = screen.getByRole("region", { name: "Update all running" });
   expect(within(progress).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["LXC 102 media-stackdone", "LXC 105 grafanafailed", "LXC 107 telegrafnot run"]);
   expect(progress.textContent).toContain("Stopped: LXC 105 grafana: apt-get failed");
+
+  // A reload drops it.
+  cleanup();
+  await show("/proxmox", answers);
+  expect(screen.getByRole("heading", { name: "Proxmox" })).toBeTruthy();
+  expect(screen.queryByRole("region", { name: "Update all running" })).toBeNull();
+});
+
+it("shows an Update all running in flight to whoever opens the Page", async () => {
+  await show("/proxmox", { ListUpdates: () => Response.json({ bulk: { ...failed("b1"), state: "STATE_RUNNING", error: "" } }) });
+  expect(screen.getByRole("region", { name: "Update all running" })).toBeTruthy();
 });

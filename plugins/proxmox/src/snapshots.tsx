@@ -1,4 +1,4 @@
-import { useAction, useQuery } from "@ddash/plugin";
+import { useAction, useQuery, useShownRuns } from "@ddash/plugin";
 import { State } from "@ddash/proto/ddash/job/job_pb";
 import { ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
 import { ProxmoxService, type BackupTask } from "@ddash/proto/proxmox/proxmox_pb";
@@ -7,7 +7,7 @@ import { ago } from "@ddash/display";
 import { useNow } from "./format";
 import { useEffect, useState } from "react";
 import { refOf } from "./power";
-import { stateTone, stateWord } from "./steps";
+import { ended, stateTone, stateWord } from "./steps";
 
 // A Workload's ddash Snapshot (the one ddash keeps, with its age), the
 // snapshots taken by hand that ddash never touches, Take snapshot, and
@@ -97,8 +97,10 @@ function Backups({ workload: w }: { workload: Workload }) {
   const [storage, setStorage] = useState("");
   const list = storages.data?.storages ?? [];
   const picked = storage || list[0]?.name || "";
-  const mine = (backups.data?.backups ?? []).filter((b) => b.workload?.id === String(w.vmid));
-  const running = mine.some((b) => b.state === State.RUNNING || b.state === State.PENDING);
+  const mine = backups.data?.backups.filter((b) => b.workload?.id === String(w.vmid));
+  const running = !!mine?.some((b) => b.state === State.RUNNING || b.state === State.PENDING);
+  // The backups in flight, and those that ended with the Page open.
+  const shown = useShownRuns(mine, backups.isFetchedAfterMount, (b) => ({ id: b.upid, ended: ended(b.state) }));
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm font-semibold">Backup</p>
@@ -118,7 +120,7 @@ function Backups({ workload: w }: { workload: Workload }) {
         </Button>
       </div>
       {backup.error && <Notice tone="down">{backup.error.rawMessage}</Notice>}
-      {mine.length > 0 && <BackupList backups={mine} />}
+      {shown.length > 0 && <BackupList backups={shown} />}
     </div>
   );
 }
