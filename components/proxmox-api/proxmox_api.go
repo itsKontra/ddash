@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	proxmox "github.com/luthermonson/go-proxmox"
@@ -53,7 +54,25 @@ type component struct {
 	client      *proxmox.Client
 	workloads   *sdk.Cache[*pb.ListWorkloadsResponse]
 	permissions *sdk.Cache[permissions]
+	// addresses keeps what readAddresses found, by VMID, across refreshes
+	// of workloads.
+	addressesMu sync.Mutex
+	addresses   map[uint32]addresses
 }
+
+// addresses is one Workload's nics as last read, and what it was then: a
+// Workload that changed status or node since is read again.
+type addresses struct {
+	status, node string
+	nics         []*pb.Nic
+	source       pb.AddressSource
+	read         time.Time
+}
+
+// addressTTL is how long a Workload's addresses are kept while its status
+// doesn't change. They change rarely (a new DHCP lease, an edited config),
+// and reading them costs one or two requests per Workload.
+const addressTTL = 5 * time.Minute
 
 // rootCAs verifies the node's certificate; nil means the system's roots.
 var rootCAs *x509.CertPool
@@ -80,6 +99,7 @@ func (c *component) Start(ctx context.Context, _ *sdk.Env, cfg *pb.ProxmoxApiCon
 		proxmox.WithHTTPClient(&http.Client{Timeout: requestTimeout, Transport: rt}),
 		proxmox.WithAPIToken(cfg.GetTokenId(), cfg.GetTokenSecret()),
 	)
+	c.addresses = map[uint32]addresses{}
 	c.workloads = sdk.Cached(sdk.TTLFast, c.fetch)
 	c.permissions = sdk.Cached(sdk.TTLFast, c.fetchPermissions)
 	return nil
@@ -158,10 +178,11 @@ func unavailable(err error) error {
 	return status.Error(codes.Unavailable, err.Error())
 }
 
-// Health is ok while the API answers with the token.
+// Health is ok while the API answers with the token. It reads the list
+// alone, never a Workload's addresses: the host asks every 30 s.
 func (c *component) Health(ctx context.Context) sdk.Health {
-	if _, err := c.workloads.Get(ctx); err != nil {
-		return sdk.Health{State: sdk.Down, Message: status.Convert(err).Message()}
+	if _, err := (&proxmox.Cluster{}).New(c.client).Resources(ctx, "vm"); err != nil {
+		return sdk.Health{State: sdk.Down, Message: status.Convert(unavailable(err)).Message()}
 	}
 	return sdk.Health{State: sdk.OK}
 }
@@ -180,13 +201,55 @@ func (c *component) fetch(ctx context.Context) (*pb.ListWorkloadsResponse, error
 	var g errgroup.Group
 	g.SetLimit(addressReaders)
 	for _, w := range out.Workloads {
+		if c.keptAddresses(w) {
+			continue
+		}
 		g.Go(func() error {
 			c.readAddresses(ctx, w)
+			c.keepAddresses(w)
 			return nil
 		})
 	}
 	_ = g.Wait()
+	c.forgetAddresses(out.Workloads)
 	return out, nil
+}
+
+// keptAddresses fills w's nics from the addresses kept for it, reporting
+// whether there were any to use: read within addressTTL, on the node and
+// in the status w has now.
+func (c *component) keptAddresses(w *pb.Workload) bool {
+	c.addressesMu.Lock()
+	defer c.addressesMu.Unlock()
+	a, ok := c.addresses[w.GetVmid()]
+	if !ok || a.status != w.GetStatus() || a.node != w.GetNode() || time.Since(a.read) >= addressTTL {
+		return false
+	}
+	w.Nics, w.Addresses = a.nics, a.source
+	return true
+}
+
+// keepAddresses keeps the nics just read for w. A failed read isn't kept,
+// so the next refresh tries again.
+func (c *component) keepAddresses(w *pb.Workload) {
+	c.addressesMu.Lock()
+	defer c.addressesMu.Unlock()
+	if w.GetAddressesError() != "" {
+		delete(c.addresses, w.GetVmid())
+		return
+	}
+	c.addresses[w.GetVmid()] = addresses{status: w.GetStatus(), node: w.GetNode(), nics: w.GetNics(), source: w.GetAddresses(), read: time.Now()}
+}
+
+// forgetAddresses drops the addresses of Workloads no longer listed.
+func (c *component) forgetAddresses(listed []*pb.Workload) {
+	c.addressesMu.Lock()
+	defer c.addressesMu.Unlock()
+	for vmid := range c.addresses {
+		if !slices.ContainsFunc(listed, func(w *pb.Workload) bool { return w.GetVmid() == vmid }) {
+			delete(c.addresses, vmid)
+		}
+	}
 }
 
 // addressReaders is how many Workloads' addresses are read at once.
