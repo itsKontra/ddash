@@ -7,7 +7,6 @@
 package hostagent
 
 import (
-	"bufio"
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
@@ -38,26 +37,7 @@ type Runner func(ctx context.Context, env []string, name string, args []string, 
 func Exec(ctx context.Context, env []string, name string, args []string, out func(string)) error {
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Env = append(os.Environ(), env...)
-	pr, pw := io.Pipe()
-	cmd.Stdout, cmd.Stderr = pw, pw
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	done := make(chan struct{})
-	go func() {
-		sc := bufio.NewScanner(pr)
-		sc.Buffer(make([]byte, 64<<10), 1<<20)
-		for sc.Scan() {
-			if out != nil {
-				out(sc.Text())
-			}
-		}
-		close(done)
-	}()
-	err := cmd.Wait()
-	pw.Close()
-	<-done
-	return err
+	return agent.RunLines(cmd, out)
 }
 
 // Options configure the Host Agent's operations.
@@ -890,7 +870,10 @@ func (a *Agent) ensureInclude() error {
 			return nil
 		}
 	}
-	fi, _ := os.Stat(path)
+	fi, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
 	return agent.WriteFileAtomic(path, append([]byte("Include /etc/ssh/sshd_config.d/*.conf\n"), b...), fi.Mode().Perm())
 }
 
