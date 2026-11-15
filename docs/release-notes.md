@@ -5,6 +5,44 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- **To do, for the Hosts Widget's meters**: give ddash's Proxmox API token
+  `Sys.Audit` on `/nodes` and `Datastore.Audit` on `/storage`
+  ([deployment](deployment.md)). Without them the new **Hosts** Widget
+  shows the guests but says the token can't read the node.
+- The Overview now says what is wrong and lets you fix it there. Its hero
+  is a sentence ("Paperless is down. Everything else is up.") over a line
+  of facts; the ring and the four Widget counts are gone. Under it,
+  **Needs you** lists what every Plugin reports, worst first, each with
+  the Action that fixes it: a down App with its stopped Workload as the
+  cause and Start or Restart, a new Device with Adopt and Block, a failed
+  image check with Check again, a guest or the node running out of memory
+  or disk. Muted Checks and those in Maintenance sit folded under "Off on
+  purpose". **Recently** at the bottom shows the last Actions and how they
+  ended. Your saved layout is kept; the title block above the hero is
+  gone and Edit sits in the hero's corner.
+- New Widgets: **Network** (the route out, the WAN's throughput, Devices,
+  ad blocking with its switch, Remote Access), **Hosts** (the node's CPU,
+  memory and storage, and the guests under most pressure), **Docker
+  hosts** (containers running, exited ones, image updates). **Energy now**
+  leads with what the readings add up to ("Running on battery") instead
+  of the flow diagram, which stays on the Energy Page. They are appended
+  to a saved layout once; a fresh Overview starts with eight Widgets and
+  offers the rest under Add Widget, and a Plugin installed later no longer
+  places all of its Widgets.
+- Optional: set **Battery capacity (kWh)** in energy-api's config, and
+  Energy now also says how long the battery lasts or takes to fill at the
+  current rate.
+- **Pin Apps** from an App's detail or the Apps Widget's pin button, and
+  order them: the Apps Widget then shows only the pinned ones.
+- AdGuard's protection can be **paused for 10 min or 1 h** and resumed
+  from the AdGuard and Network Widgets and the Network Page. AdGuard ends
+  the pause itself.
+- A finished run's result (an update, a Compose run, a backup) stays on
+  its Page only while you have it open; afterwards it is in Recently and
+  the Audit Log.
+- After a Workload is started or restarted through ddash, its Apps' Checks
+  are probed at once instead of at the next minute.
+
 - Nothing to do: **Ctrl K** (⌘ K on a Mac, or `/` outside a text field)
   opens a command palette on every Page, also from "Search or run…" in
   the top bar. Type a word's start to open an App, go to a Page or the
