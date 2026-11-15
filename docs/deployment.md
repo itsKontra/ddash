@@ -51,6 +51,13 @@ Do these by hand, in order, before first use.
 - [ ] nginx Proxy Host for `ddash.<domain>` → `http://<ddash-ip>:8080` with the
       wildcard certificate. It must send `X-Forwarded-For` and
       `X-Forwarded-Proto`; ddash trusts them only from `DDASH_TRUSTED_PROXY`.
+- [ ] The Proxy Host compresses what ddash serves: ddash sends its
+      JavaScript and CSS uncompressed, and leaves compression to the proxy.
+      In Nginx Proxy Manager, add to the Proxy Host's Advanced config:
+      `gzip on; gzip_types text/javascript text/css application/json;`.
+      Check with
+      `curl -sI -H 'Accept-Encoding: gzip' https://ddash.<domain>/assets/<file>.js`
+      (signed in): it answers `content-encoding: gzip`.
 
 ### 4. Keycloak
 
