@@ -94,8 +94,8 @@ func TestTheConfigFormsTestButtonRunsTheTestActionOnTheSavedConfig(t *testing.T)
 	res := h.CoreCall("RunTestAction", `{"owner":"ntfy-api"}`)
 	var failed struct{ Code, Message string }
 	_ = json.Unmarshal(res.Body.Bytes(), &failed)
-	if failed.Code != "unavailable" || failed.Message != "ntfy answered 401: unauthorized" {
-		t.Errorf("RunTestAction while ntfy refuses = %d %s, want unavailable: ntfy answered 401: unauthorized", res.Code, res.Body)
+	if failed.Code != "permission_denied" || failed.Message != "ntfy answered 401: unauthorized" {
+		t.Errorf("RunTestAction while ntfy refuses = %d %s, want permission_denied: ntfy answered 401: unauthorized", res.Code, res.Body)
 	}
 }
 

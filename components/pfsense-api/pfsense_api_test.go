@@ -114,8 +114,8 @@ func TestARefusedKeyIsDownWithWhatPfSenseSaid(t *testing.T) {
 
 	_, err := c.ListGateways(t.Context(), &pfsenseapipb.ListGatewaysRequest{})
 
-	if status.Code(err) != codes.Unavailable || !strings.Contains(err.Error(), "401") || !strings.Contains(err.Error(), "Authentication failed.") {
-		t.Errorf("ListGateways error = %v, want Unavailable naming the 401 and pfSense's message", err)
+	if status.Code(err) != codes.PermissionDenied || !strings.Contains(err.Error(), "401") || !strings.Contains(err.Error(), "Authentication failed.") {
+		t.Errorf("ListGateways error = %v, want PermissionDenied naming the 401 and pfSense's message", err)
 	}
 	if got := h.Health(); got.State != sdk.Down || !strings.Contains(got.Message, "Authentication failed.") {
 		t.Errorf("health = %v, want down naming pfSense's message", got)

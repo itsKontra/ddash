@@ -153,6 +153,22 @@ func (a *agents) UpgradePackages(_ context.Context, req *hostagentapipb.UpgradeP
 	return &hostagentapipb.UpgradePackagesResponse{Job: proto.CloneOf(j)}, nil
 }
 
+// GetJob is one job of ListJobs, which is where a job ends.
+func (a *agents) GetJob(ctx context.Context, req *hostagentapipb.GetJobRequest, _ ...grpc.CallOption) (*hostagentapipb.GetJobResponse, error) {
+	all, err := a.ListJobs(ctx, &hostagentapipb.ListJobsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	for _, h := range all.GetHosts() {
+		for _, j := range h.GetJobs() {
+			if h.GetVmid() == req.GetVmid() && j.GetId() == req.GetId() {
+				return &hostagentapipb.GetJobResponse{Job: j}, nil
+			}
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "no job %s", req.GetId())
+}
+
 func (a *agents) ListJobs(context.Context, *hostagentapipb.ListJobsRequest, ...grpc.CallOption) (*hostagentapipb.ListJobsResponse, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()

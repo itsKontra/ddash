@@ -107,3 +107,11 @@ it("asks to set up energy-api while it isn't", async () => {
   expect(screen.getByText("Set up energy-api")).toBeTruthy();
   expect(screen.getByRole("link", { name: "Configure it in Plugins" }).getAttribute("href")).toBe("/plugins");
 });
+
+it("still shows a period's figures when the answer lacks its ends", async () => {
+  const { from: _from, to: _to, ...endless } = today as Record<string, unknown>;
+  await show(() => Response.json(endless));
+
+  expect(screen.queryByText(/Energy crashed/)).toBeNull();
+  expect(fact(panel("Energy"), "Solar")).toBeTruthy();
+});

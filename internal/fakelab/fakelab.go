@@ -31,8 +31,8 @@ import (
 	"github.com/itsKontra/ddash/agent/agentfake"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardapipb"
 	"github.com/itsKontra/ddash/components/adguard-api/adguardfake"
-	"github.com/itsKontra/ddash/components/ai-helper/aihelperpb"
-	"github.com/itsKontra/ddash/components/ai-helper/anthropicfake"
+	"github.com/itsKontra/ddash/components/anthropic-api/anthropicapipb"
+	"github.com/itsKontra/ddash/components/anthropic-api/anthropicfake"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarapipb"
 	"github.com/itsKontra/ddash/components/calendar-api/calendarfake"
 	"github.com/itsKontra/ddash/components/cloudflare-api/cloudflareapipb"
@@ -164,11 +164,11 @@ var systems = []system{
 		serve: func(string) (http.Handler, error) { return energyfake.New(energyfake.Options{}), nil },
 	},
 	{
-		component: "ai-helper",
-		fixtures:  "components/ai-helper/testdata/baseline",
+		component: "anthropic-api",
+		fixtures:  "components/anthropic-api/testdata/baseline",
 		config: func(addr string) proto.Message {
 			server := "http://" + addr
-			return &aihelperpb.AiHelperConfig{ApiKey: anthropicfake.DefaultKey, Server: &server}
+			return &anthropicapipb.AnthropicApiConfig{ApiKey: anthropicfake.DefaultKey, Server: &server}
 		},
 		// Every draft is the canned one: nothing reaches Anthropic.
 		serve: func(dir string) (http.Handler, error) { return anthropicfake.New(dir, anthropicfake.Options{}) },

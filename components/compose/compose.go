@@ -11,15 +11,14 @@ import (
 	"context"
 	"database/sql"
 	"embed"
-	"errors"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/itsKontra/ddash/agent"
@@ -27,6 +26,7 @@ import (
 	pb "github.com/itsKontra/ddash/components/compose/composepb"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	"github.com/itsKontra/ddash/components/notify/notifypb"
+	regpb "github.com/itsKontra/ddash/components/registry-api/registryapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -55,7 +55,8 @@ type component struct {
 	log    *slog.Logger
 	public string
 	life   context.Context
-	reg    *registries
+	// registry reads image digests: the only way compose asks a registry.
+	registry regpb.RegistryApiServiceClient
 	// kick asks the check loop for a check now.
 	kick chan struct{}
 	// kicked is when ListProjects last asked for a check of images it
@@ -83,22 +84,12 @@ type checkState struct {
 	problems   map[string]string
 }
 
-func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *pb.ComposeConfig) error {
-	creds, err := parseCreds(cfg.GetRegistryCredentials())
-	if err != nil {
-		var errs sdk.FieldErrors
-		errs.Add("registry_credentials", "%s", err.Error())
-		return errs.Err()
-	}
-	hub := cfg.GetDockerHubRegistry()
-	if hub == "" {
-		hub = "https://registry-1.docker.io"
-	}
+func (c *component) Start(ctx context.Context, env *sdk.Env, _ *pb.ComposeConfig) error {
 	c.agents = sdk.Require(env, dapb.NewDockerAgentApiServiceClient)
+	c.registry = sdk.Require(env, regpb.NewRegistryApiServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.notify = sdk.Require(env, notifypb.NewNotifyServiceClient)
 	c.db, c.log, c.public, c.life = env.DB, env.Log, strings.TrimRight(env.PublicURL, "/"), ctx
-	c.reg = &registries{hc: &http.Client{Timeout: 15 * time.Second}, dockerHub: hub, creds: creds, tokens: map[string]string{}}
 	c.images = map[string]digestResult{}
 	c.runs = map[string]*run{}
 	c.kick = make(chan struct{}, 1)
@@ -217,17 +208,25 @@ func (c *component) checkImages(ctx context.Context) {
 			case <-time.After(requestGap):
 			}
 		}
-		d, n, err := c.reg.digest(ctx, r)
-		requests += n
-		result := digestResult{digest: d, checked: time.Now()}
-		if err != nil {
-			result.err = err.Error()
-			if errors.Is(err, errRateLimited) {
-				problems[r.registry] = "rate limited: ddash waits for the next check"
-				result.err = "rate limited by " + r.registry
-			} else if !strings.Contains(err.Error(), "has no") {
-				problems[r.registry] = err.Error()
-			}
+		result := digestResult{checked: time.Now()}
+		got, err := c.registry.GetDigest(ctx, &regpb.GetDigestRequest{Registry: r.registry, Repository: r.repo, Tag: r.tag})
+		requests += int(got.GetRequests())
+		switch {
+		case err != nil:
+			// registry-api itself didn't answer.
+			result.err = status.Convert(err).Message()
+			problems[r.registry] = result.err
+		case got.GetOutcome() == regpb.Outcome_OUTCOME_FOUND:
+			result.digest = got.GetDigest()
+		case got.GetOutcome() == regpb.Outcome_OUTCOME_RATE_LIMITED:
+			result.err = got.GetMessage()
+			problems[r.registry] = "rate limited: ddash waits for the next check"
+		case got.GetOutcome() == regpb.Outcome_OUTCOME_NO_SUCH_IMAGE:
+			// The image's problem, not the registry's.
+			result.err = got.GetMessage()
+		default:
+			result.err = got.GetMessage()
+			problems[r.registry] = result.err
 		}
 		c.mu.Lock()
 		c.images[k] = result

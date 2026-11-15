@@ -10,7 +10,6 @@
 
 import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import { file_ddash_config_config } from "../ddash/config/config_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -18,34 +17,15 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file ai-helper/ai_helper.proto.
  */
 export const file_ai_helper_ai_helper: GenFile = /*@__PURE__*/
-  fileDesc("ChlhaS1oZWxwZXIvYWlfaGVscGVyLnByb3RvEg5kZGFzaC5haWhlbHBlciLEAwoOQWlIZWxwZXJDb25maWcSngEKB2FwaV9rZXkYASABKAlCjAGatRiHARABGhFBbnRocm9waWMgQVBJIGtleSJkRnJvbSBjb25zb2xlLmFudGhyb3BpYy5jb20uIExlYXZlIGVtcHR5IHRvIG5vdCB1c2UgdGhlIEFJIEFwcCBoZWxwZXIuIERyYWZ0cyBhcmUgYmlsbGVkIHRvIHRoaXMga2V5LioKc2stYW50LeKAphJ/CgVtb2RlbBgCIAEoCUJrmrUYZwoRY2xhdWRlLXNvbm5ldC01LTUaBU1vZGVsIktUaGUgQ2xhdWRlIG1vZGVsIGlkIHRoYXQgZHJhZnRzLCBlLmcuIGNsYXVkZS1zb25uZXQtNS01IG9yIGNsYXVkZS1vcHVzLTUtNS5IAIgBARJ7CgZzZXJ2ZXIYAyABKAlCZpq1GGIKGWh0dHBzOi8vYXBpLmFudGhyb3BpYy5jb20aCkFQSSBzZXJ2ZXIiN0xlYXZlIGFzIGlzIHVubGVzcyB5b3UgcmVhY2ggQW50aHJvcGljIHRocm91Z2ggYSBwcm94eS44AUgBiAEBQggKBl9tb2RlbEIJCgdfc2VydmVyIhIKEEdldFN0YXR1c1JlcXVlc3QiMgoRR2V0U3RhdHVzUmVzcG9uc2USDgoGc2V0X3VwGAEgASgIEg0KBW1vZGVsGAIgASgJIlUKD0RyYWZ0QXBwUmVxdWVzdBITCgtkZXNjcmlwdGlvbhgBIAEoCRItCgdjb250ZXh0GAIgASgLMhwuZGRhc2guYWloZWxwZXIuRHJhZnRDb250ZXh0ImkKDERyYWZ0Q29udGV4dBIMCgRob3N0GAEgASgJEhAKCHByb2plY3RzGAIgAygJEhIKCnVzZWRfcG9ydHMYAyADKA0SEAoIbmV0d29ya3MYBCADKAkSEwoLaG9tZV9kb21haW4YBSABKAkiOAoQRHJhZnRBcHBSZXNwb25zZRIkCgVkcmFmdBgBIAEoCzIVLmRkYXNoLmFpaGVscGVyLkRyYWZ0Im0KBURyYWZ0EgwKBG5hbWUYASABKAkSDwoHY29tcG9zZRgCIAEoCRInCgNhcHAYAyABKAsyGi5kZGFzaC5haWhlbHBlci5EcmFmdGVkQXBwEg0KBW5vdGVzGAQgAygJEg0KBW1vZGVsGAUgASgJImMKCkRyYWZ0ZWRBcHASCwoDdXJsGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEaWNvbhgDIAEoCRINCgVncm91cBgEIAEoCRIPCgdzZXJ2aWNlGAUgASgJEgwKBHBvcnQYBiABKA0yvgEKD0FpSGVscGVyU2VydmljZRJWCglHZXRTdGF0dXMSIC5kZGFzaC5haWhlbHBlci5HZXRTdGF0dXNSZXF1ZXN0GiEuZGRhc2guYWloZWxwZXIuR2V0U3RhdHVzUmVzcG9uc2UiBIq1GAASUwoIRHJhZnRBcHASHy5kZGFzaC5haWhlbHBlci5EcmFmdEFwcFJlcXVlc3QaIC5kZGFzaC5haWhlbHBlci5EcmFmdEFwcFJlc3BvbnNlIgSStRgAQkdaRWdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvYWktaGVscGVyL2FpaGVscGVycGI7YWloZWxwZXJwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options]);
+  fileDesc("ChlhaS1oZWxwZXIvYWlfaGVscGVyLnByb3RvEg5kZGFzaC5haWhlbHBlciI6Cg5BaUhlbHBlckNvbmZpZ0oECAEQAkoECAIQA0oECAMQBFIHYXBpX2tleVIFbW9kZWxSBnNlcnZlciISChBHZXRTdGF0dXNSZXF1ZXN0IjIKEUdldFN0YXR1c1Jlc3BvbnNlEg4KBnNldF91cBgBIAEoCBINCgVtb2RlbBgCIAEoCSJVCg9EcmFmdEFwcFJlcXVlc3QSEwoLZGVzY3JpcHRpb24YASABKAkSLQoHY29udGV4dBgCIAEoCzIcLmRkYXNoLmFpaGVscGVyLkRyYWZ0Q29udGV4dCJpCgxEcmFmdENvbnRleHQSDAoEaG9zdBgBIAEoCRIQCghwcm9qZWN0cxgCIAMoCRISCgp1c2VkX3BvcnRzGAMgAygNEhAKCG5ldHdvcmtzGAQgAygJEhMKC2hvbWVfZG9tYWluGAUgASgJIjgKEERyYWZ0QXBwUmVzcG9uc2USJAoFZHJhZnQYASABKAsyFS5kZGFzaC5haWhlbHBlci5EcmFmdCJtCgVEcmFmdBIMCgRuYW1lGAEgASgJEg8KB2NvbXBvc2UYAiABKAkSJwoDYXBwGAMgASgLMhouZGRhc2guYWloZWxwZXIuRHJhZnRlZEFwcBINCgVub3RlcxgEIAMoCRINCgVtb2RlbBgFIAEoCSJjCgpEcmFmdGVkQXBwEgsKA3VybBgBIAEoCRIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSDQoFZ3JvdXAYBCABKAkSDwoHc2VydmljZRgFIAEoCRIMCgRwb3J0GAYgASgNMr4BCg9BaUhlbHBlclNlcnZpY2USVgoJR2V0U3RhdHVzEiAuZGRhc2guYWloZWxwZXIuR2V0U3RhdHVzUmVxdWVzdBohLmRkYXNoLmFpaGVscGVyLkdldFN0YXR1c1Jlc3BvbnNlIgSKtRgAElMKCERyYWZ0QXBwEh8uZGRhc2guYWloZWxwZXIuRHJhZnRBcHBSZXF1ZXN0GiAuZGRhc2guYWloZWxwZXIuRHJhZnRBcHBSZXNwb25zZSIEkrUYAEJHWkVnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2FpLWhlbHBlci9haWhlbHBlcnBiO2FpaGVscGVycGJiBnByb3RvMw", [file_ddash_options]);
 
 /**
- * Empty is valid: the helper is then not set up, and DraftApp refuses.
+ * ai-helper has nothing to configure: the API key, the model and the
+ * server are anthropic-api's.
  *
  * @generated from message ddash.aihelper.AiHelperConfig
  */
 export type AiHelperConfig = Message<"ddash.aihelper.AiHelperConfig"> & {
-  /**
-   * An Anthropic API key, write-only once saved.
-   *
-   * @generated from field: string api_key = 1;
-   */
-  apiKey: string;
-
-  /**
-   * The Claude model drafting.
-   *
-   * @generated from field: optional string model = 2;
-   */
-  model?: string | undefined;
-
-  /**
-   * The Messages API's server; Anthropic's own unless a proxy.
-   *
-   * @generated from field: optional string server = 3;
-   */
-  server?: string | undefined;
 };
 
 /**
@@ -291,8 +271,8 @@ export const DraftedAppSchema: GenMessage<DraftedApp> = /*@__PURE__*/
  */
 export const AiHelperService: GenService<{
   /**
-   * GetStatus says whether the helper is set up (an API key is saved),
-   * from the config alone.
+   * GetStatus says whether the helper is set up (anthropic-api has an
+   * API key), and the model that drafts.
    *
    * @generated from rpc ddash.aihelper.AiHelperService.GetStatus
    */

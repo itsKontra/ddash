@@ -8,7 +8,7 @@
 #	make image RELEASE=v1.2.3
 #
 # distroless/static: no shell, no libc, CA certificates and tzdata included.
-FROM gcr.io/distroless/static-debian13:nonroot@sha256:516757106de35205efb70b91ba03f6f1298424a0678c603255cf2852a7000087
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:aafe993665bf6200db38a02c11a9351e782a84b6a45e7f33b6695638c88e3931
 
 # The data dir, owned by the user ddash runs as, so the image also runs
 # without a bind mount. compose bind-mounts /opt/ddash/data over it.

@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strconv"
 
-	_ "modernc.org/sqlite" // registers the "sqlite" driver
+	"modernc.org/sqlite" // also registers the "sqlite" driver
 )
 
 // ErrSchemaAhead means the DB was migrated by a newer Release than the code
@@ -107,3 +107,19 @@ func applyOne(ctx context.Context, db *sql.DB, fsys fs.FS, name string, version 
 	}
 	return tx.Commit()
 }
+
+// IsTaken reports whether err is SQLite refusing a row because its key
+// (a PRIMARY KEY or a UNIQUE column) is already there.
+func IsTaken(err error) bool {
+	var e *sqlite.Error
+	if !errors.As(err, &e) {
+		return false
+	}
+	return e.Code() == constraintUnique || e.Code() == constraintPrimaryKey
+}
+
+// SQLite's extended result codes for a key that is already there.
+const (
+	constraintPrimaryKey = 1555 // SQLITE_CONSTRAINT_PRIMARYKEY
+	constraintUnique     = 2067 // SQLITE_CONSTRAINT_UNIQUE
+)

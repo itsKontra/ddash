@@ -10,5 +10,6 @@ Each interface of an external system is reached by exactly one Component, named 
 ## Consequences
 
 - A Component that is not an `-api` Component makes no network calls of its own. `checks` is the exception by purpose: probing an address is what a Check is.
-- Two Components break the rule today and need an `-api` Component split out of them: `compose` talks to container registries (`components/compose/images.go`), and `ai-helper` talks to Anthropic (`components/ai-helper/ai_helper.go`).
+- Two Components talked to a system themselves and were split: `compose` reads image digests through `registry-api`, and `ai-helper` asks Claude through `anthropic-api`. Each keeps what is its own: compose what a digest means for a container, ai-helper its prompt, its schema and what it makes of the answer.
+- A split moves no config: the Operator enters a system's credentials again in its new `-api` Component.
 - A new integration starts with its `-api` Component, with a fake beside it (`<system>fake`), before the Component that holds a Plugin's logic.

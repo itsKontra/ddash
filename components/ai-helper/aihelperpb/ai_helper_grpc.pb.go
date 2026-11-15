@@ -33,8 +33,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AiHelperServiceClient interface {
-	// GetStatus says whether the helper is set up (an API key is saved),
-	// from the config alone.
+	// GetStatus says whether the helper is set up (anthropic-api has an
+	// API key), and the model that drafts.
 	GetStatus(ctx context.Context, in *GetStatusRequest, opts ...grpc.CallOption) (*GetStatusResponse, error)
 	// DraftApp asks Claude for a draft of the App description describes,
 	// sending description and context and nothing else. It runs nothing:
@@ -76,8 +76,8 @@ func (c *aiHelperServiceClient) DraftApp(ctx context.Context, in *DraftAppReques
 // All implementations must embed UnimplementedAiHelperServiceServer
 // for forward compatibility.
 type AiHelperServiceServer interface {
-	// GetStatus says whether the helper is set up (an API key is saved),
-	// from the config alone.
+	// GetStatus says whether the helper is set up (anthropic-api has an
+	// API key), and the model that drafts.
 	GetStatus(context.Context, *GetStatusRequest) (*GetStatusResponse, error)
 	// DraftApp asks Claude for a draft of the App description describes,
 	// sending description and context and nothing else. It runs nothing:

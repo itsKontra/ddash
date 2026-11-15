@@ -138,7 +138,7 @@ func (c *component) publish(ctx context.Context, n *ntfyapipb.Notification) (str
 	c.lastErr = err
 	c.mu.Unlock()
 	if err != nil {
-		return "", status.Error(codes.Unavailable, err.Error())
+		return "", status.Error(sendCode(err), err.Error())
 	}
 	return id, nil
 }
@@ -176,7 +176,25 @@ func (c *component) post(ctx context.Context, m message) (string, error) {
 		if why == "" {
 			why = strings.ToLower(http.StatusText(resp.StatusCode))
 		}
-		return "", fmt.Errorf("ntfy answered %d: %s", resp.StatusCode, why)
+		return "", &answered{status: resp.StatusCode, text: fmt.Sprintf("ntfy answered %d: %s", resp.StatusCode, why)}
 	}
 	return answer.ID, nil
+}
+
+// answered is a refusal ntfy answered with, and its HTTP status.
+type answered struct {
+	status int
+	text   string
+}
+
+func (a *answered) Error() string { return a.text }
+
+// sendCode is a failed send's gRPC code: PermissionDenied when ntfy
+// refused the credentials, as in every -api Component, else Unavailable.
+func sendCode(err error) codes.Code {
+	var a *answered
+	if errors.As(err, &a) && (a.status == http.StatusUnauthorized || a.status == http.StatusForbidden) {
+		return codes.PermissionDenied
+	}
+	return codes.Unavailable
 }

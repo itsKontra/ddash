@@ -219,7 +219,7 @@ func (a *api) send(ctx context.Context, method, path string, body, out any) erro
 	}
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusTooManyRequests:
-		err := status.Errorf(codes.Unavailable, "AdGuard Home refused the username or password (%d); fix them in adguard-api's config", resp.StatusCode)
+		err := status.Errorf(codes.PermissionDenied, "AdGuard Home refused the username or password (%d); fix them in adguard-api's config", resp.StatusCode)
 		a.mu.Lock()
 		a.refused = err
 		a.mu.Unlock()

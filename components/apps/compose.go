@@ -18,7 +18,6 @@ import (
 	"github.com/itsKontra/ddash/components/apps/appspb"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
 	"github.com/itsKontra/ddash/components/docker-api/dockerapipb"
-	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
 	proxyhostpb "github.com/itsKontra/ddash/proto/ddash/proxyhost"
 )
 
@@ -371,12 +370,14 @@ func stillStarting(r *composeRun, what string) error {
 // counts as ended; the next step sees how.
 func (c *component) followJob(ctx context.Context, r *composeRun, id string, deadline time.Time) error {
 	for {
-		resp, err := c.agents.ListJobs(ctx, &dapb.ListJobsRequest{})
+		resp, err := c.agents.GetJob(ctx, &dapb.GetJobRequest{Host: r.host, Id: id})
+		if status.Code(err) == codes.NotFound {
+			break
+		}
 		if err != nil {
 			return err
 		}
-		j, listed := findJob(resp, r.host, id)
-		if !listed || j.GetEnd() != nil {
+		if resp.GetJob().GetEnd() != nil {
 			break
 		}
 		if time.Now().After(deadline) {
@@ -390,20 +391,6 @@ func (c *component) followJob(ctx context.Context, r *composeRun, id string, dea
 		return err
 	}
 	return nil
-}
-
-func findJob(resp *dapb.ListJobsResponse, host, id string) (*jobpb.Job, bool) {
-	for _, h := range resp.GetHosts() {
-		if h.GetHost() != host {
-			continue
-		}
-		for _, j := range h.GetJobs() {
-			if j.GetId() == id {
-				return j, true
-			}
-		}
-	}
-	return nil, false
 }
 
 // waitRunning waits until the service's container runs, and lists it

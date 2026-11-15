@@ -458,28 +458,15 @@ func (c *component) followJob(ctx context.Context, vmid uint32, id string, progr
 		case <-time.After(JobPollInterval):
 		}
 		callCtx, cancel := context.WithTimeout(ctx, callTimeout)
-		res, err := c.agents.ListJobs(callCtx, &hostagentapipb.ListJobsRequest{})
+		res, err := c.agents.GetJob(callCtx, &hostagentapipb.GetJobRequest{Vmid: vmid, Id: id})
 		cancel()
+		if status.Code(err) == codes.NotFound {
+			return last, errors.New("the Host Agent no longer has the job: it restarted while the update ran")
+		}
 		if err != nil {
-			continue
+			continue // unreachable for now: the job goes on there
 		}
-		var job *jobpb.Job
-		for _, h := range res.GetHosts() {
-			if h.GetVmid() != vmid {
-				continue
-			}
-			for _, j := range h.GetJobs() {
-				if j.GetId() == id {
-					job = j
-				}
-			}
-			if job == nil && h.GetError() == "" {
-				return last, errors.New("the Host Agent no longer has the job: it restarted while the update ran")
-			}
-		}
-		if job == nil {
-			continue
-		}
+		job := res.GetJob()
 		last = job
 		if progress != nil {
 			progress(job)

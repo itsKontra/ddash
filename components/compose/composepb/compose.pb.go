@@ -15,7 +15,6 @@ package composepb
 
 import (
 	_ "github.com/itsKontra/ddash/proto/ddash"
-	_ "github.com/itsKontra/ddash/proto/ddash/config"
 	job "github.com/itsKontra/ddash/proto/ddash/job"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -263,16 +262,12 @@ func (StepState) EnumDescriptor() ([]byte, []int) {
 	return file_compose_compose_proto_rawDescGZIP(), []int{3}
 }
 
+// compose has nothing to configure: registries and their credentials are
+// registry-api's.
 type ComposeConfig struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// Where docker.io images' digests are read: Docker Hub, or a
-	// pull-through mirror of it.
-	DockerHubRegistry *string `protobuf:"bytes,1,opt,name=docker_hub_registry,json=dockerHubRegistry,proto3,oneof" json:"docker_hub_registry,omitempty"`
-	// Credentials for private registries: "<registry> <user>:<token>"
-	// entries separated by ";" or line breaks.
-	RegistryCredentials string `protobuf:"bytes,2,opt,name=registry_credentials,json=registryCredentials,proto3" json:"registry_credentials,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ComposeConfig) Reset() {
@@ -303,20 +298,6 @@ func (x *ComposeConfig) ProtoReflect() protoreflect.Message {
 // Deprecated: Use ComposeConfig.ProtoReflect.Descriptor instead.
 func (*ComposeConfig) Descriptor() ([]byte, []int) {
 	return file_compose_compose_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ComposeConfig) GetDockerHubRegistry() string {
-	if x != nil && x.DockerHubRegistry != nil {
-		return *x.DockerHubRegistry
-	}
-	return ""
-}
-
-func (x *ComposeConfig) GetRegistryCredentials() string {
-	if x != nil {
-		return x.RegistryCredentials
-	}
-	return ""
 }
 
 type ListProjectsRequest struct {
@@ -2356,12 +2337,8 @@ var File_compose_compose_proto protoreflect.FileDescriptor
 
 const file_compose_compose_proto_rawDesc = "" +
 	"\n" +
-	"\x15compose/compose.proto\x12\rddash.compose\x1a\x19ddash/config/config.proto\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xeb\x03\n" +
-	"\rComposeConfig\x12\xca\x01\n" +
-	"\x13docker_hub_registry\x18\x01 \x01(\tB\x94\x01\x9a\xb5\x18\x8f\x01\n" +
-	"\x1chttps://registry-1.docker.io\x1a\x13Docker Hub registry\"XWhere ddash reads docker.io images' digests: Docker Hub, or a pull-through mirror of it.8\x01H\x00R\x11dockerHubRegistry\x88\x01\x01\x12\xf4\x01\n" +
-	"\x14registry_credentials\x18\x02 \x01(\tB\xc0\x01\x9a\xb5\x18\xbb\x01\x10\x01\x1a\x14Registry credentials\"lOptional, for private images: <registry> <user>:<token>, separated by ;. Public images are read anonymously.*3ghcr.io me:ghp_…; registry.home.example ddash:…R\x13registryCredentialsB\x16\n" +
-	"\x14_docker_hub_registry\"\x15\n" +
+	"\x15compose/compose.proto\x12\rddash.compose\x1a\x13ddash/job/job.proto\x1a\x13ddash/options.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"F\n" +
+	"\rComposeConfigJ\x04\b\x01\x10\x02J\x04\b\x02\x10\x03R\x13docker_hub_registryR\x14registry_credentials\"\x15\n" +
 	"\x13ListProjectsRequest\"u\n" +
 	"\x14ListProjectsResponse\x12)\n" +
 	"\x05hosts\x18\x01 \x03(\v2\x13.ddash.compose.HostR\x05hosts\x122\n" +
@@ -2656,7 +2633,6 @@ func file_compose_compose_proto_init() {
 	if File_compose_compose_proto != nil {
 		return
 	}
-	file_compose_compose_proto_msgTypes[0].OneofWrappers = []any{}
 	file_compose_compose_proto_msgTypes[13].OneofWrappers = []any{
 		(*ComposeAction_Save)(nil),
 		(*ComposeAction_Start)(nil),
