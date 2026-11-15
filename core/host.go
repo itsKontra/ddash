@@ -15,6 +15,7 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/sync/singleflight"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -75,6 +76,10 @@ type Host struct {
 	shell   fs.FS
 	// appIcons keeps the App icons' logos under <DataDir>/icons.
 	appIcons *icons.AppIcons
+	// agentFiles are the Host Agent binaries already verified (hostAgent).
+	agentMu      sync.Mutex
+	agentFiles   map[string]agentFile
+	agentFlights singleflight.Group
 	// publicURL is where the Operator (and install.sh) reaches ddash.
 	publicURL string
 	router    *router.Router
@@ -139,7 +144,8 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 	}
 	rtr = router.New(rt, gate)
 	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, publicURL: opts.PublicURL, log: opts.Logger,
-		appIcons: &icons.AppIcons{Dir: filepath.Join(opts.DataDir, "icons"), URL: opts.AppIconsURL}}
+		agentFiles: map[string]agentFile{},
+		appIcons:   &icons.AppIcons{Dir: filepath.Join(opts.DataDir, "icons"), URL: opts.AppIconsURL}}
 	guard := opts.Auth
 	if opts.OIDC != nil {
 		h.keycloak, err = auth.NewKeycloak(auth.KeycloakOptions{
