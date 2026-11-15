@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useLocation, useSearchParams } from "react-router";
 import { useApps } from "./apps";
 import { parseDraft } from "@ddash/draft";
+import { useDownCauses } from "./causes";
 import { useAppChecks } from "./checks";
 import { AddApp } from "./add-app";
 import { AppList } from "./list";
@@ -21,6 +22,7 @@ const adding = "new";
 export function AppsPage() {
   const { list, error, answeredAt } = useApps();
   const { byApp, error: checksError } = useAppChecks();
+  const { causes } = useDownCauses(list?.apps, byApp);
   const [q, setQ] = useQueryState("q", "");
   const [ignored, setIgnored] = useQueryState("ignored", "");
   const [params, setParams] = useSearchParams();
@@ -69,6 +71,7 @@ export function AppsPage() {
                   <AppList
                     list={list}
                     checks={byApp}
+                    causes={causes}
                     q={q}
                     onSearch={setQ}
                     showIgnored={showIgnored}
@@ -86,7 +89,7 @@ export function AppsPage() {
               ) : selected === adding ? (
                 <AddApp list={list} onDone={(id) => select(id ?? "")} />
               ) : app ? (
-                <AppPane key={app.id} app={app} list={list} check={byApp?.get(app.id)} showIgnored={showIgnored} onGone={() => select("")} />
+                <AppPane key={app.id} app={app} list={list} check={byApp?.get(app.id)} cause={causes.get(app.id)} showIgnored={showIgnored} onGone={() => select("")} />
               ) : (
                 <Panel>
                   <p className="py-16 text-center text-sm text-muted-foreground">

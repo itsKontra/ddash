@@ -46,6 +46,15 @@ type checksFake struct {
 	mu      sync.Mutex
 	started []string
 	ended   []string
+	probed  []string
+}
+
+func (f *checksFake) ProbeNow(_ context.Context, req *checkspb.ProbeNowRequest, _ ...grpc.CallOption) (*checkspb.ProbeNowResponse, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	w := req.GetScope().GetWorkload()
+	f.probed = append(f.probed, w.GetHost()+"/"+w.GetId())
+	return &checkspb.ProbeNowResponse{}, nil
 }
 
 func (f *checksFake) StartMaintenance(_ context.Context, req *checkspb.StartMaintenanceRequest, _ ...grpc.CallOption) (*checkspb.StartMaintenanceResponse, error) {
@@ -469,6 +478,37 @@ func TestFailedStepStops(t *testing.T) {
 	}
 	if titles := l.notify.titles(); len(titles) != 1 || titles[0] != "Restart media failed" {
 		t.Fatalf("notified %v", titles)
+	}
+}
+
+func TestARunThatBroughtContainersUpHasTheirChecksProbedAtOnce(t *testing.T) {
+	l := setup(t)
+	restart := &pb.ComposeAction{Action: &pb.ComposeAction_Restart{Restart: &pb.Restart{Host: "apps", Project: "media", Services: []string{"jellyfin"}}}}
+	if _, err := l.run(t, restart); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := l.checks.probed, []string{"apps/media-jellyfin-1"}; !slices.Equal(got, want) {
+		t.Errorf("after Restart jellyfin, probed %v, want %v", got, want)
+	}
+
+	// A failed run, or a Stop, probes nothing.
+	l.checks.probed = nil
+	l.docker.FailNext("restart", "Error response from daemon: no")
+	if _, err := l.run(t, restart); status.Code(err) != codes.Aborted {
+		t.Fatalf("failing Restart: %v", err)
+	}
+	if _, err := l.run(t, &pb.ComposeAction{Action: &pb.ComposeAction_Stop{Stop: &pb.Stop{Host: "apps", Project: "media"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(l.checks.probed) != 0 {
+		t.Errorf("after a failed Restart and a Stop, probed %v", l.checks.probed)
+	}
+
+	if _, err := l.run(t, &pb.ComposeAction{Action: &pb.ComposeAction_Start{Start: &pb.Start{Host: "apps", Project: "media"}}}); err != nil {
+		t.Fatal(err)
+	}
+	if got := l.checks.probed; len(got) != 2 || !slices.Contains(got, "apps/media-jellyfin-1") {
+		t.Errorf("after Start media, probed %v, want both its containers", got)
 	}
 }
 

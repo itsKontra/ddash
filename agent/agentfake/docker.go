@@ -88,6 +88,10 @@ type Stack struct {
 	// Dockerfile, when set, is written as Dockerfile beside compose.yaml.
 	Dockerfile string
 	Running    bool
+	// Exited are the Compose services of a running Stack whose container
+	// has since exited, each with its exit code (137: killed, e.g. out of
+	// memory).
+	Exited map[string]int
 }
 
 // Loose is a container started without Compose.
@@ -143,6 +147,11 @@ func NewDocker(root string, seed DockerSeed, o Options) (*Docker, error) {
 			b, _ := os.ReadFile(file)
 			if err := e.up(filepath.Base(dir), dir, file, b, nil); err != nil {
 				return nil, fmt.Errorf("seed %s: %w", s.Dir, err)
+			}
+			for i, c := range e.containers {
+				if code, ok := s.Exited[c.Labels[agent.LabelService]]; ok && c.Labels[agent.LabelProject] == filepath.Base(dir) {
+					e.containers[i].State, e.containers[i].Status = "exited", fmt.Sprintf("Exited (%d) 6 minutes ago", code)
+				}
 			}
 		}
 	}

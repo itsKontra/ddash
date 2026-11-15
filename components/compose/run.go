@@ -372,6 +372,9 @@ func (c *component) execute(ctx context.Context, r *run, w *work) {
 			}
 		})
 	}
+	if failed == nil && !cancelled {
+		c.probe(ctx, r.snapshot().GetHost(), w.probe)
+	}
 	r.edit(func(p *pb.Run) {
 		p.Ended = timestamppb.Now()
 		switch {
@@ -389,6 +392,19 @@ func (c *component) execute(ctx context.Context, r *run, w *work) {
 		}
 	})
 	c.outcome(ctx, r)
+}
+
+// probe has the containers' Checks probed at once, so their Apps read up
+// without waiting for their next beat.
+func (c *component) probe(ctx context.Context, host string, cs []*containerpb.Container) {
+	for _, ct := range cs {
+		callCtx, cancel := context.WithTimeout(ctx, callTimeout)
+		scope := &checkspb.MaintenanceScope{Scope: &checkspb.MaintenanceScope_Workload{Workload: workloadRef(host, ct.GetName())}}
+		if _, err := c.checks.ProbeNow(callCtx, &checkspb.ProbeNowRequest{Scope: scope}); err != nil {
+			c.log.Warn("can't have a container's Checks probed", "container", ct.GetName(), "err", err)
+		}
+		cancel()
+	}
 }
 
 // cancelledOutcome says, as the Operator reads it, who cancelled p, where

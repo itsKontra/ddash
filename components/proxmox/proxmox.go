@@ -329,25 +329,33 @@ func (c *component) power(ctx context.Context, w workload, action proxmoxpb.Powe
 // restarted one's lasts until its Checks are up, a restart's at most until
 // 5 min after the Restart (none follows once those are over). A stop or
 // restart that failed gets the same call: the Workload is likely up, so
-// its next good beats end it.
+// its next good beats end it. A Workload started or restarted has its
+// Checks probed at once, so its Apps read up without waiting a minute.
 func (c *component) finish(ctx context.Context, w workload, action proxmoxpb.PowerAction, ok bool) {
 	defer c.free(w)
+	scope := &checkspb.MaintenanceScope{Scope: &checkspb.MaintenanceScope_Workload{Workload: w.ref}}
 	switch action {
 	case proxmoxpb.PowerAction_POWER_ACTION_START:
 		if !ok {
 			return
 		}
-		scope := &checkspb.MaintenanceScope{Scope: &checkspb.MaintenanceScope_Workload{Workload: w.ref}}
 		if _, err := c.checks.EndMaintenance(ctx, &checkspb.EndMaintenanceRequest{Scope: scope}); err != nil {
 			c.log.Warn("can't end the Maintenance of a started Workload", "workload", w.label(), "err", err)
 		}
 	case proxmoxpb.PowerAction_POWER_ACTION_STOP:
 		c.maintain(ctx, w, nil, true)
+		return
 	case proxmoxpb.PowerAction_POWER_ACTION_RESTART:
 		left := (RestartMaintenance - time.Since(c.started(w))).Round(time.Second)
 		if left > 0 {
 			c.maintain(ctx, w, durationpb.New(left), true)
 		}
+		if !ok {
+			return
+		}
+	}
+	if _, err := c.checks.ProbeNow(ctx, &checkspb.ProbeNowRequest{Scope: scope}); err != nil {
+		c.log.Warn("can't have a Workload's Checks probed", "workload", w.label(), "err", err)
 	}
 }
 

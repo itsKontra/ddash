@@ -41,15 +41,15 @@ it("reports up with the counts, and shows Devices, online and new", async () => 
   expect(reported.status).toEqual({ tone: "up", summary: "5 Devices, 3 online, 2 new" , fact: { value: 3, label: "Devices online" } });
   const body = screen.getByRole("region", { name: "widget" });
   expect(metricValue("Devices", body)).toMatch(/5/);
-  expect(metricValue("online", body)).toMatch(/3/);
-  expect(metricValue("new", body)).toMatch(/2/);
+  expect(metricValue("Online", body)).toMatch(/3/);
+  expect(metricValue("New", body)).toMatch(/2/);
 });
 
 it("shows each count loading until network first answers", async () => {
   await show(pending);
 
   const body = screen.getByRole("region", { name: "widget" });
-  for (const name of ["Devices", "online", "new"]) expect(metricValue(name, body)).toBeUndefined();
+  for (const name of ["Devices", "Online", "New"]) expect(metricValue(name, body)).toBeUndefined();
 });
 
 it("leaves New out of the summary when there are none", async () => {

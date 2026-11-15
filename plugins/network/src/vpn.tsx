@@ -1,6 +1,7 @@
 import type { Status, Widget } from "@ddash/plugin";
 import { Tier } from "@ddash/proto/network/network_pb";
 import { Notice, Skeleton, StatusList } from "@ddash/ui";
+import { Unit } from "./rows";
 import { members, ms, stateTone, tiers, useTunnel } from "./tunnel";
 
 /**
@@ -23,19 +24,29 @@ function useStatus(): Status | undefined {
   }
 }
 
-/** S: each tier's state and latency. */
+/** S: each tier's state and latency; a narrow Widget leaves "active" to the dot. */
 function Body() {
   const { data, error } = useTunnel();
   if (!data) return error ? null : <Skeleton lines={2} />;
   if (data.tier === Tier.UNSPECIFIED) return <Notice tone="warn">{data.error || "Not read yet"}</Notice>;
   return (
-    <StatusList
-      items={members(data).map((m) => ({
-        tone: stateTone[m.state],
-        title: m.kind,
-        aside: m.state === "active" ? `${m.state} · ${ms(m.gateway.delayMs, 0)}` : m.state,
-      }))}
-    />
+    <div className="@container">
+      <StatusList
+        items={members(data).map((m) => ({
+          tone: stateTone[m.state],
+          title: m.kind,
+          aside:
+            m.state === "active" ? (
+              <>
+                <Unit>{`${m.state} · `}</Unit>
+                {ms(m.gateway.delayMs, 0)}
+              </>
+            ) : (
+              m.state
+            ),
+        }))}
+      />
+    </div>
   );
 }
 

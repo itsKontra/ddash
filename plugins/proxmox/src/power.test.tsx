@@ -147,6 +147,35 @@ it("has the power Actions as buttons on a Workload's detail", async () => {
   expect(within(details).getByText("Memory").nextElementSibling?.textContent).toBe("3.0 GiB / 8.0 GiB");
 });
 
+it("asks to start a stopped Workload whose detail opens with ?start, as a down App on the Overview links it", async () => {
+  const calls = await show("/proxmox/workloads/104?start");
+  await settle();
+
+  const dialog = screen.getByRole("dialog", { name: "Start LXC 104 dhcp-box" });
+  expect(bodies(calls, "StartWorkload")).toEqual([]);
+  fireEvent.click(within(dialog).getByRole("button", { name: "Start" }));
+  await settle();
+  expect(bodies(calls, "StartWorkload")).toEqual([{ workload: { kind: "KIND_LXC", host: "pve", id: "104" } }]);
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  // Cancelled, nothing starts.
+  cleanup();
+  const again = await show("/proxmox/workloads/104?start");
+  await settle();
+  fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+  await settle();
+  expect(bodies(again, "StartWorkload")).toEqual([]);
+});
+
+it("asks nothing for ?start on a running or a Protected Workload", async () => {
+  for (const vmid of [102, 101]) {
+    const calls = await show(`/proxmox/workloads/${vmid}?start`);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(bodies(calls, "StartWorkload")).toEqual([]);
+    cleanup();
+  }
+});
+
 it("links a Workload's detail back to the Workloads", async () => {
   await show("/proxmox/workloads/102");
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"time"
 
 	"github.com/itsKontra/ddash/agent"
@@ -147,15 +148,43 @@ func serveAgent(serve func(addr string) (string, func(), error), host string, po
 	return serve(net.JoinHostPort(host, "0"))
 }
 
-// startDocker starts the lab's Docker Agent and the registry its images
-// come from, and points registry-api at that registry.
-func (l *Lab) startDocker(host string) error {
+// dockerScenarios change the Docker Agent's seed for the scenarios named.
+var dockerScenarios = map[string]func(agentfake.DockerSeed) agentfake.DockerSeed{
+	// paperless's webserver, an App's Workload through Nginx Proxy
+	// Manager's paperless Proxy Host, was killed out of memory.
+	appWorkloadsDown: func(s agentfake.DockerSeed) agentfake.DockerSeed {
+		stacks := slices.Clone(s.Stacks)
+		for i := range stacks {
+			if stacks[i].Dir == "paperless" {
+				stacks[i].Exited = map[string]int{"webserver": 137}
+			}
+		}
+		s.Stacks = stacks
+		return s
+	},
+}
+
+// appWorkloadsDown is the scenario of two Apps down because their
+// Workload isn't running: N8n's LXC 206 is stopped (as in baseline) and
+// Paperless's Compose Project exited.
+const appWorkloadsDown = "app-workloads-down"
+
+// startDocker starts the lab's Docker Agent, seeded for the scenarios
+// named, and the registry its images come from, and points registry-api
+// at that registry.
+func (l *Lab) startDocker(host string, scenarios []string) error {
 	root, err := os.MkdirTemp("", "ddash-fakelab-stacks-")
 	if err != nil {
 		return err
 	}
 	l.cleanup = append(l.cleanup, func() { os.RemoveAll(root) })
-	fake, err := agentfake.NewDocker(root, dockerSeed, agentfake.Options{StateDir: stateDir("docker-apps"), StepDelay: 1500 * time.Millisecond})
+	seed := dockerSeed
+	for _, name := range scenarios {
+		if edit, ok := dockerScenarios[name]; ok {
+			seed = edit(seed)
+		}
+	}
+	fake, err := agentfake.NewDocker(root, seed, agentfake.Options{StateDir: stateDir("docker-apps"), StepDelay: 1500 * time.Millisecond})
 	if err != nil {
 		return err
 	}

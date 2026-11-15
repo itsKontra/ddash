@@ -48,6 +48,17 @@ func (t target) protected(services []string) []string {
 	return out
 }
 
+// in lists the Project's containers among services (all when empty).
+func (t target) in(services []string) []*containerpb.Container {
+	var out []*containerpb.Container
+	for _, ct := range t.containers {
+		if len(services) == 0 || slices.Contains(services, ct.GetService()) {
+			out = append(out, ct)
+		}
+	}
+	return out
+}
+
 // running lists the Project's running containers among services.
 func (t target) running(services []string) []*containerpb.Container {
 	var out []*containerpb.Container
@@ -106,6 +117,9 @@ type work struct {
 	title string
 	tgt   target
 	steps []stepWork
+	// probe are the containers whose Checks are probed at once when the
+	// run ended without failing: those it started or recreated.
+	probe []*containerpb.Container
 }
 
 // stepWork runs one Plan step. A step backed by a job reports through it.
@@ -280,7 +294,7 @@ func (c *component) planStart(ctx context.Context, s *pb.Start) (*pb.Plan, *work
 		return nil, nil, err
 	}
 	p := &pb.Plan{}
-	w := &work{title: "Start " + t.project.GetName(), tgt: t}
+	w := &work{title: "Start " + t.project.GetName(), tgt: t, probe: t.in(s.GetServices())}
 	p.Steps = append(p.Steps, &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Start " + what(t, s.GetServices()), Values: []*pb.PlanValue{{Label: "Runs", After: "docker compose up -d " + strings.Join(s.GetServices(), " ")}}})
 	w.steps = append(w.steps, stepWork{jobStep: 0, run: func(ctx context.Context, r *run, i int) error {
 		res, err := c.agents.UpProject(ctx, &dapb.UpProjectRequest{Target: t.composeTarget(s.GetServices())})
@@ -347,7 +361,7 @@ func (c *component) planRestart(ctx context.Context, s *pb.Restart, override boo
 	}
 	p := &pb.Plan{}
 	guard(p, t.protected(s.GetServices()), override, "restart")
-	w := &work{title: "Restart " + t.project.GetName(), tgt: t}
+	w := &work{title: "Restart " + t.project.GetName(), tgt: t, probe: t.in(s.GetServices())}
 	if up := t.running(s.GetServices()); len(up) > 0 {
 		p.Steps = append(p.Steps, maintenanceStep(names(up), "its Checks are up, or 5 min"))
 		w.steps = append(w.steps, stepWork{jobStep: -1, run: c.maintain(up, restartMaintenance, true)})
@@ -382,7 +396,7 @@ func (c *component) planUpdate(ctx context.Context, u *pb.Update, override bool)
 	}
 	p := &pb.Plan{}
 	guard(p, t.protected(nil), override, "recreate")
-	w := &work{title: "Update " + t.project.GetName(), tgt: t}
+	w := &work{title: "Update " + t.project.GetName(), tgt: t, probe: t.in(nil)}
 	pull := &pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Pull images", Values: nil}
 	var stale []*containerpb.Container
 	for _, ct := range t.containers {
