@@ -4,5 +4,8 @@ description: Every Nginx Proxy Manager Proxy Host and pfSense Host Override as a
 icon: layout-grid
 author: itsKontra
 # compose and docker-agent-api show and save the Compose file and .env of
-# an App whose Workload is a Compose Project's container.
-requires: [apps, checks, nginx-proxy-manager-api, compose, docker-agent-api]
+# an App whose Workload is a Compose Project's container, and restart its
+# exited Compose Project from the Overview; proxmox-api (which the apps
+# Component requires anyway) tells whether a down App's guest is stopped
+# and Protected.
+requires: [apps, checks, nginx-proxy-manager-api, compose, docker-agent-api, proxmox-api]

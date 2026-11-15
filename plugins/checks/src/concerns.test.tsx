@@ -63,6 +63,17 @@ it("reports each enabled down Check, quiet when muted or in Maintenance", async 
   ]);
 });
 
+it("leaves a down App's Check to the apps Plugin while it is installed", async () => {
+  const down = listed(check(1, "nas", "STATE_DOWN", { reason: "timeout" }), check(2, "Grafana", "STATE_DOWN", { reason: "HTTP 502", appId: "proxy:grafana.home.example" }));
+  renderScoped(checks, <Probe />, { answers: { ListChecks: down }, installed: ["checks", "apps"] });
+  await settle();
+  expect(reported?.map((c) => c.title)).toEqual(["nas is down"]);
+
+  cleanup();
+  await show(down);
+  expect(reported?.map((c) => c.title)).toEqual(["nas is down", "Grafana is down"]);
+});
+
 it("reports none while every Check is up, and nothing until checks answered", async () => {
   await show(listed(check(1, "nas", "STATE_UP")));
   expect(reported).toEqual([]);

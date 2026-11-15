@@ -84,6 +84,17 @@ service ChecksService {
   rpc ListMaintenance(ListMaintenanceRequest) returns (ListMaintenanceResponse) {
     option (ddash.getter) = {refresh: FAST};
   }
+  // ProbeNow probes the Checks a scope covers at once instead of at their
+  // next beat (one disabled, or whose App is hidden or gone, isn't). One
+  // still down is probed again 5, 15 and 30 s later until it is up, since
+  // what was just started may take a moment to answer; each then goes on
+  // every 60 s from its last beat. proxmox calls it once a Workload
+  // started or restarted, compose once a Compose Project Action brought
+  // containers up, so their Apps read up without waiting for the next
+  // minute.
+  rpc ProbeNow(ProbeNowRequest) returns (ProbeNowResponse) {
+    option (ddash.action) = {};
+  }
 
   // ReportState reports the state of an item that isn't a Check (the nginx
   // config, the VPN Tunnel), so it is notified like one: grouped, Flapping
@@ -356,7 +367,7 @@ message SetAppChecksRequest {
 
 message SetAppChecksResponse {}
 
-// What a Maintenance covers.
+// What a Maintenance covers, or which Checks ProbeNow probes.
 message MaintenanceScope {
   oneof scope {
     // One Check, manual or App.
@@ -400,6 +411,13 @@ message EndMaintenanceRequest {
 }
 
 message EndMaintenanceResponse {}
+
+message ProbeNowRequest {
+  // The Checks to probe, as a Maintenance would cover them.
+  MaintenanceScope scope = 1;
+}
+
+message ProbeNowResponse {}
 
 message ListMaintenanceRequest {}
 

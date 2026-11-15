@@ -1,5 +1,6 @@
 import { definePlugin } from "@ddash/plugin";
 import { useWarningsBadge } from "./apps";
+import { useConcerns } from "./concerns";
 import "./index.css";
 import { AppsPage } from "./page";
 import { apps } from "./widget";
@@ -9,4 +10,5 @@ export default definePlugin({
   nav: { order: 10, useBadge: useWarningsBadge },
   pages: [{ index: true, Component: AppsPage }],
   widgets: [apps],
+  useConcerns,
 });

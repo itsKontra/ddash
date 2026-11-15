@@ -1,10 +1,12 @@
-import { ago, checkStatus } from "@ddash/display";
+import { ago } from "@ddash/display";
 import { useAction } from "@ddash/plugin";
 import { AppsService, Reach, WarningKind, type App, type ListAppsResponse } from "@ddash/proto/apps/apps_pb";
 import type { Check } from "@ddash/proto/checks/checks_pb";
 import { AppIcon, Button, Checkbox, cx, Icon, noMatch, Notice, SearchField, StatusDot, type IconName } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { listModel, readAt, shownWarnings, warningText } from "./apps";
+import type { WorkloadCause } from "./cause";
+import { causedStatus } from "./causes";
 
 /** How each Reach shows as a row's glyph. */
 export const reachLook: Record<Reach, { icon: IconName; label: string }> = {
@@ -22,6 +24,7 @@ export const reachLook: Record<Reach, { icon: IconName; label: string }> = {
 export function AppList({
   list,
   checks,
+  causes,
   q,
   onSearch,
   showIgnored,
@@ -33,6 +36,8 @@ export function AppList({
   list: ListAppsResponse;
   /** Each App's Check by App id; undefined while checks hasn't answered. */
   checks?: ReadonlyMap<string, Check>;
+  /** Why each down App whose Workload isn't running is down, by App id. */
+  causes?: ReadonlyMap<string, WorkloadCause>;
   q: string;
   onSearch: (q: string) => void;
   showIgnored: boolean;
@@ -45,7 +50,9 @@ export function AppList({
   const [unfolded, setUnfolded] = useState(false);
   const m = listModel(list.apps, q, showIgnored);
   const hiddenOpen = unfolded || q !== "" || m.hidden.some((a) => a.id === selected);
-  const row = (a: App, note?: string) => <Row key={a.id} app={a} check={checks?.get(a.id)} note={note} selected={a.id === selected} onSelect={() => onSelect(a.id)} />;
+  const row = (a: App, note?: string) => (
+    <Row key={a.id} app={a} check={checks?.get(a.id)} cause={causes?.get(a.id)} note={note} selected={a.id === selected} onSelect={() => onSelect(a.id)} />
+  );
   const empty = m.attention.length === 0 && m.groups.length === 0 && m.hidden.length === 0;
   return (
     <div className="flex flex-col">
@@ -114,9 +121,10 @@ function Group({ title, tone, action, children }: { title: string; tone?: "warn"
   );
 }
 
-/** A row: the Check dot, the icon, the name (and a note), the Reach glyph. */
-function Row({ app, check, note, selected, onSelect }: { app: App; check?: Check; note?: string; selected: boolean; onSelect: () => void }) {
-  const status = checkStatus(check);
+/** A row: the Check dot, the icon, the name (and a note, or why it is down), the Reach glyph. */
+function Row({ app, check, cause, note, selected, onSelect }: { app: App; check?: Check; cause?: WorkloadCause; note?: string; selected: boolean; onSelect: () => void }) {
+  const status = causedStatus(check, cause);
+  const down = status.tone === "down" && cause;
   const reach = reachLook[app.reach];
   return (
     <li>
@@ -133,6 +141,11 @@ function Row({ app, check, note, selected, onSelect }: { app: App; check?: Check
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-medium">{app.name}</span>
           {note && <span className="truncate text-xs text-warn-text">{note}</span>}
+          {down && (
+            <span title={cause.text} className="truncate text-xs text-down-text">
+              {cause.text}
+            </span>
+          )}
         </span>
         {!app.orphaned && (
           <span title={reach.label} className="text-muted-foreground">

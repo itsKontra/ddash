@@ -11,7 +11,8 @@
 // simulated house up to the clock; Anthropic: anthropicfake, a canned
 // draft). A
 // named scenario (e.g. "vpn-on-fallback") replaces the baseline of every
-// system that has a sibling directory of that name. Beside the systems it
+// system that has a sibling directory of that name, and may change the
+// Docker Agent's seed (dockerScenarios). Beside the systems it
 // serves fake Host Agents (agentfake) on three of the baseline's Workloads.
 package fakelab
 
@@ -319,7 +320,7 @@ func Start(root, host string, scenarios ...string) (*Lab, error) {
 		l.Addrs[s.component] = addr
 		l.config[s.component] = s.config(addr)
 	}
-	if err := l.startDocker(host); err != nil {
+	if err := l.startDocker(host, scenarios); err != nil {
 		l.Close()
 		return nil, err
 	}
