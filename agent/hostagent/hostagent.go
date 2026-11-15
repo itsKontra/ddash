@@ -64,7 +64,24 @@ type Agent struct {
 	mu       sync.Mutex
 	packages agent.PackagesResponse
 	sshMu    sync.Mutex
+
+	// reboot is "reboot required" as last read, kept for rebootTTL.
+	rebootMu   sync.Mutex
+	reboot     bool
+	rebootRead time.Time
+	// rebootReading is closed when the read in progress ends; nil when
+	// none is.
+	rebootReading chan struct{}
 }
+
+// rebootTimeout bounds one read of "reboot required": dnf with a cold
+// cache takes tens of seconds.
+const rebootTimeout = 2 * time.Minute
+
+// rebootTTL is how long "reboot required" is kept. ddash asks with every
+// read of the Agent, every 30 s, and on dnf hosts the answer takes a run
+// of `dnf needs-restarting`. An upgrade job reads it anew when it ends.
+const rebootTTL = 5 * time.Minute
 
 // New detects the distribution from /etc/os-release.
 func New(o Options) (*Agent, error) {
@@ -122,7 +139,8 @@ func (a *Agent) detect() (agent.OS, error) {
 	return o, nil
 }
 
-// OS is the host as detected, with "reboot required" read now.
+// OS is the host as detected, with "reboot required" as last read
+// (rebootRequired).
 func (a *Agent) OS(ctx context.Context) agent.OS {
 	o := a.os
 	o.RebootRequired = a.rebootRequired(ctx)
@@ -360,7 +378,7 @@ func (a *Agent) upgradeJob(ctx context.Context, p *agent.Progress) (map[string]s
 	a.packages = agent.PackagesResponse{Packages: []agent.Package{}, Read: time.Now().UTC()}
 	a.mu.Unlock()
 	p.Begin(2)
-	reboot := a.rebootRequired(ctx)
+	reboot := a.readRebootRequired(ctx)
 	detail := "no reboot required"
 	if reboot {
 		detail = "reboot required"
@@ -369,14 +387,59 @@ func (a *Agent) upgradeJob(ctx context.Context, p *agent.Progress) (map[string]s
 	return map[string]string{"updated": strconv.Itoa(len(before)), "reboot_required": strconv.FormatBool(reboot)}, nil
 }
 
-// rebootRequired: Debian and Ubuntu's flag file, dnf's needs-restarting,
-// or a running kernel whose modules are gone (Arch, Alpine on a VM).
+// rebootRequired is "reboot required" as last read. An answer older than
+// rebootTTL is read again in the background and returned meanwhile, so no
+// request waits for dnf; only the Agent's first read is waited for, as
+// long as ctx allows.
 func (a *Agent) rebootRequired(ctx context.Context) bool {
+	a.rebootMu.Lock()
+	known := !a.rebootRead.IsZero()
+	if (!known || time.Since(a.rebootRead) >= rebootTTL) && a.rebootReading == nil {
+		done := make(chan struct{})
+		a.rebootReading = done
+		go func() {
+			// Not the request's: it may end before dnf does.
+			rctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), rebootTimeout)
+			defer cancel()
+			a.readRebootRequired(rctx)
+			a.rebootMu.Lock()
+			a.rebootReading = nil
+			a.rebootMu.Unlock()
+			close(done)
+		}()
+	}
+	reboot, reading := a.reboot, a.rebootReading
+	a.rebootMu.Unlock()
+	if known || reading == nil {
+		return reboot
+	}
+	select {
+	case <-reading:
+		a.rebootMu.Lock()
+		defer a.rebootMu.Unlock()
+		return a.reboot
+	case <-ctx.Done():
+		return false
+	}
+}
+
+// readRebootRequired reads "reboot required" now and keeps the answer.
+func (a *Agent) readRebootRequired(ctx context.Context) bool {
+	reboot := a.checkReboot(ctx)
+	a.rebootMu.Lock()
+	defer a.rebootMu.Unlock()
+	a.reboot, a.rebootRead = reboot, time.Now()
+	return reboot
+}
+
+// checkReboot: Debian and Ubuntu's flag file, dnf's needs-restarting, or a
+// running kernel whose modules are gone (Arch, Alpine on a VM).
+func (a *Agent) checkReboot(ctx context.Context) bool {
 	if _, err := os.Stat(a.path("/var/run/reboot-required")); err == nil {
 		return true
 	}
 	if a.os.PackageManager == "dnf" {
-		err := a.o.Run(ctx, nil, "dnf", []string{"-q", "needs-restarting", "-r"}, nil)
+		err := a.o.Run(ctx, nil, "dnf", []string{"-q", "-C", "needs-restarting", "-r"}, nil)
 		var exit *exec.ExitError
 		if errors.As(err, &exit) && exit.ExitCode() == 1 {
 			return true

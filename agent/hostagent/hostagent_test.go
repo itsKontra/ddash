@@ -12,6 +12,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"testing/synctest"
+	"time"
 
 	"github.com/itsKontra/ddash/agent"
 )
@@ -253,6 +255,57 @@ func TestAKeyNeverFollowsASymlinkOutOfTheHome(t *testing.T) {
 		}
 		if b, _ := os.ReadFile(shadow); string(b) != "root:$y$secret\n" {
 			t.Errorf("/etc/shadow = %q", b)
+		}
+	})
+}
+
+// needsRestarting counts the runs of `dnf needs-restarting`.
+func (h *host) needsRestarting() int {
+	n := 0
+	for _, cmd := range h.ran {
+		if cmd == "dnf -q -C needs-restarting -r" {
+			n++
+		}
+	}
+	return n
+}
+
+// ddash reads the info and the packages of every Host Agent every 30 s,
+// and on a dnf host "reboot required" takes a run of dnf.
+func TestRebootRequiredIsReadOnceInAWhileAndAnewAfterAnUpgrade(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		ctx := t.Context()
+		h := newHost(t, "ID=fedora\nVERSION_ID=40\n")
+		a, err := New(Options{Root: h.root, Run: h.run})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for range 5 {
+			a.OS(ctx)
+			time.Sleep(30 * time.Second)
+		}
+		if n := h.needsRestarting(); n != 1 {
+			t.Errorf("dnf needs-restarting ran %d times in 2.5 minutes of reads, want once", n)
+		}
+
+		time.Sleep(rebootTTL)
+		a.OS(ctx) // answers with what it has and reads again behind it
+		synctest.Wait()
+		if n := h.needsRestarting(); n != 2 {
+			t.Errorf("dnf needs-restarting ran %d times once the answer was %v old, want twice", n, rebootTTL)
+		}
+
+		// An upgrade may install a new kernel: its last step reads anew,
+		// and the reads after it use that answer.
+		jobs := agent.NewJobs(nil)
+		if _, err := jobs.Start("packages.upgrade", "Update packages", "host", []string{"Refresh", "Install", "Check"}, a.upgradeJob); err != nil {
+			t.Fatal(err)
+		}
+		synctest.Wait()
+		a.OS(ctx)
+		if n := h.needsRestarting(); n != 3 {
+			t.Errorf("dnf needs-restarting ran %d times after an upgrade and a read, want three", n)
 		}
 	})
 }

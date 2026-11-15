@@ -54,6 +54,8 @@ type Options struct {
 	Compose Compose
 	// Self is the Agent's own container name or id, for Update Agent.
 	Self string
+	// ReadFile reads a Compose file for a listing; os.ReadFile when nil.
+	ReadFile func(name string) ([]byte, error)
 }
 
 // Agent is the Docker Agent's operations.
@@ -63,6 +65,26 @@ type Agent struct {
 
 	mu    sync.Mutex
 	locks map[string]*sync.Mutex // a Compose file's path → its write lock
+
+	// composeVersion is `docker compose version --short`, asked until it
+	// answers once: the plugin doesn't change while the Agent's container
+	// runs.
+	composeMu      sync.Mutex
+	composeVersion string
+}
+
+// composeVersionOnce returns the Compose plugin's version, "" while it
+// can't be told.
+func (a *Agent) composeVersionOnce(ctx context.Context) string {
+	a.composeMu.Lock()
+	defer a.composeMu.Unlock()
+	if a.composeVersion == "" {
+		var out []string
+		if a.o.Compose.Run(ctx, "/", []string{"version", "--short"}, func(l string) { out = append(out, l) }) == nil && len(out) > 0 {
+			a.composeVersion = out[0]
+		}
+	}
+	return a.composeVersion
 }
 
 // New returns the operations, to Register on a Server.
@@ -72,6 +94,9 @@ func New(o Options) (*Agent, error) {
 			return nil, fmt.Errorf("Compose root %q isn't absolute", r)
 		}
 		o.Roots[i] = filepath.Clean(r)
+	}
+	if o.ReadFile == nil {
+		o.ReadFile = os.ReadFile
 	}
 	return &Agent{o: o, locks: map[string]*sync.Mutex{}}, nil
 }
@@ -85,10 +110,7 @@ func (a *Agent) Register(s *agent.Server, info func(context.Context) agent.Info)
 		if v, err := a.o.Docker.Version(r.Context()); err == nil {
 			i.Docker = v
 		}
-		var compose []string
-		if a.o.Compose.Run(r.Context(), "/", []string{"version", "--short"}, func(l string) { compose = append(compose, l) }) == nil && len(compose) > 0 {
-			i.Compose = compose[0]
-		}
+		i.Compose = a.composeVersionOnce(r.Context())
 		agent.WriteJSON(w, http.StatusOK, i)
 	})
 	s.Handle("GET "+agent.PathContainers, func(w http.ResponseWriter, r *http.Request) {
@@ -159,14 +181,30 @@ func (a *Agent) List(ctx context.Context) (agent.ProjectsResponse, error) {
 		}
 		add(agent.Project{Name: name, WorkingDir: c.Labels[agent.LabelWorkingDir], ConfigFiles: files}, "labels")
 	}
+	// Each Compose file is read once for the listing: for its project's
+	// name here and for its services in describe.
+	type content struct {
+		b   []byte
+		err error
+	}
+	files := map[string]content{}
+	read := func(file string) ([]byte, error) {
+		c, ok := files[file]
+		if !ok {
+			c.b, c.err = a.o.ReadFile(file)
+			files[file] = c
+		}
+		return c.b, c.err
+	}
 	for _, root := range a.o.Roots {
 		for _, file := range scan(root) {
-			add(agent.Project{Name: projectName(file), WorkingDir: filepath.Dir(file), ConfigFiles: []string{file}}, "scan")
+			b, _ := read(file)
+			add(agent.Project{Name: projectNameFromContent(string(b), filepath.Dir(file)), WorkingDir: filepath.Dir(file), ConfigFiles: []string{file}}, "scan")
 		}
 	}
 	out := agent.ProjectsResponse{Containers: cs, Projects: []agent.Project{}}
 	for _, p := range byName {
-		a.describe(p, cs)
+		a.describe(p, cs, read)
 		out.Projects = append(out.Projects, *p)
 	}
 	slices.SortFunc(out.Projects, func(x, y agent.Project) int { return strings.Compare(x.Name, y.Name) })
@@ -206,28 +244,13 @@ func scan(root string) []string {
 
 var nonName = regexp.MustCompile(`[^a-z0-9_-]+`)
 
-// projectName is the name Compose gives file's project: its top-level
-// name, else its directory's name, lower-cased with what Compose drops
-// removed.
-func projectName(file string) string {
-	if b, err := os.ReadFile(file); err == nil {
-		var doc struct {
-			Name string `yaml:"name"`
-		}
-		if yaml.Unmarshal(b, &doc) == nil && doc.Name != "" && !strings.Contains(doc.Name, "$") {
-			return doc.Name
-		}
-	}
-	return strings.TrimLeft(nonName.ReplaceAllString(strings.ToLower(filepath.Base(filepath.Dir(file))), ""), "_-")
-}
-
 // describe fills p's Compose services from its file and its containers.
-func (a *Agent) describe(p *agent.Project, cs []agent.Container) {
+func (a *Agent) describe(p *agent.Project, cs []agent.Container, read func(file string) ([]byte, error)) {
 	services := map[string]*agent.Service{}
 	if len(p.ConfigFiles) > 0 {
 		if !a.inRoots(p.ConfigFiles[0]) {
 			p.Error = fmt.Sprintf("%s isn't under a Compose root the Docker Agent mounts", p.ConfigFiles[0])
-		} else if b, err := os.ReadFile(p.ConfigFiles[0]); err != nil {
+		} else if b, err := read(p.ConfigFiles[0]); err != nil {
 			p.Error = "can't read the Compose file: " + err.Error()
 		} else {
 			parsed, err := ParseServices(b)
@@ -463,7 +486,9 @@ func (a *Agent) Validate(ctx context.Context, path, project, content, env string
 	return agent.ValidateResponse{OK: true}
 }
 
-// projectNameFromContent is projectName for a file not yet on disk.
+// projectNameFromContent is the name Compose gives the project of a
+// Compose file with content in dir: its top-level name, else the
+// directory's name, lower-cased with what Compose drops removed.
 func projectNameFromContent(content, dir string) string {
 	var doc struct {
 		Name string `yaml:"name"`

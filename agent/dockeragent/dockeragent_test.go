@@ -61,6 +61,9 @@ func (c *compose) Run(_ context.Context, _ string, args []string, out func(strin
 		c.envs = append(c.envs, string(env))
 	}
 	c.mu.Unlock()
+	if slices.Equal(args, []string{"version", "--short"}) {
+		out("2.29.7")
+	}
 	if i := slices.Index(args, "config"); i >= 0 {
 		f := args[slices.Index(args, "-f")+1]
 		b, _ := os.ReadFile(f)
@@ -413,5 +416,72 @@ func TestAComposeOperationStaysInTheRoots(t *testing.T) {
 	}
 	if len(c.calls) != 0 {
 		t.Errorf("ran %v", c.calls)
+	}
+}
+
+// ddash reads every Agent's info every 30 s: the Compose plugin's version
+// can't change while the Agent runs, so it is asked for once.
+func TestInfoAsksForTheComposeVersionOnce(t *testing.T) {
+	cl, _, _, c := setup(t)
+	for range 3 {
+		var info agent.Info
+		if err := cl.Get(context.Background(), agent.PathInfo, nil, &info); err != nil {
+			t.Fatal(err)
+		}
+		if info.Compose != "2.29.7" || info.Docker != "27.3.1" {
+			t.Fatalf("info = %+v, want Compose 2.29.7 and Docker 27.3.1", info)
+		}
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if len(c.calls) != 1 {
+		t.Errorf("docker compose ran %d times for three reads of the info (%v), want once", len(c.calls), c.calls)
+	}
+}
+
+func TestAListingReadsEachComposeFileOnce(t *testing.T) {
+	root := t.TempDir()
+	for rel, content := range map[string]string{
+		"media/compose.yaml":       "services:\n  jellyfin:\n    image: jellyfin/jellyfin:10.9\n",
+		"tools/docker-compose.yml": "name: idle\nservices:\n  web:\n    image: nginx:1.27\n",
+	} {
+		p := filepath.Join(root, rel)
+		os.MkdirAll(filepath.Dir(p), 0o755)
+		os.WriteFile(p, []byte(content), 0o644)
+	}
+	reads := map[string]int{}
+	a, err := dockeragent.New(dockeragent.Options{
+		Roots: []string{root}, Docker: &docker{}, Compose: &compose{},
+		ReadFile: func(name string) ([]byte, error) {
+			reads[name]++
+			return os.ReadFile(name)
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := a.List(context.Background())
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	var names []string
+	for _, p := range res.Projects {
+		names = append(names, p.Name)
+		if len(p.Services) != 1 || p.Error != "" {
+			t.Errorf("%s: services %v, error %q; want its one service", p.Name, p.Services, p.Error)
+		}
+	}
+	if !slices.Equal(names, []string{"idle", "media"}) {
+		t.Errorf("projects = %v, want idle and media", names)
+	}
+	if len(reads) != 2 {
+		t.Errorf("read %v, want the two Compose files", reads)
+	}
+	for file, n := range reads {
+		if n != 1 {
+			t.Errorf("%s was read %d times in one listing, want once", file, n)
+		}
 	}
 }
