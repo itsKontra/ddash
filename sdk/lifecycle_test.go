@@ -329,6 +329,23 @@ func TestStartGivesTheComponentItsPublicURLAndAStopCancelledContext(t *testing.T
 	}
 }
 
+func TestTheComponentRunsAsTheReleaseItIsLaunchedAsElseTheOneBuiltIn(t *testing.T) {
+	for _, tc := range []struct{ launchedAs, want string }{{"", sdk.Release}, {"v1.2.3", "v1.2.3"}} {
+		var got string
+		inst := &echo{start: func(_ context.Context, env *sdk.Env, _ *echopb.EchoConfig) error {
+			got = env.Release
+			return nil
+		}}
+		h := sdktest.New(t, define(inst), func(o *sdk.InstanceOptions) { o.Release = tc.launchedAs })
+
+		h.MustStart(&echopb.EchoConfig{})
+
+		if d, err := h.Lifecycle.Describe(t.Context(), &componentpb.DescribeRequest{}); got != tc.want || err != nil || d.GetRelease() != tc.want {
+			t.Errorf("launched as %q: env's Release %q, Describe's %q (%v); want %q", tc.launchedAs, got, d.GetRelease(), err, tc.want)
+		}
+	}
+}
+
 func TestStartReturnsInvalidConfigWithErrorsKeyedByPath(t *testing.T) {
 	inst := &echo{start: func(_ context.Context, _ *sdk.Env, cfg *echopb.EchoConfig) error {
 		var errs sdk.FieldErrors

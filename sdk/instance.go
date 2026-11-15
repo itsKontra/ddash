@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
@@ -34,8 +35,9 @@ type InstanceOptions struct {
 	// by the generated client interface they implement. Tests use them as
 	// fakes of required Components.
 	Clients []any
-	// Release is the Release Describe reports. Default Release, the one
-	// built in; the host's in-process launcher sets the one it runs.
+	// Release is the Release the Component runs as: Describe reports it,
+	// and Env carries it. Default Release, the one built in; the host's
+	// in-process launcher sets the one it runs.
 	Release string
 }
 
@@ -162,6 +164,7 @@ func (i *Instance) start(req *componentpb.StartRequest) error {
 		Name:      i.def.Name(),
 		PublicURL: publicURL,
 		Log:       i.opts.Logger,
+		Release:   cmp.Or(i.opts.Release, Release),
 		host:      i.opts.Host,
 		clients:   i.opts.Clients,
 	}

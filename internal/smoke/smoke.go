@@ -8,7 +8,9 @@
 // Each Component runs in-process with its config from smoke.env (variable
 // EnvVar(name), the config as protojson) and its DB in DataDir, kept
 // between runs. Every getter must answer, its invariants must hold and the
-// Component must be healthy. Recording puts a fixture.Recorder between an
+// Component must be healthy. docker-api runs over docker-agent-api, which
+// reads the Docker Agents with the deployed ddash's pairings
+// (DockerAgentsVar). Recording puts a fixture.Recorder between an
 // HTTP Component and its system; every file goes through the Scrubber, and
 // a file it refuses fails the run.
 //
@@ -113,13 +115,26 @@ func runSystem(ctx context.Context, s system, opts Options) []error {
 		fmt.Fprintf(opts.Log, "FAIL %s\n", err)
 		return err
 	}
-	if s.optional && strings.TrimSpace(opts.Env[EnvVar(name)]) == "" {
+	switch {
+	case isSet(opts.Env, EnvVar(name)), s.via != "" && isSet(opts.Env, s.via):
+	case s.via != "":
+		fmt.Fprintf(opts.Log, "skip %s: neither %s nor %s is set in smoke.env\n", name, EnvVar(name), s.via)
+		return nil
+	case s.optional:
 		fmt.Fprintf(opts.Log, "skip %s: optional, and %s isn't set in smoke.env\n", name, EnvVar(name))
 		return nil
 	}
 	cfg, err := configOf(s, opts.Env)
 	if err != nil {
 		return []error{fail("%v", err)}
+	}
+	var clients []any
+	if s.requires != nil {
+		var stop func()
+		if clients, stop, err = s.requires(ctx, opts); err != nil {
+			return []error{fail("%v", err)}
+		}
+		defer stop()
 	}
 
 	var errs []error
@@ -133,22 +148,33 @@ func runSystem(ctx context.Context, s system, opts Options) []error {
 		stop, err := recordingProxy(s, startCfg, dir, opts, func(file string, err error) {
 			errs = append(errs, fail("%s not recorded: %v", file, err))
 		})
-		if err != nil {
+		switch {
+		case errors.Is(err, errNothingToRecord):
+			fmt.Fprintf(opts.Log, "not recorded %s: %v\n", name, err)
+			startCfg = cfg
+		case err != nil:
 			return []error{fail("recording: %v", err)}
+		default:
+			defer stop()
 		}
-		defer stop()
 	}
 
 	dbPath := filepath.Join(opts.DataDir, name+".db")
-	errs = append(errs, exercise(ctx, s, startCfg, dbPath, opts.Log, fail)...)
+	errs = append(errs, exercise(ctx, s, startCfg, dbPath, opts.Log, fail, clients)...)
 	return errs
 }
 
-// exercise starts the Component with cfg, calls every getter and checks
-// its health, then stops it.
-func exercise(ctx context.Context, s system, cfg proto.Message, dbPath string, log io.Writer, fail func(string, ...any) error) []error {
+func isSet(env map[string]string, name string) bool { return strings.TrimSpace(env[name]) != "" }
+
+// errNothingToRecord is a proxy's answer when its Component reaches no
+// system the fixtures hold: the run goes on, unrecorded.
+var errNothingToRecord = errors.New("nothing to record")
+
+// exercise starts the Component with cfg and clients, calls every getter
+// and checks its health, then stops it.
+func exercise(ctx context.Context, s system, cfg proto.Message, dbPath string, log io.Writer, fail func(string, ...any) error, clients []any) []error {
 	name := s.def.Name()
-	conn, stop, err := launch(ctx, s.def, cfg, dbPath, log)
+	conn, stop, err := launch(ctx, s.def, cfg, dbPath, log, clients...)
 	if err != nil {
 		return []error{fail("%v", err)}
 	}
@@ -206,12 +232,16 @@ func exercise(ctx context.Context, s system, cfg proto.Message, dbPath string, l
 }
 
 // configOf reads s's config from env (protojson under EnvVar), with its
-// defaults applied, and checks it as the host would before a Start.
+// defaults applied, and checks it as the host would before a Start. While
+// s.via is set instead, it is the empty config.
 func configOf(s system, env map[string]string) (proto.Message, error) {
 	name := EnvVar(s.def.Name())
-	text, ok := env[name]
-	if !ok || strings.TrimSpace(text) == "" {
-		return nil, fmt.Errorf("is not configured: set %s in smoke.env", name)
+	text := env[name]
+	if !isSet(env, name) {
+		if s.via == "" || !isSet(env, s.via) {
+			return nil, fmt.Errorf("is not configured: set %s in smoke.env", name)
+		}
+		text = "{}"
 	}
 	cfg := s.config()
 	if err := protojson.Unmarshal([]byte(text), cfg); err != nil {
@@ -229,11 +259,18 @@ func configOf(s system, env map[string]string) (proto.Message, error) {
 // launch runs def in-process with its DB at dbPath and starts it with cfg,
 // its required Components answered by clients. stop stops it.
 func launch(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath string, log io.Writer, clients ...any) (conn *grpc.ClientConn, stop func(), err error) {
+	return launchAs(ctx, def, cfg, dbPath, "", log, clients...)
+}
+
+// launchAs is launch, the Component running as release ("": the one built
+// in).
+func launchAs(ctx context.Context, def sdk.Definition, cfg proto.Message, dbPath, release string, log io.Writer, clients ...any) (conn *grpc.ClientConn, stop func(), err error) {
 	name := def.Name()
 	inst := sdk.NewInstance(def, sdk.InstanceOptions{
 		DBPath:  dbPath,
 		Logger:  slog.New(slog.NewTextHandler(log, &slog.HandlerOptions{Level: slog.LevelWarn})).With("component", name),
 		Clients: clients,
+		Release: release,
 	})
 	conn, stopServe, err := inmem.Serve(name, inst.Register)
 	if err != nil {

@@ -1,6 +1,7 @@
 package smoke
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -48,6 +49,13 @@ type system struct {
 	// optional: an Operator may not use this system at all, so it is
 	// skipped, not failed, while smoke.env doesn't set it up.
 	optional bool
+	// via is the smoke.env variable of another way the Component reaches
+	// its systems: either variable runs it (the config unset is the empty
+	// one), and it is skipped while neither is set.
+	via string
+	// requires starts what the Component requires and returns the clients
+	// it gets; stop stops them.
+	requires func(ctx context.Context, opts Options) (clients []any, stop func(), err error)
 }
 
 // A new system Component (one that talks to an external system) belongs
@@ -58,28 +66,33 @@ var systems = []system{
 		def:     dockerapi.Definition(),
 		service: dockerapipb.DockerApiService_ServiceDesc.ServiceName,
 		config:  func() proto.Message { return &dockerapipb.DockerApiConfig{} },
+		// Its socket-proxy hosts, its hosts' Docker Agents, or both.
+		via:      DockerAgentsVar,
+		requires: startDockerAgents,
 		checks: map[string]func(proto.Message) error{
 			"ListContainers": func(m proto.Message) error {
 				r := m.(*dockerapipb.ListContainersResponse)
 				if len(r.GetHosts()) == 0 {
 					return errors.New("no Docker host")
 				}
+				var errs []error
 				for _, h := range r.GetHosts() {
-					if h.GetError() != "" {
-						return fmt.Errorf("host %s: %s", h.GetHost(), h.GetError())
-					}
-					if len(h.GetContainers()) == 0 {
-						return fmt.Errorf("host %s runs no container", h.GetHost())
+					switch {
+					case h.GetError() != "":
+						errs = append(errs, fmt.Errorf("host %s: %s", h.GetHost(), h.GetError()))
+					case len(h.GetContainers()) == 0:
+						errs = append(errs, fmt.Errorf("host %s runs no container", h.GetHost()))
 					}
 				}
-				return nil
+				return errors.Join(errs...)
 			},
 		},
-		// Only the first host is recorded: the fixtures hold one.
+		// Only the first socket-proxy host is recorded: the fixtures hold
+		// one. A Docker Agent isn't.
 		proxy: func(m proto.Message, addr string) (string, string, error) {
 			cfg := m.(*dockerapipb.DockerApiConfig)
 			if len(cfg.GetHosts()) == 0 {
-				return "", "", errors.New("no Docker host to record")
+				return "", "", fmt.Errorf("%w (no socket-proxy host; Docker Agents aren't recorded)", errNothingToRecord)
 			}
 			u, err := url.Parse(cfg.GetHosts()[0].GetUrl())
 			if err != nil {
