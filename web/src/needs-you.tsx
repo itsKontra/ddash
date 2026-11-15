@@ -20,6 +20,8 @@ export interface Concerns {
   needs: Needs;
   /** Still to say: Plugins whose bundle is loading, and those that haven't reported yet. */
   waiting: boolean;
+  /** Every Concern listed, loud then quiet; undefined until a Plugin reported. */
+  listed?: readonly Listed[];
   /** Runs a Concern's Action: its newest run, or its Sheet in the Plugin's scope. */
   act: (l: Listed, a: ConcernAction) => void;
 }
@@ -75,7 +77,7 @@ export function ConcernSources({ plugins, fetch, children }: { plugins: Plugins;
     });
     const waiting = !installed || installed.some((p) => !plugins.loaded.has(p.name)) || reporting.some((name) => !reports.has(name));
     const n = needs(reporting.flatMap((plugin) => (reports.has(plugin) ? [{ plugin, concerns: reports.get(plugin)! }] : [])));
-    return { needs: n, waiting, act };
+    return { needs: n, waiting, listed: reports.size > 0 ? [...n.loud, ...n.quiet] : undefined, act };
   }, [installed, plugins.loaded, reports, act]);
 
   return (

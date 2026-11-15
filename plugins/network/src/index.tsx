@@ -1,6 +1,7 @@
 import { definePlugin } from "@ddash/plugin";
 import "./index.css";
 import { adguard } from "./adguard";
+import { useConcerns } from "./concerns";
 import { DeviceDetail } from "./device";
 import { useNewBadge } from "./devices";
 import { devices } from "./devices-widget";
@@ -17,4 +18,5 @@ export default definePlugin({
     { path: "devices/:mac", Component: DeviceDetail },
   ],
   widgets: [vpn, throughput, devices, remoteAccess, adguard],
+  useConcerns,
 });

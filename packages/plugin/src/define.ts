@@ -11,6 +11,17 @@ export type WidgetSize = "S" | "M" | "L";
 export interface Status {
   tone: Tone;
   summary: string;
+  /** A count about the network the Overview's hero lists under its sentence, for a placed Widget. */
+  fact?: Fact;
+}
+
+/**
+ * A count with what it counts, as the hero reads it with the count in bold:
+ * { value: 12, label: "guests running" }, { value: 22, label: "of 22 Checks up" }.
+ */
+export interface Fact {
+  value: number;
+  label: string;
 }
 
 /** A Nav Entry's live badge: a count, e.g. "3" down, or a short text such as "!". */

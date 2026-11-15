@@ -34,14 +34,14 @@ export function App({ client, fetch, importBundle = defaultImport, reload = () =
     <ReachContext.Provider value={watch}>
       <PluginHost client={client}>
         <CoreScope fetch={watch.fetch}>
-          <Shell fetch={watch.fetch} importBundle={importBundle} />
+          <Shell fetch={watch.fetch} importBundle={importBundle} client={client} />
         </CoreScope>
       </PluginHost>
     </ReachContext.Provider>
   );
 }
 
-function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBundle }) {
+function Shell({ fetch, importBundle, client }: { fetch: Fetch; importBundle: ImportBundle; client: QueryClient }) {
   const plugins = usePlugins(importBundle, fetch);
   const overview = useOverviewLayout(plugins);
   const palette = usePalette();
@@ -52,7 +52,7 @@ function Shell({ fetch, importBundle }: { fetch: Fetch; importBundle: ImportBund
       <ConcernSources plugins={plugins} fetch={fetch}>
         <Chrome items={items} aside={(item) => <NavAside item={item} fetch={fetch} />} onSearch={palette.show} banner={<Unreachable />}>
           <Routes>
-            <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} />} />
+            <Route index element={<Overview plugins={plugins} overview={overview} fetch={fetch} client={client} />} />
             <Route path="plugins" element={<Catalogue />} />
             <Route path="settings/*" element={<Settings />} />
             <Route path=":plugin/*" element={<PluginPage plugins={plugins} fetch={fetch} />} />

@@ -45,7 +45,7 @@ it("is the containers Widget, S or M, S by default", () => {
 it("reports up with the running count while every container is fine", async () => {
   const reported = await show(() => Response.json(healthy));
 
-  expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 running" });
+  expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 running" , fact: { value: 2, label: "containers running" } });
 });
 
 it("shows the counts at S, and each host's at M", async () => {
@@ -93,7 +93,7 @@ it("reports warn when a container is unhealthy or restarting", async () => {
 
   const reported = await show(() => Response.json(troubled));
 
-  expect(reported.status).toEqual({ tone: "warn", summary: "1 unhealthy · 1 restarting" });
+  expect(reported.status).toEqual({ tone: "warn", summary: "1 unhealthy · 1 restarting" , fact: { value: 2, label: "containers running" } });
 });
 
 it("reports warn when docker-api is unavailable", async () => {
@@ -105,7 +105,7 @@ it("reports warn when docker-api is unavailable", async () => {
 it("reports warn when a Docker host can't be read", async () => {
   const reported = await show(() => Response.json({ hosts: [...healthy.hosts, { host: "nas", error: "connection refused" }] }));
 
-  expect(reported.status).toEqual({ tone: "warn", summary: "nas unreadable" });
+  expect(reported.status).toEqual({ tone: "warn", summary: "nas unreadable" , fact: { value: 2, label: "containers running" } });
 });
 
 it("reports nothing until docker-api first answers", async () => {

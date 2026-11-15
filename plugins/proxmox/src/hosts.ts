@@ -92,16 +92,17 @@ const rank: Record<Tone, number> = { down: 3, warn: 2, up: 1, maint: 0, info: 0,
  * The Hosts Widget's status: the worst tone it shows, a meter or a named
  * guest at 75 % or more (warn) or 90 % or more (down), each named in the
  * summary; up with the running count otherwise. A stopped guest is no
- * problem: guests are off on purpose.
+ * problem: guests are off on purpose. Its fact: the guests running.
  */
 export function hostsStatus(workloads: readonly Workload[], meters: readonly SummaryMeter[], rows: readonly SummaryRow[]): Status {
   const tight = [
     ...meters.filter((m) => meterTone(m.ratio) !== "up").map((m) => ({ tone: meterTone(m.ratio), text: `${m.label} ${percent(m.ratio)}` })),
     ...rows.filter((r) => r.tone !== "up").map((r) => ({ tone: r.tone, text: `${r.label} ${r.value}` })),
   ];
-  if (tight.length === 0) return { tone: "up", summary: guestsRunning(workloads) };
+  const fact = { value: workloads.filter((w) => !w.template && w.status === "running").length, label: "guests running" };
+  if (tight.length === 0) return { tone: "up", summary: guestsRunning(workloads), fact };
   const tone = tight.reduce<Tone>((t, x) => (rank[x.tone] > rank[t] ? x.tone : t), "up");
-  return { tone, summary: tight.map((x) => x.text).join(" · ") };
+  return { tone, summary: tight.map((x) => x.text).join(" · "), fact };
 }
 
 /** "12 of 17 guests running", templates left out. */

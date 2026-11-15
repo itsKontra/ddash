@@ -53,7 +53,7 @@ it("heads with the containers running, the exited ones in the down tone and name
   expect(exited.className).toContain("text-down-text");
   expect(exited.parentElement?.textContent).toBe("1 exited · all up to date, checked 1 h ago");
   expect(within(widget).getAllByRole("listitem").map((li) => li.textContent)).toEqual(["sonarrexited on media"]);
-  expect(reported.status).toEqual({ tone: "down", summary: "1 exited: sonarr" });
+  expect(reported.status).toEqual({ tone: "down", summary: "1 exited: sonarr", fact: { value: 3, label: "containers running" } });
   // No node here: no meters, and no empty frames for them.
   expect(within(widget).queryByRole("meter")).toBeNull();
 });
@@ -62,7 +62,7 @@ it("is up with the running count when none has exited, and counts the updates wa
   const fine = { hosts: [listed.hosts[1]] };
   const { reported, widget } = await show({ ListContainers: () => Response.json(fine), ListProjects: () => Response.json(projects(true)) });
 
-  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 container running" });
+  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 container running", fact: { value: 1, label: "containers running" } });
   expect(within(widget).getByText("1 update waiting, checked 1 h ago")).toBeTruthy();
 });
 
@@ -77,7 +77,7 @@ it("says the images aren't checked yet, and leaves the update state out without 
 
 it("is warn while a host can't be read, and while docker-api is unavailable", async () => {
   const { reported } = await show({ ListContainers: () => Response.json({ hosts: [...listed.hosts.slice(1), { host: "nas", error: "connection refused" }] }) });
-  expect(reported.status).toEqual({ tone: "warn", summary: "nas unreadable" });
+  expect(reported.status).toEqual({ tone: "warn", summary: "nas unreadable", fact: { value: 1, label: "containers running" } });
   cleanup();
 
   const down = await show({ ListContainers: () => unavailable("no socket-proxy") });

@@ -2,7 +2,7 @@ import type { Status, Widget } from "@ddash/plugin";
 import { MetricTile } from "@ddash/ui";
 import { tally, useDevices } from "./devices";
 
-/** Up with the counts; New Devices are news, not trouble. Warn when network can't list them. */
+/** Up with the counts and the online Devices as its fact; New Devices are news, not trouble. Warn when network can't list them. */
 function useStatus(): Status | undefined {
   const { data, error } = useDevices();
   if (error) return { tone: "warn", summary: `Devices unavailable: ${error.rawMessage}` };
@@ -10,7 +10,7 @@ function useStatus(): Status | undefined {
   const n = tally(data.devices);
   const parts = [`${n.total} Devices`, `${n.online} online`];
   if (n.new) parts.push(`${n.new} new`);
-  return { tone: "up", summary: parts.join(", ") };
+  return { tone: "up", summary: parts.join(", "), fact: { value: n.online, label: "Devices online" } };
 }
 
 /** S: Devices, online and new. */

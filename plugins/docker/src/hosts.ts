@@ -55,9 +55,11 @@ export function exitedRows(hosts: readonly HostContainers[], n = 2): SummaryRow[
  * be read; up with the running count otherwise.
  */
 export function hostsStatus(hosts: readonly HostContainers[]): Status {
-  const out = hosts.flatMap((h) => h.containers).filter(exited);
-  if (out.length) return { tone: "down", summary: `${out.length} exited: ${out.map((c) => c.name).join(", ")}` };
+  const all = hosts.flatMap((h) => h.containers);
+  const fact = { value: all.filter((c) => c.state === State.RUNNING).length, label: "containers running" };
+  const out = all.filter(exited);
+  if (out.length) return { tone: "down", summary: `${out.length} exited: ${out.map((c) => c.name).join(", ")}`, fact };
   const unreadable = hosts.filter((h) => h.error).map((h) => `${h.host} unreadable`);
-  if (unreadable.length) return { tone: "warn", summary: unreadable.join(" · ") };
-  return { tone: "up", summary: containersRunning(hosts) };
+  if (unreadable.length) return { tone: "warn", summary: unreadable.join(" · "), fact };
+  return { tone: "up", summary: containersRunning(hosts), fact };
 }
