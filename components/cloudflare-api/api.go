@@ -1,16 +1,16 @@
 package cloudflareapi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/jsoncall"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -51,48 +51,26 @@ func (a *api) call(ctx context.Context, method, path string, query url.Values, b
 
 // do is call, also returning how many pages the list answered has.
 func (a *api) do(ctx context.Context, method, path string, query url.Values, body, out any) (pages int, err error) {
-	var r io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return 0, status.Error(codes.Internal, err.Error())
-		}
-		r = bytes.NewReader(b)
-	}
 	target := a.base + path
 	if len(query) > 0 {
 		target += "?" + query.Encode()
 	}
-	req, err := http.NewRequestWithContext(ctx, method, target, r)
+	reply, err := jsoncall.Do(ctx, a.http, jsoncall.Request{
+		Method: method, URL: target, Body: body,
+		Header: http.Header{"Authorization": {"Bearer " + a.token}},
+	})
 	if err != nil {
-		return 0, status.Error(codes.Internal, err.Error())
-	}
-	req.Header.Set("Authorization", "Bearer "+a.token)
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	resp, err := a.http.Do(req)
-	if err != nil {
-		var uerr *url.Error
-		if errors.As(err, &uerr) {
-			err = uerr.Err
-		}
-		return 0, status.Errorf(codes.Unavailable, "Cloudflare unreachable: %v", err)
-	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
-	if err != nil {
-		return 0, status.Errorf(codes.Unavailable, "Cloudflare's answer broke off: %v", err)
+		return 0, sdk.Unanswered(err, "Cloudflare")
 	}
 	var env envelope
-	if err := json.Unmarshal(raw, &env); err != nil {
-		if resp.StatusCode/100 != 2 {
-			return 0, refused(resp.StatusCode, nil)
+	if err := json.Unmarshal(reply.Body, &env); err != nil {
+		if reply.Status/100 != 2 {
+			return 0, refused(reply.Status, nil)
 		}
-		return 0, status.Errorf(codes.Unavailable, "Cloudflare answered %d with no JSON", resp.StatusCode)
+		return 0, status.Errorf(codes.Unavailable, "Cloudflare answered %d with no JSON", reply.Status)
 	}
-	if resp.StatusCode/100 != 2 || !env.Success {
-		return 0, refused(resp.StatusCode, env.Errors)
+	if reply.Status/100 != 2 || !env.Success {
+		return 0, refused(reply.Status, env.Errors)
 	}
 	if out != nil {
 		if err := json.Unmarshal(env.Result, out); err != nil {

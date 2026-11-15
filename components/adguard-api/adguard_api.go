@@ -4,18 +4,19 @@
 package adguardapi
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/itsKontra/ddash/sdk/jsoncall"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -191,43 +192,24 @@ func (a *api) send(ctx context.Context, method, path string, body, out any) erro
 	if refused != nil {
 		return refused
 	}
-	var reqBody io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return err
-		}
-		reqBody = bytes.NewReader(b)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, a.base+path, reqBody)
+	header := http.Header{"Accept": {"application/json"}}
+	header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(a.user+":"+a.pass)))
+	reply, err := jsoncall.Do(ctx, a.http, jsoncall.Request{Method: method, URL: a.base + path, Header: header, Body: body})
 	if err != nil {
-		return err
+		return sdk.Unanswered(err, "AdGuard Home")
 	}
-	req.SetBasicAuth(a.user, a.pass)
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	resp, err := a.http.Do(req)
-	if err != nil {
-		return status.Errorf(codes.Unavailable, "AdGuard Home unreachable: %v", err)
-	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
-	if err != nil {
-		return status.Errorf(codes.Unavailable, "AdGuard Home: reading %s: %v", path, err)
-	}
+	raw := reply.Body
 	switch {
-	case resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusTooManyRequests:
-		err := status.Errorf(codes.PermissionDenied, "AdGuard Home refused the username or password (%d); fix them in adguard-api's config", resp.StatusCode)
+	case reply.Status == http.StatusUnauthorized || reply.Status == http.StatusForbidden || reply.Status == http.StatusTooManyRequests:
+		err := status.Errorf(codes.PermissionDenied, "AdGuard Home refused the username or password (%d); fix them in adguard-api's config", reply.Status)
 		a.mu.Lock()
 		a.refused = err
 		a.mu.Unlock()
 		return err
-	case resp.StatusCode == http.StatusBadRequest && method != http.MethodGet:
+	case reply.Status == http.StatusBadRequest && method != http.MethodGet:
 		return status.Errorf(codes.FailedPrecondition, "AdGuard Home refused it: %s", message(raw))
-	case resp.StatusCode != http.StatusOK:
-		return status.Errorf(codes.Unavailable, "AdGuard Home answered %s with %d: %s", strings.SplitN(path, "?", 2)[0], resp.StatusCode, message(raw))
+	case reply.Status != http.StatusOK:
+		return status.Errorf(codes.Unavailable, "AdGuard Home answered %s with %d: %s", strings.SplitN(path, "?", 2)[0], reply.Status, message(raw))
 	}
 	if out == nil {
 		return nil

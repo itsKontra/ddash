@@ -1,17 +1,18 @@
 package nginxproxymanagerapi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"slices"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/jsoncall"
 )
 
 // api calls Nginx Proxy Manager's API, signed in as ddash's user. There
@@ -210,44 +211,30 @@ func tokenRefused(f *failure) bool {
 
 // send sends one request, with s's token unless s is nil.
 func (a *api) send(ctx context.Context, s *session, method, path string, body, out any) error {
-	var reqBody io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return err
-		}
-		reqBody = bytes.NewReader(b)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, a.base+path, reqBody)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+	header := http.Header{"Accept": {"application/json"}}
 	if s != nil {
-		req.Header.Set("Authorization", "Bearer "+s.token)
+		header.Set("Authorization", "Bearer "+s.token)
 	}
 	short := method + " " + strings.SplitN(path, "?", 2)[0]
-	resp, err := a.http.Do(req)
-	if err != nil {
+	reply, err := jsoncall.Do(ctx, a.http, jsoncall.Request{Method: method, URL: a.base + path, Header: header, Body: body})
+	var call *jsoncall.Error
+	switch {
+	case errors.As(err, &call) && call.Stage == jsoncall.Build:
+		return sdk.Unanswered(err, "Nginx Proxy Manager")
+	case errors.As(err, &call) && call.Stage == jsoncall.Read:
+		return downf("Nginx Proxy Manager: reading %s: %v", short, call.Cause())
+	case err != nil:
 		return downf("Nginx Proxy Manager doesn't answer at %s: %v", a.base, err)
 	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
-	if err != nil {
-		return downf("Nginx Proxy Manager: reading %s: %v", short, err)
-	}
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		msg := message(raw)
-		return &failure{status: resp.StatusCode, message: msg, text: fmt.Sprintf("Nginx Proxy Manager answered %s with %d: %s", short, resp.StatusCode, msg)}
+	if reply.Status < 200 || reply.Status > 299 {
+		msg := message(reply.Body)
+		return &failure{status: reply.Status, message: msg, text: fmt.Sprintf("Nginx Proxy Manager answered %s with %d: %s", short, reply.Status, msg)}
 	}
 	if out == nil {
 		return nil
 	}
-	if err := json.Unmarshal(raw, out); err != nil {
-		return &failure{status: resp.StatusCode, text: fmt.Sprintf("Nginx Proxy Manager answered %s with no JSON it knows: %v", short, err)}
+	if err := json.Unmarshal(reply.Body, out); err != nil {
+		return &failure{status: reply.Status, text: fmt.Sprintf("Nginx Proxy Manager answered %s with no JSON it knows: %v", short, err)}
 	}
 	return nil
 }

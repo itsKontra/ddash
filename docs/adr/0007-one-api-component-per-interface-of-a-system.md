@@ -13,3 +13,15 @@ Each interface of an external system is reached by exactly one Component, named 
 - Two Components talked to a system themselves and were split: `compose` reads image digests through `registry-api`, and `ai-helper` asks Claude through `anthropic-api`. Each keeps what is its own: compose what a digest means for a container, ai-helper its prompt, its schema and what it makes of the answer.
 - A split moves no config: the Operator enters a system's credentials again in its new `-api` Component.
 - A new integration starts with its `-api` Component, with a fake beside it (`<system>fake`), before the Component that holds a Plugin's logic.
+- Every `-api` Component that speaks JSON over HTTP makes its calls with `sdk/jsoncall` and answers with the same gRPC code for the same kind of failure, whatever the system:
+
+  | The system… | Code | Example |
+  |---|---|---|
+  | didn't answer, or its answer broke off or was too large | `Unavailable` | connection refused, a timeout, a 502 from a proxy in front of it |
+  | refused the credentials | `PermissionDenied` | 401 or 403; a wrong API key, an expired token |
+  | refused the request as it stands | `FailedPrecondition` | 400 on a write: a value it doesn't accept |
+  | has no such object | `NotFound` | 404 on a write to an object that is gone |
+  | answered something that isn't its API | `Unavailable` | HTML where JSON was expected |
+  | (the request couldn't be made at all) | `Internal` | a bug in the Component, never the system's doing |
+
+  A refused read is `Unavailable` unless it is the credentials: a getter has nothing the Operator could change in the request.

@@ -4,13 +4,11 @@
 package pfsenseapi
 
 import (
-	"bytes"
 	"cmp"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/netip"
@@ -19,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/itsKontra/ddash/sdk/jsoncall"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -601,50 +601,31 @@ func (a *api) send(ctx context.Context, method, path string, body, out any) erro
 func (a *api) sendWithin(ctx context.Context, timeout time.Duration, method, path string, body, out any) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	var reqBody io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return err
-		}
-		reqBody = bytes.NewReader(b)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, a.base+path, reqBody)
+	reply, err := jsoncall.Do(ctx, a.http, jsoncall.Request{
+		Method: method, URL: a.base + path, Body: body,
+		Header: http.Header{"X-Api-Key": {a.key}, "Accept": {"application/json"}},
+	})
 	if err != nil {
-		return err
-	}
-	req.Header.Set("X-API-Key", a.key)
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	resp, err := a.http.Do(req)
-	if err != nil {
-		return status.Errorf(codes.Unavailable, "pfSense unreachable: %v", err)
-	}
-	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
-	if err != nil {
-		return status.Errorf(codes.Unavailable, "pfSense: reading %s: %v", path, err)
+		return sdk.Unanswered(err, "pfSense")
 	}
 	var env envelope
-	if err := json.Unmarshal(raw, &env); err != nil {
-		return status.Errorf(codes.Unavailable, "pfSense answered %s with %d and no REST API JSON", path, resp.StatusCode)
+	if err := json.Unmarshal(reply.Body, &env); err != nil {
+		return status.Errorf(codes.Unavailable, "pfSense answered %s with %d and no REST API JSON", path, reply.Status)
 	}
-	if resp.StatusCode != http.StatusOK {
+	if reply.Status != http.StatusOK {
 		code := codes.Unavailable
 		// The API key refused, on a read or a write.
-		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		if reply.Status == http.StatusUnauthorized || reply.Status == http.StatusForbidden {
 			code = codes.PermissionDenied
 		} else if method != http.MethodGet {
-			switch resp.StatusCode {
+			switch reply.Status {
 			case http.StatusBadRequest:
 				code = codes.FailedPrecondition
 			case http.StatusNotFound:
 				code = codes.NotFound
 			}
 		}
-		return status.Errorf(code, "pfSense answered %s %s with %d %s: %s", method, path, resp.StatusCode, env.ResponseID, env.Message)
+		return status.Errorf(code, "pfSense answered %s %s with %d %s: %s", method, path, reply.Status, env.ResponseID, env.Message)
 	}
 	if err := json.Unmarshal(env.Data, out); err != nil {
 		return status.Errorf(codes.Unavailable, "pfSense: %s: %v", path, fmt.Errorf("decode data: %w", err))
