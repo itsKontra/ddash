@@ -5,7 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { nameOf } from "./devices";
 
 /** The sheet Adopting a New Device: its name and the reserved address, pre-filled with the lowest free one. */
-function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
+export function AdoptSheet({ device: d, onClose }: { device: Device; onClose: () => void }) {
   const adopt = useAction(NetworkService.method.adoptDevice);
   const { data: next } = useQuery(NetworkService.method.nextReservedAddress, {});
   const form = useId();
