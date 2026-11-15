@@ -5,7 +5,7 @@ ddash changes what runs on a host through an **Agent** the Operator installs the
 ## Considered Options
 
 - **The Docker socket for ddash's container** (read-write socket-proxies): every Docker host's root in one place, and a Compose file's text isn't in the Docker API anyway.
-- **SSH with a forced-command key per host**: what IDEAS.md first chose; it brings back the SSH ADR-0003 removed, the parsing of shell output, and a key on disk that can do anything its command can.
+- **SSH with a forced-command key per host**: the first choice; it brings back the SSH ADR-0003 removed, the parsing of shell output, and a key on disk that can do anything its command can.
 - **Agent dials ddash** (no inbound port, survives NAT): Open Decision 3 kept ddash dialling in, as the ideas asked; the Agent's port is firewalled to ddash's address like the socket-proxies' were.
 - **One Agent for both** (the Host Agent also driving Docker on a Docker LXC): kept apart, so a Docker host needs no root service besides Docker and a host without Docker no socket.
 
