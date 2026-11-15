@@ -255,6 +255,10 @@ message Plan {
   // Update: nothing to pull is known to be newer. It still runs: a pull
   // may find more than the last check.
   bool up_to_date = 6;
+  // Why it doesn't run without override_protected, as the Operator reads
+  // it; empty when nothing it touches is Protected or the override is
+  // given. Apart from blocked: the override lifts this, and only this.
+  string override_needed = 7;
 }
 
 message PlanStep {

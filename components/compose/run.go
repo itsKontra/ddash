@@ -212,8 +212,8 @@ func (c *component) RunAction(req *pb.RunActionRequest, stream pb.ComposeService
 		st, _ := status.New(codes.Aborted, "changed since you looked: check the new Plan, then confirm again").WithDetails(plan)
 		return st.Err()
 	}
-	if len(plan.GetBlocked()) > 0 {
-		return status.Error(codes.FailedPrecondition, strings.Join(plan.GetBlocked(), " "))
+	if why := strings.TrimSpace(strings.Join(plan.GetBlocked(), " ") + " " + plan.GetOverrideNeeded()); why != "" {
+		return status.Error(codes.FailedPrecondition, why)
 	}
 	host, project := w.tgt.host.GetHost(), w.tgt.project.GetName()
 	if a, ok := req.GetAction().GetAction().(*pb.ComposeAction_Add); ok {

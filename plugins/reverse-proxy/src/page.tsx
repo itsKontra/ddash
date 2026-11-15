@@ -1,11 +1,11 @@
-import { useAction, usePluginLink } from "@ddash/plugin";
+import { isNotConfigured, useAction, usePluginLink } from "@ddash/plugin";
 import { AppsService } from "@ddash/proto/apps/apps_pb";
 import { NginxProxyManagerApiService, Status as NpmStatus, type GetStatusResponse } from "@ddash/proto/nginx-proxy-manager-api/nginx_proxy_manager_api_pb";
-import { Button, CodeBlock, EmptyState, Notice, PageTitle, Panel, Pill, Skeleton, StatusList, type Tone } from "@ddash/ui";
+import { Button, CodeBlock, Notice, PageTitle, Panel, Pill, SetUp as SetUpNotice, Skeleton, StatusList, type Tone } from "@ddash/ui";
 import { Link } from "react-router";
 import { offlineCount, useApps } from "./apps";
 import { Certificates } from "./certificates";
-import { notConfigured, Time, useStatus } from "./npm";
+import { Time, useStatus } from "./npm";
 
 /** The reverse-proxy Page: whether Nginx Proxy Manager answers and its certificates, with a Refresh. */
 export function ReverseProxy() {
@@ -25,7 +25,7 @@ export function ReverseProxy() {
       />
       <div className="flex flex-col gap-4">
         {refresh.error && <Notice tone="down">Refresh failed: {refresh.error.rawMessage}</Notice>}
-        {notConfigured(error) ? (
+        {isNotConfigured(error) ? (
           <SetUp />
         ) : (
           <>
@@ -54,19 +54,9 @@ function useRefresh() {
 /** "Set up Nginx Proxy Manager", while nginx-proxy-manager-api has no config. */
 function SetUp() {
   return (
-    <Panel>
-      <EmptyState
-        icon="waypoints"
-        title="Set up Nginx Proxy Manager"
-        action={
-          <Link to="/plugins" className="text-sm font-semibold text-primary hover:underline">
-            Configure it in Plugins
-          </Link>
-        }
-      >
-        Give nginx-proxy-manager-api Nginx Proxy Manager's address and ddash's user there to read the Reverse Proxy and its certificates.
-      </EmptyState>
-    </Panel>
+    <SetUpNotice icon="waypoints" title="Set up Nginx Proxy Manager">
+      Give nginx-proxy-manager-api Nginx Proxy Manager&apos;s address and ddash&apos;s user there to read the Reverse Proxy and its certificates.
+    </SetUpNotice>
   );
 }
 

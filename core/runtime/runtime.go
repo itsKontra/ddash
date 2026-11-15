@@ -381,7 +381,7 @@ func (r *Runtime) Endpoint(name string) (Endpoint, error) {
 	case c.started:
 		return c.endpoint, nil
 	case c.status.State == Unconfigured:
-		return Endpoint{}, status.Error(codes.FailedPrecondition, "not configured")
+		return Endpoint{}, sdk.NotConfigured()
 	case c.status.State == Starting:
 		return Endpoint{}, status.Errorf(codes.Unavailable, "%s is starting", name)
 	case c.status.Message != "":

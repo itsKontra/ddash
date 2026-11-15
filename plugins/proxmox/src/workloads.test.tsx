@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, screen, within } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
 import plugin from "./index";
-import { pending, unavailable } from "@ddash/plugin/testing";
+import { notConfigured, pending, unavailable } from "@ddash/plugin/testing";
 import { back, search, show } from "./testing";
 
 afterEach(cleanup);
@@ -78,7 +78,7 @@ it("shows why proxmox-api can't list the Workloads", async () => {
 
 it("says proxmox-api isn't configured yet, with a way to configure it", async () => {
   await show("/proxmox", {
-    ListWorkloads: () => Response.json({ code: "failed_precondition", message: "not configured" }, { status: 400 }),
+    ListWorkloads: notConfigured,
   });
 
   expect(screen.getByText("proxmox-api isn't configured")).toBeTruthy();

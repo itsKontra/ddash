@@ -146,12 +146,12 @@ func (c *component) plan(ctx context.Context, a *pb.ComposeAction) (*pb.Plan, *w
 	return nil, nil, status.Error(codes.InvalidArgument, "action is required")
 }
 
-// guard blocks p when names are Protected and the Operator didn't
-// override.
+// guard keeps p from running when names are Protected and the Operator
+// didn't override.
 func guard(p *pb.Plan, protected []string, override bool, what string) {
 	p.Protected = protected
 	if len(protected) > 0 && !override {
-		p.Blocked = append(p.Blocked, fmt.Sprintf("%s is Protected: ddash may %s it only if you override that below.", strings.Join(protected, ", "), what))
+		p.OverrideNeeded = fmt.Sprintf("%s is Protected: ddash may %s it only if you override that below.", strings.Join(protected, ", "), what)
 	}
 }
 

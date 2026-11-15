@@ -3,7 +3,6 @@ import type { GetFlowResponse, GetPeriodResponse, Totals } from "@ddash/proto/en
 import {
   Button,
   ColumnChart,
-  EmptyState,
   Facts,
   Icon,
   LineChart,
@@ -13,6 +12,7 @@ import {
   PageTitle,
   Panel,
   Segmented,
+  SetUp as SetUpNotice,
   Skeleton,
   useQueryState,
   type ColumnSeries,
@@ -59,19 +59,9 @@ function useKept<T>(value: T | undefined): [T | undefined, boolean] {
 /** "Set up energy-api", while it has no InfluxDB. */
 function SetUp() {
   return (
-    <Panel>
-      <EmptyState
-        icon="sun"
-        title="Set up energy-api"
-        action={
-          <Link to="/plugins" className="text-sm font-semibold text-primary hover:underline">
-            Configure it in Plugins
-          </Link>
-        }
-      >
-        Give energy-api the InfluxDB address, a read-only token and the bucket Telegraf writes to, to see the solar power, the grid, the battery and the house.
-      </EmptyState>
-    </Panel>
+    <SetUpNotice icon="sun" title="Set up energy-api">
+      Give energy-api the InfluxDB address, a read-only token and the bucket Telegraf writes to, to see the solar power, the grid, the battery and the house.
+    </SetUpNotice>
   );
 }
 

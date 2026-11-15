@@ -10,7 +10,7 @@ export {
   type Widget,
   type WidgetSize,
 } from "./define";
-export { createQueryClient, refreshOf, Refresh, tiers, useQuery, type QueryClient, type QueryOptions } from "./query";
+export { createQueryClient, isNotConfigured, refreshOf, Refresh, tiers, useQuery, type QueryClient, type QueryOptions } from "./query";
 export { useTail, type Tail } from "./tail";
 export { InstalledPlugins, usePluginLink } from "./link";
 export {

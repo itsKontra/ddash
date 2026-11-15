@@ -1,5 +1,5 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
-import { useQuery } from "@ddash/plugin";
+import { isNotConfigured, useQuery } from "@ddash/plugin";
 import { EnergyApiService, Span, type GetFlowResponse, type Totals } from "@ddash/proto/energy-api/energy_api_pb";
 import type { ChartColour, Tone } from "@ddash/ui";
 
@@ -7,7 +7,7 @@ import type { ChartColour, Tone } from "@ddash/ui";
 export function useFlow() {
   const q = useQuery(EnergyApiService.method.getFlow, {});
   // Not set up: an empty config (set_up false), or none saved yet.
-  const notSetUp = q.data ? !q.data.setUp : q.error?.rawMessage === "not configured";
+  const notSetUp = q.data ? !q.data.setUp : isNotConfigured(q.error);
   return { ...q, notSetUp };
 }
 

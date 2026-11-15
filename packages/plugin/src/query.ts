@@ -1,8 +1,10 @@
 import { getOption, hasOption, type DescMessage, type DescMethodUnary, type MessageInitShape } from "@bufbuild/protobuf";
+import { ConnectError } from "@connectrpc/connect";
 import { useQuery as useConnectQuery } from "@connectrpc/connect-query";
 import { QueryClient } from "@tanstack/react-query";
 
 export type { QueryClient };
+import { NotConfiguredSchema } from "@ddash/proto/ddash/component/component_pb";
 import { getter, Getter_Refresh } from "@ddash/proto/ddash/options_pb";
 
 export { Getter_Refresh as Refresh };
@@ -58,4 +60,14 @@ export function useQuery<I extends DescMessage, O extends DescMessage>(
   options: QueryOptions = {},
 ) {
   return useConnectQuery(method, request, { refetchInterval: tiers[options.refresh ?? refreshOf(method)] });
+}
+
+/**
+ * Whether error is a Component's answer while it has no config yet (the
+ * host's, or the Component's own): told by the error's NotConfigured
+ * detail, never by its message. A Page then offers to set the Component
+ * up (@ddash/ui's SetUp) instead of reporting a failure.
+ */
+export function isNotConfigured(error: unknown): boolean {
+  return error instanceof ConnectError && error.findDetails(NotConfiguredSchema).length > 0;
 }

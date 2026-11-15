@@ -41,8 +41,8 @@ type LifecycleServiceClient interface {
 	// such as "hosts[1].url". Start is called at most once per process.
 	Start(ctx context.Context, in *StartRequest, opts ...grpc.CallOption) (*StartResponse, error)
 	// Health reports the Component's own state. Before a successful Start it
-	// fails with FAILED_PRECONDITION "not configured", or reports DOWN with the
-	// reason Start failed.
+	// fails with FAILED_PRECONDITION "not configured" and a NotConfigured
+	// detail, or reports DOWN with the reason Start failed.
 	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 }
 
@@ -98,8 +98,8 @@ type LifecycleServiceServer interface {
 	// such as "hosts[1].url". Start is called at most once per process.
 	Start(context.Context, *StartRequest) (*StartResponse, error)
 	// Health reports the Component's own state. Before a successful Start it
-	// fails with FAILED_PRECONDITION "not configured", or reports DOWN with the
-	// reason Start failed.
+	// fails with FAILED_PRECONDITION "not configured" and a NotConfigured
+	// detail, or reports DOWN with the reason Start failed.
 	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	mustEmbedUnimplementedLifecycleServiceServer()
 }

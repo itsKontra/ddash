@@ -1,7 +1,7 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, expect, it } from "vitest";
-import { HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, SectionHeading, StatRow, StatusList, WidgetCard } from "./index";
+import { HeroCard, MetricTile, Notice, PageTitle, Panel, Ring, SectionHeading, SetUp, StatRow, StatusList, WidgetCard } from "./index";
 
 afterEach(cleanup);
 
@@ -207,4 +207,24 @@ it("WidgetCard's header writes the summary out when the Widget isn't up", () => 
   expect(within(header("Docker")).getByRole("img", { name: "down: media unreachable" })).toBeTruthy();
   expect(header("Checks").textContent).not.toContain("12 up");
   expect(within(header("Checks")).getByRole("img", { name: "up: 12 up" })).toBeTruthy();
+});
+
+it("SetUp says what to set up and links to the Plugins page, as a Panel or, compact, as a Notice", () => {
+  render(
+    <MemoryRouter>
+      <SetUp icon="sun" title="Set up energy-api">
+        Give energy-api the InfluxDB address.
+      </SetUp>
+      <SetUp compact title="No calendar is set up">
+        Give calendar-api an iCal address.
+      </SetUp>
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByText("Set up energy-api")).toBeTruthy();
+  expect(screen.getByText("Give energy-api the InfluxDB address.")).toBeTruthy();
+  const notice = screen.getByRole("status");
+  expect(within(notice).getByText("No calendar is set up")).toBeTruthy();
+  const links = screen.getAllByRole("link", { name: "Configure it in Plugins" });
+  expect(links.map((l) => l.getAttribute("href"))).toEqual(["/plugins", "/plugins"]);
 });

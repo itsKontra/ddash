@@ -127,7 +127,8 @@ it("updates a Compose Project through its Plan, listing each image's current and
 });
 
 it("asks for the Protected override before stopping a Protected Compose Project", async () => {
-  const blocked = { ...plan, protected: ["proxy-npm-1"], blocked: ["proxy-npm-1 is Protected: ddash may stop it only if you override that below."] };
+  // The Plan says the override is needed in a field of its own; its wording is the Operator's to read, not the dialog's to parse.
+  const blocked = { ...plan, protected: ["proxy-npm-1"], overrideNeeded: "ddash may stop proxy-npm-1 only with the override." };
   const calls = await showPlugin(plugin, docker, "/docker", { answers: { ...base, PlanAction: () => Response.json({ plan: blocked }) } });
   fireEvent.click(screen.getByRole("button", { name: "Actions for proxy" }));
   fireEvent.click(within(screen.getByRole("group", { name: "Actions for proxy" })).getByRole("button", { name: "Stop" }));

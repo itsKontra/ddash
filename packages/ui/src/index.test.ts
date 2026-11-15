@@ -30,6 +30,7 @@ it("exports exactly the spec's component set, plus cx, matches, noMatch and the 
       "Checkbox",
       "Switch",
       "Segmented",
+      "SetUp",
       "SearchField",
       "IconPicker",
       "AppIconPicker",

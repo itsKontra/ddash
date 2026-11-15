@@ -223,4 +223,34 @@ const lazy = () => import("antd");
       `src/index.css:4: @keyframes hello-flash animates background-color; ${fix}`,
     ]);
   });
+
+  it("fails a script that decides by an error message's wording", () => {
+    const dir = plugin({
+      "page.tsx": `export function Page({ error }: { error?: { rawMessage: string; message: string } }) {
+  if (error?.rawMessage === "not configured") return null;
+  if ("not configured" !== error?.rawMessage) return null;
+  if (error?.rawMessage.includes("Protected")) return null;
+  if (error.message == 'gone') return null;
+  return <p>{error?.rawMessage}</p>;
+}
+`,
+    });
+    const problems = lintStyle(dir);
+    expect(problems.map((p) => p.split(": ")[0])).toEqual(["src/page.tsx:2", "src/page.tsx:3", "src/page.tsx:4", "src/page.tsx:5"]);
+    expect(problems[0]).toContain("decides by an error's wording");
+  });
+
+  it("passes showing an error's message, a test asserting on one, and other comparisons", () => {
+    const dir = plugin({
+      "page.tsx": `import { isNotConfigured } from "@ddash/plugin";
+export function Page({ error, state }: { error?: { rawMessage: string }; state: string }) {
+  if (isNotConfigured(error)) return null;
+  if (state === "running") return null;
+  return <p title={error?.rawMessage}>{error ? "Failed: " + error.rawMessage : ""}</p>;
+}
+`,
+      "page.test.tsx": `export const refused = (error: { rawMessage: string }) => error.rawMessage === "refused";\n`,
+    });
+    expect(lintStyle(dir)).toEqual([]);
+  });
 });

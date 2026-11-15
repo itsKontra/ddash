@@ -7,6 +7,7 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/synctest"
 	"time"
@@ -76,6 +77,10 @@ func TestAComponentWithoutValidConfigIsUnconfiguredAndNotConfigured(t *testing.T
 	res := h.Call("hello", "greeter", "Greet", `{"name":"Ada"}`)
 
 	wantError(t, res, http.StatusBadRequest, "failed_precondition", "not configured")
+	// The detail is what a Page tells "set it up" from a failure by.
+	if !strings.Contains(res.Body.String(), `"type":"ddash.component.NotConfigured"`) {
+		t.Errorf("body %s, want a NotConfigured detail", res.Body)
+	}
 }
 
 func TestAComponentStartsWithDefaultsForUnsetConfigFields(t *testing.T) {
