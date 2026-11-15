@@ -17,6 +17,7 @@ import (
 	"github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb"
 	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/migrate"
 )
 
 // keyName is an SSH Key's name: it ends up as the "ddash:<name>" comment
@@ -70,7 +71,7 @@ func (c *component) store(ctx context.Context, name string, pub ssh.PublicKey, c
 	_, err := c.db.ExecContext(ctx, `INSERT INTO ssh_key (name, public_key, type, fingerprint, created, generated) VALUES (?, ?, ?, ?, ?, ?)`,
 		k.GetName(), k.GetPublicKey(), k.GetType(), k.GetFingerprint(), k.GetCreated().AsTime().UTC().Format(time.RFC3339), generated)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if migrate.IsTaken(err) {
 			return nil, status.Errorf(codes.AlreadyExists, "an SSH Key is already named %s", name)
 		}
 		return nil, err

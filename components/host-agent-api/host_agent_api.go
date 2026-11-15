@@ -30,6 +30,7 @@ import (
 	"github.com/itsKontra/ddash/agent/jobproto"
 	pb "github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb"
 	"github.com/itsKontra/ddash/sdk"
+	"github.com/itsKontra/ddash/sdk/migrate"
 )
 
 //go:embed component.yaml
@@ -249,7 +250,7 @@ func (c *component) AddAgent(ctx context.Context, req *pb.AddAgentRequest) (*pb.
 	_, err := c.db.ExecContext(ctx, `INSERT INTO agent (vmid, name, url, code, added) VALUES (?, ?, ?, ?, ?)`,
 		req.GetVmid(), req.GetName(), strings.TrimRight(req.GetUrl(), "/"), code, time.Now().UTC().Format(time.RFC3339))
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "PRIMARY KEY") {
+		if migrate.IsTaken(err) {
 			return nil, status.Errorf(codes.AlreadyExists, "Workload %d already has a Host Agent", req.GetVmid())
 		}
 		return nil, err

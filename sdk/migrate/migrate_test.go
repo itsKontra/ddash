@@ -109,3 +109,34 @@ func TestApplyRejectsGapsInNumbering(t *testing.T) {
 		t.Fatal("applied migrations with a gap in their numbering")
 	}
 }
+
+func TestIsTakenTellsAKeyThatIsAlreadyThereFromOtherErrors(t *testing.T) {
+	db, err := migrate.Open(filepath.Join(t.TempDir(), "x.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err := db.Exec(`CREATE TABLE agent (vmid INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, url TEXT NOT NULL)`); err != nil {
+		t.Fatal(err)
+	}
+	insert := func(vmid any, name, url any) error {
+		_, err := db.Exec(`INSERT INTO agent (vmid, name, url) VALUES (?, ?, ?)`, vmid, name, url)
+		return err
+	}
+	if err := insert(101, "media", "https://a"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := insert(101, "other", "https://b"); !migrate.IsTaken(err) {
+		t.Errorf("the same primary key: IsTaken(%v) = false", err)
+	}
+	if err := insert(102, "media", "https://b"); !migrate.IsTaken(err) {
+		t.Errorf("the same unique name: IsTaken(%v) = false", err)
+	}
+	if err := insert(103, "third", nil); err == nil || migrate.IsTaken(err) {
+		t.Errorf("a NOT NULL refusal: IsTaken(%v) = true", err)
+	}
+	if migrate.IsTaken(nil) {
+		t.Error("IsTaken(nil) = true")
+	}
+}

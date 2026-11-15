@@ -225,7 +225,7 @@ func (c *component) checkImages(ctx context.Context) {
 			if errors.Is(err, errRateLimited) {
 				problems[r.registry] = "rate limited: ddash waits for the next check"
 				result.err = "rate limited by " + r.registry
-			} else if !strings.Contains(err.Error(), "has no") {
+			} else if !errors.Is(err, errNoSuchImage) {
 				problems[r.registry] = err.Error()
 			}
 		}

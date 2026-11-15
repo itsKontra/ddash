@@ -87,6 +87,10 @@ type registries struct {
 // errRateLimited is a registry's 429.
 var errRateLimited = errors.New("rate limited")
 
+// errNoSuchImage is a registry's 404: it has no such image, which is the
+// image's problem, not the registry's.
+var errNoSuchImage = errors.New("the registry has no")
+
 // base is where registry's API is.
 func (rs *registries) base(registry string) string {
 	if registry == "docker.io" {
@@ -142,7 +146,7 @@ func (rs *registries) digest(ctx context.Context, r ref) (string, int, error) {
 		case http.StatusTooManyRequests:
 			return "", requests, errRateLimited
 		case http.StatusNotFound:
-			return "", requests, fmt.Errorf("the registry has no %s", r)
+			return "", requests, fmt.Errorf("%w %s", errNoSuchImage, r)
 		case http.StatusUnauthorized:
 			if attempt > 0 {
 				return "", requests, errors.New("the registry refused ddash: add credentials in compose's config if the image is private")
