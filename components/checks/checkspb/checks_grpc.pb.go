@@ -65,9 +65,10 @@ type ChecksServiceClient interface {
 	// GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
 	// window's buckets and state changes for its UptimeBars.
 	GetHistory(ctx context.Context, in *GetHistoryRequest, opts ...grpc.CallOption) (*GetHistoryResponse, error)
-	// ListBeats returns the beats a Check keeps: every beat of about the last
-	// 24 h and its state changes of the last 365 d (a daily sweep drops the
-	// rest), oldest first.
+	// ListBeats returns a Check's beats from a time on, oldest first: every
+	// beat of about the last 24 h and, before that, only its state changes,
+	// kept for 365 d (a daily sweep drops the rest). It returns the last 24 h
+	// unless asked for more or less.
 	ListBeats(ctx context.Context, in *ListBeatsRequest, opts ...grpc.CallOption) (*ListBeatsResponse, error)
 	// SetAppChecks declares every App's Check, from apps: a new App gets a
 	// Check probed at once, a disabled one (its App is hidden) isn't probed,
@@ -253,9 +254,10 @@ type ChecksServiceServer interface {
 	// GetHistory returns a Check's uptime over 24 h, 30 d and 365 d, and one
 	// window's buckets and state changes for its UptimeBars.
 	GetHistory(context.Context, *GetHistoryRequest) (*GetHistoryResponse, error)
-	// ListBeats returns the beats a Check keeps: every beat of about the last
-	// 24 h and its state changes of the last 365 d (a daily sweep drops the
-	// rest), oldest first.
+	// ListBeats returns a Check's beats from a time on, oldest first: every
+	// beat of about the last 24 h and, before that, only its state changes,
+	// kept for 365 d (a daily sweep drops the rest). It returns the last 24 h
+	// unless asked for more or less.
 	ListBeats(context.Context, *ListBeatsRequest) (*ListBeatsResponse, error)
 	// SetAppChecks declares every App's Check, from apps: a new App gets a
 	// Check probed at once, a disabled one (its App is hidden) isn't probed,

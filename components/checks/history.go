@@ -129,7 +129,11 @@ func (c *component) ListBeats(ctx context.Context, req *checkspb.ListBeatsReques
 		return nil, err
 	}
 	at := now()
-	beats, err := c.db.beats(ctx, req.GetId(), at.Add(-BeatsKept), at.Add(-ChangesKept))
+	since := at.Add(-BeatsKept)
+	if s := req.GetSince(); s != nil {
+		since = s.AsTime()
+	}
+	beats, err := c.db.beats(ctx, req.GetId(), since, at.Add(-BeatsKept), at.Add(-ChangesKept))
 	if err != nil {
 		return nil, err
 	}
@@ -236,13 +240,13 @@ func (s *store) changes(ctx context.Context, id int64, from time.Time) ([]*check
 		ORDER BY at DESC, id DESC`, id, ms(from))
 }
 
-// beats reads Check id's beats since all, and its state changes since
-// changes, oldest first.
-func (s *store) beats(ctx context.Context, id int64, all, changes time.Time) ([]*checkspb.Beat, error) {
+// beats reads Check id's beats from since on, oldest first: all of them
+// since all, and only its state changes since changes.
+func (s *store) beats(ctx context.Context, id int64, since, all, changes time.Time) ([]*checkspb.Beat, error) {
 	return s.readBeats(ctx, `
 		SELECT at, up, state, changed, COALESCE(latency_ms, 0), reason, maint FROM check_event
-		WHERE check_id = ? AND (at >= ? OR (changed AND at >= ?))
-		ORDER BY at, id`, id, ms(all), ms(changes))
+		WHERE check_id = ? AND at >= ? AND (at >= ? OR (changed AND at >= ?))
+		ORDER BY at, id`, id, ms(since), ms(all), ms(changes))
 }
 
 func (s *store) readBeats(ctx context.Context, query string, args ...any) ([]*checkspb.Beat, error) {

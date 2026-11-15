@@ -171,9 +171,9 @@ func (c *component) deliver(ctx context.Context) {
 	if ctx.Err() != nil {
 		return
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	if err != nil {
+		c.mu.Lock()
+		defer c.mu.Unlock()
 		c.out.backoff = min(max(2*c.out.backoff, RetryAfter), RetryMax)
 		c.out.next = time.Now().Add(c.out.backoff)
 		// The window stays closed: a retry goes out when due.
@@ -181,15 +181,21 @@ func (c *component) deliver(ctx context.Context) {
 		c.log.Warn("send Notification", "items", len(todo), "err", err, "retry_in", c.out.backoff)
 		return
 	}
+	c.writing.Lock()
+	defer c.writing.Unlock()
+	c.mu.Lock()
 	c.out.backoff, c.out.window = 0, time.Time{}
 	for _, p := range todo {
 		c.notified[p.item] = p.as
-		if err := c.db.setNotified(ctx, p.item, p.as); err != nil {
-			c.log.Error("record Notification", "item", p.item, "err", err)
-		}
 		// It may have changed again while being sent: then it starts over.
 		delete(c.out.queued, p.item)
 		c.requeue(p.item)
+	}
+	c.mu.Unlock()
+	for _, p := range todo {
+		if err := c.db.setNotified(ctx, p.item, p.as); err != nil {
+			c.log.Error("record Notification", "item", p.item, "err", err)
+		}
 	}
 }
 

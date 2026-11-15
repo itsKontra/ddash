@@ -76,8 +76,7 @@ func (c *component) SetAppChecks(ctx context.Context, req *checkspb.SetAppChecks
 	if err != nil {
 		return nil, err
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 
 	byApp := map[string]*check{}
 	for _, ch := range c.checks {

@@ -185,8 +185,7 @@ func (c *component) StartMaintenance(ctx context.Context, req *checkspb.StartMai
 			return nil, status.Error(codes.InvalidArgument, "duration must be more than 0 and at most 24 h; leave it unset to last until ended")
 		}
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	if s.checkID != 0 {
 		if _, err := c.get(s.checkID); err != nil {
 			return nil, err
@@ -209,8 +208,7 @@ func (c *component) EndMaintenance(ctx context.Context, req *checkspb.EndMainten
 	if err != nil {
 		return nil, err
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	if err := c.endMaintenance(ctx, s.key()); err != nil {
 		return nil, err
 	}
@@ -237,16 +235,51 @@ func (c *component) ListMaintenance(context.Context, *checkspb.ListMaintenanceRe
 	return resp, nil
 }
 
-// endMaintenance ends the Maintenance keyed key, if any, and queues what
-// it covered that now differs from what was last notified: it goes out
-// through grouping like any change. Call with c.mu held.
+// endMaintenance ends the Maintenance keyed key, if any, as ended does.
+// Call with c.writing and c.mu held.
 func (c *component) endMaintenance(ctx context.Context, key string) error {
-	m, ok := c.maint[key]
-	if !ok {
+	if _, ok := c.maint[key]; !ok {
 		return nil
 	}
 	if err := c.db.deleteMaintenance(ctx, key); err != nil {
 		return err
+	}
+	c.ended(key)
+	return nil
+}
+
+// end ends the Maintenance keyed keys: it deletes each from the DB without
+// c.mu, so reads don't wait for it, then ends those deleted in memory.
+// Call with c.writing held and c.mu not.
+func (c *component) end(ctx context.Context, keys []string) {
+	var gone []string
+	for _, key := range keys {
+		if err := c.db.deleteMaintenance(ctx, key); err != nil {
+			if ctx.Err() == nil {
+				c.log.Error("end Maintenance", "scope", key, "err", err)
+			}
+			continue
+		}
+		gone = append(gone, key)
+	}
+	if len(gone) == 0 {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, key := range gone {
+		c.ended(key)
+	}
+}
+
+// ended drops the Maintenance keyed key, if any, from memory and queues
+// what it covered that now differs from what was last notified: it goes
+// out through grouping like any change. Call with c.mu held, once its row
+// is deleted.
+func (c *component) ended(key string) {
+	m, ok := c.maint[key]
+	if !ok {
+		return
 	}
 	delete(c.maint, key)
 	c.rewake()
@@ -261,21 +294,19 @@ func (c *component) endMaintenance(ctx context.Context, key string) error {
 			c.requeue(item)
 		}
 	}
-	return nil
 }
 
-// endWhenUp ends each until-up Maintenance covering ch once every probed
-// Check it covers is up with a beat after it started. Call with c.mu held,
-// after ch's beat.
-func (c *component) endWhenUp(ctx context.Context, ch *check) {
+// endedWhenUp is the keys of the until-up Maintenance covering ch that end
+// now: every probed Check they cover is up with a beat after they started.
+// Call with c.mu held, after ch's beat.
+func (c *component) endedWhenUp(ch *check) []string {
+	var keys []string
 	for key, m := range c.maint {
-		if !m.untilUp || !m.scope.covers(ch) || !c.allUpSince(m) {
-			continue
-		}
-		if err := c.endMaintenance(ctx, key); err != nil {
-			c.log.Error("end Maintenance", "scope", key, "err", err)
+		if m.untilUp && m.scope.covers(ch) && c.allUpSince(m) {
+			keys = append(keys, key)
 		}
 	}
+	return keys
 }
 
 // allUpSince reports whether every probed Check m covers is up with a beat
@@ -331,16 +362,18 @@ func (c *component) expireMaintenance(ctx context.Context) {
 		if timer != nil {
 			timer.Stop()
 		}
+		c.writing.Lock()
 		c.mu.Lock()
 		at := time.Now()
+		var over []string
 		for key, m := range c.maint {
 			if !m.on(at) {
-				if err := c.endMaintenance(ctx, key); err != nil && ctx.Err() == nil {
-					c.log.Error("end Maintenance", "scope", key, "err", err)
-				}
+				over = append(over, key)
 			}
 		}
 		c.mu.Unlock()
+		c.end(ctx, over)
+		c.writing.Unlock()
 	}
 }
 

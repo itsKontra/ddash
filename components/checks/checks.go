@@ -86,6 +86,14 @@ type component struct {
 	notify    notifypb.NotifyServiceClient
 	publicURL string
 
+	// writing is held from computing a write to the DB from memory until
+	// memory holds its outcome, so the DB is written in the order memory
+	// changes and nothing that is written changes in between. Take it
+	// before mu. Beats, deliveries and Maintenance ending by itself write
+	// with only writing held, so reads don't wait for their commits;
+	// Actions still hold mu across their own write.
+	writing sync.Mutex
+	// mu guards what follows. Reads take only mu.
 	mu     sync.Mutex
 	checks map[int64]*check
 	// writeErr is why the last write to the DB failed; nil once one works.
@@ -243,25 +251,35 @@ func (c *component) beat(ctx context.Context, id int64, gen int) {
 		return // stopped mid-probe: that's no failure of the target
 	}
 
+	c.writing.Lock()
+	defer c.writing.Unlock()
 	c.mu.Lock()
-	defer c.mu.Unlock()
-	if ch := c.checks[id]; ch == nil || ch.gen != gen {
+	if ch = c.checks[id]; ch == nil || ch.gen != gen {
+		c.mu.Unlock()
 		return
 	}
-	next := ch.standing.after(r, now())
-	changed := next.state != ch.standing.state
-	maint, _ := c.maintained(ch, next.lastBeat)
-	c.writeErr = c.db.recordBeat(ctx, id, r, next, changed, maint)
-	if c.writeErr != nil {
-		c.log.Error("record beat", "check", id, "err", c.writeErr)
-	}
 	was := ch.standing
+	next := was.after(r, now())
+	changed := next.state != was.state
+	maint, _ := c.maintained(ch, next.lastBeat)
+	c.mu.Unlock()
+
+	// Every other write waits for c.writing, so ch is as it was when next
+	// was computed once the beat is recorded.
+	err := c.db.recordBeat(ctx, id, r, next, changed, maint)
+
+	c.mu.Lock()
+	if c.writeErr = err; err != nil {
+		c.log.Error("record beat", "check", id, "err", err)
+	}
 	ch.standing = next
 	if changed {
 		c.changed(checkItem(id), was.since, next.state == checkspb.State_STATE_DOWN, next.since)
 	}
 	c.requeue(certItem(id))
-	c.endWhenUp(ctx, ch)
+	ended := c.endedWhenUp(ch)
+	c.mu.Unlock()
+	c.end(ctx, ended)
 }
 
 func (c *component) ListChecks(context.Context, *checkspb.ListChecksRequest) (*checkspb.ListChecksResponse, error) {
@@ -288,8 +306,7 @@ func (c *component) CreateCheck(ctx context.Context, req *checkspb.CreateCheckRe
 	if err != nil {
 		return nil, err
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	ch := &check{spec: s, appEnabled: true, standing: standing{state: checkspb.State_STATE_PENDING, since: now()}}
 	if ch.id, err = c.db.create(ctx, ch); err != nil {
 		return nil, err
@@ -304,8 +321,7 @@ func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRe
 	if err != nil {
 		return nil, err
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	ch, err := c.manual(req.GetId())
 	if err != nil {
 		return nil, err
@@ -327,8 +343,7 @@ func (c *component) UpdateCheck(ctx context.Context, req *checkspb.UpdateCheckRe
 }
 
 func (c *component) DeleteCheck(ctx context.Context, req *checkspb.DeleteCheckRequest) (*checkspb.DeleteCheckResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	ch, err := c.manual(req.GetId())
 	if err != nil {
 		return nil, err
@@ -344,8 +359,7 @@ func (c *component) DeleteCheck(ctx context.Context, req *checkspb.DeleteCheckRe
 }
 
 func (c *component) SetMuted(ctx context.Context, req *checkspb.SetMutedRequest) (*checkspb.SetMutedResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	ch, err := c.get(req.GetId())
 	if err != nil {
 		return nil, err
@@ -358,8 +372,7 @@ func (c *component) SetMuted(ctx context.Context, req *checkspb.SetMutedRequest)
 }
 
 func (c *component) SetDisabled(ctx context.Context, req *checkspb.SetDisabledRequest) (*checkspb.SetDisabledResponse, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	defer c.lockToWrite()()
 	ch, err := c.get(req.GetId())
 	if err != nil {
 		return nil, err
@@ -379,6 +392,17 @@ func (c *component) SetDisabled(ctx context.Context, req *checkspb.SetDisabledRe
 		c.probeEvery(ch)
 	}
 	return &checkspb.SetDisabledResponse{Check: c.proto(ch)}, nil
+}
+
+// lockToWrite takes c.writing, then c.mu, for an Action that writes while
+// holding both; the func it returns releases them.
+func (c *component) lockToWrite() (unlock func()) {
+	c.writing.Lock()
+	c.mu.Lock()
+	return func() {
+		c.mu.Unlock()
+		c.writing.Unlock()
+	}
 }
 
 // get returns Check id. Call with c.mu held.
