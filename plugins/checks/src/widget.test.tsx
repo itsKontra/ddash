@@ -69,6 +69,38 @@ it("counts a Check in Maintenance as maint, never as down", async () => {
   expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["1", "0", "1"]);
 });
 
+it("reports up while only muted Checks are down, telling them quietly and leaving them out of the badge", async () => {
+  const reported = await show(
+    listed(
+      check(1, "nas", "STATE_DOWN", { muted: true }),
+      check(2, "router", "STATE_UP"),
+      check(3, "nvr", "STATE_UP", { muted: true }),
+      check(4, "dns", "STATE_DOWN", { muted: true }),
+    ),
+  );
+
+  expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 watched up · 2 muted down" });
+  expect(reported.badge).toBeNull();
+  // The down tile counts them, with how many are muted under it.
+  expect([metric("up"), metric("down")]).toEqual(["2", "22 muted"]);
+});
+
+it("stays down for an unmuted Check that is down, naming only it and counting only it in the badge", async () => {
+  const reported = await show(listed(check(1, "nas", "STATE_DOWN", { muted: true }), check(2, "router", "STATE_DOWN")));
+
+  expect(reported.status).toEqual({ tone: "down", summary: "1 down: router · 1 muted down" });
+  expect(reported.badge).toEqual({ text: "1 down", tone: "down" });
+});
+
+it("lists the muted Checks that are down last at M, quietly", async () => {
+  await show(listed(check(1, "nas", "STATE_DOWN", { muted: true, reason: "timeout" }), check(2, "router", "STATE_DOWN")), "M");
+
+  const [router, nas] = within(screen.getByRole("region", { name: "widget" })).getAllByRole("listitem");
+  expect(within(router).getByRole("img").getAttribute("aria-label")).toBe("down");
+  expect(within(nas).getByRole("img").getAttribute("aria-label")).toBe("idle");
+  expect(nas.textContent).toMatch(/nas.*down, muted.*timeout|nas.*timeout.*down, muted/);
+});
+
 it("reports warn, naming them, for a Flapping Check that is up and an expiring certificate", async () => {
   const reported = await show(
     listed(

@@ -49,6 +49,42 @@ it("stays down while a Check is down, Warnings or not", async () => {
   expect(seen).toEqual({ tone: "down", summary: "1 down: Jellyfin" });
 });
 
+// allUp with each named App's Check changed by its extra.
+const withChecks = (changes: Record<string, object>) => ({
+  checks: allUp.checks.map((c) => ({ ...c, ...(c.appId && changes[c.appId]) })),
+});
+
+it("is up while only muted Checks are down, counting the watched Apps and telling the muted ones", async () => {
+  const mutedDown = withChecks({
+    "proxy:jellyfin.home.example": { state: "STATE_DOWN", reason: "HTTP 502", muted: true },
+    "proxy:grafana.home.example": { muted: true },
+  });
+  renderScoped(
+    <>
+      <Probe />
+      <widget.Body size="L" />
+    </>,
+    { ListChecks: () => Response.json(mutedDown) },
+  );
+  await settle();
+
+  expect(seen).toEqual({ tone: "up", summary: "2 of 2 watched Apps up · 1 muted down" });
+  const jellyfin = screen.getAllByRole("link").find((l) => l.textContent === "Jellyfin")!;
+  expect(within(jellyfin).getByRole("img", { name: "down: HTTP 502, muted" })).toBeTruthy();
+  expect(screen.getByText("1 muted down")).toBeTruthy();
+});
+
+it("stays down for an unmuted Check that is down, naming only its App", async () => {
+  const both = withChecks({
+    "proxy:jellyfin.home.example": { state: "STATE_DOWN" },
+    "proxy:grafana.home.example": { state: "STATE_DOWN", muted: true },
+  });
+  renderScoped(<Probe />, { ListChecks: () => Response.json(both) });
+  await settle();
+
+  expect(seen).toEqual({ tone: "down", summary: "1 down: Jellyfin · 1 muted down" });
+});
+
 it("badges the Nav Entry with how many Warnings count", async () => {
   let badge: Badge | null = null;
   function Badged() {
