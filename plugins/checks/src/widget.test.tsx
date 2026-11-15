@@ -48,7 +48,7 @@ it("reports up with the count while every Check is up", async () => {
 
   expect(reported.status).toEqual({ tone: "up", summary: "2 of 3 up" , fact: { value: 2, label: "of 3 Checks up" } });
   expect(reported.badge).toBeNull();
-  expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["2", "0", "0"]);
+  expect([metric("Up"), metric("Down"), metric("Maintenance")]).toEqual(["2", "0", "0"]);
 });
 
 it("reports down, naming what's down, with an N down badge", async () => {
@@ -58,7 +58,7 @@ it("reports down, naming what's down, with an N down badge", async () => {
 
   expect(reported.status).toEqual({ tone: "down", summary: "2 down: nas, 198.18.1.5" , fact: { value: 1, label: "of 3 Checks up" } });
   expect(reported.badge).toEqual({ text: "2 down", tone: "down" });
-  expect([metric("up"), metric("down")]).toEqual(["1", "2"]);
+  expect([metric("Up"), metric("Down")]).toEqual(["1", "2"]);
 });
 
 it("counts a Check in Maintenance as maint, never as down", async () => {
@@ -66,7 +66,7 @@ it("counts a Check in Maintenance as maint, never as down", async () => {
 
   expect(reported.status).toEqual({ tone: "maint", summary: "1 in Maintenance" , fact: { value: 1, label: "of 2 Checks up" } });
   expect(reported.badge).toBeNull();
-  expect([metric("up"), metric("down"), metric("Maintenance")]).toEqual(["1", "0", "1"]);
+  expect([metric("Up"), metric("Down"), metric("Maintenance")]).toEqual(["1", "0", "1"]);
 });
 
 it("reports up while only muted Checks are down, telling them quietly and leaving them out of the badge", async () => {
@@ -81,8 +81,8 @@ it("reports up while only muted Checks are down, telling them quietly and leavin
 
   expect(reported.status).toEqual({ tone: "up", summary: "1 of 1 watched up · 2 muted down" , fact: { value: 1, label: "of 1 Check up" } });
   expect(reported.badge).toBeNull();
-  // The down tile counts them, with how many are muted under it.
-  expect([metric("up"), metric("down")]).toEqual(["2", "22 muted"]);
+  // The down row counts them, with how many are muted beside it.
+  expect([metric("Up"), metric("Down")]).toEqual(["2", "22 muted"]);
 });
 
 it("is idle, telling the muted ones, when every Check is muted", async () => {

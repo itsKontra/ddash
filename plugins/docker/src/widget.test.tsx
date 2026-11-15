@@ -51,9 +51,9 @@ it("reports up with the running count while every container is fine", async () =
 it("shows the counts at S, and each host's at M", async () => {
   await show(() => Response.json(healthy));
   const s = screen.getByRole("region", { name: "widget" });
-  expect(metricValue("running", s)).toBe("2");
-  expect(metricValue("containers", s)).toBe("3");
-  expect(within(s).queryByRole("group", { name: "need attention" })).toBeNull();
+  expect(metricValue("Running", s)).toBe("2");
+  expect(metricValue("Containers", s)).toBe("3");
+  expect(within(s).queryByRole("group", { name: "Need attention" })).toBeNull();
   expect(within(s).queryByRole("definition")).toBeNull();
   cleanup();
 
@@ -68,13 +68,13 @@ it("shows the counts at S, and each host's at M", async () => {
 it("counts the containers that need attention", async () => {
   await show(() => Response.json({ hosts: [{ host: "media", containers: [container("sonarr", "restarting", "Restarting (1) 5 seconds ago")] }] }));
 
-  expect(metricValue("need attention", widget())).toBe("1");
+  expect(metricValue("Need attention", widget())).toBe("1");
 });
 
-it("draws its tiles as skeletons until docker-api first answers", async () => {
+it("draws its counts as skeletons until docker-api first answers", async () => {
   await show(pending);
 
-  expect(metricValue("running", widget())).toBeUndefined();
+  expect(metricValue("Running", widget())).toBeUndefined();
 });
 
 it("reports warn when a container is unhealthy or restarting", async () => {

@@ -1,6 +1,6 @@
 import type { Status, Widget } from "@ddash/plugin";
+import { Row, Rows } from "@ddash/ui";
 import { tally, useDevices } from "./devices";
-import { Row, Rows } from "./rows";
 
 /** Up with the counts and the online Devices as its fact; New Devices are news, not trouble. Warn when network can't list them. */
 function useStatus(): Status | undefined {

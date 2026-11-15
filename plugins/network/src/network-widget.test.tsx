@@ -69,7 +69,7 @@ const body = () => screen.getByRole("region", { name: "widget" });
 
 it("is the Network Widget, S or M, first among network's Widgets", () => {
   const w = widget();
-  expect([w.title, w.sizes, w.defaultSize]).toEqual(["Network", ["S", "M"], "S"]);
+  expect([w.title, w.sizes, w.defaultSize, w.defaultOrder]).toEqual(["Network", ["S", "M"], "M", 30]);
   expect(plugin.widgets![0]).toBe(w);
 });
 

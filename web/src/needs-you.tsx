@@ -201,7 +201,11 @@ function Row({ listed: l, onAct }: { listed: Listed; onAct: (l: Listed, a: Conce
         <Icon name={c.icon ?? (quiet ? "bell-off" : toneIcon[c.tone])} tone={quiet ? "idle" : c.tone} />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold">{c.href && main ? <Link to={c.href}>{c.title}</Link> : c.title}</div>
-          {c.cause && <div className="text-xs text-muted-foreground">{c.cause}</div>}
+          {c.cause && (
+            <div title={c.cause} className="line-clamp-2 text-xs break-words text-muted-foreground">
+              {c.cause}
+            </div>
+          )}
           {errors.map((e) => (
             <div key={e} className="text-xs text-down-text">
               {e}

@@ -1,6 +1,6 @@
 import { useQuery, type Status, type Widget, type WidgetSize } from "@ddash/plugin";
 import { Kind, ProxmoxApiService, type Workload } from "@ddash/proto/proxmox-api/proxmox_api_pb";
-import { Facts, MetricTile, Skeleton, Summary } from "@ddash/ui";
+import { Facts, MetricTile, Row, Rows, Skeleton, Summary } from "@ddash/ui";
 import { guestsRunning, hostsStatus, nodeMeters, pressureRow, underPressure } from "./hosts";
 
 const running = (ws: readonly Workload[]) => ws.filter((w) => w.status === "running").length;
@@ -26,11 +26,22 @@ function useStatus(): Status | undefined {
   };
 }
 
-/** S: the running and total counts. M: each kind's counts too. */
+/**
+ * The running and total counts. S draws them as rows, so the narrowest S
+ * cuts no label or number; M as tiles, with each kind's counts too.
+ */
 function Body({ size }: { size: WidgetSize }) {
   const { workloads, error } = useWorkloads();
   // Unavailable: the Widget's status says why.
   if (error && !workloads) return null;
+  if (size === "S") {
+    return (
+      <Rows>
+        <Row label="Running" value={workloads && running(workloads)} tone="up" />
+        <Row label="Guests" value={workloads?.length} />
+      </Rows>
+    );
+  }
   const kinds = [
     ["LXCs", Kind.LXC],
     ["VMs", Kind.VM],
@@ -41,7 +52,7 @@ function Body({ size }: { size: WidgetSize }) {
         <MetricTile label="running" value={workloads && running(workloads)} tone="up" />
         <MetricTile label="guests" value={workloads?.length} />
       </div>
-      {size === "M" && workloads && (
+      {workloads && (
         <Facts
           items={kinds.map(([label, kind]) => {
             const ws = workloads.filter((w) => w.kind === kind);
@@ -87,7 +98,8 @@ export const hosts: Widget = {
   id: "hosts",
   title: "Hosts",
   sizes: ["S", "M"],
-  defaultSize: "S",
+  defaultSize: "M",
+  defaultOrder: 40,
   Body: HostsBody,
   useStatus: useHostsStatus,
 };

@@ -45,6 +45,9 @@ function checkWidgets(widgets: unknown, problems: string[]) {
     if (!(Array.isArray(w.sizes) && sizes.includes(w.defaultSize as string) && w.sizes.includes(w.defaultSize))) {
       problems.push(`${here}.defaultSize: ${JSON.stringify(w.defaultSize)} isn't one of its sizes`);
     }
+    if (w.defaultOrder !== undefined && !(typeof w.defaultOrder === "number" && Number.isFinite(w.defaultOrder))) {
+      problems.push(`${here}.defaultOrder: ${JSON.stringify(w.defaultOrder)} isn't a number`);
+    }
     if (typeof w.useStatus !== "function") problems.push(`${here}.useStatus: must be a hook returning the Widget's Status`);
   });
 }

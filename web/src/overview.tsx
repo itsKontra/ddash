@@ -6,11 +6,11 @@ import {
   EmptyState,
   ErrorFrame,
   FormActions,
+  HeroButton,
   HeroCard,
   Icon,
   noMatch,
   Notice,
-  PageTitle,
   Pill,
   Presence,
   SearchField,
@@ -21,11 +21,11 @@ import {
   WidgetCard,
   type IconName,
 } from "@ddash/ui";
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ErrorBoundary } from "./boundary";
 import { hero, oldestRead, readAgo, type HeroState } from "./hero";
-import { reconcile, widgetKey, type Layout, type Placed } from "./layout";
+import { reconcile, waits, widgetKey, type Layout, type Placed } from "./layout";
 import { NeedsYou, useConcernList } from "./needs-you";
 import type { LoadedPlugin, Plugins } from "./plugins";
 import { useReach } from "./reach";
@@ -44,8 +44,9 @@ export interface OverviewLayout {
 /**
  * Reads the layout (tier NONE) and reconciles it against the Widgets the
  * installed Plugins offer, saving the result whenever reconciling changed
- * it. The shell runs this on every page, so an uninstall forgets the
- * Plugin's Widgets even when the Overview isn't open.
+ * it. A layout never saved waits for every bundle (see waits). The shell
+ * runs this on every page, so an uninstall forgets the Plugin's Widgets
+ * even when the Overview isn't open.
  */
 export function useOverviewLayout(plugins: Plugins): OverviewLayout {
   const { data } = useQuery(CoreService.method.getLayout, {});
@@ -53,7 +54,10 @@ export function useOverviewLayout(plugins: Plugins): OverviewLayout {
   const stored = useMemo(() => (data ? fromProto(data.layout) : undefined), [data]);
   const { installed, loaded } = plugins;
   const offered = useMemo(() => offeredWidgets({ installed, loaded }), [installed, loaded]);
-  const layout = useMemo(() => (stored && offered ? reconcile(stored, offered) : undefined), [stored, offered]);
+  const layout = useMemo(
+    () => (stored && offered && installed && !waits(stored, installed.map((p) => p.name), (p) => loaded.has(p)) ? reconcile(stored, offered) : undefined),
+    [stored, offered, installed, loaded],
+  );
 
   const save = useCallback(async (l: Layout) => (await run({ layout: l })) !== undefined, [run]);
 
@@ -116,11 +120,14 @@ export function Overview({ plugins, overview, fetch, client }: { plugins: Plugin
     const card = cardOf(entry, plugins);
     return card ? [card] : [];
   });
-  const h = hero(
-    cards.map((c) => ({ plugin: pluginOf(c.entry.widget), title: c.title, status: statuses.get(c.entry.widget) })),
-    concerns,
-    reach.unreachable,
-  );
+  // Until the layout is read, nothing is known to be on the Overview.
+  const h = layout
+    ? hero(
+        cards.map((c) => ({ plugin: pluginOf(c.entry.widget), title: c.title, status: statuses.get(c.entry.widget) })),
+        concerns,
+        reach.unreachable,
+      )
+    : undefined;
 
   const edit = (change: (l: Layout) => Layout) => setDraft((d) => (d ? change(d) : d));
   const move = (from: string, to: string) =>
@@ -153,24 +160,25 @@ export function Overview({ plugins, overview, fetch, client }: { plugins: Plugin
   return (
     <div className="flex flex-col gap-6">
       {draft && <EditBar changed={changed} onAdd={() => setAdding(true)} onCancel={cancel} onDone={done} />}
-      <PageTitle
-        kicker="Main"
-        title="Overview"
-        actions={
-          layout &&
-          !draft && (
-            <Button variant="outline" icon="pencil" onClick={() => setDraft(overview.layout!)}>
-              Edit
-            </Button>
-          )
-        }
-      />
+      {/* The hero's sentence says it all: the Page's name is for screen readers, its Edit in the hero's corner. */}
+      <h1 className="sr-only">Overview</h1>
       {draft && overview.error && (
         <Notice tone="down" title="Saving the layout failed">
           {overview.error.rawMessage}
         </Notice>
       )}
-      <OverviewHero state={h} client={client} />
+      <OverviewHero
+        state={h}
+        client={client}
+        corner={
+          layout &&
+          !draft && (
+            <HeroButton icon="pencil" onClick={() => setDraft(overview.layout!)}>
+              Edit
+            </HeroButton>
+          )
+        }
+      />
       <NeedsYou />
       <ul aria-label="Widgets" className="grid auto-rows-[minmax(9rem,auto)] grid-cols-1 gap-4 grid-flow-dense sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => {
@@ -298,17 +306,34 @@ function EditBar({ changed, onAdd, onCancel, onDone }: { changed: boolean; onAdd
 }
 
 /**
- * The hero: today's date and the time, the sentence about the network,
- * then the overall tone's dot, the Widgets' facts and how long ago the
- * oldest data on screen was read.
+ * The hero: today's date and the time (with Edit at its end), the sentence
+ * about the network, then the overall tone's dot, the Widgets' facts and
+ * how long ago the oldest data on screen was read. Until the layout is
+ * read (state undefined) the sentence is a placeholder, never a guess.
  */
-function OverviewHero({ state, client }: { state: HeroState; client: QueryClient }) {
+function OverviewHero({ state, client, corner }: { state?: HeroState; client: QueryClient; corner?: ReactNode }) {
   const now = useNow();
   const readAt = useOldestRead(client);
   const date = new Date(now);
+  const kicker = `${date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} · ${date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`;
+  if (!state) {
+    return (
+      <HeroCard
+        kicker={kicker}
+        corner={corner}
+        title={
+          <span role="status" aria-label="Loading" aria-busy="true" className="flex flex-col gap-3 py-1">
+            <span className="block h-8 w-4/5 max-w-md rounded-ui-sm bg-nav-strong/10 motion-safe:animate-pulse" />
+            <span className="block h-8 w-1/2 max-w-xs rounded-ui-sm bg-nav-strong/10 motion-safe:animate-pulse" />
+          </span>
+        }
+      />
+    );
+  }
   return (
     <HeroCard
-      kicker={`${date.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} · ${date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}`}
+      kicker={kicker}
+      corner={corner}
       title={
         <span className="block max-w-[24ch] text-balance sm:text-4xl">
           {state.sentence.map((p, i) => (

@@ -195,7 +195,7 @@ it("opens Add Compose Project empty when the fragment's draft has fields of the 
 it("counts the updates waiting in the Widget", async () => {
   const { reported } = await showWidget(docker, widget, { answers: base });
   expect(reported.status?.summary).toBe("1 of 1 running · 1 update waiting");
-  expect(screen.getByRole("group", { name: "update waiting" })).toBeTruthy();
+  expect(screen.getByRole("group", { name: "Update waiting" })).toBeTruthy();
 });
 
 it("restarts one Compose service from its row on the Compose Project's Page", async () => {

@@ -45,6 +45,13 @@ export interface Widget {
   title: string;
   sizes: WidgetSize[];
   defaultSize: WidgetSize;
+  /**
+   * Where the Overview places this Widget when it first offers it (on a
+   * fresh install, when its Plugin is installed, or when a Release adds
+   * it), lowest first: curated across the Release, like a Nav Entry's
+   * order. Without one it isn't placed, and waits under Add Widget.
+   */
+  defaultOrder?: number;
   Body: ComponentType<{ size: WidgetSize }>;
   /** Undefined until the first status is known. */
   useStatus: () => Status | undefined;

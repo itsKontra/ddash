@@ -66,6 +66,11 @@ describe("checkDefinition", () => {
     ]);
   });
 
+  it("passes a Widget with a defaultOrder, and fails one that isn't a number", () => {
+    expect(checkDefinition("docker", { widgets: [{ ...widget, defaultOrder: 50 }] })).toEqual([]);
+    expect(checkDefinition("docker", { widgets: [{ ...widget, defaultOrder: "first" }] })).toEqual(['widgets[0].defaultOrder: "first" isn\'t a number']);
+  });
+
   it("fails a defaultSize the Widget doesn't offer", () => {
     expect(checkDefinition("docker", { widgets: [{ ...widget, sizes: ["S", "M"], defaultSize: "L" }] })).toEqual([
       'widgets[0].defaultSize: "L" isn\'t one of its sizes',

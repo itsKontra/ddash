@@ -1,20 +1,24 @@
 import type { Widget, WidgetSize } from "@ddash/plugin";
 import { expect, it } from "vitest";
-import { reconcile, type Layout } from "./layout";
+import { reconcile, waits, type Layout } from "./layout";
 
-// A Widget offering sizes, the first being its default.
+// A Widget offering sizes, the first being its default, placed when first
+// offered (defaultOrder 0: in the order offered).
 const widget = (id: string, ...sizes: WidgetSize[]): Widget => ({
   id,
   title: id,
   sizes,
   defaultSize: sizes[0],
+  defaultOrder: 0,
   Body: () => null,
   useStatus: () => undefined,
 });
+// The same Widget at another defaultOrder, or none.
+const at = (w: Widget, defaultOrder: number | undefined): Widget => ({ ...w, defaultOrder });
 
 const empty: Layout = { entries: [], seen: [] };
 
-it("appends every unseen Widget at its default size, keyed <plugin>.<widget-id>", () => {
+it("appends every unseen Widget with a defaultOrder at its default size, keyed <plugin>.<widget-id>", () => {
   const got = reconcile(empty, new Map([["docker", [widget("containers", "S", "M")]], ["network", [widget("throughput", "M"), widget("vpn", "S")]]]));
 
   expect(got).toEqual({
@@ -57,7 +61,7 @@ it("resets a size the Widget no longer supports to its default", () => {
   expect(got.entries).toEqual([{ widget: "checks.summary", size: "S" }]);
 });
 
-it("forgets an uninstalled Plugin's Widgets, so a reinstall appends them again", () => {
+it("forgets an uninstalled Plugin's Widgets, so a reinstall places them again", () => {
   const layout: Layout = {
     entries: [
       { widget: "docker.containers", size: "M" },
@@ -96,4 +100,69 @@ it("places each Widget at most once", () => {
   const got = reconcile(layout, new Map([["docker", [widget("containers", "S", "M")]]]));
 
   expect(got).toEqual({ entries: [{ widget: "docker.containers", size: "S" }], seen: ["docker.containers"] });
+});
+
+it("places a fresh Overview's default Widgets by their defaultOrder across Plugins, and leaves the others seen, under Add Widget", () => {
+  const got = reconcile(
+    empty,
+    new Map([
+      ["checks", [at(widget("summary", "S", "M"), 60)]],
+      ["network", [at(widget("network", "M", "S"), 30), at(widget("vpn", "S"), undefined), at(widget("devices", "S"), undefined)]],
+      ["apps", [at(widget("apps", "L", "M"), 10)]],
+      ["cloudflare-tunnel", [at(widget("tunnel", "S", "M"), undefined)]],
+    ]),
+  );
+
+  expect(got.entries).toEqual([
+    { widget: "apps.apps", size: "L" },
+    { widget: "network.network", size: "M" },
+    { widget: "checks.summary", size: "S" },
+  ]);
+  expect(got.seen.sort()).toEqual(["apps.apps", "checks.summary", "cloudflare-tunnel.tunnel", "network.devices", "network.network", "network.vpn"]);
+});
+
+it("places a later-installed Plugin's default Widgets after the Operator's, and never moves those", () => {
+  const layout: Layout = {
+    entries: [
+      { widget: "checks.summary", size: "M" },
+      { widget: "apps.apps", size: "M" },
+    ],
+    seen: ["checks.summary", "apps.apps"],
+  };
+
+  const got = reconcile(
+    layout,
+    new Map([
+      ["apps", [at(widget("apps", "L", "M"), 10)]],
+      ["checks", [at(widget("summary", "S", "M"), 60)]],
+      ["network", [at(widget("vpn", "S"), undefined), at(widget("network", "M", "S"), 30)]],
+    ]),
+  );
+
+  expect(got).toEqual({
+    entries: [...layout.entries, { widget: "network.network", size: "M" }],
+    seen: ["checks.summary", "apps.apps", "network.vpn", "network.network"],
+  });
+});
+
+it("leaves a saved layout as it is when nothing new is offered, whatever the defaultOrders say", () => {
+  const layout: Layout = {
+    entries: [
+      { widget: "network.vpn", size: "S" },
+      { widget: "network.devices", size: "S" },
+    ],
+    seen: ["network.vpn", "network.devices", "network.network"],
+  };
+
+  expect(reconcile(layout, new Map([["network", [at(widget("network", "M", "S"), 30), at(widget("vpn", "S"), undefined), at(widget("devices", "S"), undefined)]]]))).toEqual(layout);
+});
+
+it("waits with a layout never saved until every bundle loaded or failed, and never with a saved one", () => {
+  const loaded = new Set(["apps"]);
+  const settled = (p: string) => loaded.has(p);
+
+  expect(waits(empty, ["apps", "network"], settled)).toBe(true);
+  expect(waits(empty, ["apps"], settled)).toBe(false);
+  expect(waits(empty, [], settled)).toBe(false);
+  expect(waits({ entries: [], seen: ["apps.apps"] }, ["apps", "network"], settled)).toBe(false);
 });

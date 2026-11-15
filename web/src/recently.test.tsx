@@ -62,6 +62,9 @@ describe("listed", () => {
     expect(listed(chain("c", hop("core", "Install", 5, 1)))).toBe(true);
     expect(listed(chain("c", hop("core", "Install", 5, 1, { actorKind: "core", username: "" })))).toBe(true);
     expect(listed(chain("c", hop("core", "SaveLayout", 5, 1)))).toBe(false);
+    expect(listed(chain("c", hop("core", "SignIn", 5, 0)))).toBe(false);
+    expect(listed(chain("c", hop("core", "SignIn", 5, 0, { outcome: "permission_denied" })))).toBe(false);
+    expect(listed(chain("c", hop("core", "SignOut", 5, 0)))).toBe(false);
     expect(listed(chain("c", hop("checks", "SetAppChecks", 5, 1, { actorKind: "component", username: "apps" })))).toBe(false);
   });
 });
@@ -210,6 +213,8 @@ it("passes over housekeeping to find the last four Actions", async () => {
     action("a2", "network"),
     action("a3", "energy"),
     json(chain("s3", hop("core", "SaveLayout", 3, 5))),
+    json(chain("s4", hop("core", "SignIn", 4, 0))),
+    json(chain("s5", hop("core", "SignOut", 4, 0))),
     action("a4", "checks"),
     action("a5", "apps"),
   ];

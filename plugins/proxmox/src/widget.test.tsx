@@ -50,8 +50,8 @@ it("reports up with the counts in its summary", async () => {
 it("shows the counts at S, and each kind's at M", async () => {
   await show(() => Response.json(listed));
   const s = screen.getByRole("region", { name: "widget" });
-  expect(metricValue("running", s)).toBe("3");
-  expect(metricValue("guests", s)).toBe("5");
+  expect(metricValue("Running", s)).toBe("3");
+  expect(metricValue("Guests", s)).toBe("5");
   expect(within(s).queryByText("LXCs")).toBeNull();
   cleanup();
 
@@ -65,8 +65,8 @@ it("draws its counts as skeletons until proxmox-api first answers", async () => 
   await show(pending);
   const s = screen.getByRole("region", { name: "widget" });
 
-  expect(metricValue("running", s)).toBeUndefined();
-  expect(metricValue("guests", s)).toBeUndefined();
+  expect(metricValue("Running", s)).toBeUndefined();
+  expect(metricValue("Guests", s)).toBeUndefined();
 });
 
 it("reports warn when proxmox-api is unavailable", async () => {
@@ -116,7 +116,7 @@ async function showHosts(answers: Record<string, Answer>) {
 
 it("is the Hosts Widget, S or M, S by default", () => {
   const w = hostsWidget();
-  expect([w.title, w.sizes, w.defaultSize]).toEqual(["Hosts", ["S", "M"], "S"]);
+  expect([w.title, w.sizes, w.defaultSize, w.defaultOrder]).toEqual(["Hosts", ["S", "M"], "M", 40]);
 });
 
 it("Hosts shows the guests running, the node's three meters and the guest under most pressure", async () => {

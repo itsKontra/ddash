@@ -78,6 +78,7 @@ export const nextEvents: Widget = {
   title: "Next events",
   sizes: ["S", "M"],
   defaultSize: "S",
+  defaultOrder: 70,
   Body,
   useStatus,
 };
