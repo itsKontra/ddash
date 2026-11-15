@@ -40,21 +40,34 @@ func (s sessions) create(ctx context.Context, op Actor) (string, error) {
 	return token, err
 }
 
+// TouchEvery is how often a session's activity is written: every request
+// behind sign-in reads the session, and only one whose last write is that
+// old writes it. Far below IdleTimeout, which is all last_seen is for.
+const TouchEvery = time.Minute
+
 // touch counts a request on token's session as activity and returns its
 // Operator, or false when there is no such live session.
 func (s sessions) touch(ctx context.Context, token string) (Actor, bool, error) {
 	now := time.Now()
 	op := Actor{Kind: Operator}
+	var lastSeen int64
 	err := s.db.QueryRowContext(ctx, `
-		UPDATE session SET last_seen = ?
-		WHERE id = ? AND last_seen > ? AND created > ?
-		RETURNING username, sub`,
-		now.UnixMilli(), tokenID(token), now.Add(-IdleTimeout).UnixMilli(), now.Add(-MaxSessionAge).UnixMilli(),
-	).Scan(&op.Name, &op.Sub)
+		SELECT username, sub, last_seen FROM session
+		WHERE id = ? AND last_seen > ? AND created > ?`,
+		tokenID(token), now.Add(-IdleTimeout).UnixMilli(), now.Add(-MaxSessionAge).UnixMilli(),
+	).Scan(&op.Name, &op.Sub, &lastSeen)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Actor{}, false, nil
 	}
-	return op, err == nil, err
+	if err != nil {
+		return Actor{}, false, err
+	}
+	if now.UnixMilli()-lastSeen >= TouchEvery.Milliseconds() {
+		if _, err := s.db.ExecContext(ctx, `UPDATE session SET last_seen = ? WHERE id = ?`, now.UnixMilli(), tokenID(token)); err != nil {
+			return Actor{}, false, err
+		}
+	}
+	return op, true, nil
 }
 
 // end deletes token's session and returns its Operator, or false when there
