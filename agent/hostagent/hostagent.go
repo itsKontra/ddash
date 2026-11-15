@@ -9,11 +9,13 @@ package hostagent
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"os/exec"
@@ -551,6 +553,47 @@ type user struct {
 
 func (u user) authorizedKeys() string { return filepath.Join(u.home, ".ssh", "authorized_keys") }
 
+// keysFile is authorized_keys inside a user's home.
+const keysFile = ".ssh/authorized_keys"
+
+// home opens u's home as a root for file access. The Agent runs as root
+// and the home belongs to u, so everything it reads, writes or chowns there
+// goes through this: a symlink that leads out of the home is an error,
+// never followed. A home that doesn't exist yet is created, as before.
+func (a *Agent) home(u user) (*os.Root, error) {
+	if err := os.MkdirAll(a.path(u.home), 0o700); err != nil {
+		return nil, err
+	}
+	return os.OpenRoot(a.path(u.home))
+}
+
+// writeKeys replaces u's authorized_keys in home with content, atomically,
+// creating ~/.ssh, and leaves both owned by u.
+func writeKeys(home *os.Root, u user, content []byte) error {
+	if err := home.MkdirAll(".ssh", 0o700); err != nil {
+		return err
+	}
+	tmp := ".ssh/.authorized_keys." + rand.Text()
+	f, err := home.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = home.Remove(tmp) }() // gone already once renamed
+	if _, err := f.Write(content); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	if err := home.Rename(tmp, keysFile); err != nil {
+		return err
+	}
+	_ = home.Lchown(".ssh", u.uid, u.gid)
+	_ = home.Lchown(keysFile, u.uid, u.gid)
+	return nil
+}
+
 // users are root and every user with a login shell and uid ≥ 1000.
 func (a *Agent) users() ([]user, error) {
 	b, err := os.ReadFile(a.path("/etc/passwd"))
@@ -593,6 +636,11 @@ func readKeys(path, userName string) ([]agent.AuthorizedKey, error) {
 	if err != nil {
 		return nil, err
 	}
+	return parseKeys(b, userName), nil
+}
+
+// parseKeys reads the keys of an authorized_keys file's content.
+func parseKeys(b []byte, userName string) []agent.AuthorizedKey {
 	var out []agent.AuthorizedKey
 	rest := b
 	for len(rest) > 0 {
@@ -607,7 +655,7 @@ func readKeys(path, userName string) ([]agent.AuthorizedKey, error) {
 		}
 		out = append(out, k)
 	}
-	return out, nil
+	return out
 }
 
 func (a *Agent) addKey(w http.ResponseWriter, r *http.Request) {
@@ -627,29 +675,31 @@ func (a *Agent) addKey(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, err.Error())
 		return
 	}
-	path := a.path(u.authorizedKeys())
-	keys, _ := readKeys(path, u.name)
-	for _, k := range keys {
+	home, err := a.home(u)
+	if err != nil {
+		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
+		return
+	}
+	defer home.Close()
+	old, err := home.ReadFile(keysFile)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
+		return
+	}
+	for _, k := range parseKeys(old, u.name) {
 		if k.Name == req.Name || k.Fingerprint == ssh.FingerprintSHA256(pub) {
 			agent.WriteError(w, http.StatusConflict, agent.CodeConflict, fmt.Sprintf("%s already has this key", u.name))
 			return
 		}
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
-		return
-	}
-	old, _ := os.ReadFile(path)
 	if len(old) > 0 && old[len(old)-1] != '\n' {
 		old = append(old, '\n')
 	}
 	line := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub))) + " ddash:" + req.Name + "\n"
-	if err := agent.WriteFileAtomic(path, append(old, line...), 0o600); err != nil {
+	if err := writeKeys(home, u, append(old, line...)); err != nil {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
-	_ = os.Chown(filepath.Dir(path), u.uid, u.gid)
-	_ = os.Chown(path, u.uid, u.gid)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -674,8 +724,13 @@ func (a *Agent) removeKey(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusConflict, agent.CodeConflict, "this is the last key and password login is off: removing it would lock everyone out")
 		return
 	}
-	path := a.path(u.authorizedKeys())
-	b, err := os.ReadFile(path)
+	home, err := a.home(u)
+	if err != nil {
+		agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, err.Error())
+		return
+	}
+	defer home.Close()
+	b, err := home.ReadFile(keysFile)
 	if err != nil {
 		agent.WriteError(w, http.StatusNotFound, agent.CodeNotFound, err.Error())
 		return
@@ -698,11 +753,10 @@ func (a *Agent) removeKey(w http.ResponseWriter, r *http.Request) {
 	if content != "" {
 		content += "\n"
 	}
-	if err := agent.WriteFileAtomic(path, []byte(content), 0o600); err != nil {
+	if err := writeKeys(home, u, []byte(content)); err != nil {
 		agent.WriteError(w, http.StatusInternalServerError, agent.CodeFailed, err.Error())
 		return
 	}
-	_ = os.Chown(path, u.uid, u.gid)
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -1,8 +1,12 @@
 package hostagent
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"slices"
@@ -167,4 +171,88 @@ func TestReadKeys(t *testing.T) {
 	if keys[0].Name != "" || keys[1].Name != "phone" || !strings.HasPrefix(keys[1].Fingerprint, "SHA256:") || keys[1].Type != "ssh-ed25519" {
 		t.Fatalf("keys = %+v", keys)
 	}
+}
+
+func keyCall(t *testing.T, handle http.HandlerFunc, method string, req agent.KeyRequest) *httptest.ResponseRecorder {
+	t.Helper()
+	b, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := httptest.NewRecorder()
+	handle(w, httptest.NewRequest(method, "/v1/ssh/keys", bytes.NewReader(b)))
+	return w
+}
+
+func TestAKeyIsAddedAndRemoved(t *testing.T) {
+	h := newHost(t, debian)
+	a, err := New(Options{Root: h.root, Run: h.run})
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.MkdirAll(filepath.Join(h.root, "/home/matt"), 0o755)
+	keys := filepath.Join(h.root, "/home/matt/.ssh/authorized_keys")
+
+	if w := keyCall(t, a.addKey, http.MethodPost, agent.KeyRequest{User: "matt", Name: "laptop", PublicKey: key}); w.Code != http.StatusNoContent {
+		t.Fatalf("add: %d %s", w.Code, w.Body)
+	}
+	b, _ := os.ReadFile(keys)
+	if !strings.HasSuffix(string(b), " ddash:laptop\n") {
+		t.Fatalf("authorized_keys = %q", b)
+	}
+	if fi, _ := os.Stat(keys); fi.Mode().Perm() != 0o600 {
+		t.Errorf("authorized_keys is %v, want 0600", fi.Mode().Perm())
+	}
+	if w := keyCall(t, a.removeKey, http.MethodDelete, agent.KeyRequest{User: "matt", Name: "laptop"}); w.Code != http.StatusNoContent {
+		t.Fatalf("remove: %d %s", w.Code, w.Body)
+	}
+	if b, _ := os.ReadFile(keys); len(b) != 0 {
+		t.Errorf("after remove: %q", b)
+	}
+}
+
+// The Agent writes as root in a directory its user controls: a symlink
+// there that leads out of the home is refused, never followed.
+func TestAKeyNeverFollowsASymlinkOutOfTheHome(t *testing.T) {
+	add := agent.KeyRequest{User: "matt", Name: "laptop", PublicKey: key}
+
+	t.Run("~/.ssh", func(t *testing.T) {
+		h := newHost(t, debian)
+		a, _ := New(Options{Root: h.root, Run: h.run})
+		home := filepath.Join(h.root, "/home/matt")
+		os.MkdirAll(home, 0o755)
+		if err := os.Symlink(filepath.Join(h.root, "/etc"), filepath.Join(home, ".ssh")); err != nil {
+			t.Fatal(err)
+		}
+		if w := keyCall(t, a.addKey, http.MethodPost, add); w.Code == http.StatusNoContent {
+			t.Error("added a key through ~/.ssh -> /etc")
+		}
+		if _, err := os.Stat(filepath.Join(h.root, "/etc/authorized_keys")); err == nil {
+			t.Error("wrote /etc/authorized_keys")
+		}
+	})
+
+	t.Run("authorized_keys", func(t *testing.T) {
+		h := newHost(t, debian)
+		a, _ := New(Options{Root: h.root, Run: h.run})
+		home := filepath.Join(h.root, "/home/matt")
+		os.MkdirAll(filepath.Join(home, ".ssh"), 0o700)
+		shadow := filepath.Join(h.root, "/etc/shadow")
+		os.WriteFile(shadow, []byte("root:$y$secret\n"), 0o600)
+		keys := filepath.Join(home, ".ssh/authorized_keys")
+		if err := os.Symlink(shadow, keys); err != nil {
+			t.Fatal(err)
+		}
+		if w := keyCall(t, a.addKey, http.MethodPost, add); w.Code == http.StatusNoContent {
+			t.Error("added a key through authorized_keys -> /etc/shadow")
+		}
+		if fi, err := os.Lstat(keys); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+			if b, _ := os.ReadFile(keys); strings.Contains(string(b), "secret") {
+				t.Errorf("copied /etc/shadow into the user's file: %q", b)
+			}
+		}
+		if b, _ := os.ReadFile(shadow); string(b) != "root:$y$secret\n" {
+			t.Errorf("/etc/shadow = %q", b)
+		}
+	})
 }
