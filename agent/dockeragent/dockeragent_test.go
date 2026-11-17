@@ -533,3 +533,53 @@ func TestAPathThatLeavesTheRootsThroughASymlinkIsRefused(t *testing.T) {
 		t.Errorf("a file inside the roots: %v", err)
 	}
 }
+
+// The Agent's own Compose Project lies outside the Compose roots, as
+// docs/deployment.md installs it: it is marked as the Agent's, not as
+// out of the roots, and its file isn't read. Another Project outside the
+// roots still says so.
+func TestTheAgentMarksOnlyItsOwnProject(t *testing.T) {
+	root := t.TempDir()
+	labelled := func(id, name, project, service, dir string) agent.Container {
+		return agent.Container{ID: id, Name: name, Image: "img", State: "running", Labels: map[string]string{
+			agent.LabelProject: project, agent.LabelService: service,
+			agent.LabelWorkingDir: dir, agent.LabelConfigFiles: dir + "/compose.yaml",
+		}}
+	}
+	d := &docker{containers: []agent.Container{
+		labelled("4f9a2c81d03be5", "ddash-docker-agent-agent-1", "ddash-docker-agent", "agent", "/opt/ddash-docker-agent"),
+		labelled("b7e1", "legacy-web-1", "legacy", "web", "/srv/legacy"),
+	}}
+	var reads []string
+	a, err := dockeragent.New(dockeragent.Options{
+		Roots: []string{root}, Docker: d, Compose: &compose{},
+		Self: "4f9a2c81d03b", // its hostname: the short id
+		ReadFile: func(name string) ([]byte, error) {
+			reads = append(reads, name)
+			return os.ReadFile(name)
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := a.List(context.Background())
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]agent.Project{}
+	for _, p := range res.Projects {
+		byName[p.Name] = p
+	}
+	own, legacy := byName["ddash-docker-agent"], byName["legacy"]
+	if !own.Self || own.Error != "" || len(own.Services) != 1 || own.Services[0].Containers[0] != "4f9a2c81d03be5" {
+		t.Errorf("the Agent's own Project = %+v, want it marked, without an error, its service from its container", own)
+	}
+	if legacy.Self || !strings.Contains(legacy.Error, "isn't under a Compose root") {
+		t.Errorf("another Project outside the roots = %+v, want it unmarked, out of the roots", legacy)
+	}
+	if len(reads) != 0 {
+		t.Errorf("read %v, want nothing outside the roots", reads)
+	}
+}

@@ -354,6 +354,10 @@ have that.
       uninstall it: `cd /opt/ddash-docker-agent && docker compose down -v`.
 - [ ] An Agent from another Release is flagged; **Update Agent** recreates it
       on this Release's image.
+- [ ] The Agent's own Compose Project (`ddash-docker-agent`) is listed as the
+      Docker Agent, without Restart, Stop, Pull & update or its Compose file:
+      its Page says it is updated with **Update Agent**, and offers it while
+      the Agent runs another Release.
 
 ### 10. Host Agents (optional, per LXC or VM)
 

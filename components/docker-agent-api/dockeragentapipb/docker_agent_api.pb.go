@@ -1254,7 +1254,11 @@ type Project struct {
 	// under a root), or both.
 	Found []string `protobuf:"bytes,5,rep,name=found,proto3" json:"found,omitempty"`
 	// Why its file couldn't be read; it is still listed.
-	Error         string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	Error string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	// It is the Docker Agent's own Compose Project, the one its container
+	// belongs to: Update Agent updates it, and its file, outside the Compose
+	// roots, isn't read.
+	Self          bool `protobuf:"varint,7,opt,name=self,proto3" json:"self,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1329,6 +1333,13 @@ func (x *Project) GetError() string {
 		return x.Error
 	}
 	return ""
+}
+
+func (x *Project) GetSelf() bool {
+	if x != nil {
+		return x.Self
+	}
+	return false
 }
 
 type Service struct {
@@ -3077,7 +3088,7 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"containers\x18\x04 \x03(\v2\x1a.ddash.container.ContainerR\n" +
 	"containers\x12\x14\n" +
 	"\x05roots\x18\x05 \x03(\tR\x05roots\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"\xc8\x01\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\"\xdc\x01\n" +
 	"\aProject\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1f\n" +
 	"\vworking_dir\x18\x02 \x01(\tR\n" +
@@ -3085,7 +3096,8 @@ const file_docker_agent_api_docker_agent_api_proto_rawDesc = "" +
 	"\fconfig_files\x18\x03 \x03(\tR\vconfigFiles\x129\n" +
 	"\bservices\x18\x04 \x03(\v2\x1d.ddash.dockeragentapi.ServiceR\bservices\x12\x14\n" +
 	"\x05found\x18\x05 \x03(\tR\x05found\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"n\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\x12\x12\n" +
+	"\x04self\x18\a \x01(\bR\x04self\"n\n" +
 	"\aService\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x14\n" +

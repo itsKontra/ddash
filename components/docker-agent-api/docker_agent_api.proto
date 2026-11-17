@@ -296,6 +296,10 @@ message Project {
   repeated string found = 5;
   // Why its file couldn't be read; it is still listed.
   string error = 6;
+  // It is the Docker Agent's own Compose Project, the one its container
+  // belongs to: Update Agent updates it, and its file, outside the Compose
+  // roots, isn't read.
+  bool self = 7;
 }
 
 message Service {

@@ -202,8 +202,13 @@ func (a *Agent) List(ctx context.Context) (agent.ProjectsResponse, error) {
 			add(agent.Project{Name: projectNameFromContent(string(b), filepath.Dir(file)), WorkingDir: filepath.Dir(file), ConfigFiles: []string{file}}, "scan")
 		}
 	}
+	var own string
+	if self := a.self(cs); self != nil {
+		own = self.Labels[agent.LabelProject]
+	}
 	out := agent.ProjectsResponse{Containers: cs, Projects: []agent.Project{}}
 	for _, p := range byName {
+		p.Self = own != "" && p.Name == own
 		a.describe(p, cs, read)
 		out.Projects = append(out.Projects, *p)
 	}
@@ -244,10 +249,11 @@ func scan(root string) []string {
 
 var nonName = regexp.MustCompile(`[^a-z0-9_-]+`)
 
-// describe fills p's Compose services from its file and its containers.
+// describe fills p's Compose services from its file and its containers;
+// the Agent's own Project's from its containers only.
 func (a *Agent) describe(p *agent.Project, cs []agent.Container, read func(file string) ([]byte, error)) {
 	services := map[string]*agent.Service{}
-	if len(p.ConfigFiles) > 0 {
+	if len(p.ConfigFiles) > 0 && !p.Self {
 		if !a.inRoots(p.ConfigFiles[0]) {
 			p.Error = fmt.Sprintf("%s isn't under a Compose root the Docker Agent mounts", p.ConfigFiles[0])
 		} else if b, err := read(p.ConfigFiles[0]); err != nil {
@@ -859,6 +865,20 @@ func digestOf(repoDigests []string, id string) string {
 	return id
 }
 
+// self is the Agent's own container among cs, nil when Options.Self
+// names none of them.
+func (a *Agent) self(cs []agent.Container) *agent.Container {
+	if a.o.Self == "" {
+		return nil
+	}
+	for i, c := range cs {
+		if c.Name == a.o.Self || strings.HasPrefix(c.ID, a.o.Self) {
+			return &cs[i]
+		}
+	}
+	return nil
+}
+
 // updateSelf recreates the Agent's own container on req.Image: a helper
 // container from that image rewrites the image in the Agent's own Compose
 // file and runs `docker compose up -d` from outside, since a container
@@ -879,12 +899,7 @@ func (a *Agent) updateSelf(w http.ResponseWriter, r *http.Request) {
 		agent.WriteError(w, http.StatusBadGateway, agent.CodeFailed, "Docker: "+err.Error())
 		return
 	}
-	var self *agent.Container
-	for i, c := range cs {
-		if a.o.Self != "" && (c.Name == a.o.Self || strings.HasPrefix(c.ID, a.o.Self)) {
-			self = &cs[i]
-		}
-	}
+	self := a.self(cs)
 	if self == nil || self.Labels[agent.LabelConfigFiles] == "" {
 		agent.WriteError(w, http.StatusConflict, agent.CodeFailed, "the Docker Agent wasn't started by Compose, so it can't update itself: pull the new image and recreate it by hand")
 		return

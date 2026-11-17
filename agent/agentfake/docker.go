@@ -105,7 +105,18 @@ type DockerSeed struct {
 	Stacks []Stack
 	Loose  []Loose
 	Images []Image
+	// Agent runs the Docker Agent's own container, as docs/deployment.md
+	// installs it: Compose Project ddash-docker-agent in
+	// /opt/ddash-docker-agent, outside the root, Protected.
+	Agent bool
 }
+
+// The Docker Agent's own container, when DockerSeed.Agent runs it.
+const (
+	AgentProject   = "ddash-docker-agent"
+	AgentContainer = "ddash-docker-agent-agent-1"
+	agentDir       = "/opt/ddash-docker-agent"
+)
 
 // NewDocker starts a fake Docker Agent at root (a temp dir when empty)
 // with seed, unpaired, accepting any enrolment code.
@@ -163,8 +174,22 @@ func NewDocker(root string, seed DockerSeed, o Options) (*Docker, error) {
 		})
 	}
 	release := cmpOr(o.Release, agent.Release)
+	var self string
+	if seed.Agent {
+		self = AgentContainer
+		image := "ghcr.io/itskontra/ddash-docker-agent:" + release
+		e.containers = append(e.containers, agent.Container{
+			ID: e.id(AgentContainer), Name: AgentContainer, Image: image, State: "running", Status: "Up 3 days",
+			Ports: []agent.Port{{PublicPort: agent.DockerPort, PrivatePort: agent.DockerPort, Protocol: "tcp"}}, Created: time.Now().Add(-72 * time.Hour).UTC(),
+			Labels: map[string]string{
+				agent.LabelProject: AgentProject, agent.LabelService: "agent",
+				agent.LabelWorkingDir: agentDir, agent.LabelConfigFiles: agentDir + "/compose.yaml",
+				agent.LabelProtected: "true",
+			},
+		})
+	}
 	srv, err := newServer(agent.KindDocker, o, func(s *agent.Server) {
-		ops, _ := dockeragent.New(dockeragent.Options{Roots: []string{root}, Docker: e, Compose: e})
+		ops, _ := dockeragent.New(dockeragent.Options{Roots: []string{root}, Docker: e, Compose: e, Self: self})
 		ops.Register(s, func(context.Context) agent.Info {
 			return agent.Info{Kind: agent.KindDocker, Release: release, Hostname: "docker-fake", Arch: "amd64"}
 		})

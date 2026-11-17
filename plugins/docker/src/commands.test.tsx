@@ -15,7 +15,7 @@ const project = (name: string, state: string, extra: object = {}) => ({
   ...extra,
 });
 
-// compose's ListProjects (Connect JSON): one of each state, a Protected one and one running an Action.
+// compose's ListProjects (Connect JSON): one of each state, a Protected one, one running an Action and the Docker Agent's own.
 const projects = {
   hosts: [
     {
@@ -28,6 +28,7 @@ const projects = {
         project("proxy", "PROJECT_STATE_RUNNING", { protected: true }),
         project("dns", "PROJECT_STATE_STOPPED", { protected: true }),
         project("media", "PROJECT_STATE_RUNNING", { runId: "r9" }),
+        project("ddash-docker-agent", "PROJECT_STATE_PARTIAL", { dockerAgent: true }),
       ],
     },
   ],
@@ -36,7 +37,7 @@ const projects = {
 const plan = { steps: [{ system: "SYSTEM_DOCKER_AGENT", title: "Restart the Compose services" }] };
 const base: Answers = { ListProjects: () => Response.json(projects), PlanAction: () => Response.json({ plan }), ListRuns: () => Response.json({ runs: [] }) };
 
-it("offers Start, Restart and Update of each Compose Project as its state allows, none while it runs an Action", async () => {
+it("offers Start, Restart and Update of each Compose Project as its state allows, none while it runs an Action nor for the Docker Agent's own", async () => {
   const shown = await showCommands(plugin, docker, { answers: base });
 
   expect(shown.commands()?.map((c) => [c.title, c.hint])).toEqual([

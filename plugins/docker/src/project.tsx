@@ -2,10 +2,12 @@ import { CancelRun, ComposeFiles, ending, JobLog, PlanDialog, PlanSteps, type Ac
 import { useQuery, useShownRuns } from "@ddash/plugin";
 import { State } from "@ddash/proto/ddash/container/container_pb";
 import { ComposeService, ImageState, type Project, type ProjectContainer, type Run } from "@ddash/proto/compose/compose_pb";
+import { AgentState, DockerAgentApiService } from "@ddash/proto/docker-agent-api/docker_agent_api_pb";
 import { ago } from "@ddash/display";
 import { ActionStrip, Button, DataTable, EmptyState, Facts, Notice, PageTitle, Panel, Pill, Skeleton, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
+import { UpdateAgent } from "./agents";
 import { ContainerState, isRunning, protocolWord } from "./containers";
 import { ImageBadge, notChecked, ProjectStatePill, shortDigest } from "./images";
 import { useNow } from "./now";
@@ -71,6 +73,8 @@ const columns: readonly Column<Row>[] = [
   { id: "ports", header: "Ports", hideBelow: "sm", mono: true, cell: (r) => (r.container ? ports(r.container) || "–" : r.ports.join(", ") || "–") },
 ];
 
+const rowKey = (r: Row) => r.service + (r.container?.container?.id ?? "");
+
 function rows(p: Project): Row[] {
   return p.services.flatMap((s) =>
     s.containers.length ? s.containers.map((c) => ({ service: s.name, image: s.image, ports: s.ports, container: c })) : [{ service: s.name, image: s.image, ports: s.ports }],
@@ -135,11 +139,48 @@ function RunPanel({ run }: { run: Run }) {
   );
 }
 
-/** A Compose Project's Page (/docker/projects/:host/:name): its Actions, its last run, its Compose services and images, its Compose file. */
+/** What the Docker Agent's own Compose Project says in place of its Actions: it is the Agent, its Release, and how ddash updates it. */
+function DockerAgentNotice({ host }: { host: string }) {
+  const { data } = useQuery(DockerAgentApiService.method.listAgents, {});
+  const a = data?.agents.find((x) => x.name === host);
+  const outdated = a?.state === AgentState.OUTDATED;
+  return (
+    <Notice tone={outdated ? "warn" : "info"} title={`This is the Docker Agent on ${host}`}>
+      <div className="flex flex-col items-start gap-2">
+        <p>
+          {a?.release ? `It runs Release ${a.release}${outdated ? ", not ddash's" : ""}. ` : ""}
+          When ddash moves to a newer Release, ddash updates it with Update Agent, in the{" "}
+          <Link to="../agents" className="font-semibold text-primary hover:underline">
+            Docker Agents
+          </Link>{" "}
+          list.
+        </p>
+        {a && outdated && <UpdateAgent agent={a} />}
+      </div>
+    </Notice>
+  );
+}
+
+/** Why the host's Compose Projects can't be read; Update Agent when its Agent runs another Release, which is why. */
+function UnreadHost({ host, error }: { host: string; error: string }) {
+  const { data } = useQuery(DockerAgentApiService.method.listAgents, {});
+  const a = data?.agents.find((x) => x.name === host);
+  return (
+    <Notice tone="down" title={`The Docker Agent on ${host}`}>
+      <div className="flex flex-col items-start gap-2">
+        <p>{error}</p>
+        {a?.state === AgentState.OUTDATED && <UpdateAgent agent={a} />}
+      </div>
+    </Notice>
+  );
+}
+
+/** A Compose Project's Page (/docker/projects/:host/:name): its Actions, its last run, its Compose services and images, its Compose file; the Docker Agent's own says how it is updated instead. */
 export function ProjectPage() {
   const { host = "", name = "" } = useParams();
   const { data, error } = useQuery(ComposeService.method.listProjects, {});
-  const p = data?.hosts.find((h) => h.name === host)?.projects.find((x) => x.name === name);
+  const h = data?.hosts.find((x) => x.name === host);
+  const p = h?.projects.find((x) => x.name === name);
   const run = useProjectRun(p);
   const [dialog, setDialog] = useState<ReactNode>();
   const close = () => setDialog(undefined);
@@ -151,6 +192,8 @@ export function ProjectPage() {
           <Notice tone="down">{error.rawMessage}</Notice>
         ) : !data ? (
           <Skeleton height="lg" />
+        ) : h?.error ? (
+          <UnreadHost host={host} error={h.error} />
         ) : (
           <Panel>
             <EmptyState icon="container" title={`${host} has no Compose Project ${name}.`} />
@@ -178,12 +221,13 @@ export function ProjectPage() {
         }
       />
       <div className="flex flex-col gap-6">
+        {p.dockerAgent && <DockerAgentNotice host={p.host} />}
         <Panel title="Details">
         <Facts
           items={[
             { label: "State", value: <ProjectStatePill project={p} /> },
             { label: "Images", value: <ImagesFact project={p} /> },
-            { label: "Protected", value: p.protected ? "yes: Stop, Restart and Update need an override" : "no" },
+            ...(p.dockerAgent ? [] : [{ label: "Protected", value: p.protected ? "yes: Stop, Restart and Update need an override" : "no" }]),
             { label: "Compose file", value: p.configFile || "unknown", mono: true },
           ]}
         />
@@ -191,19 +235,25 @@ export function ProjectPage() {
         {p.error && <Notice tone="warn">{p.error}</Notice>}
         {run && <RunPanel run={run} />}
         <Panel title="Compose services" flush>
-          <DataTable
-            rows={rows(p)}
-            rowKey={(r) => r.service + (r.container?.container?.id ?? "")}
-            columns={columns}
-            empty="The file defines no Compose services"
-            rowLabel={(r) => r.service}
-            strip={(r) => <ServiceStrip project={p} row={r} open={setDialog} close={close} />}
-            busy={() => (p.runId ? "running" : undefined)}
-          />
+          {p.dockerAgent ? (
+            <DataTable rows={rows(p)} rowKey={rowKey} columns={columns} empty="The file defines no Compose services" />
+          ) : (
+            <DataTable
+              rows={rows(p)}
+              rowKey={rowKey}
+              columns={columns}
+              empty="The file defines no Compose services"
+              rowLabel={(r) => r.service}
+              strip={(r) => <ServiceStrip project={p} row={r} open={setDialog} close={close} />}
+              busy={() => (p.runId ? "running" : undefined)}
+            />
+          )}
         </Panel>
-        <Panel title="Compose file" description="Saved only after `docker compose config` accepts it on the host; the previous file is kept as .bak.">
-          <ComposeFiles project={p} />
-        </Panel>
+        {!p.dockerAgent && (
+          <Panel title="Compose file" description="Saved only after `docker compose config` accepts it on the host; the previous file is kept as .bak.">
+            <ComposeFiles project={p} />
+          </Panel>
+        )}
       </div>
       {dialog}
     </div>

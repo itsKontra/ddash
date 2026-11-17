@@ -551,7 +551,10 @@ type Project struct {
 	// Why its file couldn't be read.
 	Error string `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
 	// The run in flight on it, if any.
-	RunId         string `protobuf:"bytes,10,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	RunId string `protobuf:"bytes,10,opt,name=run_id,json=runId,proto3" json:"run_id,omitempty"`
+	// It is the host's Docker Agent itself: Update Agent updates it, and no
+	// Compose Project Action runs on it.
+	DockerAgent   bool `protobuf:"varint,11,opt,name=docker_agent,json=dockerAgent,proto3" json:"docker_agent,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -654,6 +657,13 @@ func (x *Project) GetRunId() string {
 		return x.RunId
 	}
 	return ""
+}
+
+func (x *Project) GetDockerAgent() bool {
+	if x != nil {
+		return x.DockerAgent
+	}
+	return false
 }
 
 type Service struct {
@@ -2405,7 +2415,7 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\bprojects\x18\x05 \x03(\v2\x16.ddash.compose.ProjectR\bprojects\x12?\n" +
 	"\n" +
 	"containers\x18\x06 \x03(\v2\x1f.ddash.compose.ProjectContainerR\n" +
-	"containers\"\xd0\x02\n" +
+	"containers\"\xf3\x02\n" +
 	"\aProject\x12\x12\n" +
 	"\x04host\x18\x01 \x01(\tR\x04host\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1f\n" +
@@ -2419,7 +2429,8 @@ const file_compose_compose_proto_rawDesc = "" +
 	"\tprotected\x18\b \x01(\bR\tprotected\x12\x14\n" +
 	"\x05error\x18\t \x01(\tR\x05error\x12\x15\n" +
 	"\x06run_id\x18\n" +
-	" \x01(\tR\x05runId\"\x8a\x01\n" +
+	" \x01(\tR\x05runId\x12!\n" +
+	"\fdocker_agent\x18\v \x01(\bR\vdockerAgent\"\x8a\x01\n" +
 	"\aService\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
 	"\x05image\x18\x02 \x01(\tR\x05image\x12\x14\n" +

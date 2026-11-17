@@ -561,7 +561,7 @@ func (c *component) ListComposeProjects(ctx context.Context, _ *pb.ListComposePr
 		}
 		h.Error = r.message
 		for _, p := range r.projects.Projects {
-			pp := &pb.Project{Name: p.Name, WorkingDir: p.WorkingDir, ConfigFiles: p.ConfigFiles, Found: p.Found, Error: p.Error}
+			pp := &pb.Project{Name: p.Name, WorkingDir: p.WorkingDir, ConfigFiles: p.ConfigFiles, Found: p.Found, Error: p.Error, Self: p.Self}
 			for _, s := range p.Services {
 				pp.Services = append(pp.Services, &pb.Service{Name: s.Name, Image: s.Image, Ports: s.Ports, ContainerIds: s.Containers})
 			}

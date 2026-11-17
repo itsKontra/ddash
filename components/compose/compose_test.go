@@ -118,6 +118,7 @@ func setup(t *testing.T) lab {
 			{Ref: "nginx:1.27", ID: "sha256:n1"},
 			{Ref: "redis:7.4", ID: "sha256:r1"},
 		},
+		Agent: true,
 	}, agentfake.Options{StateDir: t.TempDir(), Release: "dev"})
 	if err != nil {
 		t.Fatal(err)
@@ -675,4 +676,44 @@ func TestAnImageNeverCheckedIsCheckedSoon(t *testing.T) {
 		}
 	}
 	t.Fatal("the new image wasn't checked")
+}
+
+// The Docker Agent's own Compose Project is listed as the Agent, its
+// file outside the roots unread, and no Compose Project Action runs on
+// it, not even with the override its Protected label asks for.
+func TestTheDockerAgentsOwnProjectIsTheAgent(t *testing.T) {
+	ctx := context.Background()
+	l := setup(t)
+
+	own := l.project(t, agentfake.AgentProject)
+
+	if !own.GetDockerAgent() || own.GetError() != "" || own.GetState() != pb.ProjectState_PROJECT_STATE_RUNNING {
+		t.Fatalf("the Agent's own Project = %v, want it the Docker Agent, running, without an error", own)
+	}
+	if l.project(t, "media").GetDockerAgent() {
+		t.Error("media is the Docker Agent too")
+	}
+	for _, a := range []*pb.ComposeAction{
+		{Action: &pb.ComposeAction_Restart{Restart: &pb.Restart{Host: "apps", Project: agentfake.AgentProject}}, OverrideProtected: true},
+		{Action: &pb.ComposeAction_Stop{Stop: &pb.Stop{Host: "apps", Project: agentfake.AgentProject}}, OverrideProtected: true},
+		{Action: &pb.ComposeAction_Update{Update: &pb.Update{Host: "apps", Project: agentfake.AgentProject}}, OverrideProtected: true},
+	} {
+		plan, err := l.c.PlanAction(ctx, &pb.PlanActionRequest{Action: a})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if b := plan.GetPlan().GetBlocked(); len(b) != 1 || !strings.Contains(b[0], "Update Agent") {
+			t.Errorf("%v: blocked %q, want it refused for Update Agent", a.GetAction(), b)
+		}
+		stream, err := l.c.RunAction(ctx, &pb.RunActionRequest{Action: a, Plan: plan.GetPlan()})
+		if err == nil {
+			_, err = stream.Recv()
+		}
+		if status.Code(err) != codes.FailedPrecondition {
+			t.Errorf("%v run: %v, want FailedPrecondition", a.GetAction(), err)
+		}
+	}
+	if st := l.docker.State(agentfake.AgentContainer); st != "running" {
+		t.Errorf("the Agent is %s, want it left running", st)
+	}
 }

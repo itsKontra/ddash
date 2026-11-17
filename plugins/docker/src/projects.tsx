@@ -26,8 +26,13 @@ export interface ProjectPlan {
   action: ActionInit;
 }
 
-/** The Compose Project Actions a Project's state allows, for its buttons and the command palette alike. */
+/**
+ * The Compose Project Actions a Project's state allows, for its buttons
+ * and the command palette alike: none for the Docker Agent's own, which
+ * Update Agent updates.
+ */
 export function projectPlans(p: Project): ProjectPlan[] {
+  if (p.dockerAgent) return [];
   const target = { host: p.host, project: p.name };
   const plan = (label: string, verb: "start" | "restart" | "stop" | "update", confirm: string, danger: boolean): ProjectPlan => ({
     label,
@@ -71,7 +76,7 @@ function ProjectImages({ project: p }: { project: Project }) {
 
 function ProjectStrip({ project: p, open, close }: { project: Project; open: (d: ReactNode) => void; close: () => void }) {
   const items = projectActions(p, open, close);
-  const summary = p.error ? p.error : `${p.workingDir}${p.protected ? " · Protected" : ""}`;
+  const summary = p.dockerAgent ? "This host's Docker Agent: Update Agent updates it" : p.error ? p.error : `${p.workingDir}${p.protected ? " · Protected" : ""}`;
   return (
     <ActionStrip summary={summary}>
       {items.map((i) => (
@@ -110,7 +115,7 @@ function AgentHost({ host: h, open, close }: { host: Host; open: (d: ReactNode) 
       cell: (p) => (
         <span className="inline-flex items-center gap-2">
           <Link to={projectPath(p.host, p.name)}>{p.name}</Link>
-          {p.protected && <Pill>Protected</Pill>}
+          {p.dockerAgent ? <Pill>Docker Agent</Pill> : p.protected && <Pill>Protected</Pill>}
         </span>
       ),
     },
