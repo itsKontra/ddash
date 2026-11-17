@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	containerpb "github.com/itsKontra/ddash/proto/ddash/container"
 	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 
 	"google.golang.org/grpc"
@@ -223,7 +224,7 @@ func TestImageChecks(t *testing.T) {
 	if !p.GetUpdateAvailable() {
 		t.Fatal("media doesn't say update available")
 	}
-	if st := image(l.project(t, "homebrew"), "app"); st.GetState() != pb.ImageState_IMAGE_STATE_NOT_CHECKED {
+	if st := image(l.project(t, "homebrew"), "app"); st.GetState() != pb.ImageState_IMAGE_STATE_NOT_CHECKED || st.GetNotChecked() != pb.ImageStatus_NOT_CHECKED_LOCAL {
 		t.Fatalf("a local image: %v", st)
 	}
 	if got := l.notify.titles(); len(got) != 1 || got[0] != "Image update for media-jellyfin-1" {
@@ -252,6 +253,17 @@ func TestImageChecks(t *testing.T) {
 	}
 	if st := image(l.project(t, "media"), "jellyfin"); st.GetState() != pb.ImageState_IMAGE_STATE_ERROR {
 		t.Fatalf("rate limited: %v", st)
+	}
+}
+
+func TestAnImagePinnedByDigestIsNotCheckedAndSaysSo(t *testing.T) {
+	st := compose.ImageStatusOf(&containerpb.Container{
+		Image:       "ghcr.io/itskontra/ddash-docker-agent:v1.2.3@sha256:abc",
+		RepoDigests: []string{"ghcr.io/itskontra/ddash-docker-agent@sha256:abc"},
+		State:       containerpb.State_STATE_RUNNING,
+	})
+	if st.GetState() != pb.ImageState_IMAGE_STATE_NOT_CHECKED || st.GetNotChecked() != pb.ImageStatus_NOT_CHECKED_PINNED || st.GetCurrentDigest() != "sha256:abc" {
+		t.Fatalf("pinned: %v", st)
 	}
 }
 

@@ -144,6 +144,16 @@ message ImageStatus {
   string current_digest = 3;
   string latest_digest = 4;
   google.protobuf.Timestamp checked = 5;
+  // Why it is NOT_CHECKED, for the Page to word without reading reason.
+  NotChecked not_checked = 6;
+
+  enum NotChecked {
+    NOT_CHECKED_UNSPECIFIED = 0;
+    // The reference has a digest: there is nothing to check.
+    NOT_CHECKED_PINNED = 1;
+    // A local image: it has no registry to check.
+    NOT_CHECKED_LOCAL = 2;
+  }
 }
 
 enum ImageState {

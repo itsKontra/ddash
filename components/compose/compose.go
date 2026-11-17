@@ -251,9 +251,9 @@ func (c *component) status(ct *containerpb.Container) *pb.ImageStatus {
 	}
 	switch {
 	case r.digest != "":
-		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_NOT_CHECKED, Reason: "pinned by digest", CurrentDigest: r.digest}
+		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_NOT_CHECKED, Reason: "pinned by digest", NotChecked: pb.ImageStatus_NOT_CHECKED_PINNED, CurrentDigest: r.digest}
 	case len(ct.GetRepoDigests()) == 0:
-		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_NOT_CHECKED, Reason: "a local image: it has no registry to check"}
+		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_NOT_CHECKED, Reason: "a local image: it has no registry to check", NotChecked: pb.ImageStatus_NOT_CHECKED_LOCAL}
 	case ct.GetState() != containerpb.State_STATE_RUNNING:
 		return &pb.ImageStatus{State: pb.ImageState_IMAGE_STATE_UNKNOWN, Reason: "not running", CurrentDigest: current}
 	}

@@ -267,6 +267,57 @@ func (StepState) EnumDescriptor() ([]byte, []int) {
 	return file_compose_compose_proto_rawDescGZIP(), []int{3}
 }
 
+type ImageStatus_NotChecked int32
+
+const (
+	ImageStatus_NOT_CHECKED_UNSPECIFIED ImageStatus_NotChecked = 0
+	// The reference has a digest: there is nothing to check.
+	ImageStatus_NOT_CHECKED_PINNED ImageStatus_NotChecked = 1
+	// A local image: it has no registry to check.
+	ImageStatus_NOT_CHECKED_LOCAL ImageStatus_NotChecked = 2
+)
+
+// Enum value maps for ImageStatus_NotChecked.
+var (
+	ImageStatus_NotChecked_name = map[int32]string{
+		0: "NOT_CHECKED_UNSPECIFIED",
+		1: "NOT_CHECKED_PINNED",
+		2: "NOT_CHECKED_LOCAL",
+	}
+	ImageStatus_NotChecked_value = map[string]int32{
+		"NOT_CHECKED_UNSPECIFIED": 0,
+		"NOT_CHECKED_PINNED":      1,
+		"NOT_CHECKED_LOCAL":       2,
+	}
+)
+
+func (x ImageStatus_NotChecked) Enum() *ImageStatus_NotChecked {
+	p := new(ImageStatus_NotChecked)
+	*p = x
+	return p
+}
+
+func (x ImageStatus_NotChecked) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ImageStatus_NotChecked) Descriptor() protoreflect.EnumDescriptor {
+	return file_compose_compose_proto_enumTypes[4].Descriptor()
+}
+
+func (ImageStatus_NotChecked) Type() protoreflect.EnumType {
+	return &file_compose_compose_proto_enumTypes[4]
+}
+
+func (x ImageStatus_NotChecked) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ImageStatus_NotChecked.Descriptor instead.
+func (ImageStatus_NotChecked) EnumDescriptor() ([]byte, []int) {
+	return file_compose_compose_proto_rawDescGZIP(), []int{7, 0}
+}
+
 // compose has nothing to configure: registries and their credentials are
 // registry-api's.
 type ComposeConfig struct {
@@ -739,6 +790,8 @@ type ImageStatus struct {
 	CurrentDigest string                 `protobuf:"bytes,3,opt,name=current_digest,json=currentDigest,proto3" json:"current_digest,omitempty"`
 	LatestDigest  string                 `protobuf:"bytes,4,opt,name=latest_digest,json=latestDigest,proto3" json:"latest_digest,omitempty"`
 	Checked       *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=checked,proto3" json:"checked,omitempty"`
+	// Why it is NOT_CHECKED, for the Page to word without reading reason.
+	NotChecked    ImageStatus_NotChecked `protobuf:"varint,6,opt,name=not_checked,json=notChecked,proto3,enum=ddash.compose.ImageStatus_NotChecked" json:"not_checked,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -806,6 +859,13 @@ func (x *ImageStatus) GetChecked() *timestamppb.Timestamp {
 		return x.Checked
 	}
 	return nil
+}
+
+func (x *ImageStatus) GetNotChecked() ImageStatus_NotChecked {
+	if x != nil {
+		return x.NotChecked
+	}
+	return ImageStatus_NOT_CHECKED_UNSPECIFIED
 }
 
 type ImageChecks struct {
@@ -2369,13 +2429,20 @@ const file_compose_compose_proto_rawDesc = "" +
 	"containers\"\x8b\x01\n" +
 	"\x10ProjectContainer\x128\n" +
 	"\tcontainer\x18\x01 \x01(\v2\x1a.ddash.container.ContainerR\tcontainer\x12=\n" +
-	"\fimage_status\x18\x02 \x01(\v2\x1a.ddash.compose.ImageStatusR\vimageStatus\"\xd8\x01\n" +
+	"\fimage_status\x18\x02 \x01(\v2\x1a.ddash.compose.ImageStatusR\vimageStatus\"\xfa\x02\n" +
 	"\vImageStatus\x12/\n" +
 	"\x05state\x18\x01 \x01(\x0e2\x19.ddash.compose.ImageStateR\x05state\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12%\n" +
 	"\x0ecurrent_digest\x18\x03 \x01(\tR\rcurrentDigest\x12#\n" +
 	"\rlatest_digest\x18\x04 \x01(\tR\flatestDigest\x124\n" +
-	"\achecked\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\achecked\"\xdf\x01\n" +
+	"\achecked\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\achecked\x12F\n" +
+	"\vnot_checked\x18\x06 \x01(\x0e2%.ddash.compose.ImageStatus.NotCheckedR\n" +
+	"notChecked\"X\n" +
+	"\n" +
+	"NotChecked\x12\x1b\n" +
+	"\x17NOT_CHECKED_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12NOT_CHECKED_PINNED\x10\x01\x12\x15\n" +
+	"\x11NOT_CHECKED_LOCAL\x10\x02\"\xdf\x01\n" +
 	"\vImageChecks\x12.\n" +
 	"\x04last\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04last\x12.\n" +
 	"\x04next\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04next\x12:\n" +
@@ -2523,102 +2590,104 @@ func file_compose_compose_proto_rawDescGZIP() []byte {
 	return file_compose_compose_proto_rawDescData
 }
 
-var file_compose_compose_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_compose_compose_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_compose_compose_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_compose_compose_proto_goTypes = []any{
 	(ProjectState)(0),             // 0: ddash.compose.ProjectState
 	(ImageState)(0),               // 1: ddash.compose.ImageState
 	(System)(0),                   // 2: ddash.compose.System
 	(StepState)(0),                // 3: ddash.compose.StepState
-	(*ComposeConfig)(nil),         // 4: ddash.compose.ComposeConfig
-	(*ListProjectsRequest)(nil),   // 5: ddash.compose.ListProjectsRequest
-	(*ListProjectsResponse)(nil),  // 6: ddash.compose.ListProjectsResponse
-	(*Host)(nil),                  // 7: ddash.compose.Host
-	(*Project)(nil),               // 8: ddash.compose.Project
-	(*Service)(nil),               // 9: ddash.compose.Service
-	(*ProjectContainer)(nil),      // 10: ddash.compose.ProjectContainer
-	(*ImageStatus)(nil),           // 11: ddash.compose.ImageStatus
-	(*ImageChecks)(nil),           // 12: ddash.compose.ImageChecks
-	(*RegistryProblem)(nil),       // 13: ddash.compose.RegistryProblem
-	(*CheckImagesRequest)(nil),    // 14: ddash.compose.CheckImagesRequest
-	(*CheckImagesResponse)(nil),   // 15: ddash.compose.CheckImagesResponse
-	(*ComposeAction)(nil),         // 16: ddash.compose.ComposeAction
-	(*SaveFile)(nil),              // 17: ddash.compose.SaveFile
-	(*Start)(nil),                 // 18: ddash.compose.Start
-	(*Stop)(nil),                  // 19: ddash.compose.Stop
-	(*Restart)(nil),               // 20: ddash.compose.Restart
-	(*Update)(nil),                // 21: ddash.compose.Update
-	(*AddProject)(nil),            // 22: ddash.compose.AddProject
-	(*Plan)(nil),                  // 23: ddash.compose.Plan
-	(*PlanStep)(nil),              // 24: ddash.compose.PlanStep
-	(*PlanValue)(nil),             // 25: ddash.compose.PlanValue
-	(*PlanActionRequest)(nil),     // 26: ddash.compose.PlanActionRequest
-	(*PlanActionResponse)(nil),    // 27: ddash.compose.PlanActionResponse
-	(*RunActionRequest)(nil),      // 28: ddash.compose.RunActionRequest
-	(*RunActionResponse)(nil),     // 29: ddash.compose.RunActionResponse
-	(*Run)(nil),                   // 30: ddash.compose.Run
-	(*ListRunsRequest)(nil),       // 31: ddash.compose.ListRunsRequest
-	(*CancelRunRequest)(nil),      // 32: ddash.compose.CancelRunRequest
-	(*CancelRunResponse)(nil),     // 33: ddash.compose.CancelRunResponse
-	(*ListRunsResponse)(nil),      // 34: ddash.compose.ListRunsResponse
-	(*container.Container)(nil),   // 35: ddash.container.Container
-	(*timestamppb.Timestamp)(nil), // 36: google.protobuf.Timestamp
-	(*job.Job)(nil),               // 37: ddash.job.Job
+	(ImageStatus_NotChecked)(0),   // 4: ddash.compose.ImageStatus.NotChecked
+	(*ComposeConfig)(nil),         // 5: ddash.compose.ComposeConfig
+	(*ListProjectsRequest)(nil),   // 6: ddash.compose.ListProjectsRequest
+	(*ListProjectsResponse)(nil),  // 7: ddash.compose.ListProjectsResponse
+	(*Host)(nil),                  // 8: ddash.compose.Host
+	(*Project)(nil),               // 9: ddash.compose.Project
+	(*Service)(nil),               // 10: ddash.compose.Service
+	(*ProjectContainer)(nil),      // 11: ddash.compose.ProjectContainer
+	(*ImageStatus)(nil),           // 12: ddash.compose.ImageStatus
+	(*ImageChecks)(nil),           // 13: ddash.compose.ImageChecks
+	(*RegistryProblem)(nil),       // 14: ddash.compose.RegistryProblem
+	(*CheckImagesRequest)(nil),    // 15: ddash.compose.CheckImagesRequest
+	(*CheckImagesResponse)(nil),   // 16: ddash.compose.CheckImagesResponse
+	(*ComposeAction)(nil),         // 17: ddash.compose.ComposeAction
+	(*SaveFile)(nil),              // 18: ddash.compose.SaveFile
+	(*Start)(nil),                 // 19: ddash.compose.Start
+	(*Stop)(nil),                  // 20: ddash.compose.Stop
+	(*Restart)(nil),               // 21: ddash.compose.Restart
+	(*Update)(nil),                // 22: ddash.compose.Update
+	(*AddProject)(nil),            // 23: ddash.compose.AddProject
+	(*Plan)(nil),                  // 24: ddash.compose.Plan
+	(*PlanStep)(nil),              // 25: ddash.compose.PlanStep
+	(*PlanValue)(nil),             // 26: ddash.compose.PlanValue
+	(*PlanActionRequest)(nil),     // 27: ddash.compose.PlanActionRequest
+	(*PlanActionResponse)(nil),    // 28: ddash.compose.PlanActionResponse
+	(*RunActionRequest)(nil),      // 29: ddash.compose.RunActionRequest
+	(*RunActionResponse)(nil),     // 30: ddash.compose.RunActionResponse
+	(*Run)(nil),                   // 31: ddash.compose.Run
+	(*ListRunsRequest)(nil),       // 32: ddash.compose.ListRunsRequest
+	(*CancelRunRequest)(nil),      // 33: ddash.compose.CancelRunRequest
+	(*CancelRunResponse)(nil),     // 34: ddash.compose.CancelRunResponse
+	(*ListRunsResponse)(nil),      // 35: ddash.compose.ListRunsResponse
+	(*container.Container)(nil),   // 36: ddash.container.Container
+	(*timestamppb.Timestamp)(nil), // 37: google.protobuf.Timestamp
+	(*job.Job)(nil),               // 38: ddash.job.Job
 }
 var file_compose_compose_proto_depIdxs = []int32{
-	7,  // 0: ddash.compose.ListProjectsResponse.hosts:type_name -> ddash.compose.Host
-	12, // 1: ddash.compose.ListProjectsResponse.checks:type_name -> ddash.compose.ImageChecks
-	8,  // 2: ddash.compose.Host.projects:type_name -> ddash.compose.Project
-	10, // 3: ddash.compose.Host.containers:type_name -> ddash.compose.ProjectContainer
+	8,  // 0: ddash.compose.ListProjectsResponse.hosts:type_name -> ddash.compose.Host
+	13, // 1: ddash.compose.ListProjectsResponse.checks:type_name -> ddash.compose.ImageChecks
+	9,  // 2: ddash.compose.Host.projects:type_name -> ddash.compose.Project
+	11, // 3: ddash.compose.Host.containers:type_name -> ddash.compose.ProjectContainer
 	0,  // 4: ddash.compose.Project.state:type_name -> ddash.compose.ProjectState
-	9,  // 5: ddash.compose.Project.services:type_name -> ddash.compose.Service
-	10, // 6: ddash.compose.Service.containers:type_name -> ddash.compose.ProjectContainer
-	35, // 7: ddash.compose.ProjectContainer.container:type_name -> ddash.container.Container
-	11, // 8: ddash.compose.ProjectContainer.image_status:type_name -> ddash.compose.ImageStatus
+	10, // 5: ddash.compose.Project.services:type_name -> ddash.compose.Service
+	11, // 6: ddash.compose.Service.containers:type_name -> ddash.compose.ProjectContainer
+	36, // 7: ddash.compose.ProjectContainer.container:type_name -> ddash.container.Container
+	12, // 8: ddash.compose.ProjectContainer.image_status:type_name -> ddash.compose.ImageStatus
 	1,  // 9: ddash.compose.ImageStatus.state:type_name -> ddash.compose.ImageState
-	36, // 10: ddash.compose.ImageStatus.checked:type_name -> google.protobuf.Timestamp
-	36, // 11: ddash.compose.ImageChecks.last:type_name -> google.protobuf.Timestamp
-	36, // 12: ddash.compose.ImageChecks.next:type_name -> google.protobuf.Timestamp
-	13, // 13: ddash.compose.ImageChecks.problems:type_name -> ddash.compose.RegistryProblem
-	12, // 14: ddash.compose.CheckImagesResponse.checks:type_name -> ddash.compose.ImageChecks
-	17, // 15: ddash.compose.ComposeAction.save:type_name -> ddash.compose.SaveFile
-	18, // 16: ddash.compose.ComposeAction.start:type_name -> ddash.compose.Start
-	19, // 17: ddash.compose.ComposeAction.stop:type_name -> ddash.compose.Stop
-	20, // 18: ddash.compose.ComposeAction.restart:type_name -> ddash.compose.Restart
-	21, // 19: ddash.compose.ComposeAction.update:type_name -> ddash.compose.Update
-	22, // 20: ddash.compose.ComposeAction.add:type_name -> ddash.compose.AddProject
-	24, // 21: ddash.compose.Plan.steps:type_name -> ddash.compose.PlanStep
-	2,  // 22: ddash.compose.PlanStep.system:type_name -> ddash.compose.System
-	25, // 23: ddash.compose.PlanStep.values:type_name -> ddash.compose.PlanValue
-	16, // 24: ddash.compose.PlanActionRequest.action:type_name -> ddash.compose.ComposeAction
-	23, // 25: ddash.compose.PlanActionResponse.plan:type_name -> ddash.compose.Plan
-	16, // 26: ddash.compose.RunActionRequest.action:type_name -> ddash.compose.ComposeAction
-	23, // 27: ddash.compose.RunActionRequest.plan:type_name -> ddash.compose.Plan
-	30, // 28: ddash.compose.RunActionResponse.run:type_name -> ddash.compose.Run
-	24, // 29: ddash.compose.Run.steps:type_name -> ddash.compose.PlanStep
-	3,  // 30: ddash.compose.Run.states:type_name -> ddash.compose.StepState
-	37, // 31: ddash.compose.Run.job:type_name -> ddash.job.Job
-	36, // 32: ddash.compose.Run.started:type_name -> google.protobuf.Timestamp
-	36, // 33: ddash.compose.Run.ended:type_name -> google.protobuf.Timestamp
-	30, // 34: ddash.compose.CancelRunResponse.run:type_name -> ddash.compose.Run
-	30, // 35: ddash.compose.ListRunsResponse.runs:type_name -> ddash.compose.Run
-	5,  // 36: ddash.compose.ComposeService.ListProjects:input_type -> ddash.compose.ListProjectsRequest
-	14, // 37: ddash.compose.ComposeService.CheckImages:input_type -> ddash.compose.CheckImagesRequest
-	26, // 38: ddash.compose.ComposeService.PlanAction:input_type -> ddash.compose.PlanActionRequest
-	28, // 39: ddash.compose.ComposeService.RunAction:input_type -> ddash.compose.RunActionRequest
-	31, // 40: ddash.compose.ComposeService.ListRuns:input_type -> ddash.compose.ListRunsRequest
-	32, // 41: ddash.compose.ComposeService.CancelRun:input_type -> ddash.compose.CancelRunRequest
-	6,  // 42: ddash.compose.ComposeService.ListProjects:output_type -> ddash.compose.ListProjectsResponse
-	15, // 43: ddash.compose.ComposeService.CheckImages:output_type -> ddash.compose.CheckImagesResponse
-	27, // 44: ddash.compose.ComposeService.PlanAction:output_type -> ddash.compose.PlanActionResponse
-	29, // 45: ddash.compose.ComposeService.RunAction:output_type -> ddash.compose.RunActionResponse
-	34, // 46: ddash.compose.ComposeService.ListRuns:output_type -> ddash.compose.ListRunsResponse
-	33, // 47: ddash.compose.ComposeService.CancelRun:output_type -> ddash.compose.CancelRunResponse
-	42, // [42:48] is the sub-list for method output_type
-	36, // [36:42] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	37, // 10: ddash.compose.ImageStatus.checked:type_name -> google.protobuf.Timestamp
+	4,  // 11: ddash.compose.ImageStatus.not_checked:type_name -> ddash.compose.ImageStatus.NotChecked
+	37, // 12: ddash.compose.ImageChecks.last:type_name -> google.protobuf.Timestamp
+	37, // 13: ddash.compose.ImageChecks.next:type_name -> google.protobuf.Timestamp
+	14, // 14: ddash.compose.ImageChecks.problems:type_name -> ddash.compose.RegistryProblem
+	13, // 15: ddash.compose.CheckImagesResponse.checks:type_name -> ddash.compose.ImageChecks
+	18, // 16: ddash.compose.ComposeAction.save:type_name -> ddash.compose.SaveFile
+	19, // 17: ddash.compose.ComposeAction.start:type_name -> ddash.compose.Start
+	20, // 18: ddash.compose.ComposeAction.stop:type_name -> ddash.compose.Stop
+	21, // 19: ddash.compose.ComposeAction.restart:type_name -> ddash.compose.Restart
+	22, // 20: ddash.compose.ComposeAction.update:type_name -> ddash.compose.Update
+	23, // 21: ddash.compose.ComposeAction.add:type_name -> ddash.compose.AddProject
+	25, // 22: ddash.compose.Plan.steps:type_name -> ddash.compose.PlanStep
+	2,  // 23: ddash.compose.PlanStep.system:type_name -> ddash.compose.System
+	26, // 24: ddash.compose.PlanStep.values:type_name -> ddash.compose.PlanValue
+	17, // 25: ddash.compose.PlanActionRequest.action:type_name -> ddash.compose.ComposeAction
+	24, // 26: ddash.compose.PlanActionResponse.plan:type_name -> ddash.compose.Plan
+	17, // 27: ddash.compose.RunActionRequest.action:type_name -> ddash.compose.ComposeAction
+	24, // 28: ddash.compose.RunActionRequest.plan:type_name -> ddash.compose.Plan
+	31, // 29: ddash.compose.RunActionResponse.run:type_name -> ddash.compose.Run
+	25, // 30: ddash.compose.Run.steps:type_name -> ddash.compose.PlanStep
+	3,  // 31: ddash.compose.Run.states:type_name -> ddash.compose.StepState
+	38, // 32: ddash.compose.Run.job:type_name -> ddash.job.Job
+	37, // 33: ddash.compose.Run.started:type_name -> google.protobuf.Timestamp
+	37, // 34: ddash.compose.Run.ended:type_name -> google.protobuf.Timestamp
+	31, // 35: ddash.compose.CancelRunResponse.run:type_name -> ddash.compose.Run
+	31, // 36: ddash.compose.ListRunsResponse.runs:type_name -> ddash.compose.Run
+	6,  // 37: ddash.compose.ComposeService.ListProjects:input_type -> ddash.compose.ListProjectsRequest
+	15, // 38: ddash.compose.ComposeService.CheckImages:input_type -> ddash.compose.CheckImagesRequest
+	27, // 39: ddash.compose.ComposeService.PlanAction:input_type -> ddash.compose.PlanActionRequest
+	29, // 40: ddash.compose.ComposeService.RunAction:input_type -> ddash.compose.RunActionRequest
+	32, // 41: ddash.compose.ComposeService.ListRuns:input_type -> ddash.compose.ListRunsRequest
+	33, // 42: ddash.compose.ComposeService.CancelRun:input_type -> ddash.compose.CancelRunRequest
+	7,  // 43: ddash.compose.ComposeService.ListProjects:output_type -> ddash.compose.ListProjectsResponse
+	16, // 44: ddash.compose.ComposeService.CheckImages:output_type -> ddash.compose.CheckImagesResponse
+	28, // 45: ddash.compose.ComposeService.PlanAction:output_type -> ddash.compose.PlanActionResponse
+	30, // 46: ddash.compose.ComposeService.RunAction:output_type -> ddash.compose.RunActionResponse
+	35, // 47: ddash.compose.ComposeService.ListRuns:output_type -> ddash.compose.ListRunsResponse
+	34, // 48: ddash.compose.ComposeService.CancelRun:output_type -> ddash.compose.CancelRunResponse
+	43, // [43:49] is the sub-list for method output_type
+	37, // [37:43] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_compose_compose_proto_init() }
@@ -2639,7 +2708,7 @@ func file_compose_compose_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_compose_compose_proto_rawDesc), len(file_compose_compose_proto_rawDesc)),
-			NumEnums:      4,
+			NumEnums:      5,
 			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,

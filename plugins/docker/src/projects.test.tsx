@@ -209,6 +209,42 @@ it("restarts one Compose service from its row on the Compose Project's Page", as
   expect(calls.find((c) => c.method === "PlanAction")?.body).toEqual({ action: { restart: { host: "apps", project: "media", services: ["jellyfin"] } } });
 });
 
+const pinned = status("IMAGE_STATE_NOT_CHECKED", { reason: "pinned by digest", notChecked: "NOT_CHECKED_PINNED", currentDigest: "sha256:cccccccccccccccc" });
+const local = status("IMAGE_STATE_NOT_CHECKED", { reason: "a local image: it has no registry to check", notChecked: "NOT_CHECKED_LOCAL" });
+
+it.each([
+  { images: "pinned by digest", web: pinned, db: pinned, says: "not checked: pinned by digest" },
+  { images: "local", web: local, db: local, says: "not checked: local image" },
+  { images: "pinned by digest and local", web: pinned, db: local, says: "not checked" },
+])("says why a Compose Project's images, all $images, weren't checked", async ({ web, db, says }) => {
+  const container = (name: string, s: object) => ({ container: { id: name, name, state: "STATE_RUNNING", status: "Up" }, ...s });
+  const shop = {
+    host: "apps",
+    name: "shop",
+    workingDir: "/opt/stacks/shop",
+    configFile: "/opt/stacks/shop/compose.yaml",
+    state: "PROJECT_STATE_RUNNING",
+    services: [
+      { name: "web", containers: [container("shop-web-1", web)] },
+      { name: "db", containers: [container("shop-db-1", db)] },
+    ],
+  };
+  await showPlugin(plugin, docker, "/docker/projects/apps/shop", {
+    answers: {
+      ...base,
+      ListProjects: () => Response.json({ ...projects, hosts: [{ ...projects.hosts[0], projects: [shop] }] }),
+      GetComposeFile: () => Response.json({ file: { path: "/opt/stacks/shop/compose.yaml", content: "services: {}\n", sha256: "a" } }),
+    },
+  });
+
+  expect(screen.getByText("Images").nextElementSibling?.textContent).toBe(says);
+  // Each Compose service's own pill gives its own reason.
+  for (const [service, s] of [["web", web], ["db", db]] as const) {
+    const label = s === pinned ? "not checked: pinned by digest" : "not checked: local image";
+    expect(within(screen.getByRole("row", { name: new RegExp(service) })).getByText(label)).toBeTruthy();
+  }
+});
+
 it("says why Check now failed", async () => {
   await showPlugin(plugin, docker, "/docker", {
     answers: { ...base, CheckImages: () => Response.json({ code: "unavailable", message: "docker.io refused ddash" }, { status: 503 }) },
