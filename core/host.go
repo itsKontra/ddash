@@ -27,6 +27,7 @@ import (
 	"github.com/itsKontra/ddash/core/config"
 	"github.com/itsKontra/ddash/core/coredb"
 	"github.com/itsKontra/ddash/core/icons"
+	"github.com/itsKontra/ddash/core/notifications"
 	"github.com/itsKontra/ddash/core/overview"
 	"github.com/itsKontra/ddash/core/router"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -146,6 +147,7 @@ func New(ctx context.Context, opts Options) (*Host, error) {
 		return nil, err
 	}
 	rtr = router.New(rt, gate)
+	rtr.Offer(notifications.New(rt, rtr, gate, opts.Logger).Register)
 	h := &Host{db: db, gate: gate, config: cfg, layout: overview.New(db), runtime: rt, router: rtr, release: opts.Release, shell: opts.Shell, publicURL: opts.PublicURL, log: opts.Logger,
 		agentFiles: map[string]agentFile{},
 		appIcons:   &icons.AppIcons{Dir: filepath.Join(opts.DataDir, "icons"), URL: opts.AppIconsURL}}

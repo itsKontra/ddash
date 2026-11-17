@@ -16,13 +16,13 @@ import (
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	hostagentapi "github.com/itsKontra/ddash/components/host-agent-api"
-	"github.com/itsKontra/ddash/components/notify"
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	"github.com/itsKontra/ddash/components/proxmox"
 	proxmoxapi "github.com/itsKontra/ddash/components/proxmox-api"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxfake"
 	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
 	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
+	"github.com/itsKontra/ddash/components/telegram-api/telegramfake"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/runtime"
@@ -32,8 +32,8 @@ import (
 )
 
 // bootProxmoxLab boots the core with the proxmox Plugin's Components
-// (proxmox, proxmox-api, and checks with its ntfy-api) in-process against
-// a lab serving scenarios, configured as `make dev` does.
+// (proxmox, proxmox-api, and checks) and both channel Plugins in-process
+// against a lab serving scenarios, configured as `make dev` does.
 func bootProxmoxLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fakelab.Lab) {
 	lab, err := fakelab.Start(repoRoot, "127.0.0.1", scenarios...)
 	if err != nil {
@@ -41,20 +41,23 @@ func bootProxmoxLab(t *testing.T, scenarios ...string) (*coretest.Harness, *fake
 	}
 	t.Cleanup(lab.Close)
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{proxmox.Definition(), proxmoxapi.Definition(), hostagentapi.Definition(), checks.Definition(), notify.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
+		Components: []sdk.Definition{proxmox.Definition(), proxmoxapi.Definition(), hostagentapi.Definition(), checks.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
 		Plugins: []coretest.Plugin{
 			{Name: "proxmox", Requires: []string{"proxmox", "proxmox-api", "host-agent-api"}},
 			{Name: "checks", Requires: []string{"checks"}},
+			{Name: "ntfy", Requires: []string{"ntfy-api"}, Headless: true},
+			{Name: "telegram", Requires: []string{"telegram-api"}, Headless: true},
 		},
 	})
 	for component, cfg := range lab.Config() {
-		if component == "proxmox-api" || component == "ntfy-api" {
+		if component == "proxmox-api" || component == "ntfy-api" || component == "telegram-api" {
 			h.SeedConfig(component, cfg)
 		}
 	}
-	h.Install("proxmox")
-	h.Install("checks")
-	for _, c := range []string{"proxmox-api", "checks", "proxmox"} {
+	for _, p := range []string{"proxmox", "checks", "ntfy", "telegram"} {
+		h.Install(p)
+	}
+	for _, c := range []string{"proxmox-api", "checks", "proxmox", "ntfy-api", "telegram-api"} {
 		h.WaitState(c, runtime.OK)
 	}
 	return h, lab
@@ -201,24 +204,28 @@ func TestAnUpdateRunsInTheBackgroundInItsActionsChain(t *testing.T) {
 		t.Errorf("201's snapshots = %v, want the manual one and the new ddash Snapshot", names)
 	}
 
-	// The outcome's Notification follows the run's end.
+	// The outcome's Notification follows the run's end, through the core
+	// to both channels.
+	delivered := func(e appstate.Entry) bool { return e.Method == "Deliver" && e.Outcome != "" }
 	waitFor(t, func() bool {
-		return slices.ContainsFunc(componentHops(h), func(e appstate.Entry) bool { return e.Target == "notify" && e.Outcome != "" })
+		n := 0
+		for _, e := range h.AuditLog() {
+			if delivered(e) {
+				n++
+			}
+		}
+		return n == 2
 	})
 	var hops []string
 	chains := map[string]bool{}
-	for _, e := range componentHops(h) {
+	for _, e := range slices.Backward(h.AuditLog()) {
 		if e.Method == "RunUpdate" || chains[e.Chain] {
 			chains[e.Chain] = true
-		}
-	}
-	for _, e := range componentHops(h) {
-		// notify's own fan-out to the channels is notify's to test.
-		if chains[e.Chain] && e.Target != "ntfy-api" && e.Target != "telegram-api" {
 			hops = append(hops, fmt.Sprintf("%s %s %s", e.Target, e.Method, e.Outcome))
 		}
 	}
-	slices.Reverse(hops)
+	// The channels are delivered to at once.
+	slices.Sort(hops[len(hops)-2:])
 	want := []string{
 		"proxmox RunUpdate ok",
 		"checks StartMaintenance ok",
@@ -227,13 +234,19 @@ func TestAnUpdateRunsInTheBackgroundInItsActionsChain(t *testing.T) {
 		"host-agent-api UpgradePackages ok",
 		"host-agent-api CollectJob ok",
 		"checks StartMaintenance ok",
-		"notify Send ok",
+		"core Send ok",
+		"ntfy-api Deliver ok",
+		"telegram-api Deliver ok",
 	}
 	if diff := cmp.Diff(want, hops); diff != "" {
 		t.Errorf("the update's chain, oldest first (-want +got):\n%s", diff)
 	}
 	if len(chains) != 1 {
 		t.Errorf("%d chains, want 1", len(chains))
+	}
+	msgs := lab.Handler("telegram-api").(*telegramfake.Bot).Messages()
+	if len(msgs) != 1 || !strings.Contains(msgs[0].Plain, "Updated ") {
+		t.Errorf("Telegram got %+v, want the update's outcome", msgs)
 	}
 }
 

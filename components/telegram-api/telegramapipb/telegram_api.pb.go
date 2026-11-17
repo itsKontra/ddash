@@ -4,15 +4,15 @@
 // 	protoc        (unknown)
 // source: telegram-api/telegram_api.proto
 
-// telegram-api sends Notifications to one Telegram chat through a bot. It
-// is only the transport: what to send and to which channels is notify's.
+// telegram-api is the Telegram channel: it serves
+// ddash.notification.ChannelService and sends each Notification the core
+// delivers to one Telegram chat through a bot. Only the telegram Plugin
+// requires it.
 
 package telegramapipb
 
 import (
-	_ "github.com/itsKontra/ddash/proto/ddash"
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
-	notification "github.com/itsKontra/ddash/proto/ddash/notification"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,7 +27,10 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Empty is valid: Telegram is then not set up, and Send refuses.
+// The bot token and the chat ID are required: to not use Telegram,
+// uninstall the telegram Plugin. The filter's fields (checks,
+// image_updates, action_outcomes) mean the same in every channel's config
+// (components/internal/channel).
 type TelegramApiConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The Bot API server; Telegram's own unless self-hosted.
@@ -36,9 +39,12 @@ type TelegramApiConfig struct {
 	Token string `protobuf:"bytes,2,opt,name=token,proto3" json:"token,omitempty"`
 	// The chat the bot writes to: a user's ID for a private chat, a group's
 	// (negative) ID, or a channel's @username.
-	ChatId        string `protobuf:"bytes,3,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	ChatId         string `protobuf:"bytes,3,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	Checks         *bool  `protobuf:"varint,4,opt,name=checks,proto3,oneof" json:"checks,omitempty"`
+	ImageUpdates   *bool  `protobuf:"varint,5,opt,name=image_updates,json=imageUpdates,proto3,oneof" json:"image_updates,omitempty"`
+	ActionOutcomes *bool  `protobuf:"varint,6,opt,name=action_outcomes,json=actionOutcomes,proto3,oneof" json:"action_outcomes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *TelegramApiConfig) Reset() {
@@ -92,296 +98,48 @@ func (x *TelegramApiConfig) GetChatId() string {
 	return ""
 }
 
-type SendRequest struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Notification  *notification.Notification `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendRequest) Reset() {
-	*x = SendRequest{}
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendRequest) ProtoMessage() {}
-
-func (x *SendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
-func (*SendRequest) Descriptor() ([]byte, []int) {
-	return file_telegram_api_telegram_api_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *SendRequest) GetNotification() *notification.Notification {
-	if x != nil {
-		return x.Notification
-	}
-	return nil
-}
-
-type SendResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The id Telegram gave the message in its chat.
-	MessageId     int64 `protobuf:"varint,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendResponse) Reset() {
-	*x = SendResponse{}
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendResponse) ProtoMessage() {}
-
-func (x *SendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
-func (*SendResponse) Descriptor() ([]byte, []int) {
-	return file_telegram_api_telegram_api_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *SendResponse) GetMessageId() int64 {
-	if x != nil {
-		return x.MessageId
-	}
-	return 0
-}
-
-type SendTestRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendTestRequest) Reset() {
-	*x = SendTestRequest{}
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendTestRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendTestRequest) ProtoMessage() {}
-
-func (x *SendTestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendTestRequest.ProtoReflect.Descriptor instead.
-func (*SendTestRequest) Descriptor() ([]byte, []int) {
-	return file_telegram_api_telegram_api_proto_rawDescGZIP(), []int{3}
-}
-
-type SendTestResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The id Telegram gave the message in its chat.
-	MessageId     int64 `protobuf:"varint,1,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendTestResponse) Reset() {
-	*x = SendTestResponse{}
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendTestResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendTestResponse) ProtoMessage() {}
-
-func (x *SendTestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendTestResponse.ProtoReflect.Descriptor instead.
-func (*SendTestResponse) Descriptor() ([]byte, []int) {
-	return file_telegram_api_telegram_api_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SendTestResponse) GetMessageId() int64 {
-	if x != nil {
-		return x.MessageId
-	}
-	return 0
-}
-
-type GetChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetChannelRequest) Reset() {
-	*x = GetChannelRequest{}
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetChannelRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetChannelRequest) ProtoMessage() {}
-
-func (x *GetChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetChannelRequest.ProtoReflect.Descriptor instead.
-func (*GetChannelRequest) Descriptor() ([]byte, []int) {
-	return file_telegram_api_telegram_api_proto_rawDescGZIP(), []int{5}
-}
-
-type GetChannelResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// A bot token and a chat ID are set.
-	SetUp bool `protobuf:"varint,1,opt,name=set_up,json=setUp,proto3" json:"set_up,omitempty"`
-	// Where Notifications go, e.g. "chat 123456789"; empty while not set up.
-	Destination   string `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetChannelResponse) Reset() {
-	*x = GetChannelResponse{}
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetChannelResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetChannelResponse) ProtoMessage() {}
-
-func (x *GetChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_telegram_api_telegram_api_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetChannelResponse.ProtoReflect.Descriptor instead.
-func (*GetChannelResponse) Descriptor() ([]byte, []int) {
-	return file_telegram_api_telegram_api_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *GetChannelResponse) GetSetUp() bool {
-	if x != nil {
-		return x.SetUp
+func (x *TelegramApiConfig) GetChecks() bool {
+	if x != nil && x.Checks != nil {
+		return *x.Checks
 	}
 	return false
 }
 
-func (x *GetChannelResponse) GetDestination() string {
-	if x != nil {
-		return x.Destination
+func (x *TelegramApiConfig) GetImageUpdates() bool {
+	if x != nil && x.ImageUpdates != nil {
+		return *x.ImageUpdates
 	}
-	return ""
+	return false
+}
+
+func (x *TelegramApiConfig) GetActionOutcomes() bool {
+	if x != nil && x.ActionOutcomes != nil {
+		return *x.ActionOutcomes
+	}
+	return false
 }
 
 var File_telegram_api_telegram_api_proto protoreflect.FileDescriptor
 
 const file_telegram_api_telegram_api_proto_rawDesc = "" +
 	"\n" +
-	"\x1ftelegram-api/telegram_api.proto\x12\x11ddash.telegramapi\x1a\x19ddash/config/config.proto\x1a%ddash/notification/notification.proto\x1a\x13ddash/options.proto\"\x8e\x04\n" +
+	"\x1ftelegram-api/telegram_api.proto\x12\x11ddash.telegramapi\x1a\x19ddash/config/config.proto\"\x97\a\n" +
 	"\x11TelegramApiConfig\x12\x82\x01\n" +
 	"\x06server\x18\x01 \x01(\tBe\x9a\xb5\x18a\n" +
-	"\x18https://api.telegram.org\x1a\x0eBot API server\"3Leave as is unless you run your own Bot API server.8\x01H\x00R\x06server\x88\x01\x01\x12\x99\x01\n" +
-	"\x05token\x18\x02 \x01(\tB\x82\x01\x9a\xb5\x18~\x10\x01\x1a\tBot token\"]The token @BotFather gives for /newbot. Leave this and the chat ID empty to not use Telegram.*\x10123456789:AAH…R\x05token\x12\xbc\x01\n" +
-	"\achat_id\x18\x03 \x01(\tB\xa2\x01\x9a\xb5\x18\x9d\x01\x1a\aChat ID\"\x86\x01Your user ID for a private chat with the bot, a group's ID (it starts with -), or a channel's @username. Send the bot a message first.*\t123456789R\x06chatId:\x0e\xaa\xb5\x18\n" +
+	"\x18https://api.telegram.org\x1a\x0eBot API server\"3Leave as is unless you run your own Bot API server.8\x01H\x00R\x06server\x88\x01\x01\x12d\n" +
+	"\x05token\x18\x02 \x01(\tBN\x9a\xb5\x18J\x10\x01\x1a\tBot token\"'The token @BotFather gives for /newbot.*\x10123456789:AAH…0\x01R\x05token\x12\xbe\x01\n" +
+	"\achat_id\x18\x03 \x01(\tB\xa4\x01\x9a\xb5\x18\x9f\x01\x1a\aChat ID\"\x86\x01Your user ID for a private chat with the bot, a group's ID (it starts with -), or a channel's @username. Send the bot a message first.*\t1234567890\x01R\x06chatId\x12w\n" +
+	"\x06checks\x18\x04 \x01(\bBZ\x9a\xb5\x18V\n" +
+	"\x04true\x1a\x06Checks\"FA Check going down or up again, Flapping, or its certificate expiring.H\x01R\x06checks\x88\x01\x01\x12\x85\x01\n" +
+	"\rimage_updates\x18\x05 \x01(\bB[\x9a\xb5\x18W\n" +
+	"\x04true\x1a\rImage updates\"@A running container's image has a newer version in its registry.H\x02R\fimageUpdates\x88\x01\x01\x12\x88\x01\n" +
+	"\x0faction_outcomes\x18\x06 \x01(\bBZ\x9a\xb5\x18V\n" +
+	"\x04true\x1a\x0fAction outcomes\"=How a long Action ended, such as package updates or a backup.H\x03R\x0eactionOutcomes\x88\x01\x01:\x0e\xaa\xb5\x18\n" +
 	"\x12\bSendTestB\t\n" +
-	"\a_server\"S\n" +
-	"\vSendRequest\x12D\n" +
-	"\fnotification\x18\x01 \x01(\v2 .ddash.notification.NotificationR\fnotification\"-\n" +
-	"\fSendResponse\x12\x1d\n" +
-	"\n" +
-	"message_id\x18\x01 \x01(\x03R\tmessageId\"\x11\n" +
-	"\x0fSendTestRequest\"1\n" +
-	"\x10SendTestResponse\x12\x1d\n" +
-	"\n" +
-	"message_id\x18\x01 \x01(\x03R\tmessageId\"\x13\n" +
-	"\x11GetChannelRequest\"M\n" +
-	"\x12GetChannelResponse\x12\x15\n" +
-	"\x06set_up\x18\x01 \x01(\bR\x05setUp\x12 \n" +
-	"\vdestination\x18\x02 \x01(\tR\vdestination2\x9f\x02\n" +
-	"\x12TelegramApiService\x12M\n" +
-	"\x04Send\x12\x1e.ddash.telegramapi.SendRequest\x1a\x1f.ddash.telegramapi.SendResponse\"\x04\x92\xb5\x18\x00\x12Y\n" +
-	"\bSendTest\x12\".ddash.telegramapi.SendTestRequest\x1a#.ddash.telegramapi.SendTestResponse\"\x04\x92\xb5\x18\x00\x12_\n" +
-	"\n" +
-	"GetChannel\x12$.ddash.telegramapi.GetChannelRequest\x1a%.ddash.telegramapi.GetChannelResponse\"\x04\x8a\xb5\x18\x00BPZNgithub.com/itsKontra/ddash/components/telegram-api/telegramapipb;telegramapipbb\x06proto3"
+	"\a_serverB\t\n" +
+	"\a_checksB\x10\n" +
+	"\x0e_image_updatesB\x12\n" +
+	"\x10_action_outcomesBPZNgithub.com/itsKontra/ddash/components/telegram-api/telegramapipb;telegramapipbb\x06proto3"
 
 var (
 	file_telegram_api_telegram_api_proto_rawDescOnce sync.Once
@@ -395,30 +153,16 @@ func file_telegram_api_telegram_api_proto_rawDescGZIP() []byte {
 	return file_telegram_api_telegram_api_proto_rawDescData
 }
 
-var file_telegram_api_telegram_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_telegram_api_telegram_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_telegram_api_telegram_api_proto_goTypes = []any{
-	(*TelegramApiConfig)(nil),         // 0: ddash.telegramapi.TelegramApiConfig
-	(*SendRequest)(nil),               // 1: ddash.telegramapi.SendRequest
-	(*SendResponse)(nil),              // 2: ddash.telegramapi.SendResponse
-	(*SendTestRequest)(nil),           // 3: ddash.telegramapi.SendTestRequest
-	(*SendTestResponse)(nil),          // 4: ddash.telegramapi.SendTestResponse
-	(*GetChannelRequest)(nil),         // 5: ddash.telegramapi.GetChannelRequest
-	(*GetChannelResponse)(nil),        // 6: ddash.telegramapi.GetChannelResponse
-	(*notification.Notification)(nil), // 7: ddash.notification.Notification
+	(*TelegramApiConfig)(nil), // 0: ddash.telegramapi.TelegramApiConfig
 }
 var file_telegram_api_telegram_api_proto_depIdxs = []int32{
-	7, // 0: ddash.telegramapi.SendRequest.notification:type_name -> ddash.notification.Notification
-	1, // 1: ddash.telegramapi.TelegramApiService.Send:input_type -> ddash.telegramapi.SendRequest
-	3, // 2: ddash.telegramapi.TelegramApiService.SendTest:input_type -> ddash.telegramapi.SendTestRequest
-	5, // 3: ddash.telegramapi.TelegramApiService.GetChannel:input_type -> ddash.telegramapi.GetChannelRequest
-	2, // 4: ddash.telegramapi.TelegramApiService.Send:output_type -> ddash.telegramapi.SendResponse
-	4, // 5: ddash.telegramapi.TelegramApiService.SendTest:output_type -> ddash.telegramapi.SendTestResponse
-	6, // 6: ddash.telegramapi.TelegramApiService.GetChannel:output_type -> ddash.telegramapi.GetChannelResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_telegram_api_telegram_api_proto_init() }
@@ -433,9 +177,9 @@ func file_telegram_api_telegram_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_telegram_api_telegram_api_proto_rawDesc), len(file_telegram_api_telegram_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   1,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_telegram_api_telegram_api_proto_goTypes,
 		DependencyIndexes: file_telegram_api_telegram_api_proto_depIdxs,

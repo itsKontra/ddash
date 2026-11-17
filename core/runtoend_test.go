@@ -122,9 +122,9 @@ func TestATestActionWhoseBrowserLeftRunsToItsEnd(t *testing.T) {
 		_, _ = io.WriteString(w, `{"id":"sPs71M8A2T"}`)
 	}))
 	defer srv.Close()
-	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{ntfyapi.Definition()}, Plugins: []coretest.Plugin{notify}})
-	h.Install("notify")
-	h.WaitState("ntfy-api", runtime.OK)
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{ntfyapi.Definition()}, Plugins: []coretest.Plugin{ntfyPlugin}})
+	h.Install("ntfy")
+	h.WaitState("ntfy-api", runtime.Unconfigured)
 	coreJSON(t, h, "SaveConfig", `{"owner":"ntfy-api","values":{"server":"`+srv.URL+`","topic":"ddash-alerts"}}`)
 
 	leave, ended := leaving(h, coretest.CoreRequest("RunTestAction", `{"owner":"ntfy-api"}`))

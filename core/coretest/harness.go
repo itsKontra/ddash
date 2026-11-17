@@ -55,6 +55,8 @@ type Plugin struct {
 	Requires []string
 	// Title defaults to Name.
 	Title, Description, Icon, Author string
+	// Headless: the Plugin has no UI, so the Release has no .ddapp for it.
+	Headless bool
 }
 
 // Options configure a Harness.
@@ -171,15 +173,15 @@ func New(t testing.TB, opts Options) *Harness {
 // ReleaseDir lays out the test Release of opts in a temp dir, as release
 // assets: catalogue.json listing opts.Components and opts.Plugins of
 // Release opts.Release, a .ct per Component holding a stand-in binary (the
-// in-process launcher ignores it), a .ddapp per Plugin holding its
-// ReleaseFiles and stand-in bundles for the ones it lacks, the other
+// in-process launcher ignores it), a .ddapp per Plugin but a headless one
+// holding its ReleaseFiles and stand-in bundles for the ones it lacks, the other
 // ReleaseFiles, and SHA256SUMS over them all.
 func ReleaseDir(t testing.TB, opts Options) string {
 	cat := runtime.Catalogue{Release: cmp.Or(opts.Release, sdk.Release)}
 	for _, p := range opts.Plugins {
 		cat.Plugins = append(cat.Plugins, runtime.PluginEntry{
 			Name: p.Name, Title: cmp.Or(p.Title, p.Name), Description: p.Description,
-			Icon: p.Icon, Author: p.Author, Requires: p.Requires,
+			Icon: p.Icon, Author: p.Author, Requires: p.Requires, Headless: p.Headless,
 		})
 	}
 	for _, d := range opts.Components {
@@ -196,6 +198,9 @@ func ReleaseDir(t testing.TB, opts Options) string {
 	files := map[string][]byte{}
 	apps := map[string]fstest.MapFS{}
 	for _, p := range opts.Plugins {
+		if p.Headless {
+			continue
+		}
 		apps[p.Name] = fstest.MapFS{}
 		for _, file := range []string{"index.js", "index.css"} {
 			apps[p.Name][file] = &fstest.MapFile{Data: []byte("/* " + p.Name + "/" + file + " of Release " + cat.Release + " */")}

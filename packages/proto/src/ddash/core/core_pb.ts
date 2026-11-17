@@ -525,7 +525,9 @@ export type InstalledPlugin = Message<"ddash.core.InstalledPlugin"> & {
   requires: string[];
 
   /**
-   * The bundle's ESM entry: /plugins/<name>/<release>/index.js.
+   * The bundle's ESM entry: /plugins/<name>/<release>/index.js. Empty for
+   * a headless Plugin, which has no bundle, so no Widgets, Nav Entry,
+   * Pages, Concerns or Commands (a Notification channel's Plugin).
    *
    * @generated from field: string script = 7;
    */
@@ -533,7 +535,8 @@ export type InstalledPlugin = Message<"ddash.core.InstalledPlugin"> & {
 
   /**
    * The bundle's stylesheet: /plugins/<name>/<release>/index.css. Empty
-   * when it holds no rule, e.g. Vite's marker for a Plugin without CSS.
+   * when it holds no rule, e.g. Vite's marker for a Plugin without CSS,
+   * and for a headless Plugin.
    *
    * @generated from field: string style = 8;
    */

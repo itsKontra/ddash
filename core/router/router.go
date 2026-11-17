@@ -20,10 +20,12 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/dynamicpb"
 
@@ -54,12 +56,17 @@ type Components interface {
 	ComponentRequires(component string) []string
 	// Status returns every Component the runtime knows, by name.
 	Status() map[string]runtime.Status
+	// Serving returns, sorted, the wanted Components whose API is service,
+	// up or not.
+	Serving(service protoreflect.FullName) []string
 }
 
 // Router is the http.Handler for Prefix.
 type Router struct {
 	components Components
 	gate       *appstate.Gate
+	// offered registers each of the core's own services on a host server.
+	offered []func(s grpc.ServiceRegistrar, caller string)
 }
 
 // New returns a Router reaching components, passing every Action through
@@ -190,6 +197,32 @@ func (rt *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
+}
+
+// Hop calls method of component, a started Component, from the core as one
+// hop of chain run for actor, the way a Component's call through the host
+// goes: an Action passes the gate (an entry in the Audit Log) and runs
+// detached to its end under ActionDeadline (ADR-0004), a getter runs
+// under ctx and GetterDeadline, and both carry actor and chain onward. req
+// and resp are the method's messages, of types the core has compiled in.
+func (rt *Router) Hop(ctx context.Context, actor auth.Actor, chain, component string, method protoreflect.Name, req, resp proto.Message) error {
+	ep, err := rt.components.Endpoint(component)
+	if err != nil {
+		return err
+	}
+	md := ep.Service.Methods().ByName(method)
+	if md == nil {
+		return status.Errorf(codes.Unimplemented, "%s has no method %s", component, method)
+	}
+	done, err := rt.gate.Admit(ctx, actor, appstate.Action{Chain: chain, Target: component, Method: md, Request: req})
+	if err != nil {
+		return err
+	}
+	ctx, cancel := callContext(onward(ctx, actor, chain), md)
+	defer cancel()
+	err = ep.Conn.Invoke(ctx, FullMethod(ep, md), req, resp)
+	done(err)
+	return err
 }
 
 // FullMethod is the gRPC name of md, a method of ep's API:

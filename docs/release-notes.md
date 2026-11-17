@@ -10,11 +10,20 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
   scale fits the rest; click again to bring it back. The last series
   shown stays. What you hide stays hidden while you step through days or
   switch Day and Week, until you leave the Page.
-- ntfy is optional, as Telegram is: leave ntfy-api's topic empty, or
-  clear it, and ntfy is "not set up". The Plugins that send Notifications
-  stay ok in Plugins instead of showing unconfigured, and installing one
-  no longer opens ntfy's config form. The Checks Page's Notifications
-  panel says which channel is set up.
+- Notification channels are Plugins you install: **ntfy** and
+  **Telegram** are in Plugins, each with no Page of its own. Installing
+  one opens its config form (ntfy's topic; Telegram's bot token and chat
+  ID, both required now) with **Send test**, and the switches for which
+  Notifications it gets, which used to be notify's. Uninstalling one stops
+  its Notifications. Checks, Docker and Proxmox no longer pull ntfy-api,
+  telegram-api or notify in, so a channel in trouble shows down on its own
+  Plugin only. The Checks Page's Notifications panel lists the installed
+  channels with where each delivers to, what it gets and its last
+  problem, and says so when none is installed.
+- **On updating, nothing to do**: the first start installs the Plugin of
+  each channel you had set up, with the switches you had for it, so
+  Notifications keep arriving. A channel you hadn't set up stays
+  uninstalled. notify is gone, and its config with it.
 
 ## v0.0.3
 

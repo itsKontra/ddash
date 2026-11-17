@@ -31,6 +31,11 @@ type PluginEntry struct {
 	Icon        string   `json:"icon"`
 	Author      string   `json:"author"`
 	Requires    []string `json:"requires"`
+	// Headless: the Plugin has no UI of its own, so no bundle in the
+	// Release (no .ddapp) and no Widgets, Nav Entry, Pages, Concerns or
+	// Commands. It is only the Components it requires and their config
+	// forms, as a Notification channel's Plugin is.
+	Headless bool `json:"headless,omitempty"`
 }
 
 // ComponentEntry is one Component's component.yaml.

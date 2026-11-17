@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/components/telegram-api/telegramapipb"
@@ -35,16 +36,16 @@ func setUp(url string) *telegramapipb.TelegramApiConfig {
 	return &telegramapipb.TelegramApiConfig{Server: ptr(url), Token: telegramfake.DefaultToken, ChatId: telegramfake.DefaultChat}
 }
 
-func start(t *testing.T, cfg *telegramapipb.TelegramApiConfig) (*sdktest.Harness, telegramapipb.TelegramApiServiceClient) {
+func start(t *testing.T, cfg *telegramapipb.TelegramApiConfig) (*sdktest.Harness, notificationpb.ChannelServiceClient) {
 	t.Helper()
 	h := sdktest.New(t, telegramapi.Definition())
 	h.MustStart(cfg)
-	return h, telegramapipb.NewTelegramApiServiceClient(h.Conn)
+	return h, notificationpb.NewChannelServiceClient(h.Conn)
 }
 
-func send(t *testing.T, c telegramapipb.TelegramApiServiceClient, n *notificationpb.Notification) (*telegramapipb.SendResponse, error) {
+func send(t *testing.T, c notificationpb.ChannelServiceClient, n *notificationpb.Notification) (*notificationpb.DeliverResponse, error) {
 	t.Helper()
-	return c.Send(t.Context(), &telegramapipb.SendRequest{Notification: n})
+	return c.Deliver(t.Context(), &notificationpb.DeliverRequest{Notification: n, Category: notificationpb.Category_CATEGORY_CHECKS})
 }
 
 var down = &notificationpb.Notification{
@@ -55,17 +56,17 @@ var down = &notificationpb.Notification{
 	Click:    "https://ddash.home.example/checks/7",
 }
 
-func TestSendWritesTheNotificationToTheChatWithALinkToDdash(t *testing.T) {
+func TestDeliverWritesTheNotificationToTheChatWithALinkToDdash(t *testing.T) {
 	b, url := bot(t)
 	h, c := start(t, setUp(url))
 
 	resp, err := send(t, c, down)
 	if err != nil {
-		t.Fatalf("Send: %v", err)
+		t.Fatalf("Deliver: %v", err)
 	}
 
-	if resp.GetMessageId() != 1 {
-		t.Errorf("message id = %d, want Telegram's", resp.GetMessageId())
+	if resp.GetId() != "1" {
+		t.Errorf("message id = %q, want Telegram's", resp.GetId())
 	}
 	got := b.Messages()
 	if len(got) != 1 {
@@ -132,7 +133,7 @@ func TestALongMessageIsCutToTelegramsLimit(t *testing.T) {
 
 	n := &notificationpb.Notification{Title: "12 down", Message: strings.Repeat("NAS down: connection <refused>\n", 400), Click: "https://ddash.home.example/checks"}
 	if _, err := send(t, c, n); err != nil {
-		t.Fatalf("Send: %v", err)
+		t.Fatalf("Deliver: %v", err)
 	}
 
 	got := b.Messages()[0]
@@ -207,8 +208,8 @@ func TestSendTestWritesATestMessage(t *testing.T) {
 	b, url := bot(t)
 	_, c := start(t, setUp(url))
 
-	resp, err := c.SendTest(t.Context(), &telegramapipb.SendTestRequest{})
-	if err != nil || resp.GetMessageId() != 1 {
+	resp, err := c.SendTest(t.Context(), &notificationpb.SendTestRequest{})
+	if err != nil || resp.GetId() != "1" {
 		t.Fatalf("SendTest = %v, %v", resp, err)
 	}
 
@@ -218,37 +219,23 @@ func TestSendTestWritesATestMessage(t *testing.T) {
 	}
 }
 
-func TestWithoutTokenAndChatTelegramIsNotSetUp(t *testing.T) {
-	b, _ := bot(t)
-	h, c := start(t, &telegramapipb.TelegramApiConfig{})
-
-	if got := h.Health(); got.State != sdk.OK || got.Message != "not set up" {
-		t.Errorf("health = %v, want ok: not set up", got)
-	}
-	ch, err := c.GetChannel(t.Context(), &telegramapipb.GetChannelRequest{})
-	if err != nil || ch.GetSetUp() || ch.GetDestination() != "" {
-		t.Errorf("GetChannel = %v, %v, want not set up", ch, err)
-	}
-	for name, call := range map[string]func() error{
-		"Send":     func() error { _, err := send(t, c, down); return err },
-		"SendTest": func() error { _, err := c.SendTest(t.Context(), &telegramapipb.SendTestRequest{}); return err },
-	} {
-		if err := call(); status.Code(err) != codes.FailedPrecondition || !strings.Contains(status.Convert(err).Message(), "not set up") {
-			t.Errorf("%s = %v, want FailedPrecondition: not set up", name, err)
-		}
-	}
-	if got := b.Log(); len(got) != 0 {
-		t.Errorf("requests %v, want none", got)
-	}
-}
-
-func TestGetChannelNamesTheChat(t *testing.T) {
+func TestGetChannelNamesTheChatAndFilter(t *testing.T) {
 	_, url := bot(t)
-	_, c := start(t, setUp(url))
+	cfg := setUp(url)
+	cfg.Checks = ptr(false)
+	_, c := start(t, cfg)
 
-	ch, err := c.GetChannel(t.Context(), &telegramapipb.GetChannelRequest{})
-	if err != nil || !ch.GetSetUp() || ch.GetDestination() != "chat 123456789" {
-		t.Errorf("GetChannel = %v, %v, want set up to chat 123456789", ch, err)
+	ch, err := c.GetChannel(t.Context(), &notificationpb.GetChannelRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &notificationpb.GetChannelResponse{
+		Title:       "Telegram",
+		Destination: "chat 123456789",
+		Categories:  []notificationpb.Category{notificationpb.Category_CATEGORY_IMAGE_UPDATES, notificationpb.Category_CATEGORY_ACTION_OUTCOMES},
+	}
+	if diff := cmp.Diff(want, ch, protocmp.Transform()); diff != "" {
+		t.Errorf("GetChannel (-want +got):\n%s", diff)
 	}
 }
 
@@ -261,8 +248,8 @@ func TestABadConfigIsRefusedPerField(t *testing.T) {
 		{&telegramapipb.TelegramApiConfig{Server: ptr("ftp://api.telegram.org"), Token: token, ChatId: "1"}, "server", "must be an http or https URL"},
 		{&telegramapipb.TelegramApiConfig{Token: "not-a-token", ChatId: "1"}, "token", "must look like 123456789:AAH…, as @BotFather gave it"},
 		{&telegramapipb.TelegramApiConfig{Token: token, ChatId: "me"}, "chat_id", "must be a number (a group's starts with -) or a channel's @username"},
-		{&telegramapipb.TelegramApiConfig{Token: token}, "chat_id", "is required with a bot token"},
-		{&telegramapipb.TelegramApiConfig{ChatId: "-1001234567890"}, "token", "is required with a chat ID"},
+		{&telegramapipb.TelegramApiConfig{Token: token}, "chat_id", "must be a number (a group's starts with -) or a channel's @username"},
+		{&telegramapipb.TelegramApiConfig{ChatId: "-1001234567890"}, "token", "must look like 123456789:AAH…, as @BotFather gave it"},
 	} {
 		h := sdktest.New(t, telegramapi.Definition())
 		errs := sdk.FieldErrorsOf(h.Start(tc.cfg))

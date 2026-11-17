@@ -2,25 +2,25 @@
 // @generated from file ntfy-api/ntfy_api.proto (package ddash.ntfyapi, syntax proto3)
 /* eslint-disable */
 
-// ntfy-api publishes Notifications to one ntfy topic. It is only the
-// transport: what to send and when is the checks Component's.
+// ntfy-api is the ntfy channel: it serves ddash.notification.ChannelService
+// and publishes each Notification the core delivers to one ntfy topic. Only
+// the ntfy Plugin requires it.
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
-import type { Notification } from "../ddash/notification/notification_pb";
-import { file_ddash_notification_notification } from "../ddash/notification/notification_pb";
-import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ntfy-api/ntfy_api.proto.
  */
 export const file_ntfy_api_ntfy_api: GenFile = /*@__PURE__*/
-  fileDesc("ChdudGZ5LWFwaS9udGZ5X2FwaS5wcm90bxINZGRhc2gubnRmeWFwaSK0AwoNTnRmeUFwaUNvbmZpZxJhCgZzZXJ2ZXIYASABKAlCTJq1GEgKD2h0dHBzOi8vbnRmeS5zaCIzVGhlIG50Znkgc2VydmVyIHRoZSBwaG9uZSdzIG50ZnkgYXBwIHN1YnNjcmliZXMgdG8uOAFIAIgBARKuAQoFdG9waWMYAiABKAlCngGatRiZASKIAUxldHRlcnMsIGRpZ2l0cywgLSBhbmQgXywgYXQgbW9zdCA2NC4gT24gYSBzZXJ2ZXIgd2l0aG91dCBhY2Nlc3MgY29udHJvbCB0aGUgdG9waWMgbmFtZSBpcyB0aGUgb25seSBzZWNyZXQuIExlYXZlIGVtcHR5IHRvIG5vdCB1c2UgbnRmeS4qDGRkYXNoLWFsZXJ0cxJ0CgV0b2tlbhgDIAEoCUJlmrUYYRABGgxBY2Nlc3MgdG9rZW4iT0EgdG9rZW4gKHRrX+KApikgd2l0aCB3cml0ZSBhY2Nlc3MgdG8gdGhlIHRvcGljLiBMZWF2ZSBlbXB0eSBmb3IgYW4gb3BlbiB0b3BpYy46Dqq1GAoSCFNlbmRUZXN0QgkKB19zZXJ2ZXIiRQoLU2VuZFJlcXVlc3QSNgoMbm90aWZpY2F0aW9uGAEgASgLMiAuZGRhc2gubm90aWZpY2F0aW9uLk5vdGlmaWNhdGlvbiIaCgxTZW5kUmVzcG9uc2USCgoCaWQYASABKAkiEQoPU2VuZFRlc3RSZXF1ZXN0Ih4KEFNlbmRUZXN0UmVzcG9uc2USCgoCaWQYASABKAkiEwoRR2V0Q2hhbm5lbFJlcXVlc3QiOQoSR2V0Q2hhbm5lbFJlc3BvbnNlEg4KBnNldF91cBgBIAEoCBITCgtkZXN0aW5hdGlvbhgCIAEoCTKDAgoOTnRmeUFwaVNlcnZpY2USRQoEU2VuZBIaLmRkYXNoLm50ZnlhcGkuU2VuZFJlcXVlc3QaGy5kZGFzaC5udGZ5YXBpLlNlbmRSZXNwb25zZSIEkrUYABJRCghTZW5kVGVzdBIeLmRkYXNoLm50ZnlhcGkuU2VuZFRlc3RSZXF1ZXN0Gh8uZGRhc2gubnRmeWFwaS5TZW5kVGVzdFJlc3BvbnNlIgSStRgAElcKCkdldENoYW5uZWwSIC5kZGFzaC5udGZ5YXBpLkdldENoYW5uZWxSZXF1ZXN0GiEuZGRhc2gubnRmeWFwaS5HZXRDaGFubmVsUmVzcG9uc2UiBIq1GABCRFpCZ2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9udGZ5LWFwaS9udGZ5YXBpcGI7bnRmeWFwaXBiYgZwcm90bzM", [file_ddash_config_config, file_ddash_notification_notification, file_ddash_options]);
+  fileDesc("ChdudGZ5LWFwaS9udGZ5X2FwaS5wcm90bxINZGRhc2gubnRmeWFwaSKsBgoNTnRmeUFwaUNvbmZpZxJhCgZzZXJ2ZXIYASABKAlCTJq1GEgKD2h0dHBzOi8vbnRmeS5zaCIzVGhlIG50Znkgc2VydmVyIHRoZSBwaG9uZSdzIG50ZnkgYXBwIHN1YnNjcmliZXMgdG8uOAFIAIgBARKRAQoFdG9waWMYAiABKAlCgQGatRh9ImtMZXR0ZXJzLCBkaWdpdHMsIC0gYW5kIF8sIGF0IG1vc3QgNjQuIE9uIGEgc2VydmVyIHdpdGhvdXQgYWNjZXNzIGNvbnRyb2wgdGhlIHRvcGljIG5hbWUgaXMgdGhlIG9ubHkgc2VjcmV0LioMZGRhc2gtYWxlcnRzMAESdAoFdG9rZW4YAyABKAlCZZq1GGEQARoMQWNjZXNzIHRva2VuIk9BIHRva2VuICh0a1/igKYpIHdpdGggd3JpdGUgYWNjZXNzIHRvIHRoZSB0b3BpYy4gTGVhdmUgZW1wdHkgZm9yIGFuIG9wZW4gdG9waWMuEm8KBmNoZWNrcxgEIAEoCEJamrUYVgoEdHJ1ZRoGQ2hlY2tzIkZBIENoZWNrIGdvaW5nIGRvd24gb3IgdXAgYWdhaW4sIEZsYXBwaW5nLCBvciBpdHMgY2VydGlmaWNhdGUgZXhwaXJpbmcuSAGIAQESdwoNaW1hZ2VfdXBkYXRlcxgFIAEoCEJbmrUYVwoEdHJ1ZRoNSW1hZ2UgdXBkYXRlcyJAQSBydW5uaW5nIGNvbnRhaW5lcidzIGltYWdlIGhhcyBhIG5ld2VyIHZlcnNpb24gaW4gaXRzIHJlZ2lzdHJ5LkgCiAEBEngKD2FjdGlvbl9vdXRjb21lcxgGIAEoCEJamrUYVgoEdHJ1ZRoPQWN0aW9uIG91dGNvbWVzIj1Ib3cgYSBsb25nIEFjdGlvbiBlbmRlZCwgc3VjaCBhcyBwYWNrYWdlIHVwZGF0ZXMgb3IgYSBiYWNrdXAuSAOIAQE6Dqq1GAoSCFNlbmRUZXN0QgkKB19zZXJ2ZXJCCQoHX2NoZWNrc0IQCg5faW1hZ2VfdXBkYXRlc0ISChBfYWN0aW9uX291dGNvbWVzQkRaQmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvbnRmeS1hcGkvbnRmeWFwaXBiO250ZnlhcGlwYmIGcHJvdG8z", [file_ddash_config_config]);
 
 /**
- * Without a topic is valid: ntfy is then not set up, and Send refuses.
+ * The topic is required: to not use ntfy, uninstall the ntfy Plugin. The
+ * filter's fields (checks, image_updates, action_outcomes) mean the same
+ * in every channel's config (components/internal/channel).
  *
  * @generated from message ddash.ntfyapi.NtfyApiConfig
  */
@@ -46,6 +46,21 @@ export type NtfyApiConfig = Message<"ddash.ntfyapi.NtfyApiConfig"> & {
    * @generated from field: string token = 3;
    */
   token: string;
+
+  /**
+   * @generated from field: optional bool checks = 4;
+   */
+  checks?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool image_updates = 5;
+   */
+  imageUpdates?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool action_outcomes = 6;
+   */
+  actionOutcomes?: boolean | undefined;
 };
 
 /**
@@ -54,152 +69,4 @@ export type NtfyApiConfig = Message<"ddash.ntfyapi.NtfyApiConfig"> & {
  */
 export const NtfyApiConfigSchema: GenMessage<NtfyApiConfig> = /*@__PURE__*/
   messageDesc(file_ntfy_api_ntfy_api, 0);
-
-/**
- * @generated from message ddash.ntfyapi.SendRequest
- */
-export type SendRequest = Message<"ddash.ntfyapi.SendRequest"> & {
-  /**
-   * @generated from field: ddash.notification.Notification notification = 1;
-   */
-  notification?: Notification | undefined;
-};
-
-/**
- * Describes the message ddash.ntfyapi.SendRequest.
- * Use `create(SendRequestSchema)` to create a new message.
- */
-export const SendRequestSchema: GenMessage<SendRequest> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 1);
-
-/**
- * @generated from message ddash.ntfyapi.SendResponse
- */
-export type SendResponse = Message<"ddash.ntfyapi.SendResponse"> & {
-  /**
-   * The id ntfy gave the message.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-};
-
-/**
- * Describes the message ddash.ntfyapi.SendResponse.
- * Use `create(SendResponseSchema)` to create a new message.
- */
-export const SendResponseSchema: GenMessage<SendResponse> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 2);
-
-/**
- * @generated from message ddash.ntfyapi.SendTestRequest
- */
-export type SendTestRequest = Message<"ddash.ntfyapi.SendTestRequest"> & {
-};
-
-/**
- * Describes the message ddash.ntfyapi.SendTestRequest.
- * Use `create(SendTestRequestSchema)` to create a new message.
- */
-export const SendTestRequestSchema: GenMessage<SendTestRequest> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 3);
-
-/**
- * @generated from message ddash.ntfyapi.SendTestResponse
- */
-export type SendTestResponse = Message<"ddash.ntfyapi.SendTestResponse"> & {
-  /**
-   * The id ntfy gave the message.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-};
-
-/**
- * Describes the message ddash.ntfyapi.SendTestResponse.
- * Use `create(SendTestResponseSchema)` to create a new message.
- */
-export const SendTestResponseSchema: GenMessage<SendTestResponse> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 4);
-
-/**
- * @generated from message ddash.ntfyapi.GetChannelRequest
- */
-export type GetChannelRequest = Message<"ddash.ntfyapi.GetChannelRequest"> & {
-};
-
-/**
- * Describes the message ddash.ntfyapi.GetChannelRequest.
- * Use `create(GetChannelRequestSchema)` to create a new message.
- */
-export const GetChannelRequestSchema: GenMessage<GetChannelRequest> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 5);
-
-/**
- * @generated from message ddash.ntfyapi.GetChannelResponse
- */
-export type GetChannelResponse = Message<"ddash.ntfyapi.GetChannelResponse"> & {
-  /**
-   * A topic is set.
-   *
-   * @generated from field: bool set_up = 1;
-   */
-  setUp: boolean;
-
-  /**
-   * Where Notifications go: the server's host and the topic, e.g.
-   * "ntfy.sh/ddash-alerts"; empty while not set up.
-   *
-   * @generated from field: string destination = 2;
-   */
-  destination: string;
-};
-
-/**
- * Describes the message ddash.ntfyapi.GetChannelResponse.
- * Use `create(GetChannelResponseSchema)` to create a new message.
- */
-export const GetChannelResponseSchema: GenMessage<GetChannelResponse> = /*@__PURE__*/
-  messageDesc(file_ntfy_api_ntfy_api, 6);
-
-/**
- * @generated from service ddash.ntfyapi.NtfyApiService
- */
-export const NtfyApiService: GenService<{
-  /**
-   * Send publishes one Notification to the topic. It fails with
-   * FailedPrecondition while ntfy is not set up.
-   *
-   * @generated from rpc ddash.ntfyapi.NtfyApiService.Send
-   */
-  send: {
-    methodKind: "unary";
-    input: typeof SendRequestSchema;
-    output: typeof SendResponseSchema;
-  },
-  /**
-   * SendTest publishes a test Notification, so the Operator sees that
-   * Notifications reach the phone. It is the config form's test_action.
-   *
-   * @generated from rpc ddash.ntfyapi.NtfyApiService.SendTest
-   */
-  sendTest: {
-    methodKind: "unary";
-    input: typeof SendTestRequestSchema;
-    output: typeof SendTestResponseSchema;
-  },
-  /**
-   * GetChannel says whether ntfy is set up and where Notifications go,
-   * from the config alone.
-   *
-   * @generated from rpc ddash.ntfyapi.NtfyApiService.GetChannel
-   */
-  getChannel: {
-    methodKind: "unary";
-    input: typeof GetChannelRequestSchema;
-    output: typeof GetChannelResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_ntfy_api_ntfy_api, 0);
 

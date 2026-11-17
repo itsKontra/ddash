@@ -12,6 +12,8 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Channel } from "../ddash/notification/notification_pb";
+import { file_ddash_notification_notification } from "../ddash/notification/notification_pb";
 import { file_ddash_options } from "../ddash/options_pb";
 import type { WorkloadRef } from "../ddash/workload/workload_pb";
 import { file_ddash_workload_workload } from "../ddash/workload/workload_pb";
@@ -23,7 +25,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file checks/checks.proto.
  */
 export const file_checks_checks: GenFile = /*@__PURE__*/
-  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnInUKCUNoZWNrU3BlYxIMCgRuYW1lGAEgASgJEiUKBHR5cGUYAiABKA4yFy5kZGFzaC5jaGVja3MuQ2hlY2tUeXBlEg4KBnRhcmdldBgDIAEoCRIjCgNkbnMYBCABKAsyFi5kZGFzaC5jaGVja3MuRG5zUXVlcnkiRwoIRG5zUXVlcnkSDAoEbmFtZRgBIAEoCRItCgtyZWNvcmRfdHlwZRgCIAEoDjIYLmRkYXNoLmNoZWNrcy5SZWNvcmRUeXBlIvQDCgVDaGVjaxIKCgJpZBgBIAEoAxIlCgRzcGVjGAIgASgLMhcuZGRhc2guY2hlY2tzLkNoZWNrU3BlYxIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIpCgVzaW5jZRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLQoJbGFzdF9iZWF0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBISCgpsYXRlbmN5X21zGAYgASgBEg4KBnJlYXNvbhgHIAEoCRIQCghmYWlsdXJlcxgIIAEoBRINCgVtdXRlZBgJIAEoCBIQCghkaXNhYmxlZBgKIAEoCBITCgttYWludGVuYW5jZRgLIAEoCBIOCgZhcHBfaWQYDCABKAkSMAoMY2VydF9leHBpcmVzGA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIVCg1jZXJ0X2V4cGlyaW5nGA4gASgIEi0KCHdvcmtsb2FkGA8gASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYSNAoQbWFpbnRlbmFuY2VfZW5kcxgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIZmxhcHBpbmcYESABKAgiEwoRTGlzdENoZWNrc1JlcXVlc3QiOQoSTGlzdENoZWNrc1Jlc3BvbnNlEiMKBmNoZWNrcxgBIAMoCzITLmRkYXNoLmNoZWNrcy5DaGVjayI7ChJDcmVhdGVDaGVja1JlcXVlc3QSJQoEc3BlYxgBIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMiOQoTQ3JlYXRlQ2hlY2tSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayJHChJVcGRhdGVDaGVja1JlcXVlc3QSCgoCaWQYASABKAMSJQoEc3BlYxgCIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMiOQoTVXBkYXRlQ2hlY2tSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayIgChJEZWxldGVDaGVja1JlcXVlc3QSCgoCaWQYASABKAMiFQoTRGVsZXRlQ2hlY2tSZXNwb25zZSIsCg9TZXRNdXRlZFJlcXVlc3QSCgoCaWQYASABKAMSDQoFbXV0ZWQYAiABKAgiNgoQU2V0TXV0ZWRSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayIyChJTZXREaXNhYmxlZFJlcXVlc3QSCgoCaWQYASABKAMSEAoIZGlzYWJsZWQYAiABKAgiOQoTU2V0RGlzYWJsZWRSZXNwb25zZRIiCgVjaGVjaxgBIAEoCzITLmRkYXNoLmNoZWNrcy5DaGVjayI5CgdMYXRlbmN5Eg4KBmF2Z19tcxgBIAEoARIOCgZtaW5fbXMYAiABKAESDgoGbWF4X21zGAMgASgBIrQBCgZVcHRpbWUSJAoGd2luZG93GAEgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdxISCgVyYXRpbxgCIAEoAUgAiAEBEgoKAnVwGAMgASgDEgwKBGRvd24YBCABKAMSEwoLbWFpbnRlbmFuY2UYBSABKAMSJgoHbGF0ZW5jeRgGIAEoCzIVLmRkYXNoLmNoZWNrcy5MYXRlbmN5Eg8KB3BlbmRpbmcYByABKANCCAoGX3JhdGlvIpsBCgZCdWNrZXQSKQoFc3RhcnQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAnVwGAIgASgDEgwKBGRvd24YAyABKAMSEwoLbWFpbnRlbmFuY2UYBCABKAMSJgoHbGF0ZW5jeRgFIAEoCzIVLmRkYXNoLmNoZWNrcy5MYXRlbmN5Eg8KB3BlbmRpbmcYBiABKAMiqAEKBEJlYXQSJgoCYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEgoKAnVwGAIgASgIEiIKBXN0YXRlGAMgASgOMhMuZGRhc2guY2hlY2tzLlN0YXRlEg8KB2NoYW5nZWQYBCABKAgSEgoKbGF0ZW5jeV9tcxgFIAEoARIOCgZyZWFzb24YBiABKAkSEwoLbWFpbnRlbmFuY2UYByABKAgiRQoRR2V0SGlzdG9yeVJlcXVlc3QSCgoCaWQYASABKAMSJAoGd2luZG93GAIgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdyKBAgoSR2V0SGlzdG9yeVJlc3BvbnNlEiQKBnVwdGltZRgBIAMoCzIULmRkYXNoLmNoZWNrcy5VcHRpbWUSJAoGd2luZG93GAIgASgOMhQuZGRhc2guY2hlY2tzLldpbmRvdxIpCgZidWNrZXQYAyABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SKAoEZnJvbRgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJQoHYnVja2V0cxgFIAMoCzIULmRkYXNoLmNoZWNrcy5CdWNrZXQSIwoHY2hhbmdlcxgGIAMoCzISLmRkYXNoLmNoZWNrcy5CZWF0IkkKEExpc3RCZWF0c1JlcXVlc3QSCgoCaWQYASABKAMSKQoFc2luY2UYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIjYKEUxpc3RCZWF0c1Jlc3BvbnNlEiEKBWJlYXRzGAEgAygLMhIuZGRhc2guY2hlY2tzLkJlYXQidQoIQXBwQ2hlY2sSDgoGYXBwX2lkGAEgASgJEgwKBG5hbWUYAiABKAkSCwoDdXJsGAMgASgJEg8KB2VuYWJsZWQYBCABKAgSLQoId29ya2xvYWQYBSABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZiI9ChNTZXRBcHBDaGVja3NSZXF1ZXN0EiYKBmNoZWNrcxgBIAMoCzIWLmRkYXNoLmNoZWNrcy5BcHBDaGVjayIWChRTZXRBcHBDaGVja3NSZXNwb25zZSJ2ChBNYWludGVuYW5jZVNjb3BlEhIKCGNoZWNrX2lkGAEgASgDSAASLwoId29ya2xvYWQYAiABKAsyGy5kZGFzaC53b3JrbG9hZC5Xb3JrbG9hZFJlZkgAEhQKCmV2ZXJ5dGhpbmcYAyABKAhIAEIHCgVzY29wZSKlAQoLTWFpbnRlbmFuY2USLQoFc2NvcGUYASABKAsyHi5kZGFzaC5jaGVja3MuTWFpbnRlbmFuY2VTY29wZRIrCgdzdGFydGVkGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoCgRlbmRzGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIQCgh1bnRpbF91cBgEIAEoCCKHAQoXU3RhcnRNYWludGVuYW5jZVJlcXVlc3QSLQoFc2NvcGUYASABKAsyHi5kZGFzaC5jaGVja3MuTWFpbnRlbmFuY2VTY29wZRIrCghkdXJhdGlvbhgCIAEoCzIZLmdvb2dsZS5wcm90b2J1Zi5EdXJhdGlvbhIQCgh1bnRpbF91cBgDIAEoCCJKChhTdGFydE1haW50ZW5hbmNlUmVzcG9uc2USLgoLbWFpbnRlbmFuY2UYASABKAsyGS5kZGFzaC5jaGVja3MuTWFpbnRlbmFuY2UiRgoVRW5kTWFpbnRlbmFuY2VSZXF1ZXN0Ei0KBXNjb3BlGAEgASgLMh4uZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlU2NvcGUiGAoWRW5kTWFpbnRlbmFuY2VSZXNwb25zZSJACg9Qcm9iZU5vd1JlcXVlc3QSLQoFc2NvcGUYASABKAsyHi5kZGFzaC5jaGVja3MuTWFpbnRlbmFuY2VTY29wZSISChBQcm9iZU5vd1Jlc3BvbnNlIhgKFkxpc3RNYWludGVuYW5jZVJlcXVlc3QiSQoXTGlzdE1haW50ZW5hbmNlUmVzcG9uc2USLgoLbWFpbnRlbmFuY2UYASADKAsyGS5kZGFzaC5jaGVja3MuTWFpbnRlbmFuY2UicgoSUmVwb3J0U3RhdGVSZXF1ZXN0EgwKBGl0ZW0YASABKAkSDAoEbmFtZRgCIAEoCRIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIOCgZyZWFzb24YBCABKAkSDAoEcGF0aBgFIAEoCSIVChNSZXBvcnRTdGF0ZVJlc3BvbnNlKnkKCUNoZWNrVHlwZRIaChZDSEVDS19UWVBFX1VOU1BFQ0lGSUVEEAASEgoOQ0hFQ0tfVFlQRV9UQ1AQARITCg9DSEVDS19UWVBFX0lDTVAQAhISCg5DSEVDS19UWVBFX0ROUxADEhMKD0NIRUNLX1RZUEVfSFRUUBAEKo8BCgpSZWNvcmRUeXBlEhsKF1JFQ09SRF9UWVBFX1VOU1BFQ0lGSUVEEAASEQoNUkVDT1JEX1RZUEVfQRABEhQKEFJFQ09SRF9UWVBFX0FBQUEQAhISCg5SRUNPUkRfVFlQRV9NWBADEhIKDlJFQ09SRF9UWVBFX05TEAQSEwoPUkVDT1JEX1RZUEVfVFhUEAUqTwoFU3RhdGUSFQoRU1RBVEVfVU5TUEVDSUZJRUQQABIRCg1TVEFURV9QRU5ESU5HEAESDAoIU1RBVEVfVVAQAhIOCgpTVEFURV9ET1dOEAMqUQoGV2luZG93EhYKEldJTkRPV19VTlNQRUNJRklFRBAAEg4KCldJTkRPV18yNEgQARIOCgpXSU5ET1dfMzBEEAISDwoLV0lORE9XXzM2NUQQAzKKCgoNQ2hlY2tzU2VydmljZRJXCgpMaXN0Q2hlY2tzEh8uZGRhc2guY2hlY2tzLkxpc3RDaGVja3NSZXF1ZXN0GiAuZGRhc2guY2hlY2tzLkxpc3RDaGVja3NSZXNwb25zZSIGirUYAggCElgKC0NyZWF0ZUNoZWNrEiAuZGRhc2guY2hlY2tzLkNyZWF0ZUNoZWNrUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5DcmVhdGVDaGVja1Jlc3BvbnNlIgSStRgAElgKC1VwZGF0ZUNoZWNrEiAuZGRhc2guY2hlY2tzLlVwZGF0ZUNoZWNrUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5VcGRhdGVDaGVja1Jlc3BvbnNlIgSStRgAEloKC0RlbGV0ZUNoZWNrEiAuZGRhc2guY2hlY2tzLkRlbGV0ZUNoZWNrUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5EZWxldGVDaGVja1Jlc3BvbnNlIgaStRgCCAESTwoIU2V0TXV0ZWQSHS5kZGFzaC5jaGVja3MuU2V0TXV0ZWRSZXF1ZXN0Gh4uZGRhc2guY2hlY2tzLlNldE11dGVkUmVzcG9uc2UiBJK1GAASWAoLU2V0RGlzYWJsZWQSIC5kZGFzaC5jaGVja3MuU2V0RGlzYWJsZWRSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLlNldERpc2FibGVkUmVzcG9uc2UiBJK1GAASVQoKR2V0SGlzdG9yeRIfLmRkYXNoLmNoZWNrcy5HZXRIaXN0b3J5UmVxdWVzdBogLmRkYXNoLmNoZWNrcy5HZXRIaXN0b3J5UmVzcG9uc2UiBIq1GAASUgoJTGlzdEJlYXRzEh4uZGRhc2guY2hlY2tzLkxpc3RCZWF0c1JlcXVlc3QaHy5kZGFzaC5jaGVja3MuTGlzdEJlYXRzUmVzcG9uc2UiBIq1GAASWwoMU2V0QXBwQ2hlY2tzEiEuZGRhc2guY2hlY2tzLlNldEFwcENoZWNrc1JlcXVlc3QaIi5kZGFzaC5jaGVja3MuU2V0QXBwQ2hlY2tzUmVzcG9uc2UiBJK1GAASZwoQU3RhcnRNYWludGVuYW5jZRIlLmRkYXNoLmNoZWNrcy5TdGFydE1haW50ZW5hbmNlUmVxdWVzdBomLmRkYXNoLmNoZWNrcy5TdGFydE1haW50ZW5hbmNlUmVzcG9uc2UiBJK1GAASYQoORW5kTWFpbnRlbmFuY2USIy5kZGFzaC5jaGVja3MuRW5kTWFpbnRlbmFuY2VSZXF1ZXN0GiQuZGRhc2guY2hlY2tzLkVuZE1haW50ZW5hbmNlUmVzcG9uc2UiBJK1GAASZgoPTGlzdE1haW50ZW5hbmNlEiQuZGRhc2guY2hlY2tzLkxpc3RNYWludGVuYW5jZVJlcXVlc3QaJS5kZGFzaC5jaGVja3MuTGlzdE1haW50ZW5hbmNlUmVzcG9uc2UiBoq1GAIIAhJPCghQcm9iZU5vdxIdLmRkYXNoLmNoZWNrcy5Qcm9iZU5vd1JlcXVlc3QaHi5kZGFzaC5jaGVja3MuUHJvYmVOb3dSZXNwb25zZSIEkrUYABJYCgtSZXBvcnRTdGF0ZRIgLmRkYXNoLmNoZWNrcy5SZXBvcnRTdGF0ZVJlcXVlc3QaIS5kZGFzaC5jaGVja3MuUmVwb3J0U3RhdGVSZXNwb25zZSIEkrUYAEJAWj5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2NoZWNrcy9jaGVja3NwYjtjaGVja3NwYmIGcHJvdG8z", [file_ddash_options, file_ddash_workload_workload, file_google_protobuf_duration, file_google_protobuf_timestamp]);
+  fileDesc("ChNjaGVja3MvY2hlY2tzLnByb3RvEgxkZGFzaC5jaGVja3MiDgoMQ2hlY2tzQ29uZmlnIhUKE0xpc3RDaGFubmVsc1JlcXVlc3QiRQoUTGlzdENoYW5uZWxzUmVzcG9uc2USLQoIY2hhbm5lbHMYASADKAsyGy5kZGFzaC5ub3RpZmljYXRpb24uQ2hhbm5lbCJ1CglDaGVja1NwZWMSDAoEbmFtZRgBIAEoCRIlCgR0eXBlGAIgASgOMhcuZGRhc2guY2hlY2tzLkNoZWNrVHlwZRIOCgZ0YXJnZXQYAyABKAkSIwoDZG5zGAQgASgLMhYuZGRhc2guY2hlY2tzLkRuc1F1ZXJ5IkcKCERuc1F1ZXJ5EgwKBG5hbWUYASABKAkSLQoLcmVjb3JkX3R5cGUYAiABKA4yGC5kZGFzaC5jaGVja3MuUmVjb3JkVHlwZSL0AwoFQ2hlY2sSCgoCaWQYASABKAMSJQoEc3BlYxgCIAEoCzIXLmRkYXNoLmNoZWNrcy5DaGVja1NwZWMSIgoFc3RhdGUYAyABKA4yEy5kZGFzaC5jaGVja3MuU3RhdGUSKQoFc2luY2UYBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi0KCWxhc3RfYmVhdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEgoKbGF0ZW5jeV9tcxgGIAEoARIOCgZyZWFzb24YByABKAkSEAoIZmFpbHVyZXMYCCABKAUSDQoFbXV0ZWQYCSABKAgSEAoIZGlzYWJsZWQYCiABKAgSEwoLbWFpbnRlbmFuY2UYCyABKAgSDgoGYXBwX2lkGAwgASgJEjAKDGNlcnRfZXhwaXJlcxgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNY2VydF9leHBpcmluZxgOIAEoCBItCgh3b3JrbG9hZBgPIAEoCzIbLmRkYXNoLndvcmtsb2FkLldvcmtsb2FkUmVmEjQKEG1haW50ZW5hbmNlX2VuZHMYECABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCGZsYXBwaW5nGBEgASgIIhMKEUxpc3RDaGVja3NSZXF1ZXN0IjkKEkxpc3RDaGVja3NSZXNwb25zZRIjCgZjaGVja3MYASADKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siOwoSQ3JlYXRlQ2hlY2tSZXF1ZXN0EiUKBHNwZWMYASABKAsyFy5kZGFzaC5jaGVja3MuQ2hlY2tTcGVjIjkKE0NyZWF0ZUNoZWNrUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siRwoSVXBkYXRlQ2hlY2tSZXF1ZXN0EgoKAmlkGAEgASgDEiUKBHNwZWMYAiABKAsyFy5kZGFzaC5jaGVja3MuQ2hlY2tTcGVjIjkKE1VwZGF0ZUNoZWNrUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siIAoSRGVsZXRlQ2hlY2tSZXF1ZXN0EgoKAmlkGAEgASgDIhUKE0RlbGV0ZUNoZWNrUmVzcG9uc2UiLAoPU2V0TXV0ZWRSZXF1ZXN0EgoKAmlkGAEgASgDEg0KBW11dGVkGAIgASgIIjYKEFNldE11dGVkUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siMgoSU2V0RGlzYWJsZWRSZXF1ZXN0EgoKAmlkGAEgASgDEhAKCGRpc2FibGVkGAIgASgIIjkKE1NldERpc2FibGVkUmVzcG9uc2USIgoFY2hlY2sYASABKAsyEy5kZGFzaC5jaGVja3MuQ2hlY2siOQoHTGF0ZW5jeRIOCgZhdmdfbXMYASABKAESDgoGbWluX21zGAIgASgBEg4KBm1heF9tcxgDIAEoASK0AQoGVXB0aW1lEiQKBndpbmRvdxgBIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cSEgoFcmF0aW8YAiABKAFIAIgBARIKCgJ1cBgDIAEoAxIMCgRkb3duGAQgASgDEhMKC21haW50ZW5hbmNlGAUgASgDEiYKB2xhdGVuY3kYBiABKAsyFS5kZGFzaC5jaGVja3MuTGF0ZW5jeRIPCgdwZW5kaW5nGAcgASgDQggKBl9yYXRpbyKbAQoGQnVja2V0EikKBXN0YXJ0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIKCgJ1cBgCIAEoAxIMCgRkb3duGAMgASgDEhMKC21haW50ZW5hbmNlGAQgASgDEiYKB2xhdGVuY3kYBSABKAsyFS5kZGFzaC5jaGVja3MuTGF0ZW5jeRIPCgdwZW5kaW5nGAYgASgDIqgBCgRCZWF0EiYKAmF0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIKCgJ1cBgCIAEoCBIiCgVzdGF0ZRgDIAEoDjITLmRkYXNoLmNoZWNrcy5TdGF0ZRIPCgdjaGFuZ2VkGAQgASgIEhIKCmxhdGVuY3lfbXMYBSABKAESDgoGcmVhc29uGAYgASgJEhMKC21haW50ZW5hbmNlGAcgASgIIkUKEUdldEhpc3RvcnlSZXF1ZXN0EgoKAmlkGAEgASgDEiQKBndpbmRvdxgCIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cigQIKEkdldEhpc3RvcnlSZXNwb25zZRIkCgZ1cHRpbWUYASADKAsyFC5kZGFzaC5jaGVja3MuVXB0aW1lEiQKBndpbmRvdxgCIAEoDjIULmRkYXNoLmNoZWNrcy5XaW5kb3cSKQoGYnVja2V0GAMgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uEigKBGZyb20YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiUKB2J1Y2tldHMYBSADKAsyFC5kZGFzaC5jaGVja3MuQnVja2V0EiMKB2NoYW5nZXMYBiADKAsyEi5kZGFzaC5jaGVja3MuQmVhdCJJChBMaXN0QmVhdHNSZXF1ZXN0EgoKAmlkGAEgASgDEikKBXNpbmNlGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCI2ChFMaXN0QmVhdHNSZXNwb25zZRIhCgViZWF0cxgBIAMoCzISLmRkYXNoLmNoZWNrcy5CZWF0InUKCEFwcENoZWNrEg4KBmFwcF9pZBgBIAEoCRIMCgRuYW1lGAIgASgJEgsKA3VybBgDIAEoCRIPCgdlbmFibGVkGAQgASgIEi0KCHdvcmtsb2FkGAUgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWYiPQoTU2V0QXBwQ2hlY2tzUmVxdWVzdBImCgZjaGVja3MYASADKAsyFi5kZGFzaC5jaGVja3MuQXBwQ2hlY2siFgoUU2V0QXBwQ2hlY2tzUmVzcG9uc2UidgoQTWFpbnRlbmFuY2VTY29wZRISCghjaGVja19pZBgBIAEoA0gAEi8KCHdvcmtsb2FkGAIgASgLMhsuZGRhc2gud29ya2xvYWQuV29ya2xvYWRSZWZIABIUCgpldmVyeXRoaW5nGAMgASgISABCBwoFc2NvcGUipQEKC01haW50ZW5hbmNlEi0KBXNjb3BlGAEgASgLMh4uZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlU2NvcGUSKwoHc3RhcnRlZBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKAoEZW5kcxgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIdW50aWxfdXAYBCABKAgihwEKF1N0YXJ0TWFpbnRlbmFuY2VSZXF1ZXN0Ei0KBXNjb3BlGAEgASgLMh4uZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlU2NvcGUSKwoIZHVyYXRpb24YAiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb24SEAoIdW50aWxfdXAYAyABKAgiSgoYU3RhcnRNYWludGVuYW5jZVJlc3BvbnNlEi4KC21haW50ZW5hbmNlGAEgASgLMhkuZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlIkYKFUVuZE1haW50ZW5hbmNlUmVxdWVzdBItCgVzY29wZRgBIAEoCzIeLmRkYXNoLmNoZWNrcy5NYWludGVuYW5jZVNjb3BlIhgKFkVuZE1haW50ZW5hbmNlUmVzcG9uc2UiQAoPUHJvYmVOb3dSZXF1ZXN0Ei0KBXNjb3BlGAEgASgLMh4uZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlU2NvcGUiEgoQUHJvYmVOb3dSZXNwb25zZSIYChZMaXN0TWFpbnRlbmFuY2VSZXF1ZXN0IkkKF0xpc3RNYWludGVuYW5jZVJlc3BvbnNlEi4KC21haW50ZW5hbmNlGAEgAygLMhkuZGRhc2guY2hlY2tzLk1haW50ZW5hbmNlInIKElJlcG9ydFN0YXRlUmVxdWVzdBIMCgRpdGVtGAEgASgJEgwKBG5hbWUYAiABKAkSIgoFc3RhdGUYAyABKA4yEy5kZGFzaC5jaGVja3MuU3RhdGUSDgoGcmVhc29uGAQgASgJEgwKBHBhdGgYBSABKAkiFQoTUmVwb3J0U3RhdGVSZXNwb25zZSp5CglDaGVja1R5cGUSGgoWQ0hFQ0tfVFlQRV9VTlNQRUNJRklFRBAAEhIKDkNIRUNLX1RZUEVfVENQEAESEwoPQ0hFQ0tfVFlQRV9JQ01QEAISEgoOQ0hFQ0tfVFlQRV9ETlMQAxITCg9DSEVDS19UWVBFX0hUVFAQBCqPAQoKUmVjb3JkVHlwZRIbChdSRUNPUkRfVFlQRV9VTlNQRUNJRklFRBAAEhEKDVJFQ09SRF9UWVBFX0EQARIUChBSRUNPUkRfVFlQRV9BQUFBEAISEgoOUkVDT1JEX1RZUEVfTVgQAxISCg5SRUNPUkRfVFlQRV9OUxAEEhMKD1JFQ09SRF9UWVBFX1RYVBAFKk8KBVN0YXRlEhUKEVNUQVRFX1VOU1BFQ0lGSUVEEAASEQoNU1RBVEVfUEVORElORxABEgwKCFNUQVRFX1VQEAISDgoKU1RBVEVfRE9XThADKlEKBldpbmRvdxIWChJXSU5ET1dfVU5TUEVDSUZJRUQQABIOCgpXSU5ET1dfMjRIEAESDgoKV0lORE9XXzMwRBACEg8KC1dJTkRPV18zNjVEEAMy5woKDUNoZWNrc1NlcnZpY2USVwoKTGlzdENoZWNrcxIfLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVxdWVzdBogLmRkYXNoLmNoZWNrcy5MaXN0Q2hlY2tzUmVzcG9uc2UiBoq1GAIIAhJYCgtDcmVhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5DcmVhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuQ3JlYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJYCgtVcGRhdGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5VcGRhdGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuVXBkYXRlQ2hlY2tSZXNwb25zZSIEkrUYABJaCgtEZWxldGVDaGVjaxIgLmRkYXNoLmNoZWNrcy5EZWxldGVDaGVja1JlcXVlc3QaIS5kZGFzaC5jaGVja3MuRGVsZXRlQ2hlY2tSZXNwb25zZSIGkrUYAggBEk8KCFNldE11dGVkEh0uZGRhc2guY2hlY2tzLlNldE11dGVkUmVxdWVzdBoeLmRkYXNoLmNoZWNrcy5TZXRNdXRlZFJlc3BvbnNlIgSStRgAElgKC1NldERpc2FibGVkEiAuZGRhc2guY2hlY2tzLlNldERpc2FibGVkUmVxdWVzdBohLmRkYXNoLmNoZWNrcy5TZXREaXNhYmxlZFJlc3BvbnNlIgSStRgAElUKCkdldEhpc3RvcnkSHy5kZGFzaC5jaGVja3MuR2V0SGlzdG9yeVJlcXVlc3QaIC5kZGFzaC5jaGVja3MuR2V0SGlzdG9yeVJlc3BvbnNlIgSKtRgAElIKCUxpc3RCZWF0cxIeLmRkYXNoLmNoZWNrcy5MaXN0QmVhdHNSZXF1ZXN0Gh8uZGRhc2guY2hlY2tzLkxpc3RCZWF0c1Jlc3BvbnNlIgSKtRgAElsKDFNldEFwcENoZWNrcxIhLmRkYXNoLmNoZWNrcy5TZXRBcHBDaGVja3NSZXF1ZXN0GiIuZGRhc2guY2hlY2tzLlNldEFwcENoZWNrc1Jlc3BvbnNlIgSStRgAEmcKEFN0YXJ0TWFpbnRlbmFuY2USJS5kZGFzaC5jaGVja3MuU3RhcnRNYWludGVuYW5jZVJlcXVlc3QaJi5kZGFzaC5jaGVja3MuU3RhcnRNYWludGVuYW5jZVJlc3BvbnNlIgSStRgAEmEKDkVuZE1haW50ZW5hbmNlEiMuZGRhc2guY2hlY2tzLkVuZE1haW50ZW5hbmNlUmVxdWVzdBokLmRkYXNoLmNoZWNrcy5FbmRNYWludGVuYW5jZVJlc3BvbnNlIgSStRgAEmYKD0xpc3RNYWludGVuYW5jZRIkLmRkYXNoLmNoZWNrcy5MaXN0TWFpbnRlbmFuY2VSZXF1ZXN0GiUuZGRhc2guY2hlY2tzLkxpc3RNYWludGVuYW5jZVJlc3BvbnNlIgaKtRgCCAISTwoIUHJvYmVOb3cSHS5kZGFzaC5jaGVja3MuUHJvYmVOb3dSZXF1ZXN0Gh4uZGRhc2guY2hlY2tzLlByb2JlTm93UmVzcG9uc2UiBJK1GAASWAoLUmVwb3J0U3RhdGUSIC5kZGFzaC5jaGVja3MuUmVwb3J0U3RhdGVSZXF1ZXN0GiEuZGRhc2guY2hlY2tzLlJlcG9ydFN0YXRlUmVzcG9uc2UiBJK1GAASWwoMTGlzdENoYW5uZWxzEiEuZGRhc2guY2hlY2tzLkxpc3RDaGFubmVsc1JlcXVlc3QaIi5kZGFzaC5jaGVja3MuTGlzdENoYW5uZWxzUmVzcG9uc2UiBIq1GABCQFo+Z2l0aHViLmNvbS9pdHNLb250cmEvZGRhc2gvY29tcG9uZW50cy9jaGVja3MvY2hlY2tzcGI7Y2hlY2tzcGJiBnByb3RvMw", [file_ddash_notification_notification, file_ddash_options, file_ddash_workload_workload, file_google_protobuf_duration, file_google_protobuf_timestamp]);
 
 /**
  * checks has no config.
@@ -39,6 +41,38 @@ export type ChecksConfig = Message<"ddash.checks.ChecksConfig"> & {
  */
 export const ChecksConfigSchema: GenMessage<ChecksConfig> = /*@__PURE__*/
   messageDesc(file_checks_checks, 0);
+
+/**
+ * @generated from message ddash.checks.ListChannelsRequest
+ */
+export type ListChannelsRequest = Message<"ddash.checks.ListChannelsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.checks.ListChannelsRequest.
+ * Use `create(ListChannelsRequestSchema)` to create a new message.
+ */
+export const ListChannelsRequestSchema: GenMessage<ListChannelsRequest> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 1);
+
+/**
+ * @generated from message ddash.checks.ListChannelsResponse
+ */
+export type ListChannelsResponse = Message<"ddash.checks.ListChannelsResponse"> & {
+  /**
+   * By Component name; empty while no channel Plugin is installed.
+   *
+   * @generated from field: repeated ddash.notification.Channel channels = 1;
+   */
+  channels: Channel[];
+};
+
+/**
+ * Describes the message ddash.checks.ListChannelsResponse.
+ * Use `create(ListChannelsResponseSchema)` to create a new message.
+ */
+export const ListChannelsResponseSchema: GenMessage<ListChannelsResponse> = /*@__PURE__*/
+  messageDesc(file_checks_checks, 2);
 
 /**
  * What the Operator sets on a manual Check.
@@ -78,7 +112,7 @@ export type CheckSpec = Message<"ddash.checks.CheckSpec"> & {
  * Use `create(CheckSpecSchema)` to create a new message.
  */
 export const CheckSpecSchema: GenMessage<CheckSpec> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 1);
+  messageDesc(file_checks_checks, 3);
 
 /**
  * @generated from message ddash.checks.DnsQuery
@@ -104,7 +138,7 @@ export type DnsQuery = Message<"ddash.checks.DnsQuery"> & {
  * Use `create(DnsQuerySchema)` to create a new message.
  */
 export const DnsQuerySchema: GenMessage<DnsQuery> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 2);
+  messageDesc(file_checks_checks, 4);
 
 /**
  * @generated from message ddash.checks.Check
@@ -237,7 +271,7 @@ export type Check = Message<"ddash.checks.Check"> & {
  * Use `create(CheckSchema)` to create a new message.
  */
 export const CheckSchema: GenMessage<Check> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 3);
+  messageDesc(file_checks_checks, 5);
 
 /**
  * @generated from message ddash.checks.ListChecksRequest
@@ -250,7 +284,7 @@ export type ListChecksRequest = Message<"ddash.checks.ListChecksRequest"> & {
  * Use `create(ListChecksRequestSchema)` to create a new message.
  */
 export const ListChecksRequestSchema: GenMessage<ListChecksRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 4);
+  messageDesc(file_checks_checks, 6);
 
 /**
  * @generated from message ddash.checks.ListChecksResponse
@@ -267,7 +301,7 @@ export type ListChecksResponse = Message<"ddash.checks.ListChecksResponse"> & {
  * Use `create(ListChecksResponseSchema)` to create a new message.
  */
 export const ListChecksResponseSchema: GenMessage<ListChecksResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 5);
+  messageDesc(file_checks_checks, 7);
 
 /**
  * @generated from message ddash.checks.CreateCheckRequest
@@ -284,7 +318,7 @@ export type CreateCheckRequest = Message<"ddash.checks.CreateCheckRequest"> & {
  * Use `create(CreateCheckRequestSchema)` to create a new message.
  */
 export const CreateCheckRequestSchema: GenMessage<CreateCheckRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 6);
+  messageDesc(file_checks_checks, 8);
 
 /**
  * @generated from message ddash.checks.CreateCheckResponse
@@ -301,7 +335,7 @@ export type CreateCheckResponse = Message<"ddash.checks.CreateCheckResponse"> & 
  * Use `create(CreateCheckResponseSchema)` to create a new message.
  */
 export const CreateCheckResponseSchema: GenMessage<CreateCheckResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 7);
+  messageDesc(file_checks_checks, 9);
 
 /**
  * @generated from message ddash.checks.UpdateCheckRequest
@@ -323,7 +357,7 @@ export type UpdateCheckRequest = Message<"ddash.checks.UpdateCheckRequest"> & {
  * Use `create(UpdateCheckRequestSchema)` to create a new message.
  */
 export const UpdateCheckRequestSchema: GenMessage<UpdateCheckRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 8);
+  messageDesc(file_checks_checks, 10);
 
 /**
  * @generated from message ddash.checks.UpdateCheckResponse
@@ -340,7 +374,7 @@ export type UpdateCheckResponse = Message<"ddash.checks.UpdateCheckResponse"> & 
  * Use `create(UpdateCheckResponseSchema)` to create a new message.
  */
 export const UpdateCheckResponseSchema: GenMessage<UpdateCheckResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 9);
+  messageDesc(file_checks_checks, 11);
 
 /**
  * @generated from message ddash.checks.DeleteCheckRequest
@@ -357,7 +391,7 @@ export type DeleteCheckRequest = Message<"ddash.checks.DeleteCheckRequest"> & {
  * Use `create(DeleteCheckRequestSchema)` to create a new message.
  */
 export const DeleteCheckRequestSchema: GenMessage<DeleteCheckRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 10);
+  messageDesc(file_checks_checks, 12);
 
 /**
  * @generated from message ddash.checks.DeleteCheckResponse
@@ -370,7 +404,7 @@ export type DeleteCheckResponse = Message<"ddash.checks.DeleteCheckResponse"> & 
  * Use `create(DeleteCheckResponseSchema)` to create a new message.
  */
 export const DeleteCheckResponseSchema: GenMessage<DeleteCheckResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 11);
+  messageDesc(file_checks_checks, 13);
 
 /**
  * @generated from message ddash.checks.SetMutedRequest
@@ -392,7 +426,7 @@ export type SetMutedRequest = Message<"ddash.checks.SetMutedRequest"> & {
  * Use `create(SetMutedRequestSchema)` to create a new message.
  */
 export const SetMutedRequestSchema: GenMessage<SetMutedRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 12);
+  messageDesc(file_checks_checks, 14);
 
 /**
  * @generated from message ddash.checks.SetMutedResponse
@@ -409,7 +443,7 @@ export type SetMutedResponse = Message<"ddash.checks.SetMutedResponse"> & {
  * Use `create(SetMutedResponseSchema)` to create a new message.
  */
 export const SetMutedResponseSchema: GenMessage<SetMutedResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 13);
+  messageDesc(file_checks_checks, 15);
 
 /**
  * @generated from message ddash.checks.SetDisabledRequest
@@ -431,7 +465,7 @@ export type SetDisabledRequest = Message<"ddash.checks.SetDisabledRequest"> & {
  * Use `create(SetDisabledRequestSchema)` to create a new message.
  */
 export const SetDisabledRequestSchema: GenMessage<SetDisabledRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 14);
+  messageDesc(file_checks_checks, 16);
 
 /**
  * @generated from message ddash.checks.SetDisabledResponse
@@ -448,7 +482,7 @@ export type SetDisabledResponse = Message<"ddash.checks.SetDisabledResponse"> & 
  * Use `create(SetDisabledResponseSchema)` to create a new message.
  */
 export const SetDisabledResponseSchema: GenMessage<SetDisabledResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 15);
+  messageDesc(file_checks_checks, 17);
 
 /**
  * Latency over a span's up beats, in ms.
@@ -477,7 +511,7 @@ export type Latency = Message<"ddash.checks.Latency"> & {
  * Use `create(LatencySchema)` to create a new message.
  */
 export const LatencySchema: GenMessage<Latency> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 16);
+  messageDesc(file_checks_checks, 18);
 
 /**
  * A Check's uptime over one window: beat-weighted up / (up + down), where
@@ -536,7 +570,7 @@ export type Uptime = Message<"ddash.checks.Uptime"> & {
  * Use `create(UptimeSchema)` to create a new message.
  */
 export const UptimeSchema: GenMessage<Uptime> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 17);
+  messageDesc(file_checks_checks, 19);
 
 /**
  * One bucket of a window: its beats' counts and their latency.
@@ -584,7 +618,7 @@ export type Bucket = Message<"ddash.checks.Bucket"> & {
  * Use `create(BucketSchema)` to create a new message.
  */
 export const BucketSchema: GenMessage<Bucket> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 18);
+  messageDesc(file_checks_checks, 20);
 
 /**
  * One probe of a Check.
@@ -643,7 +677,7 @@ export type Beat = Message<"ddash.checks.Beat"> & {
  * Use `create(BeatSchema)` to create a new message.
  */
 export const BeatSchema: GenMessage<Beat> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 19);
+  messageDesc(file_checks_checks, 21);
 
 /**
  * @generated from message ddash.checks.GetHistoryRequest
@@ -667,7 +701,7 @@ export type GetHistoryRequest = Message<"ddash.checks.GetHistoryRequest"> & {
  * Use `create(GetHistoryRequestSchema)` to create a new message.
  */
 export const GetHistoryRequestSchema: GenMessage<GetHistoryRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 20);
+  messageDesc(file_checks_checks, 22);
 
 /**
  * @generated from message ddash.checks.GetHistoryResponse
@@ -722,7 +756,7 @@ export type GetHistoryResponse = Message<"ddash.checks.GetHistoryResponse"> & {
  * Use `create(GetHistoryResponseSchema)` to create a new message.
  */
 export const GetHistoryResponseSchema: GenMessage<GetHistoryResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 21);
+  messageDesc(file_checks_checks, 23);
 
 /**
  * @generated from message ddash.checks.ListBeatsRequest
@@ -747,7 +781,7 @@ export type ListBeatsRequest = Message<"ddash.checks.ListBeatsRequest"> & {
  * Use `create(ListBeatsRequestSchema)` to create a new message.
  */
 export const ListBeatsRequestSchema: GenMessage<ListBeatsRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 22);
+  messageDesc(file_checks_checks, 24);
 
 /**
  * @generated from message ddash.checks.ListBeatsResponse
@@ -764,7 +798,7 @@ export type ListBeatsResponse = Message<"ddash.checks.ListBeatsResponse"> & {
  * Use `create(ListBeatsResponseSchema)` to create a new message.
  */
 export const ListBeatsResponseSchema: GenMessage<ListBeatsResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 23);
+  messageDesc(file_checks_checks, 25);
 
 /**
  * One App's Check, as apps declares it.
@@ -815,7 +849,7 @@ export type AppCheck = Message<"ddash.checks.AppCheck"> & {
  * Use `create(AppCheckSchema)` to create a new message.
  */
 export const AppCheckSchema: GenMessage<AppCheck> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 24);
+  messageDesc(file_checks_checks, 26);
 
 /**
  * @generated from message ddash.checks.SetAppChecksRequest
@@ -834,7 +868,7 @@ export type SetAppChecksRequest = Message<"ddash.checks.SetAppChecksRequest"> & 
  * Use `create(SetAppChecksRequestSchema)` to create a new message.
  */
 export const SetAppChecksRequestSchema: GenMessage<SetAppChecksRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 25);
+  messageDesc(file_checks_checks, 27);
 
 /**
  * @generated from message ddash.checks.SetAppChecksResponse
@@ -847,7 +881,7 @@ export type SetAppChecksResponse = Message<"ddash.checks.SetAppChecksResponse"> 
  * Use `create(SetAppChecksResponseSchema)` to create a new message.
  */
 export const SetAppChecksResponseSchema: GenMessage<SetAppChecksResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 26);
+  messageDesc(file_checks_checks, 28);
 
 /**
  * What a Maintenance covers, or which Checks ProbeNow probes.
@@ -892,7 +926,7 @@ export type MaintenanceScope = Message<"ddash.checks.MaintenanceScope"> & {
  * Use `create(MaintenanceScopeSchema)` to create a new message.
  */
 export const MaintenanceScopeSchema: GenMessage<MaintenanceScope> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 27);
+  messageDesc(file_checks_checks, 29);
 
 /**
  * @generated from message ddash.checks.Maintenance
@@ -929,7 +963,7 @@ export type Maintenance = Message<"ddash.checks.Maintenance"> & {
  * Use `create(MaintenanceSchema)` to create a new message.
  */
 export const MaintenanceSchema: GenMessage<Maintenance> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 28);
+  messageDesc(file_checks_checks, 30);
 
 /**
  * @generated from message ddash.checks.StartMaintenanceRequest
@@ -963,7 +997,7 @@ export type StartMaintenanceRequest = Message<"ddash.checks.StartMaintenanceRequ
  * Use `create(StartMaintenanceRequestSchema)` to create a new message.
  */
 export const StartMaintenanceRequestSchema: GenMessage<StartMaintenanceRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 29);
+  messageDesc(file_checks_checks, 31);
 
 /**
  * @generated from message ddash.checks.StartMaintenanceResponse
@@ -980,7 +1014,7 @@ export type StartMaintenanceResponse = Message<"ddash.checks.StartMaintenanceRes
  * Use `create(StartMaintenanceResponseSchema)` to create a new message.
  */
 export const StartMaintenanceResponseSchema: GenMessage<StartMaintenanceResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 30);
+  messageDesc(file_checks_checks, 32);
 
 /**
  * @generated from message ddash.checks.EndMaintenanceRequest
@@ -997,7 +1031,7 @@ export type EndMaintenanceRequest = Message<"ddash.checks.EndMaintenanceRequest"
  * Use `create(EndMaintenanceRequestSchema)` to create a new message.
  */
 export const EndMaintenanceRequestSchema: GenMessage<EndMaintenanceRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 31);
+  messageDesc(file_checks_checks, 33);
 
 /**
  * @generated from message ddash.checks.EndMaintenanceResponse
@@ -1010,7 +1044,7 @@ export type EndMaintenanceResponse = Message<"ddash.checks.EndMaintenanceRespons
  * Use `create(EndMaintenanceResponseSchema)` to create a new message.
  */
 export const EndMaintenanceResponseSchema: GenMessage<EndMaintenanceResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 32);
+  messageDesc(file_checks_checks, 34);
 
 /**
  * @generated from message ddash.checks.ProbeNowRequest
@@ -1029,7 +1063,7 @@ export type ProbeNowRequest = Message<"ddash.checks.ProbeNowRequest"> & {
  * Use `create(ProbeNowRequestSchema)` to create a new message.
  */
 export const ProbeNowRequestSchema: GenMessage<ProbeNowRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 33);
+  messageDesc(file_checks_checks, 35);
 
 /**
  * @generated from message ddash.checks.ProbeNowResponse
@@ -1042,7 +1076,7 @@ export type ProbeNowResponse = Message<"ddash.checks.ProbeNowResponse"> & {
  * Use `create(ProbeNowResponseSchema)` to create a new message.
  */
 export const ProbeNowResponseSchema: GenMessage<ProbeNowResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 34);
+  messageDesc(file_checks_checks, 36);
 
 /**
  * @generated from message ddash.checks.ListMaintenanceRequest
@@ -1055,7 +1089,7 @@ export type ListMaintenanceRequest = Message<"ddash.checks.ListMaintenanceReques
  * Use `create(ListMaintenanceRequestSchema)` to create a new message.
  */
 export const ListMaintenanceRequestSchema: GenMessage<ListMaintenanceRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 35);
+  messageDesc(file_checks_checks, 37);
 
 /**
  * @generated from message ddash.checks.ListMaintenanceResponse
@@ -1074,7 +1108,7 @@ export type ListMaintenanceResponse = Message<"ddash.checks.ListMaintenanceRespo
  * Use `create(ListMaintenanceResponseSchema)` to create a new message.
  */
 export const ListMaintenanceResponseSchema: GenMessage<ListMaintenanceResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 36);
+  messageDesc(file_checks_checks, 38);
 
 /**
  * @generated from message ddash.checks.ReportStateRequest
@@ -1123,7 +1157,7 @@ export type ReportStateRequest = Message<"ddash.checks.ReportStateRequest"> & {
  * Use `create(ReportStateRequestSchema)` to create a new message.
  */
 export const ReportStateRequestSchema: GenMessage<ReportStateRequest> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 37);
+  messageDesc(file_checks_checks, 39);
 
 /**
  * @generated from message ddash.checks.ReportStateResponse
@@ -1136,7 +1170,7 @@ export type ReportStateResponse = Message<"ddash.checks.ReportStateResponse"> & 
  * Use `create(ReportStateResponseSchema)` to create a new message.
  */
 export const ReportStateResponseSchema: GenMessage<ReportStateResponse> = /*@__PURE__*/
-  messageDesc(file_checks_checks, 38);
+  messageDesc(file_checks_checks, 40);
 
 /**
  * @generated from enum ddash.checks.CheckType
@@ -1475,6 +1509,18 @@ export const ChecksService: GenService<{
     methodKind: "unary";
     input: typeof ReportStateRequestSchema;
     output: typeof ReportStateResponseSchema;
+  },
+  /**
+   * ListChannels returns the channels the core delivers Notifications to,
+   * as the core lists them, so the Checks Page shows where its
+   * Notifications go.
+   *
+   * @generated from rpc ddash.checks.ChecksService.ListChannels
+   */
+  listChannels: {
+    methodKind: "unary";
+    input: typeof ListChannelsRequestSchema;
+    output: typeof ListChannelsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_checks_checks, 0);

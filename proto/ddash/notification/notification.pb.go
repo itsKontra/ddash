@@ -4,13 +4,16 @@
 // 	protoc        (unknown)
 // source: ddash/notification/notification.proto
 
-// A Notification: what ddash tells the Operator on their phone. Shared by
-// notify, which the Components that have something to say call, and the
-// channel Components it hands each one to (ntfy-api, telegram-api).
+// Notifications: what ddash tells the Operator on their phone. The core
+// carries them (ADR-0010). Any Component sends one through the core's
+// NotificationService, without requires, and the core delivers it to every
+// installed channel: a Component serving ChannelService (ntfy-api,
+// telegram-api), each pulled in by its own channel Plugin.
 
 package notificationpb
 
 import (
+	_ "github.com/itsKontra/ddash/proto/ddash"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -84,6 +87,117 @@ func (x Priority) Number() protoreflect.EnumNumber {
 // Deprecated: Use Priority.Descriptor instead.
 func (Priority) EnumDescriptor() ([]byte, []int) {
 	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{0}
+}
+
+// What a Notification is about; each channel's filter picks categories.
+type Category int32
+
+const (
+	Category_CATEGORY_UNSPECIFIED Category = 0
+	// A Check went down or up again, is Flapping, or its certificate expires.
+	Category_CATEGORY_CHECKS Category = 1
+	// A container's image has a newer version.
+	Category_CATEGORY_IMAGE_UPDATES Category = 2
+	// A long Action (package updates, a backup) ended.
+	Category_CATEGORY_ACTION_OUTCOMES Category = 3
+)
+
+// Enum value maps for Category.
+var (
+	Category_name = map[int32]string{
+		0: "CATEGORY_UNSPECIFIED",
+		1: "CATEGORY_CHECKS",
+		2: "CATEGORY_IMAGE_UPDATES",
+		3: "CATEGORY_ACTION_OUTCOMES",
+	}
+	Category_value = map[string]int32{
+		"CATEGORY_UNSPECIFIED":     0,
+		"CATEGORY_CHECKS":          1,
+		"CATEGORY_IMAGE_UPDATES":   2,
+		"CATEGORY_ACTION_OUTCOMES": 3,
+	}
+)
+
+func (x Category) Enum() *Category {
+	p := new(Category)
+	*p = x
+	return p
+}
+
+func (x Category) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Category) Descriptor() protoreflect.EnumDescriptor {
+	return file_ddash_notification_notification_proto_enumTypes[1].Descriptor()
+}
+
+func (Category) Type() protoreflect.EnumType {
+	return &file_ddash_notification_notification_proto_enumTypes[1]
+}
+
+func (x Category) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Category.Descriptor instead.
+func (Category) EnumDescriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{1}
+}
+
+type DeliveryState int32
+
+const (
+	DeliveryState_DELIVERY_STATE_UNSPECIFIED DeliveryState = 0
+	DeliveryState_DELIVERY_STATE_SENT        DeliveryState = 1
+	// The channel couldn't be reached, didn't answer within the deadline,
+	// or its system refused the Notification.
+	DeliveryState_DELIVERY_STATE_FAILED DeliveryState = 2
+	// The channel's filter doesn't take the category: skipped.
+	DeliveryState_DELIVERY_STATE_FILTERED DeliveryState = 3
+)
+
+// Enum value maps for DeliveryState.
+var (
+	DeliveryState_name = map[int32]string{
+		0: "DELIVERY_STATE_UNSPECIFIED",
+		1: "DELIVERY_STATE_SENT",
+		2: "DELIVERY_STATE_FAILED",
+		3: "DELIVERY_STATE_FILTERED",
+	}
+	DeliveryState_value = map[string]int32{
+		"DELIVERY_STATE_UNSPECIFIED": 0,
+		"DELIVERY_STATE_SENT":        1,
+		"DELIVERY_STATE_FAILED":      2,
+		"DELIVERY_STATE_FILTERED":    3,
+	}
+)
+
+func (x DeliveryState) Enum() *DeliveryState {
+	p := new(DeliveryState)
+	*p = x
+	return p
+}
+
+func (x DeliveryState) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DeliveryState) Descriptor() protoreflect.EnumDescriptor {
+	return file_ddash_notification_notification_proto_enumTypes[2].Descriptor()
+}
+
+func (DeliveryState) Type() protoreflect.EnumType {
+	return &file_ddash_notification_notification_proto_enumTypes[2]
+}
+
+func (x DeliveryState) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DeliveryState.Descriptor instead.
+func (DeliveryState) EnumDescriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{2}
 }
 
 type Notification struct {
@@ -168,24 +282,684 @@ func (x *Notification) GetClick() string {
 	return ""
 }
 
+type SendRequest struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Notification *Notification          `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
+	// What it is about; required: each channel's filter decides by it.
+	Category      Category `protobuf:"varint,2,opt,name=category,proto3,enum=ddash.notification.Category" json:"category,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendRequest) Reset() {
+	*x = SendRequest{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendRequest) ProtoMessage() {}
+
+func (x *SendRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
+func (*SendRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SendRequest) GetNotification() *Notification {
+	if x != nil {
+		return x.Notification
+	}
+	return nil
+}
+
+func (x *SendRequest) GetCategory() Category {
+	if x != nil {
+		return x.Category
+	}
+	return Category_CATEGORY_UNSPECIFIED
+}
+
+type SendResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// One per installed channel, by its Component's name.
+	Deliveries    []*Delivery `protobuf:"bytes,1,rep,name=deliveries,proto3" json:"deliveries,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendResponse) Reset() {
+	*x = SendResponse{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendResponse) ProtoMessage() {}
+
+func (x *SendResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
+func (*SendResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *SendResponse) GetDeliveries() []*Delivery {
+	if x != nil {
+		return x.Deliveries
+	}
+	return nil
+}
+
+type Delivery struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The channel's Component, e.g. "ntfy-api".
+	Channel string        `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	State   DeliveryState `protobuf:"varint,2,opt,name=state,proto3,enum=ddash.notification.DeliveryState" json:"state,omitempty"`
+	// Why it failed; empty unless state is failed.
+	Error         string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Delivery) Reset() {
+	*x = Delivery{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Delivery) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Delivery) ProtoMessage() {}
+
+func (x *Delivery) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Delivery.ProtoReflect.Descriptor instead.
+func (*Delivery) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *Delivery) GetChannel() string {
+	if x != nil {
+		return x.Channel
+	}
+	return ""
+}
+
+func (x *Delivery) GetState() DeliveryState {
+	if x != nil {
+		return x.State
+	}
+	return DeliveryState_DELIVERY_STATE_UNSPECIFIED
+}
+
+func (x *Delivery) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type ListChannelsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChannelsRequest) Reset() {
+	*x = ListChannelsRequest{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChannelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChannelsRequest) ProtoMessage() {}
+
+func (x *ListChannelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChannelsRequest.ProtoReflect.Descriptor instead.
+func (*ListChannelsRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{4}
+}
+
+type ListChannelsResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// By Component name; empty while no channel Plugin is installed.
+	Channels      []*Channel `protobuf:"bytes,1,rep,name=channels,proto3" json:"channels,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListChannelsResponse) Reset() {
+	*x = ListChannelsResponse{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListChannelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListChannelsResponse) ProtoMessage() {}
+
+func (x *ListChannelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListChannelsResponse.ProtoReflect.Descriptor instead.
+func (*ListChannelsResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListChannelsResponse) GetChannels() []*Channel {
+	if x != nil {
+		return x.Channels
+	}
+	return nil
+}
+
+type Channel struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The channel's Component, e.g. "telegram-api", whose config form sets
+	// its destination and filter.
+	Component string `protobuf:"bytes,1,opt,name=component,proto3" json:"component,omitempty"`
+	// How the UI names it, e.g. "Telegram"; the Component's name while it
+	// can't say.
+	Title string `protobuf:"bytes,2,opt,name=title,proto3" json:"title,omitempty"`
+	// Where it delivers to, e.g. "ntfy.sh/ddash-alerts" or "chat 123456789";
+	// empty while it can't say.
+	Destination string `protobuf:"bytes,3,opt,name=destination,proto3" json:"destination,omitempty"`
+	// The categories its filter takes.
+	Categories []Category `protobuf:"varint,4,rep,packed,name=categories,proto3,enum=ddash.notification.Category" json:"categories,omitempty"`
+	// Why it may not deliver: its last delivery failed, or its Component
+	// isn't up (e.g. not configured); empty while it works.
+	Problem       string `protobuf:"bytes,5,opt,name=problem,proto3" json:"problem,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Channel) Reset() {
+	*x = Channel{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Channel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Channel) ProtoMessage() {}
+
+func (x *Channel) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Channel.ProtoReflect.Descriptor instead.
+func (*Channel) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *Channel) GetComponent() string {
+	if x != nil {
+		return x.Component
+	}
+	return ""
+}
+
+func (x *Channel) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *Channel) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *Channel) GetCategories() []Category {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
+}
+
+func (x *Channel) GetProblem() string {
+	if x != nil {
+		return x.Problem
+	}
+	return ""
+}
+
+type GetChannelRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChannelRequest) Reset() {
+	*x = GetChannelRequest{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChannelRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChannelRequest) ProtoMessage() {}
+
+func (x *GetChannelRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChannelRequest.ProtoReflect.Descriptor instead.
+func (*GetChannelRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{7}
+}
+
+type GetChannelResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// How the UI names the channel, e.g. "ntfy".
+	Title string `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
+	// Where Notifications go, e.g. "ntfy.sh/ddash-alerts".
+	Destination string `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
+	// The categories its filter takes.
+	Categories    []Category `protobuf:"varint,3,rep,packed,name=categories,proto3,enum=ddash.notification.Category" json:"categories,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetChannelResponse) Reset() {
+	*x = GetChannelResponse{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChannelResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChannelResponse) ProtoMessage() {}
+
+func (x *GetChannelResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetChannelResponse.ProtoReflect.Descriptor instead.
+func (*GetChannelResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetChannelResponse) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *GetChannelResponse) GetDestination() string {
+	if x != nil {
+		return x.Destination
+	}
+	return ""
+}
+
+func (x *GetChannelResponse) GetCategories() []Category {
+	if x != nil {
+		return x.Categories
+	}
+	return nil
+}
+
+type DeliverRequest struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	Notification *Notification          `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
+	// What it is about, which the channel's filter took.
+	Category      Category `protobuf:"varint,2,opt,name=category,proto3,enum=ddash.notification.Category" json:"category,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeliverRequest) Reset() {
+	*x = DeliverRequest{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliverRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliverRequest) ProtoMessage() {}
+
+func (x *DeliverRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliverRequest.ProtoReflect.Descriptor instead.
+func (*DeliverRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeliverRequest) GetNotification() *Notification {
+	if x != nil {
+		return x.Notification
+	}
+	return nil
+}
+
+func (x *DeliverRequest) GetCategory() Category {
+	if x != nil {
+		return x.Category
+	}
+	return Category_CATEGORY_UNSPECIFIED
+}
+
+type DeliverResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The id the channel's system gave the message, e.g. ntfy's message id
+	// or Telegram's message id in its chat.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeliverResponse) Reset() {
+	*x = DeliverResponse{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeliverResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeliverResponse) ProtoMessage() {}
+
+func (x *DeliverResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeliverResponse.ProtoReflect.Descriptor instead.
+func (*DeliverResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeliverResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type SendTestRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendTestRequest) Reset() {
+	*x = SendTestRequest{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendTestRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendTestRequest) ProtoMessage() {}
+
+func (x *SendTestRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendTestRequest.ProtoReflect.Descriptor instead.
+func (*SendTestRequest) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{11}
+}
+
+type SendTestResponse struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// The id the channel's system gave the message.
+	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SendTestResponse) Reset() {
+	*x = SendTestResponse{}
+	mi := &file_ddash_notification_notification_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SendTestResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SendTestResponse) ProtoMessage() {}
+
+func (x *SendTestResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_ddash_notification_notification_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SendTestResponse.ProtoReflect.Descriptor instead.
+func (*SendTestResponse) Descriptor() ([]byte, []int) {
+	return file_ddash_notification_notification_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *SendTestResponse) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
 var File_ddash_notification_notification_proto protoreflect.FileDescriptor
 
 const file_ddash_notification_notification_proto_rawDesc = "" +
 	"\n" +
-	"%ddash/notification/notification.proto\x12\x12ddash.notification\"\xa2\x01\n" +
+	"%ddash/notification/notification.proto\x12\x12ddash.notification\x1a\x13ddash/options.proto\"\xa2\x01\n" +
 	"\fNotification\x12\x14\n" +
 	"\x05title\x18\x01 \x01(\tR\x05title\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x128\n" +
 	"\bpriority\x18\x03 \x01(\x0e2\x1c.ddash.notification.PriorityR\bpriority\x12\x12\n" +
 	"\x04tags\x18\x04 \x03(\tR\x04tags\x12\x14\n" +
-	"\x05click\x18\x05 \x01(\tR\x05click*\x83\x01\n" +
+	"\x05click\x18\x05 \x01(\tR\x05click\"\x8d\x01\n" +
+	"\vSendRequest\x12D\n" +
+	"\fnotification\x18\x01 \x01(\v2 .ddash.notification.NotificationR\fnotification\x128\n" +
+	"\bcategory\x18\x02 \x01(\x0e2\x1c.ddash.notification.CategoryR\bcategory\"L\n" +
+	"\fSendResponse\x12<\n" +
+	"\n" +
+	"deliveries\x18\x01 \x03(\v2\x1c.ddash.notification.DeliveryR\n" +
+	"deliveries\"s\n" +
+	"\bDelivery\x12\x18\n" +
+	"\achannel\x18\x01 \x01(\tR\achannel\x127\n" +
+	"\x05state\x18\x02 \x01(\x0e2!.ddash.notification.DeliveryStateR\x05state\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"\x15\n" +
+	"\x13ListChannelsRequest\"O\n" +
+	"\x14ListChannelsResponse\x127\n" +
+	"\bchannels\x18\x01 \x03(\v2\x1b.ddash.notification.ChannelR\bchannels\"\xb7\x01\n" +
+	"\aChannel\x12\x1c\n" +
+	"\tcomponent\x18\x01 \x01(\tR\tcomponent\x12\x14\n" +
+	"\x05title\x18\x02 \x01(\tR\x05title\x12 \n" +
+	"\vdestination\x18\x03 \x01(\tR\vdestination\x12<\n" +
+	"\n" +
+	"categories\x18\x04 \x03(\x0e2\x1c.ddash.notification.CategoryR\n" +
+	"categories\x12\x18\n" +
+	"\aproblem\x18\x05 \x01(\tR\aproblem\"\x13\n" +
+	"\x11GetChannelRequest\"\x8a\x01\n" +
+	"\x12GetChannelResponse\x12\x14\n" +
+	"\x05title\x18\x01 \x01(\tR\x05title\x12 \n" +
+	"\vdestination\x18\x02 \x01(\tR\vdestination\x12<\n" +
+	"\n" +
+	"categories\x18\x03 \x03(\x0e2\x1c.ddash.notification.CategoryR\n" +
+	"categories\"\x90\x01\n" +
+	"\x0eDeliverRequest\x12D\n" +
+	"\fnotification\x18\x01 \x01(\v2 .ddash.notification.NotificationR\fnotification\x128\n" +
+	"\bcategory\x18\x02 \x01(\x0e2\x1c.ddash.notification.CategoryR\bcategory\"!\n" +
+	"\x0fDeliverResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x11\n" +
+	"\x0fSendTestRequest\"\"\n" +
+	"\x10SendTestResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id*\x83\x01\n" +
 	"\bPriority\x12\x18\n" +
 	"\x14PRIORITY_UNSPECIFIED\x10\x00\x12\x10\n" +
 	"\fPRIORITY_MIN\x10\x01\x12\x10\n" +
 	"\fPRIORITY_LOW\x10\x02\x12\x14\n" +
 	"\x10PRIORITY_DEFAULT\x10\x03\x12\x11\n" +
 	"\rPRIORITY_HIGH\x10\x04\x12\x10\n" +
-	"\fPRIORITY_MAX\x10\x05BDZBgithub.com/itsKontra/ddash/proto/ddash/notification;notificationpbb\x06proto3"
+	"\fPRIORITY_MAX\x10\x05*s\n" +
+	"\bCategory\x12\x18\n" +
+	"\x14CATEGORY_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fCATEGORY_CHECKS\x10\x01\x12\x1a\n" +
+	"\x16CATEGORY_IMAGE_UPDATES\x10\x02\x12\x1c\n" +
+	"\x18CATEGORY_ACTION_OUTCOMES\x10\x03*\x80\x01\n" +
+	"\rDeliveryState\x12\x1e\n" +
+	"\x1aDELIVERY_STATE_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13DELIVERY_STATE_SENT\x10\x01\x12\x19\n" +
+	"\x15DELIVERY_STATE_FAILED\x10\x02\x12\x1b\n" +
+	"\x17DELIVERY_STATE_FILTERED\x10\x032\xcf\x01\n" +
+	"\x13NotificationService\x12O\n" +
+	"\x04Send\x12\x1f.ddash.notification.SendRequest\x1a .ddash.notification.SendResponse\"\x04\x92\xb5\x18\x00\x12g\n" +
+	"\fListChannels\x12'.ddash.notification.ListChannelsRequest\x1a(.ddash.notification.ListChannelsResponse\"\x04\x8a\xb5\x18\x002\xaa\x02\n" +
+	"\x0eChannelService\x12a\n" +
+	"\n" +
+	"GetChannel\x12%.ddash.notification.GetChannelRequest\x1a&.ddash.notification.GetChannelResponse\"\x04\x8a\xb5\x18\x00\x12X\n" +
+	"\aDeliver\x12\".ddash.notification.DeliverRequest\x1a#.ddash.notification.DeliverResponse\"\x04\x92\xb5\x18\x00\x12[\n" +
+	"\bSendTest\x12#.ddash.notification.SendTestRequest\x1a$.ddash.notification.SendTestResponse\"\x04\x92\xb5\x18\x00BDZBgithub.com/itsKontra/ddash/proto/ddash/notification;notificationpbb\x06proto3"
 
 var (
 	file_ddash_notification_notification_proto_rawDescOnce sync.Once
@@ -199,19 +973,52 @@ func file_ddash_notification_notification_proto_rawDescGZIP() []byte {
 	return file_ddash_notification_notification_proto_rawDescData
 }
 
-var file_ddash_notification_notification_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_ddash_notification_notification_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_ddash_notification_notification_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_ddash_notification_notification_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
 var file_ddash_notification_notification_proto_goTypes = []any{
-	(Priority)(0),        // 0: ddash.notification.Priority
-	(*Notification)(nil), // 1: ddash.notification.Notification
+	(Priority)(0),                // 0: ddash.notification.Priority
+	(Category)(0),                // 1: ddash.notification.Category
+	(DeliveryState)(0),           // 2: ddash.notification.DeliveryState
+	(*Notification)(nil),         // 3: ddash.notification.Notification
+	(*SendRequest)(nil),          // 4: ddash.notification.SendRequest
+	(*SendResponse)(nil),         // 5: ddash.notification.SendResponse
+	(*Delivery)(nil),             // 6: ddash.notification.Delivery
+	(*ListChannelsRequest)(nil),  // 7: ddash.notification.ListChannelsRequest
+	(*ListChannelsResponse)(nil), // 8: ddash.notification.ListChannelsResponse
+	(*Channel)(nil),              // 9: ddash.notification.Channel
+	(*GetChannelRequest)(nil),    // 10: ddash.notification.GetChannelRequest
+	(*GetChannelResponse)(nil),   // 11: ddash.notification.GetChannelResponse
+	(*DeliverRequest)(nil),       // 12: ddash.notification.DeliverRequest
+	(*DeliverResponse)(nil),      // 13: ddash.notification.DeliverResponse
+	(*SendTestRequest)(nil),      // 14: ddash.notification.SendTestRequest
+	(*SendTestResponse)(nil),     // 15: ddash.notification.SendTestResponse
 }
 var file_ddash_notification_notification_proto_depIdxs = []int32{
-	0, // 0: ddash.notification.Notification.priority:type_name -> ddash.notification.Priority
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0,  // 0: ddash.notification.Notification.priority:type_name -> ddash.notification.Priority
+	3,  // 1: ddash.notification.SendRequest.notification:type_name -> ddash.notification.Notification
+	1,  // 2: ddash.notification.SendRequest.category:type_name -> ddash.notification.Category
+	6,  // 3: ddash.notification.SendResponse.deliveries:type_name -> ddash.notification.Delivery
+	2,  // 4: ddash.notification.Delivery.state:type_name -> ddash.notification.DeliveryState
+	9,  // 5: ddash.notification.ListChannelsResponse.channels:type_name -> ddash.notification.Channel
+	1,  // 6: ddash.notification.Channel.categories:type_name -> ddash.notification.Category
+	1,  // 7: ddash.notification.GetChannelResponse.categories:type_name -> ddash.notification.Category
+	3,  // 8: ddash.notification.DeliverRequest.notification:type_name -> ddash.notification.Notification
+	1,  // 9: ddash.notification.DeliverRequest.category:type_name -> ddash.notification.Category
+	4,  // 10: ddash.notification.NotificationService.Send:input_type -> ddash.notification.SendRequest
+	7,  // 11: ddash.notification.NotificationService.ListChannels:input_type -> ddash.notification.ListChannelsRequest
+	10, // 12: ddash.notification.ChannelService.GetChannel:input_type -> ddash.notification.GetChannelRequest
+	12, // 13: ddash.notification.ChannelService.Deliver:input_type -> ddash.notification.DeliverRequest
+	14, // 14: ddash.notification.ChannelService.SendTest:input_type -> ddash.notification.SendTestRequest
+	5,  // 15: ddash.notification.NotificationService.Send:output_type -> ddash.notification.SendResponse
+	8,  // 16: ddash.notification.NotificationService.ListChannels:output_type -> ddash.notification.ListChannelsResponse
+	11, // 17: ddash.notification.ChannelService.GetChannel:output_type -> ddash.notification.GetChannelResponse
+	13, // 18: ddash.notification.ChannelService.Deliver:output_type -> ddash.notification.DeliverResponse
+	15, // 19: ddash.notification.ChannelService.SendTest:output_type -> ddash.notification.SendTestResponse
+	15, // [15:20] is the sub-list for method output_type
+	10, // [10:15] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_ddash_notification_notification_proto_init() }
@@ -224,10 +1031,10 @@ func file_ddash_notification_notification_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ddash_notification_notification_proto_rawDesc), len(file_ddash_notification_notification_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   1,
+			NumEnums:      3,
+			NumMessages:   13,
 			NumExtensions: 0,
-			NumServices:   0,
+			NumServices:   2,
 		},
 		GoTypes:           file_ddash_notification_notification_proto_goTypes,
 		DependencyIndexes: file_ddash_notification_notification_proto_depIdxs,

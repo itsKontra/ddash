@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
@@ -69,11 +70,11 @@ func (s *server) published() []published {
 	return append([]published(nil), s.got...)
 }
 
-func start(t *testing.T, cfg *ntfyapipb.NtfyApiConfig) (*sdktest.Harness, ntfyapipb.NtfyApiServiceClient) {
+func start(t *testing.T, cfg *ntfyapipb.NtfyApiConfig) (*sdktest.Harness, notificationpb.ChannelServiceClient) {
 	t.Helper()
 	h := sdktest.New(t, ntfyapi.Definition())
 	h.MustStart(cfg)
-	return h, ntfyapipb.NewNtfyApiServiceClient(h.Conn)
+	return h, notificationpb.NewChannelServiceClient(h.Conn)
 }
 
 func ptr[T any](v T) *T { return &v }
@@ -86,18 +87,18 @@ var down = &notificationpb.Notification{
 	Click:    "https://ddash.home.example/checks/7",
 }
 
-func send(t *testing.T, c ntfyapipb.NtfyApiServiceClient, n *notificationpb.Notification) (*ntfyapipb.SendResponse, error) {
+func send(t *testing.T, c notificationpb.ChannelServiceClient, n *notificationpb.Notification) (*notificationpb.DeliverResponse, error) {
 	t.Helper()
-	return c.Send(t.Context(), &ntfyapipb.SendRequest{Notification: n})
+	return c.Deliver(t.Context(), &notificationpb.DeliverRequest{Notification: n, Category: notificationpb.Category_CATEGORY_CHECKS})
 }
 
-func TestSendPostsTheNotificationAsJSONWithTheBearerToken(t *testing.T) {
+func TestDeliverPostsTheNotificationAsJSONWithTheBearerToken(t *testing.T) {
 	srv := ntfy(t, "baseline")
 	h, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr(srv.URL), Topic: "ddash-alerts", Token: "tk_0123456789abcdef"})
 
 	resp, err := send(t, c, down)
 	if err != nil {
-		t.Fatalf("Send: %v", err)
+		t.Fatalf("Deliver: %v", err)
 	}
 
 	if resp.GetId() != "sPs71M8A2T" {
@@ -123,7 +124,7 @@ func TestAnOpenTopicIsPublishedWithoutAuthorization(t *testing.T) {
 	_, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr(srv.URL), Topic: "ddash-alerts"})
 
 	if _, err := send(t, c, &notificationpb.Notification{Title: "Jellyfin up again", Message: "Down for 4 min"}); err != nil {
-		t.Fatalf("Send: %v", err)
+		t.Fatalf("Deliver: %v", err)
 	}
 
 	got := srv.published()
@@ -147,7 +148,7 @@ func TestAFailedDeliveryMakesItDownWithTheErrorUntilOneSucceeds(t *testing.T) {
 	_, err := send(t, c, down)
 
 	if status.Code(err) != codes.PermissionDenied || status.Convert(err).Message() != "ntfy answered 401: unauthorized" {
-		t.Errorf("Send = %v, want PermissionDenied: ntfy answered 401: unauthorized", err)
+		t.Errorf("Deliver = %v, want PermissionDenied: ntfy answered 401: unauthorized", err)
 	}
 	if got := h.Health(); got.State != sdk.Down || got.Message != "last delivery failed: ntfy answered 401: unauthorized" {
 		t.Errorf("health = %v, want down with the last error", got)
@@ -180,7 +181,7 @@ func TestAnUnreachableServerIsADeliveryFailure(t *testing.T) {
 	_, err = send(t, c, down)
 
 	if status.Code(err) != codes.Unavailable || !strings.Contains(status.Convert(err).Message(), "unreachable") {
-		t.Errorf("Send = %v, want Unavailable naming the server unreachable", err)
+		t.Errorf("Deliver = %v, want Unavailable naming the server unreachable", err)
 	}
 	if got := h.Health(); got.State != sdk.Down || !strings.Contains(got.Message, "unreachable") {
 		t.Errorf("health = %v, want down: unreachable", got)
@@ -191,7 +192,7 @@ func TestSendTestPublishesATestNotification(t *testing.T) {
 	srv := ntfy(t, "baseline")
 	_, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr(srv.URL), Topic: "ddash-alerts", Token: "tk_0123456789abcdef"})
 
-	resp, err := c.SendTest(t.Context(), &ntfyapipb.SendTestRequest{})
+	resp, err := c.SendTest(t.Context(), &notificationpb.SendTestRequest{})
 	if err != nil || resp.GetId() != "sPs71M8A2T" {
 		t.Fatalf("SendTest = %v, %v", resp, err)
 	}
@@ -202,39 +203,6 @@ func TestSendTestPublishesATestNotification(t *testing.T) {
 	}
 }
 
-func TestWithoutATopicNtfyIsNotSetUp(t *testing.T) {
-	srv := ntfy(t, "baseline")
-	for name, cfg := range map[string]*ntfyapipb.NtfyApiConfig{
-		"empty": {},
-		// A topic cleared in the form keeps the stored token.
-		"a token but no topic": {Server: ptr(srv.URL), Token: "tk_0123456789abcdef"},
-	} {
-		h, c := start(t, cfg)
-
-		if got := h.Health(); got.State != sdk.OK || got.Message != "not set up" {
-			t.Errorf("%s: health = %v, want ok: not set up", name, got)
-		}
-		ch, err := c.GetChannel(t.Context(), &ntfyapipb.GetChannelRequest{})
-		if err != nil || ch.GetSetUp() || ch.GetDestination() != "" {
-			t.Errorf("%s: GetChannel = %v, %v, want not set up", name, ch, err)
-		}
-		for method, call := range map[string]func() error{
-			"Send":     func() error { _, err := send(t, c, down); return err },
-			"SendTest": func() error { _, err := c.SendTest(t.Context(), &ntfyapipb.SendTestRequest{}); return err },
-		} {
-			if err := call(); status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != "ntfy is not set up: enter a topic" {
-				t.Errorf("%s: %s = %v, want FailedPrecondition: ntfy is not set up: enter a topic", name, method, err)
-			}
-		}
-		if got := h.Health(); got.State != sdk.OK {
-			t.Errorf("%s: health after a refused Send = %v, want still ok", name, got)
-		}
-	}
-	if got := srv.published(); len(got) != 0 {
-		t.Errorf("published %v, want nothing", got)
-	}
-}
-
 func TestABadServerOrTopicIsRefusedPerField(t *testing.T) {
 	for _, tc := range []struct {
 		cfg        *ntfyapipb.NtfyApiConfig
@@ -242,6 +210,7 @@ func TestABadServerOrTopicIsRefusedPerField(t *testing.T) {
 	}{
 		{&ntfyapipb.NtfyApiConfig{Server: ptr("ftp://ntfy.home.example"), Topic: "ddash"}, "server", "must be an http or https URL"},
 		{&ntfyapipb.NtfyApiConfig{Server: ptr("https://ntfy.sh"), Topic: "ddash alerts"}, "topic", "must be 1 to 64 letters, digits, - or _"},
+		{&ntfyapipb.NtfyApiConfig{Server: ptr("https://ntfy.sh")}, "topic", "must be 1 to 64 letters, digits, - or _"},
 		{&ntfyapipb.NtfyApiConfig{Server: ptr("https://ntfy.sh"), Topic: strings.Repeat("a", 65)}, "topic", "must be 1 to 64 letters, digits, - or _"},
 	} {
 		h := sdktest.New(t, ntfyapi.Definition())
@@ -252,11 +221,19 @@ func TestABadServerOrTopicIsRefusedPerField(t *testing.T) {
 	}
 }
 
-func TestGetChannelNamesTheServerAndTopic(t *testing.T) {
-	_, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr("https://ntfy.home.example/"), Topic: "ddash-alerts"})
+func TestGetChannelNamesTheServerTopicAndFilter(t *testing.T) {
+	_, c := start(t, &ntfyapipb.NtfyApiConfig{Server: ptr("https://ntfy.home.example/"), Topic: "ddash-alerts", ImageUpdates: ptr(false)})
 
-	ch, err := c.GetChannel(t.Context(), &ntfyapipb.GetChannelRequest{})
-	if err != nil || !ch.GetSetUp() || ch.GetDestination() != "ntfy.home.example/ddash-alerts" {
-		t.Errorf("GetChannel = %v, %v, want set up to ntfy.home.example/ddash-alerts", ch, err)
+	ch, err := c.GetChannel(t.Context(), &notificationpb.GetChannelRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := &notificationpb.GetChannelResponse{
+		Title:       "ntfy",
+		Destination: "ntfy.home.example/ddash-alerts",
+		Categories:  []notificationpb.Category{notificationpb.Category_CATEGORY_CHECKS, notificationpb.Category_CATEGORY_ACTION_OUTCOMES},
+	}
+	if diff := cmp.Diff(want, ch, protocmp.Transform()); diff != "" {
+		t.Errorf("GetChannel (-want +got):\n%s", diff)
 	}
 }

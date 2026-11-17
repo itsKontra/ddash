@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
 	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
@@ -297,7 +296,7 @@ func (c *component) sendTo(ctx context.Context, ok bool, title, message, path st
 	}
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), callTimeout)
 	defer cancel()
-	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES}); err != nil {
+	if _, err := c.notify.Send(ctx, &notificationpb.SendRequest{Notification: n, Category: notificationpb.Category_CATEGORY_ACTION_OUTCOMES}); err != nil {
 		c.log.Warn("can't send a Notification", "title", title, "err", err)
 	}
 }

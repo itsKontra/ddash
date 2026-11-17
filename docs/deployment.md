@@ -165,10 +165,10 @@ Do these by hand, in order, before first use.
 - [ ] Nginx Proxy Manager: a dedicated user for ddash (Users). Permissions:
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
-- [ ] ntfy (optional, a Notification channel): a reserved ntfy.sh topic
-      and an access token, in ntfy-api's config form; press **Send test**.
-      Left empty, ntfy-api is "not set up" and Notifications go to
-      Telegram only. Clearing the topic later turns ntfy off again.
+- [ ] ntfy (optional, a Notification channel): install the **ntfy**
+      Plugin in Plugins; its ntfy-api config form opens. Enter a reserved
+      ntfy.sh topic and an access token, and press **Send test**. To stop
+      using ntfy, uninstall its Plugin.
 - [ ] Cloudflare Tunnel (optional): ddash changes only a **remotely managed**
       Tunnel (created in Zero Trust → Networks → Tunnels, configured in the
       dashboard), never a locally managed `config.yml`. Create an API token
@@ -209,7 +209,9 @@ Do these by hand, in order, before first use.
       `PV`) in energy-api's config, and the grid price and feed-in tariff in
       € per kWh to see costs. ddash only reads: the token can't change a
       reading. ddash needs HTTPS to InfluxDB.
-- [ ] Telegram (optional, a Notification channel beside ntfy):
+- [ ] Telegram (optional, a Notification channel beside or instead of
+      ntfy): install the **Telegram** Plugin in Plugins; its telegram-api
+      config form opens.
       1. In Telegram, message **@BotFather**, send `/newbot`, and pick a
          name and a username ending in `bot`. BotFather answers with the
          bot token (`123456789:AAH…`): it is telegram-api's **Bot token**.
@@ -222,10 +224,11 @@ Do these by hand, in order, before first use.
          channel, make the bot an admin and use its `@username`.
       4. Save both in telegram-api's config form and press **Send test**.
 
-      Left empty, telegram-api is "not set up" and Notifications go to
-      ntfy only. With neither set up, no Notification reaches you, and
-      the Checks Page's Notifications panel warns about it; no Plugin
-      shows down or unconfigured for it.
+      To stop using Telegram, uninstall its Plugin. With no channel
+      installed, no Notification reaches you, and the Checks Page's
+      Notifications panel says so; no other Plugin shows down or
+      unconfigured for it. A channel whose delivery fails shows down on its
+      own Plugin only.
 - [ ] AI App helper (optional, opt-in): install the **AI App helper**
       Plugin only if you want Claude to draft new Apps. No other Plugin
       requires it; Docker and Apps show "Draft with AI" only while it is
@@ -245,10 +248,11 @@ Do these by hand, in order, before first use.
       comes back to the browser and opens in Add Compose Project or Add
       App, where the normal Plan checks it; nothing runs on its own.
       ddash needs outbound HTTPS to `api.anthropic.com`.
-- [ ] Which Notifications each channel gets: notify's config form, one
-      switch per channel and category (Checks, image updates, Action
-      outcomes). Everything goes everywhere by default. The Checks Page's
-      Notifications panel shows which channels are set up and take Checks.
+- [ ] Which Notifications each channel gets: the switches in the
+      channel's own config form (ntfy-api's, telegram-api's), one per
+      category (Checks, Image updates, Action outcomes), all on by default.
+      The Checks Page's Notifications panel lists the installed channels,
+      where each delivers to, what it takes and its last problem.
 - [ ] Enter every credential in the UI (each Component's config form), not in
       `ddash.env`.
 
@@ -425,6 +429,14 @@ docker compose pull && docker compose up -d
 The core downloads the new Release's Plugins and Components and snapshots
 each Component's DB before its first run on the new Release. Rolling back is
 the same with the older tag; moving back restores the snapshot.
+
+After v0.0.3, Notification channels are Plugins of their own (**ntfy**,
+**Telegram**). Updating from v0.0.3 or earlier, the first start installs
+the Plugin of each channel that was set up (ntfy with a topic, Telegram with
+a bot token and a chat ID), with the switches notify's config had for it, so
+Notifications keep arriving. A channel that wasn't set up isn't installed.
+There is nothing to do; Plugins and the Checks Page's Notifications panel
+show the result.
 
 ## Backup
 

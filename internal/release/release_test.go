@@ -249,6 +249,51 @@ func TestBuildingTheSameReleaseTwiceGivesTheSameApp(t *testing.T) {
 	}
 }
 
+// A headless Plugin (a Notification channel's) has no UI: the Release
+// carries no .ddapp for it, and the catalogue says so.
+func TestAHeadlessPluginHasNoAppInTheRelease(t *testing.T) {
+	root := widgetsOnly(t, map[string]string{"index.js": "export default {}", "index.css": ""})
+	if err := os.MkdirAll(filepath.Join(root, "plugins/ntfy"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "plugins/ntfy/plugin.yaml"), []byte("name: ntfy\ntitle: ntfy\nheadless: true\nrequires: []\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	out := t.TempDir()
+
+	if err := release.Build(t.Context(), release.Options{Root: root, Out: out, Release: "v1.2.3"}); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff([]string{"SHA256SUMS", "catalogue.json", "docker.ddapp"}, files(t, out)); diff != "" {
+		t.Errorf("Release dir (-want +got):\n%s", diff)
+	}
+	cat, err := runtime.Dir{Path: out}.Catalogue(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	headless := map[string]bool{}
+	for _, p := range cat.Plugins {
+		headless[p.Name] = p.Headless
+	}
+	if diff := cmp.Diff(map[string]bool{"docker": false, "ntfy": true}, headless); diff != "" {
+		t.Errorf("headless by Plugin (-want +got):\n%s", diff)
+	}
+}
+
+func TestAHeadlessPluginWithAUIToBuildIsRefused(t *testing.T) {
+	root := tree(t, map[string]string{
+		"plugins/ntfy/plugin.yaml":  "name: ntfy\nheadless: true\nrequires: []\n",
+		"plugins/ntfy/package.json": "{}",
+	})
+
+	_, err := release.Catalogue(root, "dev")
+
+	if err == nil || !strings.Contains(err.Error(), "headless") {
+		t.Errorf("err = %v, want a headless Plugin with a package.json refused", err)
+	}
+}
+
 func TestTheReleaseFailsOnAPluginWhoseBundleIsntBuilt(t *testing.T) {
 	root := widgetsOnly(t, nil)
 

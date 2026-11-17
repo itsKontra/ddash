@@ -1,5 +1,6 @@
 import { useQuery } from "@ddash/plugin";
-import { Category, NotifyService, type Channel } from "@ddash/proto/notify/notify_pb";
+import { ChecksService } from "@ddash/proto/checks/checks_pb";
+import { Category, type Channel } from "@ddash/proto/ddash/notification/notification_pb";
 import { Notice, Panel, StatusList, type StatusItem } from "@ddash/ui";
 import { Link } from "react-router";
 
@@ -13,48 +14,56 @@ const categoryLabels: Record<Category, string> = {
 /** What a channel's filter takes, e.g. "Checks, image updates", or "nothing". */
 const takes = (c: Channel) => c.categories.map((k) => categoryLabels[k]).join(", ") || "nothing";
 
-/** One channel as the list shows it: whether Checks' Notifications reach it, and where. */
+/** Where a channel delivers to and what it gets, as far as it can say. */
+const reach = (c: Channel) => [c.destination, c.destination && `gets ${takes(c)}`].filter(Boolean).join(" · ");
+
+/** One channel as the list shows it: whether Checks' Notifications reach it, where, and its last problem. */
 function channelItem(c: Channel): StatusItem {
-  if (c.problem) return { tone: "warn", title: c.title, meta: c.problem, aside: "unknown" };
-  if (!c.setUp) return { tone: "idle", title: c.title, meta: `Set it up in ${c.component}'s config.`, aside: "not set up" };
   const checks = c.categories.includes(Category.CHECKS);
+  if (c.problem) return { tone: "warn", title: c.title, meta: [reach(c), c.problem].filter(Boolean).join(" · "), aside: "problem" };
   return {
     tone: checks ? "up" : "idle",
     title: c.title,
-    meta: `${c.destination} · gets ${takes(c)}`,
+    meta: reach(c),
     aside: checks ? "gets Checks" : "Checks filtered out",
   };
 }
 
+const pluginsLink = (
+  <Link to="/plugins" className="font-semibold text-primary hover:underline">
+    Plugins
+  </Link>
+);
+
 /**
- * Where Checks' Notifications go: each channel notify sends to, set up or
- * not, and whether its filter takes Checks. Warns when none does.
+ * Where Checks' Notifications go: each channel the core delivers to (an
+ * installed channel Plugin), its destination, the categories it takes and
+ * its last problem. Says so when none is installed, and warns when none
+ * takes Checks.
  */
 export function ChannelList() {
-  const { data, error } = useQuery(NotifyService.method.listChannels, {});
+  const { data, error } = useQuery(ChecksService.method.listChannels, {});
   if (!data && !error) return null;
-  const reached = data?.channels.some((c) => c.setUp && c.categories.includes(Category.CHECKS));
+  const none = data?.channels.length === 0;
+  const reached = data?.channels.some((c) => c.categories.includes(Category.CHECKS));
   return (
     <Panel
       title="Notifications"
-      description={
-        <>
-          Set up ntfy-api or telegram-api, and pick which Notifications each gets in notify's config, in{" "}
-          <Link to="/plugins" className="font-semibold text-primary hover:underline">
-            Plugins
-          </Link>
-          .
-        </>
-      }
+      description={<>Install ntfy or Telegram in {pluginsLink}, and pick which Notifications each gets in its Component's config there.</>}
     >
       <div className="flex flex-col gap-3">
         {error && !data && <Notice tone="warn">Channels unknown: {error.rawMessage}</Notice>}
-        {data && !reached && (
-          <Notice tone="warn" title="No channel gets Checks' Notifications">
-            A Check going down reaches no one until a channel is set up and takes Checks.
+        {none && (
+          <Notice tone="warn" title="No channel installed">
+            A Check going down reaches no one. Install a channel, such as ntfy or Telegram, in {pluginsLink}.
           </Notice>
         )}
-        {data && <StatusList items={data.channels.map(channelItem)} />}
+        {data && !none && !reached && (
+          <Notice tone="warn" title="No channel gets Checks' Notifications">
+            A Check going down reaches no one until a channel takes Checks.
+          </Notice>
+        )}
+        {data && !none && <StatusList items={data.channels.map(channelItem)} />}
       </div>
     </Panel>
   );

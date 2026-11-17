@@ -2,25 +2,27 @@
 // @generated from file telegram-api/telegram_api.proto (package ddash.telegramapi, syntax proto3)
 /* eslint-disable */
 
-// telegram-api sends Notifications to one Telegram chat through a bot. It
-// is only the transport: what to send and to which channels is notify's.
+// telegram-api is the Telegram channel: it serves
+// ddash.notification.ChannelService and sends each Notification the core
+// delivers to one Telegram chat through a bot. Only the telegram Plugin
+// requires it.
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_ddash_config_config } from "../ddash/config/config_pb";
-import type { Notification } from "../ddash/notification/notification_pb";
-import { file_ddash_notification_notification } from "../ddash/notification/notification_pb";
-import { file_ddash_options } from "../ddash/options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file telegram-api/telegram_api.proto.
  */
 export const file_telegram_api_telegram_api: GenFile = /*@__PURE__*/
-  fileDesc("Ch90ZWxlZ3JhbS1hcGkvdGVsZWdyYW1fYXBpLnByb3RvEhFkZGFzaC50ZWxlZ3JhbWFwaSL2AwoRVGVsZWdyYW1BcGlDb25maWcSegoGc2VydmVyGAEgASgJQmWatRhhChhodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcaDkJvdCBBUEkgc2VydmVyIjNMZWF2ZSBhcyBpcyB1bmxlc3MgeW91IHJ1biB5b3VyIG93biBCb3QgQVBJIHNlcnZlci44AUgAiAEBEpIBCgV0b2tlbhgCIAEoCUKCAZq1GH4QARoJQm90IHRva2VuIl1UaGUgdG9rZW4gQEJvdEZhdGhlciBnaXZlcyBmb3IgL25ld2JvdC4gTGVhdmUgdGhpcyBhbmQgdGhlIGNoYXQgSUQgZW1wdHkgdG8gbm90IHVzZSBUZWxlZ3JhbS4qEDEyMzQ1Njc4OTpBQUjigKYStAEKB2NoYXRfaWQYAyABKAlCogGatRidARoHQ2hhdCBJRCKGAVlvdXIgdXNlciBJRCBmb3IgYSBwcml2YXRlIGNoYXQgd2l0aCB0aGUgYm90LCBhIGdyb3VwJ3MgSUQgKGl0IHN0YXJ0cyB3aXRoIC0pLCBvciBhIGNoYW5uZWwncyBAdXNlcm5hbWUuIFNlbmQgdGhlIGJvdCBhIG1lc3NhZ2UgZmlyc3QuKgkxMjM0NTY3ODk6Dqq1GAoSCFNlbmRUZXN0QgkKB19zZXJ2ZXIiRQoLU2VuZFJlcXVlc3QSNgoMbm90aWZpY2F0aW9uGAEgASgLMiAuZGRhc2gubm90aWZpY2F0aW9uLk5vdGlmaWNhdGlvbiIiCgxTZW5kUmVzcG9uc2USEgoKbWVzc2FnZV9pZBgBIAEoAyIRCg9TZW5kVGVzdFJlcXVlc3QiJgoQU2VuZFRlc3RSZXNwb25zZRISCgptZXNzYWdlX2lkGAEgASgDIhMKEUdldENoYW5uZWxSZXF1ZXN0IjkKEkdldENoYW5uZWxSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSEwoLZGVzdGluYXRpb24YAiABKAkynwIKElRlbGVncmFtQXBpU2VydmljZRJNCgRTZW5kEh4uZGRhc2gudGVsZWdyYW1hcGkuU2VuZFJlcXVlc3QaHy5kZGFzaC50ZWxlZ3JhbWFwaS5TZW5kUmVzcG9uc2UiBJK1GAASWQoIU2VuZFRlc3QSIi5kZGFzaC50ZWxlZ3JhbWFwaS5TZW5kVGVzdFJlcXVlc3QaIy5kZGFzaC50ZWxlZ3JhbWFwaS5TZW5kVGVzdFJlc3BvbnNlIgSStRgAEl8KCkdldENoYW5uZWwSJC5kZGFzaC50ZWxlZ3JhbWFwaS5HZXRDaGFubmVsUmVxdWVzdBolLmRkYXNoLnRlbGVncmFtYXBpLkdldENoYW5uZWxSZXNwb25zZSIEirUYAEJQWk5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3RlbGVncmFtLWFwaS90ZWxlZ3JhbWFwaXBiO3RlbGVncmFtYXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_notification_notification, file_ddash_options]);
+  fileDesc("Ch90ZWxlZ3JhbS1hcGkvdGVsZWdyYW1fYXBpLnByb3RvEhFkZGFzaC50ZWxlZ3JhbWFwaSLXBgoRVGVsZWdyYW1BcGlDb25maWcSegoGc2VydmVyGAEgASgJQmWatRhhChhodHRwczovL2FwaS50ZWxlZ3JhbS5vcmcaDkJvdCBBUEkgc2VydmVyIjNMZWF2ZSBhcyBpcyB1bmxlc3MgeW91IHJ1biB5b3VyIG93biBCb3QgQVBJIHNlcnZlci44AUgAiAEBEl0KBXRva2VuGAIgASgJQk6atRhKEAEaCUJvdCB0b2tlbiInVGhlIHRva2VuIEBCb3RGYXRoZXIgZ2l2ZXMgZm9yIC9uZXdib3QuKhAxMjM0NTY3ODk6QUFI4oCmMAEStgEKB2NoYXRfaWQYAyABKAlCpAGatRifARoHQ2hhdCBJRCKGAVlvdXIgdXNlciBJRCBmb3IgYSBwcml2YXRlIGNoYXQgd2l0aCB0aGUgYm90LCBhIGdyb3VwJ3MgSUQgKGl0IHN0YXJ0cyB3aXRoIC0pLCBvciBhIGNoYW5uZWwncyBAdXNlcm5hbWUuIFNlbmQgdGhlIGJvdCBhIG1lc3NhZ2UgZmlyc3QuKgkxMjM0NTY3ODkwARJvCgZjaGVja3MYBCABKAhCWpq1GFYKBHRydWUaBkNoZWNrcyJGQSBDaGVjayBnb2luZyBkb3duIG9yIHVwIGFnYWluLCBGbGFwcGluZywgb3IgaXRzIGNlcnRpZmljYXRlIGV4cGlyaW5nLkgBiAEBEncKDWltYWdlX3VwZGF0ZXMYBSABKAhCW5q1GFcKBHRydWUaDUltYWdlIHVwZGF0ZXMiQEEgcnVubmluZyBjb250YWluZXIncyBpbWFnZSBoYXMgYSBuZXdlciB2ZXJzaW9uIGluIGl0cyByZWdpc3RyeS5IAogBARJ4Cg9hY3Rpb25fb3V0Y29tZXMYBiABKAhCWpq1GFYKBHRydWUaD0FjdGlvbiBvdXRjb21lcyI9SG93IGEgbG9uZyBBY3Rpb24gZW5kZWQsIHN1Y2ggYXMgcGFja2FnZSB1cGRhdGVzIG9yIGEgYmFja3VwLkgDiAEBOg6qtRgKEghTZW5kVGVzdEIJCgdfc2VydmVyQgkKB19jaGVja3NCEAoOX2ltYWdlX3VwZGF0ZXNCEgoQX2FjdGlvbl9vdXRjb21lc0JQWk5naXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL3RlbGVncmFtLWFwaS90ZWxlZ3JhbWFwaXBiO3RlbGVncmFtYXBpcGJiBnByb3RvMw", [file_ddash_config_config]);
 
 /**
- * Empty is valid: Telegram is then not set up, and Send refuses.
+ * The bot token and the chat ID are required: to not use Telegram,
+ * uninstall the telegram Plugin. The filter's fields (checks,
+ * image_updates, action_outcomes) mean the same in every channel's config
+ * (components/internal/channel).
  *
  * @generated from message ddash.telegramapi.TelegramApiConfig
  */
@@ -46,6 +48,21 @@ export type TelegramApiConfig = Message<"ddash.telegramapi.TelegramApiConfig"> &
    * @generated from field: string chat_id = 3;
    */
   chatId: string;
+
+  /**
+   * @generated from field: optional bool checks = 4;
+   */
+  checks?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool image_updates = 5;
+   */
+  imageUpdates?: boolean | undefined;
+
+  /**
+   * @generated from field: optional bool action_outcomes = 6;
+   */
+  actionOutcomes?: boolean | undefined;
 };
 
 /**
@@ -54,151 +71,4 @@ export type TelegramApiConfig = Message<"ddash.telegramapi.TelegramApiConfig"> &
  */
 export const TelegramApiConfigSchema: GenMessage<TelegramApiConfig> = /*@__PURE__*/
   messageDesc(file_telegram_api_telegram_api, 0);
-
-/**
- * @generated from message ddash.telegramapi.SendRequest
- */
-export type SendRequest = Message<"ddash.telegramapi.SendRequest"> & {
-  /**
-   * @generated from field: ddash.notification.Notification notification = 1;
-   */
-  notification?: Notification | undefined;
-};
-
-/**
- * Describes the message ddash.telegramapi.SendRequest.
- * Use `create(SendRequestSchema)` to create a new message.
- */
-export const SendRequestSchema: GenMessage<SendRequest> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 1);
-
-/**
- * @generated from message ddash.telegramapi.SendResponse
- */
-export type SendResponse = Message<"ddash.telegramapi.SendResponse"> & {
-  /**
-   * The id Telegram gave the message in its chat.
-   *
-   * @generated from field: int64 message_id = 1;
-   */
-  messageId: bigint;
-};
-
-/**
- * Describes the message ddash.telegramapi.SendResponse.
- * Use `create(SendResponseSchema)` to create a new message.
- */
-export const SendResponseSchema: GenMessage<SendResponse> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 2);
-
-/**
- * @generated from message ddash.telegramapi.SendTestRequest
- */
-export type SendTestRequest = Message<"ddash.telegramapi.SendTestRequest"> & {
-};
-
-/**
- * Describes the message ddash.telegramapi.SendTestRequest.
- * Use `create(SendTestRequestSchema)` to create a new message.
- */
-export const SendTestRequestSchema: GenMessage<SendTestRequest> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 3);
-
-/**
- * @generated from message ddash.telegramapi.SendTestResponse
- */
-export type SendTestResponse = Message<"ddash.telegramapi.SendTestResponse"> & {
-  /**
-   * The id Telegram gave the message in its chat.
-   *
-   * @generated from field: int64 message_id = 1;
-   */
-  messageId: bigint;
-};
-
-/**
- * Describes the message ddash.telegramapi.SendTestResponse.
- * Use `create(SendTestResponseSchema)` to create a new message.
- */
-export const SendTestResponseSchema: GenMessage<SendTestResponse> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 4);
-
-/**
- * @generated from message ddash.telegramapi.GetChannelRequest
- */
-export type GetChannelRequest = Message<"ddash.telegramapi.GetChannelRequest"> & {
-};
-
-/**
- * Describes the message ddash.telegramapi.GetChannelRequest.
- * Use `create(GetChannelRequestSchema)` to create a new message.
- */
-export const GetChannelRequestSchema: GenMessage<GetChannelRequest> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 5);
-
-/**
- * @generated from message ddash.telegramapi.GetChannelResponse
- */
-export type GetChannelResponse = Message<"ddash.telegramapi.GetChannelResponse"> & {
-  /**
-   * A bot token and a chat ID are set.
-   *
-   * @generated from field: bool set_up = 1;
-   */
-  setUp: boolean;
-
-  /**
-   * Where Notifications go, e.g. "chat 123456789"; empty while not set up.
-   *
-   * @generated from field: string destination = 2;
-   */
-  destination: string;
-};
-
-/**
- * Describes the message ddash.telegramapi.GetChannelResponse.
- * Use `create(GetChannelResponseSchema)` to create a new message.
- */
-export const GetChannelResponseSchema: GenMessage<GetChannelResponse> = /*@__PURE__*/
-  messageDesc(file_telegram_api_telegram_api, 6);
-
-/**
- * @generated from service ddash.telegramapi.TelegramApiService
- */
-export const TelegramApiService: GenService<{
-  /**
-   * Send sends one Notification to the chat. It fails with
-   * FailedPrecondition while Telegram is not set up.
-   *
-   * @generated from rpc ddash.telegramapi.TelegramApiService.Send
-   */
-  send: {
-    methodKind: "unary";
-    input: typeof SendRequestSchema;
-    output: typeof SendResponseSchema;
-  },
-  /**
-   * SendTest sends a test Notification, so the Operator sees that
-   * Notifications reach the chat. It is the config form's test_action.
-   *
-   * @generated from rpc ddash.telegramapi.TelegramApiService.SendTest
-   */
-  sendTest: {
-    methodKind: "unary";
-    input: typeof SendTestRequestSchema;
-    output: typeof SendTestResponseSchema;
-  },
-  /**
-   * GetChannel says whether Telegram is set up and which chat it writes
-   * to, from the config alone.
-   *
-   * @generated from rpc ddash.telegramapi.TelegramApiService.GetChannel
-   */
-  getChannel: {
-    methodKind: "unary";
-    input: typeof GetChannelRequestSchema;
-    output: typeof GetChannelResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_telegram_api_telegram_api, 0);
 

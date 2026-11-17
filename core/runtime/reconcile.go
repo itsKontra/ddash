@@ -116,7 +116,9 @@ func (r *Runtime) haveCatalogue(ctx context.Context) bool {
 	cat, err := r.opts.Release.Catalogue(ctx)
 	if err == nil {
 		if err = r.useCatalogue(ctx, cat); err == nil {
-			r.dropRetired(ctx)
+			if r.upgrade(ctx) {
+				r.dropRetired(ctx)
+			}
 			return true
 		}
 	}
@@ -140,9 +142,17 @@ func (r *Runtime) haveCatalogue(ctx context.Context) bool {
 
 // fetchBundles has the release source download plugin's bundles, and
 
-// records the Plugin as on the running Release once it has them.
+// records the Plugin as on the running Release once it has them. A
+
+// headless Plugin has none to download.
 func (r *Runtime) fetchBundles(ctx context.Context, plugin string) error {
-	err := r.opts.Release.Plugin(ctx, plugin)
+	r.mu.Lock()
+	headless := r.installed[plugin].Headless
+	r.mu.Unlock()
+	var err error
+	if !headless {
+		err = r.opts.Release.Plugin(ctx, plugin)
+	}
 	if err == nil {
 		_, err = r.opts.DB.ExecContext(ctx, `UPDATE installed_plugin SET release = ? WHERE name = ?`, r.Release(), plugin)
 	}

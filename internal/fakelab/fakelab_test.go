@@ -18,11 +18,8 @@ import (
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/network"
 	"github.com/itsKontra/ddash/components/network/networkpb"
-	"github.com/itsKontra/ddash/components/notify"
-	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
 	pfsenseapi "github.com/itsKontra/ddash/components/pfsense-api"
 	"github.com/itsKontra/ddash/components/pfsense-api/pfsensefake"
-	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/auth"
 	"github.com/itsKontra/ddash/core/coretest"
@@ -34,7 +31,7 @@ import (
 var repoRoot = filepath.Join("..", "..")
 
 // bootNetwork boots the core with network, pfsense-api, adguard-api and
-// checks (with its ntfy-api) in-process against a lab serving scenarios,
+// checks in-process against a lab serving scenarios,
 // configured as `make dev` does, once network reported the VPN Tunnel item.
 func bootNetwork(t *testing.T, scenarios ...string) *coretest.Harness {
 	h, _ := bootNetworkLab(t, scenarios...)
@@ -55,14 +52,14 @@ func bootNetworkLabWith(t *testing.T, configure func(*networkpb.NetworkConfig), 
 	}
 	t.Cleanup(lab.Close)
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition(), notify.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
+		Components: []sdk.Definition{network.Definition(), pfsenseapi.Definition(), adguardapi.Definition(), checks.Definition()},
 		Plugins:    []coretest.Plugin{{Name: "network", Requires: []string{"network", "pfsense-api", "adguard-api"}}},
 	})
 	for component, cfg := range lab.Config() {
 		if cfg, ok := cfg.(*networkpb.NetworkConfig); ok && configure != nil {
 			configure(cfg)
 		}
-		if component == "pfsense-api" || component == "network" || component == "adguard-api" || component == "ntfy-api" {
+		if component == "pfsense-api" || component == "network" || component == "adguard-api" {
 			h.SeedConfig(component, cfg)
 		}
 	}

@@ -52,7 +52,7 @@ let maintenance: unknown[];
 let actions: { method: string; body: unknown }[];
 let refusal: { code: string; message: string } | undefined;
 let listAnswer: Answer | undefined;
-// What notify answers ListChannels with; testing's channels unless a test sets it.
+// What checks answers ListChannels with; testing's channels unless a test sets it.
 let channelsAnswer: unknown;
 
 beforeEach(() => {
@@ -523,22 +523,34 @@ it("leaves the strip open under a Sheet it opened, and gives the focus back to i
 /** The Notifications Panel. */
 const notifications = () => screen.getByRole("region", { name: "Notifications" });
 
-it("shows where Checks' Notifications go: each channel, set up or not", async () => {
+it("shows where Checks' Notifications go: each installed channel, its destination and categories", async () => {
   await open();
 
   const panel = notifications();
+  expect(within(panel).getByText("ntfy")).toBeTruthy();
   expect(within(panel).getByText("ntfy.sh/ddash-alerts · gets Checks, image updates, Action outcomes")).toBeTruthy();
-  expect(within(panel).getByText("gets Checks")).toBeTruthy();
   expect(within(panel).getByText("Telegram")).toBeTruthy();
-  expect(within(panel).getByText("not set up")).toBeTruthy();
-  expect(within(panel).getByText("Set it up in telegram-api's config.")).toBeTruthy();
+  expect(within(panel).getByText("chat 123456789 · gets Checks, Action outcomes")).toBeTruthy();
+  expect(within(panel).getAllByText("gets Checks")).toHaveLength(2);
   expect(within(panel).getByRole("link", { name: "Plugins" }).getAttribute("href")).toBe("/plugins");
+  expect(within(panel).queryByText("No channel gets Checks' Notifications")).toBeNull();
+  expect(within(panel).queryByText("No channel installed")).toBeNull();
+});
+
+it("says no channel is installed, and links to the Catalogue", async () => {
+  channelsAnswer = { channels: [] };
+  await open();
+
+  const panel = notifications();
+  expect(within(panel).getByText("No channel installed")).toBeTruthy();
+  for (const link of within(panel).getAllByRole("link", { name: "Plugins" })) expect(link.getAttribute("href")).toBe("/plugins");
+  expect(within(panel).queryByRole("list")).toBeNull();
   expect(within(panel).queryByText("No channel gets Checks' Notifications")).toBeNull();
 });
 
-it("warns when no channel set up takes Checks", async () => {
+it("warns when no installed channel takes Checks", async () => {
   channelsAnswer = {
-    channels: [{ ...channels.channels[0], categories: ["CATEGORY_IMAGE_UPDATES"] }, channels.channels[1]],
+    channels: [{ ...channels.channels[0], categories: ["CATEGORY_IMAGE_UPDATES"] }],
   };
   await open();
 
@@ -548,13 +560,18 @@ it("warns when no channel set up takes Checks", async () => {
   expect(within(panel).getByText("ntfy.sh/ddash-alerts · gets image updates")).toBeTruthy();
 });
 
-it("names the problem when a channel's state can't be read", async () => {
+it("names a channel's last problem", async () => {
   channelsAnswer = {
-    channels: [channels.channels[0], { ...channels.channels[1], problem: "telegram-api: not running" }],
+    channels: [
+      channels.channels[0],
+      { ...channels.channels[1], problem: "last delivery failed: Telegram answered 401: Unauthorized" },
+      { component: "ntfy-api-2", title: "ntfy-api-2", problem: "not configured" },
+    ],
   };
   await open();
 
   const panel = notifications();
-  expect(within(panel).getByText("telegram-api: not running")).toBeTruthy();
-  expect(within(panel).getByText("unknown")).toBeTruthy();
+  expect(within(panel).getByText("chat 123456789 · gets Checks, Action outcomes · last delivery failed: Telegram answered 401: Unauthorized")).toBeTruthy();
+  expect(within(panel).getByText("not configured")).toBeTruthy();
+  expect(within(panel).getAllByText("problem")).toHaveLength(2);
 });

@@ -26,7 +26,9 @@ export interface Plugins {
  * bundle is imported (with its stylesheet) as soon as it's listed, all in
  * parallel, and each is imported only once. import() bypasses fetch, so a
  * bundle that fails to load is asked for again through fetch (the shell's
- * watched one), and a host that fails shows as unreachable.
+ * watched one), and a host that fails shows as unreachable. A headless
+ * Plugin (no script: a Notification channel's) has no bundle: it is loaded
+ * at once, with nothing to offer.
  */
 export function usePlugins(load: ImportBundle, fetch?: Fetch): Plugins {
   const { data } = useQuery(CoreService.method.listInstalledPlugins, {});
@@ -35,11 +37,16 @@ export function usePlugins(load: ImportBundle, fetch?: Fetch): Plugins {
 
   useEffect(() => {
     for (const p of data?.plugins ?? []) {
-      if (started.current.has(p.script)) continue;
-      started.current.add(p.script);
-      addStylesheet(p.style);
+      const key = p.script || `headless:${p.name}`;
+      if (started.current.has(key)) continue;
+      started.current.add(key);
       const settle = (result: Partial<LoadedPlugin>) =>
         setLoaded((prev) => new Map(prev).set(p.name, { ...p, ...result }));
+      if (!p.script) {
+        settle({ definition: {} });
+        continue;
+      }
+      addStylesheet(p.style);
       load(p.script).then(
         (mod) => settle(isDefinition(mod.default) ? { definition: mod.default } : { error: new Error("its bundle has no definePlugin default export") }),
         (err: unknown) => {

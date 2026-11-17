@@ -222,10 +222,13 @@ message InstalledPlugin {
   string author = 5;
   // The Components the Plugin's UI may call.
   repeated string requires = 6;
-  // The bundle's ESM entry: /plugins/<name>/<release>/index.js.
+  // The bundle's ESM entry: /plugins/<name>/<release>/index.js. Empty for
+  // a headless Plugin, which has no bundle, so no Widgets, Nav Entry,
+  // Pages, Concerns or Commands (a Notification channel's Plugin).
   string script = 7;
   // The bundle's stylesheet: /plugins/<name>/<release>/index.css. Empty
-  // when it holds no rule, e.g. Vite's marker for a Plugin without CSS.
+  // when it holds no rule, e.g. Vite's marker for a Plugin without CSS,
+  // and for a headless Plugin.
   string style = 8;
 }
 

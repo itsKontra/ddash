@@ -189,7 +189,9 @@ func New(ctx context.Context, opts Options) (*Runtime, error) {
 		if err := r.useCatalogue(ctx, cat); err != nil {
 			return nil, err
 		}
-		r.dropRetired(ctx)
+		if r.upgrade(ctx) {
+			r.dropRetired(ctx)
+		}
 	case errors.Is(err, ErrDownload):
 		r.log.Warn("the Release's catalogue can't be downloaded yet", "release", r.release, "err", err)
 		r.cat = Catalogue{Release: r.release}
@@ -366,6 +368,25 @@ func (r *Runtime) Config(name string) (protoreflect.MessageDescriptor, sdk.Field
 		return nil, nil, status.Errorf(codes.Unavailable, "%s is %s", name, c.status.State)
 	}
 	return c.config, c.configErrors, nil
+}
+
+// Serving returns, sorted, every wanted Component whose API is service,
+// as its last Describe said: several may serve one service (every
+// Notification channel serves ddash.notification.ChannelService). One
+// that isn't up is listed too once it was described; Endpoint says why
+// it can't be reached.
+func (r *Runtime) Serving(service protoreflect.FullName) []string {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	wanted := r.wanted()
+	var names []string
+	for name, c := range r.components {
+		if wanted[name] && c.described && c.endpoint.Service != nil && c.endpoint.Service.FullName() == service {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
 }
 
 // Endpoint returns how to reach a started Component. Otherwise the error

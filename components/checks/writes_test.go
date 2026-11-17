@@ -8,7 +8,7 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 	"github.com/itsKontra/ddash/sdk"
 	"github.com/itsKontra/ddash/sdk/migrate"
 	"github.com/itsKontra/ddash/sdk/sdktest"
@@ -63,7 +63,7 @@ func TestGettersAnswerWhileABeatIsBeingRecorded(t *testing.T) {
 		server.Close()
 		return client, nil
 	}
-	h := sdktest.New(t, checks.DefinitionDialing(dial), sdktest.WithClient[notifypb.NotifyServiceClient](&fakeNotify{}))
+	h := sdktest.New(t, checks.DefinitionDialing(dial), sdktest.WithClient[notificationpb.NotificationServiceClient](&fakeNotify{}))
 	h.MustStart(&checkspb.ChecksConfig{})
 	c := checkspb.NewChecksServiceClient(h.Conn)
 	id := create(t, c, tcp("nas:22")).GetId()
