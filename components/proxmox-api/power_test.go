@@ -274,7 +274,12 @@ func TestARefreshReadsTheListAndNoAddressesOfAWorkloadWhoseStatusDidntChange(t *
 			t.Fatalf("the first read asked for %d Workloads' addresses, want all %d", len(reads), len(first))
 		}
 
+		// Past the TTL a read answers with the stale list at once and
+		// refreshes it behind that answer: wait for the refresh to land,
+		// then read the list it fetched.
 		time.Sleep(sdk.TTLFast + time.Second)
+		workloads(t, c)
+		synctest.Wait()
 		second := workloads(t, c)
 
 		if got := listReads(fake); got != lists+1 {
