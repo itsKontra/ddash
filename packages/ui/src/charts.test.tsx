@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it } from "vitest";
-import { Bars, ColumnChart, Donut, LineChart, Meter, meterTone, Ring, Sparkline, Summary, UptimeBars } from "./index";
+import { Bars, ColumnChart, Donut, LineChart, Meter, meterTone, Ring, Sparkline, Summary, UptimeBars, type LineSeries } from "./index";
 
 afterEach(cleanup);
 
@@ -280,4 +280,136 @@ it("LineChart reads out the point under the pointer with valueFormat", () => {
   fireEvent.pointerMove(screen.getByRole("img", { name: "State of charge" }), { clientX: 48 + (640 - 58) / 2 });
 
   expect(screen.getByRole("status").textContent).toContain("State of charge65 %");
+});
+
+const power = [
+  { label: "Solar", values: [1, 2], colour: "chart-4" as const, shape: "area" as const },
+  { label: "Used", values: [1, 1], colour: "chart-2" as const },
+  { label: "Battery", values: [-8, 8], colour: "chart-3" as const },
+];
+const powerChart = (series: LineSeries[] = power, hidden?: Pick<Parameters<typeof LineChart>[0], "hidden" | "onHiddenChange">) => (
+  <LineChart label="Power" from={at(0)} to={at(24)} times={[at(12), at(12, 5)]} series={series} format={(v) => `${v} kW`} {...hidden} />
+);
+const entry = (name: string) => screen.getByRole("button", { name });
+const pressed = (...names: string[]) => names.map((n) => entry(n).getAttribute("aria-pressed"));
+/** The y-axis's labels, bottom to top. */
+const yAxis = (img: HTMLElement) => [...img.querySelectorAll('text[text-anchor="end"]')].map((t) => t.textContent);
+
+it("LineChart hides a series when its legend entry is pressed, and shows it again on the next", () => {
+  render(powerChart());
+  const img = screen.getByRole("img", { name: "Power" });
+
+  expect(pressed("Used")).toEqual(["true"]);
+  fireEvent.click(entry("Used"));
+
+  expect(pressed("Used")).toEqual(["false"]);
+  expect(img.querySelector('[data-series="Used"]')).toBeNull();
+  // It stays in the legend, in its place, struck through and hollow.
+  expect(legendOf("Power").map((l) => l.text)).toEqual(["Solar", "Used", "Battery"]);
+  expect(entry("Used").className).toContain("line-through");
+  expect(entry("Used").querySelector("[data-colour]")?.className).toContain("bg-transparent");
+  fireEvent.pointerMove(img, { clientX: 48 + (640 - 58) / 2 });
+  expect(screen.getByRole("status").textContent).not.toContain("Used");
+  expect(img.querySelectorAll("circle")).toHaveLength(2);
+
+  fireEvent.click(entry("Used"));
+  expect(pressed("Used")).toEqual(["true"]);
+  expect(img.querySelector('[data-series="Used"]')).not.toBeNull();
+  expect(screen.getByRole("status").textContent).toContain("Used");
+});
+
+it("LineChart scales its y-axis to the series shown", () => {
+  render(powerChart());
+  const img = screen.getByRole("img", { name: "Power" });
+  expect(yAxis(img)).toEqual(["-10 kW", "-5 kW", "0 kW", "5 kW", "10 kW"]);
+
+  fireEvent.click(entry("Battery"));
+
+  expect(yAxis(img)).toEqual(["0 kW", "0.5 kW", "1 kW", "1.5 kW", "2 kW"]);
+});
+
+it("ColumnChart stacks and scales only the series shown, and reads out only those", () => {
+  render(
+    <ColumnChart
+      label="Energy by day"
+      categories={["1", "2"]}
+      series={[
+        { label: "Solar", values: [4, 1], colour: "chart-4" },
+        { label: "Grid", values: [20, 6], colour: "chart-1" },
+        { label: "Export", values: [-3, 0], colour: "chart-3" },
+      ]}
+      format={(v) => `${v} kWh`}
+    />,
+  );
+  const img = screen.getByRole("img", { name: "Energy by day" });
+  expect(yAxis(img)).toEqual(["-10 kWh", "0 kWh", "10 kWh", "20 kWh", "30 kWh"]);
+
+  fireEvent.click(entry("Grid"));
+
+  const first = [...img.querySelectorAll('[data-column="1"] rect[data-colour]')].map((r) => r.getAttribute("data-colour"));
+  expect(first).toEqual(["chart-4", "chart-3"]);
+  expect(yAxis(img)).toEqual(["-4 kWh", "-2 kWh", "0 kWh", "2 kWh", "4 kWh"]);
+  fireEvent.pointerEnter(img.querySelector('[data-column="1"]')!);
+  expect(screen.getByRole("status").textContent).not.toContain("Grid");
+});
+
+it("keeps the last series shown: its legend entry does nothing", () => {
+  render(powerChart());
+
+  fireEvent.click(entry("Solar"));
+  fireEvent.click(entry("Battery"));
+  expect(entry("Used").getAttribute("aria-disabled")).toBe("true");
+  fireEvent.click(entry("Used"));
+
+  expect(pressed("Used")).toEqual(["true"]);
+  expect(screen.getByRole("img", { name: "Power" }).querySelector('[data-series="Used"]')).not.toBeNull();
+  // Showing another lets it go again.
+  fireEvent.click(entry("Solar"));
+  expect(entry("Used").getAttribute("aria-disabled")).toBeNull();
+});
+
+it("makes legend entries native buttons, reached with Tab and pressed with Enter or Space", () => {
+  render(powerChart());
+
+  const used = entry("Used");
+  // A native button in the tab order: the browser presses it on Enter and Space.
+  expect([used.tagName, used.getAttribute("type"), used.tabIndex]).toEqual(["BUTTON", "button", 0]);
+  used.focus();
+  expect(document.activeElement).toBe(used);
+});
+
+it("doesn't make a single series' legend clickable", () => {
+  render(powerChart([power[0]]));
+
+  expect(screen.queryByRole("button")).toBeNull();
+  expect(legendOf("Power")).toEqual([{ text: "Solar", colour: "chart-4" }]);
+});
+
+it("keeps the series hidden by label when the data changes, and hides none when it would hide all", () => {
+  const { rerender } = render(powerChart());
+  fireEvent.click(entry("Battery"));
+
+  rerender(powerChart(power.map((s) => ({ ...s, values: [...s.values].reverse() }))));
+  expect(pressed("Battery")).toEqual(["false"]);
+
+  // Data without Battery, then with it again: still hidden.
+  rerender(powerChart(power.slice(0, 2)));
+  fireEvent.click(entry("Used"));
+  rerender(powerChart());
+  expect(pressed("Solar", "Used", "Battery")).toEqual(["true", "false", "false"]);
+
+  // Data with only the hidden ones shows them all.
+  rerender(powerChart(power.slice(1)));
+  expect(pressed("Used", "Battery")).toEqual(["true", "true"]);
+  expect(screen.getByRole("img", { name: "Power" }).querySelectorAll("[data-series]")).toHaveLength(2);
+});
+
+it("lets a Page hold the hidden series, keeping labels the series don't have", () => {
+  const changes: string[][] = [];
+  render(powerChart(power, { hidden: ["Gone", "Used"], onHiddenChange: (h) => changes.push(h) }));
+
+  expect(pressed("Solar", "Used")).toEqual(["true", "false"]);
+  fireEvent.click(entry("Solar"));
+
+  expect(changes).toEqual([["Gone", "Solar", "Used"]]);
 });

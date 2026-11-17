@@ -16,6 +16,7 @@ import {
   Skeleton,
   useQueryState,
   type ColumnSeries,
+  type HiddenSeries,
 } from "@ddash/ui";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -160,7 +161,7 @@ function Tiles({ t, priced }: { t: Totals; priced: boolean }) {
 type Range = { from: Date; to: Date };
 
 /** A day's or week's power curve. */
-function Curve({ p, range }: { p: GetPeriodResponse; range: Range }) {
+function Curve({ p, range, ...shown }: HiddenSeries & { p: GetPeriodResponse; range: Range }) {
   const times = p.samples.map((s) => (s.at ? timestampDate(s.at) : new Date(0)));
   const has = (f: (s: (typeof p.samples)[number]) => number | undefined) => p.samples.some((s) => f(s) !== undefined);
   const battery = has((s) => s.power?.battery);
@@ -173,6 +174,7 @@ function Curve({ p, range }: { p: GetPeriodResponse; range: Range }) {
       format={kwAxis}
       valueFormat={kw}
       height={280}
+      {...shown}
       series={[
         { label: "Solar", colour: colours.solar, shape: "area", values: p.samples.map((s) => s.power?.solar) },
         { label: "Used", colour: colours.house, values: p.samples.map((s) => s.power?.consumption) },
@@ -184,7 +186,7 @@ function Curve({ p, range }: { p: GetPeriodResponse; range: Range }) {
 }
 
 /** A month's days or a year's months: what was used, by source, above the line; where the rest of the solar went below it. */
-function Columns({ p, onOpen }: { p: GetPeriodResponse; onOpen: (span: SpanName, date: string) => void }) {
+function Columns({ p, onOpen, ...shown }: HiddenSeries & { p: GetPeriodResponse; onOpen: (span: SpanName, date: string) => void }) {
   const year = p.span === Span.YEAR;
   const starts = p.buckets.flatMap((b) => (b.totals ? [b.from ? timestampDate(b.from) : new Date(0)] : []));
   const t = p.buckets.flatMap((b) => (b.totals ? [b.totals] : []));
@@ -207,6 +209,7 @@ function Columns({ p, onOpen }: { p: GetPeriodResponse; onOpen: (span: SpanName,
       heading={(i) => name(starts[i])}
       onSelect={(i) => onOpen(year ? "Month" : "Day", ymd(starts[i]))}
       selectLabel={(i) => `Show ${name(starts[i])}`}
+      {...shown}
     />
   );
 }
@@ -301,6 +304,10 @@ function History() {
   const query = usePeriod(spanOf[name], date);
   const [p, loading] = useKept(query.data);
   const [, setParams] = useSearchParams();
+  // The series hidden on the curve and on the columns, held here: the
+  // charts swap and unmount between spans, the Page stays.
+  const [curveHidden, setCurveHidden] = useState<string[]>([]);
+  const [columnsHidden, setColumnsHidden] = useState<string[]>([]);
   // One update for both (two would lose the first), and a new history
   // entry, so Back returns to the month or year.
   const open = (span: SpanName, d: string) =>
@@ -342,7 +349,13 @@ function History() {
         {p?.totals && (
           <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"} aria-busy={loading || undefined}>
             <Tiles t={p.totals} priced={!!p.prices} />
-            <div className="mt-6">{curve ? range && <Curve p={p} range={range} /> : <Columns p={p} onOpen={open} />}</div>
+            <div className="mt-6">
+              {curve ? (
+                range && <Curve p={p} range={range} hidden={curveHidden} onHiddenChange={setCurveHidden} />
+              ) : (
+                <Columns p={p} onOpen={open} hidden={columnsHidden} onHiddenChange={setColumnsHidden} />
+              )}
+            </div>
           </div>
         )}
       </Panel>

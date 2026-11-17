@@ -94,6 +94,38 @@ it("shows a month's days as columns, and a day's column opens it", async () => {
   expect(calls.filter((c) => c.method === "GetPeriod").at(-1)!.body).toMatchObject({ span: "SPAN_DAY", date: "2026-08-02" });
 });
 
+it("keeps a series hidden on the curve across Day and Week, other days and a month between", async () => {
+  await show((body) => {
+    const span = (body as { span: string }).span;
+    return Response.json(span === "SPAN_MONTH" ? august : span === "SPAN_WEEK" ? { ...today, span } : today);
+  });
+  const used = () => screen.getByRole("button", { name: "Used" });
+  const drawn = () => !!screen.getByRole("img", { name: "Power" }).querySelector('[data-series="Used"]');
+
+  fireEvent.click(used());
+  expect([used().getAttribute("aria-pressed"), drawn()]).toEqual(["false", false]);
+
+  fireEvent.click(screen.getByRole("radio", { name: "Week" }));
+  await settle();
+  expect([used().getAttribute("aria-pressed"), drawn()]).toEqual(["false", false]);
+  fireEvent.click(screen.getByRole("radio", { name: "Day" }));
+  await settle();
+  fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+  await settle();
+  expect([used().getAttribute("aria-pressed"), drawn()]).toEqual(["false", false]);
+
+  // The month's columns replace the curve; the day opened from them hides Used again.
+  fireEvent.click(screen.getByRole("radio", { name: "Month" }));
+  await settle();
+  const name = new Date(2026, 7, 2).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "long" });
+  fireEvent.click(screen.getByRole("button", { name: `Show ${name}` }));
+  await settle();
+  expect([used().getAttribute("aria-pressed"), drawn()]).toEqual(["false", false]);
+
+  fireEvent.click(used());
+  expect(drawn()).toBe(true);
+});
+
 it("says where to set prices when none are", async () => {
   await show(() => Response.json({ ...today, prices: undefined, totals: totals(41.2, 18.9, 4.6, 15.7, 4) }));
 
