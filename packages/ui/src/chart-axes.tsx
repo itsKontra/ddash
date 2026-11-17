@@ -1,6 +1,7 @@
 // The charts with axes: values over time, and stacked columns. SVG drawn
 // at the box's pixel width so text stays crisp, coloured by Theme classes,
 // each with an HTML legend and a read-out of the point under the pointer.
+// With two series or more a legend entry shows or hides its series.
 import { useLayoutEffect, useRef, useState } from "react";
 import { chartColours, colourBg, colourFill, colourStroke, type Colour } from "./chart-colours";
 import { cx, type Tone } from "./tone";
@@ -38,15 +39,82 @@ function niceTicks(lo: number, hi: number, n = 4): number[] {
 
 const round = (v: number) => Math.round(v * 10) / 10;
 
-function Legend({ label, items }: { label: string; items: readonly { label: string; colour: Colour }[] }) {
+/** Which series a chart hides, by label: the chart's own, unless a Page holds them. */
+export interface HiddenSeries {
+  /** The labels of the series hidden; a label not in the series is kept for when it returns. */
+  hidden?: readonly string[];
+  /** Holds hidden outside the chart, e.g. for a Page that swaps charts in and out. */
+  onHiddenChange?: (hidden: string[]) => void;
+}
+
+/**
+ * The series hidden among labels, and the toggle of one (none for a single
+ * series). The last one shown can't be hidden; a set that would hide every
+ * series, such as one kept from other data, hides none.
+ */
+function useHidden(labels: readonly string[], { hidden, onHiddenChange }: HiddenSeries) {
+  const [own, setOwn] = useState<readonly string[]>([]);
+  const kept = hidden ?? own;
+  const off = new Set(kept.filter((l) => labels.includes(l)));
+  if (off.size >= labels.length) off.clear();
+  const toggle = (label: string) => {
+    if (!off.has(label) && off.size >= labels.length - 1) return;
+    const next = new Set(off);
+    if (!next.delete(label)) next.add(label);
+    (onHiddenChange ?? setOwn)([...kept.filter((l) => !labels.includes(l)), ...labels.filter((l) => next.has(l))]);
+  };
+  return [off, labels.length > 1 ? toggle : undefined] as const;
+}
+
+/** Each series' swatch and label; with onToggle each is a button, pressed while its series shows. */
+function Legend({
+  label,
+  items,
+  off,
+  onToggle,
+}: {
+  label: string;
+  items: readonly { label: string; colour: Colour }[];
+  off: ReadonlySet<string>;
+  onToggle?: (label: string) => void;
+}) {
+  const last = items.length - off.size <= 1;
   return (
     <ul aria-label={`${label} legend`} className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-      {items.map((s) => (
-        <li key={s.label} className="flex items-center gap-1.5">
-          <span aria-hidden="true" data-colour={s.colour} className={cx("size-2.5 shrink-0 rounded-[3px]", colourBg[s.colour])} />
-          {s.label}
-        </li>
-      ))}
+      {items.map((s) => {
+        const hidden = off.has(s.label);
+        const entry = (
+          <>
+            <span
+              aria-hidden="true"
+              data-colour={s.colour}
+              className={cx("size-2.5 shrink-0 rounded-[3px]", hidden ? "border border-muted-foreground bg-transparent" : colourBg[s.colour])}
+            />
+            {s.label}
+          </>
+        );
+        return (
+          <li key={s.label} className="flex items-center gap-1.5">
+            {onToggle ? (
+              <button
+                type="button"
+                aria-pressed={!hidden}
+                aria-disabled={(!hidden && last) || undefined}
+                onClick={() => onToggle(s.label)}
+                className={cx(
+                  "-mx-1 flex items-center gap-1.5 rounded-ui-sm px-1",
+                  hidden && "line-through",
+                  !hidden && last ? "cursor-default" : "cursor-pointer hover:text-foreground",
+                )}
+              >
+                {entry}
+              </button>
+            ) : (
+              entry
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -129,7 +197,8 @@ function timeTicks(from: Date, to: Date): { at: Date; label: string }[] {
  * Values over time, e.g. a day's power: areas and lines on one scale from
  * `from` to `to` (a day not over yet stays empty to its end), with a grid
  * labelled by `format`. A gap in the times (over 2.5 steps) or a missing
- * value breaks a line. Hovering reads out every series at that time.
+ * value breaks a line. Hovering reads out every series shown at that time.
+ * A legend entry hides its series, and the scale fits the rest.
  */
 export function LineChart({
   label,
@@ -142,7 +211,8 @@ export function LineChart({
   height = 240,
   yMin,
   yMax,
-}: {
+  ...shown
+}: HiddenSeries & {
   label: string;
   times: readonly Date[];
   series: readonly LineSeries[];
@@ -159,10 +229,13 @@ export function LineChart({
 }) {
   const [ref, width] = useWidth();
   const [hover, setHover] = useState<number | null>(null);
+  const [off, toggle] = useHidden(series.map((s) => s.label), shown);
+  const coloured = series.map((s) => ({ ...s, colour: s.colour as Colour }));
+  const visible = coloured.filter((s) => !off.has(s.label));
   const t0 = from.getTime();
   const t1 = Math.max(to.getTime(), t0 + 1);
   const x = (t: number) => pad.left + ((t - t0) / (t1 - t0)) * (width - pad.left - pad.right);
-  const all = series.flatMap((s) => s.values.filter((v): v is number => v != null && Number.isFinite(v)));
+  const all = visible.flatMap((s) => s.values.filter((v): v is number => v != null && Number.isFinite(v)));
   const ticks = niceTicks(yMin ?? Math.min(0, ...all), yMax ?? Math.max(0, ...all));
   const lo = ticks[0];
   const hi = ticks[ticks.length - 1];
@@ -187,7 +260,6 @@ export function LineChart({
     return out;
   };
   const zero = round(y(Math.max(lo, Math.min(hi, 0))));
-  const coloured = series.map((s) => ({ ...s, colour: s.colour as Colour }));
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     if (!ms.length) return;
@@ -212,7 +284,7 @@ export function LineChart({
               </text>
             ))}
           </g>
-          {coloured.map((s) =>
+          {visible.map((s) =>
             runs(s.values).map((run, i) => {
               const line = run.map(([px, py]) => `${px},${py}`).join(" ");
               return (
@@ -228,7 +300,7 @@ export function LineChart({
           {hover !== null && (
             <g aria-hidden="true">
               <line x1={round(x(ms[hover]))} x2={round(x(ms[hover]))} y1={pad.top} y2={height - pad.bottom} className="stroke-muted-foreground/60" strokeWidth={1} />
-              {coloured.map((s) => {
+              {visible.map((s) => {
                 const v = s.values[hover];
                 return v != null && Number.isFinite(v) && <circle key={s.label} cx={round(x(ms[hover]))} cy={round(y(v))} r={3.5} strokeWidth={2} className={cx(colourStroke[s.colour], "fill-card")} />;
               })}
@@ -240,14 +312,14 @@ export function LineChart({
             x={x(ms[hover])}
             width={width}
             heading={(span > 36 * 3600_000 ? dayTimeFormat : hourFormat).format(at)}
-            rows={coloured.flatMap((s) => {
+            rows={visible.flatMap((s) => {
               const v = s.values[hover];
               return v != null && Number.isFinite(v) ? [{ label: s.label, colour: s.colour, value: valueFormat(v) }] : [];
             })}
           />
         )}
       </div>
-      <Legend label={label} items={coloured} />
+      <Legend label={label} items={coloured} off={off} onToggle={toggle} />
     </div>
   );
 }
@@ -263,7 +335,8 @@ export interface ColumnSeries {
  * Stacked columns, e.g. each day's energy by source: positive values stack
  * up from zero in series order, negative ones down. Hovering a column reads
  * out its values; with `onSelect` a column is a button, e.g. to open that
- * day. Labels thin out to fit.
+ * day. Labels thin out to fit. A legend entry hides its series: the
+ * columns stack and scale the rest.
  */
 export function ColumnChart({
   label,
@@ -275,7 +348,8 @@ export function ColumnChart({
   onSelect,
   selectLabel,
   heading,
-}: {
+  ...shown
+}: HiddenSeries & {
   label: string;
   /** Each column's label under the axis, e.g. "14". */
   categories: readonly string[];
@@ -293,9 +367,12 @@ export function ColumnChart({
 }) {
   const [ref, width] = useWidth();
   const [hover, setHover] = useState<number | null>(null);
+  const [off, toggle] = useHidden(series.map((s) => s.label), shown);
+  const coloured = series.map((s) => ({ ...s, colour: s.colour as Colour }));
+  const visible = coloured.filter((s) => !off.has(s.label));
   const n = categories.length;
-  const up = categories.map((_, i) => series.reduce((a, s) => a + Math.max(0, s.values[i] ?? 0), 0));
-  const down = categories.map((_, i) => series.reduce((a, s) => a + Math.min(0, s.values[i] ?? 0), 0));
+  const up = categories.map((_, i) => visible.reduce((a, s) => a + Math.max(0, s.values[i] ?? 0), 0));
+  const down = categories.map((_, i) => visible.reduce((a, s) => a + Math.min(0, s.values[i] ?? 0), 0));
   const ticks = niceTicks(Math.min(0, ...down), Math.max(0, ...up));
   const lo = ticks[0];
   const hi = ticks[ticks.length - 1];
@@ -303,7 +380,6 @@ export function ColumnChart({
   const slot = (width - pad.left - pad.right) / Math.max(n, 1);
   const bar = Math.max(2, Math.min(slot * 0.68, 44));
   const every = Math.max(1, Math.ceil(28 / slot));
-  const coloured = series.map((s) => ({ ...s, colour: s.colour as Colour }));
 
   return (
     <div className="flex flex-col gap-3">
@@ -317,7 +393,7 @@ export function ColumnChart({
             return (
               <g key={i} onPointerEnter={() => setHover(i)} data-column={c}>
                 <rect x={round(pad.left + slot * i)} y={pad.top} width={round(slot)} height={height - pad.top - pad.bottom} className={cx("fill-transparent", hover === i && "fill-muted/60")} />
-                {coloured.map((s) => {
+                {visible.map((s) => {
                   const v = s.values[i] ?? 0;
                   if (!v) return null;
                   const from = v > 0 ? top : bottom;
@@ -359,11 +435,11 @@ export function ColumnChart({
             x={pad.left + slot * hover + slot / 2}
             width={width}
             heading={heading?.(hover) ?? categories[hover]}
-            rows={coloured.flatMap((s) => (s.values[hover] ? [{ label: s.label, colour: s.colour, value: valueFormat(Math.abs(s.values[hover])) }] : []))}
+            rows={visible.flatMap((s) => (s.values[hover] ? [{ label: s.label, colour: s.colour, value: valueFormat(Math.abs(s.values[hover])) }] : []))}
           />
         )}
       </div>
-      <Legend label={label} items={coloured} />
+      <Legend label={label} items={coloured} off={off} onToggle={toggle} />
     </div>
   );
 }

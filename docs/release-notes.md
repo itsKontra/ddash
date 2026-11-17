@@ -5,6 +5,12 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- A chart's legend entries show and hide their series: click **Used** on
+  the Energy Page's power curve and its line and read-out go, and the
+  scale fits the rest; click again to bring it back. The last series
+  shown stays. What you hide stays hidden while you step through days or
+  switch Day and Week, until you leave the Page.
+
 ## v0.0.3
 
 - **To do, for the Hosts Widget's meters**: give ddash's Proxmox API token
