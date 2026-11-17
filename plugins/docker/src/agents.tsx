@@ -158,6 +158,24 @@ export function UpdateAgent({ agent: a }: { agent: Agent }) {
   );
 }
 
+/**
+ * Why a host's Compose Projects can't be read, as a Notice; Update Agent
+ * when its Agent runs another Release, which is then why. Any other error
+ * is only shown.
+ */
+export function UnreadHost({ host, error, title }: { host: string; error: string; title?: string }) {
+  const { data } = useQuery(DockerAgentApiService.method.listAgents, {});
+  const a = data?.agents.find((x) => x.name === host);
+  return (
+    <Notice tone="down" title={title}>
+      <div className="flex flex-col items-start gap-2">
+        <p>{error}</p>
+        {a?.state === AgentState.OUTDATED && <UpdateAgent agent={a} />}
+      </div>
+    </Notice>
+  );
+}
+
 /** One Agent's Actions: setup while it enrols, pair again, update, remove. */
 function AgentActions({ agent: a, open, close }: { agent: Agent; open: (d: ReactNode) => void; close: () => void }) {
   const pair = useAction(DockerAgentApiService.method.pairAgent);

@@ -8,6 +8,7 @@ import { ago, until } from "@ddash/display";
 import { ActionStrip, Button, DataTable, EmptyState, Notice, PageTitle, Panel, Pill, Skeleton, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
+import { UnreadHost } from "./agents";
 import { ContainerState, Host as ProxyHost, isRunning } from "./containers";
 import { containersOf, ImageBadge, ProjectStatePill, stale } from "./images";
 import { useNow } from "./now";
@@ -140,7 +141,7 @@ function AgentHost({ host: h, open, close }: { host: Host; open: (d: ReactNode) 
       }
     >
       {h.error ? (
-        <Notice tone="down">{h.error}</Notice>
+        <UnreadHost host={h.name} error={h.error} />
       ) : (
         <div className="flex flex-col">
           <DataTable

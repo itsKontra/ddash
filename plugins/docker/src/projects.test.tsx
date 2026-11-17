@@ -341,3 +341,40 @@ it("shows why a run couldn't be cancelled, and offers no cancel once it ended", 
   expect(screen.getByRole("heading", { name: "media" })).toBeTruthy();
   expect(screen.queryByRole("region", { name: "Update media" })).toBeNull();
 });
+
+it("offers Update Agent on an Agent host that can't be read because its Agent runs another Release, through the same confirm as the Docker Agents list", async () => {
+  const message = "it runs Release v0.0.3 and ddash runs v0.0.4: update the Agent";
+  const calls = await showPlugin(plugin, docker, "/docker", {
+    answers: {
+      ...base,
+      ListProjects: () => Response.json({ hosts: [{ name: "apps", error: message }] }),
+      ListAgents: () => Response.json({ agents: [{ name: "apps", state: "AGENT_STATE_OUTDATED", release: "v0.0.3", message }] }),
+      UpdateAgent: () => Response.json({}),
+    },
+  });
+
+  const apps = screen.getByRole("region", { name: "apps" });
+  expect(within(apps).getByText(message)).toBeTruthy();
+  fireEvent.click(within(apps).getByRole("button", { name: "Update Agent" }));
+  await settle();
+  const confirm = screen.getByRole("alertdialog");
+  expect(confirm.textContent).toContain("Update the Docker Agent on apps? It recreates itself on this Release's image");
+  fireEvent.click(within(confirm).getByRole("button", { name: "Update Agent" }));
+  await settle();
+  expect(calls.filter((c) => c.method === "UpdateAgent").map((c) => c.body)).toEqual([{ name: "apps" }]);
+});
+
+it("only shows why an Agent host can't be read for any other reason, without Update Agent", async () => {
+  const message = "dial tcp 198.18.2.20:7443: connect: connection refused";
+  await showPlugin(plugin, docker, "/docker", {
+    answers: {
+      ...base,
+      ListProjects: () => Response.json({ hosts: [{ name: "apps", error: message }] }),
+      ListAgents: () => Response.json({ agents: [{ name: "apps", state: "AGENT_STATE_UNREACHABLE", message }] }),
+    },
+  });
+
+  const apps = screen.getByRole("region", { name: "apps" });
+  expect(within(apps).getByText(message)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Update Agent" })).toBeNull();
+});
