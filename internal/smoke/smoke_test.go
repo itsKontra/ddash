@@ -114,6 +114,27 @@ func TestASystemMissingFromSmokeEnvFails(t *testing.T) {
 	}
 }
 
+func TestAMalformedConfigFailsWithoutEchoingItsSecret(t *testing.T) {
+	const secret = "c0ffee-not-to-be-logged"
+	for _, value := range []string{
+		`{"url": "https://198.18.1.1", "apiKey": ` + secret + `}`,
+		`{"url": "https://198.18.1.1" "` + secret + `"}`,
+		`{"url": "https://198.18.1.1", "apiKey": "` + secret + `"`,
+	} {
+		env := envFor(t, lab(t, repoRoot))
+		env["SMOKE_PFSENSE_API"] = value
+
+		log, err := run(t, env, nil)
+
+		if err == nil || !strings.Contains(err.Error(), "pfsense-api config SMOKE_PFSENSE_API isn't valid protojson") {
+			t.Errorf("%s: err = %v, want the variable named", value, err)
+		}
+		if strings.Contains(log, secret) || (err != nil && strings.Contains(err.Error(), secret)) {
+			t.Errorf("%s: the secret was logged:\n%s\n%v", value, log, err)
+		}
+	}
+}
+
 func TestAnInvariantThatDoesntHoldFails(t *testing.T) {
 	log, err := run(t, envFor(t, lab(t, repoRoot, "not-running")), nil)
 

@@ -41,7 +41,10 @@ which produces one artifact set:
 
    - An Agent accepts only the token of its one pairing, so the smoke run
      borrows the deployed ddash's. It only reads, never pairs, and never
-     prints the token. Copy every paired Agent's name, URL, token and
+     prints the token, so the deployed ddash's pairing stays as it was.
+     The token is not read-only, though: it gives whoever holds it ddash's
+     control of the host's Docker, so keep `smoke.env` at `chmod 600` on
+     the dev machine. Copy every paired Agent's name, URL, token and
      certificate fingerprint from the deployed ddash's DB into `smoke.env`
      in one step, so the token never shows on screen:
 
