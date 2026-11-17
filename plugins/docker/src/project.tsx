@@ -7,7 +7,7 @@ import { ago } from "@ddash/display";
 import { ActionStrip, Button, DataTable, EmptyState, Facts, Notice, PageTitle, Panel, Pill, Skeleton, type Column } from "@ddash/ui";
 import { useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
-import { UpdateAgent } from "./agents";
+import { UnreadHost, UpdateAgent } from "./agents";
 import { ContainerState, isRunning, protocolWord } from "./containers";
 import { ImageBadge, notChecked, ProjectStatePill, shortDigest } from "./images";
 import { useNow } from "./now";
@@ -161,20 +161,6 @@ function DockerAgentNotice({ host }: { host: string }) {
   );
 }
 
-/** Why the host's Compose Projects can't be read; Update Agent when its Agent runs another Release, which is why. */
-function UnreadHost({ host, error }: { host: string; error: string }) {
-  const { data } = useQuery(DockerAgentApiService.method.listAgents, {});
-  const a = data?.agents.find((x) => x.name === host);
-  return (
-    <Notice tone="down" title={`The Docker Agent on ${host}`}>
-      <div className="flex flex-col items-start gap-2">
-        <p>{error}</p>
-        {a?.state === AgentState.OUTDATED && <UpdateAgent agent={a} />}
-      </div>
-    </Notice>
-  );
-}
-
 /** A Compose Project's Page (/docker/projects/:host/:name): its Actions, its last run, its Compose services and images, its Compose file; the Docker Agent's own says how it is updated instead. */
 export function ProjectPage() {
   const { host = "", name = "" } = useParams();
@@ -193,7 +179,7 @@ export function ProjectPage() {
         ) : !data ? (
           <Skeleton height="lg" />
         ) : h?.error ? (
-          <UnreadHost host={host} error={h.error} />
+          <UnreadHost host={host} error={h.error} title={`The Docker Agent on ${host}`} />
         ) : (
           <Panel>
             <EmptyState icon="container" title={`${host} has no Compose Project ${name}.`} />

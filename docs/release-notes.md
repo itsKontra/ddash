@@ -5,6 +5,10 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- The Docker Page offers **Update Agent** on a host it can't read because
+  the host's Docker Agent runs another Release, with the same confirm as
+  the Docker Agents list. Any other reason a host can't be read is only
+  shown, as before.
 - `make smoke`: a `smoke.env` config that isn't valid JSON fails naming
   its variable and the line and column, no longer quoting the value there,
   which may be a secret.
