@@ -618,6 +618,8 @@ type server struct {
 
 	mu  sync.Mutex
 	cur *agent.Server
+	// requests is every request served, as "METHOD /path".
+	requests []string
 }
 
 func newServer(kind agent.Kind, o Options, register func(*agent.Server)) (*server, error) {
@@ -658,6 +660,9 @@ func (s *server) current() *agent.Server {
 }
 
 func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.mu.Lock()
+	s.requests = append(s.requests, r.Method+" "+r.URL.Path)
+	s.mu.Unlock()
 	if s.o.NoCancel && r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, agent.PathJobs+"/") && strings.HasSuffix(r.URL.Path, "/cancel") {
 		http.NotFound(w, r)
 		return
@@ -691,6 +696,14 @@ func (s *server) Unpair() error {
 		return err
 	}
 	return s.start()
+}
+
+// Requests returns every request the fake served, in order, as
+// "METHOD /path".
+func (s *server) Requests() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return slices.Clone(s.requests)
 }
 
 // Fingerprint is the fake Agent's certificate's.

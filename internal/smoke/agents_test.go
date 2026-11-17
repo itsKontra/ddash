@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -18,6 +19,13 @@ import (
 // pairs with it as the deployed ddash did, and returns that pairing: what
 // the Operator copies into smoke.env.
 func dockerAgent(t *testing.T, name, release string) dockeragentapi.Pairing {
+	t.Helper()
+	p, _ := fakeDockerAgent(t, name, release)
+	return p
+}
+
+// fakeDockerAgent is dockerAgent, also returning the fake.
+func fakeDockerAgent(t *testing.T, name, release string) (dockeragentapi.Pairing, *agentfake.Docker) {
 	t.Helper()
 	fake, err := agentfake.NewDocker(t.TempDir(), agentfake.DockerSeed{
 		Stacks: []agentfake.Stack{{Dir: "media", Running: true, Compose: "services:\n  jellyfin:\n    image: jellyfin/jellyfin:10.10.3\n"}},
@@ -39,7 +47,7 @@ func dockerAgent(t *testing.T, name, release string) dockeragentapi.Pairing {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return dockeragentapi.Pairing{Name: name, URL: u, Token: token, Fingerprint: fp}
+	return dockeragentapi.Pairing{Name: name, URL: u, Token: token, Fingerprint: fp}, fake
 }
 
 // agentsVar is DockerAgentsVar's value naming pairings.
@@ -80,6 +88,33 @@ func TestSmokeReadsDockerThroughTheAgentsOfALabWithoutASocketProxy(t *testing.T)
 		}
 	}
 	noToken(t, log, err, apps, backup)
+}
+
+func TestTheSmokeRunOnlyReadsAnAgentAndLeavesTheDeployedPairingAsItWas(t *testing.T) {
+	deployed, fake := fakeDockerAgent(t, "apps", agent.Release)
+	env := envFor(t, lab(t, repoRoot))
+	delete(env, "SMOKE_DOCKER_API")
+	env[smoke.DockerAgentsVar] = agentsVar(t, deployed)
+	before := len(fake.Requests()) // the deployed ddash's pairing
+
+	log, err := run(t, env, nil)
+
+	if err != nil {
+		t.Fatalf("smoke failed: %v\n%s", err, log)
+	}
+	reads := []string{"GET " + agent.PathHello, "GET " + agent.PathInfo, "GET " + agent.PathProjects}
+	for _, r := range fake.Requests()[before:] {
+		if !slices.Contains(reads, r) {
+			t.Errorf("the smoke run sent the Agent %s; it may only read (%v)", r, reads)
+		}
+	}
+	if fake.Fingerprint() != deployed.Fingerprint {
+		t.Error("the Agent's certificate changed")
+	}
+	var info agent.Info
+	if err := agent.Dial(deployed.URL, deployed.Token, deployed.Fingerprint).Get(t.Context(), agent.PathInfo, nil, &info); err != nil {
+		t.Errorf("the deployed ddash can't read the Agent after the smoke run: %v", err)
+	}
 }
 
 func TestSmokeReadsASocketProxyAndAnAgentTogether(t *testing.T) {

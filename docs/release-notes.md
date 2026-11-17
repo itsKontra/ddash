@@ -5,6 +5,9 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- `make smoke`: a `smoke.env` config that isn't valid JSON fails naming
+  its variable and the line and column, no longer quoting the value there,
+  which may be a secret.
 - A chart's legend entries show and hide their series: click **Used** on
   the Energy Page's power curve and its line and read-out go, and the
   scale fits the rest; click again to bring it back. The last series

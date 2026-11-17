@@ -28,6 +28,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -245,7 +246,8 @@ func configOf(s system, env map[string]string) (proto.Message, error) {
 	}
 	cfg := s.config()
 	if err := protojson.Unmarshal([]byte(text), cfg); err != nil {
-		return nil, fmt.Errorf("config %s: %w", name, err)
+		// protojson quotes the input it stumbled on, which may be a secret.
+		return nil, fmt.Errorf("config %s isn't valid protojson%s", name, where(err))
 	}
 	if err := config.ApplyDefaults(cfg); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
@@ -254,6 +256,17 @@ func configOf(s system, env map[string]string) (proto.Message, error) {
 		return nil, fmt.Errorf("config %s: %w", name, fe.Err())
 	}
 	return cfg, nil
+}
+
+// errPosition is where in the input a protojson error is.
+var errPosition = regexp.MustCompile(`\(line \d+:\d+\)`)
+
+// where is " (line 1:12)", the position protojson's err names, or "".
+func where(err error) string {
+	if pos := errPosition.FindString(err.Error()); pos != "" {
+		return " " + pos
+	}
+	return ""
 }
 
 // launch runs def in-process with its DB at dbPath and starts it with cfg,
