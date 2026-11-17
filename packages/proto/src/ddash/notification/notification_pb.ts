@@ -2,19 +2,22 @@
 // @generated from file ddash/notification/notification.proto (package ddash.notification, syntax proto3)
 /* eslint-disable */
 
-// A Notification: what ddash tells the Operator on their phone. Shared by
-// notify, which the Components that have something to say call, and the
-// channel Components it hands each one to (ntfy-api, telegram-api).
+// Notifications: what ddash tells the Operator on their phone. The core
+// carries them (ADR-0010). Any Component sends one through the core's
+// NotificationService, without requires, and the core delivers it to every
+// installed channel: a Component serving ChannelService (ntfy-api,
+// telegram-api), each pulled in by its own channel Plugin.
 
-import type { GenEnum, GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import { file_ddash_options } from "../options_pb";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file ddash/notification/notification.proto.
  */
 export const file_ddash_notification_notification: GenFile = /*@__PURE__*/
-  fileDesc("CiVkZGFzaC9ub3RpZmljYXRpb24vbm90aWZpY2F0aW9uLnByb3RvEhJkZGFzaC5ub3RpZmljYXRpb24iewoMTm90aWZpY2F0aW9uEg0KBXRpdGxlGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSLgoIcHJpb3JpdHkYAyABKA4yHC5kZGFzaC5ub3RpZmljYXRpb24uUHJpb3JpdHkSDAoEdGFncxgEIAMoCRINCgVjbGljaxgFIAEoCSqDAQoIUHJpb3JpdHkSGAoUUFJJT1JJVFlfVU5TUEVDSUZJRUQQABIQCgxQUklPUklUWV9NSU4QARIQCgxQUklPUklUWV9MT1cQAhIUChBQUklPUklUWV9ERUZBVUxUEAMSEQoNUFJJT1JJVFlfSElHSBAEEhAKDFBSSU9SSVRZX01BWBAFQkRaQmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL25vdGlmaWNhdGlvbjtub3RpZmljYXRpb25wYmIGcHJvdG8z");
+  fileDesc("CiVkZGFzaC9ub3RpZmljYXRpb24vbm90aWZpY2F0aW9uLnByb3RvEhJkZGFzaC5ub3RpZmljYXRpb24iewoMTm90aWZpY2F0aW9uEg0KBXRpdGxlGAEgASgJEg8KB21lc3NhZ2UYAiABKAkSLgoIcHJpb3JpdHkYAyABKA4yHC5kZGFzaC5ub3RpZmljYXRpb24uUHJpb3JpdHkSDAoEdGFncxgEIAMoCRINCgVjbGljaxgFIAEoCSJ1CgtTZW5kUmVxdWVzdBI2Cgxub3RpZmljYXRpb24YASABKAsyIC5kZGFzaC5ub3RpZmljYXRpb24uTm90aWZpY2F0aW9uEi4KCGNhdGVnb3J5GAIgASgOMhwuZGRhc2gubm90aWZpY2F0aW9uLkNhdGVnb3J5IkAKDFNlbmRSZXNwb25zZRIwCgpkZWxpdmVyaWVzGAEgAygLMhwuZGRhc2gubm90aWZpY2F0aW9uLkRlbGl2ZXJ5IlwKCERlbGl2ZXJ5Eg8KB2NoYW5uZWwYASABKAkSMAoFc3RhdGUYAiABKA4yIS5kZGFzaC5ub3RpZmljYXRpb24uRGVsaXZlcnlTdGF0ZRINCgVlcnJvchgDIAEoCSIVChNMaXN0Q2hhbm5lbHNSZXF1ZXN0IkUKFExpc3RDaGFubmVsc1Jlc3BvbnNlEi0KCGNoYW5uZWxzGAEgAygLMhsuZGRhc2gubm90aWZpY2F0aW9uLkNoYW5uZWwigwEKB0NoYW5uZWwSEQoJY29tcG9uZW50GAEgASgJEg0KBXRpdGxlGAIgASgJEhMKC2Rlc3RpbmF0aW9uGAMgASgJEjAKCmNhdGVnb3JpZXMYBCADKA4yHC5kZGFzaC5ub3RpZmljYXRpb24uQ2F0ZWdvcnkSDwoHcHJvYmxlbRgFIAEoCSITChFHZXRDaGFubmVsUmVxdWVzdCJqChJHZXRDaGFubmVsUmVzcG9uc2USDQoFdGl0bGUYASABKAkSEwoLZGVzdGluYXRpb24YAiABKAkSMAoKY2F0ZWdvcmllcxgDIAMoDjIcLmRkYXNoLm5vdGlmaWNhdGlvbi5DYXRlZ29yeSJ4Cg5EZWxpdmVyUmVxdWVzdBI2Cgxub3RpZmljYXRpb24YASABKAsyIC5kZGFzaC5ub3RpZmljYXRpb24uTm90aWZpY2F0aW9uEi4KCGNhdGVnb3J5GAIgASgOMhwuZGRhc2gubm90aWZpY2F0aW9uLkNhdGVnb3J5Ih0KD0RlbGl2ZXJSZXNwb25zZRIKCgJpZBgBIAEoCSIRCg9TZW5kVGVzdFJlcXVlc3QiHgoQU2VuZFRlc3RSZXNwb25zZRIKCgJpZBgBIAEoCSqDAQoIUHJpb3JpdHkSGAoUUFJJT1JJVFlfVU5TUEVDSUZJRUQQABIQCgxQUklPUklUWV9NSU4QARIQCgxQUklPUklUWV9MT1cQAhIUChBQUklPUklUWV9ERUZBVUxUEAMSEQoNUFJJT1JJVFlfSElHSBAEEhAKDFBSSU9SSVRZX01BWBAFKnMKCENhdGVnb3J5EhgKFENBVEVHT1JZX1VOU1BFQ0lGSUVEEAASEwoPQ0FURUdPUllfQ0hFQ0tTEAESGgoWQ0FURUdPUllfSU1BR0VfVVBEQVRFUxACEhwKGENBVEVHT1JZX0FDVElPTl9PVVRDT01FUxADKoABCg1EZWxpdmVyeVN0YXRlEh4KGkRFTElWRVJZX1NUQVRFX1VOU1BFQ0lGSUVEEAASFwoTREVMSVZFUllfU1RBVEVfU0VOVBABEhkKFURFTElWRVJZX1NUQVRFX0ZBSUxFRBACEhsKF0RFTElWRVJZX1NUQVRFX0ZJTFRFUkVEEAMyzwEKE05vdGlmaWNhdGlvblNlcnZpY2USTwoEU2VuZBIfLmRkYXNoLm5vdGlmaWNhdGlvbi5TZW5kUmVxdWVzdBogLmRkYXNoLm5vdGlmaWNhdGlvbi5TZW5kUmVzcG9uc2UiBJK1GAASZwoMTGlzdENoYW5uZWxzEicuZGRhc2gubm90aWZpY2F0aW9uLkxpc3RDaGFubmVsc1JlcXVlc3QaKC5kZGFzaC5ub3RpZmljYXRpb24uTGlzdENoYW5uZWxzUmVzcG9uc2UiBIq1GAAyqgIKDkNoYW5uZWxTZXJ2aWNlEmEKCkdldENoYW5uZWwSJS5kZGFzaC5ub3RpZmljYXRpb24uR2V0Q2hhbm5lbFJlcXVlc3QaJi5kZGFzaC5ub3RpZmljYXRpb24uR2V0Q2hhbm5lbFJlc3BvbnNlIgSKtRgAElgKB0RlbGl2ZXISIi5kZGFzaC5ub3RpZmljYXRpb24uRGVsaXZlclJlcXVlc3QaIy5kZGFzaC5ub3RpZmljYXRpb24uRGVsaXZlclJlc3BvbnNlIgSStRgAElsKCFNlbmRUZXN0EiMuZGRhc2gubm90aWZpY2F0aW9uLlNlbmRUZXN0UmVxdWVzdBokLmRkYXNoLm5vdGlmaWNhdGlvbi5TZW5kVGVzdFJlc3BvbnNlIgSStRgAQkRaQmdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL3Byb3RvL2RkYXNoL25vdGlmaWNhdGlvbjtub3RpZmljYXRpb25wYmIGcHJvdG8z", [file_ddash_options]);
 
 /**
  * @generated from message ddash.notification.Notification
@@ -64,6 +67,285 @@ export const NotificationSchema: GenMessage<Notification> = /*@__PURE__*/
   messageDesc(file_ddash_notification_notification, 0);
 
 /**
+ * @generated from message ddash.notification.SendRequest
+ */
+export type SendRequest = Message<"ddash.notification.SendRequest"> & {
+  /**
+   * @generated from field: ddash.notification.Notification notification = 1;
+   */
+  notification?: Notification | undefined;
+
+  /**
+   * What it is about; required: each channel's filter decides by it.
+   *
+   * @generated from field: ddash.notification.Category category = 2;
+   */
+  category: Category;
+};
+
+/**
+ * Describes the message ddash.notification.SendRequest.
+ * Use `create(SendRequestSchema)` to create a new message.
+ */
+export const SendRequestSchema: GenMessage<SendRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 1);
+
+/**
+ * @generated from message ddash.notification.SendResponse
+ */
+export type SendResponse = Message<"ddash.notification.SendResponse"> & {
+  /**
+   * One per installed channel, by its Component's name.
+   *
+   * @generated from field: repeated ddash.notification.Delivery deliveries = 1;
+   */
+  deliveries: Delivery[];
+};
+
+/**
+ * Describes the message ddash.notification.SendResponse.
+ * Use `create(SendResponseSchema)` to create a new message.
+ */
+export const SendResponseSchema: GenMessage<SendResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 2);
+
+/**
+ * @generated from message ddash.notification.Delivery
+ */
+export type Delivery = Message<"ddash.notification.Delivery"> & {
+  /**
+   * The channel's Component, e.g. "ntfy-api".
+   *
+   * @generated from field: string channel = 1;
+   */
+  channel: string;
+
+  /**
+   * @generated from field: ddash.notification.DeliveryState state = 2;
+   */
+  state: DeliveryState;
+
+  /**
+   * Why it failed; empty unless state is failed.
+   *
+   * @generated from field: string error = 3;
+   */
+  error: string;
+};
+
+/**
+ * Describes the message ddash.notification.Delivery.
+ * Use `create(DeliverySchema)` to create a new message.
+ */
+export const DeliverySchema: GenMessage<Delivery> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 3);
+
+/**
+ * @generated from message ddash.notification.ListChannelsRequest
+ */
+export type ListChannelsRequest = Message<"ddash.notification.ListChannelsRequest"> & {
+};
+
+/**
+ * Describes the message ddash.notification.ListChannelsRequest.
+ * Use `create(ListChannelsRequestSchema)` to create a new message.
+ */
+export const ListChannelsRequestSchema: GenMessage<ListChannelsRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 4);
+
+/**
+ * @generated from message ddash.notification.ListChannelsResponse
+ */
+export type ListChannelsResponse = Message<"ddash.notification.ListChannelsResponse"> & {
+  /**
+   * By Component name; empty while no channel Plugin is installed.
+   *
+   * @generated from field: repeated ddash.notification.Channel channels = 1;
+   */
+  channels: Channel[];
+};
+
+/**
+ * Describes the message ddash.notification.ListChannelsResponse.
+ * Use `create(ListChannelsResponseSchema)` to create a new message.
+ */
+export const ListChannelsResponseSchema: GenMessage<ListChannelsResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 5);
+
+/**
+ * @generated from message ddash.notification.Channel
+ */
+export type Channel = Message<"ddash.notification.Channel"> & {
+  /**
+   * The channel's Component, e.g. "telegram-api", whose config form sets
+   * its destination and filter.
+   *
+   * @generated from field: string component = 1;
+   */
+  component: string;
+
+  /**
+   * How the UI names it, e.g. "Telegram"; the Component's name while it
+   * can't say.
+   *
+   * @generated from field: string title = 2;
+   */
+  title: string;
+
+  /**
+   * Where it delivers to, e.g. "ntfy.sh/ddash-alerts" or "chat 123456789";
+   * empty while it can't say.
+   *
+   * @generated from field: string destination = 3;
+   */
+  destination: string;
+
+  /**
+   * The categories its filter takes.
+   *
+   * @generated from field: repeated ddash.notification.Category categories = 4;
+   */
+  categories: Category[];
+
+  /**
+   * Why it may not deliver: its last delivery failed, or its Component
+   * isn't up (e.g. not configured); empty while it works.
+   *
+   * @generated from field: string problem = 5;
+   */
+  problem: string;
+};
+
+/**
+ * Describes the message ddash.notification.Channel.
+ * Use `create(ChannelSchema)` to create a new message.
+ */
+export const ChannelSchema: GenMessage<Channel> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 6);
+
+/**
+ * @generated from message ddash.notification.GetChannelRequest
+ */
+export type GetChannelRequest = Message<"ddash.notification.GetChannelRequest"> & {
+};
+
+/**
+ * Describes the message ddash.notification.GetChannelRequest.
+ * Use `create(GetChannelRequestSchema)` to create a new message.
+ */
+export const GetChannelRequestSchema: GenMessage<GetChannelRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 7);
+
+/**
+ * @generated from message ddash.notification.GetChannelResponse
+ */
+export type GetChannelResponse = Message<"ddash.notification.GetChannelResponse"> & {
+  /**
+   * How the UI names the channel, e.g. "ntfy".
+   *
+   * @generated from field: string title = 1;
+   */
+  title: string;
+
+  /**
+   * Where Notifications go, e.g. "ntfy.sh/ddash-alerts".
+   *
+   * @generated from field: string destination = 2;
+   */
+  destination: string;
+
+  /**
+   * The categories its filter takes.
+   *
+   * @generated from field: repeated ddash.notification.Category categories = 3;
+   */
+  categories: Category[];
+};
+
+/**
+ * Describes the message ddash.notification.GetChannelResponse.
+ * Use `create(GetChannelResponseSchema)` to create a new message.
+ */
+export const GetChannelResponseSchema: GenMessage<GetChannelResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 8);
+
+/**
+ * @generated from message ddash.notification.DeliverRequest
+ */
+export type DeliverRequest = Message<"ddash.notification.DeliverRequest"> & {
+  /**
+   * @generated from field: ddash.notification.Notification notification = 1;
+   */
+  notification?: Notification | undefined;
+
+  /**
+   * What it is about, which the channel's filter took.
+   *
+   * @generated from field: ddash.notification.Category category = 2;
+   */
+  category: Category;
+};
+
+/**
+ * Describes the message ddash.notification.DeliverRequest.
+ * Use `create(DeliverRequestSchema)` to create a new message.
+ */
+export const DeliverRequestSchema: GenMessage<DeliverRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 9);
+
+/**
+ * @generated from message ddash.notification.DeliverResponse
+ */
+export type DeliverResponse = Message<"ddash.notification.DeliverResponse"> & {
+  /**
+   * The id the channel's system gave the message, e.g. ntfy's message id
+   * or Telegram's message id in its chat.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message ddash.notification.DeliverResponse.
+ * Use `create(DeliverResponseSchema)` to create a new message.
+ */
+export const DeliverResponseSchema: GenMessage<DeliverResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 10);
+
+/**
+ * @generated from message ddash.notification.SendTestRequest
+ */
+export type SendTestRequest = Message<"ddash.notification.SendTestRequest"> & {
+};
+
+/**
+ * Describes the message ddash.notification.SendTestRequest.
+ * Use `create(SendTestRequestSchema)` to create a new message.
+ */
+export const SendTestRequestSchema: GenMessage<SendTestRequest> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 11);
+
+/**
+ * @generated from message ddash.notification.SendTestResponse
+ */
+export type SendTestResponse = Message<"ddash.notification.SendTestResponse"> & {
+  /**
+   * The id the channel's system gave the message.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+};
+
+/**
+ * Describes the message ddash.notification.SendTestResponse.
+ * Use `create(SendTestResponseSchema)` to create a new message.
+ */
+export const SendTestResponseSchema: GenMessage<SendTestResponse> = /*@__PURE__*/
+  messageDesc(file_ddash_notification_notification, 12);
+
+/**
  * How urgent a Notification is, numbered as ntfy's priorities.
  *
  * @generated from enum ddash.notification.Priority
@@ -109,4 +391,160 @@ export enum Priority {
  */
 export const PrioritySchema: GenEnum<Priority> = /*@__PURE__*/
   enumDesc(file_ddash_notification_notification, 0);
+
+/**
+ * What a Notification is about; each channel's filter picks categories.
+ *
+ * @generated from enum ddash.notification.Category
+ */
+export enum Category {
+  /**
+   * @generated from enum value: CATEGORY_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * A Check went down or up again, is Flapping, or its certificate expires.
+   *
+   * @generated from enum value: CATEGORY_CHECKS = 1;
+   */
+  CHECKS = 1,
+
+  /**
+   * A container's image has a newer version.
+   *
+   * @generated from enum value: CATEGORY_IMAGE_UPDATES = 2;
+   */
+  IMAGE_UPDATES = 2,
+
+  /**
+   * A long Action (package updates, a backup) ended.
+   *
+   * @generated from enum value: CATEGORY_ACTION_OUTCOMES = 3;
+   */
+  ACTION_OUTCOMES = 3,
+}
+
+/**
+ * Describes the enum ddash.notification.Category.
+ */
+export const CategorySchema: GenEnum<Category> = /*@__PURE__*/
+  enumDesc(file_ddash_notification_notification, 1);
+
+/**
+ * @generated from enum ddash.notification.DeliveryState
+ */
+export enum DeliveryState {
+  /**
+   * @generated from enum value: DELIVERY_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DELIVERY_STATE_SENT = 1;
+   */
+  SENT = 1,
+
+  /**
+   * The channel couldn't be reached, didn't answer within the deadline,
+   * or its system refused the Notification.
+   *
+   * @generated from enum value: DELIVERY_STATE_FAILED = 2;
+   */
+  FAILED = 2,
+
+  /**
+   * The channel's filter doesn't take the category: skipped.
+   *
+   * @generated from enum value: DELIVERY_STATE_FILTERED = 3;
+   */
+  FILTERED = 3,
+}
+
+/**
+ * Describes the enum ddash.notification.DeliveryState.
+ */
+export const DeliveryStateSchema: GenEnum<DeliveryState> = /*@__PURE__*/
+  enumDesc(file_ddash_notification_notification, 2);
+
+/**
+ * The core's own service: every Component reaches it through the host
+ * (sdk.Notifications), whatever it requires.
+ *
+ * @generated from service ddash.notification.NotificationService
+ */
+export const NotificationService: GenService<{
+  /**
+   * Send delivers one Notification to every installed channel whose filter
+   * takes its category, all at once, each within the core's delivery
+   * deadline. It fails (Unavailable) only when every channel that should
+   * have received it failed. With no channel installed, or none taking the
+   * category, it succeeds and delivers to nobody. A Notification without a
+   * category is refused (InvalidArgument).
+   *
+   * @generated from rpc ddash.notification.NotificationService.Send
+   */
+  send: {
+    methodKind: "unary";
+    input: typeof SendRequestSchema;
+    output: typeof SendResponseSchema;
+  },
+  /**
+   * ListChannels reports each installed channel: what it is, where it
+   * delivers to, the categories it takes, and its last problem.
+   *
+   * @generated from rpc ddash.notification.NotificationService.ListChannels
+   */
+  listChannels: {
+    methodKind: "unary";
+    input: typeof ListChannelsRequestSchema;
+    output: typeof ListChannelsResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ddash_notification_notification, 0);
+
+/**
+ * What a channel Component serves: the core finds every installed channel
+ * as a Component whose API is this service. Adding a channel is adding
+ * such a Component and a Plugin that requires it.
+ *
+ * @generated from service ddash.notification.ChannelService
+ */
+export const ChannelService: GenService<{
+  /**
+   * GetChannel says what the channel is, where it delivers to and which
+   * categories its filter takes, from the config alone.
+   *
+   * @generated from rpc ddash.notification.ChannelService.GetChannel
+   */
+  getChannel: {
+    methodKind: "unary";
+    input: typeof GetChannelRequestSchema;
+    output: typeof GetChannelResponseSchema;
+  },
+  /**
+   * Deliver sends one Notification to the channel's destination. The core
+   * calls it only with a category the channel's filter takes. Its outcome
+   * becomes the Component's health.
+   *
+   * @generated from rpc ddash.notification.ChannelService.Deliver
+   */
+  deliver: {
+    methodKind: "unary";
+    input: typeof DeliverRequestSchema;
+    output: typeof DeliverResponseSchema;
+  },
+  /**
+   * SendTest sends a test Notification, so the Operator sees that
+   * Notifications arrive. It is the channel's config form's test_action.
+   *
+   * @generated from rpc ddash.notification.ChannelService.SendTest
+   */
+  sendTest: {
+    methodKind: "unary";
+    input: typeof SendTestRequestSchema;
+    output: typeof SendTestResponseSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_ddash_notification_notification, 1);
 

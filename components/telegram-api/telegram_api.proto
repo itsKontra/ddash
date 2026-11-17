@@ -1,16 +1,19 @@
 syntax = "proto3";
 
-// telegram-api sends Notifications to one Telegram chat through a bot. It
-// is only the transport: what to send and to which channels is notify's.
+// telegram-api is the Telegram channel: it serves
+// ddash.notification.ChannelService and sends each Notification the core
+// delivers to one Telegram chat through a bot. Only the telegram Plugin
+// requires it.
 package ddash.telegramapi;
 
 import "ddash/config/config.proto";
-import "ddash/notification/notification.proto";
-import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/telegram-api/telegramapipb;telegramapipb";
 
-// Empty is valid: Telegram is then not set up, and Send refuses.
+// The bot token and the chat ID are required: to not use Telegram,
+// uninstall the telegram Plugin. The filter's fields (checks,
+// image_updates, action_outcomes) mean the same in every channel's config
+// (components/internal/channel).
 message TelegramApiConfig {
   option (ddash.config.form) = {test_action: "SendTest"};
 
@@ -25,57 +28,31 @@ message TelegramApiConfig {
   string token = 2 [(ddash.config.field) = {
     label: "Bot token"
     secret: true
+    required: true
     placeholder: "123456789:AAH…"
-    help: "The token @BotFather gives for /newbot. Leave this and the chat ID empty to not use Telegram."
+    help: "The token @BotFather gives for /newbot."
   }];
   // The chat the bot writes to: a user's ID for a private chat, a group's
   // (negative) ID, or a channel's @username.
   string chat_id = 3 [(ddash.config.field) = {
     label: "Chat ID"
+    required: true
     placeholder: "123456789"
     help: "Your user ID for a private chat with the bot, a group's ID (it starts with -), or a channel's @username. Send the bot a message first."
   }];
-}
-
-service TelegramApiService {
-  // Send sends one Notification to the chat. It fails with
-  // FailedPrecondition while Telegram is not set up.
-  rpc Send(SendRequest) returns (SendResponse) {
-    option (ddash.action) = {};
-  }
-  // SendTest sends a test Notification, so the Operator sees that
-  // Notifications reach the chat. It is the config form's test_action.
-  rpc SendTest(SendTestRequest) returns (SendTestResponse) {
-    option (ddash.action) = {};
-  }
-  // GetChannel says whether Telegram is set up and which chat it writes
-  // to, from the config alone.
-  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
-    option (ddash.getter) = {refresh: SLOW};
-  }
-}
-
-message SendRequest {
-  ddash.notification.Notification notification = 1;
-}
-
-message SendResponse {
-  // The id Telegram gave the message in its chat.
-  int64 message_id = 1;
-}
-
-message SendTestRequest {}
-
-message SendTestResponse {
-  // The id Telegram gave the message in its chat.
-  int64 message_id = 1;
-}
-
-message GetChannelRequest {}
-
-message GetChannelResponse {
-  // A bot token and a chat ID are set.
-  bool set_up = 1;
-  // Where Notifications go, e.g. "chat 123456789"; empty while not set up.
-  string destination = 2;
+  optional bool checks = 4 [(ddash.config.field) = {
+    label: "Checks"
+    default: "true"
+    help: "A Check going down or up again, Flapping, or its certificate expiring."
+  }];
+  optional bool image_updates = 5 [(ddash.config.field) = {
+    label: "Image updates"
+    default: "true"
+    help: "A running container's image has a newer version in its registry."
+  }];
+  optional bool action_outcomes = 6 [(ddash.config.field) = {
+    label: "Action outcomes"
+    default: "true"
+    help: "How a long Action ended, such as package updates or a backup."
+  }];
 }

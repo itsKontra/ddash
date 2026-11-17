@@ -1,16 +1,17 @@
 syntax = "proto3";
 
-// ntfy-api publishes Notifications to one ntfy topic. It is only the
-// transport: what to send and when is the checks Component's.
+// ntfy-api is the ntfy channel: it serves ddash.notification.ChannelService
+// and publishes each Notification the core delivers to one ntfy topic. Only
+// the ntfy Plugin requires it.
 package ddash.ntfyapi;
 
 import "ddash/config/config.proto";
-import "ddash/notification/notification.proto";
-import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipb";
 
-// Without a topic is valid: ntfy is then not set up, and Send refuses.
+// The topic is required: to not use ntfy, uninstall the ntfy Plugin. The
+// filter's fields (checks, image_updates, action_outcomes) mean the same
+// in every channel's config (components/internal/channel).
 message NtfyApiConfig {
   option (ddash.config.form) = {test_action: "SendTest"};
 
@@ -22,8 +23,9 @@ message NtfyApiConfig {
   }];
   // The topic the phone subscribes to.
   string topic = 2 [(ddash.config.field) = {
+    required: true
     placeholder: "ddash-alerts"
-    help: "Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret. Leave empty to not use ntfy."
+    help: "Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret."
   }];
   // An access token (tk_…) allowed to publish to the topic; empty for an
   // open topic.
@@ -32,48 +34,19 @@ message NtfyApiConfig {
     secret: true
     help: "A token (tk_…) with write access to the topic. Leave empty for an open topic."
   }];
-}
-
-service NtfyApiService {
-  // Send publishes one Notification to the topic. It fails with
-  // FailedPrecondition while ntfy is not set up.
-  rpc Send(SendRequest) returns (SendResponse) {
-    option (ddash.action) = {};
-  }
-  // SendTest publishes a test Notification, so the Operator sees that
-  // Notifications reach the phone. It is the config form's test_action.
-  rpc SendTest(SendTestRequest) returns (SendTestResponse) {
-    option (ddash.action) = {};
-  }
-  // GetChannel says whether ntfy is set up and where Notifications go,
-  // from the config alone.
-  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
-    option (ddash.getter) = {refresh: SLOW};
-  }
-}
-
-message SendRequest {
-  ddash.notification.Notification notification = 1;
-}
-
-message SendResponse {
-  // The id ntfy gave the message.
-  string id = 1;
-}
-
-message SendTestRequest {}
-
-message SendTestResponse {
-  // The id ntfy gave the message.
-  string id = 1;
-}
-
-message GetChannelRequest {}
-
-message GetChannelResponse {
-  // A topic is set.
-  bool set_up = 1;
-  // Where Notifications go: the server's host and the topic, e.g.
-  // "ntfy.sh/ddash-alerts"; empty while not set up.
-  string destination = 2;
+  optional bool checks = 4 [(ddash.config.field) = {
+    label: "Checks"
+    default: "true"
+    help: "A Check going down or up again, Flapping, or its certificate expiring."
+  }];
+  optional bool image_updates = 5 [(ddash.config.field) = {
+    label: "Image updates"
+    default: "true"
+    help: "A running container's image has a newer version in its registry."
+  }];
+  optional bool action_outcomes = 6 [(ddash.config.field) = {
+    label: "Action outcomes"
+    default: "true"
+    help: "How a long Action ended, such as package updates or a backup."
+  }];
 }

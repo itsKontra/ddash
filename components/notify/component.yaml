@@ -1,3 +1,0 @@
-name: notify
-description: Sends each Notification to every channel set up (ntfy, Telegram) whose filter takes its category.
-requires: [ntfy-api, telegram-api]

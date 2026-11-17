@@ -9,6 +9,7 @@ syntax = "proto3";
 // Check per App identity.
 package ddash.checks;
 
+import "ddash/notification/notification.proto";
 import "ddash/options.proto";
 import "ddash/workload/workload.proto";
 import "google/protobuf/duration.proto";
@@ -103,6 +104,20 @@ service ChecksService {
   rpc ReportState(ReportStateRequest) returns (ReportStateResponse) {
     option (ddash.action) = {};
   }
+
+  // ListChannels returns the channels the core delivers Notifications to,
+  // as the core lists them, so the Checks Page shows where its
+  // Notifications go.
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+}
+
+message ListChannelsRequest {}
+
+message ListChannelsResponse {
+  // By Component name; empty while no channel Plugin is installed.
+  repeated ddash.notification.Channel channels = 1;
 }
 
 enum CheckType {

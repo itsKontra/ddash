@@ -116,6 +116,18 @@ it("says nothing needs the Operator once every Plugin reported none", async () =
   expect(rows()).toEqual([]);
 });
 
+it("doesn't wait on a headless Plugin, which reports no Concern", async () => {
+  plugins = [
+    // Were "" imported as a bundle, its Concerns would never be known.
+    [{ ...installed("ntfy", "ntfy"), script: "" }, definePlugin({ useConcerns: () => undefined })],
+    [installed("checks", "Checks"), definePlugin({ useConcerns: () => [] })],
+  ];
+
+  await boot();
+
+  expect(panel().textContent).toBe("Needs youNothing needs you.");
+});
+
 it("fills the main button only for an Action that fixes the cause", async () => {
   const run = () => {};
   plugins = [

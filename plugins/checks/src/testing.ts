@@ -1,18 +1,16 @@
 /** The checks Plugin's scope in tests. */
-export const checks = { name: "checks", requires: ["checks", "notify"] };
+export const checks = { name: "checks", requires: ["checks"] };
 
-/** notify's channels in Connect JSON: ntfy set up with every category, Telegram not set up. */
+/** The installed channels as checks answers ListChannels in Connect JSON: ntfy with every category, Telegram without image updates. */
 export const channels = {
   channels: [
     {
-      name: "ntfy",
-      title: "ntfy",
       component: "ntfy-api",
-      setUp: true,
+      title: "ntfy",
       destination: "ntfy.sh/ddash-alerts",
       categories: ["CATEGORY_CHECKS", "CATEGORY_IMAGE_UPDATES", "CATEGORY_ACTION_OUTCOMES"],
     },
-    { name: "telegram", title: "Telegram", component: "telegram-api", categories: ["CATEGORY_CHECKS", "CATEGORY_IMAGE_UPDATES", "CATEGORY_ACTION_OUTCOMES"] },
+    { component: "telegram-api", title: "Telegram", destination: "chat 123456789", categories: ["CATEGORY_CHECKS", "CATEGORY_ACTION_OUTCOMES"] },
   ],
 };
 

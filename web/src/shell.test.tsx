@@ -137,6 +137,20 @@ it("imports every bundle in parallel at boot, each with its stylesheet if it has
   expect(styles.sort()).toEqual(["/plugins/checks/v1.2.3/index.css", "/plugins/docker/v1.2.3/index.css"]);
 });
 
+it("imports nothing for a headless Plugin, which has no Nav Entry and no Page", async () => {
+  const headless = (name: string, title: string) => ({ ...installed(name, title), script: "", style: "" });
+  await boot("/ntfy", [
+    [headless("ntfy", "ntfy"), definePlugin({})],
+    [headless("telegram", "Telegram"), definePlugin({})],
+    [installed("docker", "Docker"), definePlugin({ nav: { order: 50 }, pages: [{ index: true, Component: page("d") }] })],
+  ]);
+
+  expect(importBundle.mock.calls.map(([url]) => url)).toEqual(["/plugins/docker/v1.2.3/index.js"]);
+  expect(document.head.querySelectorAll("link[rel=stylesheet]")).toHaveLength(1);
+  expect(navLinks()).toEqual(["Overview", "Docker", "Plugins", "Settings"]);
+  expect(screen.getByRole("heading", { name: "Not found" })).toBeTruthy();
+});
+
 it("routes a Plugin's Pages under /<plugin-name>/, inside its own scope", async () => {
   function Host() {
     return <p>{`${usePlugin().name} host ${useParams().host}`}</p>;

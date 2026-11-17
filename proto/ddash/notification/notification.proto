@@ -1,9 +1,13 @@
 syntax = "proto3";
 
-// A Notification: what ddash tells the Operator on their phone. Shared by
-// notify, which the Components that have something to say call, and the
-// channel Components it hands each one to (ntfy-api, telegram-api).
+// Notifications: what ddash tells the Operator on their phone. The core
+// carries them (ADR-0010). Any Component sends one through the core's
+// NotificationService, without requires, and the core delivers it to every
+// installed channel: a Component serving ChannelService (ntfy-api,
+// telegram-api), each pulled in by its own channel Plugin.
 package ddash.notification;
+
+import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/proto/ddash/notification;notificationpb";
 
@@ -31,4 +35,139 @@ enum Priority {
   PRIORITY_DEFAULT = 3;
   PRIORITY_HIGH = 4;
   PRIORITY_MAX = 5;
+}
+
+// What a Notification is about; each channel's filter picks categories.
+enum Category {
+  CATEGORY_UNSPECIFIED = 0;
+  // A Check went down or up again, is Flapping, or its certificate expires.
+  CATEGORY_CHECKS = 1;
+  // A container's image has a newer version.
+  CATEGORY_IMAGE_UPDATES = 2;
+  // A long Action (package updates, a backup) ended.
+  CATEGORY_ACTION_OUTCOMES = 3;
+}
+
+// The core's own service: every Component reaches it through the host
+// (sdk.Notifications), whatever it requires.
+service NotificationService {
+  // Send delivers one Notification to every installed channel whose filter
+  // takes its category, all at once, each within the core's delivery
+  // deadline. It fails (Unavailable) only when every channel that should
+  // have received it failed. With no channel installed, or none taking the
+  // category, it succeeds and delivers to nobody. A Notification without a
+  // category is refused (InvalidArgument).
+  rpc Send(SendRequest) returns (SendResponse) {
+    option (ddash.action) = {};
+  }
+  // ListChannels reports each installed channel: what it is, where it
+  // delivers to, the categories it takes, and its last problem.
+  rpc ListChannels(ListChannelsRequest) returns (ListChannelsResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+}
+
+message SendRequest {
+  Notification notification = 1;
+  // What it is about; required: each channel's filter decides by it.
+  Category category = 2;
+}
+
+message SendResponse {
+  // One per installed channel, by its Component's name.
+  repeated Delivery deliveries = 1;
+}
+
+message Delivery {
+  // The channel's Component, e.g. "ntfy-api".
+  string channel = 1;
+  DeliveryState state = 2;
+  // Why it failed; empty unless state is failed.
+  string error = 3;
+}
+
+enum DeliveryState {
+  DELIVERY_STATE_UNSPECIFIED = 0;
+  DELIVERY_STATE_SENT = 1;
+  // The channel couldn't be reached, didn't answer within the deadline,
+  // or its system refused the Notification.
+  DELIVERY_STATE_FAILED = 2;
+  // The channel's filter doesn't take the category: skipped.
+  DELIVERY_STATE_FILTERED = 3;
+}
+
+message ListChannelsRequest {}
+
+message ListChannelsResponse {
+  // By Component name; empty while no channel Plugin is installed.
+  repeated Channel channels = 1;
+}
+
+message Channel {
+  // The channel's Component, e.g. "telegram-api", whose config form sets
+  // its destination and filter.
+  string component = 1;
+  // How the UI names it, e.g. "Telegram"; the Component's name while it
+  // can't say.
+  string title = 2;
+  // Where it delivers to, e.g. "ntfy.sh/ddash-alerts" or "chat 123456789";
+  // empty while it can't say.
+  string destination = 3;
+  // The categories its filter takes.
+  repeated Category categories = 4;
+  // Why it may not deliver: its last delivery failed, or its Component
+  // isn't up (e.g. not configured); empty while it works.
+  string problem = 5;
+}
+
+// What a channel Component serves: the core finds every installed channel
+// as a Component whose API is this service. Adding a channel is adding
+// such a Component and a Plugin that requires it.
+service ChannelService {
+  // GetChannel says what the channel is, where it delivers to and which
+  // categories its filter takes, from the config alone.
+  rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
+    option (ddash.getter) = {refresh: SLOW};
+  }
+  // Deliver sends one Notification to the channel's destination. The core
+  // calls it only with a category the channel's filter takes. Its outcome
+  // becomes the Component's health.
+  rpc Deliver(DeliverRequest) returns (DeliverResponse) {
+    option (ddash.action) = {};
+  }
+  // SendTest sends a test Notification, so the Operator sees that
+  // Notifications arrive. It is the channel's config form's test_action.
+  rpc SendTest(SendTestRequest) returns (SendTestResponse) {
+    option (ddash.action) = {};
+  }
+}
+
+message GetChannelRequest {}
+
+message GetChannelResponse {
+  // How the UI names the channel, e.g. "ntfy".
+  string title = 1;
+  // Where Notifications go, e.g. "ntfy.sh/ddash-alerts".
+  string destination = 2;
+  // The categories its filter takes.
+  repeated Category categories = 3;
+}
+
+message DeliverRequest {
+  Notification notification = 1;
+  // What it is about, which the channel's filter took.
+  Category category = 2;
+}
+
+message DeliverResponse {
+  // The id the channel's system gave the message, e.g. ntfy's message id
+  // or Telegram's message id in its chat.
+  string id = 1;
+}
+
+message SendTestRequest {}
+
+message SendTestResponse {
+  // The id the channel's system gave the message.
+  string id = 1;
 }

@@ -198,7 +198,20 @@ func (s *Store) Put(ctx context.Context, owner string, cfg proto.Message) error 
 	if err != nil {
 		return fmt.Errorf("put %s config: %w", owner, err)
 	}
-	_, err = s.db.ExecContext(ctx, `
+	return s.PutRaw(ctx, owner, value)
+}
+
+// Raw returns owner's stored config as the DB holds it, in binary proto
+// encoding, for an upgrade that reads a config whose message it has no
+// descriptor of (runtime's upgrade steps); ok is false when there is none.
+func (s *Store) Raw(ctx context.Context, owner string) (value []byte, ok bool, err error) {
+	return s.row(ctx, owner)
+}
+
+// PutRaw stores value, a config message in binary proto encoding, as
+// owner's config, replacing what was there.
+func (s *Store) PutRaw(ctx context.Context, owner string, value []byte) error {
+	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO config (owner, value, updated_at) VALUES (?, ?, ?)
 		ON CONFLICT (owner) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
 		owner, value, time.Now().UTC().Format(time.RFC3339Nano))

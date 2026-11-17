@@ -25,7 +25,7 @@ _Avoid_: History, activity log, event log
 ### Extending ddash
 
 **Plugin**:
-What the operator installs to add a feature: its Widgets, Nav Entries and Pages, plus the Components it requires. Has no backend logic of its own, and is never required by anything.
+What the operator installs to add a feature: its Widgets, Nav Entries and Pages, plus the Components it requires. Has no backend logic of its own, and is never required by anything. A **headless** Plugin has no UI at all, only its Components and their config forms, as a channel's Plugin does.
 _Avoid_: Module, extension, add-on
 
 **Component**:
@@ -161,8 +161,12 @@ Said of a Check the Operator set to stay quiet: it is still probed and counts to
 _Avoid_: Silenced, snoozed, acknowledged
 
 **Notification**:
-A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering. It goes out through each channel that is set up (ntfy, Telegram) and whose filter takes its category: Checks, image updates or Action outcomes.
+A message ddash pushes to the Operator's phone when something changes that they should know about, such as a Check going down or recovering. Any Component sends one through the core, which delivers it to each installed channel whose filter takes its category: Checks, image updates or Action outcomes.
 _Avoid_: Alert, push
+
+**Channel**:
+A way Notifications reach the Operator, such as ntfy or Telegram: a Component serving the shared channel service, pulled in by its own headless Plugin. Installing the Plugin adds the channel; its config holds where it delivers to and its filter.
+_Avoid_: Notifier, transport, provider
 
 **Flapping**:
 Said of a Check that keeps going down and recovering in a short time. It sends one Notification instead of one per change.

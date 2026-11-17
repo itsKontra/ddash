@@ -10,7 +10,7 @@
 // Snapshots and backups (snapshots.go), and keeps SSH Keys and installs
 // them (sshkeys.go). Updates and backups outlast an Action: they run in
 // the background under the Component's life, in the starting Action's
-// Audit Log chain, and their outcome goes to notify.
+// Audit Log chain, and their outcome goes out as a Notification.
 package proxmox
 
 import (
@@ -33,9 +33,9 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -89,7 +89,7 @@ type component struct {
 	api       proxmoxapipb.ProxmoxApiServiceClient
 	checks    checkspb.ChecksServiceClient
 	agents    hostagentapipb.HostAgentApiServiceClient
-	notify    notifypb.NotifyServiceClient
+	notify    notificationpb.NotificationServiceClient
 	db        *sql.DB
 	log       *slog.Logger
 	publicURL string
@@ -116,7 +116,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *proxmoxpb.Proxmo
 	c.api = sdk.Require(env, proxmoxapipb.NewProxmoxApiServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
 	c.agents = sdk.Require(env, hostagentapipb.NewHostAgentApiServiceClient)
-	c.notify = sdk.Require(env, notifypb.NewNotifyServiceClient)
+	c.notify = sdk.Notifications(env)
 	c.db, c.log, c.publicURL = env.DB, env.Log, strings.TrimRight(env.PublicURL, "/")
 	c.life = ctx
 	return c.loadRuns(ctx)

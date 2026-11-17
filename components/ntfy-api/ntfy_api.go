@@ -1,8 +1,8 @@
-// Package ntfyapi is the ntfy-api Component: it publishes Notifications to
-// one ntfy topic as JSON to the server's root, with the topic's access
-// token as a Bearer token. Its health is the last delivery's outcome.
-// Without a topic it is not set up: it starts, and Send refuses with
-// FailedPrecondition.
+// Package ntfyapi is the ntfy-api Component, the ntfy channel: it serves
+// ddash.notification.ChannelService and publishes each Notification the
+// core delivers to one ntfy topic as JSON to the server's root, with the
+// topic's access token as a Bearer token. Its health is the last
+// delivery's outcome.
 package ntfyapi
 
 import (
@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/itsKontra/ddash/components/internal/channel"
 	"github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -44,19 +45,21 @@ func Definition() sdk.Definition {
 func define(client *http.Client) sdk.Definition {
 	return sdk.Define(sdk.Spec[*ntfyapipb.NtfyApiConfig]{
 		Manifest: manifest,
-		Service:  &ntfyapipb.NtfyApiService_ServiceDesc,
+		Service:  &notificationpb.ChannelService_ServiceDesc,
 		New:      func() sdk.Component[*ntfyapipb.NtfyApiConfig] { return &component{client: client} },
 	})
 }
 
 type component struct {
-	ntfyapipb.UnimplementedNtfyApiServiceServer
+	notificationpb.UnimplementedChannelServiceServer
 	client *http.Client
 
 	// root is the server's URL with a trailing slash: JSON is published there.
 	root, topic, token string
 	// host is the server's host, for GetChannel.
 	host string
+	// takes is the categories the filter takes.
+	takes []notificationpb.Category
 
 	mu sync.Mutex
 	// lastErr is why the last delivery failed; nil once one succeeds.
@@ -76,8 +79,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *ntfyapipb.NtfyApiC
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		errs.Add("server", "must be an http or https URL")
 	}
-	// Without a topic, an access token still stored is kept but unused.
-	if cfg.GetTopic() != "" && !topicPattern.MatchString(cfg.GetTopic()) {
+	if !topicPattern.MatchString(cfg.GetTopic()) {
 		errs.Add("topic", "must be 1 to 64 letters, digits, - or _")
 	}
 	if err := errs.Err(); err != nil {
@@ -85,26 +87,16 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *ntfyapipb.NtfyApiC
 	}
 	c.root = strings.TrimSuffix(u.String(), "/") + "/"
 	c.topic, c.token, c.host = cfg.GetTopic(), cfg.GetToken(), u.Host
+	c.takes = channel.Takes(cfg)
 	return nil
 }
 
-func (c *component) setUp() bool { return c.topic != "" }
-
-// errNotSetUp is what Send answers while ntfy is not set up.
-var errNotSetUp = status.Error(codes.FailedPrecondition, "ntfy is not set up: enter a topic")
-
-func (c *component) GetChannel(context.Context, *ntfyapipb.GetChannelRequest) (*ntfyapipb.GetChannelResponse, error) {
-	if !c.setUp() {
-		return &ntfyapipb.GetChannelResponse{}, nil
-	}
-	return &ntfyapipb.GetChannelResponse{SetUp: true, Destination: c.host + "/" + c.topic}, nil
+func (c *component) GetChannel(context.Context, *notificationpb.GetChannelRequest) (*notificationpb.GetChannelResponse, error) {
+	return &notificationpb.GetChannelResponse{Title: "ntfy", Destination: c.host + "/" + c.topic, Categories: c.takes}, nil
 }
 
 // Health is down while the last delivery failed.
 func (c *component) Health(context.Context) sdk.Health {
-	if !c.setUp() {
-		return sdk.Health{State: sdk.OK, Message: "not set up"}
-	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.lastErr != nil {
@@ -113,15 +105,15 @@ func (c *component) Health(context.Context) sdk.Health {
 	return sdk.Health{State: sdk.OK}
 }
 
-func (c *component) Send(ctx context.Context, req *ntfyapipb.SendRequest) (*ntfyapipb.SendResponse, error) {
+func (c *component) Deliver(ctx context.Context, req *notificationpb.DeliverRequest) (*notificationpb.DeliverResponse, error) {
 	id, err := c.publish(ctx, req.GetNotification())
 	if err != nil {
 		return nil, err
 	}
-	return &ntfyapipb.SendResponse{Id: id}, nil
+	return &notificationpb.DeliverResponse{Id: id}, nil
 }
 
-func (c *component) SendTest(ctx context.Context, _ *ntfyapipb.SendTestRequest) (*ntfyapipb.SendTestResponse, error) {
+func (c *component) SendTest(ctx context.Context, _ *notificationpb.SendTestRequest) (*notificationpb.SendTestResponse, error) {
 	id, err := c.publish(ctx, &notificationpb.Notification{
 		Title:    "ddash test",
 		Message:  "Notifications from ddash reach this device.",
@@ -131,7 +123,7 @@ func (c *component) SendTest(ctx context.Context, _ *ntfyapipb.SendTestRequest) 
 	if err != nil {
 		return nil, err
 	}
-	return &ntfyapipb.SendTestResponse{Id: id}, nil
+	return &notificationpb.SendTestResponse{Id: id}, nil
 }
 
 // message is ntfy's JSON publish body.
@@ -147,9 +139,6 @@ type message struct {
 // publish sends n to the topic and returns ntfy's message id. Its outcome
 // becomes the Component's health.
 func (c *component) publish(ctx context.Context, n *notificationpb.Notification) (string, error) {
-	if !c.setUp() {
-		return "", errNotSetUp
-	}
 	id, err := c.post(ctx, message{
 		Topic:    c.topic,
 		Title:    n.GetTitle(),

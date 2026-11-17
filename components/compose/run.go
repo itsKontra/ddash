@@ -24,7 +24,6 @@ import (
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	pb "github.com/itsKontra/ddash/components/compose/composepb"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
 	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 	"github.com/itsKontra/ddash/sdk"
@@ -481,7 +480,7 @@ func (c *component) outcome(ctx context.Context, r *run) {
 	}
 	ctx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
-	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_ACTION_OUTCOMES}); err != nil {
+	if _, err := c.notify.Send(ctx, &notificationpb.SendRequest{Notification: n, Category: notificationpb.Category_CATEGORY_ACTION_OUTCOMES}); err != nil {
 		c.log.Warn("can't notify a run's outcome", "run", p.GetTitle(), "err", err)
 	}
 }

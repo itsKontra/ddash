@@ -1,0 +1,7 @@
+name: ntfy
+title: ntfy
+description: Sends ddash's Notifications to your phone through an ntfy topic. Configure ntfy-api to pick the topic and which Notifications it gets.
+icon: bell
+author: itsKontra
+headless: true
+requires: [ntfy-api]

@@ -1,7 +1,7 @@
 // Package checks is the checks Component: it probes Checks on fixed
 // defaults, decides when each is up or down, records every beat in
 // check_event and serves the Checks' states from memory. It sends a
-// Notification through notify (category Checks) when a Check is confirmed
+// Notification through the core (category Checks) when a Check is confirmed
 // down and when it recovers.
 package checks
 
@@ -21,7 +21,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -83,7 +83,7 @@ type component struct {
 	ctx       context.Context
 	db        *store
 	log       *slog.Logger
-	notify    notifypb.NotifyServiceClient
+	notify    notificationpb.NotificationServiceClient
 	publicURL string
 
 	// writing is held from computing a write to the DB from memory until
@@ -140,7 +140,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *checkspb.ChecksC
 	c.ctx, c.log, c.publicURL = ctx, env.Log, env.PublicURL
 	c.web = webClient(ctx, c.dial, c.roots)
 	c.db = &store{env.DB}
-	c.notify = sdk.Require(env, notifypb.NewNotifyServiceClient)
+	c.notify = sdk.Notifications(env)
 	loaded, err := c.db.load(ctx)
 	if err != nil {
 		return err

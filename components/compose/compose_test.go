@@ -29,7 +29,6 @@ import (
 	pb "github.com/itsKontra/ddash/components/compose/composepb"
 	dockeragentapi "github.com/itsKontra/ddash/components/docker-agent-api"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	registryapi "github.com/itsKontra/ddash/components/registry-api"
 	regpb "github.com/itsKontra/ddash/components/registry-api/registryapipb"
 	"github.com/itsKontra/ddash/sdk"
@@ -73,16 +72,16 @@ func (f *checksFake) EndMaintenance(_ context.Context, req *checkspb.EndMaintena
 }
 
 type notifyFake struct {
-	notifypb.NotifyServiceClient
+	notificationpb.NotificationServiceClient
 	mu   sync.Mutex
 	sent []*notificationpb.Notification
 }
 
-func (f *notifyFake) Send(_ context.Context, req *notifypb.SendRequest, _ ...grpc.CallOption) (*notifypb.SendResponse, error) {
+func (f *notifyFake) Send(_ context.Context, req *notificationpb.SendRequest, _ ...grpc.CallOption) (*notificationpb.SendResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.sent = append(f.sent, req.GetNotification())
-	return &notifypb.SendResponse{}, nil
+	return &notificationpb.SendResponse{}, nil
 }
 
 func (f *notifyFake) titles() []string {
@@ -150,7 +149,7 @@ func setup(t *testing.T) lab {
 		sdktest.WithClient[dapb.DockerAgentApiServiceClient](agents),
 		sdktest.WithClient[regpb.RegistryApiServiceClient](regpb.NewRegistryApiServiceClient(rh.Conn)),
 		sdktest.WithClient[checkspb.ChecksServiceClient](l.checks),
-		sdktest.WithClient[notifypb.NotifyServiceClient](l.notify),
+		sdktest.WithClient[notificationpb.NotificationServiceClient](l.notify),
 	)
 	h.MustStart(&pb.ComposeConfig{})
 	l.c = pb.NewComposeServiceClient(h.Conn)

@@ -9,7 +9,8 @@
 //	SHA256SUMS      sha256sum format: "<hex>  <file>"
 //	<component>.ct  a zip holding the Component's static binary, <component>
 //	<plugin>.ddapp  a zip of the Plugin's built files, plugins/<plugin>/dist/
-//	                as Vite built it (index.js, index.css, …)
+//	                as Vite built it (index.js, index.css, …); none for a
+//	                headless Plugin, which has no UI
 //	ddash-host-agent-linux-<arch>
 //	                the Host Agent, static, for amd64 and arm64: ddash serves
 //	                it to install.sh at /agent/host/<arch>
@@ -103,6 +104,9 @@ func Build(ctx context.Context, o Options) error {
 		}
 	}
 	for _, p := range cat.Plugins {
+		if p.Headless {
+			continue
+		}
 		if err := bundle(o, p.Name); err != nil {
 			return err
 		}
@@ -164,14 +168,20 @@ func bundle(o Options, plugin string) error {
 
 // Catalogue merges every plugins/*/plugin.yaml and components/*/component.yaml
 // under the repo root into release's catalogue, Plugins and Components each
-// sorted by name. It fails on a manifest not named after its directory and
-// on a requires that doesn't resolve.
+// sorted by name. It fails on a manifest not named after its directory, on
+// a requires that doesn't resolve, and on a headless Plugin with a UI to
+// build (a package.json).
 func Catalogue(root, release string) (runtime.Catalogue, error) {
 	cat := runtime.Catalogue{Release: release}
 	if err := manifests(root, "plugins", "plugin.yaml", func(p runtime.PluginEntry) {
 		cat.Plugins = append(cat.Plugins, p)
 	}); err != nil {
 		return cat, err
+	}
+	for _, p := range cat.Plugins {
+		if _, err := os.Stat(filepath.Join(root, "plugins", p.Name, "package.json")); p.Headless && err == nil {
+			return cat, fmt.Errorf("plugins/%s is headless, but has a UI to build (package.json)", p.Name)
+		}
 	}
 	if err := manifests(root, "components", "component.yaml", func(c runtime.ComponentEntry) {
 		cat.Components = append(cat.Components, c)

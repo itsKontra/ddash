@@ -9,9 +9,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	notifycomponent "github.com/itsKontra/ddash/components/notify"
-	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
-	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
@@ -109,52 +106,35 @@ func TestTheCatalogueListsEveryPluginWithTheComponentsItPullsIn(t *testing.T) {
 	}
 }
 
-// A Plugin pulls both channels in through notify; leaving them empty turns
-// them off without the Catalogue showing the Plugin unconfigured or down.
-func TestChannelsNotSetUpLeaveAPluginThatPullsThemInOK(t *testing.T) {
+// A headless Plugin, as a Notification channel's is, has no bundle: the
+// Release carries none, installing it downloads none, and the shell is
+// given no script to import. Its Component and its health show in the
+// Catalogue like any other's.
+func TestAHeadlessPluginIsInstalledWithoutABundle(t *testing.T) {
 	h := coretest.New(t, coretest.Options{
-		Components: []sdk.Definition{notifycomponent.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
-		Plugins:    []coretest.Plugin{{Name: "alerts", Requires: []string{"notify"}}},
+		Components: []sdk.Definition{greeter(sample.Hooks{})},
+		Plugins:    []coretest.Plugin{{Name: "hello", Title: "Hello", Icon: "bell", Requires: []string{"greeter"}, Headless: true}},
 	})
-	h.Install("alerts")
-	for _, c := range []string{"ntfy-api", "telegram-api", "notify"} {
-		h.WaitState(c, runtime.OK)
-	}
+	h.SeedConfig("greeter", configured)
 
+	coreJSON(t, h, "Install", `{"plugin":"hello"}`)
+
+	h.WaitState("greeter", runtime.OK)
+	installed := coreJSON(t, h, "ListInstalledPlugins", `{}`)
+	want := map[string]any{"plugins": []any{map[string]any{"name": "hello", "title": "Hello", "icon": "bell", "requires": []any{"greeter"}}}}
+	if diff := cmp.Diff(want, installed); diff != "" {
+		t.Errorf("ListInstalledPlugins (-want +got):\n%s", diff)
+	}
 	cat := coreJSON(t, h, "ListCatalogue", `{}`)
-
-	plugins, _ := cat["plugins"].([]any)
-	if len(plugins) != 1 {
-		t.Fatalf("plugins %v, want alerts", plugins)
+	wantCat := []any{map[string]any{
+		"name": "hello", "title": "Hello", "icon": "bell", "installed": true,
+		"components": []any{map[string]any{"name": "greeter", "state": "ok", "configurable": true}},
+	}}
+	if diff := cmp.Diff(wantCat, cat["plugins"]); diff != "" {
+		t.Errorf("ListCatalogue's Plugins (-want +got):\n%s", diff)
 	}
-	got := map[string]any{}
-	for _, c := range plugins[0].(map[string]any)["components"].([]any) {
-		c := c.(map[string]any)
-		got[c["name"].(string)] = c
-	}
-	want := map[string]any{
-		"notify":       map[string]any{"name": "notify", "state": "ok", "configurable": true},
-		"ntfy-api":     map[string]any{"name": "ntfy-api", "state": "ok", "message": "not set up", "configurable": true},
-		"telegram-api": map[string]any{"name": "telegram-api", "state": "ok", "message": "not set up", "configurable": true},
-	}
-	if diff := cmp.Diff(want, got); diff != "" {
-		t.Errorf("alerts' Components (-want +got):\n%s", diff)
-	}
-
-	channels := h.Call("alerts", "notify", "ListChannels", `{}`)
-	var listed struct{ Channels []map[string]any }
-	_ = json.Unmarshal(channels.Body.Bytes(), &listed)
-	for _, ch := range listed.Channels {
-		if ch["setUp"] != nil || ch["problem"] != nil {
-			t.Errorf("channel %v, want not set up, no problem", ch)
-		}
-	}
-	if len(listed.Channels) != 2 {
-		t.Errorf("ListChannels = %d %s, want both channels", channels.Code, channels.Body)
-	}
-	sent := h.Call("alerts", "notify", "Send", `{"notification":{"title":"NAS down"},"category":"CATEGORY_CHECKS"}`)
-	if sent.Code != http.StatusOK || strings.Count(sent.Body.String(), "DELIVERY_STATE_NOT_SET_UP") != 2 {
-		t.Errorf("Send = %d %s, want ok, not set up on both channels", sent.Code, sent.Body)
+	if res := h.Get("/plugins/hello/" + sdk.Release + "/index.js"); res.Code != http.StatusNotFound {
+		t.Errorf("the headless Plugin's bundle = %d, want not found", res.Code)
 	}
 }
 

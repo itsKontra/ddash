@@ -21,11 +21,11 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	"github.com/itsKontra/ddash/components/host-agent-api/hostagentapipb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/components/proxmox"
 	"github.com/itsKontra/ddash/components/proxmox-api/proxmoxapipb"
 	"github.com/itsKontra/ddash/components/proxmox/proxmoxpb"
 	jobpb "github.com/itsKontra/ddash/proto/ddash/job"
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 	workloadpb "github.com/itsKontra/ddash/proto/ddash/workload"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
@@ -233,14 +233,14 @@ func (a *agents) InstallKey(_ context.Context, req *hostagentapipb.InstallKeyReq
 }
 
 type notifier struct {
-	notifypb.NotifyServiceClient
+	notificationpb.NotificationServiceClient
 	l *lab
 }
 
-func (n notifier) Send(_ context.Context, req *notifypb.SendRequest, _ ...grpc.CallOption) (*notifypb.SendResponse, error) {
+func (n notifier) Send(_ context.Context, req *notificationpb.SendRequest, _ ...grpc.CallOption) (*notificationpb.SendResponse, error) {
 	m := req.GetNotification()
 	n.l.record("notify %s: %s (%s) %s", m.GetTitle(), m.GetMessage(), req.GetCategory(), m.GetClick())
-	return &notifypb.SendResponse{}, nil
+	return &notificationpb.SendResponse{}, nil
 }
 
 func startAll(t *testing.T, l *lab, a *agents) (proxmoxpb.ProxmoxServiceClient, *sdktest.Harness) {
@@ -249,7 +249,7 @@ func startAll(t *testing.T, l *lab, a *agents) (proxmoxpb.ProxmoxServiceClient, 
 		sdktest.WithClient[proxmoxapipb.ProxmoxApiServiceClient](proxmoxAPI{l: l}),
 		sdktest.WithClient[checkspb.ChecksServiceClient](checks{l: l}),
 		sdktest.WithClient[hostagentapipb.HostAgentApiServiceClient](a),
-		sdktest.WithClient[notifypb.NotifyServiceClient](notifier{l: l}))
+		sdktest.WithClient[notificationpb.NotificationServiceClient](notifier{l: l}))
 	h.MustStart(&proxmoxpb.ProxmoxConfig{})
 	return proxmoxpb.NewProxmoxServiceClient(h.Conn), h
 }

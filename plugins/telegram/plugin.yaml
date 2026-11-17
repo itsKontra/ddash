@@ -1,0 +1,7 @@
+name: telegram
+title: Telegram
+description: Sends ddash's Notifications to a Telegram chat through your bot. Configure telegram-api to pick the bot, the chat and which Notifications it gets.
+icon: send
+author: itsKontra
+headless: true
+requires: [telegram-api]

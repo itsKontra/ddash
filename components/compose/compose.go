@@ -27,7 +27,6 @@ import (
 	"github.com/itsKontra/ddash/components/checks/checkspb"
 	pb "github.com/itsKontra/ddash/components/compose/composepb"
 	dapb "github.com/itsKontra/ddash/components/docker-agent-api/dockeragentapipb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	regpb "github.com/itsKontra/ddash/components/registry-api/registryapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -52,7 +51,7 @@ type component struct {
 	pb.UnimplementedComposeServiceServer
 	agents dapb.DockerAgentApiServiceClient
 	checks checkspb.ChecksServiceClient
-	notify notifypb.NotifyServiceClient
+	notify notificationpb.NotificationServiceClient
 	db     *sql.DB
 	log    *slog.Logger
 	public string
@@ -90,7 +89,7 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, _ *pb.ComposeConfig
 	c.agents = sdk.Require(env, dapb.NewDockerAgentApiServiceClient)
 	c.registry = sdk.Require(env, regpb.NewRegistryApiServiceClient)
 	c.checks = sdk.Require(env, checkspb.NewChecksServiceClient)
-	c.notify = sdk.Require(env, notifypb.NewNotifyServiceClient)
+	c.notify = sdk.Notifications(env)
 	c.db, c.log, c.public, c.life = env.DB, env.Log, strings.TrimRight(env.PublicURL, "/"), ctx
 	c.images = map[string]digestResult{}
 	c.runs = map[string]*run{}
@@ -313,7 +312,7 @@ func (c *component) notifyStale(ctx context.Context, res *dapb.ListComposeProjec
 		lines = append(lines, fmt.Sprintf("%s on %s: %s", s.name, s.host, s.image))
 	}
 	n.Message = strings.Join(lines, "\n")
-	if _, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_IMAGE_UPDATES}); err != nil {
+	if _, err := c.notify.Send(ctx, &notificationpb.SendRequest{Notification: n, Category: notificationpb.Category_CATEGORY_IMAGE_UPDATES}); err != nil {
 		c.log.Warn("image check: can't notify", "err", err)
 		return
 	}

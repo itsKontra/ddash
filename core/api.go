@@ -66,17 +66,19 @@ func (a coreAPI) ListInstalledPlugins(context.Context, *corepb.ListInstalledPlug
 	rel := a.host.runtime.Release()
 	resp := &corepb.ListInstalledPluginsResponse{}
 	for _, p := range a.host.runtime.Installed() {
-		base := bundlePrefix + p.Name + "/" + rel + "/"
-		resp.Plugins = append(resp.Plugins, &corepb.InstalledPlugin{
+		ip := &corepb.InstalledPlugin{
 			Name:        p.Name,
 			Title:       p.Title,
 			Description: p.Description,
 			Icon:        p.Icon,
 			Author:      p.Author,
 			Requires:    p.Requires,
-			Script:      base + bundleScript,
-			Style:       a.host.bundleStyleURL(p.Name, base),
-		})
+		}
+		if !p.Headless {
+			base := bundlePrefix + p.Name + "/" + rel + "/"
+			ip.Script, ip.Style = base+bundleScript, a.host.bundleStyleURL(p.Name, base)
+		}
+		resp.Plugins = append(resp.Plugins, ip)
 	}
 	return resp, nil
 }

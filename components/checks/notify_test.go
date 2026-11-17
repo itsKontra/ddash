@@ -19,16 +19,15 @@ import (
 
 	"github.com/itsKontra/ddash/components/checks"
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 	"github.com/itsKontra/ddash/sdk/sdktest"
 )
 
-// fakeNotify is notify as checks sees it: it records the Notifications
-// handed to Send and fails them while down
-// (every channel failed). Like notify it refuses a Notification without
+// fakeNotify is the core's notification service as checks sees it: it
+// records the Notifications handed to Send and fails them while down
+// (every channel failed). Like the core it refuses a Notification without
 // a category, and so does it one in any category but Checks.
 type fakeNotify struct {
-	notifypb.NotifyServiceClient
+	notificationpb.NotificationServiceClient
 
 	mu       sync.Mutex
 	sent     []*notificationpb.Notification
@@ -36,19 +35,19 @@ type fakeNotify struct {
 	down     bool
 }
 
-func (f *fakeNotify) Send(_ context.Context, req *notifypb.SendRequest, _ ...grpc.CallOption) (*notifypb.SendResponse, error) {
+func (f *fakeNotify) Send(_ context.Context, req *notificationpb.SendRequest, _ ...grpc.CallOption) (*notificationpb.SendResponse, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.attempts = append(f.attempts, time.Now())
 	n := proto.CloneOf(req.GetNotification())
-	if req.GetCategory() != notifypb.Category_CATEGORY_CHECKS {
+	if req.GetCategory() != notificationpb.Category_CATEGORY_CHECKS {
 		return nil, status.Errorf(codes.InvalidArgument, "category %v, want Checks", req.GetCategory())
 	}
 	if f.down {
 		return nil, status.Error(codes.Unavailable, "ntfy: ntfy answered 502: bad gateway; Telegram: Telegram answered 502: Bad Gateway")
 	}
 	f.sent = append(f.sent, n)
-	return &notifypb.SendResponse{Deliveries: []*notifypb.Delivery{{Channel: "ntfy", State: notifypb.DeliveryState_DELIVERY_STATE_SENT}}}, nil
+	return &notificationpb.SendResponse{Deliveries: []*notificationpb.Delivery{{Channel: "ntfy", State: notificationpb.DeliveryState_DELIVERY_STATE_SENT}}}, nil
 }
 
 func (f *fakeNotify) setDown(down bool) {

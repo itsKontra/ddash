@@ -1,8 +1,7 @@
-// Package telegramapi is the telegram-api Component: it sends
-// Notifications to one Telegram chat through a bot, as the Bot API's
+// Package telegramapi is the telegram-api Component, the Telegram channel:
+// it serves ddash.notification.ChannelService and sends each Notification
+// the core delivers to one Telegram chat through a bot, as the Bot API's
 // sendMessage with HTML text. Its health is the last delivery's outcome.
-// Without a bot token and a chat ID it is not set up: it starts, and Send
-// refuses with FailedPrecondition.
 package telegramapi
 
 import (
@@ -16,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/itsKontra/ddash/components/internal/channel"
 	"github.com/itsKontra/ddash/components/telegram-api/telegramapipb"
 	"github.com/itsKontra/ddash/sdk"
 )
@@ -43,7 +44,7 @@ const maxText = 4096
 func Definition() sdk.Definition {
 	return sdk.Define(sdk.Spec[*telegramapipb.TelegramApiConfig]{
 		Manifest: manifest,
-		Service:  &telegramapipb.TelegramApiService_ServiceDesc,
+		Service:  &notificationpb.ChannelService_ServiceDesc,
 		New: func() sdk.Component[*telegramapipb.TelegramApiConfig] {
 			return &component{client: &http.Client{Timeout: sendTimeout}}
 		},
@@ -51,11 +52,13 @@ func Definition() sdk.Definition {
 }
 
 type component struct {
-	telegramapipb.UnimplementedTelegramApiServiceServer
+	notificationpb.UnimplementedChannelServiceServer
 	client *http.Client
 
 	// root is the Bot API server's URL with a trailing slash.
 	root, token, chat string
+	// takes is the categories the filter takes.
+	takes []notificationpb.Category
 
 	mu sync.Mutex
 	// lastErr is why the last delivery failed; nil once one succeeds.
@@ -79,36 +82,23 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *telegramapipb.Tele
 		errs.Add("server", "must be an http or https URL")
 	}
 	token, chat := strings.TrimSpace(cfg.GetToken()), strings.TrimSpace(cfg.GetChatId())
-	switch {
-	case token != "" && !tokenPattern.MatchString(token):
+	if !tokenPattern.MatchString(token) {
 		errs.Add("token", "must look like 123456789:AAH…, as @BotFather gave it")
-	case token == "" && chat != "":
-		errs.Add("token", "is required with a chat ID")
 	}
-	switch {
-	case chat != "" && !chatPattern.MatchString(chat):
+	if !chatPattern.MatchString(chat) {
 		errs.Add("chat_id", "must be a number (a group's starts with -) or a channel's @username")
-	case chat == "" && token != "":
-		errs.Add("chat_id", "is required with a bot token")
 	}
 	if err := errs.Err(); err != nil {
 		return err
 	}
 	c.root = strings.TrimSuffix(u.String(), "/") + "/"
 	c.token, c.chat = token, chat
+	c.takes = channel.Takes(cfg)
 	return nil
 }
 
-func (c *component) setUp() bool { return c.token != "" }
-
-// errNotSetUp is what Send answers while Telegram is not set up.
-var errNotSetUp = status.Error(codes.FailedPrecondition, "Telegram is not set up: enter a bot token and a chat ID")
-
 // Health is down while the last delivery failed.
 func (c *component) Health(context.Context) sdk.Health {
-	if !c.setUp() {
-		return sdk.Health{State: sdk.OK, Message: "not set up"}
-	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.lastErr != nil {
@@ -117,22 +107,19 @@ func (c *component) Health(context.Context) sdk.Health {
 	return sdk.Health{State: sdk.OK}
 }
 
-func (c *component) GetChannel(context.Context, *telegramapipb.GetChannelRequest) (*telegramapipb.GetChannelResponse, error) {
-	if !c.setUp() {
-		return &telegramapipb.GetChannelResponse{}, nil
-	}
-	return &telegramapipb.GetChannelResponse{SetUp: true, Destination: "chat " + c.chat}, nil
+func (c *component) GetChannel(context.Context, *notificationpb.GetChannelRequest) (*notificationpb.GetChannelResponse, error) {
+	return &notificationpb.GetChannelResponse{Title: "Telegram", Destination: "chat " + c.chat, Categories: c.takes}, nil
 }
 
-func (c *component) Send(ctx context.Context, req *telegramapipb.SendRequest) (*telegramapipb.SendResponse, error) {
+func (c *component) Deliver(ctx context.Context, req *notificationpb.DeliverRequest) (*notificationpb.DeliverResponse, error) {
 	id, err := c.deliver(ctx, req.GetNotification())
 	if err != nil {
 		return nil, err
 	}
-	return &telegramapipb.SendResponse{MessageId: id}, nil
+	return &notificationpb.DeliverResponse{Id: strconv.FormatInt(id, 10)}, nil
 }
 
-func (c *component) SendTest(ctx context.Context, _ *telegramapipb.SendTestRequest) (*telegramapipb.SendTestResponse, error) {
+func (c *component) SendTest(ctx context.Context, _ *notificationpb.SendTestRequest) (*notificationpb.SendTestResponse, error) {
 	id, err := c.deliver(ctx, &notificationpb.Notification{
 		Title:   "ddash test",
 		Message: "Notifications from ddash reach this chat.",
@@ -141,15 +128,12 @@ func (c *component) SendTest(ctx context.Context, _ *telegramapipb.SendTestReque
 	if err != nil {
 		return nil, err
 	}
-	return &telegramapipb.SendTestResponse{MessageId: id}, nil
+	return &notificationpb.SendTestResponse{Id: strconv.FormatInt(id, 10)}, nil
 }
 
 // deliver sends n to the chat and returns Telegram's message id. Its
 // outcome becomes the Component's health.
 func (c *component) deliver(ctx context.Context, n *notificationpb.Notification) (int64, error) {
-	if !c.setUp() {
-		return 0, errNotSetUp
-	}
 	m := message{
 		ChatID:              c.chat,
 		Text:                render(n),

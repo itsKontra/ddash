@@ -12,7 +12,6 @@ import (
 	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 
 	"github.com/itsKontra/ddash/components/checks/checkspb"
-	"github.com/itsKontra/ddash/components/notify/notifypb"
 )
 
 // The Notification pipeline's fixed timings.
@@ -167,7 +166,7 @@ func (c *component) deliver(ctx context.Context) {
 	c.mu.Unlock()
 
 	n := c.group(todo)
-	_, err := c.notify.Send(ctx, &notifypb.SendRequest{Notification: n, Category: notifypb.Category_CATEGORY_CHECKS})
+	_, err := c.notify.Send(ctx, &notificationpb.SendRequest{Notification: n, Category: notificationpb.Category_CATEGORY_CHECKS})
 	if ctx.Err() != nil {
 		return
 	}
@@ -483,4 +482,14 @@ func howLong(d time.Duration) string {
 		return fmt.Sprintf("%d d", days)
 	}
 	return fmt.Sprintf("%d d %d h", days, h)
+}
+
+// ListChannels answers the core's list of the channels Notifications go
+// to, for the Checks Page.
+func (c *component) ListChannels(ctx context.Context, _ *checkspb.ListChannelsRequest) (*checkspb.ListChannelsResponse, error) {
+	resp, err := c.notify.ListChannels(ctx, &notificationpb.ListChannelsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return &checkspb.ListChannelsResponse{Channels: resp.GetChannels()}, nil
 }

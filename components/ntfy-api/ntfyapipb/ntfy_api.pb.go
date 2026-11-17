@@ -4,15 +4,14 @@
 // 	protoc        (unknown)
 // source: ntfy-api/ntfy_api.proto
 
-// ntfy-api publishes Notifications to one ntfy topic. It is only the
-// transport: what to send and when is the checks Component's.
+// ntfy-api is the ntfy channel: it serves ddash.notification.ChannelService
+// and publishes each Notification the core delivers to one ntfy topic. Only
+// the ntfy Plugin requires it.
 
 package ntfyapipb
 
 import (
-	_ "github.com/itsKontra/ddash/proto/ddash"
 	_ "github.com/itsKontra/ddash/proto/ddash/config"
-	notification "github.com/itsKontra/ddash/proto/ddash/notification"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -27,7 +26,9 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Without a topic is valid: ntfy is then not set up, and Send refuses.
+// The topic is required: to not use ntfy, uninstall the ntfy Plugin. The
+// filter's fields (checks, image_updates, action_outcomes) mean the same
+// in every channel's config (components/internal/channel).
 type NtfyApiConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ntfy server, e.g. a self-hosted one behind the reverse proxy.
@@ -36,9 +37,12 @@ type NtfyApiConfig struct {
 	Topic string `protobuf:"bytes,2,opt,name=topic,proto3" json:"topic,omitempty"`
 	// An access token (tk_…) allowed to publish to the topic; empty for an
 	// open topic.
-	Token         string `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	Token          string `protobuf:"bytes,3,opt,name=token,proto3" json:"token,omitempty"`
+	Checks         *bool  `protobuf:"varint,4,opt,name=checks,proto3,oneof" json:"checks,omitempty"`
+	ImageUpdates   *bool  `protobuf:"varint,5,opt,name=image_updates,json=imageUpdates,proto3,oneof" json:"image_updates,omitempty"`
+	ActionOutcomes *bool  `protobuf:"varint,6,opt,name=action_outcomes,json=actionOutcomes,proto3,oneof" json:"action_outcomes,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *NtfyApiConfig) Reset() {
@@ -92,295 +96,48 @@ func (x *NtfyApiConfig) GetToken() string {
 	return ""
 }
 
-type SendRequest struct {
-	state         protoimpl.MessageState     `protogen:"open.v1"`
-	Notification  *notification.Notification `protobuf:"bytes,1,opt,name=notification,proto3" json:"notification,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendRequest) Reset() {
-	*x = SendRequest{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendRequest) ProtoMessage() {}
-
-func (x *SendRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendRequest.ProtoReflect.Descriptor instead.
-func (*SendRequest) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *SendRequest) GetNotification() *notification.Notification {
-	if x != nil {
-		return x.Notification
-	}
-	return nil
-}
-
-type SendResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The id ntfy gave the message.
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendResponse) Reset() {
-	*x = SendResponse{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendResponse) ProtoMessage() {}
-
-func (x *SendResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendResponse.ProtoReflect.Descriptor instead.
-func (*SendResponse) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *SendResponse) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type SendTestRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendTestRequest) Reset() {
-	*x = SendTestRequest{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendTestRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendTestRequest) ProtoMessage() {}
-
-func (x *SendTestRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendTestRequest.ProtoReflect.Descriptor instead.
-func (*SendTestRequest) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{3}
-}
-
-type SendTestResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// The id ntfy gave the message.
-	Id            string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *SendTestResponse) Reset() {
-	*x = SendTestResponse{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SendTestResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SendTestResponse) ProtoMessage() {}
-
-func (x *SendTestResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use SendTestResponse.ProtoReflect.Descriptor instead.
-func (*SendTestResponse) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *SendTestResponse) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-type GetChannelRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetChannelRequest) Reset() {
-	*x = GetChannelRequest{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetChannelRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetChannelRequest) ProtoMessage() {}
-
-func (x *GetChannelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetChannelRequest.ProtoReflect.Descriptor instead.
-func (*GetChannelRequest) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{5}
-}
-
-type GetChannelResponse struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	// A topic is set.
-	SetUp bool `protobuf:"varint,1,opt,name=set_up,json=setUp,proto3" json:"set_up,omitempty"`
-	// Where Notifications go: the server's host and the topic, e.g.
-	// "ntfy.sh/ddash-alerts"; empty while not set up.
-	Destination   string `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *GetChannelResponse) Reset() {
-	*x = GetChannelResponse{}
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetChannelResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetChannelResponse) ProtoMessage() {}
-
-func (x *GetChannelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_ntfy_api_ntfy_api_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use GetChannelResponse.ProtoReflect.Descriptor instead.
-func (*GetChannelResponse) Descriptor() ([]byte, []int) {
-	return file_ntfy_api_ntfy_api_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *GetChannelResponse) GetSetUp() bool {
-	if x != nil {
-		return x.SetUp
+func (x *NtfyApiConfig) GetChecks() bool {
+	if x != nil && x.Checks != nil {
+		return *x.Checks
 	}
 	return false
 }
 
-func (x *GetChannelResponse) GetDestination() string {
-	if x != nil {
-		return x.Destination
+func (x *NtfyApiConfig) GetImageUpdates() bool {
+	if x != nil && x.ImageUpdates != nil {
+		return *x.ImageUpdates
 	}
-	return ""
+	return false
+}
+
+func (x *NtfyApiConfig) GetActionOutcomes() bool {
+	if x != nil && x.ActionOutcomes != nil {
+		return *x.ActionOutcomes
+	}
+	return false
 }
 
 var File_ntfy_api_ntfy_api_proto protoreflect.FileDescriptor
 
 const file_ntfy_api_ntfy_api_proto_rawDesc = "" +
 	"\n" +
-	"\x17ntfy-api/ntfy_api.proto\x12\rddash.ntfyapi\x1a\x19ddash/config/config.proto\x1a%ddash/notification/notification.proto\x1a\x13ddash/options.proto\"\xca\x03\n" +
+	"\x17ntfy-api/ntfy_api.proto\x12\rddash.ntfyapi\x1a\x19ddash/config/config.proto\"\xea\x06\n" +
 	"\rNtfyApiConfig\x12i\n" +
 	"\x06server\x18\x01 \x01(\tBL\x9a\xb5\x18H\n" +
-	"\x0fhttps://ntfy.sh\"3The ntfy server the phone's ntfy app subscribes to.8\x01H\x00R\x06server\x88\x01\x01\x12\xb5\x01\n" +
-	"\x05topic\x18\x02 \x01(\tB\x9e\x01\x9a\xb5\x18\x99\x01\"\x88\x01Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret. Leave empty to not use ntfy.*\fddash-alertsR\x05topic\x12{\n" +
-	"\x05token\x18\x03 \x01(\tBe\x9a\xb5\x18a\x10\x01\x1a\fAccess token\"OA token (tk_…) with write access to the topic. Leave empty for an open topic.R\x05token:\x0e\xaa\xb5\x18\n" +
+	"\x0fhttps://ntfy.sh\"3The ntfy server the phone's ntfy app subscribes to.8\x01H\x00R\x06server\x88\x01\x01\x12\x98\x01\n" +
+	"\x05topic\x18\x02 \x01(\tB\x81\x01\x9a\xb5\x18}\"kLetters, digits, - and _, at most 64. On a server without access control the topic name is the only secret.*\fddash-alerts0\x01R\x05topic\x12{\n" +
+	"\x05token\x18\x03 \x01(\tBe\x9a\xb5\x18a\x10\x01\x1a\fAccess token\"OA token (tk_…) with write access to the topic. Leave empty for an open topic.R\x05token\x12w\n" +
+	"\x06checks\x18\x04 \x01(\bBZ\x9a\xb5\x18V\n" +
+	"\x04true\x1a\x06Checks\"FA Check going down or up again, Flapping, or its certificate expiring.H\x01R\x06checks\x88\x01\x01\x12\x85\x01\n" +
+	"\rimage_updates\x18\x05 \x01(\bB[\x9a\xb5\x18W\n" +
+	"\x04true\x1a\rImage updates\"@A running container's image has a newer version in its registry.H\x02R\fimageUpdates\x88\x01\x01\x12\x88\x01\n" +
+	"\x0faction_outcomes\x18\x06 \x01(\bBZ\x9a\xb5\x18V\n" +
+	"\x04true\x1a\x0fAction outcomes\"=How a long Action ended, such as package updates or a backup.H\x03R\x0eactionOutcomes\x88\x01\x01:\x0e\xaa\xb5\x18\n" +
 	"\x12\bSendTestB\t\n" +
-	"\a_server\"S\n" +
-	"\vSendRequest\x12D\n" +
-	"\fnotification\x18\x01 \x01(\v2 .ddash.notification.NotificationR\fnotification\"\x1e\n" +
-	"\fSendResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x11\n" +
-	"\x0fSendTestRequest\"\"\n" +
-	"\x10SendTestResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"\x13\n" +
-	"\x11GetChannelRequest\"M\n" +
-	"\x12GetChannelResponse\x12\x15\n" +
-	"\x06set_up\x18\x01 \x01(\bR\x05setUp\x12 \n" +
-	"\vdestination\x18\x02 \x01(\tR\vdestination2\x83\x02\n" +
-	"\x0eNtfyApiService\x12E\n" +
-	"\x04Send\x12\x1a.ddash.ntfyapi.SendRequest\x1a\x1b.ddash.ntfyapi.SendResponse\"\x04\x92\xb5\x18\x00\x12Q\n" +
-	"\bSendTest\x12\x1e.ddash.ntfyapi.SendTestRequest\x1a\x1f.ddash.ntfyapi.SendTestResponse\"\x04\x92\xb5\x18\x00\x12W\n" +
-	"\n" +
-	"GetChannel\x12 .ddash.ntfyapi.GetChannelRequest\x1a!.ddash.ntfyapi.GetChannelResponse\"\x04\x8a\xb5\x18\x00BDZBgithub.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipbb\x06proto3"
+	"\a_serverB\t\n" +
+	"\a_checksB\x10\n" +
+	"\x0e_image_updatesB\x12\n" +
+	"\x10_action_outcomesBDZBgithub.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipbb\x06proto3"
 
 var (
 	file_ntfy_api_ntfy_api_proto_rawDescOnce sync.Once
@@ -394,30 +151,16 @@ func file_ntfy_api_ntfy_api_proto_rawDescGZIP() []byte {
 	return file_ntfy_api_ntfy_api_proto_rawDescData
 }
 
-var file_ntfy_api_ntfy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_ntfy_api_ntfy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
 var file_ntfy_api_ntfy_api_proto_goTypes = []any{
-	(*NtfyApiConfig)(nil),             // 0: ddash.ntfyapi.NtfyApiConfig
-	(*SendRequest)(nil),               // 1: ddash.ntfyapi.SendRequest
-	(*SendResponse)(nil),              // 2: ddash.ntfyapi.SendResponse
-	(*SendTestRequest)(nil),           // 3: ddash.ntfyapi.SendTestRequest
-	(*SendTestResponse)(nil),          // 4: ddash.ntfyapi.SendTestResponse
-	(*GetChannelRequest)(nil),         // 5: ddash.ntfyapi.GetChannelRequest
-	(*GetChannelResponse)(nil),        // 6: ddash.ntfyapi.GetChannelResponse
-	(*notification.Notification)(nil), // 7: ddash.notification.Notification
+	(*NtfyApiConfig)(nil), // 0: ddash.ntfyapi.NtfyApiConfig
 }
 var file_ntfy_api_ntfy_api_proto_depIdxs = []int32{
-	7, // 0: ddash.ntfyapi.SendRequest.notification:type_name -> ddash.notification.Notification
-	1, // 1: ddash.ntfyapi.NtfyApiService.Send:input_type -> ddash.ntfyapi.SendRequest
-	3, // 2: ddash.ntfyapi.NtfyApiService.SendTest:input_type -> ddash.ntfyapi.SendTestRequest
-	5, // 3: ddash.ntfyapi.NtfyApiService.GetChannel:input_type -> ddash.ntfyapi.GetChannelRequest
-	2, // 4: ddash.ntfyapi.NtfyApiService.Send:output_type -> ddash.ntfyapi.SendResponse
-	4, // 5: ddash.ntfyapi.NtfyApiService.SendTest:output_type -> ddash.ntfyapi.SendTestResponse
-	6, // 6: ddash.ntfyapi.NtfyApiService.GetChannel:output_type -> ddash.ntfyapi.GetChannelResponse
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0, // [0:0] is the sub-list for method output_type
+	0, // [0:0] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_ntfy_api_ntfy_api_proto_init() }
@@ -432,9 +175,9 @@ func file_ntfy_api_ntfy_api_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ntfy_api_ntfy_api_proto_rawDesc), len(file_ntfy_api_ntfy_api_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   1,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   0,
 		},
 		GoTypes:           file_ntfy_api_ntfy_api_proto_goTypes,
 		DependencyIndexes: file_ntfy_api_ntfy_api_proto_depIdxs,

@@ -174,7 +174,7 @@ All decisions here are **Proposed**: they still need a Wayfinder map's grilling 
 
 ### `compose` (new Component: the Docker Plugin's logic)
 
-- Requires `docker-agent-api`, `docker-api`, `checks` and `ntfy-api` (for Notifications, until Open Decision 6 picks a channel model).
+- Requires `docker-agent-api`, `docker-api` and `checks`. Its Notifications go through the core, to whichever channels are installed (Open Decision 6, settled by ADR-0010).
 - Owns Compose Project Actions with Plans, the same pattern as `apps` (`PlanAction`, then a streaming `RunAction` that re-reads and refuses when the Plan no longer holds). Kinds: Save Compose file, Start, Stop, Restart, Update, Add Compose Project.
 - **Update**: pull, compare digests per Compose service, and recreate only the changed services with `up -d <services>`. The changed Compose services' Apps go into Maintenance for the run.
 - **Image checks**: for each running container, its image's repo digest (from image inspect) is compared with the registry's manifest digest for the same tag, through a `HEAD` request to the registry's manifest endpoint. Checks run every 6 hours and on Refresh. Registry credentials are optional per registry (a secret). A digest-pinned or local image is "not checked".
@@ -229,8 +229,8 @@ All decisions here are **Proposed**: they still need a Wayfinder map's grilling 
 
 ### `telegram-api` (new Component)
 
-- Config: bot token (secret) and chat ID. `Send` and `SendTest`, with the same shape as `ntfy-api`.
-- Today `checks` requires `ntfy-api` directly, so ntfy is the only way a Notification reaches the Operator. Telegram needs a channel model: one way for any Component to send a Notification to every configured channel (Open Decision 6).
+- Config: bot token (secret) and chat ID, both required, and the channel's filter. It serves the shared `ddash.notification.ChannelService` (`GetChannel`, `Deliver`, `SendTest`), as `ntfy-api` does.
+- The channel model is settled (Open Decision 6, ADR-0010): any Component sends a Notification through the core, and the core delivers it to every installed channel that takes its category. Telegram is the headless **telegram** Plugin, which alone requires `telegram-api`.
 
 ### Glossary additions
 
@@ -247,7 +247,7 @@ All decisions here are **Proposed**: they still need a Wayfinder map's grilling 
 3. **Agent transport.** Agent-serves-HTTPS (ddash connects in, as specified above) or Agent-dials-ddash (no inbound port, survives NAT). The ideas ask for the former, and the latter removes the open port.
 4. **Protected Workloads.** Is updating packages, or updating a Compose Project, on a Protected Workload refused, or allowed with a stronger confirmation? Does "Protected" need a sibling term for "may be updated, never restarted"?
 5. **Long jobs and the Audit Log.** How a job's outcome amends its Audit Log entry, what "Interrupted" means for a job that keeps running on the Agent while ddash restarts, and whether this is a new ADR or an amendment of ADR-0004.
-6. **Notification channels.** One `notify` Component that fans out to ntfy and Telegram, or each Component requiring the channels it uses? Where do per-channel filters live?
+6. **Notification channels.** _Settled by [ADR-0010](docs/adr/0010-the-core-carries-notifications-and-channels-subscribe.md) (#298)_: neither. The core carries Notifications, every Component sends through it without `requires`, and each channel is a Component serving one shared channel service, pulled in by its own headless Plugin. Each channel's filter is in its own config.
 7. **Energy data source.** Which database (InfluxDB, PostgreSQL/TimescaleDB, Home Assistant's recorder, the inverter's own API?) and schema. This decides `energy-api` entirely.
 8. **Calendar access.** OAuth (needs a Google Cloud project, a consent screen, and a callback through Nginx Proxy Manager) or a secret iCal address (no OAuth, read-only, polled)?
 9. **AI helper context.** What may be sent: Compose file text only, or also image names, ports and hostnames? Is the preview story 34 mandatory, or a setting?

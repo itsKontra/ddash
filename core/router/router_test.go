@@ -29,6 +29,7 @@ type streamer struct {
 func (s streamer) PluginRequires(string) ([]string, bool) { return []string{"streamer"}, true }
 func (s streamer) ComponentRequires(string) []string      { return nil }
 func (s streamer) Status() map[string]runtime.Status      { return nil }
+func (s streamer) Serving(protoreflect.FullName) []string { return nil }
 func (s streamer) Endpoint(string) (runtime.Endpoint, error) {
 	return runtime.Endpoint{Service: s.service, Types: dynamicpb.NewTypes(protoregistry.GlobalFiles)}, nil
 }

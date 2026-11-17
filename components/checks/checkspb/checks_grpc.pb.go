@@ -41,6 +41,7 @@ const (
 	ChecksService_ListMaintenance_FullMethodName  = "/ddash.checks.ChecksService/ListMaintenance"
 	ChecksService_ProbeNow_FullMethodName         = "/ddash.checks.ChecksService/ProbeNow"
 	ChecksService_ReportState_FullMethodName      = "/ddash.checks.ChecksService/ReportState"
+	ChecksService_ListChannels_FullMethodName     = "/ddash.checks.ChecksService/ListChannels"
 )
 
 // ChecksServiceClient is the client API for ChecksService service.
@@ -101,6 +102,10 @@ type ChecksServiceClient interface {
 	// and silent in Maintenance on everything. It can't be muted. The caller
 	// sends it only when the state changed, plus once after its own Start.
 	ReportState(ctx context.Context, in *ReportStateRequest, opts ...grpc.CallOption) (*ReportStateResponse, error)
+	// ListChannels returns the channels the core delivers Notifications to,
+	// as the core lists them, so the Checks Page shows where its
+	// Notifications go.
+	ListChannels(ctx context.Context, in *ListChannelsRequest, opts ...grpc.CallOption) (*ListChannelsResponse, error)
 }
 
 type checksServiceClient struct {
@@ -251,6 +256,16 @@ func (c *checksServiceClient) ReportState(ctx context.Context, in *ReportStateRe
 	return out, nil
 }
 
+func (c *checksServiceClient) ListChannels(ctx context.Context, in *ListChannelsRequest, opts ...grpc.CallOption) (*ListChannelsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListChannelsResponse)
+	err := c.cc.Invoke(ctx, ChecksService_ListChannels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChecksServiceServer is the server API for ChecksService service.
 // All implementations must embed UnimplementedChecksServiceServer
 // for forward compatibility.
@@ -309,6 +324,10 @@ type ChecksServiceServer interface {
 	// and silent in Maintenance on everything. It can't be muted. The caller
 	// sends it only when the state changed, plus once after its own Start.
 	ReportState(context.Context, *ReportStateRequest) (*ReportStateResponse, error)
+	// ListChannels returns the channels the core delivers Notifications to,
+	// as the core lists them, so the Checks Page shows where its
+	// Notifications go.
+	ListChannels(context.Context, *ListChannelsRequest) (*ListChannelsResponse, error)
 	mustEmbedUnimplementedChecksServiceServer()
 }
 
@@ -360,6 +379,9 @@ func (UnimplementedChecksServiceServer) ProbeNow(context.Context, *ProbeNowReque
 }
 func (UnimplementedChecksServiceServer) ReportState(context.Context, *ReportStateRequest) (*ReportStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ReportState not implemented")
+}
+func (UnimplementedChecksServiceServer) ListChannels(context.Context, *ListChannelsRequest) (*ListChannelsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListChannels not implemented")
 }
 func (UnimplementedChecksServiceServer) mustEmbedUnimplementedChecksServiceServer() {}
 func (UnimplementedChecksServiceServer) testEmbeddedByValue()                       {}
@@ -634,6 +656,24 @@ func _ChecksService_ReportState_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChecksService_ListChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListChannelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChecksServiceServer).ListChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChecksService_ListChannels_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChecksServiceServer).ListChannels(ctx, req.(*ListChannelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChecksService_ServiceDesc is the grpc.ServiceDesc for ChecksService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -696,6 +736,10 @@ var ChecksService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ReportState",
 			Handler:    _ChecksService_ReportState_Handler,
+		},
+		{
+			MethodName: "ListChannels",
+			Handler:    _ChecksService_ListChannels_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

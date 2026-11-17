@@ -251,6 +251,12 @@ func (r *Runtime) start(ctx context.Context, lc componentpb.LifecycleServiceClie
 	return err
 }
 
+// CheckHealth asks a launched Component for its health now, between two
+// polls, and records the answer. The core does so after a channel
+// delivered a Notification, so the channel's Plugin shows the outcome at
+// once.
+func (r *Runtime) CheckHealth(ctx context.Context, name string) { r.pollHealth(ctx, name) }
+
 // pollHealth asks one Component for its health and records the answer.
 func (r *Runtime) pollHealth(ctx context.Context, name string) {
 	r.mu.Lock()
