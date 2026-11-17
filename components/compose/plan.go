@@ -141,8 +141,17 @@ func names(cs []*containerpb.Container) []string {
 	return out
 }
 
-// plan builds action's Plan and the work running it.
+// plan builds action's Plan and the work running it. None runs on the
+// Docker Agent's own Compose Project: Update Agent updates it.
 func (c *component) plan(ctx context.Context, a *pb.ComposeAction) (*pb.Plan, *work, error) {
+	p, w, err := c.planOf(ctx, a)
+	if err == nil && w.tgt.project.GetSelf() {
+		p.Blocked = append(p.Blocked, fmt.Sprintf("%s is the Docker Agent on %s: ddash updates it with Update Agent, in the Docker Agents list.", w.tgt.project.GetName(), w.tgt.host.GetHost()))
+	}
+	return p, w, err
+}
+
+func (c *component) planOf(ctx context.Context, a *pb.ComposeAction) (*pb.Plan, *work, error) {
 	switch x := a.GetAction().(type) {
 	case *pb.ComposeAction_Save:
 		return c.planSave(ctx, x.Save, a.GetOverrideProtected())

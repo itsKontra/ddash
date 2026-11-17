@@ -13,7 +13,8 @@ const offered: Record<string, { icon: IconName; keywords: string[] }> = {
 /**
  * The docker Commands: Start, Restart and Update of each Compose Project
  * its state allows, as on its Page, each opening the Page's own Plan
- * Dialog. None while the Project runs an Action, and a Protected one
+ * Dialog. None while the Project runs an Action or for the Docker
+ * Agent's own (Update Agent updates it), and a Protected one
  * offers no Restart or Update (both need the Plan's override): only Start.
  * There are no logs to offer: ddash doesn't read containers' logs.
  */

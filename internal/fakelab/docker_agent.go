@@ -26,7 +26,8 @@ type DockerAgent struct {
 // The lab's Docker host with an Agent: Compose Projects under one root,
 // one image newer in the registry than what runs (jellyfin, sonarr), a
 // Protected one (the Reverse Proxy), one built locally, one not started,
-// and a container started without Compose.
+// a container started without Compose, and the Agent's own Compose
+// Project outside the root.
 var dockerSeed = agentfake.DockerSeed{
 	Stacks: []agentfake.Stack{
 		{Dir: "media", Running: true, Env: "TZ=Europe/Berlin\nPUID=1000\nPGID=1000\n", Compose: `services:
@@ -126,6 +127,7 @@ CMD ["node", "server.js"]
 		{Ref: "louislam/uptime-kuma:1.23.16", ID: "sha256:kuma12316"},
 		{Ref: "portainer/agent:2.21.4", ID: "sha256:pagent2214"},
 	},
+	Agent: true,
 }
 
 // dockerAgentPort is where the lab's Docker Agent listens when it can, so

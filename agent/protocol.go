@@ -260,6 +260,10 @@ type Project struct {
 	Found []string `json:"found"`
 	// Error is why its file couldn't be read; the Project is still listed.
 	Error string `json:"error,omitempty"`
+	// Self says it is the Docker Agent's own Compose Project, the one its
+	// container belongs to: Update Agent updates it, and its file isn't
+	// read, being outside the Compose roots.
+	Self bool `json:"self,omitempty"`
 }
 
 // Service is a Compose service of a Project.

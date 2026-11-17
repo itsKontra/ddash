@@ -105,6 +105,9 @@ message Project {
   string error = 9;
   // The run in flight on it, if any.
   string run_id = 10;
+  // It is the host's Docker Agent itself: Update Agent updates it, and no
+  // Compose Project Action runs on it.
+  bool docker_agent = 11;
 }
 
 enum ProjectState {

@@ -367,7 +367,7 @@ func (c *component) host(h *dapb.HostProjects) *pb.Host {
 	}
 	used := map[string]bool{}
 	for _, p := range h.GetProjects() {
-		pp := &pb.Project{Host: h.GetHost(), Name: p.GetName(), WorkingDir: p.GetWorkingDir(), Error: p.GetError(), RunId: c.runOn(h.GetHost(), p.GetName())}
+		pp := &pb.Project{Host: h.GetHost(), Name: p.GetName(), WorkingDir: p.GetWorkingDir(), Error: p.GetError(), RunId: c.runOn(h.GetHost(), p.GetName()), DockerAgent: p.GetSelf()}
 		if len(p.GetConfigFiles()) > 0 {
 			pp.ConfigFile = p.GetConfigFiles()[0]
 		}

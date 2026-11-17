@@ -139,10 +139,28 @@ function RemovedDialog({ name, uninstall, onClose }: { name: string; uninstall: 
   );
 }
 
+/** Update Agent, for an Agent on another Release than ddash: it recreates itself on ddash's, once confirmed. */
+export function UpdateAgent({ agent: a }: { agent: Agent }) {
+  const update = useAction(DockerAgentApiService.method.updateAgent);
+  return (
+    <>
+      <Button
+        size="sm"
+        disabled={update.pending}
+        onClick={() =>
+          void update.run({ name: a.name }, { confirm: { text: `Update the Docker Agent on ${a.name}? It recreates itself on this Release's image; Compose Projects keep running.`, action: "Update Agent" } })
+        }
+      >
+        Update Agent
+      </Button>
+      {update.error && <span className="text-xs text-down-text">{update.error.rawMessage}</span>}
+    </>
+  );
+}
+
 /** One Agent's Actions: setup while it enrols, pair again, update, remove. */
 function AgentActions({ agent: a, open, close }: { agent: Agent; open: (d: ReactNode) => void; close: () => void }) {
   const pair = useAction(DockerAgentApiService.method.pairAgent);
-  const update = useAction(DockerAgentApiService.method.updateAgent);
   const remove = useAction(DockerAgentApiService.method.removeAgent);
   const broken = a.state === AgentState.FINGERPRINT_CHANGED || a.state === AgentState.REFUSED;
   return (
@@ -163,17 +181,7 @@ function AgentActions({ agent: a, open, close }: { agent: Agent; open: (d: React
           Pair again
         </Button>
       )}
-      {a.state === AgentState.OUTDATED && (
-        <Button
-          size="sm"
-          disabled={update.pending}
-          onClick={() =>
-            void update.run({ name: a.name }, { confirm: { text: `Update the Docker Agent on ${a.name}? It recreates itself on this Release's image; Compose Projects keep running.`, action: "Update Agent" } })
-          }
-        >
-          Update Agent
-        </Button>
-      )}
+      {a.state === AgentState.OUTDATED && <UpdateAgent agent={a} />}
       <Button
         size="sm"
         variant="danger"
@@ -185,7 +193,7 @@ function AgentActions({ agent: a, open, close }: { agent: Agent; open: (d: React
       >
         Remove
       </Button>
-      {(pair.error ?? update.error ?? remove.error) && <span className="text-xs text-down-text">{(pair.error ?? update.error ?? remove.error)!.rawMessage}</span>}
+      {(pair.error ?? remove.error) && <span className="text-xs text-down-text">{(pair.error ?? remove.error)!.rawMessage}</span>}
     </span>
   );
 }
