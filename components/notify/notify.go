@@ -1,8 +1,8 @@
 // Package notify is the notify Component: it sends each Notification to
 // every channel (ntfy-api, telegram-api) that is set up and whose filter
 // takes its category, all at once. The filters are its config. A channel
-// not set up (its Component unconfigured, or Telegram without a bot) is
-// skipped, never an error; Send fails only when every channel that should
+// not set up (ntfy without a topic, Telegram without a bot, or its
+// Component unconfigured) is skipped, never an error; Send fails only when every channel that should
 // have received the Notification failed.
 package notify
 
@@ -110,7 +110,8 @@ func (c *component) Health(context.Context) sdk.Health { return sdk.Health{State
 
 // notSetUp reports whether err is a channel's answer while it isn't set
 // up: the host's "not configured" for an unconfigured Component, or the
-// Component's own refusal (telegram-api without a bot).
+// Component's own refusal (ntfy-api without a topic, telegram-api without
+// a bot).
 func notSetUp(err error) bool { return status.Code(err) == codes.FailedPrecondition }
 
 func (c *component) Send(ctx context.Context, req *notifypb.SendRequest) (*notifypb.SendResponse, error) {

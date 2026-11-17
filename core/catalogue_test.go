@@ -9,6 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	notifycomponent "github.com/itsKontra/ddash/components/notify"
+	ntfyapi "github.com/itsKontra/ddash/components/ntfy-api"
+	telegramapi "github.com/itsKontra/ddash/components/telegram-api"
 	"github.com/itsKontra/ddash/core/appstate"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
@@ -103,6 +106,55 @@ func TestTheCatalogueListsEveryPluginWithTheComponentsItPullsIn(t *testing.T) {
 	}
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("ListCatalogue (-want +got):\n%s", diff)
+	}
+}
+
+// A Plugin pulls both channels in through notify; leaving them empty turns
+// them off without the Catalogue showing the Plugin unconfigured or down.
+func TestChannelsNotSetUpLeaveAPluginThatPullsThemInOK(t *testing.T) {
+	h := coretest.New(t, coretest.Options{
+		Components: []sdk.Definition{notifycomponent.Definition(), ntfyapi.Definition(), telegramapi.Definition()},
+		Plugins:    []coretest.Plugin{{Name: "alerts", Requires: []string{"notify"}}},
+	})
+	h.Install("alerts")
+	for _, c := range []string{"ntfy-api", "telegram-api", "notify"} {
+		h.WaitState(c, runtime.OK)
+	}
+
+	cat := coreJSON(t, h, "ListCatalogue", `{}`)
+
+	plugins, _ := cat["plugins"].([]any)
+	if len(plugins) != 1 {
+		t.Fatalf("plugins %v, want alerts", plugins)
+	}
+	got := map[string]any{}
+	for _, c := range plugins[0].(map[string]any)["components"].([]any) {
+		c := c.(map[string]any)
+		got[c["name"].(string)] = c
+	}
+	want := map[string]any{
+		"notify":       map[string]any{"name": "notify", "state": "ok", "configurable": true},
+		"ntfy-api":     map[string]any{"name": "ntfy-api", "state": "ok", "message": "not set up", "configurable": true},
+		"telegram-api": map[string]any{"name": "telegram-api", "state": "ok", "message": "not set up", "configurable": true},
+	}
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("alerts' Components (-want +got):\n%s", diff)
+	}
+
+	channels := h.Call("alerts", "notify", "ListChannels", `{}`)
+	var listed struct{ Channels []map[string]any }
+	_ = json.Unmarshal(channels.Body.Bytes(), &listed)
+	for _, ch := range listed.Channels {
+		if ch["setUp"] != nil || ch["problem"] != nil {
+			t.Errorf("channel %v, want not set up, no problem", ch)
+		}
+	}
+	if len(listed.Channels) != 2 {
+		t.Errorf("ListChannels = %d %s, want both channels", channels.Code, channels.Body)
+	}
+	sent := h.Call("alerts", "notify", "Send", `{"notification":{"title":"NAS down"},"category":"CATEGORY_CHECKS"}`)
+	if sent.Code != http.StatusOK || strings.Count(sent.Body.String(), "DELIVERY_STATE_NOT_SET_UP") != 2 {
+		t.Errorf("Send = %d %s, want ok, not set up on both channels", sent.Code, sent.Body)
 	}
 }
 

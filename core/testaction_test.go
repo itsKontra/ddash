@@ -64,7 +64,7 @@ func TestTheConfigFormsTestButtonRunsTheTestActionOnTheSavedConfig(t *testing.T)
 	srv := newNtfy(t)
 	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{ntfyapi.Definition()}, Plugins: []coretest.Plugin{notify}})
 	h.Install("notify")
-	h.WaitState("ntfy-api", runtime.Unconfigured)
+	h.WaitState("ntfy-api", runtime.OK)
 
 	form := coreJSON(t, h, "GetConfigForm", `{"owner":"ntfy-api"}`)
 	test, _ := form["testAction"].(map[string]any)
@@ -75,8 +75,8 @@ func TestTheConfigFormsTestButtonRunsTheTestActionOnTheSavedConfig(t *testing.T)
 		t.Errorf("server field = %v, want default https://ntfy.sh", server)
 	}
 
-	if res := h.CoreCall("RunTestAction", `{"owner":"ntfy-api"}`); res.Code == http.StatusOK || !strings.Contains(res.Body.String(), "not configured") {
-		t.Errorf("RunTestAction before a config = %d %s, want not configured", res.Code, res.Body)
+	if res := h.CoreCall("RunTestAction", `{"owner":"ntfy-api"}`); res.Code == http.StatusOK || !strings.Contains(res.Body.String(), "ntfy is not set up") {
+		t.Errorf("RunTestAction before a config = %d %s, want ntfy is not set up", res.Code, res.Body)
 	}
 
 	values, _ := json.Marshal(map[string]any{"server": srv.URL, "topic": "ddash-alerts"})
@@ -96,6 +96,39 @@ func TestTheConfigFormsTestButtonRunsTheTestActionOnTheSavedConfig(t *testing.T)
 	_ = json.Unmarshal(res.Body.Bytes(), &failed)
 	if failed.Code != "permission_denied" || failed.Message != "ntfy answered 401: unauthorized" {
 		t.Errorf("RunTestAction while ntfy refuses = %d %s, want permission_denied: ntfy answered 401: unauthorized", res.Code, res.Body)
+	}
+}
+
+func TestClearingNtfysTopicInTheFormTurnsItOffAndKeepsTheToken(t *testing.T) {
+	srv := newNtfy(t)
+	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{ntfyapi.Definition()}, Plugins: []coretest.Plugin{notify}})
+	h.Install("notify")
+	h.WaitState("ntfy-api", runtime.OK)
+	values, _ := json.Marshal(map[string]any{"server": srv.URL, "topic": "ddash-alerts", "token": "tk_0123456789abcdef"})
+	coreJSON(t, h, "SaveConfig", `{"owner":"ntfy-api","values":`+string(values)+`}`)
+
+	// The form leaves an emptied field out, and a kept secret too.
+	values, _ = json.Marshal(map[string]any{"server": srv.URL})
+	saved := coreJSON(t, h, "SaveConfig", `{"owner":"ntfy-api","values":`+string(values)+`}`)
+
+	if st, _ := saved["status"].(map[string]any); st["state"] != "ok" || st["message"] != "not set up" {
+		t.Errorf("status after clearing the topic = %v, want ok: not set up", saved["status"])
+	}
+	form := coreJSON(t, h, "GetConfigForm", `{"owner":"ntfy-api"}`)
+	if vals, _ := form["values"].(map[string]any); vals["topic"] != nil {
+		t.Errorf("stored values %v, want no topic", vals)
+	}
+	if set, _ := form["secretsSet"].([]any); len(set) != 1 || set[0] != "token" {
+		t.Errorf("secrets set %v, want the token kept", form["secretsSet"])
+	}
+	res := h.CoreCall("RunTestAction", `{"owner":"ntfy-api"}`)
+	var failed struct{ Code, Message string }
+	_ = json.Unmarshal(res.Body.Bytes(), &failed)
+	if failed.Code != "failed_precondition" || failed.Message != "ntfy is not set up: enter a topic" {
+		t.Errorf("RunTestAction without a topic = %d %s, want failed_precondition: ntfy is not set up: enter a topic", res.Code, res.Body)
+	}
+	if got := srv.published(); len(got) != 0 {
+		t.Errorf("published %v, want nothing", got)
 	}
 }
 

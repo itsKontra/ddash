@@ -10,6 +10,11 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
   scale fits the rest; click again to bring it back. The last series
   shown stays. What you hide stays hidden while you step through days or
   switch Day and Week, until you leave the Page.
+- ntfy is optional, as Telegram is: leave ntfy-api's topic empty, or
+  clear it, and ntfy is "not set up". The Plugins that send Notifications
+  stay ok in Plugins instead of showing unconfigured, and installing one
+  no longer opens ntfy's config form. The Checks Page's Notifications
+  panel says which channel is set up.
 
 ## v0.0.3
 

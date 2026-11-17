@@ -124,7 +124,7 @@ func TestATestActionWhoseBrowserLeftRunsToItsEnd(t *testing.T) {
 	defer srv.Close()
 	h := coretest.New(t, coretest.Options{Components: []sdk.Definition{ntfyapi.Definition()}, Plugins: []coretest.Plugin{notify}})
 	h.Install("notify")
-	h.WaitState("ntfy-api", runtime.Unconfigured)
+	h.WaitState("ntfy-api", runtime.OK)
 	coreJSON(t, h, "SaveConfig", `{"owner":"ntfy-api","values":{"server":"`+srv.URL+`","topic":"ddash-alerts"}}`)
 
 	leave, ended := leaving(h, coretest.CoreRequest("RunTestAction", `{"owner":"ntfy-api"}`))

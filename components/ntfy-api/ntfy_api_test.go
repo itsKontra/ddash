@@ -202,6 +202,39 @@ func TestSendTestPublishesATestNotification(t *testing.T) {
 	}
 }
 
+func TestWithoutATopicNtfyIsNotSetUp(t *testing.T) {
+	srv := ntfy(t, "baseline")
+	for name, cfg := range map[string]*ntfyapipb.NtfyApiConfig{
+		"empty": {},
+		// A topic cleared in the form keeps the stored token.
+		"a token but no topic": {Server: ptr(srv.URL), Token: "tk_0123456789abcdef"},
+	} {
+		h, c := start(t, cfg)
+
+		if got := h.Health(); got.State != sdk.OK || got.Message != "not set up" {
+			t.Errorf("%s: health = %v, want ok: not set up", name, got)
+		}
+		ch, err := c.GetChannel(t.Context(), &ntfyapipb.GetChannelRequest{})
+		if err != nil || ch.GetSetUp() || ch.GetDestination() != "" {
+			t.Errorf("%s: GetChannel = %v, %v, want not set up", name, ch, err)
+		}
+		for method, call := range map[string]func() error{
+			"Send":     func() error { _, err := send(t, c, down); return err },
+			"SendTest": func() error { _, err := c.SendTest(t.Context(), &ntfyapipb.SendTestRequest{}); return err },
+		} {
+			if err := call(); status.Code(err) != codes.FailedPrecondition || status.Convert(err).Message() != "ntfy is not set up: enter a topic" {
+				t.Errorf("%s: %s = %v, want FailedPrecondition: ntfy is not set up: enter a topic", name, method, err)
+			}
+		}
+		if got := h.Health(); got.State != sdk.OK {
+			t.Errorf("%s: health after a refused Send = %v, want still ok", name, got)
+		}
+	}
+	if got := srv.published(); len(got) != 0 {
+		t.Errorf("published %v, want nothing", got)
+	}
+}
+
 func TestABadServerOrTopicIsRefusedPerField(t *testing.T) {
 	for _, tc := range []struct {
 		cfg        *ntfyapipb.NtfyApiConfig

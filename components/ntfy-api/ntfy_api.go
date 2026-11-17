@@ -1,6 +1,8 @@
 // Package ntfyapi is the ntfy-api Component: it publishes Notifications to
 // one ntfy topic as JSON to the server's root, with the topic's access
 // token as a Bearer token. Its health is the last delivery's outcome.
+// Without a topic it is not set up: it starts, and Send refuses with
+// FailedPrecondition.
 package ntfyapi
 
 import (
@@ -65,11 +67,17 @@ var topicPattern = regexp.MustCompile(`^[-_A-Za-z0-9]{1,64}$`)
 
 func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *ntfyapipb.NtfyApiConfig) error {
 	var errs sdk.FieldErrors
-	u, err := url.Parse(cfg.GetServer())
+	server := cfg.GetServer()
+	if cfg.Server == nil {
+		// The host fills in the field's default; a test may not.
+		server = "https://ntfy.sh"
+	}
+	u, err := url.Parse(server)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		errs.Add("server", "must be an http or https URL")
 	}
-	if !topicPattern.MatchString(cfg.GetTopic()) {
+	// Without a topic, an access token still stored is kept but unused.
+	if cfg.GetTopic() != "" && !topicPattern.MatchString(cfg.GetTopic()) {
 		errs.Add("topic", "must be 1 to 64 letters, digits, - or _")
 	}
 	if err := errs.Err(); err != nil {
@@ -80,12 +88,23 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *ntfyapipb.NtfyApiC
 	return nil
 }
 
+func (c *component) setUp() bool { return c.topic != "" }
+
+// errNotSetUp is what Send answers while ntfy is not set up.
+var errNotSetUp = status.Error(codes.FailedPrecondition, "ntfy is not set up: enter a topic")
+
 func (c *component) GetChannel(context.Context, *ntfyapipb.GetChannelRequest) (*ntfyapipb.GetChannelResponse, error) {
+	if !c.setUp() {
+		return &ntfyapipb.GetChannelResponse{}, nil
+	}
 	return &ntfyapipb.GetChannelResponse{SetUp: true, Destination: c.host + "/" + c.topic}, nil
 }
 
 // Health is down while the last delivery failed.
 func (c *component) Health(context.Context) sdk.Health {
+	if !c.setUp() {
+		return sdk.Health{State: sdk.OK, Message: "not set up"}
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.lastErr != nil {
@@ -128,6 +147,9 @@ type message struct {
 // publish sends n to the topic and returns ntfy's message id. Its outcome
 // becomes the Component's health.
 func (c *component) publish(ctx context.Context, n *notificationpb.Notification) (string, error) {
+	if !c.setUp() {
+		return "", errNotSetUp
+	}
 	id, err := c.post(ctx, message{
 		Topic:    c.topic,
 		Title:    n.GetTitle(),

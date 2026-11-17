@@ -31,13 +31,14 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type NtfyApiServiceClient interface {
-	// Send publishes one Notification to the topic.
+	// Send publishes one Notification to the topic. It fails with
+	// FailedPrecondition while ntfy is not set up.
 	Send(ctx context.Context, in *SendRequest, opts ...grpc.CallOption) (*SendResponse, error)
 	// SendTest publishes a test Notification, so the Operator sees that
 	// Notifications reach the phone. It is the config form's test_action.
 	SendTest(ctx context.Context, in *SendTestRequest, opts ...grpc.CallOption) (*SendTestResponse, error)
-	// GetChannel names where Notifications go, from the config alone. It
-	// answers only once ntfy-api is configured.
+	// GetChannel says whether ntfy is set up and where Notifications go,
+	// from the config alone.
 	GetChannel(ctx context.Context, in *GetChannelRequest, opts ...grpc.CallOption) (*GetChannelResponse, error)
 }
 
@@ -83,13 +84,14 @@ func (c *ntfyApiServiceClient) GetChannel(ctx context.Context, in *GetChannelReq
 // All implementations must embed UnimplementedNtfyApiServiceServer
 // for forward compatibility.
 type NtfyApiServiceServer interface {
-	// Send publishes one Notification to the topic.
+	// Send publishes one Notification to the topic. It fails with
+	// FailedPrecondition while ntfy is not set up.
 	Send(context.Context, *SendRequest) (*SendResponse, error)
 	// SendTest publishes a test Notification, so the Operator sees that
 	// Notifications reach the phone. It is the config form's test_action.
 	SendTest(context.Context, *SendTestRequest) (*SendTestResponse, error)
-	// GetChannel names where Notifications go, from the config alone. It
-	// answers only once ntfy-api is configured.
+	// GetChannel says whether ntfy is set up and where Notifications go,
+	// from the config alone.
 	GetChannel(context.Context, *GetChannelRequest) (*GetChannelResponse, error)
 	mustEmbedUnimplementedNtfyApiServiceServer()
 }

@@ -10,6 +10,7 @@ import "ddash/options.proto";
 
 option go_package = "github.com/itsKontra/ddash/components/ntfy-api/ntfyapipb;ntfyapipb";
 
+// Without a topic is valid: ntfy is then not set up, and Send refuses.
 message NtfyApiConfig {
   option (ddash.config.form) = {test_action: "SendTest"};
 
@@ -21,9 +22,8 @@ message NtfyApiConfig {
   }];
   // The topic the phone subscribes to.
   string topic = 2 [(ddash.config.field) = {
-    required: true
     placeholder: "ddash-alerts"
-    help: "Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret."
+    help: "Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret. Leave empty to not use ntfy."
   }];
   // An access token (tk_…) allowed to publish to the topic; empty for an
   // open topic.
@@ -35,7 +35,8 @@ message NtfyApiConfig {
 }
 
 service NtfyApiService {
-  // Send publishes one Notification to the topic.
+  // Send publishes one Notification to the topic. It fails with
+  // FailedPrecondition while ntfy is not set up.
   rpc Send(SendRequest) returns (SendResponse) {
     option (ddash.action) = {};
   }
@@ -44,8 +45,8 @@ service NtfyApiService {
   rpc SendTest(SendTestRequest) returns (SendTestResponse) {
     option (ddash.action) = {};
   }
-  // GetChannel names where Notifications go, from the config alone. It
-  // answers only once ntfy-api is configured.
+  // GetChannel says whether ntfy is set up and where Notifications go,
+  // from the config alone.
   rpc GetChannel(GetChannelRequest) returns (GetChannelResponse) {
     option (ddash.getter) = {refresh: SLOW};
   }
@@ -70,10 +71,9 @@ message SendTestResponse {
 message GetChannelRequest {}
 
 message GetChannelResponse {
-  // Always true: ntfy-api answers only once configured. It mirrors
-  // telegram-api's, which may be not set up.
+  // A topic is set.
   bool set_up = 1;
   // Where Notifications go: the server's host and the topic, e.g.
-  // "ntfy.sh/ddash-alerts".
+  // "ntfy.sh/ddash-alerts"; empty while not set up.
   string destination = 2;
 }
