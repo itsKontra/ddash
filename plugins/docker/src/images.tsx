@@ -1,4 +1,4 @@
-import { ImageState, ProjectState, type ImageStatus, type Project, type ProjectContainer } from "@ddash/proto/compose/compose_pb";
+import { ImageState, ImageStatus_NotChecked, ProjectState, type ImageStatus, type Project, type ProjectContainer } from "@ddash/proto/compose/compose_pb";
 import { Pill, type Tone } from "@ddash/ui";
 
 /** A digest as Docker shows image ids: its first 12 hex digits. */
@@ -12,6 +12,18 @@ const imageLook: Record<ImageState, { tone: Tone; label: string }> = {
   [ImageState.NOT_CHECKED]: { tone: "idle", label: "not checked" },
   [ImageState.ERROR]: { tone: "warn", label: "check failed" },
 };
+
+const notCheckedLabel: Record<ImageStatus_NotChecked, string> = {
+  [ImageStatus_NotChecked.UNSPECIFIED]: "not checked",
+  [ImageStatus_NotChecked.PINNED]: "not checked: pinned by digest",
+  [ImageStatus_NotChecked.LOCAL]: "not checked: local image",
+};
+
+/** Not checked images in one label: their reason when they share it, else plain "not checked". */
+export function notChecked(statuses: readonly (ImageStatus | undefined)[]): string {
+  const reasons = new Set(statuses.map((s) => s?.notChecked ?? ImageStatus_NotChecked.UNSPECIFIED));
+  return notCheckedLabel[reasons.size === 1 ? [...reasons][0] : ImageStatus_NotChecked.UNSPECIFIED];
+}
 
 /** Why an image reads as it does, for its title: the digests, or the reason. */
 function why(s: ImageStatus): string {
@@ -28,7 +40,7 @@ export function ImageBadge({ status }: { status?: ImageStatus }) {
   const l = imageLook[status.state];
   return (
     <span title={why(status)}>
-      <Pill tone={l.tone}>{l.label}</Pill>
+      <Pill tone={l.tone}>{status.state === ImageState.NOT_CHECKED ? notChecked([status]) : l.label}</Pill>
     </span>
   );
 }

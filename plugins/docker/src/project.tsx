@@ -7,7 +7,7 @@ import { ActionStrip, Button, DataTable, EmptyState, Facts, Notice, PageTitle, P
 import { useState, type ReactNode } from "react";
 import { useParams } from "react-router";
 import { ContainerState, isRunning, protocolWord } from "./containers";
-import { ImageBadge, ProjectStatePill, shortDigest } from "./images";
+import { ImageBadge, notChecked, ProjectStatePill, shortDigest } from "./images";
 import { useNow } from "./now";
 import { projectActions } from "./projects";
 
@@ -82,7 +82,7 @@ function ImagesFact({ project: p }: { project: Project }) {
   const statuses = p.services.flatMap((s) => s.containers.map((c) => c.imageStatus));
   if (p.updateAvailable) return <Pill tone="warn">update available</Pill>;
   if (statuses.some((s) => s?.state === ImageState.UNKNOWN && s.reason === "not checked yet")) return <Pill>not checked yet</Pill>;
-  if (statuses.length > 0 && statuses.every((s) => s?.state === ImageState.NOT_CHECKED)) return <Pill>not checked: no registry</Pill>;
+  if (statuses.length > 0 && statuses.every((s) => s?.state === ImageState.NOT_CHECKED)) return <Pill>{notChecked(statuses)}</Pill>;
   return <Pill tone="up">no update known</Pill>;
 }
 
