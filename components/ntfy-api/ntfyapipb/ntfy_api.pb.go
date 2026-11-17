@@ -27,6 +27,7 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Without a topic is valid: ntfy is then not set up, and Send refuses.
 type NtfyApiConfig struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// The ntfy server, e.g. a self-hosted one behind the reverse proxy.
@@ -299,11 +300,10 @@ func (*GetChannelRequest) Descriptor() ([]byte, []int) {
 
 type GetChannelResponse struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Always true: ntfy-api answers only once configured. It mirrors
-	// telegram-api's, which may be not set up.
+	// A topic is set.
 	SetUp bool `protobuf:"varint,1,opt,name=set_up,json=setUp,proto3" json:"set_up,omitempty"`
 	// Where Notifications go: the server's host and the topic, e.g.
-	// "ntfy.sh/ddash-alerts".
+	// "ntfy.sh/ddash-alerts"; empty while not set up.
 	Destination   string `protobuf:"bytes,2,opt,name=destination,proto3" json:"destination,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -357,11 +357,11 @@ var File_ntfy_api_ntfy_api_proto protoreflect.FileDescriptor
 
 const file_ntfy_api_ntfy_api_proto_rawDesc = "" +
 	"\n" +
-	"\x17ntfy-api/ntfy_api.proto\x12\rddash.ntfyapi\x1a\x19ddash/config/config.proto\x1a%ddash/notification/notification.proto\x1a\x13ddash/options.proto\"\xad\x03\n" +
+	"\x17ntfy-api/ntfy_api.proto\x12\rddash.ntfyapi\x1a\x19ddash/config/config.proto\x1a%ddash/notification/notification.proto\x1a\x13ddash/options.proto\"\xca\x03\n" +
 	"\rNtfyApiConfig\x12i\n" +
 	"\x06server\x18\x01 \x01(\tBL\x9a\xb5\x18H\n" +
-	"\x0fhttps://ntfy.sh\"3The ntfy server the phone's ntfy app subscribes to.8\x01H\x00R\x06server\x88\x01\x01\x12\x98\x01\n" +
-	"\x05topic\x18\x02 \x01(\tB\x81\x01\x9a\xb5\x18}\"kLetters, digits, - and _, at most 64. On a server without access control the topic name is the only secret.*\fddash-alerts0\x01R\x05topic\x12{\n" +
+	"\x0fhttps://ntfy.sh\"3The ntfy server the phone's ntfy app subscribes to.8\x01H\x00R\x06server\x88\x01\x01\x12\xb5\x01\n" +
+	"\x05topic\x18\x02 \x01(\tB\x9e\x01\x9a\xb5\x18\x99\x01\"\x88\x01Letters, digits, - and _, at most 64. On a server without access control the topic name is the only secret. Leave empty to not use ntfy.*\fddash-alertsR\x05topic\x12{\n" +
 	"\x05token\x18\x03 \x01(\tBe\x9a\xb5\x18a\x10\x01\x1a\fAccess token\"OA token (tk_…) with write access to the topic. Leave empty for an open topic.R\x05token:\x0e\xaa\xb5\x18\n" +
 	"\x12\bSendTestB\t\n" +
 	"\a_server\"S\n" +

@@ -165,7 +165,10 @@ Do these by hand, in order, before first use.
 - [ ] Nginx Proxy Manager: a dedicated user for ddash (Users). Permissions:
       Item Visibility All Items, Proxy Hosts Manage, SSL Certificates View,
       everything else Hidden; 2FA off.
-- [ ] ntfy: a reserved ntfy.sh topic and an access token.
+- [ ] ntfy (optional, a Notification channel): a reserved ntfy.sh topic
+      and an access token, in ntfy-api's config form; press **Send test**.
+      Left empty, ntfy-api is "not set up" and Notifications go to
+      Telegram only. Clearing the topic later turns ntfy off again.
 - [ ] Cloudflare Tunnel (optional): ddash changes only a **remotely managed**
       Tunnel (created in Zero Trust → Networks → Tunnels, configured in the
       dashboard), never a locally managed `config.yml`. Create an API token
@@ -206,7 +209,7 @@ Do these by hand, in order, before first use.
       `PV`) in energy-api's config, and the grid price and feed-in tariff in
       € per kWh to see costs. ddash only reads: the token can't change a
       reading. ddash needs HTTPS to InfluxDB.
-- [ ] Telegram (optional, a second Notification channel beside ntfy):
+- [ ] Telegram (optional, a Notification channel beside ntfy):
       1. In Telegram, message **@BotFather**, send `/newbot`, and pick a
          name and a username ending in `bot`. BotFather answers with the
          bot token (`123456789:AAH…`): it is telegram-api's **Bot token**.
@@ -220,7 +223,9 @@ Do these by hand, in order, before first use.
       4. Save both in telegram-api's config form and press **Send test**.
 
       Left empty, telegram-api is "not set up" and Notifications go to
-      ntfy only; ntfy-api unconfigured likewise sends to Telegram only.
+      ntfy only. With neither set up, no Notification reaches you, and
+      the Checks Page's Notifications panel warns about it; no Plugin
+      shows down or unconfigured for it.
 - [ ] AI App helper (optional, opt-in): install the **AI App helper**
       Plugin only if you want Claude to draft new Apps. No other Plugin
       requires it; Docker and Apps show "Draft with AI" only while it is

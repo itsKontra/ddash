@@ -24,9 +24,10 @@ import (
 const (
 	working = "working"
 	// unconfigured: the host answers FailedPrecondition "not configured"
-	// (ntfy-api without a topic).
+	// (a stored config the Component refuses).
 	unconfigured = "unconfigured"
-	// notSetUp: telegram-api started without a token and chat.
+	// notSetUp: ntfy-api started without a topic, telegram-api without a
+	// token and chat.
 	notSetUp = "not set up"
 	// failing: the channel's system refuses, or its Component is down.
 	failing = "failing"
@@ -47,7 +48,7 @@ func (c *channel) answer() error {
 	case unconfigured:
 		return status.Error(codes.FailedPrecondition, "not configured")
 	case notSetUp:
-		return status.Error(codes.FailedPrecondition, "Telegram is not set up: enter a bot token and a chat ID")
+		return status.Error(codes.FailedPrecondition, c.dest+" is not set up")
 	case failing:
 		return status.Error(codes.Unavailable, c.dest+" answered 502: bad gateway")
 	}
@@ -93,10 +94,13 @@ func (f *fakeNtfy) Send(_ context.Context, req *ntfyapipb.SendRequest, _ ...grpc
 }
 
 func (f *fakeNtfy) GetChannel(context.Context, *ntfyapipb.GetChannelRequest, ...grpc.CallOption) (*ntfyapipb.GetChannelResponse, error) {
-	if err := f.answer(); err != nil {
-		return nil, err
+	switch f.state {
+	case notSetUp:
+		return &ntfyapipb.GetChannelResponse{}, nil
+	case working:
+		return &ntfyapipb.GetChannelResponse{SetUp: true, Destination: f.dest}, nil
 	}
-	return &ntfyapipb.GetChannelResponse{SetUp: true, Destination: f.dest}, nil
+	return nil, f.answer()
 }
 
 type fakeTelegram struct {
@@ -229,8 +233,10 @@ func TestAFilteredOutChannelIsReportedSkipped(t *testing.T) {
 func TestAChannelNotSetUpIsSkippedNotAnError(t *testing.T) {
 	for _, tc := range []struct{ ntfy, telegram string }{
 		{unconfigured, working},
+		{notSetUp, working},
 		{working, notSetUp},
 		{unconfigured, notSetUp},
+		{notSetUp, notSetUp},
 	} {
 		l := newLab(tc.ntfy, tc.telegram)
 		c := start(t, l, &notifypb.NotifyConfig{})
@@ -314,14 +320,16 @@ func TestListChannelsReportsEachChannelsSetupAndCategories(t *testing.T) {
 		t.Errorf("channels (-want +got):\n%s", diff)
 	}
 
-	l.ntfy.set(unconfigured)
 	l.telegram.set(failing)
-	resp, err = c.ListChannels(t.Context(), &notifypb.ListChannelsRequest{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if ch := resp.GetChannels()[0]; ch.GetSetUp() || ch.GetProblem() != "" {
-		t.Errorf("unconfigured ntfy = %v, want not set up, no problem", ch)
+	for _, state := range []string{notSetUp, unconfigured} {
+		l.ntfy.set(state)
+		resp, err = c.ListChannels(t.Context(), &notifypb.ListChannelsRequest{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ch := resp.GetChannels()[0]; ch.GetSetUp() || ch.GetDestination() != "" || ch.GetProblem() != "" {
+			t.Errorf("%s ntfy = %v, want not set up, no problem", state, ch)
+		}
 	}
 	if ch := resp.GetChannels()[1]; ch.GetSetUp() || ch.GetProblem() != "telegram-api: chat 123456789 answered 502: bad gateway" {
 		t.Errorf("failing Telegram = %v, want its problem", ch)
