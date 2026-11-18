@@ -208,6 +208,10 @@ func (h *Host) routes(guard auth.Middleware) http.Handler {
 	for _, prefix := range []string{bundlePrefix, "/vendor/"} {
 		ui.Handle("GET "+prefix, http.NotFoundHandler()) // never the shell
 	}
+	// The Catalogue's route: without these, the mux redirects /plugins to
+	// the bundles' /plugins/, a 404.
+	ui.HandleFunc("GET "+strings.TrimSuffix(bundlePrefix, "/"), h.index)
+	ui.HandleFunc("GET "+bundlePrefix+"{$}", h.index)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", h.healthz)

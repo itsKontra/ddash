@@ -190,7 +190,7 @@ func checksum(sums []byte, file string) ([]byte, error) {
 
 // ReservedPluginNames are the core's own top-level paths. A Plugin's Pages
 // live under /<name>/, so no Plugin may take one of these names.
-var ReservedPluginNames = []string{"api", "auth", "vendor", "plugins", "settings", "healthz"}
+var ReservedPluginNames = []string{"api", "auth", "vendor", "assets", "agent", "plugins", "settings", "healthz"}
 
 // Check refuses a Plugin named after a core path, a requires that doesn't
 // resolve and a requires cycle.

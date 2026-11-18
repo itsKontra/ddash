@@ -5,6 +5,8 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- Opening **Plugins** at `/plugins` directly, or reloading it, shows the
+  page. It used to redirect to `/plugins/` and answer 404.
 - The Docker Page offers **Update Agent** on a host it can't read because
   the host's Docker Agent runs another Release, with the same confirm as
   the Docker Agents list. Any other reason a host can't be read is only

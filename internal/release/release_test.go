@@ -102,7 +102,7 @@ func TestTheCatalogueFailsWhenAManifestIsntNamedAfterItsDirectory(t *testing.T) 
 }
 
 func TestTheCatalogueFailsOnAPluginNameClashingWithACorePath(t *testing.T) {
-	for _, name := range []string{"api", "auth", "vendor", "plugins", "settings", "healthz"} {
+	for _, name := range []string{"api", "auth", "vendor", "assets", "agent", "plugins", "settings", "healthz"} {
 		t.Run(name, func(t *testing.T) {
 			root := tree(t, map[string]string{
 				"plugins/" + name + "/plugin.yaml": "name: " + name + "\ntitle: Clash\nrequires: []\n",

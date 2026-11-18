@@ -15,6 +15,8 @@ import (
 	"github.com/itsKontra/ddash/core/auth/oidctest"
 	"github.com/itsKontra/ddash/core/coretest"
 	"github.com/itsKontra/ddash/core/internal/sample"
+	"github.com/itsKontra/ddash/core/runtime"
+	"github.com/itsKontra/ddash/internal/fakegithub"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -32,7 +34,14 @@ func shelf(t *testing.T) *coretest.Harness {
 }
 
 func shelfOf(t *testing.T, release string) *coretest.Harness {
-	h := coretest.New(t, coretest.Options{
+	h := coretest.New(t, shelfOptions(release))
+	h.Install("docker")
+	return h
+}
+
+// shelfOptions are shelf's Options, of Release release.
+func shelfOptions(release string) coretest.Options {
+	return coretest.Options{
 		Release:    release,
 		Shell:      builtShell,
 		Components: []sdk.Definition{sample.Define("docker-api", nil, sample.Hooks{}), sample.Define("checks", nil, sample.Hooks{})},
@@ -46,9 +55,7 @@ func shelfOf(t *testing.T, release string) *coretest.Harness {
 			"docker/logo.svg":  "<svg/>",
 			"checks/index.js":  "export default {}",
 		},
-	})
-	h.Install("docker")
-	return h
+	}
 }
 
 func TestTheCoreListsInstalledPluginsWithTheirManifestsAndBundleURLs(t *testing.T) {
@@ -184,6 +191,43 @@ func TestTheShellIsServedUncachedWithItsImportMapOnTheRunningRelease(t *testing.
 		if got := res.Header().Get("Cache-Control"); got != "no-cache" {
 			t.Errorf("GET %s: Cache-Control %q, want no-cache", path, got)
 		}
+	}
+}
+
+// The Catalogue's shell route /plugins shares its path with the bundles'
+// /plugins/: a direct load or a reload of it still gets the shell, in a
+// Release from a dir (DDASH_RELEASE_DIR) and one downloaded from GitHub,
+// and what is under /plugins/ is still only bundles.
+func TestTheCataloguesRouteIsServedTheShellThoughBundlesShareItsPath(t *testing.T) {
+	gh := fakegithub.New(repo)
+	gh.Publish("v1.2.3", coretest.ReleaseDir(t, shelfOptions("v1.2.3")))
+	data := t.TempDir()
+	downloaded := shelfOptions("v1.2.3")
+	downloaded.DataDir = data
+	downloaded.Source = runtime.GitHub(runtime.GitHubOptions{Repo: repo, Release: "v1.2.3", DataDir: data, Client: gh.Client()})
+
+	for mode, opts := range map[string]coretest.Options{"release dir": shelfOptions("v1.2.3"), "downloaded": downloaded} {
+		t.Run(mode, func(t *testing.T) {
+			h := coretest.New(t, opts)
+			h.Install("docker")
+
+			for _, path := range []string{"/plugins", "/plugins/"} {
+				res := h.Get(path)
+
+				want := `<script type="importmap">{"imports":{"react":"/vendor/v1.2.3/react.js"}}</script>`
+				if res.Code != http.StatusOK || res.Body.String() != want {
+					t.Errorf("GET %s: %d %q (Location %q), want 200 %q", path, res.Code, res.Body, res.Header().Get("Location"), want)
+				}
+			}
+			if res := h.Get("/plugins/docker/v1.2.3/index.js"); res.Code != http.StatusOK || res.Header().Get("Cache-Control") != immutable {
+				t.Errorf("GET the bundle: %d with Cache-Control %q, want 200 %q", res.Code, res.Header().Get("Cache-Control"), immutable)
+			}
+			for _, path := range []string{"/plugins/docker/v1.2.3/nope.js", "/plugins/docker", "/plugins/docker/"} {
+				if res := h.Get(path); res.Code != http.StatusNotFound {
+					t.Errorf("GET %s: %d, want 404", path, res.Code)
+				}
+			}
+		})
 	}
 }
 
