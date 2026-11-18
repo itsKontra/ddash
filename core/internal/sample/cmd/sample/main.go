@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/itsKontra/ddash/core/internal/sample"
@@ -26,14 +27,29 @@ func main() {
 	}
 	sdk.Serve(sample.Define(name, nil, sample.Hooks{
 		Start: func(ctx context.Context, _ *sdk.Env, cfg *samplepb.SampleConfig) error {
+			// Every's loop may not have run yet when Every returns, and a
+			// Stop then ends it before it ever works. So Start returns once
+			// the work is underway.
+			busy := make(chan struct{})
+			working := sync.OnceFunc(func() { close(busy) })
 			switch cfg.GetTarget() {
 			case "slow-stop":
 				sdk.Every(ctx, time.Hour, func(ctx context.Context) {
+					working()
 					<-ctx.Done()
 					time.Sleep(time.Second)
 				})
 			case "ignore-stop":
-				sdk.Every(ctx, time.Hour, func(context.Context) { select {} })
+				sdk.Every(ctx, time.Hour, func(context.Context) {
+					working()
+					select {}
+				})
+			default:
+				return nil
+			}
+			select {
+			case <-busy:
+			case <-ctx.Done():
 			}
 			return nil
 		},
