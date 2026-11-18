@@ -5,6 +5,17 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+## v0.0.4-rc.1
+
+- **To do after updating**: run **Update Agent** on each Docker Agent
+  (Docker, Docker Agents) and each Host Agent (Proxmox). Until then they
+  show as outdated and ddash doesn't read through them.
+- The Docker Agent's own Compose Project (`ddash-docker-agent`) says it is
+  the Docker Agent and how it is updated. It no longer offers Restart,
+  Stop, Pull & update or its Compose file, none of which could work, and
+  ddash refuses those Actions on it.
+- A Compose Project's **Images** say why they weren't checked: "pinned by
+  digest" or "local image", no longer "no registry" for both.
 - Opening **Plugins** at `/plugins` directly, or reloading it, shows the
   page. It used to redirect to `/plugins/` and answer 404.
 - The Docker Page offers **Update Agent** on a host it can't read because
