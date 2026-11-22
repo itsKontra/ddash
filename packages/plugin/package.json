@@ -18,7 +18,7 @@
     "@connectrpc/connect-web": "2.3.0",
     "@ddash/proto": "workspace:*",
     "@ddash/ui": "workspace:*",
-    "@tanstack/react-query": "5.107.1"
+    "@tanstack/react-query": "5.108.0"
   },
   "peerDependencies": {
     "react": "19.3.1",
