@@ -288,11 +288,13 @@ func (a *Agent) describe(p *agent.Project, cs []agent.Container, read func(file 
 }
 
 // ParseServices reads the Compose services of a Compose file: each
-// one's image and published ports as written (variables unresolved).
+// one's image, whether it's built, and its published ports as written
+// (variables unresolved).
 func ParseServices(b []byte) ([]agent.Service, error) {
 	var doc struct {
 		Services map[string]struct {
 			Image string `yaml:"image"`
+			Build any    `yaml:"build"` // a context path, or a mapping
 			Ports []any  `yaml:"ports"`
 		} `yaml:"services"`
 	}
@@ -301,7 +303,7 @@ func ParseServices(b []byte) ([]agent.Service, error) {
 	}
 	var out []agent.Service
 	for name, s := range doc.Services {
-		svc := agent.Service{Name: name, Image: s.Image}
+		svc := agent.Service{Name: name, Image: s.Image, Build: s.Build != nil}
 		for _, p := range s.Ports {
 			switch v := p.(type) {
 			case string:
@@ -791,13 +793,14 @@ func (a *Agent) op(req agent.ComposeRequest) ([]string, agent.Run) {
 			return nil, nil
 		}
 	}
-	return []string{"Pull images", "Compare digests", "Recreate changed services"}, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
+	return []string{"Pull images", "Build images", "Compare digests", "Recreate changed services"}, func(ctx context.Context, p *agent.Progress) (map[string]string, error) {
 		return a.update(ctx, req, p, run)
 	}
 }
 
-// update pulls, compares each Compose service's running image with the
-// one pulled, and recreates only those that changed.
+// update pulls, rebuilds the buildable Compose services with their base
+// images pulled, compares each service's running image with the one
+// pulled or built, and recreates only those that changed.
 func (a *Agent) update(ctx context.Context, req agent.ComposeRequest, p *agent.Progress, run func(context.Context, *agent.Progress, int, ...string) error) (map[string]string, error) {
 	b, err := os.ReadFile(req.File)
 	if err != nil {
@@ -807,6 +810,9 @@ func (a *Agent) update(ctx context.Context, req agent.ComposeRequest, p *agent.P
 	if err != nil {
 		return nil, err
 	}
+	services = slices.DeleteFunc(services, func(s agent.Service) bool {
+		return len(req.Services) > 0 && !slices.Contains(req.Services, s.Name)
+	})
 	cs, err := a.o.Docker.Containers(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Docker: %w", err)
@@ -821,20 +827,31 @@ func (a *Agent) update(ctx context.Context, req agent.ComposeRequest, p *agent.P
 		return nil, err
 	}
 	p.Done(0, "")
-	p.Begin(1)
+	var buildable []string
+	for _, s := range services {
+		if s.Build {
+			buildable = append(buildable, s.Name)
+		}
+	}
+	if len(buildable) == 0 {
+		p.Skip(1, "no service is built")
+	} else {
+		if err := run(ctx, p, 1, append([]string{"build", "--pull"}, buildable...)...); err != nil {
+			return nil, err
+		}
+		p.Done(1, strings.Join(buildable, ", "))
+	}
+	p.Begin(2)
 	result := map[string]string{}
 	var changed []string
 	for _, s := range services {
-		if len(req.Services) > 0 && !slices.Contains(req.Services, s.Name) {
-			continue
-		}
 		c, ok := running[s.Name]
-		if !ok || s.Image == "" {
+		if !ok || (s.Image == "" && !s.Build) {
 			continue
 		}
 		id, digests, err := a.o.Docker.ImageDigests(ctx, c.Image)
 		if err != nil {
-			p.Log(1, fmt.Sprintf("%s: can't inspect %s: %v", s.Name, c.Image, err))
+			p.Log(2, fmt.Sprintf("%s: can't inspect %s: %v", s.Name, c.Image, err))
 			continue
 		}
 		if id != c.ImageID {
@@ -843,15 +860,15 @@ func (a *Agent) update(ctx context.Context, req agent.ComposeRequest, p *agent.P
 		}
 	}
 	if len(changed) == 0 {
-		p.Done(1, "already up to date")
-		p.Skip(2, "no image changed")
+		p.Done(2, "already up to date")
+		p.Skip(3, "no image changed")
 		return map[string]string{"unchanged": "true"}, nil
 	}
-	p.Done(1, fmt.Sprintf("%d changed: %s", len(changed), strings.Join(changed, ", ")))
-	if err := run(ctx, p, 2, append([]string{"up", "-d", "--no-deps"}, changed...)...); err != nil {
+	p.Done(2, fmt.Sprintf("%d changed: %s", len(changed), strings.Join(changed, ", ")))
+	if err := run(ctx, p, 3, append([]string{"up", "-d", "--no-deps"}, changed...)...); err != nil {
 		return result, err
 	}
-	p.Done(2, strings.Join(changed, ", "))
+	p.Done(3, strings.Join(changed, ", "))
 	return result, nil
 }
 

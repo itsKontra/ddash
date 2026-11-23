@@ -22,7 +22,7 @@ ddash shows the Operator's Workloads, but it can barely change them. It can star
 
 Both are downloaded from the ddash installation, run the same Release as the core, and accept only ddash. Both hold root-equivalent power on their host, and the Operator opts in per host by installing one.
 
-**Compose Projects in the Docker Plugin.** Every Compose Project on a host with a Docker Agent is listed with its Compose services and containers. The Operator can view and edit its Compose file (validated before it is saved), and can start, stop, restart and update it. Update means pull, then recreate, as one click and one Plan. A new Compose Project can be added from ddash, and adding one can also create its App: a Host Override in pfSense and a Proxy Host in Nginx Proxy Manager, in the same Plan as Add App.
+**Compose Projects in the Docker Plugin.** Every Compose Project on a host with a Docker Agent is listed with its Compose services and containers. The Operator can view and edit its Compose file (validated before it is saved), and can start, stop, restart and update it. Update means pull (and rebuild the Compose services built from a Dockerfile), then recreate, as one click and one Plan. A new Compose Project can be added from ddash, and adding one can also create its App: a Host Override in pfSense and a Proxy Host in Nginx Proxy Manager, in the same Plan as Add App.
 
 **Image updates.** ddash compares every running container's image digest with its registry. When a newer image exists, it marks the container and Compose Project, and sends one Notification.
 
@@ -176,7 +176,7 @@ All decisions here are **Proposed**: they still need a Wayfinder map's grilling 
 
 - Requires `docker-agent-api`, `docker-api` and `checks`. Its Notifications go through the core, to whichever channels are installed (Open Decision 6, settled by ADR-0010).
 - Owns Compose Project Actions with Plans, the same pattern as `apps` (`PlanAction`, then a streaming `RunAction` that re-reads and refuses when the Plan no longer holds). Kinds: Save Compose file, Start, Stop, Restart, Update, Add Compose Project.
-- **Update**: pull, compare digests per Compose service, and recreate only the changed services with `up -d <services>`. The changed Compose services' Apps go into Maintenance for the run.
+- **Update**: pull, rebuild the Compose services with a `build:` (`build --pull`, so their base images are pulled too), compare digests per Compose service, and recreate only the changed services with `up -d <services>`. The changed Compose services' Apps go into Maintenance for the run.
 - **Image checks**: for each running container, its image's repo digest (from image inspect) is compared with the registry's manifest digest for the same tag, through a `HEAD` request to the registry's manifest endpoint. Checks run every 6 hours and on Refresh. Registry credentials are optional per registry (a secret). A digest-pinned or local image is "not checked".
 - **Notifications**: one per container per new digest, collapsed into one message per run when several images turn stale at once.
 - **Protected**: Stop, Restart, Update and Save-with-recreate on a Compose Project are refused when any of its Workloads is Protected, unless the Operator confirms an explicit override in the Plan (Open Decision 4).

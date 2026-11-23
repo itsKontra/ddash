@@ -434,6 +434,7 @@ func (c *component) planUpdate(ctx context.Context, u *pb.Update, override bool)
 		w.steps = append(w.steps, stepWork{jobStep: -1, run: c.maintain(stale, restartMaintenance, true)})
 	}
 	p.Steps = append(p.Steps, pull,
+		&pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Build images", Values: []*pb.PlanValue{{Label: "Runs", After: "docker compose build --pull <services built from a Dockerfile>"}}},
 		&pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Compare digests"},
 		&pb.PlanStep{System: pb.System_SYSTEM_DOCKER_AGENT, Title: "Recreate the Compose services whose image changed", Values: []*pb.PlanValue{{Label: "Runs", After: "docker compose up -d --no-deps <changed>"}}})
 	w.steps = append(w.steps,
@@ -446,6 +447,7 @@ func (c *component) planUpdate(ctx context.Context, u *pb.Update, override bool)
 		}},
 		stepWork{jobStep: 1},
 		stepWork{jobStep: 2},
+		stepWork{jobStep: 3},
 	)
 	return p, w, nil
 }
