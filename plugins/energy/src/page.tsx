@@ -22,6 +22,8 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { colours, eur, isFresh, kw, kwAxis, kwh, kwhAxis, pct, shares, shareTone, Span, useFlow, usePeriod } from "./energy";
 import { batteryText, FlowDiagram } from "./flow";
+import { MoneyLedger } from "./ledger";
+import { EnergySankey } from "./sankey";
 
 const spans = ["Day", "Week", "Month", "Year"] as const;
 type SpanName = (typeof spans)[number];
@@ -220,40 +222,8 @@ function Columns({ p, onOpen, ...shown }: HiddenSeries & { p: GetPeriodResponse;
   );
 }
 
-/** Where the energy came from and went. */
-function EnergyFacts({ t }: { t: Totals }) {
-  const s = shares(t);
-  const metered = t.house > 0 || t.heatPump > 0;
-  return (
-    <Facts
-      items={[
-        { label: "Solar", value: kwh(t.solar) },
-        { label: "Used", value: kwh(t.consumption) },
-        ...(metered
-          ? [
-              { label: "… by the house", value: kwh(t.house) },
-              { label: "… by the heat pump", value: kwh(t.heatPump) },
-              { label: "… lost or unmetered", value: kwh(s.other) },
-            ]
-          : []),
-        { label: "From the grid", value: kwh(t.gridImport) },
-        { label: "Into the grid", value: kwh(t.gridExport) },
-        ...(t.batteryCharged > 0 || t.batteryDischarged > 0
-          ? [
-              { label: "Into the battery", value: kwh(t.batteryCharged) },
-              { label: "From the battery", value: kwh(t.batteryDischarged) },
-            ]
-          : []),
-        { label: "Self-consumption", value: s.selfConsumption === undefined ? "–" : pct(s.selfConsumption) },
-      ]}
-    />
-  );
-}
-
-const price = (v: number) => `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 5 }).format(v)} €/kWh`;
-
-/** What the grid cost and paid, and what the solar saved. */
-function MoneyFacts({ p, t }: { p: GetPeriodResponse; t: Totals }) {
+/** What the grid cost and paid, and what the solar saved; where to set the prices while there are none. */
+function Money({ p, t }: { p: GetPeriodResponse; t: Totals }) {
   if (!p.prices)
     return (
       <p className="text-sm text-muted-foreground">
@@ -264,20 +234,7 @@ function MoneyFacts({ p, t }: { p: GetPeriodResponse; t: Totals }) {
         to see what the grid cost and the solar saved.
       </p>
     );
-  return (
-    <Facts
-      items={[
-        { label: "Grid cost", value: eur(t.cost) },
-        { label: "Feed-in revenue", value: eur(t.revenue) },
-        t.cost >= t.revenue
-          ? { label: "Grid bill", value: <strong>{eur(t.cost - t.revenue)}</strong> }
-          : { label: "Earned net", value: <strong className="text-up-text">{eur(t.revenue - t.cost)}</strong> },
-        { label: "Without solar", value: eur(t.consumption * p.prices.buy) },
-        { label: "Saved by solar", value: <strong className="text-up-text">{eur(t.savings)}</strong> },
-        { label: "Prices", value: `${price(p.prices.buy)} bought, ${price(p.prices.sell)} sold` },
-      ]}
-    />
-  );
+  return <MoneyLedger t={t} prices={p.prices} />;
 }
 
 /** The battery's state of charge over a day or week. */
@@ -368,10 +325,10 @@ function History() {
       {p?.totals && (
         <div className="grid gap-6 lg:grid-cols-2">
           <Panel title="Energy" description="From the inverter's, the grid meter's and the battery's counters.">
-            <EnergyFacts t={p.totals} />
+            <EnergySankey t={p.totals} />
           </Panel>
           <Panel title="Money" description="Bought and sold at the prices set in Plugins.">
-            <MoneyFacts p={p} t={p.totals} />
+            <Money p={p} t={p.totals} />
           </Panel>
         </div>
       )}

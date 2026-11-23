@@ -64,21 +64,54 @@ it("asks for today in the browser's zone, and shows its figures", async () => {
   expect(screen.getByRole("img", { name: "State of charge" })).toBeTruthy();
 });
 
-it("counts the money at the prices", async () => {
+it("counts the money at the prices as a ledger: bought less sold makes the grid bill", async () => {
   await show();
 
   const money = panel("Money");
   const t = today.totals;
-  expect(fact(money, "Grid cost")).toBe(eur(t.cost));
-  expect(fact(money, "Grid bill")).toBe(eur(t.cost - t.revenue));
-  expect(fact(money, "Saved by solar")).toBe(eur(t.savings));
-  expect(fact(panel("Energy"), "… lost or unmetered")).toBe(kwh(t.consumption - 5.7 - 0.7));
+  expect(money.textContent).toContain(`Bought from the grid${kwh(t.gridImport)} × 24.18 ct− ${eur(t.cost)}`);
+  expect(money.textContent).toContain(`Sold to the grid${kwh(t.gridExport)} × 5.786 ct+ ${eur(t.revenue)}`);
+  expect(money.textContent).toContain(`Grid bill${eur(t.cost - t.revenue)}`);
+  expect(within(money).getByRole("img", { name: `The feed-in covered ${pct(t.revenue / t.cost)} of the grid cost` })).toBeTruthy();
+  expect(money.textContent).toContain(`Left to pay ${eur(t.cost - t.revenue)}`);
+  // The savings split: what wasn't bought, and the feed-in they include.
+  expect(money.textContent).toContain(`${eur(t.savings - t.revenue)} not bought by using ${kwh(t.consumption - t.gridImport)} of your own, and ${eur(t.revenue)} from feed-in`);
+  expect(money.textContent).toContain(`${eur(t.savings)}saved`);
+  expect(money.textContent).toContain(`Buying all ${kwh(t.consumption)} from the grid would have cost ${eur(t.consumption * 0.2418)}`);
 });
 
-it("says the feed-in earned more than the grid cost, when it did", async () => {
-  await show(() => Response.json(august));
+it("draws the period's energy as a Sankey, each node's counter as text and each flow's kWh on focus", async () => {
+  await show();
 
-  expect(fact(panel("Money"), "Earned net")).toBe(eur(august.totals.revenue - august.totals.cost));
+  const energy = panel("Energy");
+  const t = today.totals;
+  const node = (id: string) => energy.querySelector(`[data-node="${id}"]`)?.textContent;
+  expect(node("solar")).toBe(`Solar${kwh(41.2)}`);
+  expect(node("used")).toBe(`Used${kwh(t.consumption)}`);
+  expect(node("house")).toBe(`House${kwh(5.7)}`);
+  expect(node("other")).toBe(`Lost or unmetered${kwh(t.consumption - 5.7 - 0.7)}`);
+  expect(node("batteryIn")).toBe(`Into battery${kwh(15.7)}`);
+  const exported = within(energy).getByRole("img", { name: `Solar to Exported: ${kwh(4.6)}` });
+  fireEvent.focus(exported);
+  expect(within(energy).getByRole("status").textContent).toBe(`Solar → Exported ${kwh(4.6)}`);
+  expect(energy.textContent).toContain(`Self-consumption ${pct(1 - 4.6 / 41.2)}`);
+});
+
+it("leaves the battery's nodes out of a period without one", async () => {
+  await show(() => Response.json({ ...today, totals: totals(41.2, 18.9, 4.6, 0, 0, 40, 10) }));
+
+  const energy = panel("Energy");
+  expect(energy.querySelector('[data-node="batteryOut"]')).toBeNull();
+  expect(energy.querySelector('[data-node="batteryIn"]')).toBeNull();
+  expect(energy.querySelector('[data-node="grid"]')).toBeTruthy();
+});
+
+it("says so when a period has no readings", async () => {
+  await show(() => Response.json({ ...today, totals: totals(0, 0, 0, 0, 0) }));
+
+  expect(panel("Energy").textContent).toContain("No energy counted in this period.");
+  expect(panel("Energy").textContent).toContain("Self-sufficiency –");
+  expect(within(panel("Money")).queryByRole("img")).toBeNull();
 });
 
 it("steps to the period before, and back to today", async () => {
@@ -143,7 +176,10 @@ it("says where to set prices when none are", async () => {
   await show(() => Response.json({ ...today, prices: undefined, totals: totals(41.2, 18.9, 4.6, 15.7, 4) }));
 
   expect(metricValue("Exported", history())).toContain("Set prices in Plugins to see costs");
-  expect(within(panel("Money")).getByRole("link", { name: "Set them in Plugins" }).getAttribute("href")).toBe("/plugins");
+  const money = panel("Money");
+  expect(within(money).getByRole("link", { name: "Set them in Plugins" }).getAttribute("href")).toBe("/plugins");
+  expect(within(money).queryByRole("img")).toBeNull();
+  expect(money.textContent).not.toContain("Grid bill");
 });
 
 it("asks to set up energy-api while it isn't", async () => {
@@ -158,5 +194,5 @@ it("still shows a period's figures when the answer lacks its ends", async () => 
   await show(() => Response.json(endless));
 
   expect(screen.queryByText(/Energy crashed/)).toBeNull();
-  expect(fact(panel("Energy"), "Solar")).toBeTruthy();
+  expect(panel("Energy").querySelector('[data-node="solar"]')?.textContent).toBe(`Solar${kwh(41.2)}`);
 });

@@ -5,6 +5,14 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- The Energy Page's **Energy** panel draws the period as a Sankey: solar,
+  battery and grid flow into the export, the battery and the use, and the
+  use into the house, the heat pump and what was lost or unmetered, each
+  with its kWh; hover or focus a flow for its own. **Money** is a ledger:
+  bought less sold makes the grid bill (or what the feed-in earned net),
+  a bar shows how much of the grid cost the feed-in covered, and the
+  saving is split into what wasn't bought and the feed-in.
+
 - Optional: set **Battery backup reserve (%)** in energy-api's config, and
   Energy counts the battery's time left down to that reserve instead of
   0 %, says "at backup reserve" once it gets there, and shows the reserve
