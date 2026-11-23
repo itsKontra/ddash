@@ -601,7 +601,7 @@ func TestACancelledUpdateStopsItsPullAndSaysWhatItLeft(t *testing.T) {
 	if r.GetEnded() == nil || r.GetError() != "" || r.GetCancelledBy() != "operator:alice" {
 		t.Fatalf("run = %v, want ended, cancelled and not failed", r)
 	}
-	want := []pb.StepState{pb.StepState_STEP_STATE_DONE, pb.StepState_STEP_STATE_CANCELLED, pb.StepState_STEP_STATE_PENDING, pb.StepState_STEP_STATE_PENDING}
+	want := []pb.StepState{pb.StepState_STEP_STATE_DONE, pb.StepState_STEP_STATE_CANCELLED, pb.StepState_STEP_STATE_PENDING, pb.StepState_STEP_STATE_PENDING, pb.StepState_STEP_STATE_PENDING}
 	if !slices.Equal(r.GetStates(), want) {
 		t.Errorf("states = %v, want the Maintenance done, the pull cancelled, the rest not run", r.GetStates())
 	}

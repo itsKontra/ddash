@@ -52,6 +52,8 @@ type compose struct {
 	mu    sync.Mutex
 	calls [][]string
 	envs  []string
+	// failBuild fails every build, as a broken Dockerfile does.
+	failBuild bool
 }
 
 func (c *compose) Run(_ context.Context, _ string, args []string, out func(string)) error {
@@ -64,6 +66,13 @@ func (c *compose) Run(_ context.Context, _ string, args []string, out func(strin
 	c.mu.Unlock()
 	if slices.Equal(args, []string{"version", "--short"}) {
 		out("2.29.7")
+	}
+	c.mu.Lock()
+	failBuild := c.failBuild
+	c.mu.Unlock()
+	if slices.Contains(args, "build") && failBuild {
+		out("failed to solve: process \"/bin/sh -c apk add nope\" did not complete successfully")
+		return errors.New("exit status 17")
 	}
 	if i := slices.Index(args, "config"); i >= 0 {
 		f := args[slices.Index(args, "-f")+1]
@@ -360,7 +369,7 @@ func TestUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	j := wait(t, cl, ref.Job.ID)
-	if j.State != agent.Done || j.Result["unchanged"] != "true" || j.Steps[2].State != agent.Skipped {
+	if j.State != agent.Done || j.Result["unchanged"] != "true" || j.Steps[3].State != agent.Skipped {
 		t.Fatalf("unchanged update = %+v", j)
 	}
 
@@ -369,12 +378,104 @@ func TestUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 	j = wait(t, cl, ref.Job.ID)
-	if j.State != agent.Done || j.Result["jellyfin"] != "sha256:old sha256:new" {
+	if j.State != agent.Done || j.Result["jellyfin"] != "sha256:old sha256:new" || j.Steps[1].State != agent.Skipped {
 		t.Fatalf("update = %+v", j)
 	}
 	last := c.calls[len(c.calls)-1]
 	if !slices.Equal(last[len(last)-4:], []string{"up", "-d", "--no-deps", "jellyfin"}) {
 		t.Fatalf("recreated with %v", last)
+	}
+}
+
+// A Compose service built from a local Dockerfile is rebuilt by Update,
+// its base image pulled, and recreated only when its image changed.
+func TestUpdateRebuildsBuildableServices(t *testing.T) {
+	ctx := context.Background()
+	cl, root, d, c := setup(t)
+	dir := filepath.Join(root, "site")
+	os.MkdirAll(dir, 0o755)
+	file := filepath.Join(dir, "compose.yaml")
+	os.WriteFile(file, []byte("services:\n  app:\n    build: .\n  api:\n    build:\n      context: api\n    image: site/api:dev\n  db:\n    image: postgres:16\n"), 0o644)
+	labels := func(service string) map[string]string {
+		return map[string]string{agent.LabelProject: "site", agent.LabelService: service, agent.LabelWorkingDir: dir, agent.LabelConfigFiles: file}
+	}
+	d.mu.Lock()
+	d.containers = append(d.containers,
+		agent.Container{ID: "s1", Name: "site-app-1", Image: "site-app", ImageID: "sha256:app1", State: "running", Labels: labels("app")},
+		agent.Container{ID: "s2", Name: "site-api-1", Image: "site/api:dev", ImageID: "sha256:api1", State: "running", Labels: labels("api")},
+		agent.Container{ID: "s3", Name: "site-db-1", Image: "postgres:16", ImageID: "sha256:pg1", RepoDigests: []string{"postgres@sha256:pg1"}, State: "running", Labels: labels("db")},
+	)
+	d.mu.Unlock()
+	req := agent.ComposeRequest{Op: agent.Update, Project: "site", WorkingDir: dir, File: file}
+	update := func() (agent.Job, [][]string) {
+		t.Helper()
+		c.mu.Lock()
+		before := len(c.calls)
+		c.mu.Unlock()
+		var ref agent.JobRef
+		if err := cl.Post(ctx, agent.PathCompose, req, &ref); err != nil {
+			t.Fatal(err)
+		}
+		j := wait(t, cl, ref.Job.ID)
+		c.mu.Lock()
+		defer c.mu.Unlock()
+		var subs [][]string
+		for _, call := range c.calls[before:] {
+			subs = append(subs, call[slices.Index(call, file)+1:])
+		}
+		return j, subs
+	}
+
+	j, calls := update()
+	want := [][]string{{"pull", "--ignore-buildable"}, {"build", "--pull", "api", "app"}}
+	if j.State != agent.Done || j.Result["unchanged"] != "true" || j.Steps[1].Title != "Build images" || j.Steps[1].State != agent.Done || !slices.EqualFunc(calls, want, slices.Equal) {
+		t.Fatalf("an update with nothing rebuilt = %+v, calls %v", j, calls)
+	}
+
+	d.mu.Lock()
+	d.pulled["site-app"] = "sha256:app2"
+	d.mu.Unlock()
+	j, calls = update()
+	if j.State != agent.Done || !strings.HasPrefix(j.Result["app"], "sha256:app1 ") || len(j.Result) != 1 {
+		t.Fatalf("an update with app rebuilt = %+v", j)
+	}
+	if last := calls[len(calls)-1]; !slices.Equal(last, []string{"up", "-d", "--no-deps", "app"}) {
+		t.Fatalf("recreated with %v", last)
+	}
+
+	c.mu.Lock()
+	c.failBuild = true
+	c.mu.Unlock()
+	j, calls = update()
+	if j.State != agent.Failed || !strings.Contains(j.Error, "failed to solve") || j.Steps[1].State != agent.Failed || j.Steps[2].State != agent.Pending || len(calls) != 2 {
+		t.Fatalf("a failed build = %+v, calls %v", j, calls)
+	}
+	if !slices.ContainsFunc(j.Steps[1].Log, func(l string) bool { return strings.Contains(l, "failed to solve") }) {
+		t.Fatalf("the build's output isn't logged: %v", j.Steps[1].Log)
+	}
+}
+
+// Update on chosen services builds only the buildable ones among them,
+// and skips the build when none is.
+func TestUpdateBuildsOnlyTheChosenServices(t *testing.T) {
+	ctx := context.Background()
+	cl, root, _, c := setup(t)
+	dir := filepath.Join(root, "site")
+	os.MkdirAll(dir, 0o755)
+	file := filepath.Join(dir, "compose.yaml")
+	os.WriteFile(file, []byte("services:\n  app:\n    build: .\n  db:\n    image: postgres:16\n"), 0o644)
+	for _, svc := range [][]string{{"db"}, {"app", "db"}} {
+		var ref agent.JobRef
+		if err := cl.Post(ctx, agent.PathCompose, agent.ComposeRequest{Op: agent.Update, Project: "site", WorkingDir: dir, File: file, Services: svc}, &ref); err != nil {
+			t.Fatal(err)
+		}
+		j := wait(t, cl, ref.Job.ID)
+		c.mu.Lock()
+		built := slices.ContainsFunc(c.calls, func(call []string) bool { return slices.Contains(call, "build") })
+		c.mu.Unlock()
+		if want := len(svc) == 2; built != want || (j.Steps[1].State == agent.Skipped) == want {
+			t.Fatalf("update of %v: built %v, %+v", svc, built, j)
+		}
 	}
 }
 

@@ -87,6 +87,7 @@ const plan = {
   steps: [
     { system: "SYSTEM_DDASH", title: "Maintenance for media-jellyfin-1", values: [{ label: "Until", after: "its Checks are up, or 5 min" }] },
     { system: "SYSTEM_DOCKER_AGENT", title: "Pull images", values: [{ label: "jellyfin (jellyfin/jellyfin:10.10.3)", before: "aaaaaaaaaaaa", after: "bbbbbbbbbbbb" }] },
+    { system: "SYSTEM_DOCKER_AGENT", title: "Build images" },
     { system: "SYSTEM_DOCKER_AGENT", title: "Compare digests" },
     { system: "SYSTEM_DOCKER_AGENT", title: "Recreate the Compose services whose image changed" },
   ],

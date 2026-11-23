@@ -270,6 +270,9 @@ type Project struct {
 type Service struct {
 	Name  string `json:"name"`
 	Image string `json:"image,omitempty"`
+	// Build is whether it's built from a build: section, with or
+	// without an image: to tag the build with.
+	Build bool `json:"build,omitempty"`
 	// Ports are its published ports, as the file publishes them.
 	Ports []string `json:"ports,omitempty"`
 	// Containers are the ids of its containers in GET /v1/containers.

@@ -452,9 +452,9 @@ func pulledOnly(j *jobpb.Job) bool {
 	case "compose.pull":
 		return true
 	case "compose.update":
-		// Its steps: pull, compare digests, recreate.
+		// Its steps: pull, build, compare digests, recreate.
 		steps := j.GetSteps()
-		return len(steps) == 3 && steps[2].GetState() == jobpb.State_STATE_PENDING
+		return len(steps) == 4 && steps[3].GetState() == jobpb.State_STATE_PENDING
 	}
 	return false
 }
