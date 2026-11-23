@@ -1,7 +1,7 @@
 import type { Totals } from "@ddash/proto/energy-api/energy_api_pb";
 import { cx } from "@ddash/ui";
 import { useLayoutEffect, useRef, useState } from "react";
-import { kwh, pct, shares } from "./energy";
+import { estimate, kwh, pct, shares } from "./energy";
 
 /** A place the period's energy came from or went to. */
 export type NodeId = "solar" | "batteryOut" | "grid" | "export" | "batteryIn" | "used" | "house" | "heatPump" | "other";
@@ -54,19 +54,31 @@ function counter(t: Totals, id: NodeId): number {
 /** Whether the period has the Victron's split of the use into house and heat pump. */
 const metered = (t: Totals) => t.house > 0 || t.heatPump > 0;
 
+/** The sources' flows as energy-api attributed them every 5 minutes. */
+function attributed(f: NonNullable<Totals["flows"]>): Flow[] {
+  return [
+    { from: "solar", to: "export", kwh: f.solarExport },
+    { from: "solar", to: "batteryIn", kwh: f.solarBattery },
+    { from: "solar", to: "used", kwh: f.solarUsed },
+    { from: "batteryOut", to: "export", kwh: f.batteryExport },
+    { from: "batteryOut", to: "used", kwh: f.batteryUsed },
+    { from: "grid", to: "batteryIn", kwh: f.gridBattery },
+    { from: "grid", to: "used", kwh: f.gridUsed },
+  ];
+}
+
 /**
- * Where the period's energy went, as flows between nodes. The solar fills
- * the export and the battery first and the rest is used directly (as
- * shares' solarDirect); export beyond the solar came from the battery,
- * charge beyond it from the grid. Each source's flows add up to its
- * counter, and the use's to the consumption.
+ * The sources' flows from the period's totals alone, for a period answered
+ * without flows: the solar fills the export and the battery first and the
+ * rest is used directly (as shares' solarDirect); export beyond the solar
+ * came from the battery, charge beyond it from the grid.
  */
-export function flows(t: Totals): Flow[] {
+function fromTotals(t: Totals): Flow[] {
   const solarExport = Math.min(t.solar, t.gridExport);
   const solarCharge = Math.min(t.solar - solarExport, t.batteryCharged);
   const batteryExport = Math.min(t.batteryDischarged, t.gridExport - solarExport);
   const gridCharge = Math.min(t.gridImport, t.batteryCharged - solarCharge);
-  const all: Flow[] = [
+  return [
     { from: "solar", to: "export", kwh: solarExport },
     { from: "solar", to: "batteryIn", kwh: solarCharge },
     { from: "solar", to: "used", kwh: t.solar - solarExport - solarCharge },
@@ -74,6 +86,18 @@ export function flows(t: Totals): Flow[] {
     { from: "batteryOut", to: "used", kwh: t.batteryDischarged - batteryExport },
     { from: "grid", to: "batteryIn", kwh: gridCharge },
     { from: "grid", to: "used", kwh: t.gridImport - gridCharge },
+  ];
+}
+
+/**
+ * Where the period's energy went, as flows between nodes: the sources'
+ * flows energy-api returned (from the totals without them), then the use
+ * into what the Victron splits it into. Each source's flows add up to its
+ * counter, and the use's to the consumption.
+ */
+export function flows(t: Totals): Flow[] {
+  const all: Flow[] = [
+    ...(t.flows ? attributed(t.flows) : fromTotals(t)),
     ...(metered(t)
       ? [
           { from: "used", to: "house", kwh: t.house } as const,
@@ -337,6 +361,7 @@ export function EnergySankey({ t }: { t: Totals }) {
         <span>
           Self-consumption <b className="text-foreground tabular-nums">{s.selfConsumption === undefined ? "–" : pct(s.selfConsumption)}</b>
         </span>
+        {!empty && estimate(s.basis) && <span className="basis-full">{estimate(s.basis)}</span>}
       </div>
     </div>
   );

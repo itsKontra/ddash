@@ -43,6 +43,30 @@ export function totals(solar: number, gridImport: number, gridExport: number, ch
   };
 }
 
+/** Where a period's energy went, as energy-api attributes it (Connect JSON). */
+export interface Flows {
+  solarUsed: number;
+  solarBattery: number;
+  solarExport: number;
+  batteryUsed: number;
+  batteryExport: number;
+  gridUsed: number;
+  gridBattery: number;
+  estimated?: boolean;
+}
+
+/** t with its flows, and its savings counted from them as energy-api does. */
+export function withFlows(t: ReturnType<typeof totals>, flows: Flows) {
+  return { ...t, flows, savings: (flows.solarUsed + flows.batteryUsed - flows.gridBattery) * 0.2418 + t.revenue };
+}
+
+/**
+ * Today's flows: the sun charged the battery in the morning, the grid in
+ * the afternoon, and the battery served the evening. Each source's flows
+ * add up to its counter in today's totals.
+ */
+export const todayFlows: Flows = { solarUsed: 26, solarBattery: 11, solarExport: 4.2, batteryUsed: 3.6, batteryExport: 0.4, gridUsed: 14.2, gridBattery: 4.7 };
+
 const prices = { buy: 0.2418, sell: 0.05786 };
 
 /** What energy-api answers GetPeriod with for today: two hours of curve, and its totals. */
@@ -53,7 +77,7 @@ export const today = {
   to: local(1).toISOString(),
   previous: "2026-11-13",
   next: "",
-  totals: totals(41.2, 18.9, 4.6, 15.7, 4, 5.7, 0.7),
+  totals: withFlows(totals(41.2, 18.9, 4.6, 15.7, 4, 5.7, 0.7), todayFlows),
   buckets: [
     { from: local(0, 0).toISOString(), to: local(0, 1).toISOString(), totals: totals(0, 2, 0, 0, 0) },
     { from: local(0, 12).toISOString(), to: local(0, 13).toISOString(), totals: totals(6.5, 0, 1.1, 4.4, 0, 0.6, 0.1) },

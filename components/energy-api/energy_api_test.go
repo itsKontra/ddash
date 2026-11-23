@@ -97,7 +97,7 @@ func TestConfigIsChecked(t *testing.T) {
 		{"a battery capacity that isn't kWh", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryCapacity: "10 kWh"}, []string{"battery_capacity: must be kWh, e.g. 10"}},
 		{"a battery without capacity", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryCapacity: "0"}, []string{"battery_capacity: must be kWh, e.g. 10"}},
 		{"a battery reserve that isn't a percentage", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "15 %"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
-		{"a battery reserve of 100 %", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "100"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
+		{"a battery reserve of 100 percent", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "100"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
 		{"a negative battery reserve", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "-5"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

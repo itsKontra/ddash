@@ -5,6 +5,16 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- The Energy Page splits where the energy went every 5 minutes instead of
+  from the period's totals, so a day the battery charges from the sun in
+  the morning and from the grid in the afternoon shows its direct solar
+  use. The Sankey, the self-sufficiency and the ledger's own use come
+  from that one split and agree; the ledger's savings count what the grid
+  charged into the battery as bought. Where the Victron's VE.Bus counters
+  are missing (a backfilled history), the split comes from the power
+  readings and says it is estimated. energy-api caches the split hours in
+  its own DB, so a Month or Year read after the first sums cached hours.
+
 - The Energy Page's **Energy** panel draws the period as a Sankey: solar,
   battery and grid flow into the export, the battery and the use, and the
   use into the house, the heat pump and what was lost or unmetered, each

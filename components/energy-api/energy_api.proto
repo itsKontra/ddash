@@ -179,8 +179,43 @@ message Totals {
   // import × buy price, and export × sell price.
   double cost = 9;
   double revenue = 10;
-  // What the PV system saved: (consumption - import) × buy price + revenue.
+  // What the PV system saved: what the house used of its own (solar and
+  // battery to the use) less what the grid charged into the battery, at
+  // the buy price, plus revenue. Below zero when charging from the grid
+  // cost more than the battery gave back in the period.
   double savings = 11;
+  // Where the energy went.
+  Flows flows = 12;
+}
+
+// Where a period's energy went, in kWh: attributed every 5 minutes and
+// summed, since a period's totals alone can't tell solar charging the
+// battery in the morning from the grid charging it in the afternoon. In
+// each 5 minutes the solar serves the use first, then charges the
+// battery, then is exported; the battery serves the use left before the
+// grid; the grid covers the rest of the use and the charge. Each source's
+// flows add up to its counter in Totals, and the flows into the use to
+// its consumption.
+message Flows {
+  double solar_used = 1;
+  double solar_battery = 2;
+  double solar_export = 3;
+  // Includes what the Victron's inverter lost discharging.
+  double battery_used = 4;
+  double battery_export = 5;
+  double grid_used = 6;
+  double grid_battery = 7;
+  // Whether part of the period lacks the Victron's VE.Bus energy
+  // counters, so its split was estimated from the power readings.
+  bool estimated = 8;
+  // From the VE.Bus counters, over the hours that have them (zero
+  // without): what charging lost (AC in less charged), what discharging
+  // lost (discharged less AC out), and the energy to the Victron's AC-out
+  // loads. A bucket's losses may dip below zero by the battery counters'
+  // resolution.
+  double charge_loss = 9;
+  double discharge_loss = 10;
+  double ac_out = 11;
 }
 
 message Sample {

@@ -23,7 +23,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file energy-api/energy_api.proto.
  */
 export const file_energy_api_energy_api: GenFile = /*@__PURE__*/
-  fileDesc("ChtlbmVyZ3ktYXBpL2VuZXJneV9hcGkucHJvdG8SD2RkYXNoLmVuZXJneWFwaSKCBwoPRW5lcmd5QXBpQ29uZmlnEkQKA3VybBgBIAEoCUI3mrUYMxoQSW5mbHV4REIgYWRkcmVzcyodaHR0cHM6Ly9pbmZsdXhkYi5ob21lLmV4YW1wbGU4ARJjCgV0b2tlbhgCIAEoCUJUmrUYUBABGglBUEkgdG9rZW4iQUEgcmVhZC1vbmx5IHRva2VuIGZvciB0aGUgYnVja2V0LiBkZGFzaCBuZXZlciB3cml0ZXMgdG8gSW5mbHV4REIuEh0KBmJ1Y2tldBgDIAEoCUIImrUYBAoCUFZIAIgBARKLAQoJYnV5X3ByaWNlGAQgASgJQniatRh0GhRHcmlkIHByaWNlICjigqwva1doKSJUV2hhdCBhIGtXaCBib3VnaHQgZnJvbSB0aGUgZ3JpZCBjb3N0cywgdGF4ZXMgaW5jbHVkZWQuIExlYXZlIGVtcHR5IHRvIHNob3cgbm8gY29zdHMuKgYwLjI0MTgSYAoKc2VsbF9wcmljZRgFIAEoCUJMmrUYSBoYRmVlZC1pbiB0YXJpZmYgKOKCrC9rV2gpIiNXaGF0IGEga1doIGZlZCBpbnRvIHRoZSBncmlkIGVhcm5zLioHMC4wNTc4NhLCAQoQYmF0dGVyeV9jYXBhY2l0eRgGIAEoCUKnAZq1GKIBGhZCYXR0ZXJ5IGNhcGFjaXR5IChrV2gpIoMBVGhlIGJhdHRlcnkncyB1c2FibGUgY2FwYWNpdHksIHRvIGVzdGltYXRlIGhvdyBsb25nIGl0IGxhc3RzIG9yIHRha2VzIHRvIGZpbGwgYXQgdGhlIGN1cnJlbnQgcmF0ZS4gTGVhdmUgZW1wdHkgdG8gc2hvdyBubyBlc3RpbWF0ZS4qAjEwEuQBCg9iYXR0ZXJ5X3Jlc2VydmUYByABKAlCygGatRjFARoaQmF0dGVyeSBiYWNrdXAgcmVzZXJ2ZSAoJSkiogFUaGUgY2hhcmdlIHRoZSBiYXR0ZXJ5IGtlZXBzIGZvciBhIGdyaWQgb3V0YWdlIGFuZCBpc24ndCBkaXNjaGFyZ2VkIGJlbG93LCBmcm9tIDAgdG8gOTksIHNvIHRoZSB0aW1lIGl0IGxhc3RzIGNvdW50cyBkb3duIHRvIGl0LiBMZWF2ZSBlbXB0eSB0byBjb3VudCBkb3duIHRvIDAgJS4qAjE1QgkKB19idWNrZXQiEAoOR2V0Rmxvd1JlcXVlc3QimwEKD0dldEZsb3dSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSJgoCYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiUKBXBvd2VyGAMgASgLMhYuZGRhc2guZW5lcmd5YXBpLlBvd2VyEikKB2JhdHRlcnkYBCABKAsyGC5kZGFzaC5lbmVyZ3lhcGkuQmF0dGVyeSLvAQoFUG93ZXISEgoFc29sYXIYASABKAFIAIgBARIRCgRncmlkGAIgASgBSAGIAQESFAoHYmF0dGVyeRgDIAEoAUgCiAEBEhIKBWhvdXNlGAQgASgBSAOIAQESFgoJaGVhdF9wdW1wGAUgASgBSASIAQESEgoFbG9hZHMYBiABKAFIBYgBARIYCgtjb25zdW1wdGlvbhgHIAEoAUgGiAEBQggKBl9zb2xhckIHCgVfZ3JpZEIKCghfYmF0dGVyeUIICgZfaG91c2VCDAoKX2hlYXRfcHVtcEIICgZfbG9hZHNCDgoMX2NvbnN1bXB0aW9uIqMBCgdCYXR0ZXJ5EhQKB3NvY19wY3QYASABKAFIAIgBARIUCgd2b2x0YWdlGAIgASgBSAGIAQESGQoMY2FwYWNpdHlfa3doGAMgASgBSAKIAQESGAoLcmVzZXJ2ZV9wY3QYBCABKAFIA4gBAUIKCghfc29jX3BjdEIKCghfdm9sdGFnZUIPCg1fY2FwYWNpdHlfa3doQg4KDF9yZXNlcnZlX3BjdCJYChBHZXRQZXJpb2RSZXF1ZXN0EiMKBHNwYW4YASABKA4yFS5kZGFzaC5lbmVyZ3lhcGkuU3BhbhIMCgRkYXRlGAIgASgJEhEKCXRpbWVfem9uZRgDIAEoCSLzAgoRR2V0UGVyaW9kUmVzcG9uc2USDgoGc2V0X3VwGAEgASgIEiMKBHNwYW4YAiABKA4yFS5kZGFzaC5lbmVyZ3lhcGkuU3BhbhIoCgRmcm9tGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgJ0bxgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcHJldmlvdXMYBSABKAkSDAoEbmV4dBgGIAEoCRInCgZ0b3RhbHMYByABKAsyFy5kZGFzaC5lbmVyZ3lhcGkuVG90YWxzEigKB2J1Y2tldHMYCCADKAsyFy5kZGFzaC5lbmVyZ3lhcGkuQnVja2V0EigKB3NhbXBsZXMYCSADKAsyFy5kZGFzaC5lbmVyZ3lhcGkuU2FtcGxlEicKBnByaWNlcxgKIAEoCzIXLmRkYXNoLmVuZXJneWFwaS5QcmljZXMSEQoJZmlyc3RfZGF5GAsgASgJIoMBCgZCdWNrZXQSKAoEZnJvbRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKBnRvdGFscxgDIAEoCzIXLmRkYXNoLmVuZXJneWFwaS5Ub3RhbHMi3QEKBlRvdGFscxINCgVzb2xhchgBIAEoARITCgtncmlkX2ltcG9ydBgCIAEoARITCgtncmlkX2V4cG9ydBgDIAEoARIXCg9iYXR0ZXJ5X2NoYXJnZWQYBCABKAESGgoSYmF0dGVyeV9kaXNjaGFyZ2VkGAUgASgBEhMKC2NvbnN1bXB0aW9uGAYgASgBEg0KBWhvdXNlGAcgASgBEhEKCWhlYXRfcHVtcBgIIAEoARIMCgRjb3N0GAkgASgBEg8KB3JldmVudWUYCiABKAESDwoHc2F2aW5ncxgLIAEoASJ5CgZTYW1wbGUSJgoCYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiUKBXBvd2VyGAIgASgLMhYuZGRhc2guZW5lcmd5YXBpLlBvd2VyEhQKB3NvY19wY3QYAyABKAFIAIgBAUIKCghfc29jX3BjdCIjCgZQcmljZXMSCwoDYnV5GAEgASgBEgwKBHNlbGwYAiABKAEqWAoEU3BhbhIUChBTUEFOX1VOU1BFQ0lGSUVEEAASDAoIU1BBTl9EQVkQARINCglTUEFOX1dFRUsQAhIOCgpTUEFOX01PTlRIEAMSDQoJU1BBTl9ZRUFSEAQywgEKEEVuZXJneUFwaVNlcnZpY2USVAoHR2V0RmxvdxIfLmRkYXNoLmVuZXJneWFwaS5HZXRGbG93UmVxdWVzdBogLmRkYXNoLmVuZXJneWFwaS5HZXRGbG93UmVzcG9uc2UiBoq1GAIIAhJYCglHZXRQZXJpb2QSIS5kZGFzaC5lbmVyZ3lhcGkuR2V0UGVyaW9kUmVxdWVzdBoiLmRkYXNoLmVuZXJneWFwaS5HZXRQZXJpb2RSZXNwb25zZSIEirUYAEJKWkhnaXRodWIuY29tL2l0c0tvbnRyYS9kZGFzaC9jb21wb25lbnRzL2VuZXJneS1hcGkvZW5lcmd5YXBpcGI7ZW5lcmd5YXBpcGJiBnByb3RvMw", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
+  fileDesc("ChtlbmVyZ3ktYXBpL2VuZXJneV9hcGkucHJvdG8SD2RkYXNoLmVuZXJneWFwaSKCBwoPRW5lcmd5QXBpQ29uZmlnEkQKA3VybBgBIAEoCUI3mrUYMxoQSW5mbHV4REIgYWRkcmVzcyodaHR0cHM6Ly9pbmZsdXhkYi5ob21lLmV4YW1wbGU4ARJjCgV0b2tlbhgCIAEoCUJUmrUYUBABGglBUEkgdG9rZW4iQUEgcmVhZC1vbmx5IHRva2VuIGZvciB0aGUgYnVja2V0LiBkZGFzaCBuZXZlciB3cml0ZXMgdG8gSW5mbHV4REIuEh0KBmJ1Y2tldBgDIAEoCUIImrUYBAoCUFZIAIgBARKLAQoJYnV5X3ByaWNlGAQgASgJQniatRh0GhRHcmlkIHByaWNlICjigqwva1doKSJUV2hhdCBhIGtXaCBib3VnaHQgZnJvbSB0aGUgZ3JpZCBjb3N0cywgdGF4ZXMgaW5jbHVkZWQuIExlYXZlIGVtcHR5IHRvIHNob3cgbm8gY29zdHMuKgYwLjI0MTgSYAoKc2VsbF9wcmljZRgFIAEoCUJMmrUYSBoYRmVlZC1pbiB0YXJpZmYgKOKCrC9rV2gpIiNXaGF0IGEga1doIGZlZCBpbnRvIHRoZSBncmlkIGVhcm5zLioHMC4wNTc4NhLCAQoQYmF0dGVyeV9jYXBhY2l0eRgGIAEoCUKnAZq1GKIBGhZCYXR0ZXJ5IGNhcGFjaXR5IChrV2gpIoMBVGhlIGJhdHRlcnkncyB1c2FibGUgY2FwYWNpdHksIHRvIGVzdGltYXRlIGhvdyBsb25nIGl0IGxhc3RzIG9yIHRha2VzIHRvIGZpbGwgYXQgdGhlIGN1cnJlbnQgcmF0ZS4gTGVhdmUgZW1wdHkgdG8gc2hvdyBubyBlc3RpbWF0ZS4qAjEwEuQBCg9iYXR0ZXJ5X3Jlc2VydmUYByABKAlCygGatRjFARoaQmF0dGVyeSBiYWNrdXAgcmVzZXJ2ZSAoJSkiogFUaGUgY2hhcmdlIHRoZSBiYXR0ZXJ5IGtlZXBzIGZvciBhIGdyaWQgb3V0YWdlIGFuZCBpc24ndCBkaXNjaGFyZ2VkIGJlbG93LCBmcm9tIDAgdG8gOTksIHNvIHRoZSB0aW1lIGl0IGxhc3RzIGNvdW50cyBkb3duIHRvIGl0LiBMZWF2ZSBlbXB0eSB0byBjb3VudCBkb3duIHRvIDAgJS4qAjE1QgkKB19idWNrZXQiEAoOR2V0Rmxvd1JlcXVlc3QimwEKD0dldEZsb3dSZXNwb25zZRIOCgZzZXRfdXAYASABKAgSJgoCYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiUKBXBvd2VyGAMgASgLMhYuZGRhc2guZW5lcmd5YXBpLlBvd2VyEikKB2JhdHRlcnkYBCABKAsyGC5kZGFzaC5lbmVyZ3lhcGkuQmF0dGVyeSLvAQoFUG93ZXISEgoFc29sYXIYASABKAFIAIgBARIRCgRncmlkGAIgASgBSAGIAQESFAoHYmF0dGVyeRgDIAEoAUgCiAEBEhIKBWhvdXNlGAQgASgBSAOIAQESFgoJaGVhdF9wdW1wGAUgASgBSASIAQESEgoFbG9hZHMYBiABKAFIBYgBARIYCgtjb25zdW1wdGlvbhgHIAEoAUgGiAEBQggKBl9zb2xhckIHCgVfZ3JpZEIKCghfYmF0dGVyeUIICgZfaG91c2VCDAoKX2hlYXRfcHVtcEIICgZfbG9hZHNCDgoMX2NvbnN1bXB0aW9uIqMBCgdCYXR0ZXJ5EhQKB3NvY19wY3QYASABKAFIAIgBARIUCgd2b2x0YWdlGAIgASgBSAGIAQESGQoMY2FwYWNpdHlfa3doGAMgASgBSAKIAQESGAoLcmVzZXJ2ZV9wY3QYBCABKAFIA4gBAUIKCghfc29jX3BjdEIKCghfdm9sdGFnZUIPCg1fY2FwYWNpdHlfa3doQg4KDF9yZXNlcnZlX3BjdCJYChBHZXRQZXJpb2RSZXF1ZXN0EiMKBHNwYW4YASABKA4yFS5kZGFzaC5lbmVyZ3lhcGkuU3BhbhIMCgRkYXRlGAIgASgJEhEKCXRpbWVfem9uZRgDIAEoCSLzAgoRR2V0UGVyaW9kUmVzcG9uc2USDgoGc2V0X3VwGAEgASgIEiMKBHNwYW4YAiABKA4yFS5kZGFzaC5lbmVyZ3lhcGkuU3BhbhIoCgRmcm9tGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgJ0bxgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEAoIcHJldmlvdXMYBSABKAkSDAoEbmV4dBgGIAEoCRInCgZ0b3RhbHMYByABKAsyFy5kZGFzaC5lbmVyZ3lhcGkuVG90YWxzEigKB2J1Y2tldHMYCCADKAsyFy5kZGFzaC5lbmVyZ3lhcGkuQnVja2V0EigKB3NhbXBsZXMYCSADKAsyFy5kZGFzaC5lbmVyZ3lhcGkuU2FtcGxlEicKBnByaWNlcxgKIAEoCzIXLmRkYXNoLmVuZXJneWFwaS5QcmljZXMSEQoJZmlyc3RfZGF5GAsgASgJIoMBCgZCdWNrZXQSKAoEZnJvbRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEicKBnRvdGFscxgDIAEoCzIXLmRkYXNoLmVuZXJneWFwaS5Ub3RhbHMihAIKBlRvdGFscxINCgVzb2xhchgBIAEoARITCgtncmlkX2ltcG9ydBgCIAEoARITCgtncmlkX2V4cG9ydBgDIAEoARIXCg9iYXR0ZXJ5X2NoYXJnZWQYBCABKAESGgoSYmF0dGVyeV9kaXNjaGFyZ2VkGAUgASgBEhMKC2NvbnN1bXB0aW9uGAYgASgBEg0KBWhvdXNlGAcgASgBEhEKCWhlYXRfcHVtcBgIIAEoARIMCgRjb3N0GAkgASgBEg8KB3JldmVudWUYCiABKAESDwoHc2F2aW5ncxgLIAEoARIlCgVmbG93cxgMIAEoCzIWLmRkYXNoLmVuZXJneWFwaS5GbG93cyLvAQoFRmxvd3MSEgoKc29sYXJfdXNlZBgBIAEoARIVCg1zb2xhcl9iYXR0ZXJ5GAIgASgBEhQKDHNvbGFyX2V4cG9ydBgDIAEoARIUCgxiYXR0ZXJ5X3VzZWQYBCABKAESFgoOYmF0dGVyeV9leHBvcnQYBSABKAESEQoJZ3JpZF91c2VkGAYgASgBEhQKDGdyaWRfYmF0dGVyeRgHIAEoARIRCgllc3RpbWF0ZWQYCCABKAgSEwoLY2hhcmdlX2xvc3MYCSABKAESFgoOZGlzY2hhcmdlX2xvc3MYCiABKAESDgoGYWNfb3V0GAsgASgBInkKBlNhbXBsZRImCgJhdBgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJQoFcG93ZXIYAiABKAsyFi5kZGFzaC5lbmVyZ3lhcGkuUG93ZXISFAoHc29jX3BjdBgDIAEoAUgAiAEBQgoKCF9zb2NfcGN0IiMKBlByaWNlcxILCgNidXkYASABKAESDAoEc2VsbBgCIAEoASpYCgRTcGFuEhQKEFNQQU5fVU5TUEVDSUZJRUQQABIMCghTUEFOX0RBWRABEg0KCVNQQU5fV0VFSxACEg4KClNQQU5fTU9OVEgQAxINCglTUEFOX1lFQVIQBDLCAQoQRW5lcmd5QXBpU2VydmljZRJUCgdHZXRGbG93Eh8uZGRhc2guZW5lcmd5YXBpLkdldEZsb3dSZXF1ZXN0GiAuZGRhc2guZW5lcmd5YXBpLkdldEZsb3dSZXNwb25zZSIGirUYAggCElgKCUdldFBlcmlvZBIhLmRkYXNoLmVuZXJneWFwaS5HZXRQZXJpb2RSZXF1ZXN0GiIuZGRhc2guZW5lcmd5YXBpLkdldFBlcmlvZFJlc3BvbnNlIgSKtRgAQkpaSGdpdGh1Yi5jb20vaXRzS29udHJhL2RkYXNoL2NvbXBvbmVudHMvZW5lcmd5LWFwaS9lbmVyZ3lhcGlwYjtlbmVyZ3lhcGlwYmIGcHJvdG8z", [file_ddash_config_config, file_ddash_options, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message ddash.energyapi.EnergyApiConfig
@@ -445,11 +445,21 @@ export type Totals = Message<"ddash.energyapi.Totals"> & {
   revenue: number;
 
   /**
-   * What the PV system saved: (consumption - import) × buy price + revenue.
+   * What the PV system saved: what the house used of its own (solar and
+   * battery to the use) less what the grid charged into the battery, at
+   * the buy price, plus revenue. Below zero when charging from the grid
+   * cost more than the battery gave back in the period.
    *
    * @generated from field: double savings = 11;
    */
   savings: number;
+
+  /**
+   * Where the energy went.
+   *
+   * @generated from field: ddash.energyapi.Flows flows = 12;
+   */
+  flows?: Flows | undefined;
 };
 
 /**
@@ -458,6 +468,93 @@ export type Totals = Message<"ddash.energyapi.Totals"> & {
  */
 export const TotalsSchema: GenMessage<Totals> = /*@__PURE__*/
   messageDesc(file_energy_api_energy_api, 8);
+
+/**
+ * Where a period's energy went, in kWh: attributed every 5 minutes and
+ * summed, since a period's totals alone can't tell solar charging the
+ * battery in the morning from the grid charging it in the afternoon. In
+ * each 5 minutes the solar serves the use first, then charges the
+ * battery, then is exported; the battery serves the use left before the
+ * grid; the grid covers the rest of the use and the charge. Each source's
+ * flows add up to its counter in Totals, and the flows into the use to
+ * its consumption.
+ *
+ * @generated from message ddash.energyapi.Flows
+ */
+export type Flows = Message<"ddash.energyapi.Flows"> & {
+  /**
+   * @generated from field: double solar_used = 1;
+   */
+  solarUsed: number;
+
+  /**
+   * @generated from field: double solar_battery = 2;
+   */
+  solarBattery: number;
+
+  /**
+   * @generated from field: double solar_export = 3;
+   */
+  solarExport: number;
+
+  /**
+   * Includes what the Victron's inverter lost discharging.
+   *
+   * @generated from field: double battery_used = 4;
+   */
+  batteryUsed: number;
+
+  /**
+   * @generated from field: double battery_export = 5;
+   */
+  batteryExport: number;
+
+  /**
+   * @generated from field: double grid_used = 6;
+   */
+  gridUsed: number;
+
+  /**
+   * @generated from field: double grid_battery = 7;
+   */
+  gridBattery: number;
+
+  /**
+   * Whether part of the period lacks the Victron's VE.Bus energy
+   * counters, so its split was estimated from the power readings.
+   *
+   * @generated from field: bool estimated = 8;
+   */
+  estimated: boolean;
+
+  /**
+   * From the VE.Bus counters, over the hours that have them (zero
+   * without): what charging lost (AC in less charged), what discharging
+   * lost (discharged less AC out), and the energy to the Victron's AC-out
+   * loads. A bucket's losses may dip below zero by the battery counters'
+   * resolution.
+   *
+   * @generated from field: double charge_loss = 9;
+   */
+  chargeLoss: number;
+
+  /**
+   * @generated from field: double discharge_loss = 10;
+   */
+  dischargeLoss: number;
+
+  /**
+   * @generated from field: double ac_out = 11;
+   */
+  acOut: number;
+};
+
+/**
+ * Describes the message ddash.energyapi.Flows.
+ * Use `create(FlowsSchema)` to create a new message.
+ */
+export const FlowsSchema: GenMessage<Flows> = /*@__PURE__*/
+  messageDesc(file_energy_api_energy_api, 9);
 
 /**
  * @generated from message ddash.energyapi.Sample
@@ -484,7 +581,7 @@ export type Sample = Message<"ddash.energyapi.Sample"> & {
  * Use `create(SampleSchema)` to create a new message.
  */
 export const SampleSchema: GenMessage<Sample> = /*@__PURE__*/
-  messageDesc(file_energy_api_energy_api, 9);
+  messageDesc(file_energy_api_energy_api, 10);
 
 /**
  * @generated from message ddash.energyapi.Prices
@@ -508,7 +605,7 @@ export type Prices = Message<"ddash.energyapi.Prices"> & {
  * Use `create(PricesSchema)` to create a new message.
  */
 export const PricesSchema: GenMessage<Prices> = /*@__PURE__*/
-  messageDesc(file_energy_api_energy_api, 10);
+  messageDesc(file_energy_api_energy_api, 11);
 
 /**
  * @generated from enum ddash.energyapi.Span

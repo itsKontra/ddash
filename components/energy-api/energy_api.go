@@ -1,13 +1,15 @@
 // Package energyapi is the energy-api Component: it reads the house's
 // power readings and energy counters from an InfluxDB v2 bucket with a
 // read-only token, leaves implausible readings out, and counts them into
-// a period's energy, buckets and costs. It never writes anything.
+// a period's energy, buckets, flows and costs. It never writes to
+// InfluxDB; it caches the hours it attributed in its own DB (ADR-0011).
 package energyapi
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"fmt"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -33,6 +35,9 @@ import (
 //go:embed component.yaml
 var manifest []byte
 
+//go:embed migrations
+var migrations embed.FS
+
 const (
 	// requestTimeout bounds one InfluxDB request: a year's query takes a
 	// few seconds.
@@ -43,30 +48,41 @@ const (
 	pastTTL = time.Hour
 	// maxPeriods bounds the periods kept in memory.
 	maxPeriods = 64
-	// lookBack is how far before a period its counters' last reading is
-	// looked for, to count the period's first window.
+	// lookBack is how far before the hours it attributes a counter's last
+	// reading is looked for, to count their first slot.
 	lookBack = 30 * 24 * time.Hour
+	// warmEvery is how often the hours' cache is warmed: at Start, then
+	// as hours end.
+	warmEvery = time.Hour
 )
 
 // Definition is energy-api, ready for sdk.Serve.
 func Definition() sdk.Definition {
-	return define(time.Now)
+	return define(time.Now, true)
 }
 
-// define is energy-api on the clock now.
-func define(now func() time.Time) sdk.Definition {
+// define is energy-api on the clock now, warming its cache in the
+// background or not.
+func define(now func() time.Time, warm bool) sdk.Definition {
 	return sdk.Define(sdk.Spec[*pb.EnergyApiConfig]{
-		Manifest: manifest,
-		Service:  &pb.EnergyApiService_ServiceDesc,
+		Manifest:   manifest,
+		Service:    &pb.EnergyApiService_ServiceDesc,
+		Migrations: migrations,
 		New: func() sdk.Component[*pb.EnergyApiConfig] {
-			return &component{now: now}
+			return &component{now: now, warms: warm}
 		},
 	})
 }
 
 type component struct {
 	pb.UnimplementedEnergyApiServiceServer
-	now func() time.Time
+	now   func() time.Time
+	warms bool
+	log   *slog.Logger
+
+	// store caches attributed hours; filling serialises attributing them.
+	store   *store
+	filling sync.Mutex
 
 	// db is nil while not set up.
 	db     *influx
@@ -90,7 +106,7 @@ type cachedPeriod struct {
 	expires time.Time
 }
 
-func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pb.EnergyApiConfig) error {
+func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *pb.EnergyApiConfig) error {
 	addr, token := strings.TrimSpace(cfg.GetUrl()), strings.TrimSpace(cfg.GetToken())
 	var errs sdk.FieldErrors
 	prices := parsePrices(cfg, &errs)
@@ -123,6 +139,14 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pb.EnergyApiConfig
 	c.flow = sdk.Cached(sdk.TTLFast, c.readFlow)
 	c.first = sdk.Cached(24*time.Hour, c.readFirst)
 	c.periods = map[string]cachedPeriod{}
+	c.log = env.Log
+	c.store = &store{env.DB}
+	if err := c.store.source(ctx, addr, bucket); err != nil {
+		return err
+	}
+	if c.warms {
+		sdk.Every(ctx, warmEvery, c.warm)
+	}
 	return nil
 }
 
@@ -341,17 +365,14 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 	if now.Before(stop) {
 		stop = now
 	}
-	var before, counters, powers []row
+	var powers []row
+	var hours []hour
 	var first time.Time
 	g, gctx := errgroup.WithContext(ctx)
 	if p.from.Before(stop) {
 		db := c.db
 		g.Go(func() (err error) {
-			before, err = db.query(gctx, flux(db.bucket, p.from.Add(-lookBack), p.from, counterSeries, reduce{fn: "last"}))
-			return err
-		})
-		g.Go(func() (err error) {
-			counters, err = db.query(gctx, flux(db.bucket, p.from, stop, counterSeries, reduce{every: p.window, fn: "last"}))
+			hours, err = c.hours(gctx, p.from, stop, now)
 			return err
 		})
 		fields := loadSeries
@@ -383,7 +404,7 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 	}
 	totals := make([]*pb.Totals, n)
 	for i := range totals {
-		totals[i] = &pb.Totals{}
+		totals[i] = &pb.Totals{Flows: &pb.Flows{}}
 	}
 	at := func(t time.Time) *pb.Totals {
 		if i := p.bucket(t); i >= 0 && i < n {
@@ -392,28 +413,11 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 		return nil
 	}
 
-	// Counters: each window's last reading, stamped with the window's end,
-	// after the last reading before the period.
-	readings := map[string][]point{}
-	for _, r := range before {
-		readings[r.field] = append(readings[r.field], point{at: r.at, v: r.value})
-	}
-	for _, r := range counters {
-		readings[r.field] = append(readings[r.field], point{at: r.at.Add(p.window), v: r.value})
-	}
-	add := map[string]func(*pb.Totals, float64){
-		solarKWh.field:    func(t *pb.Totals, v float64) { t.Solar += v },
-		importKWh.field:   func(t *pb.Totals, v float64) { t.GridImport += v },
-		exportKWh.field:   func(t *pb.Totals, v float64) { t.GridExport += v },
-		chargedKWh.field:  func(t *pb.Totals, v float64) { t.BatteryCharged += v },
-		dischargedK.field: func(t *pb.Totals, v float64) { t.BatteryDischarged += v },
-	}
-	for field, points := range readings {
-		slices.SortFunc(points, func(a, b point) int { return a.at.Compare(b.at) })
-		for _, s := range steps(points) {
-			if t := at(s.at.Add(-time.Nanosecond)); t != nil {
-				add[field](t, s.kwh)
-			}
+	// Counters and flows: the hours'. In a zone whose offset isn't whole
+	// hours, the hour a period begins in counts to its first bucket.
+	for _, h := range hours {
+		if t := at(latest(h.at, p.from)); t != nil {
+			sum(t, h.t)
 		}
 	}
 
@@ -449,7 +453,7 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 		resp.Samples = append(resp.Samples, &pb.Sample{At: timestamppb.New(t), Power: powerOf(byTime[t]), SocPct: opt(byTime[t], socPct)})
 	}
 
-	resp.Totals = &pb.Totals{}
+	resp.Totals = &pb.Totals{Flows: &pb.Flows{}}
 	for i, t := range totals {
 		c.finish(t)
 		resp.Buckets = append(resp.Buckets, &pb.Bucket{From: timestamppb.New(p.edges[i]), To: timestamppb.New(p.edges[i+1]), Totals: t})
@@ -458,13 +462,16 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 	return resp, nil
 }
 
-// finish derives a bucket's consumption and money from its energy.
+// finish derives a bucket's consumption and money from its energy. Its
+// savings are its own use (solar and battery to the use) less what the
+// grid charged into the battery: that energy was bought, and counts once.
 func (c *component) finish(t *pb.Totals) {
 	t.Consumption = max(0, t.Solar+t.GridImport-t.GridExport-t.BatteryCharged+t.BatteryDischarged)
 	if c.prices != nil {
+		f := t.Flows
 		t.Cost = t.GridImport * c.prices.Buy
 		t.Revenue = t.GridExport * c.prices.Sell
-		t.Savings = max(0, t.Consumption-t.GridImport)*c.prices.Buy + t.Revenue
+		t.Savings = (f.SolarUsed+f.BatteryUsed-f.GridBattery)*c.prices.Buy + t.Revenue
 	}
 }
 
@@ -480,4 +487,10 @@ func sum(into, t *pb.Totals) {
 	into.Cost += t.Cost
 	into.Revenue += t.Revenue
 	into.Savings += t.Savings
+	if t.Flows != nil {
+		if into.Flows == nil {
+			into.Flows = &pb.Flows{}
+		}
+		sumFlows(into.Flows, t.Flows)
+	}
 }
