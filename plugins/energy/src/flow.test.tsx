@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen, within } from "@testing-library/react";
+import { cleanup, screen } from "@testing-library/react";
 import { showPlugin } from "@ddash/plugin/testing";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import plugin from "./index";
@@ -16,7 +16,6 @@ function reducedMotion(reduce: boolean) {
 
 beforeEach(() => {
   stopClock();
-  window.localStorage.clear();
   reducedMotion(false);
 });
 afterEach(() => {
@@ -31,71 +30,30 @@ const show = () => showPlugin(plugin, energy, "/energy", { answers: { GetFlow: (
 const now = () => screen.getByRole("region", { name: "Now" });
 /** The diagram's running dots: each one moves along its line. */
 const dots = () => now().querySelectorAll("circle > animateMotion");
-const motion = () => within(now()).getByRole("radiogroup", { name: "Animate flow" });
-const picked = () => within(motion()).getByRole("radio", { checked: true }).textContent;
-const pick = (name: string) => fireEvent.click(within(motion()).getByRole("radio", { name }));
 
-it("runs the dots on every flowing line in the wide (desktop) layout while motion is allowed", async () => {
+/** Each running dot's duration in seconds. */
+const durations = () => [...dots()].map((m) => parseFloat(m.getAttribute("dur") ?? ""));
+
+it("runs three dots on every flowing line in the wide (desktop) layout while motion is allowed", async () => {
   await show();
 
   expect(now().querySelector("svg")?.getAttribute("viewBox")).toBe("0 0 720 300");
   const flowing = now().querySelectorAll("[data-flowing]");
   expect(flowing.length).toBeGreaterThan(0);
   expect(dots().length).toBe(flowing.length * 3);
-  expect(picked()).toBe("Auto");
-  expect(screen.queryByText(/asks for reduced motion/)).toBeNull();
+  expect(screen.queryByRole("radiogroup", { name: "Animate flow" })).toBeNull();
 });
 
-it("keeps the dots still with reduced motion by default, the coloured lines drawn, and says why", async () => {
-  reducedMotion(true);
+it("runs one dot per flowing line, three times slower, with reduced motion", async () => {
   await show();
-
-  expect(dots().length).toBe(0);
-  expect(now().querySelectorAll("[data-flowing] path").length).toBeGreaterThan(0);
-  expect(picked()).toBe("Auto");
-  expect(within(now()).getByText("Still: this device asks for reduced motion.")).toBeTruthy();
-});
-
-it("runs the dots with reduced motion once On is picked, and stops them at Off", async () => {
-  reducedMotion(true);
-  await show();
-
-  pick("On");
-  expect(dots().length).toBeGreaterThan(0);
-  expect(screen.queryByText(/asks for reduced motion/)).toBeNull();
-
-  reducedMotion(false);
-  pick("Off");
-  expect(dots().length).toBe(0);
-});
-
-it("remembers the pick in this browser across a reload, and Auto forgets it", async () => {
-  reducedMotion(true);
-  await show();
-  pick("On");
+  const normal = durations();
   cleanup();
 
-  await show();
-  expect(picked()).toBe("On");
-  expect(dots().length).toBeGreaterThan(0);
-
-  pick("Auto");
-  expect(window.localStorage.getItem("ddash.energy.flowMotion")).toBeNull();
-  expect(dots().length).toBe(0);
-});
-
-it("still applies a pick where the browser can't remember it", async () => {
-  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-    throw new Error("blocked");
-  });
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-    throw new Error("blocked");
-  });
   reducedMotion(true);
   await show();
 
-  expect(picked()).toBe("Auto");
-  pick("On");
-  expect(picked()).toBe("On");
-  expect(dots().length).toBeGreaterThan(0);
+  const flowing = now().querySelectorAll("[data-flowing]");
+  expect(dots().length).toBe(flowing.length);
+  expect(Math.min(...durations())).toBeCloseTo(Math.min(...normal) * 3);
+  expect(screen.queryByText(/reduced motion/)).toBeNull();
 });
