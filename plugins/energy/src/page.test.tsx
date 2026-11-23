@@ -37,6 +37,19 @@ it("shows the flow now, and what the house uses split by the Victron", async () 
   expect(within(now).getByRole("meter", { name: "Battery state of charge" }).getAttribute("aria-valuenow")).toBe("64");
 });
 
+it("shows the battery's backup reserve beside its charge once it is configured", async () => {
+  await show(undefined, () => Response.json({ ...flow, battery: { ...flow.battery, reservePct: 15 } }));
+
+  expect(panel("Now").textContent).toContain(`Charging ${kw(4.4)} · 53.4 V · reserve 15 %`);
+});
+
+it("leaves the backup reserve out while none is configured", async () => {
+  await show();
+
+  expect(panel("Now").textContent).toContain(`Charging ${kw(4.4)} · 53.4 V`);
+  expect(panel("Now").textContent).not.toContain("reserve");
+});
+
 it("asks for today in the browser's zone, and shows its figures", async () => {
   const calls = await show();
 

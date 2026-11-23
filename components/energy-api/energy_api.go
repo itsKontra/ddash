@@ -73,8 +73,10 @@ type component struct {
 	prices *pb.Prices
 	// capacity is the battery's usable kWh, nil while not configured.
 	capacity *float64
-	flow     *sdk.Cache[*pb.GetFlowResponse]
-	first    *sdk.Cache[time.Time]
+	// reserve is the battery's backup reserve in %, nil while not configured.
+	reserve *float64
+	flow    *sdk.Cache[*pb.GetFlowResponse]
+	first   *sdk.Cache[time.Time]
 
 	mu      sync.Mutex
 	periods map[string]cachedPeriod
@@ -93,6 +95,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pb.EnergyApiConfig
 	var errs sdk.FieldErrors
 	prices := parsePrices(cfg, &errs)
 	capacity := parseCapacity(cfg.GetBatteryCapacity(), &errs)
+	reserve := parseReserve(cfg.GetBatteryReserve(), &errs)
 	if addr == "" && token == "" {
 		return errs.Err()
 	}
@@ -116,6 +119,7 @@ func (c *component) Start(_ context.Context, _ *sdk.Env, cfg *pb.EnergyApiConfig
 	c.db = newInflux(addr, token, bucket, &http.Client{Timeout: requestTimeout})
 	c.prices = prices
 	c.capacity = capacity
+	c.reserve = reserve
 	c.flow = sdk.Cached(sdk.TTLFast, c.readFlow)
 	c.first = sdk.Cached(24*time.Hour, c.readFirst)
 	c.periods = map[string]cachedPeriod{}
@@ -156,6 +160,21 @@ func parseCapacity(s string, errs *sdk.FieldErrors) *float64 {
 	v, err := strconv.ParseFloat(s, 64)
 	if err != nil || !(v > 0 && v < 10000) {
 		errs.Add("battery_capacity", "must be kWh, e.g. 10")
+		return nil
+	}
+	return &v
+}
+
+// parseReserve reads the battery's backup reserve, % from 0 to 99 with a
+// decimal point or comma. Empty is none.
+func parseReserve(s string, errs *sdk.FieldErrors) *float64 {
+	s = strings.ReplaceAll(strings.TrimSpace(s), ",", ".")
+	if s == "" {
+		return nil
+	}
+	v, err := strconv.ParseFloat(s, 64)
+	if err != nil || !(v >= 0 && v <= 99) {
+		errs.Add("battery_reserve", "must be a percentage from 0 to 99, e.g. 15")
 		return nil
 	}
 	return &v
@@ -204,7 +223,7 @@ func (c *component) readFlow(ctx context.Context) (*pb.GetFlowResponse, error) {
 	}
 	resp.At = timestamppb.New(at)
 	resp.Power = powerOf(values)
-	resp.Battery = &pb.Battery{SocPct: opt(values, socPct), Voltage: opt(values, batteryV), CapacityKwh: c.capacity}
+	resp.Battery = &pb.Battery{SocPct: opt(values, socPct), Voltage: opt(values, batteryV), CapacityKwh: c.capacity, ReservePct: c.reserve}
 	return resp, nil
 }
 

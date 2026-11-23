@@ -5,7 +5,7 @@ import { kw } from "./energy";
 import { batteryLine, duration, headline } from "./now";
 
 const power = (p: { solar?: number; grid?: number; battery?: number }) => create(PowerSchema, p);
-const battery = (socPct?: number, capacityKwh?: number) => create(BatterySchema, { socPct, capacityKwh });
+const battery = (socPct?: number, capacityKwh?: number, reservePct?: number) => create(BatterySchema, { socPct, capacityKwh, reservePct });
 
 describe("headline", () => {
   it.each([
@@ -46,6 +46,28 @@ describe("batteryLine", () => {
   it("adds the time to full while charging", () => {
     // 36 % of 10 kWh to go at 4.4 kW: 49 minutes.
     expect(batteryLine(battery(64, 10), 4.4)).toBe(`64 % · full in about 50 min at ${kw(4.4)}`);
+  });
+
+  it("counts the time left down to the backup reserve", () => {
+    // 48 % less a 15 % reserve of 15 kWh at 612 W: 8.1 h.
+    expect(batteryLine(battery(48, 15, 15), -0.612)).toBe(`48 % · about 8 h left at ${kw(0.612)}`);
+  });
+
+  it("says it is at the backup reserve rather than counting minutes to it", () => {
+    expect(batteryLine(battery(15, 15, 15), -0.3)).toBe(`15 % · at backup reserve, discharging at ${kw(0.3)}`);
+    expect(batteryLine(battery(12, 15, 15), -0.3)).toBe(`12 % · at backup reserve, discharging at ${kw(0.3)}`);
+    expect(batteryLine(battery(15.05, 15, 15), -0.3)).toBe(`15 % · nearly at backup reserve at ${kw(0.3)}`);
+    expect(batteryLine(battery(15, undefined, 15), -0.3)).toBe(`15 % · at backup reserve, discharging at ${kw(0.3)}`);
+  });
+
+  it("counts the time to full as before with a backup reserve", () => {
+    expect(batteryLine(battery(64, 10, 15), 4.4)).toBe(`64 % · full in about 50 min at ${kw(4.4)}`);
+    expect(batteryLine(battery(10, 10, 15), 4.4)).toBe(`10 % · full in about 2 h at ${kw(4.4)}`);
+  });
+
+  it("counts down to 0 % with a reserve of 0 %", () => {
+    expect(batteryLine(battery(48, 15, 0), -0.612)).toBe(`48 % · about 12 h left at ${kw(0.612)}`);
+    expect(batteryLine(battery(0, 10, 0), -0.3)).toBe(`0 % · nearly empty at ${kw(0.3)}`);
   });
 
   it("says only what it does without the capacity", () => {

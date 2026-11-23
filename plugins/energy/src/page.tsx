@@ -123,7 +123,13 @@ function NowFacts({ flow }: { flow: GetFlowResponse }) {
           </div>
           <Meter ratio={soc / 100} tone={soc < 20 ? "warn" : "info"} label="Battery state of charge" />
           <div className="text-xs text-muted-foreground tabular-nums">
-            {[batteryText(p?.battery), flow.battery?.voltage !== undefined && `${flow.battery.voltage.toFixed(1)} V`].filter(Boolean).join(" · ")}
+            {[
+              batteryText(p?.battery),
+              flow.battery?.voltage !== undefined && `${flow.battery.voltage.toFixed(1)} V`,
+              !!flow.battery?.reservePct && `reserve ${Math.round(flow.battery.reservePct)} %`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </div>
         </div>
       )}
