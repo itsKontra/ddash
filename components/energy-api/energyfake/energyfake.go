@@ -58,6 +58,10 @@ type Options struct {
 	// Telegraf feed's do after a history backfilled without them; the
 	// whole history has them when zero.
 	VEBusFrom time.Time
+	// VictronFrom is when the Victron GX is read at all (its battery,
+	// loads and counters), as before a history's first Victron readings;
+	// the whole history has them when zero.
+	VictronFrom time.Time
 }
 
 // Server is the fake. It is safe for concurrent use.
@@ -86,7 +90,7 @@ func New(opts Options) *Server {
 		opts.Glitch = time.Date(d.Year(), d.Month(), d.Day(), 17, 50, 0, 0, time.UTC)
 	}
 	start := now.AddDate(0, 0, -400).Truncate(24 * time.Hour)
-	return &Server{opts: opts, sim: &sim{start: start, glitch: opts.Glitch, gridCharge: opts.GridCharge, vebusFrom: opts.VEBusFrom}}
+	return &Server{opts: opts, sim: &sim{start: start, glitch: opts.Glitch, gridCharge: opts.GridCharge, vebusFrom: opts.VEBusFrom, victronFrom: opts.VictronFrom}}
 }
 
 // Queries returns every Flux query answered so far.
@@ -290,11 +294,12 @@ func (s *sim) answer(q query) []out {
 
 // sim is the simulated house, read every Step from start.
 type sim struct {
-	start      time.Time
-	glitch     time.Time
-	gridCharge [2]float64
-	vebusFrom  time.Time
-	n          int
+	start       time.Time
+	glitch      time.Time
+	gridCharge  [2]float64
+	vebusFrom   time.Time
+	victronFrom time.Time
+	n           int
 	// Powers in kW (battery positive while charging, grid positive while
 	// importing), the state of charge in %, and the counters in kWh.
 	solar, house, heatPump, battery, grid, soc                []float64
@@ -362,11 +367,15 @@ func (s *sim) series(measurement, field string) (func(int) float64, int, bool) {
 		"victron/acout_to_inverter_kWh": func(int) float64 { return 0.17 },
 	}
 	key := measurement + "/" + field
+	since := 0
+	if measurement == "victron" {
+		since = s.index(s.victronFrom)
+	}
 	if f, ok := vebus[key]; ok {
-		return f, s.index(s.vebusFrom), true
+		return f, max(since, s.index(s.vebusFrom)), true
 	}
 	f, ok := m[key]
-	return f, 0, ok
+	return f, since, ok
 }
 
 func round(v float64, places int) float64 {

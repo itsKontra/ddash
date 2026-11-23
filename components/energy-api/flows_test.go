@@ -172,6 +172,81 @@ func TestWithoutTheVEBusCountersTheSplitIsEstimated(t *testing.T) {
 	}
 }
 
+// unmetered is what a period used beyond the house, the heat pump, the
+// battery's losses and what the Victron didn't split.
+func unmetered(x *pb.Totals) float64 {
+	f := x.GetFlows()
+	return x.GetConsumption() - x.GetUnsplit() - x.GetHouse() - x.GetHeatPump() - f.GetChargeLoss() - f.GetDischargeLoss()
+}
+
+// Where the VE.Bus counters are, the house is the energy they count to
+// the Victron's AC output, and the fake's use is the house, the heat pump
+// and the battery's losses: nothing is unmetered.
+func TestTheHouseIsTheACOutWhereTheVEBusCountersAre(t *testing.T) {
+	_, _, c := setUp(t, gridCharging)
+
+	x := period(t, c, pb.Span_SPAN_DAY, "2026-11-10").GetTotals()
+
+	if !near(x.GetHouse(), x.GetFlows().GetAcOut()) {
+		t.Errorf("house = %v, want the AC out's %v", x.GetHouse(), x.GetFlows().GetAcOut())
+	}
+	if x.GetUnsplit() != 0 {
+		t.Errorf("unsplit = %v, want none on a day the Victron was read", x.GetUnsplit())
+	}
+	if u := unmetered(x); math.Abs(u) > 0.01*x.GetConsumption() {
+		t.Errorf("unmetered = %v of %v, want ~0", u, x.GetConsumption())
+	}
+}
+
+// Before the Victron is read at all, the house and heat pump can't split
+// the use: it counts as unsplit, not as unmetered.
+func TestTheUseBeforeTheVictronIsUnsplit(t *testing.T) {
+	// 10:30 in Vienna, inside an hour.
+	from := time.Date(2026, 11, 10, 9, 30, 0, 0, time.UTC)
+	_, _, c := setUp(t, energyfake.Options{GridCharge: gridCharging.GridCharge, VictronFrom: from, VEBusFrom: from})
+
+	before := period(t, c, pb.Span_SPAN_DAY, "2026-11-09").GetTotals()
+	if !near(before.GetUnsplit(), before.GetConsumption()) || before.GetHouse() != 0 || before.GetHeatPump() != 0 {
+		t.Errorf("a day before the Victron: unsplit %v, house %v, heat pump %v; want all its use %v unsplit", before.GetUnsplit(), before.GetHouse(), before.GetHeatPump(), before.GetConsumption())
+	}
+	day := period(t, c, pb.Span_SPAN_DAY, "2026-11-10")
+	x := day.GetTotals()
+	if x.GetUnsplit() <= 0 || x.GetUnsplit() >= x.GetConsumption() {
+		t.Errorf("the day the Victron began: unsplit %v of %v, want the morning's", x.GetUnsplit(), x.GetConsumption())
+	}
+	// The hour it began in is split from 10:30 on.
+	if h := bucketAt(t, day, 10); h.GetUnsplit() <= 0 || h.GetHouse() <= 0 {
+		t.Errorf("10:00: unsplit %v, house %v; want both", h.GetUnsplit(), h.GetHouse())
+	}
+	if u := unmetered(x); math.Abs(u) > 0.1*x.GetConsumption() {
+		t.Errorf("unmetered = %v of %v, want only the estimated hours' losses", u, x.GetConsumption())
+	}
+	if after := period(t, c, pb.Span_SPAN_DAY, "2026-11-11").GetTotals(); after.GetUnsplit() != 0 {
+		t.Errorf("a day after: unsplit %v, want none", after.GetUnsplit())
+	}
+}
+
+// A year whose Victron readings begin in May, backfilled without the
+// VE.Bus counters until November: what came before May is unsplit, and
+// what is unmetered is only the losses the backfill can't tell.
+func TestAYearBeforeTheVictronIsntUnmetered(t *testing.T) {
+	_, _, c := setUp(t, energyfake.Options{
+		GridCharge:  gridCharging.GridCharge,
+		VictronFrom: time.Date(2026, 5, 17, 0, 0, 0, 0, time.UTC),
+		VEBusFrom:   time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC),
+	})
+
+	x := period(t, c, pb.Span_SPAN_YEAR, "2026-06-01").GetTotals()
+
+	if x.GetUnsplit() < 0.2*x.GetConsumption() {
+		t.Errorf("unsplit %v of %v, want January to mid-May's use", x.GetUnsplit(), x.GetConsumption())
+	}
+	split := x.GetConsumption() - x.GetUnsplit()
+	if u := unmetered(x); u < 0 || u > 0.1*split {
+		t.Errorf("unmetered %v of the split %v, want only the backfill's losses", u, split)
+	}
+}
+
 // vebusQueries are the queries that read the VE.Bus counters, which only
 // attributing hours does.
 func vebusQueries(fake *energyfake.Server) []string {

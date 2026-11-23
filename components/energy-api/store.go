@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"google.golang.org/grpc/codes"
@@ -37,20 +38,20 @@ func (h cachedHour) valid(now time.Time) bool {
 // columns are the hour table's energy columns, in the order of fields.
 const columns = `solar, grid_import, grid_export, battery_charged, battery_discharged,
 	solar_used, solar_battery, solar_export, battery_used, battery_export, grid_used, grid_battery,
-	charge_loss, discharge_loss, ac_out`
+	charge_loss, discharge_loss, ac_out, house, heat_pump, unsplit`
 
 func fields(t *pb.Totals) []any {
 	f := t.Flows
 	return []any{t.Solar, t.GridImport, t.GridExport, t.BatteryCharged, t.BatteryDischarged,
 		f.SolarUsed, f.SolarBattery, f.SolarExport, f.BatteryUsed, f.BatteryExport, f.GridUsed, f.GridBattery,
-		f.ChargeLoss, f.DischargeLoss, f.AcOut}
+		f.ChargeLoss, f.DischargeLoss, f.AcOut, t.House, t.HeatPump, t.Unsplit}
 }
 
 func scanFields(t *pb.Totals) []any {
 	f := t.Flows
 	return []any{&t.Solar, &t.GridImport, &t.GridExport, &t.BatteryCharged, &t.BatteryDischarged,
 		&f.SolarUsed, &f.SolarBattery, &f.SolarExport, &f.BatteryUsed, &f.BatteryExport, &f.GridUsed, &f.GridBattery,
-		&f.ChargeLoss, &f.DischargeLoss, &f.AcOut}
+		&f.ChargeLoss, &f.DischargeLoss, &f.AcOut, &t.House, &t.HeatPump, &t.Unsplit}
 }
 
 func dbErr(err error) error {
@@ -119,7 +120,7 @@ func (s *store) save(ctx context.Context, hours []hour, now time.Time) error {
 		return dbErr(err)
 	}
 	defer tx.Rollback()
-	stmt, err := tx.PrepareContext(ctx, fmt.Sprintf("INSERT OR REPLACE INTO hour (at, algo, attributed_at, estimated, %s) VALUES (?, ?, ?, ?%s)", columns, ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"))
+	stmt, err := tx.PrepareContext(ctx, fmt.Sprintf("INSERT OR REPLACE INTO hour (at, algo, attributed_at, estimated, %s) VALUES (?, ?, ?, ?%s)", columns, strings.Repeat(", ?", len(fields(&pb.Totals{Flows: &pb.Flows{}})))))
 	if err != nil {
 		return dbErr(err)
 	}

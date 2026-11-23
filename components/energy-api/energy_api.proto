@@ -173,9 +173,16 @@ message Totals {
   double battery_discharged = 5;
   // Everything used: solar + import - export - charged + discharged.
   double consumption = 6;
-  // From the Victron's power readings, integrated: zero where it has none.
+  // The Victron's loads: the house on its AC output (from the VE.Bus
+  // counters, else its power integrated) and the heat pump (its power
+  // integrated), over the 5 minutes the Victron has readings for.
   double house = 7;
   double heat_pump = 8;
+  // The use of the 5 minutes the Victron has no readings for (before its
+  // first, or in a gap), which house and heat pump can't split. The rest
+  // of the use, less the house, the heat pump and the battery's losses,
+  // is unmetered.
+  double unsplit = 13;
   // import × buy price, and export × sell price.
   double cost = 9;
   double revenue = 10;

@@ -1,10 +1,10 @@
 import type { Totals } from "@ddash/proto/energy-api/energy_api_pb";
 import { cx } from "@ddash/ui";
 import { useLayoutEffect, useRef, useState } from "react";
-import { estimate, kwh, pct, shares } from "./energy";
+import { estimate, kwh, pct, shares, uses, type Uses } from "./energy";
 
 /** A place the period's energy came from or went to. */
-export type NodeId = "solar" | "batteryOut" | "grid" | "export" | "batteryIn" | "used" | "house" | "heatPump" | "other";
+export type NodeId = "solar" | "batteryOut" | "grid" | "export" | "batteryIn" | "used" | keyof Uses;
 
 /** Energy that went from one node to another over the period. */
 export interface Flow {
@@ -24,7 +24,9 @@ const nodes: Record<NodeId, { label: string; fill: string; band: string }> = {
   used: { label: "Used", fill: "fill-chart-2", band: "fill-chart-2" },
   house: { label: "House", fill: "fill-chart-2", band: "fill-chart-2" },
   heatPump: { label: "Heat pump", fill: "fill-chart-5", band: "fill-chart-5" },
-  other: { label: "Lost or unmetered", fill: "fill-muted-foreground/40", band: "fill-muted-foreground" },
+  batteryLosses: { label: "Battery losses", fill: "fill-chart-3/50", band: "fill-chart-3" },
+  unmetered: { label: "Unmetered", fill: "fill-muted-foreground/40", band: "fill-muted-foreground" },
+  notSplit: { label: "Not split", fill: "fill-muted-foreground/20", band: "fill-muted-foreground/50" },
 };
 
 /** Each node's counter: what its label says, whatever the bands add up to. */
@@ -42,17 +44,13 @@ function counter(t: Totals, id: NodeId): number {
       return t.batteryCharged;
     case "used":
       return t.consumption;
-    case "house":
-      return t.house;
-    case "heatPump":
-      return t.heatPump;
-    case "other":
-      return shares(t).other;
+    default:
+      return uses(t)[id];
   }
 }
 
-/** Whether the period has the Victron's split of the use into house and heat pump. */
-const metered = (t: Totals) => t.house > 0 || t.heatPump > 0;
+/** Whether the use is split: into house and heat pump, or as what the Victron didn't split. */
+const metered = (t: Totals) => t.house > 0 || t.heatPump > 0 || t.unsplit > 0;
 
 /** The sources' flows as energy-api attributed them every 5 minutes. */
 function attributed(f: NonNullable<Totals["flows"]>): Flow[] {
@@ -98,13 +96,7 @@ function fromTotals(t: Totals): Flow[] {
 export function flows(t: Totals): Flow[] {
   const all: Flow[] = [
     ...(t.flows ? attributed(t.flows) : fromTotals(t)),
-    ...(metered(t)
-      ? [
-          { from: "used", to: "house", kwh: t.house } as const,
-          { from: "used", to: "heatPump", kwh: t.heatPump } as const,
-          { from: "used", to: "other", kwh: shares(t).other } as const,
-        ]
-      : []),
+    ...(metered(t) ? consumers.map((to): Flow => ({ from: "used", to, kwh: uses(t)[to] })) : []),
   ];
   // Under 0.05 kWh shows as 0.0 kWh: not worth a band.
   return all.filter((f) => f.kwh >= 0.05);
@@ -209,7 +201,7 @@ export function fit(fs: readonly Flow[], columns: readonly (readonly NodeId[])[]
 
 const sources: NodeId[] = ["solar", "batteryOut", "grid"];
 const destinations: NodeId[] = ["export", "batteryIn", "used"];
-const consumers: NodeId[] = ["house", "heatPump", "other"];
+const consumers: (keyof Uses)[] = ["house", "heatPump", "batteryLosses", "unmetered", "notSplit"];
 
 /** The box's width in px, followed as it resizes (fallback before layout and without ResizeObserver). */
 function useWidth(fallback = 640) {
@@ -313,16 +305,18 @@ const narrowBelow = 480;
 /**
  * The period's energy as a Sankey, on one scale: solar, battery and grid
  * flow into the export, the battery and the use, and the use into the
- * house, the heat pump and what was lost or unmetered. Each node says its
- * counter as text; each band its kWh on hover and focus.
+ * house, the heat pump, the battery's losses, what is unmetered and what
+ * the Victron didn't split. Each node says its counter as text; each band
+ * its kWh on hover and focus.
  */
 export function EnergySankey({ t }: { t: Totals }) {
   const [ref, width] = useWidth();
   const fs = flows(t);
   const s = shares(t);
   const split = metered(t);
+  const { notSplit } = uses(t);
   const narrow = width < narrowBelow;
-  // The sources' labels on the left are short; the right's ("Lost or unmetered") take more.
+  // The sources' labels on the left are short; the right's ("Battery losses") take more.
   const leftWidth = narrow ? 76 : 112;
   const labelWidth = narrow ? 128 : 112;
   const right = width - labelWidth - nodeWidth;
@@ -362,6 +356,9 @@ export function EnergySankey({ t }: { t: Totals }) {
           Self-consumption <b className="text-foreground tabular-nums">{s.selfConsumption === undefined ? "–" : pct(s.selfConsumption)}</b>
         </span>
         {!empty && estimate(s.basis) && <span className="basis-full">{estimate(s.basis)}</span>}
+        {!empty && notSplit >= 0.05 && (
+          <span className="basis-full">{`Not split: the Victron has no readings for part of this period, so ${kwh(notSplit)} of the use isn't split into house and heat pump.`}</span>
+        )}
       </div>
     </div>
   );

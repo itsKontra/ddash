@@ -375,16 +375,12 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 			hours, err = c.hours(gctx, p.from, stop, now)
 			return err
 		})
-		fields := loadSeries
 		if p.curve {
-			fields = powerSeries
+			g.Go(func() (err error) {
+				powers, err = db.query(gctx, flux(db.bucket, p.from, stop, powerSeries, reduce{every: p.window, fn: "mean", bounded: true}))
+				return err
+			})
 		}
-		g.Go(func() (err error) {
-			// A day's or week's readings are few enough to bound one by one;
-			// a month's or year's windows are judged by their mean.
-			powers, err = db.query(gctx, flux(db.bucket, p.from, stop, fields, reduce{every: p.window, fn: "mean", bounded: p.curve}))
-			return err
-		})
 	}
 	g.Go(func() (err error) {
 		first, err = c.first.Get(gctx)
@@ -413,7 +409,7 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 		return nil
 	}
 
-	// Counters and flows: the hours'. In a zone whose offset isn't whole
+	// Counters, loads and flows: the hours'. In a zone whose offset isn't whole
 	// hours, the hour a period begins in counts to its first bucket.
 	for _, h := range hours {
 		if t := at(latest(h.at, p.from)); t != nil {
@@ -421,28 +417,16 @@ func (c *component) readPeriod(ctx context.Context, p period, now time.Time) (*p
 		}
 	}
 
-	// Powers: the loads integrated over each window (up to now), and for
-	// a day or week the curve.
+	// A day's or week's curve.
 	byTime := map[time.Time]map[string]float64{}
 	for _, r := range powers {
 		if s, ok := byField[r.field]; !ok || !s.plausible(r.value) {
 			continue
 		}
-		if t := at(r.at); t != nil {
-			hours := min(p.window, now.Sub(r.at)).Hours()
-			switch r.field {
-			case houseKW.field:
-				t.House += max(0, r.value) * hours
-			case heatPumpKW.field:
-				t.HeatPump += max(0, r.value) * hours
-			}
+		if byTime[r.at] == nil {
+			byTime[r.at] = map[string]float64{}
 		}
-		if p.curve {
-			if byTime[r.at] == nil {
-				byTime[r.at] = map[string]float64{}
-			}
-			byTime[r.at][r.field] = r.value
-		}
+		byTime[r.at][r.field] = r.value
 	}
 	times := make([]time.Time, 0, len(byTime))
 	for t := range byTime {
@@ -484,6 +468,7 @@ func sum(into, t *pb.Totals) {
 	into.Consumption += t.Consumption
 	into.House += t.House
 	into.HeatPump += t.HeatPump
+	into.Unsplit += t.Unsplit
 	into.Cost += t.Cost
 	into.Revenue += t.Revenue
 	into.Savings += t.Savings

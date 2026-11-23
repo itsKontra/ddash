@@ -5,6 +5,15 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- The Energy Page's Sankey splits what was "Lost or unmetered" into
+  **Battery losses** (from the Victron's VE.Bus counters, where it has
+  them) and **Unmetered**. The use from before the Victron's first
+  readings (or in a gap) goes to **Not split** and the Sankey says so,
+  instead of counting as unmetered, which made a Year look half
+  unmetered. Where it has the VE.Bus counters, the house is what they
+  count to the AC output. energy-api attributes its cached hours again
+  once after updating.
+
 - The Energy Page splits where the energy went every 5 minutes instead of
   from the period's totals, so a day the battery charges from the sun in
   the morning and from the grid in the afternoon shows its direct solar
