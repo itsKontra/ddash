@@ -119,7 +119,7 @@ export function shares(t: Totals): Shares {
 
 /** What a split's basis says about it, or nothing when it is the counters'. */
 export function estimate(basis: Shares["basis"]): string | undefined {
-  if (basis === "powers") return "Partly estimated from the power readings: the Victron's VE.Bus counters are missing for part of this period.";
+  if (basis === "powers") return "Estimated from the power readings where this period lacks the Victron's VE.Bus counters.";
   if (basis === "totals") return "Estimated from the period's totals.";
   return undefined;
 }

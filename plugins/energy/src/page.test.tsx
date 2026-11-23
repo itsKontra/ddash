@@ -115,10 +115,10 @@ it("agrees on the own use in the tile, under the Sankey and in the ledger", asyn
   expect(within(panel("Energy")).getByRole("img", { name: `Grid to Into battery: ${kwh(todayFlows.gridBattery)}` })).toBeTruthy();
 });
 
-it("says a split is partly estimated where the VE.Bus counters are missing", async () => {
+it("says a split is estimated where the VE.Bus counters are missing", async () => {
   await show(() => Response.json({ ...today, totals: withFlows(today.totals, { ...todayFlows, estimated: true }) }));
 
-  expect(panel("Energy").textContent).toContain("Partly estimated from the power readings");
+  expect(panel("Energy").textContent).toContain("Estimated from the power readings where this period lacks");
   expect(metricValue("Self-sufficiency", history())).toContain("estimated");
 });
 
