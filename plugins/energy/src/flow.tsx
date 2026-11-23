@@ -1,5 +1,5 @@
 import type { GetFlowResponse } from "@ddash/proto/energy-api/energy_api_pb";
-import { cx, Icon, type IconName } from "@ddash/ui";
+import { cx, Icon, Segmented, type IconName } from "@ddash/ui";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { colours, kw } from "./energy";
 import { idle } from "./now";
@@ -65,7 +65,7 @@ const ring = {
   bus: "border-muted-foreground text-muted-foreground",
 } as const;
 
-/** Whether the Operator asked for less motion. */
+/** Whether the browser asks for less motion, as it does while the OS's animations are off. */
 function useReducedMotion() {
   const query = "(prefers-reduced-motion: reduce)";
   const [reduced, setReduced] = useState(() => typeof matchMedia === "function" && matchMedia(query).matches);
@@ -77,6 +77,39 @@ function useReducedMotion() {
     return () => m.removeEventListener("change", on);
   }, []);
   return reduced;
+}
+
+const motions = ["Auto", "On", "Off"] as const;
+type Motion = (typeof motions)[number];
+const motionKey = "ddash.energy.flowMotion";
+
+function storedMotion(): Motion {
+  try {
+    const v = window.localStorage.getItem(motionKey);
+    return v === "On" || v === "Off" ? v : "Auto";
+  } catch {
+    return "Auto";
+  }
+}
+
+/**
+ * Whether the flow's dots run, as picked in this browser: Auto follows its
+ * reduced motion, On and Off override it. The pick is remembered per
+ * browser; where nothing can be remembered it applies until a reload.
+ */
+function useFlowMotion() {
+  const reduced = useReducedMotion();
+  const [motion, setMotion] = useState<Motion>(storedMotion);
+  const pick = (m: Motion) => {
+    try {
+      if (m === "Auto") window.localStorage.removeItem(motionKey);
+      else window.localStorage.setItem(motionKey, m);
+    } catch {
+      // Not remembered.
+    }
+    setMotion(m);
+  };
+  return { motion, pick, reduced, still: motion === "Off" || (motion === "Auto" && reduced) };
 }
 
 /** Whether the box is narrower than px, e.g. on a phone, followed as it resizes. */
@@ -96,7 +129,7 @@ function useNarrow(px: number) {
 /**
  * One line of the diagram: a muted track, and while power flows a line in
  * its colour with dots running in the flow's direction, faster with more
- * power (still, with reduced motion).
+ * power (none while the flow is still, e.g. with reduced motion).
  */
 function Line({ d, kw: p, colour, still }: { d: string; kw: number | undefined; colour: keyof typeof stroke; still: boolean }) {
   const flowing = p !== undefined && Math.abs(p) >= idle;
@@ -180,7 +213,7 @@ export function batteryText(battery: number | undefined): string | undefined {
  * and the battery.
  */
 export function FlowDiagram({ flow }: { flow: GetFlowResponse }) {
-  const still = useReducedMotion();
+  const { motion, pick, reduced, still } = useFlowMotion();
   const [ref, narrow] = useNarrow(520);
   const compact = narrow;
   const layout: Layout = narrow ? tall : wide;
@@ -200,39 +233,46 @@ export function FlowDiagram({ flow }: { flow: GetFlowResponse }) {
   const [ox] = at.house;
   const [, by] = at.battery;
   return (
-    <div ref={ref} className="relative mx-auto w-full max-w-3xl" style={{ aspectRatio: `${W} / ${H}` }}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
-        <Line d={`M${gx},${gy} H${busJoin} V${vy}`} kw={grid} colour={colours.grid} still={still} />
-        <Line d={`M${sx},${sy} H${busJoin} V${vy}`} kw={solar} colour={colours.solar} still={still} />
-        <Line d={`M${busJoin},${vy} H${hx}`} kw={busIn} colour="bus" still={still} />
-        <Line d={`M${hx},${vy} V${hy}`} kw={heatPump} colour={colours.heatPump} still={still} />
-        <Line d={`M${hx},${vy} H${vx}`} kw={victronIn} colour="bus" still={still} />
-        <Line d={`M${vx},${vy} H${ox}`} kw={p?.house} colour={colours.house} still={still} />
-        <Line d={`M${vx},${vy} V${by}`} kw={p?.battery} colour={colours.battery} still={still} />
-        <circle cx={busJoin} cy={vy} r={4} className="fill-muted-foreground" />
-        <circle cx={hx} cy={vy} r={4} className="fill-muted-foreground" />
-      </svg>
-      <Node layout={layout} part="grid" icon="utility-pole" colour={colours.grid} name="Grid" {...gridText(grid)} compact={compact} />
-      <Node layout={layout} part="solar" icon="sun" colour={colours.solar} name="Solar" value={solar === undefined ? undefined : kw(solar)} compact={compact} />
-      <Node layout={layout} part="heatPump" icon="heater" colour={colours.heatPump} name="Heat pump" value={heatPump === undefined ? undefined : kw(heatPump)} compact={compact} side="right" />
-      <div className="absolute -translate-x-1/2 -translate-y-1/2" style={pos(layout, "victron")} role="group" aria-label="Victron">
-        <div className={cx("grid place-items-center rounded-ui-sm border-2 border-muted-foreground bg-card text-muted-foreground shadow-elevation", compact ? "size-9" : "size-12")}>
-          <Icon name="zap" size={compact ? "sm" : "md"} />
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <div ref={ref} className="relative w-full" style={{ aspectRatio: `${W} / ${H}` }}>
+        <svg viewBox={`0 0 ${W} ${H}`} className="absolute inset-0 size-full overflow-visible" aria-hidden="true">
+          <Line d={`M${gx},${gy} H${busJoin} V${vy}`} kw={grid} colour={colours.grid} still={still} />
+          <Line d={`M${sx},${sy} H${busJoin} V${vy}`} kw={solar} colour={colours.solar} still={still} />
+          <Line d={`M${busJoin},${vy} H${hx}`} kw={busIn} colour="bus" still={still} />
+          <Line d={`M${hx},${vy} V${hy}`} kw={heatPump} colour={colours.heatPump} still={still} />
+          <Line d={`M${hx},${vy} H${vx}`} kw={victronIn} colour="bus" still={still} />
+          <Line d={`M${vx},${vy} H${ox}`} kw={p?.house} colour={colours.house} still={still} />
+          <Line d={`M${vx},${vy} V${by}`} kw={p?.battery} colour={colours.battery} still={still} />
+          <circle cx={busJoin} cy={vy} r={4} className="fill-muted-foreground" />
+          <circle cx={hx} cy={vy} r={4} className="fill-muted-foreground" />
+        </svg>
+        <Node layout={layout} part="grid" icon="utility-pole" colour={colours.grid} name="Grid" {...gridText(grid)} compact={compact} />
+        <Node layout={layout} part="solar" icon="sun" colour={colours.solar} name="Solar" value={solar === undefined ? undefined : kw(solar)} compact={compact} />
+        <Node layout={layout} part="heatPump" icon="heater" colour={colours.heatPump} name="Heat pump" value={heatPump === undefined ? undefined : kw(heatPump)} compact={compact} side="right" />
+        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={pos(layout, "victron")} role="group" aria-label="Victron">
+          <div className={cx("grid place-items-center rounded-ui-sm border-2 border-muted-foreground bg-card text-muted-foreground shadow-elevation", compact ? "size-9" : "size-12")}>
+            <Icon name="zap" size={compact ? "sm" : "md"} />
+          </div>
+          {!compact && <div className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 text-xs font-semibold whitespace-nowrap text-muted-foreground">Victron</div>}
         </div>
-        {!compact && <div className="absolute bottom-full left-1/2 mb-1.5 -translate-x-1/2 text-xs font-semibold whitespace-nowrap text-muted-foreground">Victron</div>}
+        <Node layout={layout} part="house" icon="house" colour={colours.house} name="House" value={p?.house === undefined ? undefined : kw(p.house)} compact={compact} />
+        <Node
+          layout={layout}
+          part="battery"
+          icon={soc === undefined ? "battery" : soc >= 80 ? "battery-full" : soc >= 35 ? "battery-medium" : "battery-low"}
+          colour={colours.battery}
+          name="Battery"
+          value={soc === undefined ? undefined : `${Math.round(soc)} %`}
+          detail={compact ? undefined : batteryText(p?.battery)}
+          compact={compact}
+          side="right"
+        />
       </div>
-      <Node layout={layout} part="house" icon="house" colour={colours.house} name="House" value={p?.house === undefined ? undefined : kw(p.house)} compact={compact} />
-      <Node
-        layout={layout}
-        part="battery"
-        icon={soc === undefined ? "battery" : soc >= 80 ? "battery-full" : soc >= 35 ? "battery-medium" : "battery-low"}
-        colour={colours.battery}
-        name="Battery"
-        value={soc === undefined ? undefined : `${Math.round(soc)} %`}
-        detail={compact ? undefined : batteryText(p?.battery)}
-        compact={compact}
-        side="right"
-      />
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <span className="font-semibold">Animate flow</span>
+        <Segmented label="Animate flow" value={motion} options={motions} onChange={pick} />
+        {motion === "Auto" && reduced && <span>Still: this device asks for reduced motion.</span>}
+      </div>
     </div>
   );
 }
