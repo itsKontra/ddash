@@ -53,6 +53,13 @@ message EnergyApiConfig {
     placeholder: "10"
     help: "The battery's usable capacity, to estimate how long it lasts or takes to fill at the current rate. Leave empty to show no estimate."
   }];
+  // The charge in % the battery keeps for a grid outage, with a decimal
+  // point; empty is none.
+  string battery_reserve = 7 [(ddash.config.field) = {
+    label: "Battery backup reserve (%)"
+    placeholder: "15"
+    help: "The charge the battery keeps for a grid outage and isn't discharged below, from 0 to 99, so the time it lasts counts down to it. Leave empty to count down to 0 %."
+  }];
 }
 
 service EnergyApiService {
@@ -104,6 +111,8 @@ message Battery {
   optional double voltage = 2;
   // The usable capacity in kWh, as configured; unset while none is.
   optional double capacity_kwh = 3;
+  // The backup reserve in %, 0 to 99, as configured; unset while none is.
+  optional double reserve_pct = 4;
 }
 
 message GetPeriodRequest {

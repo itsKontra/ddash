@@ -1,10 +1,10 @@
 // Package energyfake is a fake InfluxDB v2 holding a simulated house's
 // readings, as Telegraf writes them from a Huawei SUN2000 with its grid
 // meter and a Victron GX: a 10 kWp roof under a seasonal sun with cloudy
-// days, the house's and the heat pump's loads, and a 10 kWh battery,
-// every 5 minutes from 400 days ago up to the clock. One glitch, like the
-// meter's: for 20 minutes the grid reads its "invalid" sentinel and its
-// counters jump by millions.
+// days, the house's and the heat pump's loads, and a 10 kWh battery with
+// a 10 % backup reserve, every 5 minutes from 400 days ago up to the
+// clock. One glitch, like the meter's: for 20 minutes the grid reads its
+// "invalid" sentinel and its counters jump by millions.
 //
 // It answers the Flux queries energy-api sends, and only those: from a
 // bucket, a range, a filter picking measurement and field, optionally
@@ -346,6 +346,9 @@ func round(v float64, places int) float64 {
 const (
 	capacity = 10.0 // kWh
 	maxBatt  = 5.0  // kW
+	// Reserve is the backup reserve in %, which the battery isn't
+	// discharged below.
+	Reserve = 10.0
 	// Charging takes more than reaches the battery; discharging delivers
 	// less than leaves it.
 	chargeLoss, dischargeLoss = 0.92, 0.95
@@ -363,13 +366,13 @@ func (s *sim) extend(now time.Time) {
 			soc, solarC, imp, exp, chg, dis = s.soc[i], s.solarKWh[i], s.importKWh[i], s.exportKWh[i], s.chargedKWh[i], s.dischargedKWh[i]
 		}
 		// The battery takes the surplus and covers the deficit, within its
-		// power and between 10 % and 100 %.
+		// power and between its reserve and 100 %.
 		surplus := solar - house - heat
 		batt := 0.0
 		if surplus > 0 {
 			batt = min(surplus*chargeLoss, maxBatt, (100-soc)/100*capacity/h)
 		} else {
-			batt = -min(-surplus/dischargeLoss, maxBatt, max(0, soc-10)/100*capacity/h)
+			batt = -min(-surplus/dischargeLoss, maxBatt, max(0, soc-Reserve)/100*capacity/h)
 		}
 		ac := batt / chargeLoss
 		if batt < 0 {

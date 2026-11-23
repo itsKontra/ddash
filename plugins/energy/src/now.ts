@@ -40,25 +40,29 @@ export function duration(hours: number): string {
 
 /**
  * The battery in one line: its charge, and what it does at its power now.
- * With its capacity, how long until it is empty or full at that rate:
- * "48 % · about 12 h left at 612 W", "64 % · full in about 2 h at 4.40 kW";
- * without, "discharging at 612 W". Undefined without a reading.
+ * With its capacity, how long until it is full, or down to its backup
+ * reserve (0 % without one), at that rate: "48 % · about 12 h left at
+ * 612 W", "64 % · full in about 2 h at 4.40 kW"; without, "discharging at
+ * 612 W". At its reserve, "15 % · at backup reserve, discharging at
+ * 300 W". Undefined without a reading.
  */
 export function batteryLine(b: Battery | undefined, power: number | undefined): string | undefined {
   const soc = b?.socPct;
   if (soc === undefined && power === undefined) return undefined;
   const parts = soc === undefined ? [] : [`${Math.round(soc)} %`];
-  if (power !== undefined) parts.push(doing(soc, power, b?.capacityKwh));
+  if (power !== undefined) parts.push(doing(soc, power, b?.capacityKwh, b?.reservePct));
   return parts.join(" · ");
 }
 
-function doing(soc: number | undefined, power: number, capacity: number | undefined): string {
+function doing(soc: number | undefined, power: number, capacity: number | undefined, reserve: number | undefined): string {
   const at = kw(Math.abs(power));
   if (Math.abs(power) < idle) return "idle";
   const charging = power > 0;
+  const floor = reserve ?? 0;
+  if (!charging && floor > 0 && soc !== undefined && soc <= floor) return `at backup reserve, discharging at ${at}`;
   if (soc === undefined || !capacity) return `${charging ? "charging" : "discharging"} at ${at}`;
   // The energy still to go in or come out, at today's rate.
-  const hours = ((charging ? 100 - soc : soc) / 100) * (capacity / Math.abs(power));
-  if (hours * 60 < 2.5) return `${charging ? "nearly full" : "nearly empty"} at ${at}`;
+  const hours = ((charging ? 100 - soc : soc - floor) / 100) * (capacity / Math.abs(power));
+  if (hours * 60 < 2.5) return `${charging ? "nearly full" : floor > 0 ? "nearly at backup reserve" : "nearly empty"} at ${at}`;
   return charging ? `full in about ${duration(hours)} at ${at}` : `about ${duration(hours)} left at ${at}`;
 }

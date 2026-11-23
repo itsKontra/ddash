@@ -159,7 +159,7 @@ var systems = []system{
 		// No fixtures: the house is simulated.
 		fixtures: "components/energy-api/testdata/baseline",
 		config: func(addr string) proto.Message {
-			return &energyapipb.EnergyApiConfig{Url: "http://" + addr, Token: "fake-token", BuyPrice: "0.2418", SellPrice: "0.05786", BatteryCapacity: "10"}
+			return &energyapipb.EnergyApiConfig{Url: "http://" + addr, Token: "fake-token", BuyPrice: "0.2418", SellPrice: "0.05786", BatteryCapacity: "10", BatteryReserve: fmt.Sprint(energyfake.Reserve)}
 		},
 		// The readings follow the clock: there is always a today.
 		serve: func(string) (http.Handler, error) { return energyfake.New(energyfake.Options{}), nil },

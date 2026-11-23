@@ -96,6 +96,9 @@ func TestConfigIsChecked(t *testing.T) {
 		{"a feed-in tariff without a price", &pb.EnergyApiConfig{SellPrice: "0.05"}, []string{"buy_price: is required with a feed-in tariff"}},
 		{"a battery capacity that isn't kWh", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryCapacity: "10 kWh"}, []string{"battery_capacity: must be kWh, e.g. 10"}},
 		{"a battery without capacity", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryCapacity: "0"}, []string{"battery_capacity: must be kWh, e.g. 10"}},
+		{"a battery reserve that isn't a percentage", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "15 %"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
+		{"a battery reserve of 100 %", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "100"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
+		{"a negative battery reserve", &pb.EnergyApiConfig{Url: "https://i.example", Token: "t", BatteryReserve: "-5"}, []string{"battery_reserve: must be a percentage from 0 to 99, e.g. 15"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			h := sdktest.New(t, energyapi.DefineAt(now))
@@ -138,8 +141,8 @@ func TestFlowIsTheLatestReadings(t *testing.T) {
 	if !near(p.GetLoads(), p.GetHouse()+p.GetHeatPump()) || p.GetConsumption() < p.GetLoads() {
 		t.Errorf("loads = %v, consumption = %v; want loads = house + heat pump, under consumption", p.GetLoads(), p.GetConsumption())
 	}
-	if soc := got.GetBattery().GetSocPct(); soc < 10 || soc > 100 {
-		t.Errorf("state of charge = %v, want 10 to 100", soc)
+	if soc := got.GetBattery().GetSocPct(); soc < energyfake.Reserve || soc > 100 {
+		t.Errorf("state of charge = %v, want the fake's reserve %v to 100", soc, energyfake.Reserve)
 	}
 	if got := h.Health(); got.State != sdk.OK {
 		t.Errorf("health = %v, want ok", got)
@@ -161,6 +164,25 @@ func TestFlowCarriesTheBatterysCapacityOnlyWhenConfigured(t *testing.T) {
 
 		if diff := cmp.Diff(tc.want, got.GetBattery().CapacityKwh); diff != "" {
 			t.Errorf("capacity %q: capacity_kwh (-want +got):\n%s", tc.capacity, diff)
+		}
+	}
+}
+
+func TestFlowCarriesTheBatterysReserveOnlyWhenConfigured(t *testing.T) {
+	_, addr := serve(t, energyfake.Options{})
+	for _, tc := range []struct {
+		reserve string
+		want    *float64
+	}{{"", nil}, {" ", nil}, {"0", new(0.0)}, {"15", new(15.0)}, {"12,5", new(12.5)}} {
+		_, c := start(t, &pb.EnergyApiConfig{Url: addr, Token: "fake-token", BatteryReserve: tc.reserve})
+
+		got, err := c.GetFlow(t.Context(), &pb.GetFlowRequest{})
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if diff := cmp.Diff(tc.want, got.GetBattery().ReservePct); diff != "" {
+			t.Errorf("reserve %q: reserve_pct (-want +got):\n%s", tc.reserve, diff)
 		}
 	}
 }

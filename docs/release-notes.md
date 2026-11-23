@@ -5,6 +5,11 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- Optional: set **Battery backup reserve (%)** in energy-api's config, and
+  Energy counts the battery's time left down to that reserve instead of
+  0 %, says "at backup reserve" once it gets there, and shows the reserve
+  beside the battery on the Energy Page. Empty keeps counting to 0 %.
+
 ## v0.0.4-rc.1
 
 - **To do after updating**: run **Update Agent** on each Docker Agent
