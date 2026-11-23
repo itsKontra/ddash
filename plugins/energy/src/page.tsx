@@ -324,10 +324,10 @@ function History() {
       </Panel>
       {p?.totals && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Energy" description="From the inverter's, the grid meter's and the battery's counters, split every 5 minutes.">
+          <Panel title="Energy">
             <EnergySankey t={p.totals} />
           </Panel>
-          <Panel title="Money" description="Bought and sold at the prices set in Plugins.">
+          <Panel title="Money">
             <Money p={p} t={p.totals} />
           </Panel>
         </div>
@@ -342,7 +342,7 @@ export function EnergyPage() {
   const { notSetUp } = useFlow();
   return (
     <div>
-      <PageTitle title="Energy" subtitle="The solar power, the grid, the battery and the house, as InfluxDB has them." />
+      <PageTitle title="Energy" />
       {notSetUp ? (
         <SetUp />
       ) : (
