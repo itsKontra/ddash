@@ -29,6 +29,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	pb "github.com/itsKontra/ddash/components/energy-api/energyapipb"
+	notificationpb "github.com/itsKontra/ddash/proto/ddash/notification"
 	"github.com/itsKontra/ddash/sdk"
 )
 
@@ -94,6 +95,12 @@ type component struct {
 	flow    *sdk.Cache[*pb.GetFlowResponse]
 	first   *sdk.Cache[time.Time]
 
+	// ctx is Start's, notify the core's notification service.
+	ctx       context.Context
+	notify    notificationpb.NotificationServiceClient
+	publicURL string
+	quiet     quiet
+
 	mu      sync.Mutex
 	periods map[string]cachedPeriod
 	// reading shares one read of a period among the callers that ask for
@@ -140,6 +147,8 @@ func (c *component) Start(ctx context.Context, env *sdk.Env, cfg *pb.EnergyApiCo
 	c.first = sdk.Cached(24*time.Hour, c.readFirst)
 	c.periods = map[string]cachedPeriod{}
 	c.log = env.Log
+	c.ctx, c.notify, c.publicURL = ctx, sdk.Notifications(env), strings.TrimSuffix(env.PublicURL, "/")
+	c.quiet = quiet{told: map[string]time.Time{}}
 	c.store = &store{env.DB}
 	if err := c.store.source(ctx, addr, bucket); err != nil {
 		return err
@@ -205,7 +214,10 @@ func parseReserve(s string, errs *sdk.FieldErrors) *float64 {
 }
 
 // Health is down while InfluxDB can't be read, and degraded while it has
-// no reading from the last five minutes. Not set up is OK.
+// no reading from the last five minutes, or while the Victron or the
+// inverter hasn't reported for quietAfter and the other still does. It
+// notifies the Operator when one of them goes quiet and when it reports
+// again. Not set up is OK.
 func (c *component) Health(ctx context.Context) sdk.Health {
 	if c.db == nil {
 		return sdk.Health{State: sdk.OK, Message: "not set up"}
@@ -214,10 +226,16 @@ func (c *component) Health(ctx context.Context) sdk.Health {
 	if err != nil {
 		return sdk.Health{State: sdk.Down, Message: status.Convert(err).Message()}
 	}
+	now := c.now()
+	seen, err := c.readSeen(ctx, now)
+	if err != nil {
+		return sdk.Health{State: sdk.Down, Message: status.Convert(err).Message()}
+	}
+	c.tell(seen, now)
 	if flow.GetAt() == nil {
 		return sdk.Health{State: sdk.Degraded, Message: "no reading in the last 5 minutes"}
 	}
-	return sdk.Health{State: sdk.OK}
+	return quietHealth(seen, now)
 }
 
 func (c *component) GetFlow(ctx context.Context, _ *pb.GetFlowRequest) (*pb.GetFlowResponse, error) {
