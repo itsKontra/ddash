@@ -1,7 +1,7 @@
 import type { Totals } from "@ddash/proto/energy-api/energy_api_pb";
 import { expect, it } from "vitest";
 import { fit, flows, layout, type Flow, type NodeId } from "./sankey";
-import { totals } from "./testing";
+import { todayFlows, totals } from "./testing";
 
 const t = (...a: Parameters<typeof totals>) => totals(...a) as unknown as Totals;
 /** The kWh flowing out of a node, or into it. */
@@ -26,6 +26,24 @@ it.each([
   expect(into(fs, "used")).toBeCloseTo(x.consumption);
   expect(out(fs, "used")).toBeCloseTo(x.consumption);
   expect(fs.every((f) => f.kwh > 0)).toBe(true);
+});
+
+it("draws the sources' bands from the flows energy-api returned, not from the totals", () => {
+  const x = t(41.2, 18.9, 4.6, 15.7, 4, 5.7, 0.7);
+  const fs = flows({ ...x, flows: todayFlows } as unknown as Totals);
+  const band = (from: NodeId, to: NodeId) => fs.find((f) => f.from === from && f.to === to)?.kwh;
+
+  expect(band("solar", "used")).toBe(26);
+  expect(band("solar", "batteryIn")).toBe(11);
+  expect(band("solar", "export")).toBe(4.2);
+  expect(band("batteryOut", "used")).toBe(3.6);
+  expect(band("batteryOut", "export")).toBe(0.4);
+  expect(band("grid", "used")).toBe(14.2);
+  expect(band("grid", "batteryIn")).toBe(4.7);
+  // The totals alone would have given the grid no charge at all.
+  expect(flows(x).find((f) => f.from === "grid" && f.to === "batteryIn")).toBeUndefined();
+  expect(into(fs, "used")).toBeCloseTo(x.consumption);
+  expect(out(fs, "used")).toBeCloseTo(x.consumption);
 });
 
 it("draws the bands' widths to the period's totals on one scale", () => {

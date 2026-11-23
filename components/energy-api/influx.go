@@ -228,10 +228,9 @@ var (
 )
 
 var (
-	powerSeries   = []series{solarKW, gridKW, batteryKW, houseKW, heatPumpKW, loadsKW, socPct}
-	flowSeries    = append(append([]series{}, powerSeries...), batteryV)
-	counterSeries = []series{solarKWh, importKWh, exportKWh, chargedKWh, dischargedK}
-	loadSeries    = []series{houseKW, heatPumpKW}
+	powerSeries = []series{solarKW, gridKW, batteryKW, houseKW, heatPumpKW, loadsKW, socPct}
+	flowSeries  = append(append([]series{}, powerSeries...), batteryV)
+	loadSeries  = []series{houseKW, heatPumpKW}
 )
 
 // reduce is how a query reduces each field: to windows of every with fn

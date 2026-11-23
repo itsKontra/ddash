@@ -3,8 +3,11 @@
 // meter and a Victron GX: a 10 kWp roof under a seasonal sun with cloudy
 // days, the house's and the heat pump's loads, and a 10 kWh battery with
 // a 10 % backup reserve, every 5 minutes from 400 days ago up to the
-// clock. One glitch, like the meter's: for 20 minutes the grid reads its
-// "invalid" sentinel and its counters jump by millions.
+// clock. The heat pump, the inverter and the grid meter share the
+// Victron's AC input; the house is on its AC output, and the Victron's
+// VE.Bus counters count the energy along each of its paths. One glitch,
+// like the meter's: for 20 minutes the grid reads its "invalid" sentinel
+// and its counters jump by millions.
 //
 // It answers the Flux queries energy-api sends, and only those: from a
 // bucket, a range, a filter picking measurement and field, optionally
@@ -47,6 +50,14 @@ type Options struct {
 	// QueryDelay holds every query this long before it is answered, as a
 	// year's query against a busy InfluxDB takes.
 	QueryDelay time.Duration
+	// GridCharge is the hours of every day, CET and fractional, [from, to),
+	// in which the battery charges at full power, taking from the grid what
+	// the sun doesn't give, as on a cheap tariff. None when both are zero.
+	GridCharge [2]float64
+	// VEBusFrom is when the Victron's VE.Bus counters begin, as a live
+	// Telegraf feed's do after a history backfilled without them; the
+	// whole history has them when zero.
+	VEBusFrom time.Time
 }
 
 // Server is the fake. It is safe for concurrent use.
@@ -75,7 +86,7 @@ func New(opts Options) *Server {
 		opts.Glitch = time.Date(d.Year(), d.Month(), d.Day(), 17, 50, 0, 0, time.UTC)
 	}
 	start := now.AddDate(0, 0, -400).Truncate(24 * time.Hour)
-	return &Server{opts: opts, sim: &sim{start: start, glitch: opts.Glitch}}
+	return &Server{opts: opts, sim: &sim{start: start, glitch: opts.Glitch, gridCharge: opts.GridCharge, vebusFrom: opts.VEBusFrom}}
 }
 
 // Queries returns every Flux query answered so far.
@@ -225,7 +236,7 @@ func (s *sim) answer(q query) []out {
 	var rows []out
 	for table, key := range q.fields {
 		measurement, field, _ := strings.Cut(key, "/")
-		read, ok := s.series(measurement, field)
+		read, since, ok := s.series(measurement, field)
 		if !ok {
 			continue
 		}
@@ -245,7 +256,7 @@ func (s *sim) answer(q query) []out {
 			rows = append(rows, out{table: table, field: field, at: windowAt, v: v})
 			n, sum = 0, 0
 		}
-		for i := s.index(q.from); i < s.n && s.at(i).Before(q.to); i++ {
+		for i := max(s.index(q.from), since); i < s.n && s.at(i).Before(q.to); i++ {
 			v := read(i)
 			if bounded && (v < bound[0] || v > bound[1]) {
 				continue
@@ -279,13 +290,19 @@ func (s *sim) answer(q query) []out {
 
 // sim is the simulated house, read every Step from start.
 type sim struct {
-	start  time.Time
-	glitch time.Time
-	n      int
+	start      time.Time
+	glitch     time.Time
+	gridCharge [2]float64
+	vebusFrom  time.Time
+	n          int
 	// Powers in kW (battery positive while charging, grid positive while
 	// importing), the state of charge in %, and the counters in kWh.
 	solar, house, heatPump, battery, grid, soc                []float64
 	solarKWh, importKWh, exportKWh, chargedKWh, dischargedKWh []float64
+	// The VE.Bus counters in kWh, on the AC side: the AC input to the AC
+	// output (passed through) and to the charger, and the inverter to the
+	// AC output and back to the AC input.
+	acInToOut, acInToInverter, inverterToOut, inverterToAcIn []float64
 }
 
 func (s *sim) at(i int) time.Time { return s.start.Add(time.Duration(i) * Step) }
@@ -303,8 +320,9 @@ func (s *sim) glitching(i int) bool {
 	return !t.Before(s.glitch) && t.Before(s.glitch.Add(20*time.Minute))
 }
 
-// series reads one field as Telegraf writes it.
-func (s *sim) series(measurement, field string) (func(int) float64, bool) {
+// series reads one field as Telegraf writes it, from the index of its
+// first reading.
+func (s *sim) series(measurement, field string) (func(int) float64, int, bool) {
 	jump := func(c []float64) func(int) float64 {
 		return func(i int) float64 {
 			if s.glitching(i) {
@@ -334,8 +352,21 @@ func (s *sim) series(measurement, field string) (func(int) float64, bool) {
 		"victron/charged_kWh":       plain(s.chargedKWh),
 		"victron/discharged_kWh":    plain(s.dischargedKWh),
 	}
-	f, ok := m[measurement+"/"+field]
-	return f, ok
+	hundredths := func(c []float64) func(int) float64 { return func(i int) float64 { return round(c[i], 2) } }
+	vebus := map[string]func(int) float64{
+		"victron/acin1_to_acout_kWh":    hundredths(s.acInToOut),
+		"victron/acin1_to_inverter_kWh": hundredths(s.acInToInverter),
+		"victron/inverter_to_acout_kWh": hundredths(s.inverterToOut),
+		"victron/inverter_to_acin1_kWh": hundredths(s.inverterToAcIn),
+		// Nothing on the AC output feeds back: it never counts.
+		"victron/acout_to_inverter_kWh": func(int) float64 { return 0.17 },
+	}
+	key := measurement + "/" + field
+	if f, ok := vebus[key]; ok {
+		return f, s.index(s.vebusFrom), true
+	}
+	f, ok := m[key]
+	return f, 0, ok
 }
 
 func round(v float64, places int) float64 {
@@ -361,16 +392,22 @@ func (s *sim) extend(now time.Time) {
 		t := s.at(s.n)
 		solar, house, heat := sun(t), houseLoad(t), heatPumpLoad(t)
 		soc, solarC, imp, exp, chg, dis := 50.0, 31000.0, 14600.0, 22000.0, 1300.0, 1270.0
+		inOut, inInv, invOut, invIn := 8100.0, 2400.0, 1900.0, 310.0
 		if s.n > 0 {
 			i := s.n - 1
 			soc, solarC, imp, exp, chg, dis = s.soc[i], s.solarKWh[i], s.importKWh[i], s.exportKWh[i], s.chargedKWh[i], s.dischargedKWh[i]
+			inOut, inInv, invOut, invIn = s.acInToOut[i], s.acInToInverter[i], s.inverterToOut[i], s.inverterToAcIn[i]
 		}
 		// The battery takes the surplus and covers the deficit, within its
-		// power and between its reserve and 100 %.
+		// power and between its reserve and 100 %; while grid charging it
+		// takes its full power.
 		surplus := solar - house - heat
+		full := (100 - soc) / 100 * capacity / h
 		batt := 0.0
-		if surplus > 0 {
-			batt = min(surplus*chargeLoss, maxBatt, (100-soc)/100*capacity/h)
+		if hr := hour(t); hr >= s.gridCharge[0] && hr < s.gridCharge[1] {
+			batt = min(maxBatt, full)
+		} else if surplus > 0 {
+			batt = min(surplus*chargeLoss, maxBatt, full)
 		} else {
 			batt = -min(-surplus/dischargeLoss, maxBatt, max(0, soc-Reserve)/100*capacity/h)
 		}
@@ -379,6 +416,14 @@ func (s *sim) extend(now time.Time) {
 			ac = batt * dischargeLoss
 		}
 		grid := house + heat + ac - solar
+		// The inverter serves the house on the AC output first and feeds
+		// the rest back to the AC input; the AC input passes the house's
+		// remaining load through.
+		inverter := max(0, -ac)
+		inOut += max(0, house-inverter) * h
+		inInv += max(0, ac) * h
+		invOut += min(inverter, house) * h
+		invIn += max(0, inverter-house) * h
 		soc += batt * h / capacity * 100
 		solar, house, heat, batt, grid = round(solar, 3), round(house, 3), round(heat, 3), round(batt, 3), round(grid, 3)
 		s.solar = append(s.solar, solar)
@@ -392,6 +437,11 @@ func (s *sim) extend(now time.Time) {
 		s.exportKWh = append(s.exportKWh, round(exp+max(-grid, 0)*h, 2))
 		s.chargedKWh = append(s.chargedKWh, round(chg+max(batt, 0)*h, 2))
 		s.dischargedKWh = append(s.dischargedKWh, round(dis+max(-batt, 0)*h, 2))
+		// Summed unrounded, read to 0.01 kWh.
+		s.acInToOut = append(s.acInToOut, inOut)
+		s.acInToInverter = append(s.acInToInverter, inInv)
+		s.inverterToOut = append(s.inverterToOut, invOut)
+		s.inverterToAcIn = append(s.inverterToAcIn, invIn)
 	}
 }
 

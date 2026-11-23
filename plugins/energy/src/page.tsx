@@ -154,7 +154,7 @@ function Tiles({ t, priced }: { t: Totals; priced: boolean }) {
         icon="leaf"
         tone={shareTone(s.selfSufficiency)}
         value={s.selfSufficiency === undefined ? "–" : pct(s.selfSufficiency)}
-        desc="Of the use covered by solar and battery"
+        desc={s.basis === "counters" ? "Of the use covered by solar and battery" : "Of the use covered by solar and battery, estimated"}
       />
       {priced ? (
         <MetricTile label="Saved" icon="piggy-bank" tone="up" value={eur(t.savings)} desc={bill(t)} />
@@ -200,8 +200,8 @@ function Columns({ p, onOpen, ...shown }: HiddenSeries & { p: GetPeriodResponse;
   const t = p.buckets.flatMap((b) => (b.totals ? [b.totals] : []));
   const series: ColumnSeries[] = [
     { label: "Solar, used directly", colour: colours.solar, values: t.map((x) => shares(x).solarDirect) },
-    { label: "From the battery", colour: colours.battery, values: t.map((x) => x.batteryDischarged) },
-    { label: "From the grid", colour: colours.grid, values: t.map((x) => x.gridImport) },
+    { label: "From the battery", colour: colours.battery, values: t.map((x) => x.flows?.batteryUsed ?? x.batteryDischarged) },
+    { label: "From the grid", colour: colours.grid, values: t.map((x) => x.flows?.gridUsed ?? x.gridImport) },
     { label: "Exported", colour: colours.export, values: t.map((x) => -x.gridExport) },
     { label: "Into the battery", colour: colours.battery, values: t.map((x) => -x.batteryCharged) },
   ].filter((s) => s.values.some((v) => Math.abs(v) > 0.005));
@@ -324,7 +324,7 @@ function History() {
       </Panel>
       {p?.totals && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Energy" description="From the inverter's, the grid meter's and the battery's counters.">
+          <Panel title="Energy" description="From the inverter's, the grid meter's and the battery's counters, split every 5 minutes.">
             <EnergySankey t={p.totals} />
           </Panel>
           <Panel title="Money" description="Bought and sold at the prices set in Plugins.">

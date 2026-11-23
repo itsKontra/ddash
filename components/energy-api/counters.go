@@ -38,7 +38,8 @@ func plausible(a, b point) bool {
 // measured from the last plausible one (the anchor), so a glitch and its
 // return cost nothing. Readings that keep agreeing with each other but
 // not with the anchor for reanchor become the new anchor. The first
-// reading only anchors.
+// reading only anchors. Every plausible reading after it is a step, of
+// 0 kWh when the counter stood still, so a step tells it was read.
 func steps(points []point) []step {
 	var out []step
 	var anchor point
@@ -51,12 +52,12 @@ func steps(points []point) []step {
 		if plausible(anchor, p) {
 			run = nil
 			// Within slack below the anchor: jitter, keep the anchor.
+			kwh := 0.0
 			if p.v >= anchor.v {
-				if p.v > anchor.v {
-					out = append(out, step{at: p.at, kwh: p.v - anchor.v})
-				}
+				kwh = p.v - anchor.v
 				anchor = p
 			}
+			out = append(out, step{at: p.at, kwh: kwh})
 			continue
 		}
 		if len(run) > 0 && plausible(run[len(run)-1], p) {

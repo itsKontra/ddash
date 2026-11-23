@@ -161,8 +161,12 @@ var systems = []system{
 		config: func(addr string) proto.Message {
 			return &energyapipb.EnergyApiConfig{Url: "http://" + addr, Token: "fake-token", BuyPrice: "0.2418", SellPrice: "0.05786", BatteryCapacity: "10", BatteryReserve: fmt.Sprint(energyfake.Reserve)}
 		},
-		// The readings follow the clock: there is always a today.
-		serve: func(string) (http.Handler, error) { return energyfake.New(energyfake.Options{}), nil },
+		// The readings follow the clock: there is always a today. The
+		// battery charges from the grid every afternoon, and the VE.Bus
+		// counters begin 60 days ago, as after a backfilled history.
+		serve: func(string) (http.Handler, error) {
+			return energyfake.New(energyfake.Options{GridCharge: [2]float64{13, 15}, VEBusFrom: time.Now().AddDate(0, 0, -60)}), nil
+		},
 	},
 	{
 		component: "anthropic-api",

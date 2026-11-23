@@ -1,6 +1,6 @@
 import type { Prices, Totals } from "@ddash/proto/energy-api/energy_api_pb";
 import { cx, Icon, type IconName, type Tone } from "@ddash/ui";
-import { eur, kwh, pct } from "./energy";
+import { eur, kwh, pct, shares } from "./energy";
 
 /** A price per kWh in cents: "31.24 ct". */
 const cents = (v: number) => `${new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(v * 100)} ct`;
@@ -13,24 +13,32 @@ export interface Money {
   earned: boolean;
   /** The share of the grid cost the feed-in paid, up to 1; none without a cost. */
   covered?: number;
-  /** The savings not spent on the grid, by using solar and battery energy. */
+  /** What wasn't spent on the grid by using solar and battery energy. */
   notBought: number;
-  /** The kWh of its own the house used, as the savings count them. */
+  /** The kWh of its own the house used, as the self-sufficiency counts them. */
   ownUse: number;
+  /** The kWh the grid charged into the battery: bought already, so the battery's discharge of it saved nothing. */
+  gridCharge: number;
   /** What buying all the use from the grid would have cost. */
   withoutSolar: number;
 }
 
-/** The period's money, from its totals and the prices: the savings split into not bought and feed-in, which they include. */
+/**
+ * The period's money, from its totals and the prices: the savings split
+ * into not bought, less what the grid charged into the battery, and the
+ * feed-in. The own use is the self-sufficiency's (shares' ownUse).
+ */
 export function money(t: Totals, prices: Prices): Money {
   const bill = t.cost - t.revenue;
-  const notBought = Math.max(0, t.savings - t.revenue);
+  const s = shares(t);
+  const gridCharge = t.flows?.gridBattery ?? 0;
   return {
     bill,
     earned: bill < 0,
     covered: t.cost > 0 ? Math.min(1, t.revenue / t.cost) : undefined,
-    notBought,
-    ownUse: prices.buy > 0 ? notBought / prices.buy : 0,
+    notBought: s.ownUse * prices.buy,
+    ownUse: s.ownUse,
+    gridCharge,
     withoutSolar: t.consumption * prices.buy,
   };
 }
@@ -53,7 +61,8 @@ function Line({ icon, tone, label, detail, value }: { icon: IconName; tone: Tone
  * The period's money as a ledger: bought less sold makes the grid bill
  * (or, below zero, what the feed-in earned net), a bar of how much of the
  * grid cost the feed-in covered, and the savings split into what wasn't
- * bought and what the feed-in paid.
+ * bought, less what the grid charged into the battery, and what the
+ * feed-in paid.
  */
 export function MoneyLedger({ t, prices }: { t: Totals; prices: Prices }) {
   const m = money(t, prices);
@@ -99,7 +108,13 @@ export function MoneyLedger({ t, prices }: { t: Totals; prices: Prices }) {
         <div className="flex items-center gap-3 rounded-ui-sm bg-up-tint px-4 py-3">
           <Icon name="piggy-bank" tone="up" />
           <div className="min-w-0 flex-1 text-xs text-muted-foreground">
-            <b className="text-foreground tabular-nums">{eur(m.notBought)}</b> not bought by using {kwh(m.ownUse)} of your own, and <b className="text-foreground tabular-nums">{eur(t.revenue)}</b> from feed-in
+            <b className="text-foreground tabular-nums">{eur(m.notBought)}</b> not bought by using {kwh(m.ownUse)} of your own,{" "}
+            {m.gridCharge >= 0.05 && (
+              <>
+                less <b className="text-foreground tabular-nums">{eur(m.gridCharge * prices.buy)}</b> for the {kwh(m.gridCharge)} the grid charged into the battery,{" "}
+              </>
+            )}
+            and <b className="text-foreground tabular-nums">{eur(t.revenue)}</b> from feed-in
           </div>
           <div className="text-right">
             <div className="text-lg leading-tight font-extrabold text-up-text tabular-nums">{eur(t.savings)}</div>

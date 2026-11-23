@@ -743,8 +743,13 @@ type Totals struct {
 	// import × buy price, and export × sell price.
 	Cost    float64 `protobuf:"fixed64,9,opt,name=cost,proto3" json:"cost,omitempty"`
 	Revenue float64 `protobuf:"fixed64,10,opt,name=revenue,proto3" json:"revenue,omitempty"`
-	// What the PV system saved: (consumption - import) × buy price + revenue.
-	Savings       float64 `protobuf:"fixed64,11,opt,name=savings,proto3" json:"savings,omitempty"`
+	// What the PV system saved: what the house used of its own (solar and
+	// battery to the use) less what the grid charged into the battery, at
+	// the buy price, plus revenue. Below zero when charging from the grid
+	// cost more than the battery gave back in the period.
+	Savings float64 `protobuf:"fixed64,11,opt,name=savings,proto3" json:"savings,omitempty"`
+	// Where the energy went.
+	Flows         *Flows `protobuf:"bytes,12,opt,name=flows,proto3" json:"flows,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -856,6 +861,153 @@ func (x *Totals) GetSavings() float64 {
 	return 0
 }
 
+func (x *Totals) GetFlows() *Flows {
+	if x != nil {
+		return x.Flows
+	}
+	return nil
+}
+
+// Where a period's energy went, in kWh: attributed every 5 minutes and
+// summed, since a period's totals alone can't tell solar charging the
+// battery in the morning from the grid charging it in the afternoon. In
+// each 5 minutes the solar serves the use first, then charges the
+// battery, then is exported; the battery serves the use left before the
+// grid; the grid covers the rest of the use and the charge. Each source's
+// flows add up to its counter in Totals, and the flows into the use to
+// its consumption.
+type Flows struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	SolarUsed    float64                `protobuf:"fixed64,1,opt,name=solar_used,json=solarUsed,proto3" json:"solar_used,omitempty"`
+	SolarBattery float64                `protobuf:"fixed64,2,opt,name=solar_battery,json=solarBattery,proto3" json:"solar_battery,omitempty"`
+	SolarExport  float64                `protobuf:"fixed64,3,opt,name=solar_export,json=solarExport,proto3" json:"solar_export,omitempty"`
+	// Includes what the Victron's inverter lost discharging.
+	BatteryUsed   float64 `protobuf:"fixed64,4,opt,name=battery_used,json=batteryUsed,proto3" json:"battery_used,omitempty"`
+	BatteryExport float64 `protobuf:"fixed64,5,opt,name=battery_export,json=batteryExport,proto3" json:"battery_export,omitempty"`
+	GridUsed      float64 `protobuf:"fixed64,6,opt,name=grid_used,json=gridUsed,proto3" json:"grid_used,omitempty"`
+	GridBattery   float64 `protobuf:"fixed64,7,opt,name=grid_battery,json=gridBattery,proto3" json:"grid_battery,omitempty"`
+	// Whether part of the period lacks the Victron's VE.Bus energy
+	// counters, so its split was estimated from the power readings.
+	Estimated bool `protobuf:"varint,8,opt,name=estimated,proto3" json:"estimated,omitempty"`
+	// From the VE.Bus counters, over the hours that have them (zero
+	// without): what charging lost (AC in less charged), what discharging
+	// lost (discharged less AC out), and the energy to the Victron's AC-out
+	// loads. A bucket's losses may dip below zero by the battery counters'
+	// resolution.
+	ChargeLoss    float64 `protobuf:"fixed64,9,opt,name=charge_loss,json=chargeLoss,proto3" json:"charge_loss,omitempty"`
+	DischargeLoss float64 `protobuf:"fixed64,10,opt,name=discharge_loss,json=dischargeLoss,proto3" json:"discharge_loss,omitempty"`
+	AcOut         float64 `protobuf:"fixed64,11,opt,name=ac_out,json=acOut,proto3" json:"ac_out,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Flows) Reset() {
+	*x = Flows{}
+	mi := &file_energy_api_energy_api_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Flows) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Flows) ProtoMessage() {}
+
+func (x *Flows) ProtoReflect() protoreflect.Message {
+	mi := &file_energy_api_energy_api_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Flows.ProtoReflect.Descriptor instead.
+func (*Flows) Descriptor() ([]byte, []int) {
+	return file_energy_api_energy_api_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Flows) GetSolarUsed() float64 {
+	if x != nil {
+		return x.SolarUsed
+	}
+	return 0
+}
+
+func (x *Flows) GetSolarBattery() float64 {
+	if x != nil {
+		return x.SolarBattery
+	}
+	return 0
+}
+
+func (x *Flows) GetSolarExport() float64 {
+	if x != nil {
+		return x.SolarExport
+	}
+	return 0
+}
+
+func (x *Flows) GetBatteryUsed() float64 {
+	if x != nil {
+		return x.BatteryUsed
+	}
+	return 0
+}
+
+func (x *Flows) GetBatteryExport() float64 {
+	if x != nil {
+		return x.BatteryExport
+	}
+	return 0
+}
+
+func (x *Flows) GetGridUsed() float64 {
+	if x != nil {
+		return x.GridUsed
+	}
+	return 0
+}
+
+func (x *Flows) GetGridBattery() float64 {
+	if x != nil {
+		return x.GridBattery
+	}
+	return 0
+}
+
+func (x *Flows) GetEstimated() bool {
+	if x != nil {
+		return x.Estimated
+	}
+	return false
+}
+
+func (x *Flows) GetChargeLoss() float64 {
+	if x != nil {
+		return x.ChargeLoss
+	}
+	return 0
+}
+
+func (x *Flows) GetDischargeLoss() float64 {
+	if x != nil {
+		return x.DischargeLoss
+	}
+	return 0
+}
+
+func (x *Flows) GetAcOut() float64 {
+	if x != nil {
+		return x.AcOut
+	}
+	return 0
+}
+
 type Sample struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	At            *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=at,proto3" json:"at,omitempty"`
@@ -867,7 +1019,7 @@ type Sample struct {
 
 func (x *Sample) Reset() {
 	*x = Sample{}
-	mi := &file_energy_api_energy_api_proto_msgTypes[9]
+	mi := &file_energy_api_energy_api_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -879,7 +1031,7 @@ func (x *Sample) String() string {
 func (*Sample) ProtoMessage() {}
 
 func (x *Sample) ProtoReflect() protoreflect.Message {
-	mi := &file_energy_api_energy_api_proto_msgTypes[9]
+	mi := &file_energy_api_energy_api_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -892,7 +1044,7 @@ func (x *Sample) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Sample.ProtoReflect.Descriptor instead.
 func (*Sample) Descriptor() ([]byte, []int) {
-	return file_energy_api_energy_api_proto_rawDescGZIP(), []int{9}
+	return file_energy_api_energy_api_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Sample) GetAt() *timestamppb.Timestamp {
@@ -927,7 +1079,7 @@ type Prices struct {
 
 func (x *Prices) Reset() {
 	*x = Prices{}
-	mi := &file_energy_api_energy_api_proto_msgTypes[10]
+	mi := &file_energy_api_energy_api_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -939,7 +1091,7 @@ func (x *Prices) String() string {
 func (*Prices) ProtoMessage() {}
 
 func (x *Prices) ProtoReflect() protoreflect.Message {
-	mi := &file_energy_api_energy_api_proto_msgTypes[10]
+	mi := &file_energy_api_energy_api_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -952,7 +1104,7 @@ func (x *Prices) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Prices.ProtoReflect.Descriptor instead.
 func (*Prices) Descriptor() ([]byte, []int) {
-	return file_energy_api_energy_api_proto_rawDescGZIP(), []int{10}
+	return file_energy_api_energy_api_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Prices) GetBuy() float64 {
@@ -1040,7 +1192,7 @@ const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\x06Bucket\x12.\n" +
 	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12/\n" +
-	"\x06totals\x18\x03 \x01(\v2\x17.ddash.energyapi.TotalsR\x06totals\"\xd5\x02\n" +
+	"\x06totals\x18\x03 \x01(\v2\x17.ddash.energyapi.TotalsR\x06totals\"\x83\x03\n" +
 	"\x06Totals\x12\x14\n" +
 	"\x05solar\x18\x01 \x01(\x01R\x05solar\x12\x1f\n" +
 	"\vgrid_import\x18\x02 \x01(\x01R\n" +
@@ -1055,7 +1207,23 @@ const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\x04cost\x18\t \x01(\x01R\x04cost\x12\x18\n" +
 	"\arevenue\x18\n" +
 	" \x01(\x01R\arevenue\x12\x18\n" +
-	"\asavings\x18\v \x01(\x01R\asavings\"\x8c\x01\n" +
+	"\asavings\x18\v \x01(\x01R\asavings\x12,\n" +
+	"\x05flows\x18\f \x01(\v2\x16.ddash.energyapi.FlowsR\x05flows\"\xf5\x02\n" +
+	"\x05Flows\x12\x1d\n" +
+	"\n" +
+	"solar_used\x18\x01 \x01(\x01R\tsolarUsed\x12#\n" +
+	"\rsolar_battery\x18\x02 \x01(\x01R\fsolarBattery\x12!\n" +
+	"\fsolar_export\x18\x03 \x01(\x01R\vsolarExport\x12!\n" +
+	"\fbattery_used\x18\x04 \x01(\x01R\vbatteryUsed\x12%\n" +
+	"\x0ebattery_export\x18\x05 \x01(\x01R\rbatteryExport\x12\x1b\n" +
+	"\tgrid_used\x18\x06 \x01(\x01R\bgridUsed\x12!\n" +
+	"\fgrid_battery\x18\a \x01(\x01R\vgridBattery\x12\x1c\n" +
+	"\testimated\x18\b \x01(\bR\testimated\x12\x1f\n" +
+	"\vcharge_loss\x18\t \x01(\x01R\n" +
+	"chargeLoss\x12%\n" +
+	"\x0edischarge_loss\x18\n" +
+	" \x01(\x01R\rdischargeLoss\x12\x15\n" +
+	"\x06ac_out\x18\v \x01(\x01R\x05acOut\"\x8c\x01\n" +
 	"\x06Sample\x12*\n" +
 	"\x02at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x02at\x12,\n" +
 	"\x05power\x18\x02 \x01(\v2\x16.ddash.energyapi.PowerR\x05power\x12\x1c\n" +
@@ -1089,7 +1257,7 @@ func file_energy_api_energy_api_proto_rawDescGZIP() []byte {
 }
 
 var file_energy_api_energy_api_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_energy_api_energy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_energy_api_energy_api_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_energy_api_energy_api_proto_goTypes = []any{
 	(Span)(0),                     // 0: ddash.energyapi.Span
 	(*EnergyApiConfig)(nil),       // 1: ddash.energyapi.EnergyApiConfig
@@ -1101,36 +1269,38 @@ var file_energy_api_energy_api_proto_goTypes = []any{
 	(*GetPeriodResponse)(nil),     // 7: ddash.energyapi.GetPeriodResponse
 	(*Bucket)(nil),                // 8: ddash.energyapi.Bucket
 	(*Totals)(nil),                // 9: ddash.energyapi.Totals
-	(*Sample)(nil),                // 10: ddash.energyapi.Sample
-	(*Prices)(nil),                // 11: ddash.energyapi.Prices
-	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
+	(*Flows)(nil),                 // 10: ddash.energyapi.Flows
+	(*Sample)(nil),                // 11: ddash.energyapi.Sample
+	(*Prices)(nil),                // 12: ddash.energyapi.Prices
+	(*timestamppb.Timestamp)(nil), // 13: google.protobuf.Timestamp
 }
 var file_energy_api_energy_api_proto_depIdxs = []int32{
-	12, // 0: ddash.energyapi.GetFlowResponse.at:type_name -> google.protobuf.Timestamp
+	13, // 0: ddash.energyapi.GetFlowResponse.at:type_name -> google.protobuf.Timestamp
 	4,  // 1: ddash.energyapi.GetFlowResponse.power:type_name -> ddash.energyapi.Power
 	5,  // 2: ddash.energyapi.GetFlowResponse.battery:type_name -> ddash.energyapi.Battery
 	0,  // 3: ddash.energyapi.GetPeriodRequest.span:type_name -> ddash.energyapi.Span
 	0,  // 4: ddash.energyapi.GetPeriodResponse.span:type_name -> ddash.energyapi.Span
-	12, // 5: ddash.energyapi.GetPeriodResponse.from:type_name -> google.protobuf.Timestamp
-	12, // 6: ddash.energyapi.GetPeriodResponse.to:type_name -> google.protobuf.Timestamp
+	13, // 5: ddash.energyapi.GetPeriodResponse.from:type_name -> google.protobuf.Timestamp
+	13, // 6: ddash.energyapi.GetPeriodResponse.to:type_name -> google.protobuf.Timestamp
 	9,  // 7: ddash.energyapi.GetPeriodResponse.totals:type_name -> ddash.energyapi.Totals
 	8,  // 8: ddash.energyapi.GetPeriodResponse.buckets:type_name -> ddash.energyapi.Bucket
-	10, // 9: ddash.energyapi.GetPeriodResponse.samples:type_name -> ddash.energyapi.Sample
-	11, // 10: ddash.energyapi.GetPeriodResponse.prices:type_name -> ddash.energyapi.Prices
-	12, // 11: ddash.energyapi.Bucket.from:type_name -> google.protobuf.Timestamp
-	12, // 12: ddash.energyapi.Bucket.to:type_name -> google.protobuf.Timestamp
+	11, // 9: ddash.energyapi.GetPeriodResponse.samples:type_name -> ddash.energyapi.Sample
+	12, // 10: ddash.energyapi.GetPeriodResponse.prices:type_name -> ddash.energyapi.Prices
+	13, // 11: ddash.energyapi.Bucket.from:type_name -> google.protobuf.Timestamp
+	13, // 12: ddash.energyapi.Bucket.to:type_name -> google.protobuf.Timestamp
 	9,  // 13: ddash.energyapi.Bucket.totals:type_name -> ddash.energyapi.Totals
-	12, // 14: ddash.energyapi.Sample.at:type_name -> google.protobuf.Timestamp
-	4,  // 15: ddash.energyapi.Sample.power:type_name -> ddash.energyapi.Power
-	2,  // 16: ddash.energyapi.EnergyApiService.GetFlow:input_type -> ddash.energyapi.GetFlowRequest
-	6,  // 17: ddash.energyapi.EnergyApiService.GetPeriod:input_type -> ddash.energyapi.GetPeriodRequest
-	3,  // 18: ddash.energyapi.EnergyApiService.GetFlow:output_type -> ddash.energyapi.GetFlowResponse
-	7,  // 19: ddash.energyapi.EnergyApiService.GetPeriod:output_type -> ddash.energyapi.GetPeriodResponse
-	18, // [18:20] is the sub-list for method output_type
-	16, // [16:18] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	10, // 14: ddash.energyapi.Totals.flows:type_name -> ddash.energyapi.Flows
+	13, // 15: ddash.energyapi.Sample.at:type_name -> google.protobuf.Timestamp
+	4,  // 16: ddash.energyapi.Sample.power:type_name -> ddash.energyapi.Power
+	2,  // 17: ddash.energyapi.EnergyApiService.GetFlow:input_type -> ddash.energyapi.GetFlowRequest
+	6,  // 18: ddash.energyapi.EnergyApiService.GetPeriod:input_type -> ddash.energyapi.GetPeriodRequest
+	3,  // 19: ddash.energyapi.EnergyApiService.GetFlow:output_type -> ddash.energyapi.GetFlowResponse
+	7,  // 20: ddash.energyapi.EnergyApiService.GetPeriod:output_type -> ddash.energyapi.GetPeriodResponse
+	19, // [19:21] is the sub-list for method output_type
+	17, // [17:19] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_energy_api_energy_api_proto_init() }
@@ -1141,14 +1311,14 @@ func file_energy_api_energy_api_proto_init() {
 	file_energy_api_energy_api_proto_msgTypes[0].OneofWrappers = []any{}
 	file_energy_api_energy_api_proto_msgTypes[3].OneofWrappers = []any{}
 	file_energy_api_energy_api_proto_msgTypes[4].OneofWrappers = []any{}
-	file_energy_api_energy_api_proto_msgTypes[9].OneofWrappers = []any{}
+	file_energy_api_energy_api_proto_msgTypes[10].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_energy_api_energy_api_proto_rawDesc), len(file_energy_api_energy_api_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

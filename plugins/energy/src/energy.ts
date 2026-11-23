@@ -67,7 +67,7 @@ export const pct = (ratio: number) => `${Math.round(ratio * 100)} %`;
 
 /** What a period's totals mean beyond the counters. */
 export interface Shares {
-  /** How much of the consumption the house's own solar and battery covered. */
+  /** How much of the use the house's own solar and battery covered. */
   selfSufficiency?: number;
   /** How much of the solar the house used itself, directly or later from the battery. */
   selfConsumption?: number;
@@ -75,16 +75,53 @@ export interface Shares {
   other: number;
   /** Solar used as it was produced. */
   solarDirect: number;
+  /** What the house used of its own: solar and battery to the use, in kWh. */
+  ownUse: number;
+  /**
+   * How the split was made: "counters" from the VE.Bus counters every 5
+   * minutes, "powers" from the power readings for part of the period that
+   * lacks them, "totals" from the period's totals alone.
+   */
+  basis: "counters" | "powers" | "totals";
 }
 
+const ratio = (part: number, whole: number) => (whole > 0 ? Math.min(1, Math.max(0, part / whole)) : undefined);
+
+/**
+ * The period's shares, from the flows energy-api attributed every 5
+ * minutes. Without them, from its totals: the solar fills the export and
+ * the battery first and the rest counts as used directly, which misses
+ * any energy that moved both ways in the period.
+ */
 export function shares(t: Totals): Shares {
-  const solarDirect = Math.max(0, t.solar - t.gridExport - t.batteryCharged);
+  const other = Math.max(0, t.consumption - t.house - t.heatPump);
+  const f = t.flows;
+  if (f) {
+    const ownUse = f.solarUsed + f.batteryUsed;
+    return {
+      selfSufficiency: ratio(ownUse, ownUse + f.gridUsed),
+      selfConsumption: ratio(t.solar - f.solarExport, t.solar),
+      other,
+      solarDirect: f.solarUsed,
+      ownUse,
+      basis: f.estimated ? "powers" : "counters",
+    };
+  }
   return {
-    selfSufficiency: t.consumption > 0 ? Math.min(1, Math.max(0, 1 - t.gridImport / t.consumption)) : undefined,
-    selfConsumption: t.solar > 0 ? Math.min(1, Math.max(0, 1 - t.gridExport / t.solar)) : undefined,
-    other: Math.max(0, t.consumption - t.house - t.heatPump),
-    solarDirect,
+    selfSufficiency: ratio(t.consumption - t.gridImport, t.consumption),
+    selfConsumption: ratio(t.solar - t.gridExport, t.solar),
+    other,
+    solarDirect: Math.max(0, t.solar - t.gridExport - t.batteryCharged),
+    ownUse: Math.max(0, t.consumption - t.gridImport),
+    basis: "totals",
   };
+}
+
+/** What a split's basis says about it, or nothing when it is the counters'. */
+export function estimate(basis: Shares["basis"]): string | undefined {
+  if (basis === "powers") return "Partly estimated from the power readings: the Victron's VE.Bus counters are missing for part of this period.";
+  if (basis === "totals") return "Estimated from the period's totals.";
+  return undefined;
 }
 
 /** A self-sufficiency's tone: up from 70 %, info from 30 %, else idle. */
