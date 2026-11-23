@@ -62,6 +62,12 @@ type Options struct {
 	// loads and counters), as before a history's first Victron readings;
 	// the whole history has them when zero.
 	VictronFrom time.Time
+	// VictronGap is when the Victron GX isn't read, [from, to), as while
+	// it hangs; a zero to leaves it quiet from from on. None when from is
+	// zero.
+	VictronGap [2]time.Time
+	// InverterGap is the same for the Huawei inverter and its grid meter.
+	InverterGap [2]time.Time
 }
 
 // Server is the fake. It is safe for concurrent use.
@@ -90,7 +96,9 @@ func New(opts Options) *Server {
 		opts.Glitch = time.Date(d.Year(), d.Month(), d.Day(), 17, 50, 0, 0, time.UTC)
 	}
 	start := now.AddDate(0, 0, -400).Truncate(24 * time.Hour)
-	return &Server{opts: opts, sim: &sim{start: start, glitch: opts.Glitch, gridCharge: opts.GridCharge, vebusFrom: opts.VEBusFrom, victronFrom: opts.VictronFrom}}
+	return &Server{opts: opts, sim: &sim{start: start, glitch: opts.Glitch, gridCharge: opts.GridCharge, vebusFrom: opts.VEBusFrom, victronFrom: opts.VictronFrom, gaps: map[string][2]time.Time{
+		"victron": opts.VictronGap, "kW": opts.InverterGap, "kWh": opts.InverterGap,
+	}}}
 }
 
 // Queries returns every Flux query answered so far.
@@ -261,6 +269,9 @@ func (s *sim) answer(q query) []out {
 			n, sum = 0, 0
 		}
 		for i := max(s.index(q.from), since); i < s.n && s.at(i).Before(q.to); i++ {
+			if s.quiet(measurement, i) {
+				continue
+			}
 			v := read(i)
 			if bounded && (v < bound[0] || v > bound[1]) {
 				continue
@@ -299,7 +310,9 @@ type sim struct {
 	gridCharge  [2]float64
 	vebusFrom   time.Time
 	victronFrom time.Time
-	n           int
+	// gaps is when each measurement isn't read, by measurement.
+	gaps map[string][2]time.Time
+	n    int
 	// Powers in kW (battery positive while charging, grid positive while
 	// importing), the state of charge in %, and the counters in kWh.
 	solar, house, heatPump, battery, grid, soc                []float64
@@ -318,6 +331,14 @@ func (s *sim) index(t time.Time) int {
 		return 0
 	}
 	return int((t.Sub(s.start) + Step - 1) / Step)
+}
+
+// quiet tells whether measurement isn't read at reading i: it is in its
+// gap.
+func (s *sim) quiet(measurement string, i int) bool {
+	g := s.gaps[measurement]
+	t := s.at(i)
+	return !g[0].IsZero() && !t.Before(g[0]) && (g[1].IsZero() || t.Before(g[1]))
 }
 
 func (s *sim) glitching(i int) bool {

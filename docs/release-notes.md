@@ -5,6 +5,12 @@ Release moves **Unreleased** under its tag ([releasing](releasing.md)).
 
 ## Unreleased
 
+- energy-api is **degraded** with "The Victron hasn't reported for 15 min"
+  when the Victron stops reporting while the inverter still does (and the
+  other way round), and sends one Notification when it goes quiet and one
+  when it reports again ("The Victron reports again after 8 h 45 min").
+  They come in the **Checks** category of each channel's filter.
+
 - The Energy Page's Sankey splits what was "Lost or unmetered" into
   **Battery losses** (from the Victron's VE.Bus counters, where it has
   them) and **Unmetered**. The use from before the Victron's first
