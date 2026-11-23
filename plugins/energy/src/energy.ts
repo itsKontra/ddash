@@ -71,8 +71,6 @@ export interface Shares {
   selfSufficiency?: number;
   /** How much of the solar the house used itself, directly or later from the battery. */
   selfConsumption?: number;
-  /** Consumption the Victron doesn't meter as a load: conversion losses, and all of it before the Victron was read. */
-  other: number;
   /** Solar used as it was produced. */
   solarDirect: number;
   /** What the house used of its own: solar and battery to the use, in kWh. */
@@ -94,14 +92,12 @@ const ratio = (part: number, whole: number) => (whole > 0 ? Math.min(1, Math.max
  * any energy that moved both ways in the period.
  */
 export function shares(t: Totals): Shares {
-  const other = Math.max(0, t.consumption - t.house - t.heatPump);
   const f = t.flows;
   if (f) {
     const ownUse = f.solarUsed + f.batteryUsed;
     return {
       selfSufficiency: ratio(ownUse, ownUse + f.gridUsed),
       selfConsumption: ratio(t.solar - f.solarExport, t.solar),
-      other,
       solarDirect: f.solarUsed,
       ownUse,
       basis: f.estimated ? "powers" : "counters",
@@ -110,11 +106,35 @@ export function shares(t: Totals): Shares {
   return {
     selfSufficiency: ratio(t.consumption - t.gridImport, t.consumption),
     selfConsumption: ratio(t.solar - t.gridExport, t.solar),
-    other,
     solarDirect: Math.max(0, t.solar - t.gridExport - t.batteryCharged),
     ownUse: Math.max(0, t.consumption - t.gridImport),
     basis: "totals",
   };
+}
+
+/** What the period's use went to, in kWh, adding up to its consumption. */
+export interface Uses {
+  house: number;
+  heatPump: number;
+  /** What charging and discharging the battery lost, where the VE.Bus counters tell. */
+  batteryLosses: number;
+  /** The rest: loads the Victron doesn't see, and losses the counters don't tell. */
+  unmetered: number;
+  /** The use while the Victron has no readings, which house and heat pump can't split. */
+  notSplit: number;
+}
+
+/**
+ * The period's use split: what the Victron didn't split first, then the
+ * house and heat pump, the battery's losses (no more than is left) and
+ * the rest unmetered.
+ */
+export function uses(t: Totals): Uses {
+  const notSplit = Math.min(t.consumption, Math.max(0, t.unsplit));
+  const rest = Math.max(0, t.consumption - notSplit - t.house - t.heatPump);
+  const losses = (t.flows?.chargeLoss ?? 0) + (t.flows?.dischargeLoss ?? 0);
+  const batteryLosses = Math.min(rest, Math.max(0, losses));
+  return { house: t.house, heatPump: t.heatPump, batteryLosses, unmetered: rest - batteryLosses, notSplit };
 }
 
 /** What a split's basis says about it, or nothing when it is the counters'. */

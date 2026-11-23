@@ -737,9 +737,16 @@ type Totals struct {
 	BatteryDischarged float64 `protobuf:"fixed64,5,opt,name=battery_discharged,json=batteryDischarged,proto3" json:"battery_discharged,omitempty"`
 	// Everything used: solar + import - export - charged + discharged.
 	Consumption float64 `protobuf:"fixed64,6,opt,name=consumption,proto3" json:"consumption,omitempty"`
-	// From the Victron's power readings, integrated: zero where it has none.
+	// The Victron's loads: the house on its AC output (from the VE.Bus
+	// counters, else its power integrated) and the heat pump (its power
+	// integrated), over the 5 minutes the Victron has readings for.
 	House    float64 `protobuf:"fixed64,7,opt,name=house,proto3" json:"house,omitempty"`
 	HeatPump float64 `protobuf:"fixed64,8,opt,name=heat_pump,json=heatPump,proto3" json:"heat_pump,omitempty"`
+	// The use of the 5 minutes the Victron has no readings for (before its
+	// first, or in a gap), which house and heat pump can't split. The rest
+	// of the use, less the house, the heat pump and the battery's losses,
+	// is unmetered.
+	Unsplit float64 `protobuf:"fixed64,13,opt,name=unsplit,proto3" json:"unsplit,omitempty"`
 	// import × buy price, and export × sell price.
 	Cost    float64 `protobuf:"fixed64,9,opt,name=cost,proto3" json:"cost,omitempty"`
 	Revenue float64 `protobuf:"fixed64,10,opt,name=revenue,proto3" json:"revenue,omitempty"`
@@ -836,6 +843,13 @@ func (x *Totals) GetHouse() float64 {
 func (x *Totals) GetHeatPump() float64 {
 	if x != nil {
 		return x.HeatPump
+	}
+	return 0
+}
+
+func (x *Totals) GetUnsplit() float64 {
+	if x != nil {
+		return x.Unsplit
 	}
 	return 0
 }
@@ -1192,7 +1206,7 @@ const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\x06Bucket\x12.\n" +
 	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12/\n" +
-	"\x06totals\x18\x03 \x01(\v2\x17.ddash.energyapi.TotalsR\x06totals\"\x83\x03\n" +
+	"\x06totals\x18\x03 \x01(\v2\x17.ddash.energyapi.TotalsR\x06totals\"\x9d\x03\n" +
 	"\x06Totals\x12\x14\n" +
 	"\x05solar\x18\x01 \x01(\x01R\x05solar\x12\x1f\n" +
 	"\vgrid_import\x18\x02 \x01(\x01R\n" +
@@ -1203,7 +1217,8 @@ const file_energy_api_energy_api_proto_rawDesc = "" +
 	"\x12battery_discharged\x18\x05 \x01(\x01R\x11batteryDischarged\x12 \n" +
 	"\vconsumption\x18\x06 \x01(\x01R\vconsumption\x12\x14\n" +
 	"\x05house\x18\a \x01(\x01R\x05house\x12\x1b\n" +
-	"\theat_pump\x18\b \x01(\x01R\bheatPump\x12\x12\n" +
+	"\theat_pump\x18\b \x01(\x01R\bheatPump\x12\x18\n" +
+	"\aunsplit\x18\r \x01(\x01R\aunsplit\x12\x12\n" +
 	"\x04cost\x18\t \x01(\x01R\x04cost\x12\x18\n" +
 	"\arevenue\x18\n" +
 	" \x01(\x01R\arevenue\x12\x18\n" +

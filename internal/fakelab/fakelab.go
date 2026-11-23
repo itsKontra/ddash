@@ -162,10 +162,11 @@ var systems = []system{
 			return &energyapipb.EnergyApiConfig{Url: "http://" + addr, Token: "fake-token", BuyPrice: "0.2418", SellPrice: "0.05786", BatteryCapacity: "10", BatteryReserve: fmt.Sprint(energyfake.Reserve)}
 		},
 		// The readings follow the clock: there is always a today. The
-		// battery charges from the grid every afternoon, and the VE.Bus
-		// counters begin 60 days ago, as after a backfilled history.
+		// battery charges from the grid every afternoon. The Victron is
+		// read from 200 days ago, and its VE.Bus counters begin 60 days
+		// ago, as after a backfilled history.
 		serve: func(string) (http.Handler, error) {
-			return energyfake.New(energyfake.Options{GridCharge: [2]float64{13, 15}, VEBusFrom: time.Now().AddDate(0, 0, -60)}), nil
+			return energyfake.New(energyfake.Options{GridCharge: [2]float64{13, 15}, VictronFrom: time.Now().AddDate(0, 0, -200), VEBusFrom: time.Now().AddDate(0, 0, -60)}), nil
 		},
 	},
 	{

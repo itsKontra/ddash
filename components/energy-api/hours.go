@@ -12,7 +12,7 @@ import (
 
 // algoVersion is the version of how an hour is attributed. A cached hour
 // of another version is attributed again when it is read.
-const algoVersion = 1
+const algoVersion = 2
 
 const (
 	// slot is what an hour is attributed in: a sum of minimums isn't the
@@ -55,14 +55,16 @@ const (
 	nCounters
 )
 
-// splitPowers split a slot that lacks the VE.Bus counters, in the order
-// of the p… indexes below.
-var splitPowers = []series{solarKW, gridKW, batteryKW}
+// slotPowers split a slot that lacks the VE.Bus counters and measure the
+// Victron's loads, in the order of the p… indexes below.
+var slotPowers = []series{solarKW, gridKW, batteryKW, houseKW, heatPumpKW}
 
 const (
 	pSolar = iota
 	pGrid
 	pBattery
+	pHouse
+	pHeatPump
 	nPowers
 )
 
@@ -92,6 +94,27 @@ func (s *slotReadings) vebus() bool {
 		}
 	}
 	return true
+}
+
+// use is what the slot's counters say was used.
+func (s *slotReadings) use() float64 {
+	return s.kwh[cSolar] + s.kwh[cImport] - s.kwh[cExport] - s.kwh[cCharged] + s.kwh[cDischarged]
+}
+
+// loads are the Victron's house and heat pump in a slot of length d, and
+// whether the Victron measured them: the house from the VE.Bus counters
+// where the slot has them, else from its power.
+func (s *slotReadings) loads(d time.Duration) (house, heatPump float64, ok bool) {
+	h := d.Hours()
+	if s.vebus() {
+		house, ok = s.kwh[cInToOut]+s.kwh[cInvToOut]-s.kwh[cOutToInv], true
+	} else if s.powered[pHouse] {
+		house, ok = max(0, s.power[pHouse])*h, true
+	}
+	if s.powered[pHeatPump] {
+		heatPump, ok = max(0, s.power[pHeatPump])*h, true
+	}
+	return house, heatPump, ok
 }
 
 // counted tells whether any of the Huawei's or the grid meter's counters
@@ -194,7 +217,7 @@ func (c *component) attributeHours(ctx context.Context, from, to time.Time) ([]h
 		return err
 	})
 	g.Go(func() (err error) {
-		powers, err = db.query(gctx, flux(db.bucket, from, to, splitPowers, reduce{every: slot, fn: "mean"}))
+		powers, err = db.query(gctx, flux(db.bucket, from, to, slotPowers, reduce{every: slot, fn: "mean"}))
 		return err
 	})
 	if err := g.Wait(); err != nil {
@@ -235,8 +258,8 @@ func (c *component) attributeHours(ctx context.Context, from, to time.Time) ([]h
 		}
 	}
 	for _, r := range powers {
-		i := slices.IndexFunc(splitPowers, func(s series) bool { return s.field == r.field })
-		if n := slotOf(r.at); i >= 0 && n >= 0 && splitPowers[i].plausible(r.value) {
+		i := slices.IndexFunc(slotPowers, func(s series) bool { return s.field == r.field })
+		if n := slotOf(r.at); i >= 0 && n >= 0 && slotPowers[i].plausible(r.value) {
 			slots[n].power[i] = r.value
 			slots[n].powered[i] = true
 		}
@@ -249,6 +272,7 @@ func (c *component) attributeHours(ctx context.Context, from, to time.Time) ([]h
 		var sh share
 		var vebus [nCounters]float64
 		counted, split := 0, 0
+		var unsplit float64
 		for n := start; n < min(start+perHour, len(slots)); n++ {
 			r := &slots[n]
 			t.Solar += r.kwh[cSolar]
@@ -263,6 +287,14 @@ func (c *component) attributeHours(ctx context.Context, from, to time.Time) ([]h
 				continue
 			}
 			counted++
+			// The last slot may end early, at to.
+			at := from.Add(time.Duration(n) * slot)
+			if house, heatPump, ok := r.loads(earliest(at.Add(slot), to).Sub(at)); ok {
+				t.House += house
+				t.HeatPump += heatPump
+			} else {
+				unsplit += r.use()
+			}
 			if r.vebus() {
 				split++
 				sh.add(splitSlot(r))
@@ -270,6 +302,7 @@ func (c *component) attributeHours(ctx context.Context, from, to time.Time) ([]h
 				sh.add(s)
 			}
 		}
+		t.Unsplit = min(max(0, unsplit), max(0, t.Solar+t.GridImport-t.GridExport-t.BatteryCharged+t.BatteryDischarged))
 		t.Flows = attribute(t, sh)
 		t.Flows.Estimated = split < counted
 		if split > 0 && !t.Flows.Estimated {

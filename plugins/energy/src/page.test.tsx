@@ -94,13 +94,26 @@ it("draws the period's energy as a Sankey, each node's counter as text and each 
   expect(node("solar")).toBe(`Solar${kwh(41.2)}`);
   expect(node("used")).toBe(`Used${kwh(t.consumption)}`);
   expect(node("house")).toBe(`House${kwh(5.7)}`);
-  expect(node("other")).toBe(`Lost or unmetered${kwh(t.consumption - 5.7 - 0.7)}`);
+  expect(node("unmetered")).toBe(`Unmetered${kwh(t.consumption - 5.7 - 0.7)}`);
   expect(node("batteryIn")).toBe(`Into battery${kwh(15.7)}`);
   const exported = within(energy).getByRole("img", { name: `Solar to Exported: ${kwh(4.2)}` });
   fireEvent.focus(exported);
   expect(within(energy).getByRole("status").textContent).toBe(`Solar → Exported ${kwh(4.2)}`);
   expect(energy.textContent).toContain(`Self-consumption ${pct(1 - 4.2 / 41.2)}`);
   expect(energy.textContent).not.toContain("estimated");
+  expect(energy.textContent).not.toContain("Not split");
+});
+
+it("splits the battery's losses out of the unmetered, and says what the Victron didn't split", async () => {
+  const t = { ...today.totals, unsplit: 8, flows: { ...todayFlows, chargeLoss: 1.4, dischargeLoss: 0.2 } };
+  await show(() => Response.json({ ...today, totals: t }));
+
+  const energy = panel("Energy");
+  const node = (id: string) => energy.querySelector(`[data-node="${id}"]`)?.textContent;
+  expect(node("batteryLosses")).toBe(`Battery losses${kwh(1.6)}`);
+  expect(node("notSplit")).toBe(`Not split${kwh(8)}`);
+  expect(node("unmetered")).toBe(`Unmetered${kwh(t.consumption - 8 - 5.7 - 0.7 - 1.6)}`);
+  expect(energy.textContent).toContain(`so ${kwh(8)} of the use isn't split into house and heat pump`);
 });
 
 // One source of truth: the flows energy-api attributed every 5 minutes.

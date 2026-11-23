@@ -37,6 +37,7 @@ export function totals(solar: number, gridImport: number, gridExport: number, ch
     consumption,
     house,
     heatPump,
+    unsplit: 0,
     cost,
     revenue,
     savings: Math.max(0, consumption - gridImport) * 0.2418 + revenue,
